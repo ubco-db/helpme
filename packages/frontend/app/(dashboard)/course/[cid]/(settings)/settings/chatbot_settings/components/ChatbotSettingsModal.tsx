@@ -1,6 +1,5 @@
-'use client'
-
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { API } from '@/app/api'
 import {
   Button,
   Form,
@@ -8,263 +7,171 @@ import {
   InputNumber,
   message,
   Modal,
-  Progress,
-  ProgressProps,
   Select,
   Space,
   Tooltip,
 } from 'antd'
 import {
-  ExclamationCircleOutlined,
-  InfoCircleOutlined,
-  SettingOutlined,
-} from '@ant-design/icons'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { ChatbotSettingsMetadata } from '@koh/common'
-import ChatbotHelpTooltip from '../../components/ChatbotHelpTooltip'
+  getErrorMessage,
+  getModelSpeedAndQualityEstimate,
+} from '@/app/utils/generalUtils'
+import {
+  ChatbotProvider,
+  ChatbotServiceProvider,
+  CourseChatbotSettings,
+  CourseChatbotSettingsForm,
+  LLMType,
+} from '@koh/common'
+import { InfoCircleOutlined, SettingOutlined } from '@ant-design/icons'
+import ChatbotHelpTooltip from '@/app/(dashboard)/course/[cid]/(settings)/settings/components/ChatbotHelpTooltip'
+import ChatbotModelInfoTooltip from '@/app/(dashboard)/components/ChatbotModelInfoTooltip'
+import LLMTypeDisplay from '@/app/(dashboard)/organization/ai/components/LLMTypeDisplay'
+import LLMSelect from '@/app/(dashboard)/organization/ai/components/LLMSelect'
 
 interface ChatbotSettingsModalProps {
   open: boolean
+  organizationId: number
   courseId: number
   onClose: () => void
 }
 
-enum AvailableModelTypes {
-  Qwen = 'qwen2.5:7b',
-  DEEPSEEK = 'deepseek-r1:14b',
-  GPT4o_mini = 'gpt-4o-mini',
-  GPT4o = 'gpt-4o',
-}
-
 const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
   open,
+  organizationId,
   courseId,
   onClose,
 }) => {
-  const [form] = Form.useForm()
-  const [loading, setLoading] = useState(false)
-  const [loadingModels, setLoadingModels] = useState(false)
-  const [availableModels, setAvailableModels] = useState<Record<
-    string,
-    string
-  > | null>(null)
+  const [form] = Form.useForm<CourseChatbotSettingsForm>()
+  const [isLoadingData, setLoadingData] = useState(false)
+  const [isPerformingAction, _setIsPerformingAction] = useState(false)
 
-  const fetchAvailableModels = useCallback(async () => {
-    setLoadingModels(true)
-    API.chatbot.staffOnly
-      .getModels(courseId)
-      .then((availableModels) => {
-        setAvailableModels(availableModels)
-      })
-      .catch((error) => {
-        message.error(
-          'Failed to load available models: ' + getErrorMessage(error),
-        )
-      })
-      .finally(() => setLoadingModels(false))
-  }, [courseId])
-
-  const fetchChatbotSettings = useCallback(async () => {
-    setLoading(true)
-    await API.chatbot.staffOnly
-      .getSettings(courseId)
-      .then((currentChatbotSettings) => {
-        form.setFieldsValue({
-          ...currentChatbotSettings.metadata,
-        })
-      })
-      .catch((error) => {
-        message.error(
-          'Failed to load chatbot settings: ' + getErrorMessage(error),
-        )
-      })
-      .finally(() => {
-        setLoading(false)
-      })
-  }, [courseId, form])
+  const [providers, setProviders] = useState<ChatbotProvider[]>([])
+  const [courseSettings, setCourseSettings] = useState<CourseChatbotSettings>()
+  const [defaults, setDefaults] = useState<CourseChatbotSettingsForm>()
 
   useEffect(() => {
-    if (open && courseId) {
-      fetchAvailableModels().then()
-      fetchChatbotSettings().then()
-    }
-  }, [open, courseId, fetchChatbotSettings, fetchAvailableModels])
-
-  const handleUpdate = async (values: ChatbotSettingsMetadata) => {
-    const updateData = {
-      modelName: values.modelName,
-      prompt: values.prompt,
-      similarityThresholdDocuments: values.similarityThresholdDocuments,
-      temperature: values.temperature,
-      topK: values.topK,
+    const getDefaults = () => {
+      return API.chatbot.staffOnly
+        .getCourseSettingsDefaults(courseId)
+        .then((response) => {
+          setDefaults(response)
+        })
+        .catch((error) => {
+          message.error('Failed to load defaults: ' + getErrorMessage(error))
+        })
     }
 
-    setLoading(true)
-    await API.chatbot.staffOnly
-      .updateSettings(courseId, updateData)
-      .then(() => {
-        message.success('Settings updated successfully')
-        onClose()
+    const getProviders = () => {
+      return API.chatbot.staffOnly
+        .getCourseOrganizationProviders(courseId)
+        .then((response) => {
+          setProviders(response)
+        })
+        .catch((error) => {
+          message.error(
+            'Failed to load available models: ' + getErrorMessage(error),
+          )
+        })
+    }
+
+    const getSettings = () => {
+      return API.chatbot.staffOnly
+        .getCourseSettings(courseId)
+        .then((response) => {
+          setCourseSettings(response)
+        })
+        .catch((error) => {
+          message.error(
+            'Failed to load course chatbot settings: ' + getErrorMessage(error),
+          )
+        })
+    }
+
+    const fetchData = async () => {
+      setLoadingData(true)
+      await Promise.all([
+        await getSettings(),
+        await getDefaults(),
+        await getProviders(),
+      ]).finally(() => {
+        setLoadingData(false)
       })
-      .catch((err) => {
-        message.error('Failed to update settings' + getErrorMessage(err))
+    }
+
+    fetchData().then()
+  }, [courseId])
+
+  useEffect(() => {
+    if (courseSettings) {
+      form.setFieldsValue({
+        ...defaults,
+        ...courseSettings,
       })
-      .finally(() => {
-        setLoading(false)
+    }
+  }, [courseSettings, defaults, form])
+
+  const handleUpsert = (values: CourseChatbotSettingsForm) => {
+    API.chatbot.staffOnly
+      .upsertCourseSettings(organizationId, courseId, {
+        ...values,
       })
+      .then((response) => {
+        message.success(
+          `Successfully ${courseSettings == undefined ? 'created' : 'updated'} course chatbot settings!`,
+        )
+        setCourseSettings(response)
+      })
+      .catch((err) =>
+        message.error(
+          `Failed to update course chatbot settings: ${getErrorMessage(err)}`,
+        ),
+      )
   }
 
   const handleReset = () => {
-    Modal.confirm({
-      title: 'Are you sure reset the chatbot settings?',
-      icon: <ExclamationCircleOutlined />,
-      content:
-        'This will revert all settings to their default values and cannot be undone.',
-      onOk: async () => {
-        setLoading(true)
-        await API.chatbot.staffOnly
-          .resetSettings(courseId)
-          .then(() => {
-            message.success('Settings have been reset successfully')
-            fetchChatbotSettings() // Reload settings to update UI
-          })
-          .catch((err) => {
-            message.error('Failed to reset settings' + getErrorMessage(err))
-          })
-          .finally(() => {
-            setLoading(false)
-          })
-      },
-    })
-  }
-
-  // Build the options only from availableModels provided by chatbot server
-  const selectOptions = !availableModels
-    ? []
-    : Object.keys(availableModels).map((modelKey) => {
-        const model = availableModels[modelKey]
-        switch (model) {
-          case AvailableModelTypes.GPT4o_mini:
-            return {
-              label: (
-                <span>
-                  <Tooltip
-                    title={
-                      <ModelTooltipInfo
-                        speed={80}
-                        quality={65}
-                        additionalNotes={['Runs on OpenAI servers']}
-                      />
-                    }
-                  >
-                    {' '}
-                    <InfoCircleOutlined />{' '}
-                  </Tooltip>
-                  ChatGPT-4o Mini
-                </span>
-              ),
-              value: model,
-            }
-          case AvailableModelTypes.GPT4o:
-            return {
-              label: (
-                <span>
-                  <Tooltip
-                    title={
-                      <ModelTooltipInfo
-                        speed={70}
-                        quality={75}
-                        additionalNotes={['Runs on OpenAI servers']}
-                      />
-                    }
-                  >
-                    {' '}
-                    <InfoCircleOutlined />{' '}
-                  </Tooltip>
-                  ChatGPT-4o
-                </span>
-              ),
-              value: model,
-            }
-          case AvailableModelTypes.DEEPSEEK:
-            return {
-              label: (
-                <span>
-                  <Tooltip
-                    title={
-                      <ModelTooltipInfo
-                        speed={60}
-                        quality={100}
-                        additionalNotes={[
-                          'Runs on UBC servers - Safe for student data',
-                          'Reasoning model - Will "think" before responding',
-                        ]}
-                      />
-                    }
-                  >
-                    {' '}
-                    <InfoCircleOutlined />{' '}
-                  </Tooltip>
-                  Deepseek R1{' '}
-                  <span className="text-gray-400"> (Recommended)</span>
-                </span>
-              ),
-              value: model,
-            }
-          case AvailableModelTypes.Qwen:
-            return {
-              label: (
-                <span>
-                  <Tooltip
-                    title={
-                      <ModelTooltipInfo
-                        speed={100}
-                        quality={85}
-                        additionalNotes={[
-                          'Runs on UBC servers - Safe for student data',
-                        ]}
-                      />
-                    }
-                  >
-                    {' '}
-                    <InfoCircleOutlined />{' '}
-                  </Tooltip>
-                  Qwen 2.5{' '}
-                  <span className="ml-5 text-gray-400"> (Recommended)</span>
-                </span>
-              ),
-              value: model,
-            }
-          default:
-            return {
-              label: model,
-              value: model,
-            }
-        }
+    API.chatbot.staffOnly
+      .resetCourseSettings(organizationId, courseId)
+      .then((response) => {
+        message.success(`Successfully reset course chatbot settings!`)
+        setCourseSettings(response)
       })
+      .catch((err) =>
+        message.error(
+          `Failed to reset course chatbot settings: ${getErrorMessage(err)}`,
+        ),
+      )
+  }
 
   return (
     <Modal
       title={
         <div className="flex items-center gap-2">
           <SettingOutlined />
-          <p className="w-full md:flex">
-            Chatbot Settings
+          <div className="w-full md:flex">
+            <p>Chatbot Settings</p>
             <ChatbotHelpTooltip
               forPage="chatbot_settings_modal"
               className="mr-6 inline-block md:ml-auto md:block"
             />
-          </p>
+          </div>
         </div>
       }
       open={open}
       onCancel={onClose}
       footer={null}
     >
-      <Form form={form} layout="vertical" onFinish={handleUpdate}>
+      <Form
+        form={form}
+        initialValues={
+          defaults != undefined && courseSettings != undefined
+            ? { ...defaults, ...courseSettings }
+            : undefined
+        }
+        layout="vertical"
+        onFinish={handleUpsert}
+      >
         <Form.Item
-          name="modelName"
+          name="llmId"
           label={
             <Tooltip title="Set the base large language model (LLM) you want to use for the chatbot. Any recommended models run entirely on UBC hardware and are safe for student data">
               Model <InfoCircleOutlined />
@@ -272,10 +179,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
           }
           rules={[{ required: true, message: 'Please select a model' }]}
         >
-          <Select
-            options={selectOptions}
-            loading={availableModels === null}
-          ></Select>
+          <LLMSelect providers={providers} />
         </Form.Item>
 
         <Form.Item
@@ -332,13 +236,16 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         </Form.Item>
 
         <Space className="flex justify-end">
-          <Button onClick={handleReset} loading={loading || loadingModels}>
+          <Button
+            onClick={handleReset}
+            loading={isLoadingData || isPerformingAction}
+          >
             Reset to default settings
           </Button>
           <Button
             type="primary"
             htmlType="submit"
-            loading={loading || loadingModels}
+            loading={isLoadingData || isPerformingAction}
           >
             Update settings
           </Button>
@@ -349,49 +256,3 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
 }
 
 export default ChatbotSettingsModal
-
-const scaleColors: ProgressProps['strokeColor'] = {
-  '0%': '#108ee9',
-  '100%': '#87d068',
-}
-const trailColor = '#cfcfcf'
-
-const ModelTooltipInfo: React.FC<{
-  speed: number
-  quality: number
-  additionalNotes?: string[]
-}> = ({ speed, quality, additionalNotes }) => {
-  return (
-    <div>
-      <div className="mr-2 flex w-full items-center justify-between gap-x-2">
-        <div>Response Quality</div>
-        <Progress
-          percent={quality}
-          size="small"
-          steps={20}
-          strokeColor={scaleColors}
-          trailColor={trailColor}
-          showInfo={false}
-        />
-      </div>
-      <div className="mr-2 flex w-full items-center justify-between gap-x-2">
-        <div>Speed</div>
-        <Progress
-          percent={speed}
-          size="small"
-          steps={20}
-          strokeColor={scaleColors}
-          trailColor={trailColor}
-          showInfo={false}
-        />
-      </div>
-      {additionalNotes && (
-        <ul className="list-disc pl-4 leading-tight text-gray-100">
-          {additionalNotes.map((note, index) => (
-            <li key={index}>{note}</li>
-          ))}
-        </ul>
-      )}
-    </div>
-  )
-}

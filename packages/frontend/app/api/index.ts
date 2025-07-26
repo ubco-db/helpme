@@ -11,16 +11,24 @@ import {
   ChatbotAskParams,
   ChatbotAskResponse,
   ChatbotAskSuggestedParams,
+  ChatbotProvider,
   ChatbotQuestionResponseChatbotDB,
   ChatbotQuestionResponseHelpMeDB,
+  ChatbotServiceProvider,
+  ChatbotServiceType,
   ChatbotSettings,
   ChatbotSettingsUpdateParams,
+  CourseChatbotSettings,
+  CourseChatbotSettingsForm,
   CourseCloneAttributes,
   CourseResponse,
   CourseSettingsResponse,
   CreateAlertParams,
   CreateAlertResponse,
   CreateAsyncQuestions,
+  CreateChatbotProviderBody,
+  CreateLLMTypeBody,
+  CreateOrganizationChatbotSettingsBody,
   CreateQuestionParams,
   CreateQuestionResponse,
   CronJob,
@@ -28,6 +36,7 @@ import {
   DesktopNotifPartial,
   EditCourseInfoParams,
   GetAlertsResponse,
+  GetAvailableModelsBody,
   GetChatbotHistoryResponse,
   GetCourseResponse,
   GetCourseUserInfoResponse,
@@ -44,14 +53,18 @@ import {
   InsightParamsType,
   ListInsightsResponse,
   ListQuestionsResponse,
+  LLMType,
   LMSAnnouncement,
   LMSApiResponseStatus,
   LMSAssignment,
-  LMSPage,
   LMSCourseAPIResponse,
   LMSCourseIntegrationPartial,
   LMSOrganizationIntegrationPartial,
+  LMSPage,
   MailServiceWithSubscription,
+  OllamaLLMType,
+  OrganizationChatbotSettings,
+  OrganizationChatbotSettingsDefaults,
   OrganizationCourseResponse,
   OrganizationProfessor,
   OrganizationResponse,
@@ -85,8 +98,10 @@ import {
   UBCOuserParam,
   UnreadAsyncQuestionResponse,
   UpdateAsyncQuestions,
+  UpdateChatbotProviderBody,
   UpdateChatbotQuestionParams,
   UpdateDocumentChunkParams,
+  UpdateLLMTypeBody,
   UpdateOrganizationCourseDetailsParams,
   UpdateOrganizationDetailsParams,
   UpdateOrganizationUserRole,
@@ -94,6 +109,7 @@ import {
   UpdateQuestionParams,
   UpdateQuestionResponse,
   UpdateQueueParams,
+  UpsertCourseChatbotSettings,
   UpsertLMSCourseParams,
   UpsertLMSOrganizationParams,
   UserMailSubscription,
@@ -306,22 +322,183 @@ class APIClient {
           undefined,
           { url },
         ),
-      getModels: async (courseId: number): Promise<Record<string, string>> =>
-        this.req('GET', `/api/v1/chatbot/models/${courseId}`),
-      getSettings: async (courseId: number): Promise<ChatbotSettings> =>
-        this.req('GET', `/api/v1/chatbot/settings/${courseId}`),
-      updateSettings: async (
+      getCourseOrganizationProviders: async (
         courseId: number,
-        settings: ChatbotSettingsUpdateParams,
-      ): Promise<{ success: boolean }> =>
+      ): Promise<ChatbotProvider[]> =>
+        this.req('GET', `/api/v1/chatbot/course/${courseId}/provider`),
+      getCourseSettings: async (
+        courseId: number,
+      ): Promise<CourseChatbotSettings> =>
+        this.req('GET', `/api/v1/chatbot/course/${courseId}`),
+      getCourseServiceType: async (
+        courseId: number,
+      ): Promise<ChatbotServiceType> =>
+        this.req('GET', `/api/v1/chatbot/course/${courseId}/service`),
+      upsertCourseSettings: async (
+        organizationId: number,
+        courseId: number,
+        params: UpsertCourseChatbotSettings,
+      ): Promise<CourseChatbotSettings> =>
+        this.req(
+          'POST',
+          `/api/v1/chatbot/organization/${organizationId}/course/${courseId}`,
+          undefined,
+          params,
+        ),
+      resetCourseSettings: async (
+        organizationId: number,
+        courseId: number,
+      ): Promise<CourseChatbotSettings> =>
         this.req(
           'PATCH',
-          `/api/v1/chatbot/settings/${courseId}`,
-          undefined,
-          settings,
+          `/api/v1/chatbot/organization/${organizationId}/course/${courseId}/reset`,
         ),
-      resetSettings: async (courseId: number): Promise<{ success: boolean }> =>
-        this.req('PATCH', `/api/v1/chatbot/settings/${courseId}/reset`),
+      getCourseSettingsDefaults: async (
+        courseId: number,
+      ): Promise<CourseChatbotSettingsForm> =>
+        this.req('GET', `/api/v1/chatbot/course/${courseId}/default`),
+      legacy: {
+        getModels: async (courseId: number): Promise<Record<string, string>> =>
+          this.req('GET', `/api/v1/chatbot/models/${courseId}`),
+        getSettings: async (courseId: number): Promise<ChatbotSettings> =>
+          this.req('GET', `/api/v1/chatbot/settings/${courseId}`),
+        updateSettings: async (
+          courseId: number,
+          settings: ChatbotSettingsUpdateParams,
+        ): Promise<{ success: boolean }> =>
+          this.req(
+            'PATCH',
+            `/api/v1/chatbot/settings/${courseId}`,
+            undefined,
+            settings,
+          ),
+        resetSettings: async (
+          courseId: number,
+        ): Promise<{ success: boolean }> =>
+          this.req('PATCH', `/api/v1/chatbot/settings/${courseId}/reset`),
+      },
+    },
+    adminOnly: {
+      getOrganizationSettings: async (
+        organizationId: number,
+      ): Promise<OrganizationChatbotSettings> =>
+        this.req('GET', `/api/v1/chatbot/organization/${organizationId}`),
+      createOrganizationSettings: async (
+        organizationId: number,
+        params: CreateOrganizationChatbotSettingsBody,
+      ): Promise<OrganizationChatbotSettings> =>
+        this.req(
+          'POST',
+          `/api/v1/chatbot/organization/${organizationId}`,
+          undefined,
+          params,
+        ),
+      updateOrganizationSettings: async (
+        organizationId: number,
+        params: OrganizationChatbotSettingsDefaults,
+      ): Promise<OrganizationChatbotSettings> =>
+        this.req(
+          'PATCH',
+          `/api/v1/chatbot/organization/${organizationId}`,
+          undefined,
+          params,
+        ),
+      deleteOrganizationSettings: async (
+        organizationId: number,
+      ): Promise<void> =>
+        this.req('DELETE', `/api/v1/chatbot/organization/${organizationId}`),
+      getOrganizationCourseSettings: async (
+        organizationId: number,
+      ): Promise<CourseChatbotSettings[]> =>
+        this.req(
+          'GET',
+          `/api/v1/chatbot/organization/${organizationId}/course`,
+        ),
+      getOrganizationProviders: async (
+        organizationId: number,
+      ): Promise<ChatbotProvider[]> =>
+        this.req(
+          'GET',
+          `/api/v1/chatbot/organization/${organizationId}/provider`,
+        ),
+      createChatbotProvider: async (
+        organizationId: number,
+        params: CreateChatbotProviderBody,
+      ): Promise<ChatbotProvider> =>
+        this.req(
+          'POST',
+          `/api/v1/chatbot/organization/${organizationId}/provider`,
+          undefined,
+          params,
+        ),
+      updateChatbotProvider: async (
+        organizationId: number,
+        providerId: number,
+        params: UpdateChatbotProviderBody,
+      ): Promise<ChatbotProvider> =>
+        this.req(
+          'PATCH',
+          `/api/v1/chatbot/organization/${organizationId}/provider/${providerId}`,
+          undefined,
+          params,
+        ),
+      deleteChatbotProvider: async (
+        organizationId: number,
+        providerId: number,
+      ): Promise<void> =>
+        this.req(
+          'DELETE',
+          `/api/v1/chatbot/organization/${organizationId}/provider/${providerId}`,
+        ),
+      createLLMType: async (
+        organizationId: number,
+        params: CreateLLMTypeBody,
+      ): Promise<LLMType> =>
+        this.req(
+          'POST',
+          `/api/v1/chatbot/organization/${organizationId}/model`,
+          undefined,
+          params,
+        ),
+      updateLLMType: async (
+        organizationId: number,
+        modelId: number,
+        params: UpdateLLMTypeBody,
+      ): Promise<LLMType> =>
+        this.req(
+          'PATCH',
+          `/api/v1/chatbot/organization/${organizationId}/model/${modelId}`,
+          undefined,
+          params,
+        ),
+      deleteLLMType: async (
+        organizationId: number,
+        modelId: number,
+      ): Promise<LLMType> =>
+        this.req(
+          'DELETE',
+          `/api/v1/chatbot/organization/${organizationId}/model/${modelId}`,
+        ),
+      getAvailableModels: async <T extends LLMType>(
+        providerType: ChatbotServiceProvider,
+        organizationId: number,
+        params: GetAvailableModelsBody,
+      ): Promise<T[]> =>
+        this.req(
+          'POST',
+          `/api/v1/chatbot/organization/${organizationId}/${providerType}`,
+          undefined,
+          params,
+        ),
+      getProviderAvailableModels: async <T extends LLMType>(
+        organizationId: number,
+        providerId: number,
+      ): Promise<T[]> =>
+        this.req(
+          'GET',
+          `/api/v1/chatbot/organization/${organizationId}/provider/${providerId}/models`,
+          undefined,
+        ),
     },
   }
 

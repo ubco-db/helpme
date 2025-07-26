@@ -7,6 +7,7 @@ import { AlertsModule } from './alerts/alerts.module';
 import { BackfillModule } from './backfill/backfill.module';
 import { CommandModule } from 'nestjs-command';
 import * as typeormConfig from '../ormconfig';
+import * as chatbotTypeORMConfig from '../chatbot_ormconfig';
 import { AdminModule } from './admin/admin.module';
 import { CourseModule } from './course/course.module';
 import { CalendarModule } from './calendar/calendar.module';
@@ -41,7 +42,14 @@ import { RedisModule } from '@liaoliaots/nestjs-redis';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot(typeormConfig),
+    TypeOrmModule.forRoot({
+      name: 'default',
+      ...typeormConfig,
+    }),
+    TypeOrmModule.forRoot({
+      name: 'chatbot',
+      ...chatbotTypeORMConfig,
+    }),
     SentryModule.forRoot(),
     // Only use 'pub' for publishing events, 'sub' for subscribing, and 'db' for writing to key/value store
     RedisModule.forRoot({
