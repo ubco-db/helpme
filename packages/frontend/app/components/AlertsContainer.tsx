@@ -62,6 +62,10 @@ const AlertsContainer: React.FC<AlertsContainerProps> = ({ courseId }) => {
             key={alert.id}
             qid={(alert.payload as PromptStudentToLeaveQueuePayload).queueId}
             cid={courseId}
+            questionId={
+              (alert.payload as PromptStudentToLeaveQueuePayload)
+                .queueQuestionId
+            }
             handleClose={async () => {
               await API.alerts.close(alert.id)
               await mutateAlerts()

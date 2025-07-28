@@ -3,6 +3,7 @@ import {
   AlertPayload,
   AlertType,
   RephraseQuestionPayload,
+  PromptStudentToLeaveQueuePayload,
 } from '@koh/common';
 import { pick } from 'lodash';
 import { Injectable } from '@nestjs/common';
@@ -70,6 +71,18 @@ export class AlertsService {
           typeof castPayload.questionId === 'number' &&
           typeof castPayload.queueId === 'number'
         );
+
+      case AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE:
+        const promptPayload = payload as PromptStudentToLeaveQueuePayload;
+        return (
+          !!promptPayload.queueId &&
+          typeof promptPayload.queueId === 'number' &&
+          (promptPayload.queueQuestionId === undefined ||
+            typeof promptPayload.queueQuestionId === 'number')
+        );
+
+      default:
+        return true;
     }
   }
 

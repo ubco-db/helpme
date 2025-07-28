@@ -11,11 +11,12 @@ import Link from 'next/link'
 type PromptStudentToLeaveQueueModalProps = {
   qid: number
   cid: number
+  questionId?: number
   handleClose: () => Promise<void>
 }
 const PromptStudentToLeaveQueueModal: React.FC<
   PromptStudentToLeaveQueueModalProps
-> = ({ qid, cid, handleClose }) => {
+> = ({ qid, cid, handleClose, questionId }) => {
   const [isStayLoading, setIsStayLoading] = useState(false)
   const [isLeaveLoading, setIsLeaveLoading] = useState(false)
   const [isConvertLoading, setIsConvertLoading] = useState(false)
@@ -29,6 +30,15 @@ const PromptStudentToLeaveQueueModal: React.FC<
 
   useEffect(() => {
     const fetchQuestionId = async () => {
+      // if we have the question ID directly, use it:
+      if (questionId) {
+        setQueueQuestionId(questionId)
+        setCanConvert(true)
+        setConvertTooltip('')
+        return
+      }
+
+      // else:
       const questions = await API.questions.index(qid)
       const myQuestions = questions.yourQuestions || []
       let myQuestion = null
@@ -43,9 +53,7 @@ const PromptStudentToLeaveQueueModal: React.FC<
           setConvertTooltip('')
         }
       } else if (myQuestions.length > 1) {
-        myQuestion = myQuestions.find(
-          (q) => q.isTaskQuestion === false,
-        )
+        myQuestion = myQuestions.find((q) => q.isTaskQuestion === false)
         setCanConvert(true)
         setConvertTooltip('')
       } else {
@@ -58,7 +66,7 @@ const PromptStudentToLeaveQueueModal: React.FC<
       }
     }
     fetchQuestionId()
-  }, [qid])
+  }, [qid, questionId])
 
   const closeAllQuestions = async () => {
     const questions = await API.questions.index(qid)

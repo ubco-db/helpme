@@ -155,6 +155,7 @@ export class QueueCleanService {
     let students = await QueueModel.createQueryBuilder()
       .select('QuestionModel.creatorId', 'studentId')
       .addSelect('QueueModel.courseId', 'courseId')
+      .addSelect('QuestionModel.id', 'questionId')
       .leftJoin(
         QuestionModel,
         'QuestionModel',
@@ -167,7 +168,14 @@ export class QueueCleanService {
           ...Object.values(LimboQuestionStatus),
         ],
       })
-      .getRawMany<{ studentId: number; courseId: number }>();
+      .andWhere('QuestionModel.isTaskQuestion = :isTaskQuestion', {
+        isTaskQuestion: false,
+      })
+      .getRawMany<{
+        studentId: number;
+        courseId: number;
+        questionId: number;
+      }>();
 
     // filter out duplicate students (if they have multiple questions in the queue). We only need to send them 1 alert
     students = students.filter(
@@ -205,7 +213,7 @@ export class QueueCleanService {
           sent: new Date(),
           userId: student.studentId,
           courseId: student.courseId,
-          payload: { queueId },
+          payload: { queueId, queueQuestionId: student.questionId },
         }).save();
         // if the student does not respond in 10 minutes, resolve the alert and mark the question as LeftDueToNoStaff
         const jobName = `prompt-student-to-leave-queue-${queueId}-${student.studentId}`;

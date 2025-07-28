@@ -1779,6 +1779,9 @@ export class RephraseQuestionPayload extends AlertPayload {
 
 export class PromptStudentToLeaveQueuePayload extends AlertPayload {
   queueId!: number
+  @IsInt()
+  @IsOptional()
+  queueQuestionId?: number
 }
 
 export class OrganizationCourseResponse {
