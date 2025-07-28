@@ -45,7 +45,7 @@ const ConvertQueueQToAnytimeQModal: React.FC<
   const [isLoading, setIsLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(false)
   const [isGeneratingAbstract, setIsGeneratingAbstract] = useState(false)
-  // Get both anytime question tags and queue tags
+  // Get both anytime question tags and queue tags.
   const [anytimeQuestionTypes] = useQuestionTypes(courseId, null)
 
   const fallbackGenerateAbstract = (question: string) => {
