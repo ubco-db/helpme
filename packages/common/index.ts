@@ -404,6 +404,11 @@ export interface Message {
   thinkText?: string | null // used on frontend only
 }
 
+export interface ChatbotQueryParams {
+  query: string
+  type: 'default' | 'abstract'
+}
+
 export interface ChatbotAskParams {
   question: string
   history: Message[]
@@ -1774,6 +1779,9 @@ export class RephraseQuestionPayload extends AlertPayload {
 
 export class PromptStudentToLeaveQueuePayload extends AlertPayload {
   queueId!: number
+  @IsInt()
+  @IsOptional()
+  queueQuestionId?: number
 }
 
 export class OrganizationCourseResponse {
