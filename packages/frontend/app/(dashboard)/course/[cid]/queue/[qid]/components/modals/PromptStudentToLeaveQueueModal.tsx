@@ -44,7 +44,7 @@ const PromptStudentToLeaveQueueModal: React.FC<
         }
       } else if (myQuestions.length > 1) {
         myQuestion = myQuestions.find(
-          (q) => q.queueId === qid && q.isTaskQuestion === false,
+          (q) => q.isTaskQuestion === false,
         )
         setCanConvert(true)
         setConvertTooltip('')
