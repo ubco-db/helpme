@@ -48,6 +48,7 @@ import {
   LMSAnnouncement,
   LMSApiResponseStatus,
   LMSAssignment,
+  LMSPage,
   LMSCourseAPIResponse,
   LMSCourseIntegrationPartial,
   LMSOrganizationIntegrationPartial,
@@ -578,11 +579,11 @@ class APIClient {
     comment: async (
       questionId: number,
       body: AsyncQuestionCommentParams,
-    ): Promise<AsyncQuestionComment> =>
+    ): Promise<AsyncQuestionComment[]> =>
       this.req(
         'POST',
         `/api/v1/asyncQuestions/comment/${questionId}`,
-        AsyncQuestionComment,
+        undefined,
         body,
       ),
     deleteComment: async (
@@ -598,11 +599,11 @@ class APIClient {
       questionId: number,
       commentId: number,
       body: AsyncQuestionCommentParams,
-    ): Promise<AsyncQuestionComment> =>
+    ): Promise<AsyncQuestionComment[]> =>
       this.req(
         'PATCH',
         `/api/v1/asyncQuestions/comment/${questionId}/${commentId}`,
-        AsyncQuestionComment,
+        undefined,
         body,
       ),
     getUnreadAsyncCount: async (
@@ -1146,6 +1147,8 @@ class APIClient {
       this.req('GET', `/api/v1/lms/${courseId}/assignments`),
     getAnnouncements: async (courseId: number): Promise<LMSAnnouncement[]> =>
       this.req('GET', `/api/v1/lms/${courseId}/announcements`),
+    getPages: async (courseId: number): Promise<LMSPage[]> =>
+      this.req('GET', `/api/v1/lms/${courseId}/pages`),
     toggleSync: async (courseId: number): Promise<string> =>
       this.req('POST', `/api/v1/lms/${courseId}/sync`),
     forceSync: async (courseId: number): Promise<string> =>
@@ -1173,6 +1176,17 @@ class APIClient {
         `/api/v1/lms/${courseId}/sync/announcement/${announcementId}/toggle`,
         undefined,
         announcement,
+      ),
+    toggleSyncPage: async (
+      courseId: number,
+      pageId: number,
+      page: LMSPage,
+    ): Promise<string> =>
+      this.req(
+        'POST',
+        `/api/v1/lms/${courseId}/sync/page/${pageId}/toggle`,
+        undefined,
+        page,
       ),
     updateSelectedResourceTypes: async (
       courseId: number,

@@ -3,14 +3,14 @@
 import { Button, Divider, Input, message, Table, Tooltip } from 'antd'
 import {
   ReactElement,
+  use,
   useCallback,
   useEffect,
   useMemo,
   useState,
-  use,
 } from 'react'
 import ExpandableText from '@/app/components/ExpandableText'
-import { getErrorMessage, parseThinkBlock } from '@/app/utils/generalUtils'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
 import EditChatbotQuestionModal from './components/EditChatbotQuestionModal'
 import { EditOutlined } from '@ant-design/icons'
@@ -22,9 +22,11 @@ import {
   ChatbotQuestionResponseChatbotDB,
   ChatbotQuestionResponseHelpMeDB,
   InteractionResponse,
+  parseThinkBlock,
   SourceDocument,
 } from '@koh/common'
 import { ThumbsDown, ThumbsUp } from 'lucide-react'
+import ChatbotHelpTooltip from '../components/ChatbotHelpTooltip'
 
 export interface ChatbotQuestionFrontend {
   key: string
@@ -90,8 +92,11 @@ export default function ChatbotQuestions(
     return questions.filter((question) => {
       return (
         question.question.toLowerCase().includes(search.toLowerCase()) ||
-        question.children?.some((q) =>
-          q.question.toLowerCase().includes(search.toLowerCase()),
+        question.answer.toLowerCase().includes(search.toLowerCase()) ||
+        question.children?.some(
+          (q) =>
+            q.question.toLowerCase().includes(search.toLowerCase()) ||
+            q.answer.toLowerCase().includes(search.toLowerCase()),
         )
       )
     })
@@ -166,7 +171,14 @@ export default function ChatbotQuestions(
                 </span>
               </Tooltip>
             )}
-            {thinkText ? cleanAnswer : text}
+            <Highlighter
+              highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
+              searchWords={[search]}
+              autoEscape
+              textToHighlight={
+                thinkText ? cleanAnswer : text ? text.toString() : ''
+              }
+            />
           </ExpandableText>
         )
       },
@@ -469,19 +481,20 @@ export default function ChatbotQuestions(
             View and manage the questions being asked of your chatbot
           </h4>
         </div>
-        <Input
-          className="flex-1"
-          placeholder={'Search question...'}
-          value={search}
-          onChange={(e) => {
-            e.preventDefault()
-            setSearch(e.target.value)
-          }}
-          onPressEnter={getQuestions}
-        />
-        <Button className="m-2" onClick={() => setAddModelOpen(true)}>
-          Add Question
-        </Button>
+        <div className="flex flex-grow flex-col items-center gap-2 md:flex-row">
+          <ChatbotHelpTooltip forPage="edit_chatbot_questions" />
+          <Input
+            className="flex-1"
+            placeholder={'Search question or answer...'}
+            value={search}
+            onChange={(e) => {
+              e.preventDefault()
+              setSearch(e.target.value)
+            }}
+            onPressEnter={getQuestions}
+          />
+          <Button onClick={() => setAddModelOpen(true)}>Add Question</Button>
+        </div>
       </div>
       <Divider className="my-3" />
       <Table

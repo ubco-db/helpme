@@ -11,7 +11,6 @@ import {
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { QueueSSEService } from 'queue/queue-sse.service';
 import { QueueService } from 'queue/queue.service';
-import { SSEService } from 'sse/sse.service';
 import { DataSource } from 'typeorm';
 import { RedisService } from '@liaoliaots/nestjs-redis';
 import { FactoryModule } from 'factory/factory.module';

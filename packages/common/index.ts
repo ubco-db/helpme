@@ -861,7 +861,9 @@ export type AsyncQuestion = {
   answerText?: string
   aiAnswerText?: string
   closedAt?: Date
-  visible?: boolean
+  isAnonymous?: boolean
+  staffSetVisible?: boolean
+  authorSetVisible?: boolean
   verified: boolean
   votes?: AsyncQuestionVotes[]
   comments: AsyncQuestionComment[]
@@ -917,7 +919,15 @@ export class AsyncQuestionParams {
 
   @IsOptional()
   @IsBoolean()
-  visible?: boolean
+  staffSetVisible?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  authorSetVisible?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  isAnonymous?: boolean
 
   @IsOptional()
   @IsBoolean()
@@ -953,6 +963,8 @@ export class AsyncQuestionComment {
 
   commentText!: string
 
+  isAnonymous!: boolean
+
   @Type(() => Date)
   createdAt!: Date
 }
@@ -960,6 +972,10 @@ export class AsyncQuestionComment {
 export class AsyncQuestionCommentParams {
   @IsString()
   commentText!: string
+
+  @IsOptional()
+  @IsBoolean()
+  isAnonymous?: boolean
 }
 
 export class QueueChatPartial {
@@ -1350,6 +1366,16 @@ export type LMSAnnouncement = {
   uploaded?: Date
 }
 
+export type LMSPage = {
+  id: number
+  title: string
+  body: string
+  url: string
+  frontPage: boolean
+  syncEnabled?: boolean
+  modified?: Date
+  uploaded?: Date
+}
 export type LMSErrorType = {
   deleteError: "Couldn't remove pre-existing documents"
 }
@@ -1374,6 +1400,7 @@ export enum LMSApiResponseStatus {
 export enum LMSResourceType {
   ASSIGNMENTS = 'assignments',
   ANNOUNCEMENTS = 'announcements',
+  PAGES = 'pages',
 }
 
 export interface CourseResponse {
@@ -2152,6 +2179,12 @@ export class CourseSettingsResponse {
   @IsBoolean()
   asyncCentreAIAnswers!: boolean
 
+  @IsBoolean()
+  asyncCentreDefaultAnonymous!: boolean
+
+  @IsBoolean()
+  asyncCentreAuthorPublic!: boolean
+
   @IsOptional()
   @IsBoolean()
   settingsFound?: boolean = true //this is mostly just for debugging purposes by viewing network responses
@@ -2161,13 +2194,15 @@ export class CourseSettingsResponse {
   }
 }
 
-const validFeatures = [
+export const validFeatures = [
   'chatBotEnabled',
   'asyncQueueEnabled',
   'adsEnabled',
   'queueEnabled',
   'scheduleOnFrontPage',
   'asyncCentreAIAnswers',
+  'asyncCentreDefaultAnonymous',
+  'asyncCentreAuthorPublic',
 ]
 
 export class CourseSettingsRequestBody {
@@ -2951,6 +2986,22 @@ export type UnreadAsyncQuestionResponse = {
 export enum LMSIntegrationPlatform {
   None = 'None',
   Canvas = 'Canvas',
+}
+
+export function parseThinkBlock(answer: string) {
+  // Look for <think>...</think> (the "s" flag lets it match across multiple lines)
+  const thinkRegex = /<think>([\s\S]*?)<\/think>/
+  const match = answer.match(thinkRegex)
+
+  if (!match) {
+    // No <think> block, return the text unchanged
+    return { thinkText: null, cleanAnswer: answer }
+  }
+
+  const thinkText = match[1].trim()
+  const cleanAnswer = answer.replace(thinkRegex, '').trim()
+
+  return { thinkText, cleanAnswer }
 }
 
 export const ERROR_MESSAGES = {

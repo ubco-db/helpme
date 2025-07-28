@@ -1,4 +1,4 @@
-import { MailServiceType, Role } from '@koh/common';
+import { MailServiceType, parseThinkBlock, Role } from '@koh/common';
 import { Injectable } from '@nestjs/common';
 import { MailService } from 'mail/mail.service';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
@@ -8,6 +8,7 @@ import { UserModel } from 'profile/user.entity';
 import { AsyncQuestionCommentModel } from './asyncQuestionComment.entity';
 import * as Sentry from '@sentry/nestjs';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
+import { CourseSettingsModel } from '../course/course_settings.entity';
 
 @Injectable()
 export class AsyncQuestionService {
@@ -36,7 +37,8 @@ export class AsyncQuestionService {
       const commenterIsStaff =
         commenterRole === Role.TA || commenterRole === Role.PROFESSOR;
       const service = subscription.service;
-      await this.mailService
+      // note: not awaiting since it can take a moment to send emails
+      this.mailService
         .sendEmail({
           receiver: question.creator.email,
           type: service.serviceType,
@@ -91,7 +93,8 @@ export class AsyncQuestionService {
     // Send emails in parallel
     const commenterIsStaff =
       commenterRole === Role.TA || commenterRole === Role.PROFESSOR;
-    const sendEmailResults = await Promise.allSettled(
+    // note: not awaiting since it can take a moment to send emails
+    Promise.allSettled(
       subscriptions.map((sub) =>
         this.mailService.sendEmail({
           receiver: sub.user.email,
@@ -103,12 +106,13 @@ export class AsyncQuestionService {
                     <br> Note: Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${updatedQuestion.courseId}/async_centre">View and Reply Here</a> <br>`,
         }),
       ),
-    );
-    // Capture any email failures in Sentry
-    sendEmailResults.forEach((result) => {
-      if (result.status === 'rejected') {
-        Sentry.captureException(result.reason);
-      }
+    ).then((sendEmailResults) => {
+      // Capture any email failures in Sentry
+      sendEmailResults.forEach((result) => {
+        if (result.status === 'rejected') {
+          Sentry.captureException(result.reason);
+        }
+      });
     });
   }
 
@@ -141,7 +145,8 @@ export class AsyncQuestionService {
       .getMany();
 
     // Send emails in parallel
-    const sendEmailResults = await Promise.allSettled(
+    // note: not awaiting since it can take a moment to send emails
+    Promise.allSettled(
       subscriptions.map((sub) =>
         this.mailService.sendEmail({
           receiver: sub.user.email,
@@ -155,12 +160,13 @@ export class AsyncQuestionService {
                     <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Answer It Here</a> <br>`,
         }),
       ),
-    );
-    // Capture any email failures in Sentry
-    sendEmailResults.forEach((result) => {
-      if (result.status === 'rejected') {
-        Sentry.captureException(result.reason);
-      }
+    ).then((sendEmailResults) => {
+      // Capture any email failures in Sentry
+      sendEmailResults.forEach((result) => {
+        if (result.status === 'rejected') {
+          Sentry.captureException(result.reason);
+        }
+      });
     });
   }
 
@@ -178,13 +184,15 @@ export class AsyncQuestionService {
 
     if (subscription) {
       const service = subscription.service;
-      await this.mailService
+
+      const { cleanAnswer } = parseThinkBlock(question.answerText);
+      this.mailService
         .sendEmail({
           receiver: question.creator.email,
           type: service.serviceType,
           subject: 'HelpMe - Your Anytime Question Has Been Answered',
           content: `<br> <b>Your question on the Anytime Question Hub has been answered or verified by staff.</b> 
-              <br> <b>Answer Text:</b> ${question.answerText}
+              <br> <b>Answer Text:</b> ${cleanAnswer}
               <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View Here</a> <br>`,
         })
         .catch((err) => {
@@ -213,7 +221,8 @@ export class AsyncQuestionService {
 
     if (statusChangeSubscription) {
       const service = statusChangeSubscription.service;
-      await this.mailService
+      // note: not awaiting since it can take a moment to send emails
+      this.mailService
         .sendEmail({
           receiver: question.creator.email,
           type: service.serviceType,
@@ -243,7 +252,8 @@ export class AsyncQuestionService {
 
     if (subscription) {
       const service = subscription.service;
-      await this.mailService
+      // note: not awaiting since it can take a moment to send emails
+      this.mailService
         .sendEmail({
           receiver: updatedQuestion.creator.email,
           type: service.serviceType,
@@ -346,5 +356,21 @@ export class AsyncQuestionService {
   getAnonId(userId: number, questionId: number) {
     const hash = userId + questionId;
     return hash % 70;
+  }
+
+  async isVisible(
+    asyncQuestion: AsyncQuestionModel,
+    courseSettings?: CourseSettingsModel,
+  ) {
+    if (!courseSettings) {
+      courseSettings = await CourseSettingsModel.findOne({
+        where: { courseId: asyncQuestion.id },
+      });
+    }
+    return (courseSettings?.asyncCentreAuthorPublic ?? false)
+      ? (asyncQuestion.staffSetVisible == null &&
+          asyncQuestion.authorSetVisible) ||
+          asyncQuestion.staffSetVisible
+      : asyncQuestion.staffSetVisible;
   }
 }

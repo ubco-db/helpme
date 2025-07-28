@@ -1,15 +1,21 @@
 import { useEffect, useReducer, useState } from 'react'
 import { Button, Col, message, Row, Tag, Tooltip } from 'antd'
-import { AsyncQuestion, asyncQuestionStatus, Role } from '@koh/common'
+import {
+  AsyncQuestion,
+  asyncQuestionStatus,
+  parseThinkBlock,
+  Role,
+} from '@koh/common'
 import {
   CheckCircleOutlined,
   DownOutlined,
   EyeInvisibleOutlined,
+  EyeOutlined,
   UpOutlined,
 } from '@ant-design/icons'
 import { API } from '@/app/api'
 import UserAvatar from '@/app/components/UserAvatar'
-import { cn, getErrorMessage, parseThinkBlock } from '@/app/utils/generalUtils'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { QuestionTagElement } from '../../components/QuestionTagElement'
 import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils'
 import TAAsyncQuestionCardButtons from './TAAsyncQuestionCardButtons'
@@ -24,6 +30,7 @@ import {
   AsyncQuestionCardUIReducer,
   initialUIState,
 } from './AsyncQuestionCardUIReducer'
+import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 
 const statusDisplayMap = {
   // if the question has no answer text, it will say "awaiting answer"
@@ -66,6 +73,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   const shouldFlash =
     question.status === asyncQuestionStatus.AIAnswered &&
     userId === question.creatorId
+  const courseFeatures = useCourseFeatures(courseId)
 
   // make the card expanded if it is flashing (so they immediately see their answer)
   useEffect(() => {
@@ -78,10 +86,14 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
 
   // note: it is assumed that only students are creating questions. Staff creating questions will appear as anonymous (but their comments are not)
-  const [isUserShown, setIsUserShown] = useState(isStaff && showStudents)
+  const [isUserShown, setIsUserShown] = useState(
+    (isStaff && showStudents) || !(question?.isAnonymous ?? true),
+  )
   useEffect(() => {
-    setIsUserShown(isStaff && showStudents)
-  }, [isStaff, showStudents])
+    setIsUserShown(
+      (isStaff && showStudents) || !(question?.isAnonymous ?? true),
+    )
+  }, [isStaff, question.isAnonymous, showStudents])
 
   const anonId = question.creator.anonId
   const anonAnimal = getAnonAnimal(anonId)
@@ -151,6 +163,12 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     showStudents,
     userId === question.creatorId ? 'you' : Role.STUDENT,
   )
+
+  const questionIsPublic =
+    (courseFeatures?.asyncCentreAuthorPublic ?? false)
+      ? (question.staffSetVisible == null && question.authorSetVisible) ||
+        question.staffSetVisible
+      : question.staffSetVisible
 
   const { thinkText, cleanAnswer } = parseThinkBlock(question.answerText ?? '')
 
@@ -267,39 +285,43 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                       {isUserShown ? (
                         question.creator.name
                       ) : (
-                        <>
-                          Anonymous {getAnonAnimal(anonId)}
-                          <span className="font-normal not-italic text-green-500">
-                            {userId === question.creatorId ? ' (You)' : ''}{' '}
-                          </span>
-                        </>
+                        <>Anonymous {getAnonAnimal(anonId)}</>
                       )}
+                      <span className="font-normal not-italic text-green-500">
+                        {userId === question.creatorId ? ' (You)' : ''}{' '}
+                      </span>
                     </span>
                     <span>{getAsyncWaitTime(question.createdAt)} ago</span>
                   </div>
                   <div>
                     {/* If it's the students' question, show a tag to indicate whether it is publicly visible or not */}
                     {(userId === question.creatorId || isStaff) && (
-                      <Tooltip
-                        title={
-                          isStaff
-                            ? question.visible
-                              ? 'This question was marked public by a staff member and can be seen by all students (they still appear anonymous)'
-                              : 'Only you and the question creator can see this question'
-                            : question.visible
-                              ? "A Staff member liked your question and decided to make it publicly visible. Don't worry! Your name and picture are hidden and you appear as an anonymous student."
-                              : 'Only you and staff can see this question.'
-                        }
-                      >
-                        <Tag
-                          color={question.visible ? 'blue' : 'default'}
-                          icon={
-                            question.visible ? null : <EyeInvisibleOutlined />
+                      <>
+                        <Tooltip
+                          title={
+                            isStaff
+                              ? questionIsPublic
+                                ? 'This question is visible to all members of the course.'
+                                : `This question is only visible to staff members and the author.`
+                              : questionIsPublic
+                                ? "Your question is public. It's visible to other students."
+                                : `This question is only visible to yourself and staff members.`
                           }
                         >
-                          {question.visible ? 'Public' : 'Private'}
-                        </Tag>
-                      </Tooltip>
+                          <Tag
+                            color={questionIsPublic ? 'blue' : 'default'}
+                            icon={
+                              questionIsPublic ? (
+                                <EyeOutlined />
+                              ) : (
+                                <EyeInvisibleOutlined />
+                              )
+                            }
+                          >
+                            {questionIsPublic ? 'Public' : 'Private'}
+                          </Tag>
+                        </Tooltip>
+                      </>
                     )}
                     <Tag
                       icon={
@@ -333,6 +355,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   <TAAsyncQuestionCardButtons
                     question={question}
                     onAsyncQuestionUpdate={mutateAsyncQuestions}
+                    courseId={courseId}
                   />
                 ) : userId === question.creatorId ? (
                   <StudentAsyncQuestionCardButtons
@@ -394,11 +417,15 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                     ? styles.expandedComments
                     : '',
                 )}
+                userId={userId}
                 userCourseRole={userCourseRole}
                 question={question}
                 dispatchUIStateChange={dispatch}
                 isPostingComment={uiState.isPostingComment}
                 showStudents={showStudents}
+                defaultAnonymousSetting={
+                  courseFeatures?.asyncCentreDefaultAnonymous ?? true
+                }
               />
             </div>
             <div className="flex flex-wrap">

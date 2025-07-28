@@ -1,14 +1,14 @@
 import React, { useState } from 'react'
 import {
-  Modal,
-  Input,
-  Form,
-  message,
-  Checkbox,
-  Tooltip,
   Button,
+  Checkbox,
+  Form,
+  Input,
+  message,
+  Modal,
   Popconfirm,
   Spin,
+  Tooltip,
 } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
@@ -17,7 +17,10 @@ import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
 import { DeleteOutlined } from '@ant-design/icons'
-import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions'
+import {
+  deleteAsyncQuestion,
+  formatQuestionForChatbot,
+} from '../../utils/commonAsyncFunctions'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { Wand2 } from 'lucide-react'
 
@@ -26,6 +29,8 @@ interface FormValues {
   questionText: string
   questionTypesInput: number[]
   refreshAIAnswer: boolean
+  setVisible: boolean
+  setAnonymous: boolean
 }
 
 interface CreateAsyncQuestionModalProps {
@@ -50,6 +55,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [isGeneratingAbstract, setIsGeneratingAbstract] = useState(false)
   const courseFeatures = useCourseFeatures(courseId)
+  const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false
 
   const fallbackGenerateAbstract = (question: string) => {
     const words = question.split(' ').slice(0, 8)
@@ -133,17 +139,19 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
     if (question) {
       if (values.refreshAIAnswer) {
         await getAiAnswer(
-          `
-            Question Abstract: ${values.QuestionAbstract}
-            Question Text: ${values.questionText}
-            Question Types: ${newQuestionTypeInput.map((questionType) => questionType.name).join(', ')}
-          `,
+          formatQuestionForChatbot(
+            values.QuestionAbstract,
+            values.questionText,
+            newQuestionTypeInput,
+          ),
         ).then(async (aiAnswer) => {
           await API.asyncQuestions
             .studentUpdate(question.id, {
               questionTypes: newQuestionTypeInput,
               questionText: values.questionText,
               questionAbstract: values.QuestionAbstract,
+              authorSetVisible: authorCanSetVisible ? values.setVisible : false,
+              isAnonymous: values.setAnonymous,
               aiAnswerText: aiAnswer,
               answerText: aiAnswer,
             })
@@ -164,6 +172,8 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
             questionTypes: newQuestionTypeInput,
             questionText: values.questionText,
             questionAbstract: values.QuestionAbstract,
+            isAnonymous: values.setAnonymous,
+            authorSetVisible: authorCanSetVisible ? values.setVisible : false,
           })
           .then(() => {
             message.success('Question Updated')
@@ -180,11 +190,11 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
     } else {
       // since the ai chatbot may not be running, we don't have a catch statement if it fails and instead we just give it a question text of ''
       await getAiAnswer(
-        `
-          Question Abstract: ${values.QuestionAbstract}
-          Question Text: ${values.questionText}
-          Question Types: ${newQuestionTypeInput.map((questionType) => questionType.name).join(', ')}
-        `,
+        formatQuestionForChatbot(
+          values.QuestionAbstract,
+          values.questionText,
+          newQuestionTypeInput,
+        ),
       ).then(async (aiAnswer) => {
         await API.asyncQuestions
           .create(
@@ -197,6 +207,8 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
               status: courseFeatures?.asyncCentreAIAnswers
                 ? asyncQuestionStatus.AIAnswered
                 : asyncQuestionStatus.AIAnsweredNeedsAttention,
+              isAnonymous: values.setAnonymous,
+              authorSetVisible: authorCanSetVisible ? values.setVisible : false,
             },
             courseId,
           )
@@ -279,6 +291,11 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
                     (questionType) => questionType.id,
                   )
                 : [],
+            setVisible: question?.authorSetVisible || false,
+            setAnonymous:
+              question?.isAnonymous ??
+              courseFeatures?.asyncCentreDefaultAnonymous ??
+              true,
           }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
@@ -338,31 +355,52 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           <QuestionTagSelector questionTags={questionTypes} />
         </Form.Item>
       )}
-      {question && courseFeatures?.asyncCentreAIAnswers && (
-        <Tooltip
-          placement="topLeft"
-          title={
-            userInfo.chat_token.used >= userInfo.chat_token.max_uses
-              ? 'You are out of AI answers for today. Please try again tomorrow.'
-              : null
+      {authorCanSetVisible && (
+        <Form.Item
+          name="setVisible"
+          label="Show Publicly?"
+          tooltip={
+            'Let staff know whether you want your question to be visible to other students. Staff can make questions public regardless of this setting.'
           }
+          valuePropName="checked"
+          layout="horizontal"
         >
-          <Form.Item name="refreshAIAnswer" valuePropName="checked">
-            <Checkbox
-              disabled={
-                userInfo.chat_token.used >= userInfo.chat_token.max_uses
-              }
-            >
-              Get a new AI answer?
-            </Checkbox>
-          </Form.Item>
-        </Tooltip>
+          <Checkbox />
+        </Form.Item>
       )}
-      <div className="text-gray-500">
-        Only you and faculty will be able to see your question unless a faculty
-        member chooses to mark it public, in which case it will appear fully
-        anonymous to other students.
-      </div>
+      <Form.Item
+        name="setAnonymous"
+        label="Appear Anonymous?"
+        tooltip={
+          'If toggled, your name and avatar will not be shown with the question. Staff members will still see who you are.'
+        }
+        layout="horizontal"
+        valuePropName="checked"
+      >
+        <Checkbox />
+      </Form.Item>
+      {question &&
+        courseFeatures?.asyncCentreAIAnswers &&
+        question.status !== asyncQuestionStatus.HumanAnswered && (
+          <Tooltip
+            placement="topLeft"
+            title={
+              userInfo.chat_token.used >= userInfo.chat_token.max_uses
+                ? 'You are out of AI answers for today. Please try again tomorrow.'
+                : null
+            }
+          >
+            <Form.Item name="refreshAIAnswer" valuePropName="checked">
+              <Checkbox
+                disabled={
+                  userInfo.chat_token.used >= userInfo.chat_token.max_uses
+                }
+              >
+                Get a new AI answer?
+              </Checkbox>
+            </Form.Item>
+          </Tooltip>
+        )}
     </Modal>
   )
 }

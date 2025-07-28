@@ -5,6 +5,7 @@ import {
   Role,
   TACheckinTimesResponse,
   UserCourse,
+  validFeatures,
 } from '@koh/common';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
@@ -516,7 +517,7 @@ describe('Course Integration', () => {
         course: ucp.course,
       });
 
-      const response = await supertest({ userId: ucp.user.id })
+      await supertest({ userId: ucp.user.id })
         .post(`/courses/${ucp.course.id}/create_queue/abcd1`)
         .send({ notes: 'example note 1', isProfessorQueue: false })
         .expect(201);
@@ -1572,7 +1573,7 @@ describe('Course Integration', () => {
         .send({ value: true, feature: 'invalidFeature' });
 
       expect(resp.body.message).toEqual([
-        'feature must be one of the following values: chatBotEnabled, asyncQueueEnabled, adsEnabled, queueEnabled, scheduleOnFrontPage, asyncCentreAIAnswers',
+        `feature must be one of the following values: ${validFeatures.join(', ')}`,
       ]);
       expect(resp.status).toBe(400);
     });
@@ -1748,6 +1749,8 @@ describe('Course Integration', () => {
         adsEnabled: true,
         queueEnabled: true,
         asyncCentreAIAnswers: true,
+        asyncCentreAuthorPublic: false,
+        asyncCentreDefaultAnonymous: true,
         scheduleOnFrontPage: false,
         settingsFound: false,
       });
@@ -1766,6 +1769,7 @@ describe('Course Integration', () => {
         adsEnabled: false,
         queueEnabled: false,
         asyncCentreAIAnswers: false,
+        asyncCentreDefaultAnonymous: false,
         scheduleOnFrontPage: true,
       });
       const resp = await supertest({ userId: student.id }).get(
@@ -1780,6 +1784,8 @@ describe('Course Integration', () => {
         adsEnabled: false,
         queueEnabled: false,
         asyncCentreAIAnswers: false,
+        asyncCentreDefaultAnonymous: false,
+        asyncCentreAuthorPublic: false,
         scheduleOnFrontPage: true,
         settingsFound: true,
       });
@@ -2400,8 +2406,7 @@ describe('Course Integration', () => {
 
     it('should return 201 when organization admin calls the endpoint', async () => {
       const adminUser = await UserFactory.create();
-      const chatToken = await ChatTokenFactory.create({ user: adminUser });
-      adminUser.chat_token = chatToken;
+      adminUser.chat_token = await ChatTokenFactory.create({ user: adminUser });
       await adminUser.save();
 
       const organization = await OrganizationFactory.create();

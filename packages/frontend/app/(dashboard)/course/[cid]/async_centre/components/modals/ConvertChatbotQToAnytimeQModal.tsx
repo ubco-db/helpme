@@ -9,6 +9,7 @@ import { asyncQuestionStatus } from '@koh/common'
 import { QuestionCircleOutlined } from '@ant-design/icons'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { ChatbotQToConvertToAnytimeQ } from '@/app/typings/chatbot'
+import { formatQuestionForChatbot } from '../../utils/commonAsyncFunctions'
 
 interface FormValues {
   QuestionAbstract: string
@@ -130,11 +131,11 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
     let aiAnswer = ''
     if (values.refreshAIAnswer) {
       aiAnswer = await getAiAnswer(
-        `
-            Question Abstract: ${values.QuestionAbstract}
-            Question Text: ${values.questionText}
-            Question Types: ${newQuestionTypeInput.map((questionType) => questionType.name).join(', ')}
-          `,
+        formatQuestionForChatbot(
+          values.QuestionAbstract,
+          values.questionText,
+          newQuestionTypeInput,
+        ),
       )
     } else {
       // if they don't want a new AI answer, leave it as a list of the old answers with "\n" in between them

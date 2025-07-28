@@ -4,16 +4,14 @@ import {
   ExclamationCircleFilled,
   FileAddOutlined,
   GithubOutlined,
-  InboxOutlined,
+  UploadOutlined,
 } from '@ant-design/icons'
 import {
-  Alert,
   Form,
   Input,
   message,
   Modal,
   Popconfirm,
-  Progress,
   Segmented,
   Switch,
 } from 'antd'
@@ -22,6 +20,8 @@ import { useState } from 'react'
 import { RcFile } from 'antd/lib/upload'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useAsyncToaster } from '@/app/contexts/AsyncToasterContext'
+import ChatbotHelpTooltip from '../../components/ChatbotHelpTooltip'
 
 interface AddChatbotDocumentModalProps {
   courseId: number
@@ -40,13 +40,10 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
   const [loading, setLoading] = useState(false)
   const [form] = Form.useForm()
   const [isSlideDeck, setIsSlideDeck] = useState(false)
-  const [countProcessed, setCountProcessed] = useState(0)
   const [fileList, setFileList] = useState<any[]>([])
-  const [uploadErrors, setUploadErrors] = useState<string[]>([])
-  const [confirmPopoverOpen, setConfirmPopoverOpen] = useState(false)
+  const { runAsyncToast } = useAsyncToaster()
 
   const addDocument = async () => {
-    setConfirmPopoverOpen(false)
     setLoading(true)
     try {
       const formData = await form.validateFields()
@@ -70,27 +67,59 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
   }
 
   const uploadFiles = async (files: RcFile[]) => {
-    setCountProcessed(0)
-    let wasError = false
     for (const file of files) {
+      // if the file is already uploading or done, skip it and inform the user
+      if (fileList.find((f) => f.uid === file.uid)?.status === 'uploading') {
+        message.info(`${file.name} is still being processed.`)
+        continue
+      } else if (fileList.find((f) => f.uid === file.uid)?.status === 'done') {
+        message.info(`${file.name} is already done being processed.`)
+        continue
+      }
+
       const formData = new FormData()
       formData.append('file', file)
       formData.append('parseAsPng', isSlideDeck.toString())
 
-      await API.chatbot.staffOnly
-        .uploadDocument(courseId, formData)
-        .then(async () => {
-          message.success(`${file.name} uploaded and processed!`)
-          setCountProcessed((prev) => prev + 1)
-        })
-        .catch((e) => {
-          uploadErrors.push(
-            `Failed to upload/process ${file.name}: ${getErrorMessage(e)}`,
-          )
-          wasError = true
-        })
+      setFileList((prevFileList) =>
+        prevFileList.map((f) =>
+          f.uid === file.uid ? { ...f, status: 'uploading' } : f,
+        ),
+      )
+
+      runAsyncToast(
+        () => API.chatbot.staffOnly.uploadDocument(courseId, formData),
+        (result, error) => {
+          if (error) {
+            setFileList((prevFileList) =>
+              prevFileList.map((f) =>
+                f.uid === file.uid
+                  ? { ...f, status: 'error', response: getErrorMessage(error) }
+                  : f,
+              ),
+            )
+          } else {
+            // success
+            getDocuments()
+            // remove the file from the list
+            setFileList((prevFileList) =>
+              prevFileList.filter((f) => f.uid !== file.uid),
+            )
+          }
+        },
+        {
+          successMsg: `${file.name} uploaded and processed!`,
+          errorMsg: `Failed to upload/process ${file.name}`,
+          appendApiError: true,
+          successDuration: 3500,
+        },
+      )
     }
-    if (!wasError) handleSuccess()
+    message.info(
+      'All documents have been queued for processing. You will be notified of completion.',
+      3.5,
+    )
+    onClose()
   }
 
   const addUrl = async (url: string) => {
@@ -101,15 +130,26 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
         handleSuccess()
       })
       .catch((e) => {
-        uploadErrors.push(
-          `Failed to upload file (${e}). Please check the file type of linked document`,
+        message.error(
+          `Failed to upload file (${getErrorMessage(e)}). Please check the file type of linked document`,
         )
       })
   }
 
   return (
     <Modal
-      title="Add a new document for your chatbot to use."
+      title={
+        <div className="flex items-center gap-2">
+          <FileAddOutlined />
+          <p className="w-full md:flex">
+            Add a New Document to the Chatbot
+            <ChatbotHelpTooltip
+              forPage="add_chatbot_document"
+              className="mr-6 inline-block md:ml-auto md:block"
+            />
+          </p>
+        </div>
+      }
       open={open}
       onCancel={() => !loading && onClose()}
       closable={!loading}
@@ -119,16 +159,14 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
         htmlType: 'submit',
         loading: loading,
         onClick: async () => {
-          await form.validateFields().then((formData) => {
-            if (documentType === 'FILE' && formData.isSlideDeck) {
-              setConfirmPopoverOpen(true)
-            } else {
-              addDocument()
-            }
+          await form.validateFields().then(() => {
+            addDocument()
           })
         },
       }}
-      okText="Confirm"
+      okText={
+        fileList.some((f) => f.status === 'error') ? 'Try Again' : 'Confirm'
+      }
       cancelButtonProps={{
         disabled: loading,
         onClick: onClose,
@@ -137,35 +175,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
       footer={(_, { OkBtn, CancelBtn }) => (
         <div className={`flex flex-wrap justify-end gap-2 md:gap-3`}>
           <CancelBtn />
-          <div>
-            <OkBtn />
-            <Popconfirm
-              title={
-                <div className="flex max-w-80 flex-col gap-y-2">
-                  <p>
-                    <b className="font-semibold">
-                      This may take a few minutes to process
-                    </b>
-                    ; feel free to open a new tab and do something else during
-                    that time.
-                  </p>
-                  <p>
-                    Any errors that occur during processing will be shown here.
-                  </p>
-                  <p>Would you like to continue?</p>
-                </div>
-              }
-              onConfirm={addDocument}
-              okText="Yes"
-              icon={<ExclamationCircleFilled className="text-blue-500" />}
-              cancelText="No"
-              open={confirmPopoverOpen}
-              onCancel={() => setConfirmPopoverOpen(false)}
-              okButtonProps={{ className: 'px-4' }}
-              cancelButtonProps={{ className: 'px-4' }}
-              placement={'bottomRight'}
-            ></Popconfirm>
-          </div>
+          <OkBtn />
         </div>
       )}
     >
@@ -246,7 +256,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
                   beforeUpload={() => false} // Prevent automatic upload
                 >
                   <p className="ant-upload-drag-icon">
-                    <InboxOutlined />
+                    <UploadOutlined />
                   </p>
                   <p className="ant-upload-text">
                     Click or drag file to this area to upload
@@ -256,15 +266,10 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
                   </p>
                 </Dragger>
               </Form.Item>
-              {loading && fileList.length > 1 && (
-                <Progress
-                  percent={Math.round((countProcessed / fileList.length) * 100)}
-                />
-              )}
               <Form.Item
                 name="isSlideDeck"
-                label="Parse document as slides"
-                tooltip="By default images/graphics embedded in your uploaded files will not be detected by the chatbot. Ticking this will transform pages of the document into images and automatically generate AI summaries of said images. This is useful for any document that isn't just text. Warning that it will take a lot longer to process."
+                label="Parse document(s) as slides"
+                tooltip="By default images/graphics embedded in your uploaded files will not be detected by the chatbot. Ticking this will transform pages of the document into images and automatically generate AI detailed descriptions of said images (using a UBC-hosted AI model). This is useful for any document that isn't just text. Warning that it will take a lot longer to process."
               >
                 <Switch
                   defaultChecked={isSlideDeck}
@@ -275,22 +280,6 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
             </>
           )}
         </Form>
-        {uploadErrors.length > 0 &&
-          uploadErrors.map((uploadError, idx) => (
-            <Alert
-              key={idx}
-              description={
-                'There was an error uploading or processing your document: ' +
-                uploadError
-              }
-              type="error"
-              showIcon
-              closable
-              onClose={() =>
-                setUploadErrors(uploadErrors.filter((_, i) => i !== idx))
-              }
-            />
-          ))}
       </>
     </Modal>
   )

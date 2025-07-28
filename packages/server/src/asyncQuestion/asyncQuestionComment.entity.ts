@@ -37,6 +37,9 @@ export class AsyncQuestionCommentModel extends BaseEntity {
   @JoinColumn({ name: 'questionId' })
   question: AsyncQuestionModel;
 
+  @Column('boolean', { default: true })
+  isAnonymous: boolean;
+
   @Column()
   @Exclude()
   questionId: number;

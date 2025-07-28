@@ -23,7 +23,6 @@ import {
   cn,
   convertPathnameToPageName,
   getRoleInCourse,
-  parseThinkBlock,
 } from '@/app/utils/generalUtils'
 import { Feedback } from './Feedback'
 import {
@@ -35,7 +34,12 @@ import { API } from '@/app/api'
 import MarkdownCustom from '@/app/components/Markdown'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Message, PreDeterminedQuestion, Role } from '@koh/common'
+import {
+  Message,
+  parseThinkBlock,
+  PreDeterminedQuestion,
+  Role,
+} from '@koh/common'
 import { Bot } from 'lucide-react'
 
 const { TextArea } = Input
@@ -480,19 +484,25 @@ const Chatbot: React.FC<ChatbotProps> = ({
                                             part={0}
                                           />
                                         )}
-                                      {sourceDocument.pageNumbers &&
-                                        sourceDocument.pageNumbers.map(
-                                          (part) => (
-                                            <SourceLinkButton
-                                              key={`${sourceDocument.docName}-${part}`}
-                                              docName={sourceDocument.docName}
-                                              sourceLink={
-                                                sourceDocument.sourceLink
-                                              }
-                                              part={part}
-                                            />
-                                          ),
-                                        )}
+                                      {
+                                        // for some reason pageNumbers isn't always an array. This might be worth investigating.
+                                        sourceDocument.pageNumbers &&
+                                          Array.isArray(
+                                            sourceDocument.pageNumbers,
+                                          ) &&
+                                          sourceDocument.pageNumbers.map(
+                                            (part) => (
+                                              <SourceLinkButton
+                                                key={`${sourceDocument.docName}-${part}`}
+                                                docName={sourceDocument.docName}
+                                                sourceLink={
+                                                  sourceDocument.sourceLink
+                                                }
+                                                part={part}
+                                              />
+                                            ),
+                                          )
+                                      }
                                     </div>
                                   </Tooltip>
                                 ),

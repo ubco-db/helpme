@@ -6,23 +6,31 @@ import {
   LMSAssignment,
   LMSCourseAPIResponse,
   LMSIntegrationPlatform,
+  LMSPage,
 } from '@koh/common';
 import { LMSUpload } from './lmsIntegration.service';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class LMSIntegrationAdapter {
-  async getAdapter(integration: LMSCourseIntegrationModel) {
+  async getAdapter(
+    integration: LMSCourseIntegrationModel,
+    cacheManager?: Cache,
+  ) {
     switch (integration.orgIntegration.apiPlatform) {
       case 'Canvas':
-        return new CanvasLMSAdapter(integration);
+        return new CanvasLMSAdapter(integration, cacheManager);
     }
-    return new BaseLMSAdapter(integration);
+    return new BaseLMSAdapter(integration, cacheManager);
   }
 }
 
 export abstract class AbstractLMSAdapter {
   /* eslint-disable @typescript-eslint/no-unused-vars */
-  constructor(protected integration: LMSCourseIntegrationModel) {}
+  constructor(
+    protected integration: LMSCourseIntegrationModel,
+    protected cacheManager?: Cache,
+  ) {}
 
   getPlatform(): LMSIntegrationPlatform | null {
     return null;
@@ -66,6 +74,13 @@ export abstract class AbstractLMSAdapter {
     return null;
   }
 
+  async getPages(): Promise<{
+    status: LMSApiResponseStatus;
+    pages: LMSPage[];
+  }> {
+    return null;
+  }
+
   getDocumentLink(documentId: number, documentType: LMSUpload): string {
     switch (documentType) {
       default:
@@ -90,15 +105,28 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
   async Get(
     path: string,
   ): Promise<{ status: LMSApiResponseStatus; data?: any; nextLink?: string }> {
-    return fetch(
-      `https://${this.integration.orgIntegration.rootUrl}/api/v1/${path}`,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${this.integration.apiKey}`,
-        },
+    const url = `https://${this.integration.orgIntegration.rootUrl}/api/v1/${path}`;
+    const cacheKey = url;
+
+    // Check cache first
+    if (this.cacheManager) {
+      const cached = await this.cacheManager.get(cacheKey);
+      if (cached) {
+        return cached as {
+          status: LMSApiResponseStatus;
+          data?: any;
+          nextLink?: string;
+        };
+      }
+    }
+
+    // Make the actual API call
+    const result = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${this.integration.apiKey}`,
       },
-    )
+    })
       .then((response) => {
         let nextLink: string | undefined = undefined;
         const linkHeader = response.headers.get('link');
@@ -134,6 +162,13 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
         );
         return { status: LMSApiResponseStatus.Error };
       });
+
+    // Cache successful results for 5 minutes
+    if (this.cacheManager && result.status === LMSApiResponseStatus.Success) {
+      await this.cacheManager.set(cacheKey, result, 300000);
+    }
+
+    return result;
   }
 
   async GetPaginated(
@@ -305,12 +340,70 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     };
   }
 
+  async getPages(): Promise<{
+    status: LMSApiResponseStatus;
+    pages: LMSPage[];
+  }> {
+    const pagesKey = `pages_complete_${this.integration.apiCourseId}`;
+
+    if (this.cacheManager) {
+      const cachedPages = await this.cacheManager.get(pagesKey);
+      if (cachedPages) {
+        return cachedPages as {
+          status: LMSApiResponseStatus;
+          pages: LMSPage[];
+        };
+      }
+    }
+
+    // If not cached, fetch as normal
+    const { status, data } = await this.GetPaginated(
+      `courses/${this.integration.apiCourseId}/pages`,
+    );
+
+    if (status != LMSApiResponseStatus.Success) return { status, pages: [] };
+
+    const pages: LMSPage[] = [];
+
+    // Individual page calls will now be cached by the Get() method
+    for (const page of data) {
+      const pageResult = await this.Get(
+        `courses/${this.integration.apiCourseId}/pages/${page.url}`,
+      );
+
+      if (pageResult.status === LMSApiResponseStatus.Success) {
+        pages.push({
+          id: pageResult.data.page_id,
+          title: pageResult.data.title,
+          body: pageResult.data.body,
+          url: page.url,
+          frontPage: page.front_page,
+          modified: new Date(pageResult.data.updated_at),
+        });
+      }
+    }
+
+    const result = {
+      status: LMSApiResponseStatus.Success,
+      pages,
+    };
+
+    // Cache complete result for 10 minutes
+    if (this.cacheManager) {
+      await this.cacheManager.set(pagesKey, result, 600000);
+    }
+
+    return result;
+  }
+
   getDocumentLink(documentId: number, documentType: LMSUpload): string {
     switch (documentType) {
       case LMSUpload.Announcements:
         return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/discussion_topics/${documentId}/`;
       case LMSUpload.Assignments:
         return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/assignments/${documentId}/`;
+      case LMSUpload.Pages:
+        return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/pages/${documentId}/`;
       default:
         return '';
     }
