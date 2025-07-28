@@ -168,9 +168,6 @@ export class QueueCleanService {
           ...Object.values(LimboQuestionStatus),
         ],
       })
-      .andWhere('QuestionModel.isTaskQuestion = :isTaskQuestion', {
-        isTaskQuestion: false,
-      })
       .getRawMany<{
         studentId: number;
         courseId: number;
