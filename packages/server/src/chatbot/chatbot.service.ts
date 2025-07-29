@@ -30,11 +30,99 @@ import {
 import { ChatbotProviderModel } from './chatbot-infrastructure-models/chatbot-provider.entity';
 import { LLMTypeModel } from './chatbot-infrastructure-models/llm-type.entity';
 import { cloneDeep, pick } from 'lodash';
-import { DataSource, DeepPartial, EntityManager, In } from 'typeorm';
+import { DataSource, DeepPartial, EntityManager, In, IsNull } from 'typeorm';
 import { CourseChatbotSettingsModel } from './chatbot-infrastructure-models/course-chatbot-settings.entity';
 import { JSDOM } from 'jsdom';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
+
+// OpenAI makes it really annoying to scrape any data related
+// to the model capabilities (text, image processing) (selfish, much?)
+// So instead, we fetch just to check on the API key and otherwise
+// we just use a pre-coded constant
+
+export const openAIModels: OpenAILLMType[] = [
+  {
+    id: 0,
+    modelName: 'gpt-4.1',
+    isRecommended: false,
+    isText: true,
+    isVision: true,
+    isThinking: false,
+    provider: undefined as any,
+    families: ['gpt-4.1'],
+  },
+  {
+    id: 0,
+    modelName: 'gpt-4.1-mini',
+    isRecommended: false,
+    isText: true,
+    isVision: true,
+    isThinking: false,
+    provider: undefined as any,
+    families: ['gpt-4.1'],
+  },
+  {
+    id: 0,
+    modelName: 'gpt-4.1-nano',
+    isRecommended: false,
+    isText: true,
+    isVision: true,
+    isThinking: false,
+    provider: undefined as any,
+    families: ['gpt-4.1'],
+  },
+  {
+    id: 0,
+    modelName: 'gpt-4o',
+    isRecommended: false,
+    isText: true,
+    isVision: true,
+    isThinking: false,
+    provider: undefined as any,
+    families: ['gpt-4o'],
+  },
+  {
+    id: 0,
+    modelName: 'gpt-4o-mini',
+    isRecommended: false,
+    isText: true,
+    isVision: true,
+    isThinking: false,
+    provider: undefined as any,
+    families: ['gpt-4o'],
+  },
+  {
+    id: 0,
+    modelName: 'gpt-4',
+    isRecommended: false,
+    isText: true,
+    isVision: false,
+    isThinking: false,
+    provider: undefined as any,
+    families: ['gpt-4'],
+  },
+  {
+    id: 0,
+    modelName: 'gpt-4-turbo',
+    isRecommended: false,
+    isText: true,
+    isVision: true,
+    isThinking: false,
+    provider: undefined as any,
+    families: ['gpt-4'],
+  },
+  {
+    id: 0,
+    modelName: 'gpt-3.5-turbo',
+    isRecommended: false,
+    isText: true,
+    isVision: false,
+    isThinking: false,
+    provider: undefined as any,
+    families: ['gpt-3.5'],
+  },
+];
 
 @Injectable()
 export class ChatbotService {
@@ -231,7 +319,7 @@ export class ChatbotService {
     return (
       (await OrganizationChatbotSettingsModel.findOne({
         where: {
-          organizationId: course.organizationCourse.organizationId,
+          organizationId: course.organizationCourse?.organizationId,
         },
       })) == undefined
     );
@@ -308,9 +396,6 @@ export class ChatbotService {
       },
     });
     await this.backfillCourseSettings(inserted);
-    await OrganizationChatbotSettingsModel.delete({
-      id: inserted.id,
-    });
     return inserted;
   }
 
@@ -319,7 +404,10 @@ export class ChatbotService {
   ) {
     const hasNoCourseSetting = await CourseModel.find({
       where: {
-        chatbotSettings: undefined,
+        organizationCourse: {
+          organizationId: orgChatbotSettings.organizationId,
+        },
+        chatbotSettings: IsNull(),
       },
     });
 
@@ -354,6 +442,7 @@ export class ChatbotService {
       const em = entityManager ?? queryRunner.manager;
       let models = cloneDeep(params.models);
       delete params.models;
+
       if (
         !models.some((m) => m.modelName == params.defaultModelName) ||
         !models.some((m) => m.modelName == params.defaultVisionModelName)
@@ -371,7 +460,11 @@ export class ChatbotService {
         })
         .save();
 
-      models = models.map((model) => ({ ...model, providerId: provider.id }));
+      models = models.map((model) => ({
+        ...model,
+        providerId: provider.id,
+        additionalNotes: model.additionalNotes ?? [],
+      }));
       const llms = await Promise.all(
         models.map(async (model) => await this.createLLMType(model, em)),
       );
@@ -423,7 +516,10 @@ export class ChatbotService {
         ? entityManager.getRepository(LLMTypeModel)
         : LLMTypeModel.getRepository()
     )
-      .create({ ...params })
+      .create({
+        ...params,
+        additionalNotes: params.additionalNotes ?? [],
+      })
       .save();
   }
 
@@ -482,7 +578,6 @@ export class ChatbotService {
     provider: ChatbotProviderModel,
     params: UpdateChatbotProviderBody,
   ): Promise<ChatbotProviderModel> {
-    console.log('in update');
     const originalAttrs = pick(provider, [
       'providerType',
       'nickname',
@@ -491,6 +586,7 @@ export class ChatbotService {
       'apiKey',
       'defaultModelId',
       'defaultVisionModelId',
+      'additionalNotes',
     ]);
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -498,15 +594,18 @@ export class ChatbotService {
     await queryRunner.startTransaction();
     try {
       const em = queryRunner.manager;
-      if (params.deletedModels) {
-        for (const removed of params.deletedModels) {
-          await this.deleteLLMType(removed, em);
-        }
-      }
 
+      // Add models first in case one of them is selected as the default model
       if (params.addedModels) {
         for (const added of params.addedModels) {
-          await this.createLLMType({ ...added, providerId: provider.id }, em);
+          await this.createLLMType(
+            {
+              ...added,
+              providerId: provider.id,
+              additionalNotes: added.additionalNotes ?? [],
+            },
+            em,
+          );
         }
       }
 
@@ -528,11 +627,70 @@ export class ChatbotService {
       const defaultVisionModel = params.defaultVisionModelName
         ? models.find((m) => m.modelName == params.defaultVisionModelName)
         : undefined;
+
       if (defaultVisionModel) {
         params = {
           ...params,
           defaultVisionModelId: defaultVisionModel.id,
         };
+      }
+
+      if (params.modifiedModels) {
+        Object.keys(params.modifiedModels).forEach((k) => {
+          const i = parseInt(k);
+          if ((params?.deletedModels ?? []).includes(i)) {
+            delete params.modifiedModels[i];
+          }
+        });
+        for (const k of Object.keys(params.modifiedModels)) {
+          const id = parseInt(k);
+          const modified = params.modifiedModels[id];
+          const modelIndex = models.findIndex((m) => m.id == id);
+          if (modelIndex < 0) {
+            throw new NotFoundException(
+              ERROR_MESSAGES.chatbotService.modelNotFound,
+            );
+          }
+          const model = models[modelIndex];
+
+          if (
+            modified.isText != undefined &&
+            !modified.isText &&
+            (params.defaultModelId == id ||
+              (params.defaultModelId == undefined &&
+                provider.defaultModelId == id))
+          ) {
+            throw new BadRequestException(
+              ERROR_MESSAGES.chatbotService.cannotChangeDefaultModelType(
+                'text',
+              ),
+            );
+          }
+
+          if (
+            modified.isVision != undefined &&
+            !modified.isVision &&
+            (params.defaultVisionModelId == id ||
+              (params.defaultVisionModelId == undefined &&
+                provider.defaultVisionModelId == id))
+          ) {
+            throw new BadRequestException(
+              ERROR_MESSAGES.chatbotService.cannotChangeDefaultModelType(
+                'text',
+              ),
+            );
+          }
+
+          const updated = await this.updateLLMType(
+            model,
+            {
+              ...modified,
+              additionalNotes: modified.additionalNotes ?? [],
+            },
+            em,
+          );
+          models[modelIndex] = updated;
+        }
       }
 
       await em.update(
@@ -556,7 +714,15 @@ export class ChatbotService {
           ),
         },
       );
-      console.log('pre-commit');
+
+      // Delete models after, will throw exception if attempting to delete the original model but other updates
+      // will propagate
+      if (params.deletedModels) {
+        for (const removed of params.deletedModels) {
+          await this.deleteLLMType(removed, em);
+        }
+      }
+
       await queryRunner.commitTransaction();
     } catch (err) {
       await queryRunner.rollbackTransaction();
@@ -582,9 +748,11 @@ export class ChatbotService {
   ): Promise<LLMTypeModel> {
     const originalAttrs = pick(llmType, [
       'modelName',
+      'isRecommended',
       'isText',
       'isThinking',
       'isVision',
+      'additionalNotes',
     ]);
     await (entityManager ? entityManager : this.dataSource.manager).update(
       LLMTypeModel,
@@ -595,7 +763,14 @@ export class ChatbotService {
         id: llmType.id, // Effectively does nothing as it's only for subscriber callbacks
         ...originalAttrs,
         ...dropUndefined(
-          pick(params, ['modelName', 'isText', 'isThinking', 'isVision']),
+          pick(params, [
+            'modelName',
+            'isRecommended',
+            'isText',
+            'isThinking',
+            'isVision',
+            'additionalNotes',
+          ]),
         ),
       },
     );
@@ -728,7 +903,6 @@ export class ChatbotService {
     });
     const { defaults, usingDefaults } = await this.getUsingCourseDefaultsParams(
       organizationSettings,
-      !!match,
       params,
     );
     if (match) {
@@ -761,6 +935,8 @@ export class ChatbotService {
     return await CourseChatbotSettingsModel.findOne({
       where: { courseId },
       relations: {
+        organizationSettings: true,
+        course: true,
         llmModel: {
           provider: {
             defaultModel: true,
@@ -769,58 +945,6 @@ export class ChatbotService {
         },
       },
     });
-  }
-
-  private async getUsingCourseDefaultsParams(
-    organizationSettings: OrganizationChatbotSettingsModel,
-    deleteUsed = false,
-    params: any = {},
-  ): Promise<{
-    defaults: Record<string, any>;
-    usingDefaults: Record<string, boolean>;
-  }> {
-    const usingDefaultsKeys = CourseChatbotSettingsModel.getUsingDefaultsKeys();
-    const defaults = await this.getCourseSettingDefaults(
-      -1,
-      organizationSettings,
-    );
-    const dropped = dropUndefined(params);
-
-    // Match where parameters were set (not using defaults)
-    const matchKeys = Object.keys(dropped).filter((k0) =>
-      usingDefaultsKeys.some((k1) =>
-        k1.toLowerCase().includes(k0.toLowerCase()),
-      ),
-    );
-
-    const usingDefaults = CourseChatbotSettingsModel.getPopulatedUsingDefaults({
-      usingDefaultModel:
-        !!defaults['llmId'] && !matchKeys.some((k) => k == 'llmId'),
-      usingDefaultPrompt:
-        !!defaults['prompt'] && !matchKeys.some((k) => k == 'prompt'),
-      usingDefaultTemperature:
-        !!defaults['temperature'] && !matchKeys.some((k) => k == 'temperature'),
-      usingDefaultTopK:
-        !!defaults['topK'] && !matchKeys.some((k) => k == 'topK'),
-      usingDefaultSimilarityThresholdDocuments:
-        !!defaults['similarityThresholdDocuments'] &&
-        !matchKeys.some((k) => k == 'similarityThresholdDocuments'),
-      usingDefaultSimilarityThresholdQuestions:
-        !!defaults['similarityThresholdQuestions'] &&
-        !matchKeys.some((k) => k == 'similarityThresholdQuestions'),
-    });
-
-    // Delete keys with set values (used in update logic to prevent oversetting the value)
-    if (deleteUsed) {
-      Object.keys(usingDefaults).forEach((key) => {
-        if (usingDefaults[key] == true) delete usingDefaults[key];
-      });
-    }
-
-    return {
-      defaults,
-      usingDefaults,
-    };
   }
 
   async resetCourseSetting(
@@ -843,6 +967,7 @@ export class ChatbotService {
     const { defaults, usingDefaults } = await this.getUsingCourseDefaultsParams(
       courseSettings.organizationSettings,
     );
+
     await CourseChatbotSettingsModel.update(
       {
         courseId,
@@ -856,6 +981,7 @@ export class ChatbotService {
     return await CourseChatbotSettingsModel.findOne({
       where: { courseId },
       relations: {
+        course: true,
         llmModel: {
           provider: {
             defaultModel: true,
@@ -864,6 +990,62 @@ export class ChatbotService {
         },
       },
     });
+  }
+
+  private async getUsingCourseDefaultsParams(
+    organizationSettings: OrganizationChatbotSettingsModel,
+    params: any = {},
+  ): Promise<{
+    defaults: Record<string, any>;
+    usingDefaults: Record<string, boolean>;
+  }> {
+    if (!organizationSettings.defaultProvider) {
+      organizationSettings.defaultProvider = await ChatbotProviderModel.findOne(
+        {
+          where: { id: organizationSettings.defaultProviderId },
+        },
+      );
+    }
+
+    const usingDefaultsKeys = CourseChatbotSettingsModel.getUsingDefaultsKeys();
+    const defaults = await this.getCourseSettingDefaults(
+      -1,
+      organizationSettings,
+    );
+    const dropped = dropUndefined(params, true);
+
+    // Match where parameters were set (not using defaults)
+    const matchKeys = Object.keys(dropped).filter((k0) =>
+      usingDefaultsKeys.some(
+        (k1) =>
+          (k0 == 'llmId'
+            ? k1 == 'usingDefaultModel'
+            : k1.toLowerCase().includes(k0.toLowerCase())) &&
+          dropped[k0] != defaults[k0],
+      ),
+    );
+
+    const usingDefaults = CourseChatbotSettingsModel.getPopulatedUsingDefaults({
+      usingDefaultModel:
+        !!defaults['llmId'] && !matchKeys.some((k) => k == 'llmId'),
+      usingDefaultPrompt:
+        !!defaults['prompt'] && !matchKeys.some((k) => k == 'prompt'),
+      usingDefaultTemperature:
+        !!defaults['temperature'] && !matchKeys.some((k) => k == 'temperature'),
+      usingDefaultTopK:
+        !!defaults['topK'] && !matchKeys.some((k) => k == 'topK'),
+      usingDefaultSimilarityThresholdDocuments:
+        !!defaults['similarityThresholdDocuments'] &&
+        !matchKeys.some((k) => k == 'similarityThresholdDocuments'),
+      usingDefaultSimilarityThresholdQuestions:
+        !!defaults['similarityThresholdQuestions'] &&
+        !matchKeys.some((k) => k == 'similarityThresholdQuestions'),
+    });
+
+    return {
+      defaults,
+      usingDefaults,
+    };
   }
 
   async getCourseSettingDefaults(
@@ -921,6 +1103,7 @@ export class ChatbotService {
     if (!baseUrl.startsWith('http')) {
       baseUrl = `https://${baseUrl}`;
     }
+
     const response: { models: OllamaModelDescription[] } = await fetch(
       `${baseUrl}/api/tags`,
       {
@@ -967,6 +1150,7 @@ export class ChatbotService {
           modelName: model.model ?? model.name,
           families: model.details.families ?? [model.details.family],
           parameterSize: model.details.parameter_size,
+          isRecommended: false,
           isText: !isVision,
           isVision,
           isThinking,
@@ -992,86 +1176,6 @@ export class ChatbotService {
     if (cached != undefined) {
       return cached;
     }
-
-    // OpenAI makes it really annoying to scrape any data related
-    // to the model capabilities (text, image processing) (selfish, much?)
-    // So instead, we fetch just to check on the API key and otherwise
-    // we just use a pre-coded constant
-
-    const openAIModels: OpenAILLMType[] = [
-      {
-        id: 0,
-        modelName: 'gpt-4.1',
-        isText: true,
-        isVision: true,
-        isThinking: false,
-        provider: undefined as any,
-        families: ['gpt-4.1'],
-      },
-      {
-        id: 0,
-        modelName: 'gpt-4.1-mini',
-        isText: true,
-        isVision: true,
-        isThinking: false,
-        provider: undefined as any,
-        families: ['gpt-4.1'],
-      },
-      {
-        id: 0,
-        modelName: 'gpt-4.1-nano',
-        isText: true,
-        isVision: true,
-        isThinking: false,
-        provider: undefined as any,
-        families: ['gpt-4.1'],
-      },
-      {
-        id: 0,
-        modelName: 'gpt-4o',
-        isText: true,
-        isVision: true,
-        isThinking: false,
-        provider: undefined as any,
-        families: ['gpt-4o'],
-      },
-      {
-        id: 0,
-        modelName: 'gpt-4o-mini',
-        isText: true,
-        isVision: true,
-        isThinking: false,
-        provider: undefined as any,
-        families: ['gpt-4o'],
-      },
-      {
-        id: 0,
-        modelName: 'gpt-4',
-        isText: true,
-        isVision: false,
-        isThinking: false,
-        provider: undefined as any,
-        families: ['gpt-4'],
-      },
-      {
-        id: 0,
-        modelName: 'gpt-4-turbo',
-        isText: true,
-        isVision: true,
-        isThinking: false,
-        provider: undefined as any,
-        families: ['gpt-4'],
-      },
-      {
-        id: 0,
-        modelName: 'gpt-3.5-turbo',
-        isText: true,
-        isVision: false,
-        isThinking: false,
-        provider: undefined as any,
-        families: ['gpt-3.5'],
-      },
-    ];
 
     await fetch(`https://api.openai.com/v1/models`, {
       method: 'GET',
@@ -1117,15 +1221,23 @@ export class ChatbotService {
     }
     const response = await fetch(url, {
       method: 'GET',
-    }).then((res) => {
-      if (!res.ok) {
-        throw new HttpException(
-          `Failed to contact Ollama Library: ${res.statusText}`,
-          res.status,
-        );
-      }
-      return res.text();
-    });
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new HttpException(
+            `Failed to contact Ollama Library: ${res.statusText}`,
+            res.status,
+          );
+        }
+        return res.text();
+      })
+      .catch((err) => {
+        if (err instanceof HttpException) {
+          throw err;
+        } else {
+          throw new BadRequestException('Failed to contact Ollama Library');
+        }
+      });
 
     const { document } = new JSDOM(response).window;
 

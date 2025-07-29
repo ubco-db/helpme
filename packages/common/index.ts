@@ -508,6 +508,7 @@ export interface CourseChatbotSettings {
   id: number
   course: CoursePartial
   courseId: number
+  llmId: number
   llmModel: LLMType
   prompt: string
   temperature: number
@@ -523,11 +524,11 @@ export interface CourseChatbotSettings {
 }
 
 export interface CourseChatbotSettingsForm {
-  llmId: number
-  prompt: string
-  temperature: number
-  topK: number
-  similarityThresholdDocuments: number
+  llmId?: number
+  prompt?: string
+  temperature?: number
+  topK?: number
+  similarityThresholdDocuments?: number
 }
 
 export class ChatbotProvider {
@@ -557,15 +558,21 @@ export class ChatbotProvider {
   defaultModel!: LLMType
 
   defaultVisionModel!: LLMType
+
+  @IsOptional()
+  additionalNotes?: string[]
 }
 
 export interface LLMType {
   id: number
   modelName: string
+  isRecommended: boolean
   isText: boolean
   isVision: boolean
   isThinking: boolean
   provider: ChatbotProvider
+  additionalNotes?: string[]
+  providerNotes?: string[]
 }
 
 export interface OllamaLLMType extends LLMType {
@@ -688,7 +695,8 @@ export class GetAvailableModelsBody {
   apiKey?: string
 
   @IsObject()
-  headers!: ChatbotAllowedHeaders
+  @IsOptional()
+  headers?: ChatbotAllowedHeaders
 }
 
 export class CreateChatbotProviderBody {
@@ -719,6 +727,10 @@ export class CreateChatbotProviderBody {
 
   @IsString()
   defaultVisionModelName!: string
+
+  @IsArray()
+  @IsOptional()
+  additionalNotes?: string[]
 }
 
 export class UpdateChatbotProviderBody {
@@ -765,11 +777,22 @@ export class UpdateChatbotProviderBody {
   @IsArray()
   @IsOptional()
   addedModels?: CreateLLMTypeBody[]
+
+  @IsObject()
+  @IsOptional()
+  modifiedModels?: Record<number, UpdateLLMTypeBody>
+
+  @IsArray()
+  @IsOptional()
+  additionalNotes?: string[]
 }
 
 export class CreateLLMTypeBody {
   @IsString()
   modelName!: string
+
+  @IsBoolean()
+  isRecommended!: boolean
 
   @IsBoolean()
   isText!: boolean
@@ -783,12 +806,20 @@ export class CreateLLMTypeBody {
   @IsInt()
   @IsOptional()
   providerId?: number
+
+  @IsArray()
+  @IsOptional()
+  additionalNotes?: string[]
 }
 
 export class UpdateLLMTypeBody {
   @IsString()
   @IsOptional()
   modelName?: string
+
+  @IsBoolean()
+  @IsOptional()
+  isRecommended?: boolean
 
   @IsBoolean()
   @IsOptional()
@@ -801,6 +832,10 @@ export class UpdateLLMTypeBody {
   @IsBoolean()
   @IsOptional()
   isThinking?: boolean
+
+  @IsArray()
+  @IsOptional()
+  additionalNotes?: string[]
 }
 
 export interface ChatbotSettings {
@@ -3355,13 +3390,13 @@ export function parseThinkBlock(answer: string) {
   return { thinkText, cleanAnswer }
 }
 
-export function dropUndefined(obj: any) {
-  if (typeof obj !== 'object' || obj === null) {
+export function dropUndefined(obj: any, dropNull = false) {
+  if (typeof obj !== 'object' || (!dropNull && obj === null)) {
     return obj // Ignore non-objects and null
   }
 
   for (const key of Object.keys(obj)) {
-    if (obj[key] === undefined) {
+    if (obj[key] === undefined || (dropNull && obj[key] === null)) {
       delete obj[key]
     } else if (typeof obj[key] === 'object' && obj[key] !== null) {
       obj[key] = dropUndefined(obj[key])
@@ -3433,6 +3468,9 @@ export const ERROR_MESSAGES = {
       "Cannot delete the default provider for the organization's chatbot settings.",
     cannotDeleteDefaultModel:
       'Cannot delete the default model of the provider.',
+    modelNotFound: 'Specified model was not found in list of models',
+    cannotChangeDefaultModelType: (type: 'text' | 'vision') =>
+      `Cannot change the type of default ${type} model to non-${type}`,
   },
   courseController: {
     checkIn: {

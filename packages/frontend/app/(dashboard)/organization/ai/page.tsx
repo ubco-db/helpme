@@ -13,8 +13,11 @@ import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { Divider, Input, message, Pagination, Table, Tabs, Tooltip } from 'antd'
 import CourseSettingTable from '@/app/(dashboard)/organization/ai/components/CourseSettingTable'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 export default function OrganizationChatbotSettingsPage(): ReactElement {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { userInfo } = useUserInfo()
   const [isLoading, setIsLoading] = useState(false)
   const [organizationSettings, setOrganizationSettings] =
@@ -26,6 +29,17 @@ export default function OrganizationChatbotSettingsPage(): ReactElement {
     () => Number(userInfo?.organization?.orgId) ?? -1,
     [userInfo?.organization?.orgId],
   )
+
+  const [currentTab, setCurrentTab] = useState<'organization' | 'course'>(
+    'organization',
+  )
+
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab != undefined && (tab == 'organization' || tab == 'course')) {
+      setCurrentTab(tab)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     const fetchOrganizationSettings = async () => {
@@ -76,7 +90,7 @@ export default function OrganizationChatbotSettingsPage(): ReactElement {
     fetchData().then()
   }, [organizationId, organizationSettings])
 
-  if (isLoading) {
+  if (isLoading && !organizationSettings) {
     return <CenteredSpinner tip={'Loading...'} />
   }
 
@@ -97,25 +111,59 @@ export default function OrganizationChatbotSettingsPage(): ReactElement {
           </p>
         </div>
         {organizationSettings && courseChatbotSettingsInstances ? (
-          <Tabs defaultActiveKey={'1'}>
-            <Tabs.TabPane tab={'Organization Chatbot Settings'} key={'1'}>
-              <OrganizationChatbotSettingsForm
-                organizationId={organizationId}
-                organizationSettings={organizationSettings}
-                setSettings={setOrganizationSettings}
-              />
-            </Tabs.TabPane>
-            <Tabs.TabPane tab={'Chatbot Settings for Courses'} key={'2'}>
-              <CourseSettingTable
-                organizationId={organizationId}
-                organizationSettings={organizationSettings}
-                courseSettingsInstances={courseChatbotSettingsInstances}
-                onUpdate={() => {
-                  return
-                }}
-              />
-            </Tabs.TabPane>
-          </Tabs>
+          <Tabs
+            activeKey={currentTab}
+            defaultActiveKey={'organization'}
+            onChange={(value) => {
+              router.push(`/organization/ai?tab=${value}`)
+            }}
+            items={[
+              {
+                key: 'organization',
+                label: 'Organization Chatbot Settings',
+                children: (
+                  <OrganizationChatbotSettingsForm
+                    organizationId={organizationId}
+                    organizationSettings={organizationSettings}
+                    setSettings={setOrganizationSettings}
+                  />
+                ),
+              },
+              {
+                key: 'course',
+                label: 'Chatbot Settings for Courses',
+                children: (
+                  <CourseSettingTable
+                    organizationId={organizationId}
+                    organizationSettings={organizationSettings}
+                    courseSettingsInstances={courseChatbotSettingsInstances}
+                    onUpdate={(courseSettings: CourseChatbotSettings) => {
+                      const indexOf =
+                        courseChatbotSettingsInstances?.findIndex(
+                          (c) => c.id == courseSettings.id,
+                        ) ?? -1
+                      if (courseChatbotSettingsInstances) {
+                        if (indexOf >= 0) {
+                          setCourseSettingsInstances((prev) => [
+                            ...prev!.slice(0, indexOf),
+                            courseSettings,
+                            ...prev!.slice(indexOf + 1),
+                          ])
+                        } else {
+                          setCourseSettingsInstances((prev) => [
+                            ...(prev ?? []),
+                            courseSettings,
+                          ])
+                        }
+                      } else {
+                        setCourseSettingsInstances([courseSettings])
+                      }
+                    }}
+                  />
+                ),
+              },
+            ]}
+          />
         ) : (
           <>
             <Divider />

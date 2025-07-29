@@ -1,8 +1,7 @@
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import {
   Button,
   Card,
-  Divider,
   Form,
   Input,
   List,
@@ -12,10 +11,13 @@ import {
   Tooltip,
 } from 'antd'
 import {
+  CheckOutlined,
   CloseOutlined,
   DeleteOutlined,
   EditOutlined,
   FrownOutlined,
+  FullscreenExitOutlined,
+  FullscreenOutlined,
   InfoCircleOutlined,
   PlusOutlined,
 } from '@ant-design/icons'
@@ -27,12 +29,14 @@ import {
   CreateLLMTypeBody,
   LLMType,
   UpdateChatbotProviderBody,
+  UpdateLLMTypeBody,
 } from '@koh/common'
 import { useEffect, useMemo, useState } from 'react'
 import LLMTypeDisplay from './LLMTypeDisplay'
 import AddModelModal from '@/app/(dashboard)/organization/ai/components/AddModelModal'
 import ChatbotHeadersTable from '@/app/(dashboard)/organization/ai/components/ChatbotHeadersTable'
 import { API } from '@/app/api'
+import AdditionalNotesList from '@/app/(dashboard)/organization/ai/components/AdditionalNotesList'
 
 type UpsertChatbotProviderProps = {
   organizationId: number
@@ -67,6 +71,7 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
   )
   const [isLoading, setIsLoading] = useState(false)
   const [addModelModalOpen, setAddModelModalOpen] = useState(false)
+  const [isActionsMinimized, setIsActionsMinimized] = useState(false)
 
   const [providerType, setProviderType] = useState<ChatbotServiceProvider>()
   const [baseUrl, setBaseUrl] = useState<string>()
@@ -75,6 +80,7 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
   const [defaultVisionModelName, setDefaultVisionModelName] = useState<string>()
 
   const [editingApiKey, setEditingApiKey] = useState(false)
+  const [calculateModels, setCalculateModels] = useState(false)
 
   useEffect(() => {
     window.scrollTo({ top: 0 })
@@ -89,7 +95,11 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
       setBaseUrl(provider.baseUrl)
       setDefaultModelName(provider.defaultModel.modelName)
       setDefaultVisionModelName(provider.defaultVisionModel.modelName)
-      setModels(provider.availableModels)
+      setModels(
+        provider.availableModels.map((v) => ({
+          ...v,
+        })),
+      )
     }
   }, [form, provider])
 
@@ -163,6 +173,69 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
     setHeaders(h)
   }
 
+  const getAddedModels = () => {
+    return (
+      models.filter(
+        (m0) =>
+          !provider!.availableModels.some((m1) => m1.modelName == m0.modelName),
+      ) ?? []
+    )
+  }
+
+  const addedModels = useMemo(
+    () => getAddedModels(),
+    [provider, models, calculateModels],
+  )
+
+  const getModifiedModels = () => {
+    if (provider === undefined) return {}
+    const mods: Record<number, UpdateLLMTypeBody> = {}
+    models
+      .map((m0) => ({
+        m0,
+        m1: provider.availableModels.find((m1) => m1.modelName == m0.modelName),
+      }))
+      .forEach(({ m0, m1 }) => {
+        const model = m0
+        const original = m1
+        if (!original) return
+        if (
+          model.isText != original.isText ||
+          model.isVision != original.isVision ||
+          model.isThinking != original.isThinking ||
+          model.isRecommended != original.isRecommended ||
+          JSON.stringify(model?.additionalNotes ?? []) !=
+            JSON.stringify(original?.additionalNotes ?? [])
+        )
+          mods[original.id] = {
+            isRecommended: model.isRecommended,
+            isText: model.isText,
+            isVision: model.isVision,
+            isThinking: model.isThinking,
+            additionalNotes: model.additionalNotes,
+          }
+      })
+    return mods
+  }
+
+  const modifiedModels = useMemo(
+    () => getModifiedModels(),
+    [models, provider, calculateModels],
+  )
+
+  const getDeletedModels = () => {
+    return (
+      provider?.availableModels
+        .filter((m0) => !models.find((m1) => m1.modelName == m0.modelName))
+        .map((m) => m.id) ?? []
+    )
+  }
+
+  const deletedModels = useMemo(
+    () => getDeletedModels(),
+    [provider, models, calculateModels],
+  )
+
   const handleFinish = () => {
     if (isLoading) return
     setIsLoading(true)
@@ -198,6 +271,7 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
               models,
               defaultVisionModelName: defaultVisionModelName ?? '',
               defaultModelName: defaultModelName ?? '',
+              additionalNotes: notes,
             })
           } catch (err) {
             message.error(getErrorMessage(err))
@@ -206,20 +280,13 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
         }
 
         if (provider != undefined) {
-          const addedModels = models.filter(
-            (m0) =>
-              !provider.availableModels.find(
-                (m1) => m1.modelName == m0.modelName,
-              ),
-          )
-          const deletedModels = provider.availableModels
-            .filter((m0) => !models.find((m1) => m1.modelName == m0.modelName))
-            .map((m) => m.id)
-
           if (!editingApiKey) {
             values = { ...values, apiKey: undefined }
           }
 
+          const addedModels = getAddedModels()
+          const modifiedModels = getModifiedModels()
+          const deletedModels = getDeletedModels()
           API.chatbot.adminOnly
             .updateChatbotProvider(organizationId, provider.id, {
               ...values,
@@ -228,6 +295,8 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
               defaultVisionModelName,
               addedModels,
               deletedModels,
+              modifiedModels,
+              additionalNotes: notes,
             })
             .then((provider) => {
               message.success('Successfully updated chatbot provider!')
@@ -250,6 +319,7 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
               defaultModelName,
               defaultVisionModelName,
               models,
+              additionalNotes: notes,
             })
             .then((provider) => {
               message.success('Successfully created chatbot provider!')
@@ -268,6 +338,45 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
       })
       .finally(() => setIsLoading(false))
   }
+
+  const [notes, setNotes] = useState<string[]>(provider?.additionalNotes ?? [])
+
+  useEffect(() => {
+    if (provider?.additionalNotes) {
+      setNotes(provider.additionalNotes)
+    }
+  }, [provider?.additionalNotes])
+
+  const haveNotesChanged = useMemo(
+    () =>
+      JSON.stringify(provider?.additionalNotes ?? []) !== JSON.stringify(notes),
+    [provider?.additionalNotes, notes],
+  )
+
+  const haveSettingsChanged = useMemo(() => {
+    return provider !== undefined
+      ? providerType != provider.providerType ||
+          baseUrl != provider.baseUrl ||
+          apiKey != undefined ||
+          defaultModelName != provider.defaultModel.modelName ||
+          defaultVisionModelName != provider.defaultVisionModel.modelName ||
+          haveNotesChanged ||
+          addedModels.length > 0 ||
+          Object.keys(modifiedModels).length > 0 ||
+          deletedModels.length > 0
+      : false
+  }, [
+    provider,
+    providerType,
+    baseUrl,
+    apiKey,
+    defaultModelName,
+    defaultVisionModelName,
+    haveNotesChanged,
+    addedModels,
+    modifiedModels,
+    deletedModels,
+  ])
 
   const providerNames = useMemo(
     () => Object.keys(ChatbotServiceProvider).join(', '),
@@ -449,6 +558,24 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
                 ))}
             </>
           )}
+          <div className={'ant-form-item'}>
+            <div className={'ant-form-item-label'}>
+              <label className={'w-full'}>
+                <div className={'flex'}>
+                  <Tooltip title="Set additional notes for this provider. These will appear in model selection for all models of this provider.">
+                    Additional Notes <InfoCircleOutlined />
+                  </Tooltip>
+                </div>
+              </label>
+            </div>
+            <AdditionalNotesList
+              notes={notes}
+              setNotes={setNotes}
+              initialNotes={provider?.additionalNotes}
+              allowNoteEditing={true}
+              bordered={true}
+            />
+          </div>
         </Form>
       </Card>
       <Card title={'Available Models'}>
@@ -496,21 +623,60 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
                 defaultVisionModelName == item.modelName
               return (
                 <List.Item>
-                  <LLMTypeDisplay
-                    model={item}
-                    isDefault={isDefaultModel}
-                    isDefaultVision={isDefaultVisionModel}
-                    setDefault={(modelName: string, vision?: boolean) =>
-                      setProviderDefaultModel(modelName, vision)
-                    }
-                  />
-                  <Button
-                    icon={<DeleteOutlined />}
-                    danger
-                    onClick={() => handleRemoveModel(item.modelName)}
-                  >
-                    Remove
-                  </Button>
+                  <div className={'flex w-full gap-2'}>
+                    <LLMTypeDisplay
+                      model={item}
+                      isDefault={isDefaultModel}
+                      isDefaultVision={isDefaultVisionModel}
+                      setDefault={(modelName: string, vision?: boolean) =>
+                        setProviderDefaultModel(modelName, vision)
+                      }
+                      showNotes={true}
+                      allowNoteEditing={true}
+                      allowRecommendedEdit={true}
+                      onUpdateRecommended={(
+                        modelName: string,
+                        isRecommended: boolean,
+                      ) => {
+                        setModels((prev) => {
+                          const idx = prev.findIndex(
+                            (m) => m.modelName == modelName,
+                          )
+                          if (idx >= 0) {
+                            prev[idx] = {
+                              ...prev[idx],
+                              isRecommended,
+                            }
+                          }
+                          return prev
+                        })
+                        setCalculateModels(!calculateModels)
+                      }}
+                      onUpdateNotes={(modelName, notes) => {
+                        setModels((prev) => {
+                          const idx = prev.findIndex(
+                            (m) => m.modelName == modelName,
+                          )
+                          if (idx >= 0) {
+                            prev[idx] = {
+                              ...prev[idx],
+                              additionalNotes: notes,
+                            }
+                          }
+                          return prev
+                        })
+                        setCalculateModels(!calculateModels)
+                      }}
+                    />
+                    <Button
+                      className={'justify-self-start'}
+                      icon={<DeleteOutlined />}
+                      danger
+                      onClick={() => handleRemoveModel(item.modelName)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
                 </List.Item>
               )
             }}
@@ -554,24 +720,50 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
             className={
               'w-full border-2 border-solid border-gray-200 drop-shadow-2xl md:w-1/3'
             }
-            classNames={{ body: 'flex flex-col-reverse gap-2 justify-center' }}
+            classNames={{
+              body: cn(
+                isActionsMinimized ? 'hidden' : 'flex',
+                'flex-col-reverse gap-2 justify-center',
+              ),
+            }}
             title={
-              <span className={'text-center text-xl font-semibold'}>
-                Actions
-              </span>
+              <div className={'flex w-full justify-between'}>
+                <span className={'text-center text-xl font-semibold'}>
+                  Actions
+                </span>
+                <Button
+                  icon={
+                    isActionsMinimized ? (
+                      <FullscreenOutlined />
+                    ) : (
+                      <FullscreenExitOutlined />
+                    )
+                  }
+                  onClick={() => setIsActionsMinimized(!isActionsMinimized)}
+                />
+              </div>
             }
           >
             <Button type={'default'} disabled={isLoading} onClick={onClose}>
               Cancel
             </Button>
-            <Button
-              type={'primary'}
-              htmlType={'submit'}
-              loading={isLoading}
-              onClick={handleFinish}
+            <Tooltip
+              title={
+                provider != undefined &&
+                !haveSettingsChanged &&
+                'No changes detected.'
+              }
             >
-              {provider != undefined ? 'Confirm Edits' : 'Create Provider'}
-            </Button>
+              <Button
+                type={'primary'}
+                htmlType={'submit'}
+                loading={isLoading}
+                onClick={handleFinish}
+                disabled={provider != undefined && !haveSettingsChanged}
+              >
+                {provider != undefined ? 'Confirm Edits' : 'Create Provider'}
+              </Button>
+            </Tooltip>
           </Card>
         </div>
       </div>

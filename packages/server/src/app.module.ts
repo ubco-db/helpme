@@ -43,12 +43,7 @@ import { RedisModule } from '@liaoliaots/nestjs-redis';
 @Module({
   imports: [
     TypeOrmModule.forRoot({
-      name: 'default',
       ...typeormConfig,
-    }),
-    TypeOrmModule.forRoot({
-      name: 'chatbot',
-      ...chatbotTypeORMConfig,
     }),
     SentryModule.forRoot(),
     // Only use 'pub' for publishing events, 'sub' for subscribing, and 'db' for writing to key/value store

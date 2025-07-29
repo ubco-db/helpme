@@ -155,7 +155,7 @@ export class CourseModel extends BaseEntity {
   superCourseId?: number;
 
   @Exclude()
-  @JoinColumn({ name: 'organizationId' })
+  @JoinColumn({ referencedColumnName: 'courseId' })
   @OneToOne(
     (type) => CourseChatbotSettingsModel,
     (courseChatbotSettings) => courseChatbotSettings.course,

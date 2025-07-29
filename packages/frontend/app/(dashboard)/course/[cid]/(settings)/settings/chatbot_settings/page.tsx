@@ -61,7 +61,9 @@ export default function ChatbotSettings(
     const getCourseServiceType = () => {
       return API.chatbot.staffOnly
         .getCourseServiceType(courseId)
-        .then((response) => setCourseServiceType(response))
+        .then((response) => {
+          setCourseServiceType(response)
+        })
         .catch((err) =>
           message.error(
             `Failed to determine course service type, cannot allow chatbot settings to be edited/viewed: ${getErrorMessage(err)}`,

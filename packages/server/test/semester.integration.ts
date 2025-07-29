@@ -200,7 +200,7 @@ describe('SemesterController Integration', () => {
         .expect(400);
     });
 
-    it("should return 401 if user is a professor and organization doesn't allow professors to update semesters", async () => {
+    it("should return 403 if user is a professor and organization doesn't allow professors to update semesters", async () => {
       const organization = await OrganizationFactory.create();
       const orgUser = await OrganizationUserFactory.create({
         organizationId: organization.id,
@@ -221,7 +221,7 @@ describe('SemesterController Integration', () => {
           description: 'd',
           color: antdTagColor.blue,
         })
-        .expect(401);
+        .expect(403);
     });
   });
 
@@ -255,7 +255,7 @@ describe('SemesterController Integration', () => {
         .expect(400);
     });
 
-    it("should return 401 if user is a professor and organization doesn't allow professors to delete semesters", async () => {
+    it("should return 403 if user is a professor and organization doesn't allow professors to delete semesters", async () => {
       const orgUser = await OrganizationUserFactory.create({
         role: OrganizationRole.PROFESSOR,
       });
@@ -266,7 +266,7 @@ describe('SemesterController Integration', () => {
       });
       await supertest({ userId: orgUser.userId })
         .delete(`/semesters/${orgUser.organizationUser.id}/1`)
-        .expect(401);
+        .expect(403);
     });
   });
 });

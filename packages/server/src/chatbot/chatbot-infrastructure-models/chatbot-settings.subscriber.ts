@@ -16,6 +16,7 @@ import { HttpException } from '@nestjs/common';
 import { LLMTypeModel } from './llm-type.entity';
 import { ChatbotProviderModel } from './chatbot-provider.entity';
 import { OrganizationChatbotSettingsModel } from './organization-chatbot-settings.entity';
+import { ChatbotDataSourceService } from '../chatbot-datasource/chatbot-datasource.service';
 
 const afterInsertWatch = [CourseChatbotSettingsModel.name];
 const afterUpdateWatch = [
@@ -34,8 +35,7 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
   constructor(
     dataSource: DataSource,
     private chatbotApiService: ChatbotApiService,
-    @InjectDataSource('chatbot')
-    private chatbotDataSource: DataSource,
+    private chatbotDataSourceService: ChatbotDataSourceService,
   ) {
     dataSource.subscribers.push(this);
   }
@@ -75,14 +75,16 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
           props: Partial<CourseChatbotSettingsModel>;
         }[] = [];
 
+        const courseDefaults = CourseChatbotSettingsModel.getDefaults(
+          event.manager,
+        );
         await Promise.all(
           updatedDefaultColumns.map(async (column) => {
+            const propertyName = column.substring('default_'.length);
             const usingPropertyName = column.startsWith('default_')
               ? 'usingDefault' +
-                column
-                  .substring('default_'.length, 'default_'.length + 1)
-                  .toUpperCase() +
-                column.substring('default_'.length + 1)
+                propertyName.charAt(0).toUpperCase() +
+                propertyName.substring(1)
               : 'usingDefaultModel';
 
             let propValue = event.entity[column];
@@ -97,14 +99,19 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
               propValue = provider?.defaultModelId;
             }
 
-            if (propValue == undefined) {
+            if (
+              usingPropertyName == 'usingDefaultModel' &&
+              propValue == undefined
+            ) {
               return;
+            } else if (propValue == undefined) {
+              propValue = courseDefaults[propertyName];
             }
 
             const props =
               usingPropertyName == 'usingDefaultModel'
                 ? { llmId: propValue }
-                : { [column.substring('default_'.length)]: propValue };
+                : { [propertyName]: propValue };
 
             const found = await event.manager.find(CourseChatbotSettingsModel, {
               where: { ...where, [usingPropertyName]: true },
@@ -157,7 +164,6 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
         try {
           await event.queryRunner.connect();
           await event.queryRunner.startTransaction();
-          console.log(toUpdateGrouped);
           await Promise.all(
             toUpdateGrouped.map(
               async (toUpdate) =>
@@ -230,20 +236,18 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
 
     await Promise.allSettled(
       toUpdate.map(async (courseChatbotSettings) => {
-        await this.updateChatbotRepository(courseChatbotSettings, 'upsert');
+        const findExisting = await this.getChatbotEntry(
+          courseChatbotSettings.courseId,
+        );
+        if (
+          !findExisting ||
+          JSON.stringify(findExisting?.metadata ?? {}) !==
+            JSON.stringify(courseChatbotSettings.getMetadata())
+        ) {
+          await this.updateChatbotRepository(courseChatbotSettings, 'upsert');
+        }
       }),
     );
-  }
-
-  async beforeRemove(event: RemoveEvent<any>): Promise<void> {
-    // due to cascades entity is not guaranteed to be loaded
-    if (!event.entity) {
-      return;
-    }
-    // delete corresponding table entry in chatbot db
-    if (event.entity instanceof CourseChatbotSettingsModel) {
-      await this.updateChatbotRepository(event.entity, 'remove');
-    }
   }
 
   private getFindOptions(
@@ -261,7 +265,10 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
         },
       },
       llmModel: {
-        provider: true,
+        provider: {
+          defaultModel: true,
+          defaultVisionModel: true,
+        },
       },
       ...setRelations,
     };
@@ -292,16 +299,12 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
     };
   }
 
-  private async updateChatbotRepository(
+  async updateChatbotRepository(
     entity: CourseChatbotSettingsModel,
     operation: 'upsert' | 'remove',
   ): Promise<void> {
-    const findExisting = (
-      await this.chatbotDataSource.query(
-        'SELECT * FROM course_setting WHERE "pageContent" = $1',
-        [String(entity.courseId)],
-      )
-    )[0];
+    const dataSource = await this.chatbotDataSourceService.getDataSource();
+    const findExisting = await this.getChatbotEntry(entity.courseId);
     const metadata = entity.getMetadata();
     if (findExisting == undefined) {
       switch (operation) {
@@ -319,7 +322,7 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
               exception.getStatus() == 500
             ) {
               // Chatbot server failed to connect or had an error, do what we gotta do
-              await this.chatbotDataSource.query(
+              await dataSource.query(
                 'INSERT INTO course_setting ("pageContent","metadata") VALUES ($1,$2)',
                 [String(entity.courseId), JSON.stringify(metadata)],
               );
@@ -342,7 +345,7 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
               exception.getStatus() == 500
             ) {
               // Chatbot server failed to connect or had an error, do what we gotta do
-              await this.chatbotDataSource.query(
+              await dataSource.query(
                 'UPDATE course_setting SET "metadata" = $1 WHERE "pageContent" = $2',
                 [JSON.stringify(metadata), String(entity.courseId)],
               );
@@ -362,7 +365,7 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
               exception.getStatus() == 500
             ) {
               // Chatbot server failed to connect or had an error, do what we gotta do
-              await this.chatbotDataSource.query(
+              await dataSource.query(
                 'DELETE FROM course_setting WHERE "pageContent" = $1',
                 [String(entity.courseId)],
               );
@@ -371,5 +374,15 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
           }
       }
     }
+  }
+
+  private async getChatbotEntry(courseId: number) {
+    const dataSource = await this.chatbotDataSourceService.getDataSource();
+    return (
+      await dataSource.query(
+        'SELECT * FROM course_setting WHERE "pageContent" = $1',
+        [String(courseId)],
+      )
+    )[0];
   }
 }

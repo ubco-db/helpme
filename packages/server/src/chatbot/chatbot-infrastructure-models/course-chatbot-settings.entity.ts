@@ -2,6 +2,7 @@ import {
   BaseEntity,
   Column,
   Entity,
+  EntityManager,
   JoinColumn,
   ManyToOne,
   OneToOne,
@@ -105,7 +106,14 @@ export class CourseChatbotSettingsModel extends BaseEntity {
   usingDefaultSimilarityThresholdQuestions: boolean;
 
   getMetadata(): ChatbotSettingsMetadata {
-    const defaults = this.organizationSettings.transformDefaults();
+    const defaults = pick(
+      this.organizationSettings.transformDefaults(),
+      'default_prompt',
+      'default_temperature',
+      'default_topK',
+      'default_similarityThresholdDocuments',
+      'default_similarityThresholdQuestions',
+    );
     const courseDefaults = CourseChatbotSettingsModel.getDefaults();
     const props = pick(this, [
       'prompt',
@@ -126,18 +134,15 @@ export class CourseChatbotSettingsModel extends BaseEntity {
     };
   }
 
-  static getDefaults() {
-    const defaultKeys = this.getUsingDefaultsKeys().map(
+  static getDefaults(manager?: EntityManager) {
+    const defaultKeys = this.getUsingDefaultsKeys(manager).map(
       (key) =>
         key
           .substring('usingDefault'.length, 'usingDefault'.length + 1)
           .toLowerCase() + key.substring('usingDefault'.length + 1),
     );
 
-    const columnMetadata =
-      CourseChatbotSettingsModel.getRepository().manager.connection.getMetadata(
-        CourseChatbotSettingsModel,
-      );
+    const columnMetadata = this.getTypeORMMetadata(manager);
     const defaults: Record<string, any> = {};
     columnMetadata.columns.forEach((col) => {
       defaults[col.propertyName] = col.default;
@@ -169,15 +174,20 @@ export class CourseChatbotSettingsModel extends BaseEntity {
     return values;
   }
 
-  static getUsingDefaultsKeys(): string[] {
-    const metadata =
-      CourseChatbotSettingsModel.getRepository()?.manager?.connection?.getMetadata(
-        CourseChatbotSettingsModel,
-      );
+  static getUsingDefaultsKeys(manager?: EntityManager): string[] {
+    const metadata = this.getTypeORMMetadata(manager);
     return (
       metadata?.columns
         ?.map((s) => s.propertyName)
         .filter((s) => s.startsWith('usingDefault')) ?? []
     );
+  }
+
+  static getTypeORMMetadata(manager?: EntityManager) {
+    return manager
+      ? manager.connection.getMetadata(CourseChatbotSettingsModel)
+      : CourseChatbotSettingsModel.getRepository()?.manager?.connection?.getMetadata(
+          CourseChatbotSettingsModel,
+        );
   }
 }

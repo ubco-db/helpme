@@ -12,6 +12,7 @@ import {
 import {
   Button,
   Card,
+  Collapse,
   Divider,
   Form,
   Input,
@@ -27,6 +28,8 @@ import {
   DeleteOutlined,
   EditOutlined,
   FrownOutlined,
+  FullscreenExitOutlined,
+  FullscreenOutlined,
   InfoCircleOutlined,
   PlusOutlined,
   StarFilled,
@@ -35,6 +38,7 @@ import {
 import UpsertChatbotProvider from '@/app/(dashboard)/organization/ai/components/UpsertChatbotProvider'
 import LLMTypeDisplay from '@/app/(dashboard)/organization/ai/components/LLMTypeDisplay'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
+import AdditionalNotesList from '@/app/(dashboard)/organization/ai/components/AdditionalNotesList'
 
 type OrganizationChatbotSettingsFormProps = {
   organizationId: number
@@ -63,6 +67,7 @@ const OrganizationChatbotSettingsForm: React.FC<
   const [creatingProvider, setCreatingProvider] = useState(false)
 
   const [isLoading, setIsLoading] = useState(false)
+  const [isActionsMinimized, setIsActionsMinimized] = useState(false)
   const [isDeleteProviderLoading, setIsDeleteProviderLoading] = useState(false)
 
   // Default Provider (Changes depending on whether settings exist or not)
@@ -71,6 +76,7 @@ const OrganizationChatbotSettingsForm: React.FC<
       ? organizationSettings.defaultProvider?.id
       : 0,
   )
+
   useEffect(() => {
     if (organizationSettings && organizationSettings.defaultProvider) {
       setDefaultProvider(organizationSettings.defaultProvider.id)
@@ -78,6 +84,8 @@ const OrganizationChatbotSettingsForm: React.FC<
     if (organizationSettings) {
       const sets: Record<string, any> = { ...organizationSettings }
       delete sets['defaultProvider']
+      delete sets['courseSettingsInstances']
+      delete sets['providers']
       form.setFieldsValue({ ...sets, ...formValues })
       setFormValues({ ...sets, ...formValues })
     }
@@ -131,6 +139,7 @@ const OrganizationChatbotSettingsForm: React.FC<
             message.success(
               `Successfully created organization chatbot settings!`,
             )
+            console.log(settings)
             if (setSettings) setSettings(settings)
           })
           .catch((err) => {
@@ -410,10 +419,21 @@ const OrganizationChatbotSettingsForm: React.FC<
             <span className={'text-lg'}>Chatbot Default Settings</span>
           </Divider>
           <div className={'mb-4 mt-2 flex flex-col gap-2'}>
-            <p>
-              These are the settings each course within the organization will
-              have by default. Does not apply retroactively.
-            </p>
+            <div className={'text-md flex flex-col gap-1'}>
+              <p>
+                These are the settings each course within the organization will
+                have by default. Applies to existing course settings that
+                haven&#39;t already been overwritten.
+              </p>
+              <p>
+                Courses that have their chatbot settings reset will take on
+                these in place of the regular constant default values.
+              </p>
+              <p>
+                Newly created courses will take on these values or the regular
+                constant default values, if these defaults are not set.
+              </p>
+            </div>
             {organizationSettings == undefined && (
               <p className={'font-semibold'}>
                 Upon creation of organization chatbot settings, these will apply
@@ -562,14 +582,18 @@ const OrganizationChatbotSettingsForm: React.FC<
         <Divider>
           <span className={'text-lg'}>Chatbot Service Providers</span>
         </Divider>
-        <p className={'mb-4 mt-2'}>
-          These are the service providers you want to be available to all the
-          courses in your organization. You can create several providers, or
-          just one. If you are using Ollama, for instance, you can define
-          multiple ways to connect to Ollama, in case some of your models are
-          hosted elsewhere.
-        </p>
-
+        <div className={'text-md mb-4 flex flex-col gap-1'}>
+          <p>
+            These are the service providers you want to be available to all the
+            courses in your organization. You can create several providers, or
+            just one.
+          </p>
+          <p>
+            If you are using Ollama, for instance, you can define multiple ways
+            to connect to Ollama, in case some of your models are hosted
+            elsewhere.
+          </p>
+        </div>
         <List<CreateChatbotProviderBody | ChatbotProvider>
           locale={{
             emptyText: (
@@ -621,7 +645,12 @@ const OrganizationChatbotSettingsForm: React.FC<
                 : defaultProvider == providerIndex
             return (
               <Card
-                className={'border-helpmeblue-light mb-2 border-2 border-solid'}
+                className={cn(
+                  isDefaultProvider
+                    ? 'border-helpmeblue-light'
+                    : 'border-gray-200',
+                  'mb-2 border-2 border-solid',
+                )}
                 title={
                   providerProps.nickname ?? `Provider ${providerIndex + 1}`
                 }
@@ -683,12 +712,40 @@ const OrganizationChatbotSettingsForm: React.FC<
                       </div>
                     )}
                   </div>
+                  <Collapse
+                    defaultActiveKey={undefined}
+                    bordered={false}
+                    items={[
+                      {
+                        key: 1,
+                        label: (
+                          <div className={'ant-form-item-label'}>
+                            <label className={'w-full'}>
+                              <div className={'flex'}>
+                                <Tooltip title="Set additional notes for this provider. These will appear in model selection for all models of this provider.">
+                                  Additional Notes <InfoCircleOutlined />
+                                </Tooltip>
+                              </div>
+                            </label>
+                          </div>
+                        ),
+                        children: (
+                          <div className={'flex flex-col'}>
+                            <AdditionalNotesList
+                              notes={providerProps.additionalNotes ?? []}
+                              bordered={false}
+                            />
+                          </div>
+                        ),
+                      },
+                    ]}
+                  />
                   <div
                     className={cn(
-                      providerProps.providerType !=
+                      providerProps.providerType ==
                         ChatbotServiceProvider.OpenAI
-                        ? 'grid-cols-2'
-                        : 'grid-cols-1',
+                        ? 'grid-cols-1'
+                        : 'grid-cols-2',
                       'grid gap-2',
                     )}
                   >
@@ -704,25 +761,36 @@ const OrganizationChatbotSettingsForm: React.FC<
                             ? asProvider.availableModels
                             : asCreate.models
                         }
-                        renderItem={(model) => {
+                        renderItem={(model, modelIndex) => {
                           const asCreateLLM = model as CreateLLMTypeBody
                           const asLLM = model as LLMType
                           return (
-                            <LLMTypeDisplay
-                              model={model}
-                              isDefault={
-                                organizationSettings != undefined
-                                  ? asProvider.defaultModel.id == asLLM.id
-                                  : asCreate.defaultModelName ==
-                                    asCreateLLM.modelName
+                            <div
+                              className={
+                                'my-2 box-border h-fit w-full rounded-md border-2 border-gray-200 p-2 shadow-md'
                               }
-                              isDefaultVision={
-                                organizationSettings != undefined
-                                  ? asProvider.defaultVisionModel.id == asLLM.id
-                                  : asCreate.defaultVisionModelName ==
-                                    asCreateLLM.modelName
-                              }
-                            />
+                            >
+                              <LLMTypeDisplay
+                                model={model}
+                                isDefault={
+                                  organizationSettings != undefined
+                                    ? asProvider.defaultModel.id == asLLM.id
+                                    : asCreate.defaultModelName ==
+                                      asCreateLLM.modelName
+                                }
+                                isDefaultVision={
+                                  organizationSettings != undefined
+                                    ? asProvider.defaultVisionModel.id ==
+                                      asLLM.id
+                                    : asCreate.defaultVisionModelName ==
+                                      asCreateLLM.modelName
+                                }
+                                showNotes={
+                                  (model.additionalNotes?.length ?? 0) > 0
+                                }
+                                shortenButtons={true}
+                              />
+                            </div>
                           )
                         }}
                       />
@@ -806,11 +874,28 @@ const OrganizationChatbotSettingsForm: React.FC<
             className={
               'w-full border-2 border-solid border-gray-200 drop-shadow-2xl md:w-1/3'
             }
-            classNames={{ body: 'flex flex-col-reverse gap-2 justify-center' }}
+            classNames={{
+              body: cn(
+                isActionsMinimized ? 'hidden' : 'flex',
+                'flex-col-reverse gap-2 justify-center',
+              ),
+            }}
             title={
-              <span className={'text-center text-xl font-semibold'}>
-                Actions
-              </span>
+              <div className={'flex w-full justify-between'}>
+                <span className={'text-center text-xl font-semibold'}>
+                  Actions
+                </span>
+                <Button
+                  icon={
+                    isActionsMinimized ? (
+                      <FullscreenOutlined />
+                    ) : (
+                      <FullscreenExitOutlined />
+                    )
+                  }
+                  onClick={() => setIsActionsMinimized(!isActionsMinimized)}
+                />
+              </div>
             }
           >
             {organizationSettings == undefined ? (
@@ -864,20 +949,31 @@ export default OrganizationChatbotSettingsForm
 type ClearInputSuffixProps = {
   formKey: string
   formValues: Record<string, any>
+  defaultValues?: Record<string, any>
   clearFormValue: (key: string) => void
+  icon?: React.ReactNode
 }
 
-const ClearInputSuffix: React.FC<ClearInputSuffixProps> = ({
+export const ClearInputSuffix: React.FC<ClearInputSuffixProps> = ({
   formKey,
   formValues,
+  defaultValues,
   clearFormValue,
+  icon,
 }) => {
   const formValue = formValues[formKey]
-  if (formValue === null || formValue === undefined) return null
+  const defaultValue =
+    defaultValues != undefined ? defaultValues[formKey] : undefined
+  if (
+    formValue === null ||
+    formValue === undefined ||
+    (defaultValue != undefined && formValue == defaultValue)
+  )
+    return null
   return (
     <Button
       danger
-      icon={<DeleteOutlined />}
+      icon={icon ?? <DeleteOutlined />}
       onClick={() => clearFormValue(formKey)}
     />
   )

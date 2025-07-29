@@ -79,6 +79,9 @@ export class ChatbotProviderModel extends BaseEntity {
   @JoinColumn({ name: 'defaultVisionModelId' })
   defaultVisionModel: LLMTypeModel;
 
+  @Column({ type: 'text', array: true, nullable: false, default: [] })
+  additionalNotes: string[] = [];
+
   getMetadata(): ProviderMetadata {
     return {
       type: this.providerType,

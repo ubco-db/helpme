@@ -335,24 +335,19 @@ class APIClient {
       ): Promise<ChatbotServiceType> =>
         this.req('GET', `/api/v1/chatbot/course/${courseId}/service`),
       upsertCourseSettings: async (
-        organizationId: number,
         courseId: number,
         params: UpsertCourseChatbotSettings,
       ): Promise<CourseChatbotSettings> =>
         this.req(
           'POST',
-          `/api/v1/chatbot/organization/${organizationId}/course/${courseId}`,
+          `/api/v1/chatbot/course/${courseId}`,
           undefined,
           params,
         ),
       resetCourseSettings: async (
-        organizationId: number,
         courseId: number,
       ): Promise<CourseChatbotSettings> =>
-        this.req(
-          'PATCH',
-          `/api/v1/chatbot/organization/${organizationId}/course/${courseId}/reset`,
-        ),
+        this.req('PATCH', `/api/v1/chatbot/course/${courseId}/reset`),
       getCourseSettingsDefaults: async (
         courseId: number,
       ): Promise<CourseChatbotSettingsForm> =>

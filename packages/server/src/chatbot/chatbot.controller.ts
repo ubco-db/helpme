@@ -811,7 +811,7 @@ export class ChatbotController {
         },
         courseSettingsInstances: true,
       },
-    }).catch((err) => {
+    }).catch(() => {
       throw new NotFoundException(
         ERROR_MESSAGES.chatbotController.organizationSettingsNotFound,
       );
@@ -959,6 +959,14 @@ export class ChatbotController {
   async deleteChatbotProvider(
     @Param('providerId', ParseIntPipe) providerId: number,
   ): Promise<void> {
+    const provider = await ChatbotProviderModel.findOne({
+      where: { id: providerId },
+    });
+    if (!provider) {
+      throw new NotFoundException(
+        ERROR_MESSAGES.chatbotController.chatbotProviderNotFound,
+      );
+    }
     await this.chatbotService.deleteChatbotProvider(providerId);
   }
 
@@ -1000,6 +1008,12 @@ export class ChatbotController {
   async deleteLLMType(
     @Param('modelId', ParseIntPipe) modelId: number,
   ): Promise<void> {
+    const llmType = await LLMTypeModel.findOne({ where: { id: modelId } });
+    if (!llmType) {
+      throw new NotFoundException(
+        ERROR_MESSAGES.chatbotController.modelNotFound,
+      );
+    }
     await this.chatbotService.deleteLLMType(modelId);
   }
 
@@ -1010,6 +1024,19 @@ export class ChatbotController {
   async getCourseSettings(
     @Param('courseId', ParseIntPipe) courseId: number,
   ): Promise<CourseChatbotSettings> {
+    const course = await CourseModel.findOne({
+      where: { id: courseId },
+      relations: {
+        organizationCourse: true,
+      },
+    });
+    const orgSettings = await OrganizationChatbotSettingsModel.findOneOrFail({
+      where: { organizationId: course.organizationCourse?.organizationId },
+    }).catch(() => {
+      throw new NotFoundException(
+        ERROR_MESSAGES.chatbotController.organizationSettingsNotFound,
+      );
+    });
     return await CourseChatbotSettingsModel.findOneOrFail({
       where: { courseId },
       relations: {
@@ -1020,17 +1047,20 @@ export class ChatbotController {
           },
         },
       },
-    }).catch(() => {
-      throw new NotFoundException(
-        ERROR_MESSAGES.chatbotController.courseSettingsNotFound,
-      );
-    });
+    }).catch(
+      async () =>
+        await this.chatbotService.upsertCourseSetting(
+          orgSettings,
+          courseId,
+          {},
+        ),
+    );
   }
 
   @Get('course/:courseId/service')
   @UseGuards(OrgOrCourseRolesGuard)
   @OrgRoles(OrganizationRole.ADMIN)
-  @CourseRoles(Role.PROFESSOR, Role.TA, Role.STUDENT)
+  @CourseRoles(Role.PROFESSOR, Role.TA)
   async getCourseServiceType(
     @Param('courseId', ParseIntPipe) courseId: number,
   ): Promise<ChatbotServiceType> {
@@ -1039,7 +1069,7 @@ export class ChatbotController {
       : ChatbotServiceType.LATEST;
   }
 
-  @Post('organization/:oid/course/:courseId')
+  @Post('course/:courseId')
   @UseGuards(OrgOrCourseRolesGuard)
   @OrgRoles(OrganizationRole.ADMIN)
   @CourseRoles(Role.PROFESSOR, Role.TA)
@@ -1067,7 +1097,7 @@ export class ChatbotController {
     );
   }
 
-  @Patch('organization/:oid/course/:courseId/reset')
+  @Patch('course/:courseId/reset')
   @UseGuards(OrgOrCourseRolesGuard)
   @OrgRoles(OrganizationRole.ADMIN)
   @CourseRoles(Role.PROFESSOR, Role.TA)
@@ -1078,8 +1108,9 @@ export class ChatbotController {
   }
 
   @Get('course/:courseId/default')
-  @UseGuards(CourseRolesGuard)
-  @Roles(Role.PROFESSOR, Role.TA)
+  @UseGuards(OrgOrCourseRolesGuard)
+  @OrgRoles(OrganizationRole.ADMIN)
+  @CourseRoles(Role.PROFESSOR, Role.TA)
   async getCourseSettingsDefaults(
     @Param('courseId', ParseIntPipe) courseId: number,
   ): Promise<CourseChatbotSettingsForm> {
@@ -1087,8 +1118,9 @@ export class ChatbotController {
   }
 
   @Get('course/:courseId/provider')
-  @UseGuards(CourseRolesGuard)
-  @Roles(Role.PROFESSOR, Role.TA)
+  @UseGuards(OrgOrCourseRolesGuard)
+  @OrgRoles(OrganizationRole.ADMIN)
+  @CourseRoles(Role.PROFESSOR, Role.TA)
   async getCourseOrganizationProviders(
     @Param('courseId', ParseIntPipe) courseId: number,
   ): Promise<ChatbotProvider[]> {
@@ -1119,18 +1151,6 @@ export class ChatbotController {
         (p) => p.id != orgSettings.defaultProviderId,
       ),
     ];
-  }
-
-  @Post('organization/:oid/ollama')
-  @UseGuards(OrganizationRolesGuard, OrganizationGuard)
-  @Roles(OrganizationRole.ADMIN)
-  async getOllamaAvailableModels(
-    @Body() body: GetAvailableModelsBody,
-  ): Promise<OllamaLLMType[]> {
-    return await this.chatbotService.getOllamaAvailableModels(
-      body.baseUrl,
-      body.headers,
-    );
   }
 
   @Post('organization/:oid/ollama')

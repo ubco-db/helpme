@@ -2,6 +2,7 @@ import { config } from 'dotenv';
 import { isProd } from '@koh/common';
 import * as fs from 'fs';
 import { DataSourceOptions } from 'typeorm';
+import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
@@ -19,12 +20,8 @@ if (fs.existsSync('postgres.env')) {
     'No postgres.env file found. If you are a new developer, please create your postgres.env file from postgres.env.example (see NEWDEVS_STARTHERE.md). Your database will not connect without it.',
   );
 }
-// Options only used whe run via CLI
-const inCLI = {
-  migrations: ['migration/*.ts'],
-};
 
-const typeorm: DataSourceOptions = {
+const typeorm: PostgresConnectionOptions = {
   type: 'postgres',
   url: !isProd()
     ? `postgres://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@localhost:5432/chatbot`
@@ -34,6 +31,5 @@ const typeorm: DataSourceOptions = {
     process.env.NODE_ENV !== 'production'
       ? ['error', 'warn']
       : !!process.env.TYPEORM_LOGGING,
-  ...(!!process.env.TYPEORM_CLI ? inCLI : {}),
 };
 module.exports = typeorm;
