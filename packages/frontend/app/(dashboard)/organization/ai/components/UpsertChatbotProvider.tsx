@@ -177,7 +177,9 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
     return (
       models.filter(
         (m0) =>
-          !provider!.availableModels.some((m1) => m1.modelName == m0.modelName),
+          !(provider?.availableModels ?? []).some(
+            (m1) => m1.modelName == m0.modelName,
+          ),
       ) ?? []
     )
   }
@@ -331,12 +333,15 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
                 `Failed to create chatbot provider: ${getErrorMessage(err)}`,
               )
             })
+            .finally(() => {
+              setIsLoading(false)
+            })
         }
       })
       .catch(() => {
         message.error('Invalid parameters')
+        setIsLoading(false)
       })
-      .finally(() => setIsLoading(false))
   }
 
   const [notes, setNotes] = useState<string[]>(provider?.additionalNotes ?? [])
@@ -623,7 +628,11 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
                 defaultVisionModelName == item.modelName
               return (
                 <List.Item>
-                  <div className={'flex w-full gap-2'}>
+                  <div
+                    className={
+                      'my-2 box-border flex h-fit w-full gap-2 rounded-md border-2 border-gray-200 p-2 shadow-md'
+                    }
+                  >
                     <LLMTypeDisplay
                       model={item}
                       isDefault={isDefaultModel}

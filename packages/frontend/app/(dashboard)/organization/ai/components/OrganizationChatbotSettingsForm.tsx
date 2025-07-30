@@ -37,8 +37,13 @@ import {
 } from '@ant-design/icons'
 import UpsertChatbotProvider from '@/app/(dashboard)/organization/ai/components/UpsertChatbotProvider'
 import LLMTypeDisplay from '@/app/(dashboard)/organization/ai/components/LLMTypeDisplay'
-import { cn, getErrorMessage } from '@/app/utils/generalUtils'
+import {
+  cn,
+  getErrorMessage,
+  getModelSpeedAndQualityEstimate,
+} from '@/app/utils/generalUtils'
 import AdditionalNotesList from '@/app/(dashboard)/organization/ai/components/AdditionalNotesList'
+import ChatbotModelInfoTooltip from '@/app/(dashboard)/components/ChatbotModelInfoTooltip'
 
 type OrganizationChatbotSettingsFormProps = {
   organizationId: number
@@ -761,36 +766,50 @@ const OrganizationChatbotSettingsForm: React.FC<
                             ? asProvider.availableModels
                             : asCreate.models
                         }
-                        renderItem={(model, modelIndex) => {
+                        renderItem={(model) => {
                           const asCreateLLM = model as CreateLLMTypeBody
                           const asLLM = model as LLMType
+                          const { speed, quality } =
+                            getModelSpeedAndQualityEstimate(asLLM)
                           return (
-                            <div
-                              className={
-                                'my-2 box-border h-fit w-full rounded-md border-2 border-gray-200 p-2 shadow-md'
+                            <Tooltip
+                              title={
+                                model.isText && (
+                                  <ChatbotModelInfoTooltip
+                                    speed={speed}
+                                    quality={quality}
+                                    additionalNotes={[]}
+                                  />
+                                )
                               }
                             >
-                              <LLMTypeDisplay
-                                model={model}
-                                isDefault={
-                                  organizationSettings != undefined
-                                    ? asProvider.defaultModel.id == asLLM.id
-                                    : asCreate.defaultModelName ==
-                                      asCreateLLM.modelName
+                              <div
+                                className={
+                                  'my-2 box-border h-fit w-full rounded-md border-2 border-gray-200 p-2 shadow-md'
                                 }
-                                isDefaultVision={
-                                  organizationSettings != undefined
-                                    ? asProvider.defaultVisionModel.id ==
-                                      asLLM.id
-                                    : asCreate.defaultVisionModelName ==
-                                      asCreateLLM.modelName
-                                }
-                                showNotes={
-                                  (model.additionalNotes?.length ?? 0) > 0
-                                }
-                                shortenButtons={true}
-                              />
-                            </div>
+                              >
+                                <LLMTypeDisplay
+                                  model={model}
+                                  isDefault={
+                                    organizationSettings != undefined
+                                      ? asProvider.defaultModel.id == asLLM.id
+                                      : asCreate.defaultModelName ==
+                                        asCreateLLM.modelName
+                                  }
+                                  isDefaultVision={
+                                    organizationSettings != undefined
+                                      ? asProvider.defaultVisionModel.id ==
+                                        asLLM.id
+                                      : asCreate.defaultVisionModelName ==
+                                        asCreateLLM.modelName
+                                  }
+                                  showNotes={
+                                    (model.additionalNotes?.length ?? 0) > 0
+                                  }
+                                  shortenButtons={true}
+                                />
+                              </div>
+                            </Tooltip>
                           )
                         }}
                       />
