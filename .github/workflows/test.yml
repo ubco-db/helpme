@@ -34,7 +34,7 @@ jobs:
           PGPASSWORD: mysecretpassword
       - name: Create extensions for chatbot database
         run:
-          psql -d postgresql://helpme@localhost/chatbot_test -c "CREATE EXTENSION vector;" -c "CREATE EXTENSION uuid-ossp;"
+          psql -d postgresql://helpme@localhost/chatbot_test -c "CREATE EXTENSION vector;" -c "CREATE EXTENSION \"uuid-ossp\";"
         env:
           PGPASSWORD: mysecretpassword
       - name: Create postgres.env from example
