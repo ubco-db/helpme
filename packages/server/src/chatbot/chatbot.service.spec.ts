@@ -103,9 +103,7 @@ describe('ChatbotService', () => {
       ChatbotSettingsSubscriber,
     );
 
-    chatbotDataSourceService.getDataSource().then(() => {
-      chatbotDataSourceService.initializeTestSchema();
-    });
+    await chatbotDataSourceService.initializeTestSchema();
 
     // Grab FactoriesService from Nest
     const factories = module.get<FactoryService>(FactoryService);
