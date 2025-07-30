@@ -32,6 +32,11 @@ jobs:
         working-directory: infrastructure
         env:
           PGPASSWORD: mysecretpassword
+      - name: Create extensions for chatbot database
+        run:
+          psql -d postgresql://helpme@localhost/chatbot_test -c "CREATE EXTENSION vector;" -c "CREATE EXTENSION uuid-ossp;"
+        env:
+          PGPASSWORD: mysecretpassword
       - name: Create postgres.env from example
         run: cp packages/server/postgres.env.example packages/server/postgres.env
       - name: Create .env from .env.development
