@@ -14,7 +14,7 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_DB: test
+          POSTGRES_DB: postgres
           POSTGRES_USER: helpme
           POSTGRES_PASSWORD: mysecretpassword
         # needed because the postgres container does not provide a healthcheck
@@ -27,6 +27,11 @@ jobs:
           - 6379:6379
     steps:
       - uses: actions/checkout@v4
+      - name: Set up databases
+        run: psql -d postgresql://helpme@localhost/postgres -f test_createdb.sql
+        working-directory: infrastructure
+        env:
+          PGPASSWORD: mysecretpassword
       - name: Create postgres.env from example
         run: cp packages/server/postgres.env.example packages/server/postgres.env
       - name: Create .env from .env.development

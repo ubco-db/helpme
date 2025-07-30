@@ -265,7 +265,7 @@ describe('ChatbotService', () => {
   });
 
   afterEach(() => {
-    mockFetch.mockClear();
+    mockFetch?.mockClear();
     global.fetch = originalFetch;
   });
 
