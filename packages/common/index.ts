@@ -1366,6 +1366,24 @@ export type LMSFile = {
   modified?: Date
   uploaded?: Date
 }
+
+export enum SupportedLMSFileTypes {
+  pdf = 'application/pdf', // .pdf files
+  pptx = 'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx files
+}
+
+export enum CommonMimeToExtensionMap {
+  pdf = 'application/pdf',
+  pptx = 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  docx = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  doc = 'application/msword',
+  gif = 'image/gif',
+  png = 'image/png',
+  jpeg = 'image/jpeg',
+  html = 'text/html',
+  md = 'text/markdown',
+}
+
 export type LMSErrorType = {
   deleteError: "Couldn't remove pre-existing documents"
 }

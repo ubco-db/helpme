@@ -16,6 +16,7 @@ import {
   LMSOrganizationIntegrationPartial,
   LMSPage,
   LMSResourceType,
+  SupportedLMSFileTypes,
 } from '@koh/common';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -1159,11 +1160,13 @@ export class LMSIntegrationService {
   }
 
   private isSupportedFileTypeForBuffer(contentType: string): boolean {
-    const supportedTypes = [
-      // have to test with more file types, but these ones should be the most prevalent
-      'application/pdf', // .pdf files
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx files
-    ];
+    // See the enum source in common/index.ts
+    const supportedTypes = Object.values(SupportedLMSFileTypes) as string[];
+    // [
+    //   // have to test with more file types, but these ones should be the most prevalent
+    //   'application/pdf', // .pdf files
+    //   'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx files
+    // ];
     return supportedTypes.includes(contentType);
   }
 

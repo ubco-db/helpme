@@ -26,6 +26,7 @@ import {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
+  SupportedLMSFileTypes,
 } from '@koh/common'
 import { API } from '@/app/api'
 import UpsertIntegrationModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/UpsertIntegrationModal'
@@ -33,14 +34,55 @@ import LMSRosterTable from '@/app/(dashboard)/course/[cid]/(settings)/settings/l
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { useCourseLmsIntegration } from '@/app/hooks/useCourseLmsIntegration'
 import LMSDocumentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSDocumentList'
-import { DeleteOutlined, EditOutlined, SyncOutlined } from '@ant-design/icons'
+import {
+  DeleteOutlined,
+  EditOutlined,
+  LoadingOutlined,
+  SyncOutlined,
+} from '@ant-design/icons'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 export default function CourseLMSIntegrationPage(props: {
-  params: Promise<{ cid: string }>
+  params: Promise<{
+    cid: string
+    tab: 'assignment' | 'announcement' | 'page' | 'file' | undefined
+  }>
 }) {
   const params = use(props.params)
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathName = usePathname()
   const courseId = useMemo(() => Number(params.cid) ?? -1, [params.cid])
+  const tab = useMemo(() => searchParams.get('tab'), [searchParams])
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
+
+  const [currentTab, setCurrentTab] = useState<
+    'assignment' | 'announcement' | 'page' | 'file' | 'roster' | undefined
+  >()
+
+  const defaultTab = useMemo(() => {
+    switch (tab) {
+      case 'assignment':
+      case 'announcement':
+      case 'page':
+      case 'file':
+        return tab
+      default:
+        return 'roster'
+    }
+  }, [tab])
+
+  useEffect(() => {
+    if (!hasLoadedOnce) {
+      setCurrentTab(defaultTab)
+      setHasLoadedOnce(true)
+    }
+  }, [defaultTab, hasLoadedOnce])
+
+  const getActiveTab = () => {
+    return currentTab ?? defaultTab
+  }
 
   const [updateFlag, setUpdateFlag] = useState<boolean>(false)
   const {
@@ -51,8 +93,12 @@ export default function CourseLMSIntegrationPage(props: {
     students,
     pages,
     files,
-    isLoading,
     isLoadingIntegration,
+    isLoadingCourse,
+    isLoadingStudents,
+    isLoadingAssignments,
+    isLoadingAnnouncements,
+    isLoadingFiles,
     isLoadingPages,
   } = useCourseLmsIntegration(courseId, updateFlag)
 
@@ -293,7 +339,13 @@ export default function CourseLMSIntegrationPage(props: {
       ),
       ...announcements.filter((a) => !a),
       ...pages.filter((a) => !a),
-      ...files.filter((a) => !a),
+      ...files.filter(
+        (a) =>
+          !a ||
+          !(Object.values(SupportedLMSFileTypes) as string[]).includes(
+            a.contentType,
+          ),
+      ),
     ],
     [assignments, announcements, pages, files],
   )
@@ -394,27 +446,34 @@ export default function CourseLMSIntegrationPage(props: {
     }> = [
       {
         key: 'roster',
-        label: 'Course Roster',
+        label: (
+          <LMSTabLabel title={'Course Roster'} isLoading={isLoadingStudents} />
+        ),
         children: (
           <LMSRosterTable
             courseId={courseId}
             lmsStudents={students}
             lmsPlatform={integration.apiPlatform}
-            loadingLMSData={isLoading}
+            loadingLMSData={isLoadingStudents}
           />
         ),
       },
     ]
-    if (assignments.length > 0) {
+    if (assignments.length > 0 || isLoadingAssignments) {
       tabItems.push({
-        key: 'assignments',
-        label: 'Course Assignments',
+        key: 'assignment',
+        label: (
+          <LMSTabLabel
+            title={'Course Assignments'}
+            isLoading={isLoadingAssignments}
+          />
+        ),
         children: (
           <LMSDocumentList<LMSAssignment>
             courseId={courseId}
             type={'Assignment'}
             documents={assignments}
-            loadingLMSData={isLoading}
+            loadingLMSData={isLoadingAssignments}
             lmsSynchronize={integration.lmsSynchronize}
             onUpdateCallback={() => setUpdateFlag(!updateFlag)}
             selectedResourceTypes={integration.selectedResourceTypes}
@@ -424,8 +483,10 @@ export default function CourseLMSIntegrationPage(props: {
     }
     if (pages.length > 0 || isLoadingPages) {
       tabItems.push({
-        key: 'pages',
-        label: 'Course Pages',
+        key: 'page',
+        label: (
+          <LMSTabLabel title={'Course Pages'} isLoading={isLoadingPages} />
+        ),
         children: (
           <LMSDocumentList<LMSPage>
             courseId={courseId}
@@ -439,16 +500,18 @@ export default function CourseLMSIntegrationPage(props: {
         ),
       })
     }
-    if (files.length > 0) {
+    if (files.length > 0 || isLoadingFiles) {
       tabItems.push({
-        key: 'files',
-        label: 'Course Files',
+        key: 'file',
+        label: (
+          <LMSTabLabel title={'Course Files'} isLoading={isLoadingFiles} />
+        ),
         children: (
           <LMSDocumentList<LMSFile>
             courseId={courseId}
             type={'File'}
             documents={files}
-            loadingLMSData={isLoading}
+            loadingLMSData={isLoadingFiles}
             lmsSynchronize={integration.lmsSynchronize}
             onUpdateCallback={() => setUpdateFlag(!updateFlag)}
             selectedResourceTypes={integration.selectedResourceTypes}
@@ -456,12 +519,15 @@ export default function CourseLMSIntegrationPage(props: {
         ),
       })
     }
-    if (announcements.length > 0) {
+    if (announcements.length > 0 || isLoadingAnnouncements) {
       tabItems.push({
-        key: 'announcements',
+        key: 'announcement',
         label: (
           <Tooltip title="Also includes discussion posts written by instructors and TA's.">
-            Course Announcements / Instructor Discussion Posts
+            <LMSTabLabel
+              title={'Course Announcements'}
+              isLoading={isLoadingAnnouncements}
+            />
           </Tooltip>
         ),
         children: (
@@ -469,7 +535,7 @@ export default function CourseLMSIntegrationPage(props: {
             courseId={courseId}
             type={'Announcement'}
             documents={announcements}
-            loadingLMSData={isLoading}
+            loadingLMSData={isLoadingAnnouncements}
             lmsSynchronize={integration.lmsSynchronize}
             onUpdateCallback={() => setUpdateFlag(!updateFlag)}
             selectedResourceTypes={integration.selectedResourceTypes}
@@ -601,7 +667,15 @@ export default function CourseLMSIntegrationPage(props: {
                                         : 'default'
                                     }
                                     icon={<SyncOutlined />}
-                                    disabled={!integration.lmsSynchronize}
+                                    disabled={
+                                      !integration.lmsSynchronize ||
+                                      isLoadingIntegration ||
+                                      isLoadingPages ||
+                                      isLoadingAssignments ||
+                                      isLoadingAnnouncements ||
+                                      isLoadingStudents ||
+                                      isLoadingFiles
+                                    }
                                     onClick={forceSync}
                                     loading={
                                       syncing && integration.lmsSynchronize
@@ -760,7 +834,18 @@ export default function CourseLMSIntegrationPage(props: {
                 </Card>
               </div>
             </div>
-            <Tabs defaultActiveKey={'roster'} items={tabItems} />
+          </Skeleton>
+          <Skeleton loading={integration.isExpired}>
+            <Tabs
+              destroyOnHidden
+              defaultActiveKey={defaultTab}
+              activeKey={getActiveTab()}
+              onTabClick={(activeKey) => {
+                router.push(pathName, { scroll: false })
+                setCurrentTab(activeKey as any)
+              }}
+              items={tabItems}
+            />
           </Skeleton>
           <UpsertIntegrationModal
             isOpen={modalOpen}
@@ -803,4 +888,16 @@ export default function CourseLMSIntegrationPage(props: {
       card
     )
   }
+}
+
+const LMSTabLabel: React.FC<{ title: string; isLoading: boolean }> = ({
+  title,
+  isLoading,
+}) => {
+  return (
+    <div className={'flex items-center justify-center gap-2'}>
+      <span>{title}</span>
+      {isLoading && <LoadingOutlined className={'text-xs'} spin />}
+    </div>
+  )
 }
