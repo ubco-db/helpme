@@ -2,7 +2,12 @@ import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { DataSource } from 'typeorm';
 
-const tables = ['course_setting', 'document', 'document_aggregate', 'question'];
+export const chatbotTables = [
+  'course_setting',
+  'document',
+  'document_aggregate',
+  'question',
+];
 
 @Injectable()
 export class ChatbotDataSourceService implements OnModuleDestroy {
@@ -12,17 +17,15 @@ export class ChatbotDataSourceService implements OnModuleDestroy {
     this.dataSource = new DataSource(options);
     this.dataSource
       .initialize()
-      .then(() => {
-        if (this.options.database === 'chatbot_test') {
-          this.initializeTestSchema().catch(() => undefined);
-        }
-      })
       .catch((err) =>
         console.error(`Failed to initialize Chatbot DataSource: ${err}`),
       );
   }
 
   async getDataSource() {
+    if (!this.dataSource.isInitialized) {
+      await this.dataSource.initialize();
+    }
     return this.dataSource;
   }
 
@@ -33,7 +36,7 @@ export class ChatbotDataSourceService implements OnModuleDestroy {
       );
     }
     await this.dropSchema();
-    for (const table of tables) {
+    for (const table of chatbotTables) {
       await this.createTable(table);
     }
   }
@@ -44,7 +47,7 @@ export class ChatbotDataSourceService implements OnModuleDestroy {
     await q.connect();
     await q.startTransaction();
     try {
-      for (const table of tables) {
+      for (const table of chatbotTables) {
         await q.query(`
             DROP TABLE IF EXISTS ${table};
         `);

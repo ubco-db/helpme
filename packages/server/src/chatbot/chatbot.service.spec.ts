@@ -46,7 +46,10 @@ import { ChatbotProviderModel } from './chatbot-infrastructure-models/chatbot-pr
 import { pick } from 'lodash';
 import { CourseChatbotSettingsModel } from './chatbot-infrastructure-models/course-chatbot-settings.entity';
 import { ChatbotSettingsSubscriber } from './chatbot-infrastructure-models/chatbot-settings.subscriber';
-import { ChatbotDataSourceService } from './chatbot-datasource/chatbot-datasource.service';
+import {
+  ChatbotDataSourceService,
+  chatbotTables,
+} from './chatbot-datasource/chatbot-datasource.service';
 import { ChatbotApiService } from './chatbot-api.service';
 
 const mockCacheManager = {
@@ -100,6 +103,10 @@ describe('ChatbotService', () => {
       ChatbotSettingsSubscriber,
     );
 
+    chatbotDataSourceService.getDataSource().then(() => {
+      chatbotDataSourceService.initializeTestSchema();
+    });
+
     // Grab FactoriesService from Nest
     const factories = module.get<FactoryService>(FactoryService);
     // Initialize the named exports to point to the actual factories
@@ -120,7 +127,13 @@ describe('ChatbotService', () => {
   });
 
   afterEach(() => {
-    chatbotDataSourceService.initializeTestSchema();
+    chatbotDataSourceService.getDataSource().then(() => {
+      Promise.allSettled(
+        chatbotTables.map(async (table) => {
+          await chatbotDataSourceService.clearTable(table);
+        }),
+      ).then();
+    });
     updateChatbotRepositorySpy.mockRestore();
   });
 
