@@ -10,13 +10,19 @@ export class ChatbotDataSourceService implements OnModuleDestroy {
 
   constructor(private options: PostgresConnectionOptions) {
     this.dataSource = new DataSource(options);
-    if (this.options.database === 'chatbot_test') {
-      this.initializeTestSchema().catch(() => undefined);
-    }
+    this.dataSource
+      .initialize()
+      .then(() => {
+        if (this.options.database === 'chatbot_test') {
+          this.initializeTestSchema().catch(() => undefined);
+        }
+      })
+      .catch((err) =>
+        console.error(`Failed to initialize Chatbot DataSource: ${err}`),
+      );
   }
 
   async getDataSource() {
-    await this.dataSource.initialize();
     return this.dataSource;
   }
 

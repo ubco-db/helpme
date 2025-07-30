@@ -791,6 +791,7 @@ describe('ChatbotController Integration', () => {
         .post(`/chatbot/organization/${organization.id}/model`)
         .send({
           modelName: 'new-model',
+          isRecommended: false,
           isText: true,
           isVision: false,
           isThinking: false,
@@ -808,6 +809,7 @@ describe('ChatbotController Integration', () => {
       const params = {
         providerId: provider.id,
         modelName: 'new-model',
+        isRecommended: false,
         isText: true,
         isVision: false,
         isThinking: true,

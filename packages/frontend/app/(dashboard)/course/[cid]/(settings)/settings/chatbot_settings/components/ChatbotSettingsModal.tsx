@@ -373,7 +373,6 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
                           const { speed, quality, notes } =
                             getModelSpeedAndQualityEstimate(model)
 
-                          console.log(model)
                           return (
                             <Select.Option
                               key={`model-${index0}-${index1}`}

@@ -350,12 +350,14 @@ export function getModelSpeedAndQualityEstimate<T extends LLMType>(model: T) {
     })()
     paramSize = Math.max(1, Math.min(paramSize * multiplier, 100000))
 
-    const log = 1 - Math.log10(paramSize) / 10
-    speed = Math.max(0, Math.min(1, log * (model.isThinking ? 0.75 : 1))) * 100
+    const log = -Math.log10(paramSize / 100000) / 5
+    speed =
+      Math.max(0, Math.min(1, (0.5 + log) * (model.isThinking ? 0.75 : 1))) *
+      100
     quality =
       Math.max(
         0,
-        Math.min(1, 0.2 + (1 - log) * (model.isThinking ? 1.25 : 1)),
+        Math.min(1, (model.isThinking ? 1.25 : 1) * (1 - log) - log),
       ) * 100
   }
   return { speed, quality, notes }

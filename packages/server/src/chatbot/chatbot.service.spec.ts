@@ -1782,6 +1782,7 @@ describe('ChatbotService', () => {
               modelName: model.model,
               families: model.details.families,
               parameterSize: model.details.parameter_size,
+              isRecommended: false,
               isText: !isVision,
               isVision,
               isThinking,

@@ -244,7 +244,11 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
           JSON.stringify(findExisting?.metadata ?? {}) !==
             JSON.stringify(courseChatbotSettings.getMetadata())
         ) {
-          await this.updateChatbotRepository(courseChatbotSettings, 'upsert');
+          this.updateChatbotRepository(
+            courseChatbotSettings,
+            'upsert',
+            findExisting,
+          ).then();
         }
       }),
     );
@@ -302,87 +306,103 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
   async updateChatbotRepository(
     entity: CourseChatbotSettingsModel,
     operation: 'upsert' | 'remove',
+    findExisting?: CourseChatbotSettingsModel,
   ): Promise<void> {
     const dataSource = await this.chatbotDataSourceService.getDataSource();
-    const findExisting = await this.getChatbotEntry(entity.courseId);
-    const metadata = entity.getMetadata();
-    if (findExisting == undefined) {
-      switch (operation) {
-        case 'upsert':
-          try {
-            await this.chatbotApiService.createChatbotSettings(
-              metadata,
-              entity.courseId,
-              '',
-            );
-            return;
-          } catch (exception) {
-            if (
-              exception instanceof HttpException &&
-              exception.getStatus() == 500
-            ) {
-              // Chatbot server failed to connect or had an error, do what we gotta do
-              await dataSource.query(
-                'INSERT INTO course_setting ("pageContent","metadata") VALUES ($1,$2)',
-                [String(entity.courseId), JSON.stringify(metadata)],
+    const qry = dataSource.createQueryRunner();
+    await qry.connect();
+    try {
+      const metadata = entity.getMetadata();
+      if (findExisting == undefined) {
+        switch (operation) {
+          case 'upsert':
+            try {
+              await this.chatbotApiService.createChatbotSettings(
+                metadata,
+                entity.courseId,
+                '',
               );
+              return;
+            } catch (exception) {
+              if (
+                exception instanceof HttpException &&
+                exception.getStatus() == 500
+              ) {
+                // Chatbot server failed to connect or had an error, do what we gotta do
+                await qry.query(
+                  'INSERT INTO course_setting ("pageContent","metadata") VALUES ($1,$2)',
+                  [String(entity.courseId), JSON.stringify(metadata)],
+                );
+              }
             }
-          }
+        }
+      } else {
+        switch (operation) {
+          case 'upsert':
+            try {
+              await this.chatbotApiService.updateChatbotSettings(
+                metadata,
+                entity.courseId,
+                '',
+              );
+              return;
+            } catch (exception) {
+              if (
+                exception instanceof HttpException &&
+                exception.getStatus() == 500
+              ) {
+                // Chatbot server failed to connect or had an error, do what we gotta do
+                await qry.query(
+                  'UPDATE course_setting SET "metadata" = $1 WHERE "pageContent" = $2',
+                  [JSON.stringify(metadata), String(entity.courseId)],
+                );
+              }
+              return;
+            }
+          case 'remove':
+            try {
+              await this.chatbotApiService.deleteChatbotSettings(
+                entity.courseId,
+                '',
+              );
+              return;
+            } catch (exception) {
+              if (
+                exception instanceof HttpException &&
+                exception.getStatus() == 500
+              ) {
+                // Chatbot server failed to connect or had an error, do what we gotta do
+                await qry.query(
+                  'DELETE FROM course_setting WHERE "pageContent" = $1',
+                  [String(entity.courseId)],
+                );
+              }
+              return;
+            }
+        }
       }
-    } else {
-      switch (operation) {
-        case 'upsert':
-          try {
-            await this.chatbotApiService.updateChatbotSettings(
-              metadata,
-              entity.courseId,
-              '',
-            );
-            return;
-          } catch (exception) {
-            if (
-              exception instanceof HttpException &&
-              exception.getStatus() == 500
-            ) {
-              // Chatbot server failed to connect or had an error, do what we gotta do
-              await dataSource.query(
-                'UPDATE course_setting SET "metadata" = $1 WHERE "pageContent" = $2',
-                [JSON.stringify(metadata), String(entity.courseId)],
-              );
-            }
-            return;
-          }
-        case 'remove':
-          try {
-            await this.chatbotApiService.deleteChatbotSettings(
-              entity.courseId,
-              '',
-            );
-            return;
-          } catch (exception) {
-            if (
-              exception instanceof HttpException &&
-              exception.getStatus() == 500
-            ) {
-              // Chatbot server failed to connect or had an error, do what we gotta do
-              await dataSource.query(
-                'DELETE FROM course_setting WHERE "pageContent" = $1',
-                [String(entity.courseId)],
-              );
-            }
-            return;
-          }
-      }
+    } catch (err) {
+      console.error(`Failed to update Chatbot repository: ${err}`);
+    } finally {
+      await qry.release();
     }
   }
 
   private async getChatbotEntry(courseId: number) {
     const dataSource = await this.chatbotDataSourceService.getDataSource();
-    return (
-      await dataSource.query(
-        'SELECT * FROM course_setting WHERE "pageContent" = $1',
-        [String(courseId)],
-      )
-    )[0];
+    const qry = dataSource.createQueryRunner();
+    await qry.connect();
+    try {
+      return (
+        await qry.query(
+          'SELECT * FROM course_setting WHERE "pageContent" = $1',
+          [String(courseId)],
+        )
+      )[0];
+    } catch (err) {
+      return undefined;
+    } finally {
+      await qry.release();
+    }
   }
 }
