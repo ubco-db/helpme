@@ -1,6 +1,11 @@
 'use client'
 
-import { asyncQuestionStatus, QuestionType, Role } from '@koh/common'
+import {
+  AsyncQuestion,
+  asyncQuestionStatus,
+  QuestionType,
+  Role,
+} from '@koh/common'
 import React, {
   ReactElement,
   use,
@@ -36,6 +41,7 @@ import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { useChatbotContext } from '../components/chatbot/ChatbotProvider'
 import { API } from '@/app/api'
 import ConvertChatbotQToAnytimeQModal from './components/modals/ConvertChatbotQToAnytimeQModal'
+import ConvertQueueQToAnytimeQModal from './components/modals/ConvertQueueQToAnytimeQModal'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 type AsyncCentrePageProps = {
@@ -73,13 +79,24 @@ export default function AsyncCentrePage(
 
   const [convertChatbotQModalOpen, setConvertChatbotQModalOpen] =
     useState(false)
+  const [convertQueueQModalOpen, setConvertQueueQModalOpen] = useState(false)
   const convertChatbotQSearchParam = searchParams.get('convertChatbotQ')
+  const convertQueueQSearchParam = searchParams.get('convertQueueQ')
+  const queueQuestionId = Number(searchParams.get('queueQuestionId'))
+  const queueId = Number(searchParams.get('queueId'))
+
   useEffect(() => {
     if (convertChatbotQSearchParam && messages.length > 1) {
       setConvertChatbotQModalOpen(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [convertChatbotQSearchParam])
+
+  useEffect(() => {
+    if (convertQueueQSearchParam) {
+      setConvertQueueQModalOpen(true)
+    }
+  }, [convertQueueQSearchParam])
 
   const [statusFilter, setStatusFilter] = useState<
     'all' | 'verified' | 'unverified'
@@ -425,6 +442,21 @@ export default function AsyncCentrePage(
             setConvertChatbotQModalOpen(false)
           }}
           chatbotQ={{ messages: messages }}
+        />
+        <ConvertQueueQToAnytimeQModal
+          courseId={courseId}
+          queueId={queueId}
+          queueQuestionId={queueQuestionId}
+          open={convertQueueQModalOpen}
+          onCancel={() => {
+            router.replace(pathname)
+            setConvertQueueQModalOpen(false)
+          }}
+          onCreateOrUpdateQuestion={() => {
+            mutateAsyncQuestions()
+            router.replace(pathname)
+            setConvertQueueQModalOpen(false)
+          }}
         />
         {isStaff && (
           <>

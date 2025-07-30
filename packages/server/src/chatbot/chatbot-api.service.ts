@@ -47,6 +47,7 @@ export class ChatbotApiService {
     userToken: string,
     data?: any,
     params?: any,
+    timeoutMs?: number,
   ) {
     try {
       const url = new URL(`${this.chatbotApiUrl}/${endpoint}`);
@@ -67,6 +68,7 @@ export class ChatbotApiService {
         method,
         headers,
         body: data ? JSON.stringify(data) : undefined,
+        signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined, // abort signal is available as of node 17
       });
 
       if (!response.ok) {
@@ -100,6 +102,25 @@ export class ChatbotApiService {
       question,
       history,
     });
+  }
+
+  async queryChatbot(
+    query: string,
+    userToken: string, // Passing UserToken to the chatbot, but should be ignored for this endpoint.
+    type: 'default' | 'abstract' = 'default',
+  ): Promise<string> {
+    const resp: { answer: string } = await this.request(
+      'POST',
+      `chatbot/query`,
+      userToken,
+      {
+        query,
+        type,
+      },
+      undefined,
+      type === 'abstract' ? 5000 : undefined, // 5s timeout for abstract queries
+    );
+    return resp.answer;
   }
 
   async getModels(userToken: string) {

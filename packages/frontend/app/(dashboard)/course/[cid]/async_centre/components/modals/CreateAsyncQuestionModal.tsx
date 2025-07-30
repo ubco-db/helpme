@@ -7,6 +7,7 @@ import {
   message,
   Modal,
   Popconfirm,
+  Spin,
   Tooltip,
 } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -21,6 +22,7 @@ import {
   formatQuestionForChatbot,
 } from '../../utils/commonAsyncFunctions'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
+import { Wand2 } from 'lucide-react'
 
 interface FormValues {
   QuestionAbstract: string
@@ -51,8 +53,54 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [isGeneratingAbstract, setIsGeneratingAbstract] = useState(false)
   const courseFeatures = useCourseFeatures(courseId)
   const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false
+
+  const fallbackGenerateAbstract = (question: string) => {
+    const words = question.split(' ').slice(0, 8)
+    const fallbackTitle = words.join(' ')
+    return fallbackTitle.length > 100
+      ? fallbackTitle.substring(0, 97) + '...'
+      : fallbackTitle
+  }
+
+  const onGenerateAbstract = async () => {
+    const questionText = form.getFieldValue('questionText')
+    if (!questionText) {
+      message.error(
+        'Please enter your question text before generating an abstract.',
+      )
+      return
+    }
+
+    setIsGeneratingAbstract(true)
+    try {
+      const response = await API.chatbot.studentsOrStaff.queryChatbot(
+        courseId,
+        {
+          query: questionText,
+          type: 'abstract',
+        },
+      )
+
+      const idx = response.indexOf(':')
+      let generatedAbstract = response.substring(idx + 1)
+      generatedAbstract = generatedAbstract.replace(/^["']|["']$/g, '').trim()
+
+      if (generatedAbstract.length > 100 || generatedAbstract.includes('\n')) {
+        generatedAbstract = fallbackGenerateAbstract(generatedAbstract)
+      }
+
+      form.setFieldsValue({ QuestionAbstract: generatedAbstract })
+    } catch (chatbotError) {
+      console.warn('Chatbot failed, using fallback', chatbotError)
+      const fallbackAbstract = fallbackGenerateAbstract(questionText)
+      form.setFieldsValue({ QuestionAbstract: fallbackAbstract })
+    } finally {
+      setIsGeneratingAbstract(false)
+    }
+  }
 
   const getAiAnswer = async (question: string) => {
     if (!courseFeatures?.asyncCentreAIAnswers) {
@@ -271,10 +319,21 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
       >
         <Input
           placeholder="Stuck on Lab 3 part C"
+          disabled={isGeneratingAbstract}
           count={{
             show: true,
             max: 100,
           }}
+          suffix={
+            <Tooltip title="Generate Abstract based on Question Text">
+              <Button
+                type="text"
+                icon={isGeneratingAbstract ? <Spin /> : <Wand2 size={16} />}
+                onClick={onGenerateAbstract}
+                disabled={isGeneratingAbstract}
+              />
+            </Tooltip>
+          }
         />
       </Form.Item>
       <Form.Item
