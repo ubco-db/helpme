@@ -11,14 +11,16 @@ import {
 } from 'react'
 import Link from 'next/link'
 import { TableRowSelection } from 'antd/es/table/interface'
-import ChatbotSettingsModal from './components/ChatbotSettingsModal'
+import LegacyChatbotSettingsModal from './components/LegacyChatbotSettingsModal'
 import Highlighter from 'react-highlight-words'
 import AddChatbotDocumentModal from './components/AddChatbotDocumentModal'
-import { SourceDocument } from '@koh/common'
+import { ChatbotServiceType, SourceDocument } from '@koh/common'
 import { FileAddOutlined, SettingOutlined } from '@ant-design/icons'
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import ChatbotHelpTooltip from '../components/ChatbotHelpTooltip'
+import { getErrorMessage } from '@/app/utils/generalUtils'
+import ChatbotSettingsModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/chatbot_settings/components/ChatbotSettingsModal'
 
 interface ChatbotPanelProps {
   params: Promise<{ cid: string }>
@@ -28,7 +30,11 @@ export default function ChatbotSettings(
 ): ReactElement {
   const params = use(props.params)
   const { userInfo } = useUserInfo()
-  const courseId = Number(params.cid)
+  const courseId = useMemo(() => Number(params.cid), [params.cid])
+  const organizationId = useMemo(
+    () => userInfo?.organization?.orgId ?? -1,
+    [userInfo?.organization?.orgId],
+  )
   const [chatbotParameterModalOpen, setChatbotParameterModalOpen] =
     useState(false)
   const [addDocumentModalOpen, setAddDocumentModalOpen] = useState(false)
@@ -40,6 +46,8 @@ export default function ChatbotSettings(
   const [countProcessed, setCountProcessed] = useState(0)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [courseServiceType, setCourseServiceType] =
+    useState<ChatbotServiceType>()
 
   const rowSelection: TableRowSelection<SourceDocument> = {
     type: 'checkbox',
@@ -49,6 +57,22 @@ export default function ChatbotSettings(
   }
   const hasSelected = selectedRowKeys.length > 0
 
+  useEffect(() => {
+    const getCourseServiceType = () => {
+      return API.chatbot.staffOnly
+        .getCourseServiceType(courseId)
+        .then((response) => {
+          setCourseServiceType(response)
+        })
+        .catch((err) =>
+          message.error(
+            `Failed to determine course service type, cannot allow chatbot settings to be edited/viewed: ${getErrorMessage(err)}`,
+          ),
+        )
+    }
+    getCourseServiceType().then()
+  }, [courseId])
+
   const handleDeleteSelectedDocuments = async () => {
     try {
       for (const docId of selectedRowKeys) {
@@ -57,7 +81,7 @@ export default function ChatbotSettings(
       }
       message.success('Documents deleted.')
       getDocuments()
-    } catch (e) {
+    } catch (_e) {
       message.error('Failed to delete documents.')
     } finally {
       setSelectViewEnabled(false)
@@ -221,13 +245,15 @@ export default function ChatbotSettings(
         </div>
         <div className="flex flex-col items-center gap-2 lg:flex-row">
           <ChatbotHelpTooltip forPage="chatbot_settings" />
-          <Button
-            onClick={() => setChatbotParameterModalOpen(true)}
-            icon={<SettingOutlined />}
-            type="primary"
-          >
-            Open Settings
-          </Button>
+          {courseServiceType != undefined && (
+            <Button
+              onClick={() => setChatbotParameterModalOpen(true)}
+              icon={<SettingOutlined />}
+              type="primary"
+            >
+              Open Settings
+            </Button>
+          )}
           <Button
             onClick={() => setAddDocumentModalOpen(true)}
             icon={<FileAddOutlined />}
@@ -266,13 +292,21 @@ export default function ChatbotSettings(
           setPageSize(pageSize)
         }}
       />
-      {chatbotParameterModalOpen && (
-        <ChatbotSettingsModal
-          open={chatbotParameterModalOpen}
-          courseId={courseId}
-          onClose={() => setChatbotParameterModalOpen(false)}
-        />
-      )}
+      {chatbotParameterModalOpen &&
+        (courseServiceType == ChatbotServiceType.LEGACY ? (
+          <LegacyChatbotSettingsModal
+            open={chatbotParameterModalOpen}
+            courseId={courseId}
+            onClose={() => setChatbotParameterModalOpen(false)}
+          />
+        ) : (
+          <ChatbotSettingsModal
+            open={chatbotParameterModalOpen}
+            organizationId={organizationId}
+            courseId={courseId}
+            onClose={() => setChatbotParameterModalOpen(false)}
+          />
+        ))}
     </div>
   )
 }

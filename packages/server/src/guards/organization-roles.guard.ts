@@ -4,6 +4,7 @@ import {
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
@@ -57,7 +58,7 @@ export class OrganizationRolesGuard implements CanActivate {
     });
 
     if (remaining.length <= 0) {
-      throw new UnauthorizedException(
+      throw new ForbiddenException(
         ERROR_MESSAGES.roleGuard.mustBeRoleToAccess(roles),
       );
     }
