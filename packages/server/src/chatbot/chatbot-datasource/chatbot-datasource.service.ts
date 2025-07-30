@@ -73,7 +73,7 @@ export class ChatbotDataSourceService implements OnModuleDestroy {
               id            UUID DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY, 
               "pageContent" TEXT,
               metadata      JSONB--,
-              --embedding     VECTOR (not working with testing)
+              --embedding     VECTOR (not working with CI)
           );
       `);
       await q.commitTransaction();
