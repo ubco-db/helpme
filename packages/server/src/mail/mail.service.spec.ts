@@ -1,12 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MailerService } from '@nestjs-modules/mailer';
+import { MailerService } from '@nest-modules/mailer';
 import { MailService } from './mail.service';
 import { MailServiceModel } from './mail-services.entity';
 import { UserModel } from 'profile/user.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
-import { HttpException } from '@nestjs/common';
-import { Role, OrganizationRole, MailServiceType } from '@koh/common';
 import * as Common from '@koh/common';
+import { MailServiceType, OrganizationRole, Role } from '@koh/common';
 
 describe('MailService', () => {
   let service: MailService;
