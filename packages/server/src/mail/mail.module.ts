@@ -1,10 +1,11 @@
-import { MailerModule } from '@nestjs-modules/mailer';
+import { MailerModule } from '@nest-modules/mailer';
 import { Global, Module } from '@nestjs/common';
 import { MailService } from './mail.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MailController } from './mail.controller';
 import { MailServicesController } from './mail-services.controller';
 import { UserModel } from 'profile/user.entity';
+
 @Global()
 @Module({
   controllers: [MailController, MailServicesController],
