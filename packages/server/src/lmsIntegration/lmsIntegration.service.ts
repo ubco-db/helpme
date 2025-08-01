@@ -966,6 +966,7 @@ export class LMSIntegrationService {
                     type: 'inserted_lms_document',
                     apiDocId: f.id,
                     platform: adapter.getPlatform(),
+                    source: computedDocLink,
                   },
                   parseAsPng: false,
                 },
