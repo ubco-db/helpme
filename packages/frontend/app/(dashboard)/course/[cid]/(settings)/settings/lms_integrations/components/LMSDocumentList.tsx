@@ -1,14 +1,18 @@
 import {
+  CloseOutlined,
   DeleteOutlined,
-  MoreOutlined,
+  InfoCircleOutlined,
   SearchOutlined,
   SyncOutlined,
 } from '@ant-design/icons'
 import {
+  CommonMimeToExtensionMap,
   LMSAnnouncement,
   LMSAssignment,
+  LMSFile,
   LMSPage,
   LMSResourceType,
+  SupportedLMSFileTypes,
 } from '@koh/common'
 import {
   Badge,
@@ -18,15 +22,18 @@ import {
   List,
   message,
   Pagination,
+  Select,
   Spin,
+  Tooltip,
 } from 'antd'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 type LMSDocumentListProps<T> = {
   courseId: number
-  type: 'Assignment' | 'Announcement' | 'Page'
+  type: 'Assignment' | 'Announcement' | 'Page' | 'File'
   documents: T[]
   loadingLMSData?: boolean
   lmsSynchronize?: boolean
@@ -43,8 +50,30 @@ type LMSDocumentListColumn = {
   colSpan: 1 | 2 | 3 | 4
 }
 
+const isDocIneligible = <
+  T extends LMSAssignment | LMSAnnouncement | LMSPage | LMSFile,
+>(
+  item: T,
+  type: 'Assignment' | 'Announcement' | 'Page' | 'File',
+) => {
+  if (type == 'Assignment') {
+    const asAssignment = item as LMSAssignment
+    return (
+      (asAssignment.description == undefined ||
+        asAssignment.description == '') &&
+      asAssignment.due == undefined
+    )
+  } else if (type == 'File') {
+    const asFile = item as LMSFile
+    return !(Object.values(SupportedLMSFileTypes) as string[]).includes(
+      asFile.contentType,
+    )
+  }
+  return false
+}
+
 export default function LMSDocumentList<
-  T extends LMSAssignment | LMSAnnouncement | LMSPage,
+  T extends LMSAssignment | LMSAnnouncement | LMSPage | LMSFile,
 >({
   courseId,
   type,
@@ -56,12 +85,32 @@ export default function LMSDocumentList<
     LMSResourceType.ANNOUNCEMENTS,
     LMSResourceType.ASSIGNMENTS,
     LMSResourceType.PAGES,
+    LMSResourceType.FILES,
   ],
 }: LMSDocumentListProps<T>) {
-  const [page, setPage] = useState(1)
+  const router = useRouter()
+  const pathName = usePathname()
+  const searchParams = useSearchParams()
+
+  const [page, setPage] = useState(
+    !isNaN(parseInt(searchParams.get('p') ?? ''))
+      ? parseInt(searchParams.get('p') as string)
+      : 1,
+  )
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
   const [syncingItems, setSyncingItems] = useState<Record<string, boolean>>({})
+  const [selectedFilters, setSelectedFilters] = useState<(1 | 2 | 3)[]>([
+    1, 2, 3,
+  ])
+
+  useEffect(() => {
+    const params = new URLSearchParams({
+      tab: type.toLowerCase(),
+      p: String(page),
+    })
+    router.push(`${pathName}?${params.toString()}`, { scroll: false })
+  }, [type, page, pathName, router])
 
   const typeToResource = useMemo(() => {
     switch (type) {
@@ -71,6 +120,8 @@ export default function LMSDocumentList<
         return LMSResourceType.ANNOUNCEMENTS
       case 'Page':
         return LMSResourceType.PAGES
+      case 'File':
+        return LMSResourceType.FILES
     }
   }, [type])
 
@@ -79,8 +130,8 @@ export default function LMSDocumentList<
   }
 
   const toggleSyncDocument = async (
-    doc: LMSAssignment | LMSAnnouncement | LMSPage,
-    type: 'Assignment' | 'Announcement' | 'Page',
+    doc: LMSAssignment | LMSAnnouncement | LMSPage | LMSFile,
+    type: 'Assignment' | 'Announcement' | 'Page' | 'File',
   ) => {
     const docIdStr = doc.id.toString()
 
@@ -125,6 +176,12 @@ export default function LMSDocumentList<
       case 'Page':
         return await API.lmsIntegration
           .toggleSyncPage(courseId, doc.id, doc as LMSPage)
+          .then(thenFx)
+          .catch(errFx)
+          .finally(finallyFx)
+      case 'File':
+        return await API.lmsIntegration
+          .toggleSyncFile(courseId, doc.id, doc as LMSFile)
           .then(thenFx)
           .catch(errFx)
           .finally(finallyFx)
@@ -306,6 +363,74 @@ export default function LMSDocumentList<
             colSpan: 1,
           },
         ] as LMSDocumentListColumn[]
+      case 'File':
+        return [
+          {
+            dataIndex: 'name',
+            header: 'Name',
+            cellFormat: (item: T) => (
+              <NameCell
+                item={item}
+                type={'File'}
+                lmsSynchronize={lmsSynchronize}
+              />
+            ),
+            colSpan: 2,
+          },
+          {
+            dataIndex: 'modified',
+            header: 'Last Modified',
+            cellFormat: (item: string | undefined) =>
+              item != undefined && item.trim() != ''
+                ? new Date(item).toLocaleDateString()
+                : '',
+            colSpan: 1,
+          },
+          {
+            dataIndex: 'contentType',
+            header: 'File Type',
+            cellFormat: (item: string) =>
+              (Object.keys(CommonMimeToExtensionMap).find(
+                (k) =>
+                  (CommonMimeToExtensionMap as Record<string, string>)[k] ==
+                  item,
+              ) ??
+                item) ||
+              'Unknown',
+            colSpan: 1,
+          },
+          {
+            dataIndex: 'size',
+            header: 'Size',
+            cellFormat: (item: number) => {
+              if (!item) return 'Unknown'
+              if (item < 1024) return `${item} B`
+              if (item < 1024 * 1024) return `${(item / 1024).toFixed(1)} KB`
+              if (item < 1024 * 1024 * 1024)
+                return `${(item / (1024 * 1024)).toFixed(1)} MB`
+              return `${(item / (1024 * 1024 * 1024)).toFixed(1)} GB`
+            },
+            colSpan: 1,
+          },
+          {
+            dataIndex: 'sync',
+            header: 'Actions',
+            cellFormat: (item: T) => {
+              if (selectedResourceTypes?.includes(typeToResource)) {
+                return (
+                  <SyncCell
+                    item={item}
+                    type={type}
+                    toggleSyncDocument={toggleSyncDocument}
+                    isItemSyncing={isItemSyncing(item.id.toString())}
+                    lmsSynchronize={lmsSynchronize}
+                  />
+                )
+              } else return null
+            },
+            colSpan: 1,
+          },
+        ] as LMSDocumentListColumn[]
       default:
         return []
     }
@@ -358,6 +483,15 @@ export default function LMSDocumentList<
                 .includes(search.toLowerCase()) ||
               (d as LMSPage).body.toLowerCase().includes(search.toLowerCase())
             )
+          case 'File':
+            return (
+              (d as LMSFile).name
+                .toLowerCase()
+                .includes(search.toLowerCase()) ||
+              (d as LMSFile).contentType
+                .toLowerCase()
+                .includes(search.toLowerCase())
+            )
           default:
             return false
         }
@@ -365,9 +499,28 @@ export default function LMSDocumentList<
     [type, documents, search],
   )
 
+  const filteredDocuments = useMemo(
+    () =>
+      matchingDocuments.filter((doc: T) => {
+        return selectedFilters
+          .map((filter) => {
+            switch (filter) {
+              case 1:
+                return doc.uploaded != undefined
+              case 2:
+                return doc.uploaded == undefined && !isDocIneligible(doc, type)
+              case 3:
+                return isDocIneligible(doc, type)
+            }
+          })
+          .reduce((p, c) => p || c, false)
+      }),
+    [matchingDocuments, type, selectedFilters],
+  )
+
   const paginatedDocuments = useMemo(
-    () => matchingDocuments.slice((page - 1) * 20, page * 20),
-    [matchingDocuments, page],
+    () => filteredDocuments.slice((page - 1) * 20, page * 20),
+    [filteredDocuments, page],
   )
 
   if (!documents) {
@@ -381,7 +534,7 @@ export default function LMSDocumentList<
       <div className="bg-white">
         <div
           className={
-            'my-2 flex flex-col justify-start md:flex-row md:justify-between'
+            'my-2 flex flex-col justify-start gap-2 md:flex-row md:justify-between'
           }
         >
           <Input
@@ -402,6 +555,73 @@ export default function LMSDocumentList<
             />
           )}
         </div>
+        <div
+          className={
+            'my-2 flex flex-col justify-start gap-2 md:flex-row md:justify-between'
+          }
+        >
+          <div className={'flex items-center gap-2'}>
+            <Tooltip
+              title={
+                'Set whether you want to see uploaded, not uploaded, or unable to be uploaded documents.'
+              }
+            >
+              <span className={'font-semibold'}>
+                Filters <InfoCircleOutlined />:
+              </span>
+            </Tooltip>
+            <Select
+              popupMatchSelectWidth={false}
+              value={selectedFilters}
+              tagRender={(tagProps) => (
+                <div
+                  data-show="true"
+                  className={cn(
+                    tagProps.value == 1
+                      ? 'bg-[#52c41a]'
+                      : tagProps.value == 2
+                        ? 'bg-[#f5222d]'
+                        : 'bg-[#fadb14]',
+                    'mx-1 flex h-fit items-center justify-center gap-1 rounded-full px-1 py-0.5 text-xs text-white',
+                  )}
+                >
+                  <div>
+                    {((i: number) => {
+                      switch (i) {
+                        case 1:
+                          return 'Synced'
+                        case 2:
+                          return 'Not Synced'
+                        case 3:
+                          return "Can't Sync"
+                      }
+                    })(tagProps.value)}
+                  </div>
+                  <button
+                    className={
+                      'aspect-square border-none bg-transparent text-xs text-white transition-all hover:text-gray-500'
+                    }
+                    onClick={tagProps.onClose}
+                  >
+                    <CloseOutlined />
+                  </button>
+                </div>
+              )}
+              onChange={(value: (1 | 2 | 3)[]) => setSelectedFilters(value)}
+              mode={'multiple'}
+            >
+              <Select.Option value={1}>
+                <Badge color={'green'} count={'Synced'} />
+              </Select.Option>
+              <Select.Option value={2}>
+                <Badge color={'red'} count={'Not Synced'} />
+              </Select.Option>
+              <Select.Option value={3}>
+                <Badge color={'yellow'} count={"Can't Sync"} />
+              </Select.Option>
+            </Select>
+          </div>
+        </div>
         <DocumentList
           documents={paginatedDocuments}
           loadingLMSData={loadingLMSData}
@@ -413,7 +633,9 @@ export default function LMSDocumentList<
   }
 }
 
-function DocumentList<T extends LMSAssignment | LMSAnnouncement | LMSPage>({
+function DocumentList<
+  T extends LMSAssignment | LMSAnnouncement | LMSPage | LMSFile,
+>({
   documents,
   loadingLMSData,
   ncols,
@@ -490,13 +712,15 @@ function DocumentList<T extends LMSAssignment | LMSAnnouncement | LMSPage>({
   )
 }
 
-function NameCell<T extends LMSAssignment | LMSAnnouncement | LMSPage>({
+function NameCell<
+  T extends LMSAssignment | LMSAnnouncement | LMSPage | LMSFile,
+>({
   item,
   type,
   lmsSynchronize,
 }: {
   item: T
-  type: 'Assignment' | 'Announcement' | 'Page'
+  type: 'Assignment' | 'Announcement' | 'Page' | 'File'
   lmsSynchronize?: boolean
 }) {
   const isOutOfDate =
@@ -505,15 +729,7 @@ function NameCell<T extends LMSAssignment | LMSAnnouncement | LMSPage>({
     item.uploaded != undefined &&
     new Date(item.uploaded).getTime() < new Date(item.modified).getTime()
 
-  let ineligible = false
-  if (type == 'Assignment') {
-    const asAssignment = item as LMSAssignment
-    ineligible =
-      (asAssignment.description == undefined ||
-        asAssignment.description == '') &&
-      asAssignment.due == undefined
-  }
-
+  const ineligible = isDocIneligible(item, type)
   return (
     <div className={'flex w-full flex-row items-center justify-between'}>
       <div className={'flex flex-col gap-1'}>
@@ -544,7 +760,9 @@ function NameCell<T extends LMSAssignment | LMSAnnouncement | LMSPage>({
   )
 }
 
-function SyncCell<T extends LMSAssignment | LMSAnnouncement | LMSPage>({
+function SyncCell<
+  T extends LMSAssignment | LMSAnnouncement | LMSPage | LMSFile,
+>({
   item,
   type,
   isItemSyncing,
@@ -552,23 +770,15 @@ function SyncCell<T extends LMSAssignment | LMSAnnouncement | LMSPage>({
   lmsSynchronize,
 }: {
   item: T
-  type: 'Assignment' | 'Announcement' | 'Page'
+  type: 'Assignment' | 'Announcement' | 'Page' | 'File'
   isItemSyncing: boolean
   toggleSyncDocument: (
     item: T,
-    type: 'Assignment' | 'Announcement' | 'Page',
+    type: 'Assignment' | 'Announcement' | 'Page' | 'File',
   ) => void
   lmsSynchronize?: boolean
 }) {
-  let ineligible = false
-  if (type == 'Assignment') {
-    const asAssignment = item as LMSAssignment
-    ineligible =
-      (asAssignment.description == undefined ||
-        asAssignment.description == '') &&
-      asAssignment.due == undefined
-  }
-
+  const ineligible = isDocIneligible(item, type)
   if (ineligible) {
     return null
   }
