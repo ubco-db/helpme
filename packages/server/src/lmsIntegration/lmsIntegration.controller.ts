@@ -17,6 +17,7 @@ import {
   LMSAssignment,
   LMSAnnouncement,
   LMSCourseIntegrationPartial,
+  LMSFile,
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
@@ -323,6 +324,13 @@ export class LMSIntegrationController {
     return await this.integrationService.getItems(courseId, LMSGet.Pages);
   }
 
+  @Get(':courseId/files')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async getFiles(@Param('courseId', ParseIntPipe) courseId: number) {
+    return await this.integrationService.getItems(courseId, LMSGet.Files);
+  }
+
   @Post(':courseId/test')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
@@ -482,9 +490,9 @@ export class LMSIntegrationController {
   async toggleSyncDocument(
     @User() _user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Param('docType') docType: 'assignment' | 'announcement' | 'page',
+    @Param('docType') docType: 'assignment' | 'announcement' | 'page' | 'file',
     @Param('itemId', ParseIntPipe) itemId: number,
-    @Body() params?: LMSAssignment,
+    @Body() params?: LMSAssignment | LMSAnnouncement | LMSPage | LMSFile,
   ): Promise<string> {
     const integration = await LMSCourseIntegrationModel.findOne({
       where: {
@@ -512,6 +520,9 @@ export class LMSIntegrationController {
         break;
       case 'page':
         uploadType = LMSUpload.Pages;
+        break;
+      case 'file':
+        uploadType = LMSUpload.Files;
         break;
       default:
         throw new BadRequestException(

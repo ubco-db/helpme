@@ -10,11 +10,13 @@ import {
   LMSApiResponseStatus,
   LMSAssignment,
   LMSCourseIntegrationPartial,
+  LMSFile,
   LMSFileUploadResponse,
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
   LMSResourceType,
+  SupportedLMSFileTypes,
 } from '@koh/common';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -22,6 +24,7 @@ import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
 import { LMSAssignmentModel } from './lmsAssignment.entity';
 import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
 import { LMSPageModel } from './lmsPage.entity';
+import { LMSFileModel } from './lmsFile.entity';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { UserModel } from '../profile/user.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -38,12 +41,14 @@ export enum LMSGet {
   Assignments,
   Announcements,
   Pages,
+  Files,
 }
 
 export enum LMSUpload {
   Assignments,
   Announcements,
   Pages,
+  Files,
 }
 
 @Injectable()
@@ -95,6 +100,7 @@ export class LMSIntegrationService {
     [LMSUpload.Assignments]: LMSResourceType.ASSIGNMENTS,
     [LMSUpload.Announcements]: LMSResourceType.ANNOUNCEMENTS,
     [LMSUpload.Pages]: LMSResourceType.PAGES,
+    [LMSUpload.Files]: LMSResourceType.FILES,
   };
 
   public async upsertOrganizationLMSIntegration(
@@ -314,6 +320,33 @@ export class LMSIntegrationService {
         retrievalStatus = status;
         break;
       }
+      case LMSGet.Files: {
+        const { status, files } = await adapter.getFiles();
+        const { items } = await this.getDocumentModelAndItems(
+          courseId,
+          LMSUpload.Files,
+        );
+        for (let idx = 0; idx < files.length; idx++) {
+          const found = items.find(
+            (i) => i.id == files[idx].id,
+          ) as unknown as LMSFileModel;
+          if (found) {
+            files[idx] = {
+              id: found.id,
+              name: found.name,
+              url: found.url,
+              contentType: found.contentType,
+              size: found.size,
+              modified: files[idx].modified ?? found.modified,
+              uploaded: found.uploaded,
+              syncEnabled: found.syncEnabled,
+            };
+          }
+        }
+        retrieved = files;
+        retrievalStatus = status;
+        break;
+      }
     }
 
     if (retrievalStatus != LMSApiResponseStatus.Success) {
@@ -335,6 +368,8 @@ export class LMSIntegrationService {
           return LMSAssignmentModel;
         case LMSUpload.Pages:
           return LMSPageModel;
+        case LMSUpload.Files:
+          return LMSFileModel;
       }
     })();
 
@@ -417,6 +452,7 @@ export class LMSIntegrationService {
         assignments?: LMSAssignment[];
         announcements?: LMSAnnouncement[];
         pages?: LMSPage[];
+        files?: LMSFile[];
       };
 
       const modelAndPersisted = await this.getDocumentModelAndItems(
@@ -439,6 +475,9 @@ export class LMSIntegrationService {
         case LMSUpload.Pages:
           result = await adapter.getPages();
           break;
+        case LMSUpload.Files:
+          result = await adapter.getFiles();
+          break;
         default:
           result = { status: LMSApiResponseStatus.Error };
           break;
@@ -458,6 +497,8 @@ export class LMSIntegrationService {
         | LMSAssignmentModel
         | LMSPage
         | LMSPageModel
+        | LMSFile
+        | LMSFileModel
       )[];
       switch (type) {
         case LMSUpload.Assignments:
@@ -469,18 +510,23 @@ export class LMSIntegrationService {
         case LMSUpload.Pages:
           items = result.pages;
           break;
+        case LMSUpload.Files:
+          items = result.files;
+          break;
       }
 
       let persistedItems: (
         | LMSAnnouncementModel
         | LMSAssignmentModel
         | LMSPageModel
+        | LMSFileModel
       )[] = modelAndPersisted.items;
 
       const toRemove: (
         | LMSAnnouncementModel
         | LMSAssignmentModel
         | LMSPageModel
+        | LMSFileModel
       )[] = persistedItems.filter((i0) => !items.find((i1) => i1.id == i0.id));
       if (toRemove.length > 0) {
         const toRemoveIds = toRemove.map((i) => i.id);
@@ -579,6 +625,23 @@ export class LMSIntegrationService {
                     : new Date(),
                 lmsSource: adapter.getPlatform(),
               }) as LMSPageModel;
+            case LMSUpload.Files:
+              const file = i as LMSFile;
+              return (model as typeof LMSFileModel).create({
+                id: file.id,
+                name: file.name,
+                url: file.url,
+                contentType: file.contentType,
+                size: file.size,
+                chatbotDocumentId: chatbotDocumentId,
+                uploaded: new Date(),
+                courseId: courseId,
+                modified:
+                  file.modified != undefined
+                    ? new Date(file.modified)
+                    : new Date(),
+                lmsSource: adapter.getPlatform(),
+              }) as LMSFileModel;
             default:
               return undefined;
           }
@@ -586,7 +649,8 @@ export class LMSIntegrationService {
         .filter((e) => e != undefined) as
         | LMSAssignmentModel[]
         | LMSAnnouncementModel[]
-        | LMSPageModel[];
+        | LMSPageModel[]
+        | LMSFileModel[];
 
       switch (type) {
         case LMSUpload.Announcements:
@@ -601,6 +665,9 @@ export class LMSIntegrationService {
           break;
         case LMSUpload.Pages:
           await (model as typeof LMSPageModel).save(entities as LMSPageModel[]);
+          break;
+        case LMSUpload.Files:
+          await (model as typeof LMSFileModel).save(entities as LMSFileModel[]);
           break;
       }
     }
@@ -629,11 +696,17 @@ export class LMSIntegrationService {
 
   async clearSpecificDocuments(
     courseId: number,
-    items: (LMSAssignmentModel | LMSAnnouncementModel | LMSPageModel)[],
+    items: (
+      | LMSAssignmentModel
+      | LMSAnnouncementModel
+      | LMSPageModel
+      | LMSFileModel
+    )[],
     model:
       | typeof LMSAssignmentModel
       | typeof LMSAnnouncementModel
-      | typeof LMSPageModel,
+      | typeof LMSPageModel
+      | typeof LMSFileModel,
   ) {
     const tempUser = await UserModel.create({
       email: 'tempemail@example.com',
@@ -658,7 +731,11 @@ export class LMSIntegrationService {
 
   async singleDocOperation(
     courseId: number,
-    item: LMSAnnouncementModel | LMSAssignmentModel | LMSPageModel,
+    item:
+      | LMSAnnouncementModel
+      | LMSAssignmentModel
+      | LMSPageModel
+      | LMSFileModel,
     type: LMSUpload,
     action: 'Sync' | 'Clear',
   ) {
@@ -672,7 +749,11 @@ export class LMSIntegrationService {
 
   private async syncDocument(
     courseId: number,
-    item: LMSAnnouncementModel | LMSAssignmentModel | LMSPageModel,
+    item:
+      | LMSAnnouncementModel
+      | LMSAssignmentModel
+      | LMSPageModel
+      | LMSFileModel,
     type: LMSUpload,
   ) {
     const adapter = await this.getAdapter(courseId);
@@ -717,7 +798,11 @@ export class LMSIntegrationService {
 
   private async clearDocument(
     courseId: number,
-    item: LMSAnnouncementModel | LMSAssignmentModel | LMSPageModel,
+    item:
+      | LMSAnnouncementModel
+      | LMSAssignmentModel
+      | LMSPageModel
+      | LMSFileModel,
     type: LMSUpload,
   ) {
     const model = await this.getDocumentModel(type);
@@ -754,6 +839,8 @@ export class LMSIntegrationService {
         return 'Assignment';
       case LMSUpload.Pages:
         return 'Page';
+      case LMSUpload.Files:
+        return 'File';
       default:
         return 'Resource';
     }
@@ -767,7 +854,9 @@ export class LMSIntegrationService {
       | LMSAssignmentModel
       | LMSAnnouncementModel
       | LMSPage
-      | LMSPageModel,
+      | LMSPageModel
+      | LMSFile
+      | LMSFileModel,
     token: ChatTokenModel,
     type: LMSUpload,
     adapter: AbstractLMSAdapter,
@@ -816,6 +905,94 @@ export class LMSIntegrationService {
           prefix += `\nFront Page: ${p.frontPage}`;
         }
         break;
+      }
+      case LMSUpload.Files: {
+        const f = item as LMSFile;
+
+        if (f.url && this.isSupportedFileTypeForBuffer(f.contentType)) {
+          try {
+            prefix = `(Course File)\nName: ${f.name}${!isNaN(new Date(f.modified).valueOf()) ? `\nModified: ${new Date(f.modified).toLocaleDateString()}` : ''}`;
+            name = `${f.name}`;
+
+            if (f.url) {
+              prefix += `\nURL: ${f.url}`;
+            }
+
+            const isUpdate =
+              'chatbotDocumentId' in f && f.chatbotDocumentId != undefined;
+
+            if (isUpdate) {
+              try {
+                await this.chatbotApiService.deleteDocument(
+                  f.chatbotDocumentId as string,
+                  courseId,
+                  token.token,
+                );
+              } catch (error) {
+                console.warn(
+                  `Failed to delete old LMS file document ${f.chatbotDocumentId}, proceeding with new upload:`,
+                  error,
+                );
+              }
+            }
+
+            const fileBuffer = await this.downloadFileAsBuffer(f.url, adapter);
+
+            // mock file object
+            const mockLMSFile: Express.Multer.File = {
+              buffer: fileBuffer,
+              originalname: f.name,
+              fieldname: 'file',
+              mimetype: f.contentType,
+              size: f.size,
+              encoding: '7bit',
+              destination: '',
+              filename: f.name,
+              path: '',
+              stream: null,
+            } as Express.Multer.File;
+
+            const computedDocLink = adapter.getDocumentLink(item.id, type);
+            const sourceWithPrefix = `${prefix}${computedDocLink ? `\nPage Link: ${computedDocLink}` : ''}`;
+
+            const uploadResult =
+              await this.chatbotApiService.uploadLMSFileFromBuffer(
+                mockLMSFile,
+                courseId,
+                token.token,
+                {
+                  source: sourceWithPrefix,
+                  metadata: {
+                    type: 'inserted_lms_document',
+                    apiDocId: f.id,
+                    platform: adapter.getPlatform(),
+                  },
+                  parseAsPng: false,
+                },
+              );
+
+            return {
+              id: item.id,
+              success: true,
+              documentId: uploadResult.docId,
+            } as LMSFileUploadResponse;
+          } catch (error) {
+            console.error(
+              `Failed to upload LMS file ${f.name} to chatbot:`,
+              error,
+            );
+            return {
+              id: item.id,
+              success: false,
+            } as LMSFileUploadResponse;
+          }
+        } else {
+          // Skip unsupported file types for now
+          return {
+            id: item.id,
+            success: false,
+          } as LMSFileUploadResponse;
+        }
       }
       default:
         return {
@@ -905,7 +1082,11 @@ export class LMSIntegrationService {
 
   private async deleteDocument(
     courseId: number,
-    item: LMSAnnouncementModel | LMSAssignmentModel | LMSPageModel,
+    item:
+      | LMSAnnouncementModel
+      | LMSAssignmentModel
+      | LMSPageModel
+      | LMSFileModel,
     token: ChatTokenModel,
   ) {
     // Already deleted in this case
@@ -976,5 +1157,55 @@ export class LMSIntegrationService {
         new Date(lmsIntegration.apiKeyExpiry).getTime() < new Date().getTime(),
       selectedResourceTypes: lmsIntegration.selectedResourceTypes,
     } satisfies LMSCourseIntegrationPartial;
+  }
+
+  private isSupportedFileTypeForBuffer(contentType: string): boolean {
+    // See the enum source in common/index.ts
+    const supportedTypes = Object.values(SupportedLMSFileTypes) as string[];
+    // [
+    //   // have to test with more file types, but these ones should be the most prevalent
+    //   'application/pdf', // .pdf files
+    //   'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx files
+    // ];
+    return supportedTypes.includes(contentType);
+  }
+
+  private async downloadFileAsBuffer(
+    url: string,
+    adapter: AbstractLMSAdapter,
+  ): Promise<Buffer> {
+    // Download the file as a buffer using the same approach as the chatbot service
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${adapter['integration'].apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to download file: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    // Use the same buffer conversion approach as the chatbot service
+    return await this.bodyToBuffer(response.body);
+  }
+
+  // same as the one in the chatbot repository
+  private async bodyToBuffer(body: any): Promise<Buffer> {
+    const stream = body as ReadableStream;
+    const reader = stream.getReader();
+    const chunks: any[] = [];
+    let last: ReadableStreamReadResult<any> = {
+      value: undefined,
+      done: false,
+    };
+    while (!last.done) {
+      last = await reader.read();
+      if (last.value) {
+        chunks.push(last.value);
+      }
+    }
+    return Buffer.concat(chunks);
   }
 }
