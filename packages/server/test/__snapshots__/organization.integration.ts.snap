@@ -45,26 +45,6 @@ exports[`Organization Integration GET /organization/:oid should return 200 and r
 }
 `;
 
-exports[`Organization Integration GET /organization/:oid/get_courses/:page? should return 200 when user is an admin 1`] = `
-[
-  {
-    "courseId": 1,
-    "courseName": "CS 304",
-    "isEnabled": true,
-    "sectionGroupName": "001",
-    "semester": {
-      "color": "blue",
-      "description": "Test Semester Description",
-      "endDate": "2022-12-31T00:00:00.000Z",
-      "id": 1,
-      "name": "Test Semester",
-      "startDate": "2020-09-01T00:00:00.000Z",
-    },
-    "semesterId": 1,
-  },
-]
-`;
-
 exports[`Organization Integration GET /organization/:oid/get_courses{/:page} should return 200 when user is an admin 1`] = `
 [
   {
@@ -75,10 +55,10 @@ exports[`Organization Integration GET /organization/:oid/get_courses{/:page} sho
     "semester": {
       "color": "blue",
       "description": "Test Semester Description",
-      "endDate": "2022-12-31T00:00:00.000Z",
+      "endDate": "2022-12-30T08:00:00.000Z",
       "id": 1,
       "name": "Test Semester",
-      "startDate": "2020-09-01T00:00:00.000Z",
+      "startDate": "2020-08-31T07:00:00.000Z",
     },
     "semesterId": 1,
   },
@@ -102,20 +82,6 @@ exports[`Organization Integration GET /organization/:oid/get_user/:uid should re
     "sid": null,
   },
 }
-`;
-
-exports[`Organization Integration GET /organization/:oid/get_users/:page? should return 200 when user is an admin 1`] = `
-[
-  {
-    "email": "user@ubc.ca",
-    "firstName": "User",
-    "lastName": "Person",
-    "organizationRole": "admin",
-    "photoUrl": "https://example.com",
-    "userId": 1,
-    "userRole": "user",
-  },
-]
 `;
 
 exports[`Organization Integration GET /organization/:oid/get_users{/:page} should return 200 when user is an admin 1`] = `
