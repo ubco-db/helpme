@@ -87,7 +87,7 @@ const JoinTagGroupButton: React.FC<JoinTagGroupButtonProps> = ({
               newQuestionTypes,
               studentQuestion.groupable,
               studentQuestion.isTaskQuestion ?? false,
-              studentQuestion.location ?? 'Unselected',
+              studentQuestion.location ?? QuestionLocations.Unselected,
             )
           }
         } else if (taskId) {
@@ -102,7 +102,7 @@ const JoinTagGroupButton: React.FC<JoinTagGroupButtonProps> = ({
               [],
               studentDemo.groupable,
               studentDemo.isTaskQuestion ?? true,
-              studentDemo.location ?? 'Unselected',
+              studentDemo.location ?? QuestionLocations.Unselected,
             )
           }
         } else {
@@ -135,7 +135,7 @@ const JoinTagGroupButton: React.FC<JoinTagGroupButtonProps> = ({
               newQuestionTypes,
               studentQuestion.groupable,
               studentQuestion.isTaskQuestion ?? false,
-              studentQuestion.location ?? 'Unselected',
+              studentQuestion.location ?? QuestionLocations.Unselected,
             )
           }
         } else if (taskId) {
@@ -154,7 +154,7 @@ const JoinTagGroupButton: React.FC<JoinTagGroupButtonProps> = ({
               [],
               studentDemo.groupable,
               studentDemo.isTaskQuestion ?? true,
-              studentDemo.location ?? 'Unselected',
+              studentDemo.location ?? QuestionLocations.Unselected,
             )
           }
         } else {

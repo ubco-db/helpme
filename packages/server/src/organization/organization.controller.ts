@@ -1405,7 +1405,7 @@ export class OrganizationController {
     return res.status(HttpStatus.OK).send(userInfo);
   }
 
-  @Get(':oid/get_users/:page?')
+  @Get(':oid/get_users{/:page}')
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
   async getUsers(
@@ -1422,7 +1422,7 @@ export class OrganizationController {
     return await this.organizationService.getUsers(oid, page, pageSize, search);
   }
 
-  @Get(':oid/get_courses/:page?')
+  @Get(':oid/get_courses{/:page}')
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
   async getCourses(
@@ -1636,7 +1636,7 @@ export class OrganizationController {
     }
   }
 
-  @Get(':oid/role_history/:page?')
+  @Get(':oid/role_history{/:page}')
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
   async getRoleHistory(

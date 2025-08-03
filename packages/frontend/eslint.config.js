@@ -51,6 +51,7 @@ module.exports = defineConfig([
 
         rules: {
             "@typescript-eslint/interface-name-prefix": "off",
+            "@typescript-eslint/no-unused-expressions": "off",
             "@typescript-eslint/explicit-function-return-type": "off",
             "@typescript-eslint/no-explicit-any": "off",
             "no-only-tests/no-only-tests": "error",

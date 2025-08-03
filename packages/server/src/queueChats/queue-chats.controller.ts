@@ -14,7 +14,7 @@ import {
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { QueueChatService } from './queue-chats.service';
 import { User, UserId } from 'decorators/user.decorator';
-import { Response } from 'express-serve-static-core';
+import { Response } from 'express';
 import { QueueRole } from 'decorators/queue-role.decorator';
 import { ERROR_MESSAGES, QueueChatPartial, Role } from '@koh/common';
 import { QueueChatSSEService } from './queue-chats-sse.service';
@@ -26,6 +26,7 @@ import { QueueRolesGuard } from 'guards/queue-role.guard';
 import { Roles } from 'decorators/roles.decorator';
 import { QueueSSEService } from 'queue/queue-sse.service';
 import { UserCourseModel } from 'profile/user-course.entity';
+
 /* Note that these endpoints are special in that they don't have any Roles guards.
   Instead, these endpoints use .checkPermissions() which only allows the chat's TA and student to call these endpoints.
 */

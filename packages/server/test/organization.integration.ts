@@ -143,7 +143,7 @@ describe('Organization Integration', () => {
     });
   });
 
-  describe('GET /organization/:oid/get_users/:page?', () => {
+  describe('GET /organization/:oid/get_users{/:page}', () => {
     it('should return 403 when user is not logged in', async () => {
       const organization = await OrganizationFactory.create();
       const response = await supertest().get(
@@ -188,7 +188,7 @@ describe('Organization Integration', () => {
     });
   });
 
-  describe('GET /organization/:oid/get_courses/:page?', () => {
+  describe('GET /organization/:oid/get_courses{/:page}', () => {
     it('should return 403 when user is not logged in', async () => {
       const organization = await OrganizationFactory.create();
       const response = await supertest().get(
@@ -3324,7 +3324,6 @@ describe('Organization Integration', () => {
     });
 
     it('should return 401 if user is not an admin', async () => {
-      0;
       const user = await UserFactory.create();
       // Ensure user has a chat token for the guard to pass initial checks before role check
       const token = await ChatTokenFactory.create({ user });

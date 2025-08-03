@@ -1,12 +1,12 @@
 import { ERROR_MESSAGES } from '@koh/common';
 import {
-  Injectable,
   CanActivate,
   ExecutionContext,
-  UnauthorizedException,
-  NotImplementedException,
   ForbiddenException,
+  Injectable,
   NotFoundException,
+  NotImplementedException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
@@ -48,7 +48,7 @@ export class OrgOrCourseRolesGuard implements CanActivate {
     const courseId =
       request.params.courseId ??
       request.params.cid ??
-      Number(request.body[0]) ?? // if the body is an array of a single courseId, it will use that (used in deleteUserCourses()). In the case that an admin is withdrawing a user from multiple courses, it will still work since the hasOrgRole check will be true
+      Number(request.body?.[0]) ?? // if the body is an array of a single courseId, it will use that (used in deleteUserCourses()). In the case that an admin is withdrawing a user from multiple courses, it will still work since the hasOrgRole check will be true
       null;
     const userId = request.user.userId ?? null;
 

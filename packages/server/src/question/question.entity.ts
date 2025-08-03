@@ -90,13 +90,13 @@ export class QuestionModel extends BaseEntity {
   @Column('text')
   status: QuestionStatus;
 
-  @Column({ nullable: true })
+  @Column({ type: 'enum', enum: QuestionLocations, nullable: true })
   location: QuestionLocations;
 
   @Column()
   groupable: boolean;
 
-  @Column({ default: false })
+  @Column({ type: 'boolean', default: false })
   isTaskQuestion: boolean;
 
   @ManyToOne((type) => QuestionGroupModel, { nullable: true })
