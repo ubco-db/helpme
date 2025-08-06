@@ -2,12 +2,14 @@ import {
   isProd,
   MailServiceWithSubscription,
   sendEmailParams,
+  SentEmailResponse,
 } from '@koh/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { MailServiceModel } from './mail-services.entity';
 import { Injectable } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';
 import * as fs from 'fs';
+import { SentEmailModel } from './sent-email.entity';
 
 @Injectable()
 export class MailService {
@@ -50,7 +52,11 @@ export class MailService {
   }
 
   /* Used for testing purposes. Allows you to write an email to a file instead of sending it */
-  writeEmailToFile(email: string, subject: string, content: string): void {
+  writeEmailToFile(
+    email: string | string[],
+    subject: string,
+    content: string,
+  ): void {
     try {
       const logFile = './src/mail/sent_dev_emails.log';
       const logStream = fs.createWriteStream(logFile, { flags: 'a' });
@@ -83,14 +89,45 @@ export class MailService {
   `;
     // if on dev write to a file instead of actually sending an email (comment this out if you want to test sending emails, but be careful not to send emails to our userbase)
     if (!isProd()) {
-      this.writeEmailToFile(emailPost.receiver, emailPost.subject, fullContent);
+      this.writeEmailToFile(
+        emailPost.receiverOrReceivers,
+        emailPost.subject,
+        fullContent,
+      );
       return;
     }
-    await this.mailerService.sendMail({
-      to: emailPost.receiver,
+
+    const result: SentEmailResponse = await this.mailerService.sendMail({
+      to: emailPost.receiverOrReceivers,
       from: '"HelpMe Support"',
       subject: emailPost.subject,
       html: fullContent,
+      inReplyTo: emailPost.replyId,
+      references: emailPost.replyId,
+    });
+
+    if (emailPost.track && result) {
+      await SentEmailModel.create({
+        emailId: result.messageId,
+        accepted: result.accepted ?? [],
+        rejected: result.rejected ?? [],
+        metadata: emailPost.metadata,
+        serviceType: emailPost.type,
+      }).save();
+    }
+  }
+
+  async replyToSentEmail(
+    sentEmail: SentEmailModel,
+    content?: string,
+  ): Promise<void> {
+    await SentEmailModel.delete({ emailId: sentEmail.emailId });
+    await this.sendEmail({
+      subject: `Re: ${sentEmail.subject}`,
+      content,
+      receiverOrReceivers: sentEmail.accepted,
+      type: sentEmail.serviceType,
+      replyId: sentEmail.emailId,
     });
   }
 

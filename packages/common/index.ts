@@ -2170,11 +2170,28 @@ export type InsightParamsType = {
   staff?: string
 }
 
+export type SentEmailResponse = {
+  messageId: string
+  accepted: string[]
+  rejected: string[]
+}
+
+export type EmailMetadata = Record<string, any>
+
+export interface AsyncQuestionEmailMetadata extends EmailMetadata {
+  asyncQuestionId: number
+}
+
 export type sendEmailParams = {
-  receiver: string
+  receiverOrReceivers: string | string[]
   subject: string
   type: MailServiceType
   content?: string
+
+  track?: boolean
+  metadata?: EmailMetadata
+
+  replyId?: string
 }
 
 export type MailServiceWithSubscription = {

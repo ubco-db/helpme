@@ -42,6 +42,7 @@ import { QueueChatsModel } from '../queueChats/queue-chats.entity';
 import { DataSource } from 'typeorm';
 import { Injectable } from '@nestjs/common';
 import { OrganizationSettingsModel } from '../organization/organization_settings.entity';
+import { SentEmailModel } from '../mail/sent-email.entity';
 
 /* Has all of our factories and initializes them with the db dataSource. 
   If you want to use one of these factories, import it from factories.ts instead.
@@ -78,6 +79,7 @@ export class FactoryService {
   public ChatTokenFactory: Factory<ChatTokenModel>;
   public StudentTaskProgressFactory: Factory<StudentTaskProgressModel>;
   public mailServiceFactory: Factory<MailServiceModel>;
+  public SentEmailFactory: Factory<SentEmailModel>;
   public userSubscriptionFactory: Factory<UserSubscriptionModel>;
   public CalendarStaffFactory: Factory<CalendarStaffModel>;
   public calendarFactory: Factory<CalendarModel>;
@@ -264,6 +266,13 @@ export class FactoryService {
       .attr('mailType', OrganizationRole.PROFESSOR)
       .attr('serviceType', MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED)
       .attr('name', 'async_question_created');
+
+    this.SentEmailFactory = new Factory(SentEmailModel, dataSource)
+      .sequence('emailId', (i) =>
+        parseInt(i.toString().padEnd(16, '0')).toString(16),
+      )
+      .attr('subject', 'Email Subject Line')
+      .assocOne('mailService', this.mailServiceFactory);
 
     this.userSubscriptionFactory = new Factory(
       UserSubscriptionModel,
