@@ -26,6 +26,7 @@ import {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
+  LMSQuiz,
   SupportedLMSFileTypes,
 } from '@koh/common'
 import { API } from '@/app/api'
@@ -34,6 +35,7 @@ import LMSRosterTable from '@/app/(dashboard)/course/[cid]/(settings)/settings/l
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { useCourseLmsIntegration } from '@/app/hooks/useCourseLmsIntegration'
 import LMSDocumentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSDocumentList'
+import QuizAccessControl from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/QuizAccessControl'
 import {
   DeleteOutlined,
   EditOutlined,
@@ -46,7 +48,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 export default function CourseLMSIntegrationPage(props: {
   params: Promise<{
     cid: string
-    tab: 'assignment' | 'announcement' | 'page' | 'file' | undefined
+    tab: 'assignment' | 'announcement' | 'page' | 'file' | 'quiz' | undefined
   }>
 }) {
   const params = use(props.params)
@@ -58,7 +60,13 @@ export default function CourseLMSIntegrationPage(props: {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
 
   const [currentTab, setCurrentTab] = useState<
-    'assignment' | 'announcement' | 'page' | 'file' | 'roster' | undefined
+    | 'assignment'
+    | 'announcement'
+    | 'page'
+    | 'file'
+    | 'quiz'
+    | 'roster'
+    | undefined
   >()
 
   const defaultTab = useMemo(() => {
@@ -67,6 +75,7 @@ export default function CourseLMSIntegrationPage(props: {
       case 'announcement':
       case 'page':
       case 'file':
+      case 'quiz':
         return tab
       default:
         return 'roster'
@@ -93,6 +102,7 @@ export default function CourseLMSIntegrationPage(props: {
     students,
     pages,
     files,
+    quizzes,
     isLoadingIntegration,
     isLoadingCourse,
     isLoadingStudents,
@@ -100,6 +110,7 @@ export default function CourseLMSIntegrationPage(props: {
     isLoadingAnnouncements,
     isLoadingFiles,
     isLoadingPages,
+    isLoadingQuizzes,
   } = useCourseLmsIntegration(courseId, updateFlag)
 
   const [lmsIntegrations, setLmsIntegrations] = useState<
@@ -298,22 +309,24 @@ export default function CourseLMSIntegrationPage(props: {
 
   const outOfDateDocumentsCount = useMemo(
     () =>
-      [...assignments, ...announcements, ...pages, ...files].filter((a) => {
-        return (
-          a.uploaded &&
-          a.modified &&
-          new Date(a.uploaded).getTime() < new Date(a.modified).getTime()
-        )
-      }).length,
+      [...assignments, ...announcements, ...pages, ...files, ...quizzes].filter(
+        (a) => {
+          return (
+            a.uploaded &&
+            a.modified &&
+            new Date(a.uploaded).getTime() < new Date(a.modified).getTime()
+          )
+        },
+      ).length,
     [announcements, assignments, pages, files],
   )
 
   const savedDocumentsCount = useMemo(
     () =>
-      [...assignments, ...announcements, ...pages, ...files].filter(
+      [...assignments, ...announcements, ...pages, ...files, ...quizzes].filter(
         (a) => a.uploaded != undefined,
       ).length,
-    [announcements, assignments, pages, files],
+    [announcements, assignments, pages, files, quizzes],
   )
 
   const ableToSync = useMemo(
@@ -326,8 +339,9 @@ export default function CourseLMSIntegrationPage(props: {
       ...announcements,
       ...pages,
       ...files,
+      ...quizzes,
     ],
-    [announcements, assignments, pages, files],
+    [announcements, assignments, pages, files, quizzes],
   )
 
   const unableToSync = useMemo(
@@ -347,7 +361,7 @@ export default function CourseLMSIntegrationPage(props: {
           ),
       ),
     ],
-    [assignments, announcements, pages, files],
+    [assignments, announcements, pages, files, quizzes],
   )
 
   const failedToSync = useMemo(
@@ -543,6 +557,28 @@ export default function CourseLMSIntegrationPage(props: {
         ),
       })
     }
+    if (quizzes.length > 0 || isLoadingQuizzes) {
+      tabItems.push({
+        key: 'quiz',
+        label: (
+          <Tooltip title="Configure quiz access levels and what information students can see through the chatbot.">
+            <LMSTabLabel
+              title={'Course Quizzes'}
+              isLoading={isLoadingQuizzes}
+            />
+          </Tooltip>
+        ),
+        children: (
+          <QuizAccessControl
+            courseId={courseId}
+            quizzes={quizzes}
+            lmsSynchronize={integration.lmsSynchronize}
+            onUpdateCallback={() => setUpdateFlag(!updateFlag)}
+            selectedResourceTypes={integration.selectedResourceTypes ?? []}
+          />
+        ),
+      })
+    }
 
     const card = (
       <Card title={'Learning Management System Integration'}>
@@ -674,7 +710,8 @@ export default function CourseLMSIntegrationPage(props: {
                                       isLoadingAssignments ||
                                       isLoadingAnnouncements ||
                                       isLoadingStudents ||
-                                      isLoadingFiles
+                                      isLoadingFiles ||
+                                      isLoadingQuizzes
                                     }
                                     onClick={forceSync}
                                     loading={
@@ -788,6 +825,9 @@ export default function CourseLMSIntegrationPage(props: {
                                 </Col>
                                 <Col xs={24} sm={12} md={8}>
                                   <Checkbox value="pages">Pages</Checkbox>
+                                </Col>
+                                <Col xs={24} sm={12} md={8}>
+                                  <Checkbox value="quizzes">Quizzes</Checkbox>
                                 </Col>
                                 <Col xs={24} sm={12} md={8}>
                                   <Checkbox value="Syllabus" disabled={true}>

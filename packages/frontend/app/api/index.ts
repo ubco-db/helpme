@@ -53,6 +53,7 @@ import {
   LMSFile,
   LMSOrganizationIntegrationPartial,
   LMSPage,
+  LMSQuiz,
   MailServiceWithSubscription,
   OrganizationCourseResponse,
   OrganizationProfessor,
@@ -1152,6 +1153,8 @@ class APIClient {
       this.req('GET', `/api/v1/lms/${courseId}/pages`),
     getFiles: async (courseId: number): Promise<LMSFile[]> =>
       this.req('GET', `/api/v1/lms/${courseId}/files`),
+    getQuizzes: async (courseId: number): Promise<LMSQuiz[]> =>
+      this.req('GET', `/api/v1/lms/${courseId}/quizzes`),
     toggleSync: async (courseId: number): Promise<string> =>
       this.req('POST', `/api/v1/lms/${courseId}/sync`),
     forceSync: async (courseId: number): Promise<string> =>
@@ -1201,6 +1204,33 @@ class APIClient {
         `/api/v1/lms/${courseId}/sync/file/${fileId}/toggle`,
         undefined,
         file,
+      ),
+    toggleSyncQuiz: async (
+      courseId: number,
+      quizId: number,
+      enabled: boolean,
+    ): Promise<string> =>
+      this.req(
+        'POST',
+        `/api/v1/lms/${courseId}/sync/quiz/${quizId}/toggle`,
+        undefined,
+        { enabled },
+      ),
+    updateQuizAccess: async (
+      courseId: number,
+      quizId: number,
+      config: {
+        accessLevel: string
+        includeGeneralComments?: boolean
+        includeCorrectAnswerComments?: boolean
+        includeIncorrectAnswerComments?: boolean
+      },
+    ): Promise<string> =>
+      this.req(
+        'POST',
+        `/api/v1/lms/${courseId}/quiz/${quizId}/access`,
+        undefined,
+        config,
       ),
     updateSelectedResourceTypes: async (
       courseId: number,

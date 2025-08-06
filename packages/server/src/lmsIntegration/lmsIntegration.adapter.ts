@@ -8,6 +8,7 @@ import {
   LMSFile,
   LMSIntegrationPlatform,
   LMSPage,
+  LMSQuiz,
 } from '@koh/common';
 import { LMSUpload } from './lmsIntegration.service';
 import { Cache } from 'cache-manager';
@@ -85,6 +86,13 @@ export abstract class AbstractLMSAdapter {
   async getFiles(): Promise<{
     status: LMSApiResponseStatus;
     files: LMSFile[];
+  }> {
+    return null;
+  }
+
+  async getQuizzes(): Promise<{
+    status: LMSApiResponseStatus;
+    quizzes: LMSQuiz[];
   }> {
     return null;
   }
@@ -433,6 +441,41 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     };
   }
 
+  async getQuizzes(): Promise<{
+    status: LMSApiResponseStatus;
+    quizzes: LMSQuiz[];
+  }> {
+    const { status, data } = await this.GetPaginated(
+      `courses/${this.integration.apiCourseId}/quizzes`,
+    );
+
+    if (status != LMSApiResponseStatus.Success) return { status, quizzes: [] };
+
+    const quizzes: LMSQuiz[] = data.map((quiz: any) => {
+      return {
+        id: quiz.id,
+        name: quiz.title || 'Untitled Quiz',
+        description: quiz.description || '',
+        instructions: quiz.instructions || '',
+        dueDate: quiz.due_at ? new Date(quiz.due_at) : undefined,
+        timeLimit: quiz.time_limit,
+        allowedAttempts: quiz.allowed_attempts || 1,
+        quizType: quiz.quiz_type || 'practice_quiz',
+        accessLevel: 'LOGISTICS_ONLY', // Default access level
+        includeGeneralComments: false,
+        includeCorrectAnswerComments: false,
+        includeIncorrectAnswerComments: false,
+        questionsData: null, // Will be populated when needed based on access level
+        modified: quiz.updated_at ? new Date(quiz.updated_at) : new Date(),
+      } as LMSQuiz;
+    });
+
+    return {
+      status: LMSApiResponseStatus.Success,
+      quizzes,
+    };
+  }
+
   getDocumentLink(documentId: number, documentType: LMSUpload): string {
     switch (documentType) {
       case LMSUpload.Announcements:
@@ -443,6 +486,8 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
         return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/pages/${documentId}/`;
       case LMSUpload.Files:
         return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/files/${documentId}/`;
+      case LMSUpload.Quizzes:
+        return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/quizzes/${documentId}/`;
       default:
         return '';
     }

@@ -21,6 +21,7 @@ import {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
+  LMSQuiz,
   LMSResourceType,
   OrganizationRole,
   RemoveLMSOrganizationParams,
@@ -331,6 +332,15 @@ export class LMSIntegrationController {
     return await this.integrationService.getItems(courseId, LMSGet.Files);
   }
 
+  @Get(':courseId/quizzes')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async getQuizzes(
+    @Param('courseId', ParseIntPipe) courseId: number,
+  ): Promise<LMSQuiz[]> {
+    return await this.integrationService.getItems(courseId, LMSGet.Quizzes);
+  }
+
   @Post(':courseId/test')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
@@ -484,15 +494,87 @@ export class LMSIntegrationController {
     return `Successfully cleared documents from ${integration.orgIntegration.apiPlatform ?? 'LMS'} in HelpMe.`;
   }
 
+  @Post(':courseId/sync/quiz/:itemId/toggle')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async toggleQuizSync(
+    @User() _user: UserModel,
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Body() params?: { enabled: boolean },
+  ): Promise<string> {
+    const integration = await LMSCourseIntegrationModel.findOne({
+      where: { courseId },
+      relations: { orgIntegration: true },
+    });
+
+    if (!integration) {
+      throw new HttpException(
+        LMSApiResponseStatus.InvalidConfiguration,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Check if quizzes resource type is enabled
+    if (!integration.selectedResourceTypes.includes(LMSResourceType.QUIZZES)) {
+      throw new BadRequestException(
+        'Quiz resource type is not enabled for this course.',
+      );
+    }
+
+    const model = await this.integrationService.getDocumentModel(
+      LMSUpload.Quizzes,
+    );
+    const item = await (model as any).findOne({
+      where: { id: itemId, courseId },
+    });
+
+    if (!item) {
+      throw new HttpException(
+        `Quiz with ID ${itemId} not found`,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Toggle sync enabled status
+    const newSyncStatus = params?.enabled ?? !item.syncEnabled;
+
+    if (newSyncStatus && !item.syncEnabled) {
+      // Enabling sync - trigger sync operation
+      await this.integrationService.singleDocOperation(
+        courseId,
+        item,
+        LMSUpload.Quizzes,
+        'Sync',
+      );
+    } else if (!newSyncStatus && item.syncEnabled) {
+      // Disabling sync - clear from chatbot
+      await this.integrationService.singleDocOperation(
+        courseId,
+        item,
+        LMSUpload.Quizzes,
+        'Clear',
+      );
+    }
+
+    item.syncEnabled = newSyncStatus;
+    await item.save();
+
+    const action = newSyncStatus ? 'enabled' : 'disabled';
+    return `Successfully ${action} sync for quiz "${item.name}".`;
+  }
+
   @Post(':courseId/sync/:docType/:itemId/toggle')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
   async toggleSyncDocument(
     @User() _user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Param('docType') docType: 'assignment' | 'announcement' | 'page' | 'file',
+    @Param('docType')
+    docType: 'assignment' | 'announcement' | 'page' | 'file' | 'quiz',
     @Param('itemId', ParseIntPipe) itemId: number,
-    @Body() params?: LMSAssignment | LMSAnnouncement | LMSPage | LMSFile,
+    @Body()
+    params?: LMSAssignment | LMSAnnouncement | LMSPage | LMSFile | LMSQuiz,
   ): Promise<string> {
     const integration = await LMSCourseIntegrationModel.findOne({
       where: {
@@ -524,6 +606,9 @@ export class LMSIntegrationController {
       case 'file':
         uploadType = LMSUpload.Files;
         break;
+      case 'quiz':
+        uploadType = LMSUpload.Quizzes;
+        break;
       default:
         throw new BadRequestException(
           ERROR_MESSAGES.lmsController.invalidDocumentType,
@@ -546,6 +631,7 @@ export class LMSIntegrationController {
     let item = await (model as any).findOne({
       where: {
         id: itemId,
+        courseId: courseId,
       },
     });
     let didNotExist = false;
@@ -564,6 +650,7 @@ export class LMSIntegrationController {
         createParams['posted'] = new Date(createParams['posted']);
       }
       item = (model as any).create(createParams);
+      await item.save();
     } else if (!item) {
       throw new HttpException(
         ERROR_MESSAGES.lmsController.lmsDocumentNotFound,
@@ -600,6 +687,10 @@ export class LMSIntegrationController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+
+    // Update the sync enabled status and save the entity
+    item.syncEnabled = newState;
+    await item.save();
 
     return `Successfully ${newState ? 'synced' : 'cleared'} document from ${integration.orgIntegration.apiPlatform ?? 'LMS'} in HelpMe.`;
   }
@@ -639,5 +730,65 @@ export class LMSIntegrationController {
     await LMSCourseIntegrationModel.save(integration);
 
     return `Successfully updated selected resource types for course ${courseId}.`;
+  }
+
+  @Post(':courseId/quiz/:quizId/access')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async updateQuizAccess(
+    @User() _user: UserModel,
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('quizId', ParseIntPipe) quizId: number,
+    @Body()
+    config: {
+      accessLevel: string;
+      includeGeneralComments?: boolean;
+      includeCorrectAnswerComments?: boolean;
+      includeIncorrectAnswerComments?: boolean;
+    },
+  ): Promise<string> {
+    const integration = await LMSCourseIntegrationModel.findOne({
+      where: { courseId },
+      relations: { orgIntegration: true, quizzes: true },
+    });
+
+    if (!integration) {
+      throw new HttpException(
+        LMSApiResponseStatus.InvalidConfiguration,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Check if quizzes resource type is enabled
+    if (!integration.selectedResourceTypes.includes(LMSResourceType.QUIZZES)) {
+      throw new BadRequestException(
+        'Quiz resource type is not enabled for this course.',
+      );
+    }
+
+    const quiz = integration.quizzes.find((q) => q.id === quizId);
+    if (!quiz) {
+      throw new HttpException(
+        `Quiz with ID ${quizId} not found`,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Update quiz access configuration
+    quiz.accessLevel = config.accessLevel;
+    if (config.includeGeneralComments !== undefined) {
+      quiz.includeGeneralComments = config.includeGeneralComments;
+    }
+    if (config.includeCorrectAnswerComments !== undefined) {
+      quiz.includeCorrectAnswerComments = config.includeCorrectAnswerComments;
+    }
+    if (config.includeIncorrectAnswerComments !== undefined) {
+      quiz.includeIncorrectAnswerComments =
+        config.includeIncorrectAnswerComments;
+    }
+
+    await quiz.save();
+
+    return `Successfully updated access configuration for quiz "${quiz.name}".`;
   }
 }

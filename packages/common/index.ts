@@ -1388,6 +1388,25 @@ export type LMSFile = {
   uploaded?: Date
 }
 
+export type LMSQuiz = {
+  id: number
+  name: string
+  description: string
+  instructions: string
+  dueDate?: Date
+  timeLimit?: number
+  allowedAttempts: number
+  quizType: string
+  accessLevel: string
+  includeGeneralComments: boolean
+  includeCorrectAnswerComments: boolean
+  includeIncorrectAnswerComments: boolean
+  questionsData?: any
+  syncEnabled?: boolean
+  modified?: Date
+  uploaded?: Date
+}
+
 export enum SupportedLMSFileTypes {
   pdf = 'application/pdf', // .pdf files
   pptx = 'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx files
@@ -1431,6 +1450,7 @@ export enum LMSResourceType {
   ANNOUNCEMENTS = 'announcements',
   PAGES = 'pages',
   FILES = 'files',
+  QUIZZES = 'quizzes',
 }
 
 export interface CourseResponse {
