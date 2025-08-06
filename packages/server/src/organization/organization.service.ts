@@ -120,9 +120,12 @@ export class OrganizationService {
         new Brackets((q) => {
           q.where('UPPER("CourseModel"."name") like :searchString', {
             searchString: likeSearch,
-          }).orWhere('"CourseModel"."id" IN (:...numericSearch)', {
-            numericSearch,
           });
+          if (numericSearch.length > 0) {
+            q.orWhere('"CourseModel"."id" IN (:...numericSearch)', {
+              numericSearch,
+            });
+          }
         }),
       );
     }
