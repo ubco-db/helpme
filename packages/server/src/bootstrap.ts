@@ -10,8 +10,9 @@ import * as expressSession from 'express-session';
 import { ApplicationConfigService } from './config/application_config.service';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Chromiumly } from 'chromiumly';
+import helmet from 'helmet';
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+ 
 export async function bootstrap(hot: any): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
@@ -37,7 +38,7 @@ export async function bootstrap(hot: any): Promise<void> {
   app.use(morgan('dev'));
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
-
+  app.use(helmet());
   app.use(
     expressSession({
       secret: process.env.SESSION_SECRET,
