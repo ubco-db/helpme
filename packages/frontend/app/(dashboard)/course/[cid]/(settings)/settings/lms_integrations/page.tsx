@@ -252,7 +252,14 @@ export default function CourseLMSIntegrationPage(props: {
             `Unknown error occurred, could not force synchronization with the LMS.`,
           )
         } else {
-          message.success(result)
+          if(result.errors > 0) {
+            result.itemsSynced + result.itemsRemoved > 0 
+              ? message.warning(`Force synchronization completed with warnings. ${result.errors < 10 ? result.errors : "9+"} item(s) could not by synced.`, 5)
+              : message.error("Force synchronization failed. Please try again later.")
+          }
+          else {
+             message.success("Successfully forced synchronization with integrated course.")
+          }
         }
         setUpdateFlag(!updateFlag)
       })
@@ -351,7 +358,12 @@ export default function CourseLMSIntegrationPage(props: {
   )
 
   const failedToSync = useMemo(
-    () => ableToSync.filter((a) => a.uploaded == undefined),
+    () => ableToSync.filter((a) =>
+      // to differentiate from unsupported items (specific file types), check that the item
+      // isn't a file, or if it is, that it isn't unsupported (i.e. actual sync failure)
+      a.uploaded == undefined && 
+      !('contentType' in a && !(Object.values(SupportedLMSFileTypes) as string[]).includes(a.contentType))
+    ),
     [ableToSync],
   )
 

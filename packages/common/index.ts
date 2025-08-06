@@ -1354,6 +1354,7 @@ export type LMSAssignment = {
   due?: Date
   modified?: Date
   uploaded?: Date
+  chatbotDocumentId?: string
 }
 
 export type LMSAnnouncement = {
@@ -1364,6 +1365,7 @@ export type LMSAnnouncement = {
   syncEnabled?: boolean
   modified?: Date
   uploaded?: Date
+  chatbotDocumentId?: string
 }
 
 export type LMSPage = {
@@ -1375,6 +1377,7 @@ export type LMSPage = {
   syncEnabled?: boolean
   modified?: Date
   uploaded?: Date
+  chatbotDocumentId?: string
 }
 
 export type LMSFile = {
@@ -1386,6 +1389,7 @@ export type LMSFile = {
   syncEnabled?: boolean
   modified?: Date
   uploaded?: Date
+  chatbotDocumentId?: string
 }
 
 export enum SupportedLMSFileTypes {
@@ -1414,6 +1418,12 @@ export type LMSFileUploadResponse = {
   success: boolean
   documentId?: string
   reason?: LMSErrorType
+}
+
+export type LMSSyncDocumentsResult = {
+  itemsSynced: number
+  itemsRemoved: number
+  errors: number
 }
 
 export enum LMSApiResponseStatus {

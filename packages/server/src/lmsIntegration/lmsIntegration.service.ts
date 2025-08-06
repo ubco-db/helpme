@@ -17,6 +17,7 @@ import {
   LMSPage,
   LMSResourceType,
   SupportedLMSFileTypes,
+  LMSSyncDocumentsResult
 } from '@koh/common';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -412,6 +413,12 @@ export class LMSIntegrationService {
       where: { courseId: courseId },
     });
 
+    const syncDocumentsResult: LMSSyncDocumentsResult = {
+      itemsSynced: 0,
+      itemsRemoved: 0,
+      errors: 0,
+    }
+
     // maybe add this later to fallback to all resources if db fetch does not work
 
     //   const selectedResources: LMSResourceType[] =
@@ -442,7 +449,10 @@ export class LMSIntegrationService {
           type,
         );
         if (items.length > 0) {
-          await this.clearSpecificDocuments(courseId, items, model);
+          const numClearedDocuments = await this.clearSpecificDocuments(courseId, items, model);
+          
+          syncDocumentsResult.itemsRemoved += numClearedDocuments;
+          syncDocumentsResult.errors += items.length - numClearedDocuments;
         }
         continue;
       }
@@ -528,19 +538,34 @@ export class LMSIntegrationService {
         | LMSPageModel
         | LMSFileModel
       )[] = persistedItems.filter((i0) => !items.find((i1) => i1.id == i0.id));
-      if (toRemove.length > 0) {
-        const toRemoveIds = toRemove.map((i) => i.id);
-        persistedItems = persistedItems.filter((i) =>
-          toRemoveIds.includes(i.id),
-        );
 
-        await this.clearSpecificDocuments(courseId, toRemove, model);
+      if (toRemove.length > 0) {
+        // the code below led to inconsistent behaviour of syncDocuments when items
+        // are removed from the LMS
+
+        // const toRemoveIds = toRemove.map((i) => i.id);
+
+        // persistedItems = persistedItems.filter((i) =>
+        //   toRemoveIds.includes(i.id),
+        // );
+
+        const numClearedDocuments = await this.clearSpecificDocuments(courseId, toRemove, model);
+
+        syncDocumentsResult.itemsRemoved += numClearedDocuments;
+        syncDocumentsResult.errors += toRemove.length - numClearedDocuments;
       }
 
       for (let i = 0; i < items.length; i++) {
         const found = persistedItems.find((p) => p.id == items[i].id);
         if (found) {
-          items[i] = found;
+          // expand LMS item with peristed item's meta properties to properly
+          // update persisted data when it differs from LMS data
+          items[i] = {
+            ...items[i],
+            chatbotDocumentId: found.chatbotDocumentId,
+            uploaded: found.uploaded,
+            modified: items[i].modified ?? found.modified
+          }
         }
       }
 
@@ -557,9 +582,13 @@ export class LMSIntegrationService {
 
       const statuses: LMSFileUploadResponse[] = [];
       for (const item of items) {
-        statuses.push(
-          await this.uploadDocument(courseId, item, token, type, adapter),
-        );
+        const uploadDocumentResponse = await this.uploadDocument(courseId, item, token, type, adapter);
+        statuses.push(uploadDocumentResponse);
+
+        if(uploadDocumentResponse.success) 
+          syncDocumentsResult.itemsSynced++;
+        else
+          syncDocumentsResult.errors++;
       }
 
       await ChatTokenModel.remove(token);
@@ -671,6 +700,8 @@ export class LMSIntegrationService {
           break;
       }
     }
+
+    return syncDocumentsResult;
   }
 
   async clearDocuments(courseId: number, exceptIn?: LMSIntegrationPlatform) {
@@ -708,6 +739,8 @@ export class LMSIntegrationService {
       | typeof LMSPageModel
       | typeof LMSFileModel,
   ) {
+    let numClearedDocuments = 0;
+
     const tempUser = await UserModel.create({
       email: 'tempemail@example.com',
     }).save();
@@ -719,7 +752,10 @@ export class LMSIntegrationService {
 
     const statuses: LMSFileUploadResponse[] = [];
     for (const item of items) {
-      statuses.push(await this.deleteDocument(courseId, item, token));
+      const deleteResponse: LMSFileUploadResponse = await this.deleteDocument(courseId, item, token);
+      statuses.push(deleteResponse);
+
+      if(deleteResponse.success) numClearedDocuments++;
     }
 
     await ChatTokenModel.remove(token);
@@ -727,6 +763,8 @@ export class LMSIntegrationService {
 
     const successfulIds = statuses.filter((s) => s.success).map((s) => s.id);
     await model.remove(items.filter((i) => successfulIds.includes(i.id)));
+
+    return numClearedDocuments;
   }
 
   async singleDocOperation(
