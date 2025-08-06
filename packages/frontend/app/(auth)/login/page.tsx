@@ -1,10 +1,10 @@
 'use client'
 
 import { organizationApi } from '@/app/api/organizationApi'
-import { message, Alert, Button, Card, Form, Input, Select } from 'antd'
+import { Alert, Button, Card, Form, Input, message, Select } from 'antd'
 import React, { SetStateAction, useCallback, useEffect, useState } from 'react'
 import { Organization } from '@/app/typings/organization'
-import { UserOutlined, LockOutlined } from '@ant-design/icons'
+import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import Image from 'next/image'
 import ReCAPTCHA from 'react-google-recaptcha'
 import Link from 'next/link'
@@ -21,14 +21,19 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [accountActiveResponse, setAccountActiveResponse] = useState(true)
-  const [loginMenu, setLoginMenu] = useState(false)
+
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [organization, setOrganization] = useState<Organization | null>(null)
+  const [hasRetrievedOrganizations, setHasRetrievedOrganizations] =
+    useState(false)
+
   const recaptchaRef = React.createRef<ReCAPTCHA>()
   const router = useRouter()
   const searchParams = useSearchParams()
+
   const error = searchParams.get('error')
   const [errorGettingOrgs, setErrorGettingOrgs] = useState(false)
+  const redirect = searchParams.get('redirect')
 
   const {
     invitedOrgId,
@@ -42,6 +47,7 @@ export default function LoginPage() {
       try {
         const organizations = await organizationApi.getOrganizations()
         setOrganizations(organizations)
+        setHasRetrievedOrganizations(true)
       } catch (error: any) {
         message.error(error)
         setErrorGettingOrgs(true)
@@ -73,7 +79,7 @@ export default function LoginPage() {
     }
   }, [error])
 
-  const showLoginMenu = useCallback(
+  const selectOrganization = useCallback(
     (value: number) => {
       if (organizations.length > 0) {
         const organization = organizations.find((org) => org.id === value)
@@ -83,17 +89,10 @@ export default function LoginPage() {
           return
         }
         setOrganization(organization)
-        setLoginMenu(true)
       }
     },
     [organizations],
   )
-
-  const hideLoginMenu = useCallback(() => {
-    localStorage.removeItem('organizationId')
-    setOrganization(null)
-    setLoginMenu(false)
-  }, [])
 
   async function login() {
     let loginData: LoginData
@@ -140,7 +139,13 @@ export default function LoginPage() {
         }
         return
       } else {
-        router.push(`/api/v1/login/entry?token=${data.token}`)
+        const params = new URLSearchParams({
+          token: data.token,
+        })
+        if (redirect) {
+          params.append('redirect', redirect)
+        }
+        router.push(`/api/v1/login/entry?${params.toString()}`)
       }
     })
   }
@@ -185,15 +190,22 @@ export default function LoginPage() {
   useEffect(() => {
     async function smartlySetOrganization() {
       if (organizations.length === 1) {
-        showLoginMenu(organizations[0].id)
+        selectOrganization(organizations[0].id)
       }
       // get courseId from SECURE_REDIRECT (from invite code) and get the course's organization, and then set the organization to that
       if (invitedOrgId) {
-        showLoginMenu(invitedOrgId)
+        selectOrganization(invitedOrgId)
       }
     }
     smartlySetOrganization()
-  }, [invitedOrgId, organizations, showLoginMenu])
+  }, [invitedOrgId, organizations, selectOrganization])
+
+  useEffect(() => {
+    const orgId = parseInt(String(localStorage.getItem('organizationId')))
+    if (!isNaN(orgId)) {
+      selectOrganization(orgId)
+    }
+  }, [selectOrganization])
 
   if (errorGettingOrgs) {
     return (
@@ -211,7 +223,15 @@ export default function LoginPage() {
   } else if (organizations.length === 0 || !organizations) {
     return (
       <main>
-        <CenteredSpinner tip="Loading Organizations..." />
+        {hasRetrievedOrganizations ? (
+          <Alert
+            message="No Organizations"
+            description="There are no registered organizations."
+            type="error"
+          />
+        ) : (
+          <CenteredSpinner tip="Loading Organizations..." />
+        )}
       </main>
     )
   } else {
@@ -249,15 +269,9 @@ export default function LoginPage() {
             invitedQueueId || error ? 'pt-5' : 'pt-20',
           )}
         >
-          {loginMenu && (
-            <Button type="link" className="mr-96" onClick={hideLoginMenu}>
-              &lt; Back
-            </Button>
-          )}
           <Card className="mx-auto max-w-md sm:px-2 md:px-6">
             <h2 className="mb-4 text-left">Login</h2>
-
-            {!loginMenu && organizations && organizations.map && (
+            <div>
               <div>
                 <p className="text-left text-stone-400">
                   Select your organization.
@@ -265,165 +279,159 @@ export default function LoginPage() {
                 <Select
                   className="mt-2 w-full text-left"
                   placeholder="Available Organizations"
+                  defaultValue={organizations?.[0].id}
                   options={organizations.map((organization) => {
                     return {
                       label: organization.name,
                       value: organization.id,
                     }
                   })}
+                  value={organization?.id}
                   onChange={(value) => {
-                    showLoginMenu(value)
+                    selectOrganization(value)
                   }}
                 />
               </div>
-            )}
-
-            {loginMenu && (
-              <div>
-                {organization && organization.ssoEnabled && (
-                  <Link
-                    href={`/api/v1/auth/shibboleth/${organization.id}`}
-                    prefetch={false}
-                  >
-                    <Button className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left">
-                      {organization.logoUrl && (
-                        <Image
-                          src={`/api/v1/organization/${organization.id}/get_logo/${organization.logoUrl}`}
-                          loading="lazy"
-                          alt="Org Logo"
-                          width={24}
-                          height={24}
-                        />
-                      )}
-                      <div className="flex flex-col items-center justify-center">
-                        <div className="font-semibold">
-                          Continue with {organization.name}
-                        </div>
-                        <div className="text-xs text-green-400">
-                          (recommended)
-                        </div>
-                      </div>
-                    </Button>
-                  </Link>
-                )}
-                {organization && organization.googleAuthEnabled && (
-                  <Button
-                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left"
-                    onClick={() => loginWithGoogle()}
-                  >
-                    <Image
-                      src="https://www.svgrepo.com/show/475656/google-color.svg"
-                      className="h-6 w-6"
-                      loading="lazy"
-                      alt="google logo"
-                      width={24}
-                      height={24}
-                    />
+              {organization && organization.ssoEnabled && (
+                <Link
+                  href={`/api/v1/auth/shibboleth/${organization.id}`}
+                  prefetch={false}
+                >
+                  <Button className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left">
+                    {organization.logoUrl && (
+                      <Image
+                        src={`/api/v1/organization/${organization.id}/get_logo/${organization.logoUrl}`}
+                        loading="lazy"
+                        alt="Org Logo"
+                        width={24}
+                        height={24}
+                      />
+                    )}
                     <div className="flex flex-col items-center justify-center">
-                      <div className="font-semibold">Continue with Google</div>
-                      {!organization.ssoEnabled && (
-                        <div className="text-xs text-green-400">
-                          (recommended)
-                        </div>
-                      )}
+                      <div className="font-semibold">
+                        Continue with {organization.name}
+                      </div>
+                      <div className="text-xs text-green-400">
+                        (recommended)
+                      </div>
                     </div>
                   </Button>
-                )}
-
-                {organization && organization.legacyAuthEnabled && (
-                  <p className="my-5 font-medium uppercase text-stone-400">
-                    Or login with email
-                  </p>
-                )}
-
-                {!accountActiveResponse && (
-                  <Alert
-                    message="System Notice"
-                    description="Your account has been deactivated. Please contact your organization admin for more information."
-                    type="error"
-                    style={{ marginBottom: 20, textAlign: 'left' }}
+                </Link>
+              )}
+              {organization && organization.googleAuthEnabled && (
+                <Button
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left"
+                  onClick={() => loginWithGoogle()}
+                >
+                  <Image
+                    src="https://www.svgrepo.com/show/475656/google-color.svg"
+                    className="h-6 w-6"
+                    loading="lazy"
+                    alt="google logo"
+                    width={24}
+                    height={24}
                   />
-                )}
-                {organization && organization.legacyAuthEnabled && (
-                  <Form
-                    name="normal_login"
-                    className="login-form"
-                    initialValues={{ remember: true }}
-                    onFinish={login}
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="font-semibold">Continue with Google</div>
+                    {!organization.ssoEnabled && (
+                      <div className="text-xs text-green-400">
+                        (recommended)
+                      </div>
+                    )}
+                  </div>
+                </Button>
+              )}
+
+              {organization && organization.legacyAuthEnabled && (
+                <p className="my-5 font-medium uppercase text-stone-400">
+                  Or login with email
+                </p>
+              )}
+
+              {!accountActiveResponse && (
+                <Alert
+                  message="System Notice"
+                  description="Your account has been deactivated. Please contact your organization admin for more information."
+                  type="error"
+                  style={{ marginBottom: 20, textAlign: 'left' }}
+                />
+              )}
+
+              {organization && organization.legacyAuthEnabled && (
+                <Form
+                  name="normal_login"
+                  className="login-form"
+                  initialValues={{ remember: true }}
+                  onFinish={login}
+                >
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    size="invisible"
+                    sitekey={
+                      process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ??
+                      'nokeyprovided'
+                    }
+                    onChange={onReCAPTCHAChange}
+                  />
+                  <Form.Item
+                    name="email"
+                    rules={[
+                      {
+                        required: true,
+                        message: 'Please enter a valid email.',
+                      },
+                    ]}
                   >
-                    <ReCAPTCHA
-                      ref={recaptchaRef}
-                      size="invisible"
-                      sitekey={
-                        process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ??
-                        'nokeyprovided'
-                      }
-                      onChange={onReCAPTCHAChange}
+                    <Input
+                      prefix={<UserOutlined className="site-form-item-icon" />}
+                      onChange={onEmailChange}
+                      className="rounded-lg border px-2 py-2"
+                      placeholder="Email"
+                      autoComplete="email"
+                      type="email"
                     />
-                    <Form.Item
-                      name="email"
-                      rules={[
-                        {
-                          required: true,
-                          message: 'Please enter a valid email.',
-                        },
-                      ]}
+                  </Form.Item>
+
+                  <Form.Item
+                    name="password"
+                    rules={[
+                      {
+                        required: true,
+                        message: 'Please enter a valid password.',
+                      },
+                    ]}
+                  >
+                    <Input
+                      prefix={<LockOutlined className="site-form-item-icon" />}
+                      onChange={onPassChange}
+                      type="password"
+                      autoComplete="current-password"
+                      className="rounded-lg border px-2 py-2"
+                      placeholder="Password"
+                    />
+                  </Form.Item>
+
+                  <Form.Item>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      className="h-auto w-full items-center justify-center rounded-lg border px-2 py-2 "
                     >
-                      <Input
-                        prefix={
-                          <UserOutlined className="site-form-item-icon" />
-                        }
-                        onChange={onEmailChange}
-                        className="rounded-lg border px-2 py-2"
-                        placeholder="Email"
-                        autoComplete="email"
-                        type="email"
-                      />
-                    </Form.Item>
+                      <span className="font-semibold">Log in</span>
+                    </Button>
+                  </Form.Item>
 
-                    <Form.Item
-                      name="password"
-                      rules={[
-                        {
-                          required: true,
-                          message: 'Please enter a valid password.',
-                        },
-                      ]}
-                    >
-                      <Input
-                        prefix={
-                          <LockOutlined className="site-form-item-icon" />
-                        }
-                        onChange={onPassChange}
-                        type="password"
-                        autoComplete="current-password"
-                        className="rounded-lg border px-2 py-2"
-                        placeholder="Password"
-                      />
-                    </Form.Item>
-
-                    <Form.Item>
-                      <Button
-                        type="primary"
-                        htmlType="submit"
-                        className="h-auto w-full items-center justify-center rounded-lg border px-2 py-2 "
-                      >
-                        <span className="font-semibold">Log in</span>
-                      </Button>
-                    </Form.Item>
-
-                    <div className="d-flex flex-row space-x-8 text-center">
-                      <Link href="/password">
-                        <Button type="link">Forgot password</Button>
-                      </Link>
-                      <Link href="/register">
-                        <Button type="link">Create account</Button>
-                      </Link>
-                    </div>
-                  </Form>
-                )}
-              </div>
-            )}
+                  <div className="d-flex flex-row space-x-8 text-center">
+                    <Link href="/password">
+                      <Button type="link">Forgot password</Button>
+                    </Link>
+                    <Link href="/register">
+                      <Button type="link">Create account</Button>
+                    </Link>
+                  </div>
+                </Form>
+              )}
+            </div>
           </Card>
         </div>
       </main>

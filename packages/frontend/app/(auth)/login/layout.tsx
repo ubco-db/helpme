@@ -10,6 +10,7 @@ export default async function Layout({
   let invitedQueueId: number | null = null
   let invitedCourseId: number | null = null
   let invitedCourseInviteCode: string | null = null
+
   const cookieStore = await cookies()
   const queueInviteCookieString = cookieStore.get('queueInviteInfo')
   if (queueInviteCookieString) {
@@ -45,6 +46,7 @@ export default async function Layout({
       }
     }
   }
+
   return (
     <LoginRedirectInfoProvider
       invitedOrgId={invitedOrgId}
