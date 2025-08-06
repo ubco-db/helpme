@@ -7,7 +7,6 @@ import {
 } from 'typeorm';
 import { MailServiceType, OrganizationRole } from '@koh/common';
 import { UserSubscriptionModel } from './user-subscriptions.entity';
-import { SentEmailModel } from './sent-email.entity';
 
 @Entity('mail_services')
 export class MailServiceModel extends BaseEntity {
@@ -33,10 +32,4 @@ export class MailServiceModel extends BaseEntity {
     (subscription) => subscription.service,
   )
   subscriptions: UserSubscriptionModel[];
-
-  @OneToMany(
-    () => SentEmailModel,
-    (sentEmailModel) => sentEmailModel.mailService,
-  )
-  sentEmails: SentEmailModel[];
 }

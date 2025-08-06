@@ -8,7 +8,6 @@ import * as Common from '@koh/common';
 import { MailServiceType, OrganizationRole, Role } from '@koh/common';
 import {
   initFactoriesFromService,
-  mailServiceFactory,
   SentEmailFactory,
 } from '../../test/util/factories';
 import { SentEmailModel } from './sent-email.entity';
@@ -117,13 +116,10 @@ describe('MailService', () => {
 
   describe('replyToSentEmail', () => {
     it('should send a reply email based on previously sent email', async () => {
-      const mailService = await mailServiceFactory.create({
-        serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
-      });
       const previousEmail = await SentEmailFactory.create({
         accepted: ['example1@example.com', 'example2@example.com'],
         subject: 'subject',
-        mailService,
+        serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
       });
       await service.replyToSentEmail(previousEmail, 'reply');
 

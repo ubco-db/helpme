@@ -148,6 +148,8 @@ export class AsyncQuestionService {
     // Send emails in parallel
     // note: not awaiting since it can take a moment to send emails
 
+    if (subscriptions.length == 0) return;
+
     this.mailService
       .sendEmail({
         receiverOrReceivers: subscriptions.map((s) => s.user.email),
@@ -168,9 +170,10 @@ export class AsyncQuestionService {
   }
 
   async sendQuestionAnsweredEmail(question: AsyncQuestionModel) {
-    this.sendQuestionAnsweredFollowup(question).catch((err) =>
-      Sentry.captureException(err),
-    );
+    await this.sendQuestionAnsweredFollowup(question).catch((err) => {
+      console.error(err);
+      Sentry.captureException(err);
+    });
 
     const subscription = await UserSubscriptionModel.findOne({
       where: {

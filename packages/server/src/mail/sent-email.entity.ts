@@ -1,12 +1,4 @@
-import {
-  BaseEntity,
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryColumn,
-} from 'typeorm';
-import { MailServiceModel } from './mail-services.entity';
+import { BaseEntity, Column, Entity, PrimaryColumn } from 'typeorm';
 import { EmailMetadata, MailServiceType } from '@koh/common';
 
 @Entity('sent_email_model')
@@ -31,8 +23,4 @@ export class SentEmailModel extends BaseEntity {
     enum: MailServiceType,
   })
   serviceType: MailServiceType;
-
-  @ManyToOne(() => MailServiceModel, (msm) => msm.sentEmails)
-  @JoinColumn({ name: 'serviceType' })
-  mailService: MailServiceModel;
 }

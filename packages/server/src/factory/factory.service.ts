@@ -272,7 +272,7 @@ export class FactoryService {
         parseInt(i.toString().padEnd(16, '0')).toString(16),
       )
       .attr('subject', 'Email Subject Line')
-      .assocOne('mailService', this.mailServiceFactory);
+      .attr('serviceType', MailServiceType.ASYNC_QUESTION_FLAGGED);
 
     this.userSubscriptionFactory = new Factory(
       UserSubscriptionModel,
