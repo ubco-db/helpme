@@ -47,6 +47,23 @@ export function timeDiffInMins(a: Date, b: Date): number {
 // NOTE: These are not the DB data types. They are only used for the api
 
 /**
+ * Represents one of two possible roles for the global account
+ */
+export enum UserRole {
+  USER = 'user',
+  ADMIN = 'admin',
+}
+
+/**
+ * Represents a user's role in an organization.
+ */
+export enum OrganizationRole {
+  MEMBER = 'member',
+  ADMIN = 'admin',
+  PROFESSOR = 'professor',
+}
+
+/**
  * Represents a user.
  * @param id - The unique id of the user in our db.
  * @param email - The email string of the user if they provide it (nullable)
@@ -146,6 +163,10 @@ export class UserPartial {
   @IsOptional()
   @IsString()
   TANotes?: string
+
+  @IsEnum(OrganizationRole)
+  @IsOptional()
+  organizationRole?: OrganizationRole
 }
 
 /**
@@ -532,22 +553,6 @@ export type GetInteractionsAndQuestionsResponse = {
 
 export type GetChatbotHistoryResponse = {
   history: InteractionResponse[]
-}
-/**
- * Represents one of two possible roles for the global account
- */
-export enum UserRole {
-  USER = 'user',
-  ADMIN = 'admin',
-}
-
-/**
- * Represents a user's role in an organization.
- */
-export enum OrganizationRole {
-  MEMBER = 'member',
-  ADMIN = 'admin',
-  PROFESSOR = 'professor',
 }
 
 /**
@@ -1528,8 +1533,8 @@ export type OrganizationProfessor = {
   organizationUser: {
     id: number
     name: string
-    lacksProfOrgRole?: boolean
   }
+  trueRole?: OrganizationRole
   userId: number
 }
 

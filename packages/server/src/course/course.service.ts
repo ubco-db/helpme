@@ -251,9 +251,10 @@ export class CourseService {
     }
 
     const query = `
-      SELECT user_model.id, user_model.name, user_model."photoURL", user_model.email, user_model.sid, user_course_model."TANotes", COUNT(*) OVER () AS total
+      SELECT user_model.id, user_model.name, user_model."photoURL", user_model.email, user_model.sid, user_course_model."TANotes", organization_user_model."role" as "organizationRole", COUNT(*) OVER () AS total
       FROM user_course_model
       INNER JOIN user_model ON user_model.id = user_course_model."userId"
+      INNER JOIN organization_user_model ON user_course_model."userId" = organization_user_model."userId"
       WHERE user_course_model."courseId" = $1
         ${roleCondition}
         ${searchCondition}
