@@ -12,7 +12,6 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { Chromiumly } from 'chromiumly';
 import helmet from 'helmet';
 
- 
 export async function bootstrap(hot: any): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],

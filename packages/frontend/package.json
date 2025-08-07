@@ -27,6 +27,7 @@
     "@visx/responsive": "^3.10.2",
     "@visx/tooltip": "^3.3.0",
     "antd": "^5.26.2",
+    "axios": "^1.11.0",
     "class-transformer": "^0.5.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
