@@ -180,6 +180,10 @@ export class AuthController {
         });
     } else if (cookie) {
       const decodedCookie = decodeURIComponent(cookie);
+      res.clearCookie('__SECURE_REDIRECT', {
+        httpOnly: true,
+        secure: this.isSecure(),
+      });
       return res.status(HttpStatus.TEMPORARY_REDIRECT).send({
         redirectUri: `/invite?cid=${decodedCookie.split(',')[0]}&code=${encodeURIComponent(decodedCookie.split(',')[1])}`,
       });
@@ -518,6 +522,10 @@ export class AuthController {
     } else if (cookie) {
       const decodedCookie = decodeURIComponent(cookie);
       redirectUrl = `/invite?cid=${decodedCookie.split(',')[0]}&code=${encodeURIComponent(decodedCookie.split(',')[1])}`;
+      res.clearCookie('__SECURE_REDIRECT', {
+        httpOnly: true,
+        secure: this.isSecure(),
+      });
     } else {
       redirectUrl = '/courses';
     }

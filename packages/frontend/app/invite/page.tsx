@@ -39,10 +39,11 @@ function CourseInviteContent(): ReactElement {
     const fetchData = async () => {
       await API.course
         .getLimitedCourseResponse(cid, code)
-        .then((res) => {
+        .then(async (res) => {
           // if the user is not found, redirect to login
           // These needs to be done after getLimitedCourseResponse does its thing since that is the endpoint that sets the cookies for redirect
           if (errorGettingUser) {
+            await API.course.setCourseInviteRedirectCookie(cid, code) // don't handle error response since it's only setting a cookie
             router.push('/login')
           }
           setCourse(res)

@@ -399,6 +399,11 @@ class APIClient {
         `/api/v1/courses/limited/${courseId}/${code}`,
         GetLimitedCourseResponse,
       ),
+    setCourseInviteRedirectCookie: async (
+      courseId: number,
+      code: string,
+    ): Promise<void> =>
+      this.req('POST', `/api/v1/courses/redirect_cookie/${courseId}/${code}`),
     updateUserRole: async (
       courseId: number,
       userId: number,

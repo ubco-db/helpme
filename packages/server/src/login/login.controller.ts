@@ -154,6 +154,10 @@ export class LoginController {
       );
     }
 
+    const isSecure = this.configService
+      .get<string>('DOMAIN')
+      .startsWith('https://');
+
     let redirectUrl: string;
     const cookie = getCookie(req, '__SECURE_REDIRECT');
     const queueInviteCookie = getCookie(req, 'queueInviteInfo');
@@ -168,15 +172,16 @@ export class LoginController {
     } else if (cookie) {
       const decodedCookie = decodeURIComponent(cookie);
       redirectUrl = `/invite?cid=${decodedCookie.split(',')[0]}&code=${encodeURIComponent(decodedCookie.split(',')[1])}`;
+      res.clearCookie('__SECURE_REDIRECT', {
+        httpOnly: true,
+        secure: isSecure,
+      });
     } else if (redirect) {
       redirectUrl = redirect;
     } else {
       redirectUrl = '/courses';
     }
 
-    const isSecure = this.configService
-      .get<string>('DOMAIN')
-      .startsWith('https://');
     res
       .cookie('auth_token', authToken, { httpOnly: true, secure: isSecure })
       .redirect(HttpStatus.FOUND, redirectUrl);
