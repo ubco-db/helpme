@@ -52,6 +52,13 @@ export enum LMSUpload {
   Files,
 }
 
+type ExtendedLMSItem = (
+  | LMSAnnouncement
+  | LMSAssignment
+  | LMSPage
+  | LMSFile 
+) & { chatbotDocumentId: string }
+  
 @Injectable()
 export class LMSIntegrationService {
   constructor(
@@ -560,7 +567,7 @@ export class LMSIntegrationService {
         if (found) {
           // expand LMS item with peristed item's meta properties to properly
           // update persisted data when it differs from LMS data
-          items[i] = {
+          (items as ExtendedLMSItem[])[i] = {
             ...items[i],
             chatbotDocumentId: found.chatbotDocumentId,
             uploaded: found.uploaded,

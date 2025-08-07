@@ -358,12 +358,7 @@ export default function CourseLMSIntegrationPage(props: {
   )
 
   const failedToSync = useMemo(
-    () => ableToSync.filter((a) =>
-      // to differentiate from unsupported items (specific file types), check that the item
-      // isn't a file, or if it is, that it isn't unsupported (i.e. actual sync failure)
-      a.uploaded == undefined && 
-      !('contentType' in a && !(Object.values(SupportedLMSFileTypes) as string[]).includes(a.contentType))
-    ),
+    () => ableToSync.filter((a) => a.uploaded == undefined),
     [ableToSync],
   )
 
