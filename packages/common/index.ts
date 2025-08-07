@@ -1416,6 +1416,12 @@ export type LMSFileUploadResponse = {
   reason?: LMSErrorType
 }
 
+export type LMSSyncDocumentsResult = {
+  itemsSynced: number
+  itemsRemoved: number
+  errors: number
+}
+
 export enum LMSApiResponseStatus {
   None = '',
   InvalidPlatform = 'The specified LMS platform is not registered with the HelpMe system.',
