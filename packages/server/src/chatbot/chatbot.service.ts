@@ -356,17 +356,19 @@ export class ChatbotService {
         } as DeepPartial<OrganizationChatbotSettingsModel>)
         .save();
 
-      orgChatbotSettings.providers = await Promise.all(
-        providers.map(async (prov) =>
-          this.createChatbotProvider(orgChatbotSettings, prov, em),
-        ),
-      );
+      // Don't do Promise.all as it has weird interactions in transactions
+      const newProviders: ChatbotProviderModel[] = [];
+      for (const prov of providers) {
+        newProviders.push(
+          await this.createChatbotProvider(orgChatbotSettings, prov, em),
+        );
+      }
 
       let defaultProvider: ChatbotProviderModel;
       if (providerIndex != undefined) {
-        defaultProvider = orgChatbotSettings.providers[providerIndex];
+        defaultProvider = newProviders[providerIndex];
       }
-      defaultProvider ??= orgChatbotSettings.providers[0];
+      defaultProvider ??= newProviders[0];
       orgChatbotSettings.defaultProvider = defaultProvider;
 
       inserted = await em.save(orgChatbotSettings);
@@ -374,6 +376,10 @@ export class ChatbotService {
     } catch (err) {
       if (queryRunner.isTransactionActive && !queryRunner.isReleased) {
         await queryRunner.rollbackTransaction();
+      }
+      if (inserted) {
+        // Just in case the transaction wasn't fully rolled back
+        await inserted.remove();
       }
       throw err;
     } finally {
@@ -465,13 +471,16 @@ export class ChatbotService {
         providerId: provider.id,
         additionalNotes: model.additionalNotes ?? [],
       }));
-      const llms = await Promise.all(
-        models.map(async (model) => await this.createLLMType(model, em)),
-      );
+      // Don't do Promise.all as it has weird behaviour in transactions
+      const llms: LLMTypeModel[] = [];
+      for (const model of models) {
+        llms.push(await this.createLLMType(model, em));
+      }
 
       const defaultModel = llms.find(
         (llm) => llm.modelName == params.defaultModelName,
       );
+
       const defaultVisionModel = llms.find(
         (llm) => llm.modelName == params.defaultVisionModelName,
       );
@@ -489,6 +498,10 @@ export class ChatbotService {
         if (queryRunner.isTransactionActive && !queryRunner.isReleased) {
           await queryRunner.rollbackTransaction();
         }
+      }
+      if (provider) {
+        // Just in case it wasn't fully rolled back
+        await provider.remove();
       }
       throw err;
     } finally {

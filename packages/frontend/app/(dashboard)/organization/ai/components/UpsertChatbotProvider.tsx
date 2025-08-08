@@ -11,7 +11,6 @@ import {
   Tooltip,
 } from 'antd'
 import {
-  CheckOutlined,
   CloseOutlined,
   DeleteOutlined,
   EditOutlined,
@@ -342,6 +341,7 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
         message.error('Invalid parameters')
         setIsLoading(false)
       })
+      .finally(() => setIsLoading(false))
   }
 
   const [notes, setNotes] = useState<string[]>(provider?.additionalNotes ?? [])

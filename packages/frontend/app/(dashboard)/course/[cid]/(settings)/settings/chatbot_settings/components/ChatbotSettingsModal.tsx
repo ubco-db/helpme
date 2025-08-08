@@ -504,6 +504,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
                   value={formValues['temperature'] as any}
                   className={'w-full'}
                   placeholder={'A number from 0 to 1, e.g., 0.7'}
+                  controls={false}
                 />
                 <ClearInputSuffix
                   formKey="temperature"
@@ -555,6 +556,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
                   value={formValues['topK'] as any}
                   className={'w-full'}
                   placeholder={'An integer, e.g., 5'}
+                  controls={false}
                 />
                 <ClearInputSuffix
                   formKey="topK"
@@ -608,6 +610,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
                   value={formValues['similarityThresholdDocuments'] as any}
                   className={'w-full'}
                   placeholder={'A number from 0 to 1, e.g., 0.55'}
+                  controls={false}
                 />
                 <ClearInputSuffix
                   formKey="similarityThresholdDocuments"

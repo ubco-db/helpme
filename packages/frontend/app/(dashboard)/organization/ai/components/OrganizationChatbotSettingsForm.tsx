@@ -499,6 +499,7 @@ const OrganizationChatbotSettingsForm: React.FC<
                   value={formValues['default_temperature'] as any}
                   className={'w-full'}
                   placeholder={'A number from 0 to 1, e.g., 0.7'}
+                  controls={false}
                 />
                 <ClearInputSuffix
                   formKey="default_temperature"
@@ -533,6 +534,7 @@ const OrganizationChatbotSettingsForm: React.FC<
                   value={formValues['default_topK'] as any}
                   className={'w-full'}
                   placeholder={'An integer, e.g., 5'}
+                  controls={false}
                 />
                 <ClearInputSuffix
                   formKey="default_topK"
@@ -572,6 +574,7 @@ const OrganizationChatbotSettingsForm: React.FC<
                   }
                   className={'w-full'}
                   placeholder={'A number from 0 to 1, e.g., 0.55'}
+                  controls={false}
                 />
                 <ClearInputSuffix
                   formKey="default_similarityThresholdDocuments"
