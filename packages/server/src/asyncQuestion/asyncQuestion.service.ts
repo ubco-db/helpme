@@ -169,7 +169,7 @@ export class AsyncQuestionService {
       .catch((err) => Sentry.captureException(err));
   }
 
-  async sendQuestionAnsweredEmail(question: AsyncQuestionModel) {
+  async sendQuestionAnsweredEmails(question: AsyncQuestionModel) { // also needs an update for the method call in asyncQuestion.controller.ts
     await this.sendQuestionAnsweredFollowup(question).catch((err) => {
       console.error(err);
       Sentry.captureException(err);
