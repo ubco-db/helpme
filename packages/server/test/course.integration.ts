@@ -243,6 +243,46 @@ describe('Course Integration', () => {
     });
   });
 
+  describe('POST /courses/redirect_cookie/:id/:code', () => {
+    it('should set the redirect cookie for valid id and code', async () => {
+      const course = await CourseFactory.create();
+
+      const organization = await OrganizationFactory.create();
+
+      await OrganizationCourseFactory.create({
+        courseId: course.id,
+        organizationId: organization.id,
+      });
+
+      const response = await supertest()
+        .post(
+          `/courses/redirect_cookie/${course.id}/${course.courseInviteCode}`,
+        )
+        .expect(200);
+
+      expect(response.body.message).toBe('Course invite redirect cookie set');
+      expect(response.headers['set-cookie']).toBeDefined();
+      expect(response.headers['set-cookie'][0]).toContain('__SECURE_REDIRECT');
+      expect(response.headers['set-cookie'][0]).toContain(course.id.toString());
+      expect(response.headers['set-cookie'][0]).toContain(
+        encodeURIComponent(course.courseInviteCode),
+      );
+      expect(response.headers['set-cookie'][0]).toContain(
+        organization.id.toString(),
+      );
+    });
+
+    it('should return 404 for invalid id or code', async () => {
+      const response = await supertest({ userId: 1 })
+        .post('/courses/redirect_cookie/1/wrongcode')
+        .expect(404);
+
+      expect(response.body.message).toBe(
+        ERROR_MESSAGES.courseController.courseNotFound,
+      );
+    });
+  });
+
   //TODO: make a DSL for testing auth points using Hack your own Language
   describe('POST /courses/:id/checkin/:qid', () => {
     it('checks a TA into an existing queue', async () => {

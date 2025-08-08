@@ -122,6 +122,7 @@ export class LoginController {
     @Req() req: Request,
     @Res() res: Response,
     @Query('token') token: string,
+    @Query('redirect') redirect?: string,
   ): Promise<void> {
     const isVerified = await this.jwtService.verifyAsync(token);
 
@@ -130,11 +131,16 @@ export class LoginController {
     }
 
     const payload = this.jwtService.decode(token) as { userId: number };
-    await this.enter(req, res, payload.userId);
+    await this.enter(req, res, payload.userId, redirect);
   }
 
   // Set cookie and redirect to proper page
-  private async enter(req: Request, res: Response, userId: number) {
+  private async enter(
+    req: Request,
+    res: Response,
+    userId: number,
+    redirect?: string,
+  ) {
     // Expires in 30 days
     const authToken = await this.jwtService.signAsync({
       userId,
@@ -147,6 +153,10 @@ export class LoginController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+
+    const isSecure = this.configService
+      .get<string>('DOMAIN')
+      .startsWith('https://');
 
     let redirectUrl: string;
     const cookie = getCookie(req, '__SECURE_REDIRECT');
@@ -162,25 +172,31 @@ export class LoginController {
     } else if (cookie) {
       const decodedCookie = decodeURIComponent(cookie);
       redirectUrl = `/invite?cid=${decodedCookie.split(',')[0]}&code=${encodeURIComponent(decodedCookie.split(',')[1])}`;
+      res.clearCookie('__SECURE_REDIRECT', {
+        httpOnly: true,
+        secure: isSecure,
+      });
+    } else if (redirect) {
+      redirectUrl = redirect;
     } else {
       redirectUrl = '/courses';
     }
 
-    const isSecure = this.configService
-      .get<string>('DOMAIN')
-      .startsWith('https://');
     res
       .cookie('auth_token', authToken, { httpOnly: true, secure: isSecure })
       .redirect(HttpStatus.FOUND, redirectUrl);
   }
 
   @Get('/logout')
-  async logout(@Res() res: Response): Promise<void> {
+  async logout(
+    @Res() res: Response,
+    @Query('redirect') redirect?: string,
+  ): Promise<void> {
     const isSecure = this.configService
       .get<string>('DOMAIN')
       .startsWith('https://');
     res
       .clearCookie('auth_token', { httpOnly: true, secure: isSecure })
-      .redirect(302, '/login');
+      .redirect(302, redirect ? `/login?redirect=${redirect}` : '/login');
   }
 }
