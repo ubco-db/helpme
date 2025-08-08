@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`QueueService personalizeQuestions hides details of other students 1`] = `
 ListQuestionsResponse {
@@ -15,7 +15,7 @@ ListQuestionsResponse {
       "id": 1,
       "isTaskQuestion": false,
       "lastReadyAt": null,
-      "location": null,
+      "location": "Unselected",
       "questionTypes": [
         QuestionTypeModel {
           "cid": 1,
@@ -41,7 +41,7 @@ ListQuestionsResponse {
       "id": 2,
       "isTaskQuestion": false,
       "lastReadyAt": null,
-      "location": null,
+      "location": "Unselected",
       "questionTypes": [
         QuestionTypeModel {
           "cid": 1,
@@ -77,7 +77,7 @@ ListQuestionsResponse {
       "id": 1,
       "isTaskQuestion": false,
       "lastReadyAt": null,
-      "location": null,
+      "location": "Unselected",
       "questionTypes": [
         QuestionTypeModel {
           "cid": 1,

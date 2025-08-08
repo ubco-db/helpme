@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`Queue Integration GET /queues/:id returns 401 when not logged in 1`] = `
 {
@@ -23,7 +23,7 @@ exports[`Queue Integration GET /queues/:id/questions returns questions in the qu
       "id": 1,
       "isTaskQuestion": false,
       "lastReadyAt": null,
-      "location": null,
+      "location": "Unselected",
       "questionTypes": [
         {
           "cid": 1,
