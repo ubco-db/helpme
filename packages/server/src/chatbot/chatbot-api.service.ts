@@ -355,6 +355,69 @@ export class ChatbotApiService {
     });
   }
 
+  // Uploads an LMS file from buffer - specifically for LMS integration file uploads
+  async uploadLMSFileFromBuffer(
+    file: Express.Multer.File,
+    courseId: number,
+    userToken: string,
+    options: {
+      source?: string;
+      metadata?: any;
+      parseAsPng?: boolean;
+    } = {},
+  ): Promise<{ docId: string }> {
+    try {
+      const formData = new FormData();
+
+      formData.append(
+        'file',
+        new Blob([file.buffer], { type: file.mimetype }),
+        file.originalname,
+      );
+
+      formData.append('source', options.source || 'LMS Integration');
+
+      if (options.source) {
+        formData.append('prefix', options.source);
+      }
+      if (options.metadata) {
+        formData.append('metadata', JSON.stringify(options.metadata));
+      }
+      formData.append('parseAsPng', String(options.parseAsPng || false));
+
+      const url = new URL(`${this.chatbotApiUrl}/document/${courseId}/file`);
+
+      const headers: Record<string, string> = {
+        'HMS-API-KEY': this.chatbotApiKey,
+        HMS_API_TOKEN: userToken,
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new HttpException(
+          error.error || 'Failed to upload LMS file buffer',
+          response.status,
+        );
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        'Failed to upload LMS file from buffer',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async cloneCourseDocuments(
     courseId: number,
     userToken: string,

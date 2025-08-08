@@ -60,6 +60,7 @@ import {
   LMSAssignment,
   LMSCourseAPIResponse,
   LMSCourseIntegrationPartial,
+  LMSFile,
   LMSOrganizationIntegrationPartial,
   LMSPage,
   MailServiceWithSubscription,
@@ -1321,6 +1322,8 @@ class APIClient {
       this.req('GET', `/api/v1/lms/${courseId}/announcements`),
     getPages: async (courseId: number): Promise<LMSPage[]> =>
       this.req('GET', `/api/v1/lms/${courseId}/pages`),
+    getFiles: async (courseId: number): Promise<LMSFile[]> =>
+      this.req('GET', `/api/v1/lms/${courseId}/files`),
     toggleSync: async (courseId: number): Promise<string> =>
       this.req('POST', `/api/v1/lms/${courseId}/sync`),
     forceSync: async (courseId: number): Promise<string> =>
@@ -1359,6 +1362,17 @@ class APIClient {
         `/api/v1/lms/${courseId}/sync/page/${pageId}/toggle`,
         undefined,
         page,
+      ),
+    toggleSyncFile: async (
+      courseId: number,
+      fileId: number,
+      file: LMSFile,
+    ): Promise<string> =>
+      this.req(
+        'POST',
+        `/api/v1/lms/${courseId}/sync/file/${fileId}/toggle`,
+        undefined,
+        file,
       ),
     updateSelectedResourceTypes: async (
       courseId: number,
