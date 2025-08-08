@@ -224,6 +224,9 @@ export class AsyncQuestionService {
             email,
             `<br> <b>This is a follow-up notice. The anytime question referenced by the previous email has now received an answer.</b>
            <br> No further intervention is required at this time.
+           <br> 
+           <br> The answer:
+           <br> ${question.answerText}
            <br>
            <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View It Here</a> <br>`,
           ),
