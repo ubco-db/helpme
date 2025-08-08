@@ -21,6 +21,7 @@ import {
   CourseCloneAttributes,
   OrganizationRole,
   QueueConfig,
+  QueueTypes,
   Role,
   UserPartial,
 } from '@koh/common';
@@ -745,7 +746,7 @@ describe('CourseService', () => {
       queue1 = await QueueFactory.create({
         course,
         room: 'Test Queue',
-        type: 'online',
+        type: QueueTypes.Online,
         notes: 'Test Notes',
         isProfessorQueue: true,
         config: tempQueueConfig,
@@ -753,7 +754,7 @@ describe('CourseService', () => {
       queue2 = await QueueFactory.create({
         course,
         room: 'Test Queue 2',
-        type: 'hybrid',
+        type: QueueTypes.Hybrid,
         notes: 'Test Notes 2',
         isProfessorQueue: false,
         config: tempQueueConfig,

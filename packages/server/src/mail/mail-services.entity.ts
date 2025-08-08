@@ -1,11 +1,11 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
   BaseEntity,
+  Column,
+  Entity,
   OneToMany,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
-import { OrganizationRole, MailServiceType } from '@koh/common';
+import { MailServiceType, OrganizationRole } from '@koh/common';
 import { UserSubscriptionModel } from './user-subscriptions.entity';
 
 @Entity('mail_services')
@@ -13,7 +13,11 @@ export class MailServiceModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({
+    type: 'enum',
+    enum: OrganizationRole,
+    default: OrganizationRole.MEMBER,
+  })
   mailType: OrganizationRole;
 
   @Column({

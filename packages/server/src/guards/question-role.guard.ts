@@ -11,9 +11,7 @@ import { QuestionModel } from '../question/question.entity';
 
 @Injectable()
 export class QuestionRolesGuard extends RolesGuard {
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   async setupData(
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     request: any,
   ): Promise<{ courseId: number; user: UserModel }> {
     let queueId: number;
@@ -28,7 +26,7 @@ export class QuestionRolesGuard extends RolesGuard {
         );
       }
       queueId = question.queueId;
-    } else if (request.body.queueId && !isNaN(request.body.queueId)) {
+    } else if (request.body?.queueId && !isNaN(request.body?.queueId)) {
       // If you are creating a new question
       queueId = request.body.queueId;
     } else {

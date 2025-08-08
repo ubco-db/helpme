@@ -27,13 +27,13 @@ export class OrganizationGuard implements CanActivate {
   }
 
   async setupData(
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+     
     request: any,
   ): Promise<{ user: OrganizationUserModel }> {
     const user = await OrganizationUserModel.findOne({
       where: {
         userId:
-          request.params.uid || request.body.userId || request.user.userId,
+          request.params.uid || request.body?.userId || request.user.userId,
         organizationId: request.params.oid,
       },
     });

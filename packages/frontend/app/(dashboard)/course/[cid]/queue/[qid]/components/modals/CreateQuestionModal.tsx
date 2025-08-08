@@ -1,13 +1,12 @@
 import { useLocalStorage } from '@/app/hooks/useLocalStorage'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import {
-  QuestionTypeParams,
   OpenQuestionStatus,
   Question,
-  QueueTypes,
   QuestionLocations,
+  QuestionTypeParams,
 } from '@koh/common'
-import { Alert, Form, Modal, Radio, Segmented } from 'antd'
+import { Alert, Form, Modal, Segmented } from 'antd'
 import { QuestionTagSelector } from '../../../../components/QuestionTagElement'
 import { toOrdinal } from '@/app/utils/generalUtils'
 import TextArea from 'antd/es/input/TextArea'
@@ -131,10 +130,10 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
                   : question.text,
                 location: drafting
                   ? ((storedDraftQuestion?.location ??
-                      'Online') as QuestionLocations)
+                      QuestionLocations.Online) as QuestionLocations)
                   : question.location && question.location !== 'Unselected'
                     ? question.location
-                    : 'Online',
+                    : QuestionLocations.Online,
               }}
               onValuesChange={(changedValues, values) => {
                 setStoredDraftQuestion(values)

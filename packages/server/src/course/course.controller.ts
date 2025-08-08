@@ -694,7 +694,7 @@ export class CourseController {
     }
   }
 
-  @Get(':id/get_user_info/:page/:role?')
+  @Get(':id/get_user_info/:page{/:role}')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR)
   async getUserInfo(

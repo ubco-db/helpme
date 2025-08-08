@@ -17,7 +17,7 @@ import {
   LMSPage,
   LMSResourceType,
   SupportedLMSFileTypes,
-  LMSSyncDocumentsResult
+  LMSSyncDocumentsResult,
 } from '@koh/common';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -52,13 +52,10 @@ export enum LMSUpload {
   Files,
 }
 
-type ExtendedLMSItem = (
-  | LMSAnnouncement
-  | LMSAssignment
-  | LMSPage
-  | LMSFile 
-) & { chatbotDocumentId: string }
-  
+type ExtendedLMSItem = (LMSAnnouncement | LMSAssignment | LMSPage | LMSFile) & {
+  chatbotDocumentId: string;
+};
+
 @Injectable()
 export class LMSIntegrationService {
   constructor(
@@ -424,7 +421,7 @@ export class LMSIntegrationService {
       itemsSynced: 0,
       itemsRemoved: 0,
       errors: 0,
-    }
+    };
 
     // maybe add this later to fallback to all resources if db fetch does not work
 
@@ -456,8 +453,12 @@ export class LMSIntegrationService {
           type,
         );
         if (items.length > 0) {
-          const numClearedDocuments = await this.clearSpecificDocuments(courseId, items, model);
-          
+          const numClearedDocuments = await this.clearSpecificDocuments(
+            courseId,
+            items,
+            model,
+          );
+
           syncDocumentsResult.itemsRemoved += numClearedDocuments;
           syncDocumentsResult.errors += items.length - numClearedDocuments;
         }
@@ -532,7 +533,7 @@ export class LMSIntegrationService {
           break;
       }
 
-      let persistedItems: (
+      const persistedItems: (
         | LMSAnnouncementModel
         | LMSAssignmentModel
         | LMSPageModel
@@ -556,7 +557,11 @@ export class LMSIntegrationService {
         //   toRemoveIds.includes(i.id),
         // );
 
-        const numClearedDocuments = await this.clearSpecificDocuments(courseId, toRemove, model);
+        const numClearedDocuments = await this.clearSpecificDocuments(
+          courseId,
+          toRemove,
+          model,
+        );
 
         syncDocumentsResult.itemsRemoved += numClearedDocuments;
         syncDocumentsResult.errors += toRemove.length - numClearedDocuments;
@@ -571,8 +576,8 @@ export class LMSIntegrationService {
             ...items[i],
             chatbotDocumentId: found.chatbotDocumentId,
             uploaded: found.uploaded,
-            modified: items[i].modified ?? found.modified
-          }
+            modified: items[i].modified ?? found.modified,
+          };
         }
       }
 
@@ -589,13 +594,17 @@ export class LMSIntegrationService {
 
       const statuses: LMSFileUploadResponse[] = [];
       for (const item of items) {
-        const uploadDocumentResponse = await this.uploadDocument(courseId, item, token, type, adapter);
+        const uploadDocumentResponse = await this.uploadDocument(
+          courseId,
+          item,
+          token,
+          type,
+          adapter,
+        );
         statuses.push(uploadDocumentResponse);
 
-        if(uploadDocumentResponse.success) 
-          syncDocumentsResult.itemsSynced++;
-        else
-          syncDocumentsResult.errors++;
+        if (uploadDocumentResponse.success) syncDocumentsResult.itemsSynced++;
+        else syncDocumentsResult.errors++;
       }
 
       await ChatTokenModel.remove(token);
@@ -759,10 +768,14 @@ export class LMSIntegrationService {
 
     const statuses: LMSFileUploadResponse[] = [];
     for (const item of items) {
-      const deleteResponse: LMSFileUploadResponse = await this.deleteDocument(courseId, item, token);
+      const deleteResponse: LMSFileUploadResponse = await this.deleteDocument(
+        courseId,
+        item,
+        token,
+      );
       statuses.push(deleteResponse);
 
-      if(deleteResponse.success) numClearedDocuments++;
+      if (deleteResponse.success) numClearedDocuments++;
     }
 
     await ChatTokenModel.remove(token);

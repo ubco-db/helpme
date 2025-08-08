@@ -7,17 +7,14 @@ import {
   ConfigTasks,
   parseTaskIdsFromQuestionText,
   Question,
+  QuestionLocations,
   QuestionType,
+  QuestionTypeParams,
   QueueConfig,
+  QueueTypes,
   StudentAssignmentProgress,
   Task,
   TaskTree,
-  QuestionTypeParams,
-  QuestionLocations,
-  QueueTypes,
-  LimboQuestionStatus,
-  OpenQuestionStatus,
-  GetQueueChatsResponse,
 } from '@koh/common'
 import { QuestionTagElement } from '../../../components/QuestionTagElement'
 import QuestionCard from './QuestionCard'

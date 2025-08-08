@@ -1,8 +1,8 @@
 import {
   ListQuestionsResponse,
   OpenQuestionStatus,
-  Role,
   QueueTypes,
+  Role,
 } from '@koh/common'
 
 export function getHelpingQuestions(
@@ -39,11 +39,11 @@ export function getPausedQuestions(
 
 export const getQueueTypeLabel = (type: QueueTypes) => {
   switch (type) {
-    case 'online':
+    case QueueTypes.Online:
       return 'Online'
-    case 'hybrid':
+    case QueueTypes.Hybrid:
       return 'Hybrid'
-    case 'inPerson':
+    case QueueTypes.InPerson:
       return 'In-Person'
     default:
       return 'Invalid Queue Type'

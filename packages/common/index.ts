@@ -574,7 +574,11 @@ export interface Queue {
 }
 
 // Queue location/type for different queues within each course
-export type QueueTypes = 'online' | 'hybrid' | 'inPerson'
+export enum QueueTypes {
+  Online = 'online',
+  Hybrid = 'hybrid',
+  InPerson = 'inPerson',
+}
 
 export enum ExtraTAStatus {
   HELPING_IN_ANOTHER_QUEUE = 'Helping student in another queue',
@@ -1624,7 +1628,11 @@ export class GetStudentQuestionResponse extends Question {
   queueId!: number
 }
 
-export type QuestionLocations = 'Online' | 'In-Person' | 'Unselected'
+export enum QuestionLocations {
+  'Online' = 'Online',
+  'InPerson' = 'In-Person',
+  'Unselected' = 'Unselected',
+}
 
 export class CreateQuestionParams {
   @IsString()

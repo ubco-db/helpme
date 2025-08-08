@@ -252,13 +252,19 @@ export default function CourseLMSIntegrationPage(props: {
             `Unknown error occurred, could not force synchronization with the LMS.`,
           )
         } else {
-          if(result.errors > 0) {
-            result.itemsSynced + result.itemsRemoved > 0 
-              ? message.warning(`Force synchronization completed with warnings. ${result.errors < 10 ? result.errors : "9+"} item(s) could not by synced.`, 5)
-              : message.error("Force synchronization failed. Please try again later.")
-          }
-          else {
-             message.success("Successfully forced synchronization with integrated course.")
+          if (result.errors > 0) {
+            result.itemsSynced + result.itemsRemoved > 0
+              ? message.warning(
+                  `Force synchronization completed with warnings. ${result.errors < 10 ? result.errors : '9+'} item(s) could not by synced.`,
+                  5,
+                )
+              : message.error(
+                  'Force synchronization failed. Please try again later.',
+                )
+          } else {
+            message.success(
+              'Successfully forced synchronization with integrated course.',
+            )
           }
         }
         setUpdateFlag(!updateFlag)

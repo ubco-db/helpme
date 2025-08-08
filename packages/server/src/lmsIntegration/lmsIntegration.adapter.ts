@@ -344,8 +344,9 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
             assignment.due_at != undefined && assignment.due_at.trim() != ''
               ? new Date(assignment.due_at)
               : undefined,
-          modified: 
-              assignment.updated_at != undefined && assignment.updated_at.trim() != ''
+          modified:
+            assignment.updated_at != undefined &&
+            assignment.updated_at.trim() != ''
               ? new Date(assignment.updated_at)
               : undefined,
         } as LMSAssignment;
