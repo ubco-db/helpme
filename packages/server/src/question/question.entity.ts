@@ -90,7 +90,11 @@ export class QuestionModel extends BaseEntity {
   @Column('text')
   status: QuestionStatus;
 
-  @Column({ type: 'enum', enum: QuestionLocations, nullable: true })
+  @Column({
+    type: 'enum',
+    enum: QuestionLocations,
+    default: QuestionLocations.Unselected,
+  })
   location: QuestionLocations;
 
   @Column()
