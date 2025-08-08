@@ -109,6 +109,7 @@ export class MailService {
     if (emailPost.track && result) {
       await SentEmailModel.create({
         emailId: result.messageId,
+        subject: emailPost.subject,
         accepted: result.accepted ?? [],
         rejected: result.rejected ?? [],
         metadata: emailPost.metadata,
