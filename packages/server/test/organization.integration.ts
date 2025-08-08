@@ -1123,8 +1123,21 @@ describe('Organization Integration', () => {
       const user = await UserFactory.create();
       const professor1 = await UserFactory.create();
       const professor2 = await UserFactory.create();
+      const professor3 = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
+
+      await UserCourseFactory.create({
+        user: professor2,
+        course: course,
+        role: Role.STUDENT,
+      });
+
+      await UserCourseFactory.create({
+        user: professor3,
+        course: course,
+        role: Role.PROFESSOR,
+      });
 
       await OrganizationUserModel.create({
         userId: user.id,
@@ -1146,9 +1159,26 @@ describe('Organization Integration', () => {
           profIds: [professor1.id, professor2.id],
         });
 
-      expect(res.body.message).toBe('Course updated successfully');
       expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Course updated successfully');
+
+      const demoted = await UserCourseModel.findOne({
+        where: { userId: professor3.id, courseId: course.id },
+      });
+      expect(demoted.role).toEqual(Role.STUDENT);
+
+      for (const prof of [professor1, professor2]) {
+        const created = await UserCourseModel.findOne({
+          where: {
+            userId: prof.id,
+            courseId: course.id,
+          },
+        });
+        expect(created).not.toBeUndefined();
+        expect(created.role).toEqual(Role.PROFESSOR);
+      }
     });
+
     it('should return 200 when course is updated (course professor)', async () => {
       const user = await UserFactory.create();
       const professor1 = await UserFactory.create();
@@ -1182,9 +1212,20 @@ describe('Organization Integration', () => {
           profIds: [professor1.id, professor2.id],
         });
 
-      expect(res.body.message).toBe('Course updated successfully');
       expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Course updated successfully');
+      expect(
+        await UserCourseModel.findOne({
+          where: { userId: professor1.id, courseId: course.id },
+        }),
+      ).toBeFalsy();
+      expect(
+        await UserCourseModel.findOne({
+          where: { userId: professor2.id, courseId: course.id },
+        }),
+      ).toBeFalsy();
     });
+
     it('should prevent org professors who are a student in the course from updating the course', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();

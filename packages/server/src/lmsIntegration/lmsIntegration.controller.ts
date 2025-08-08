@@ -28,6 +28,7 @@ import {
   TestLMSIntegrationParams,
   UpsertLMSCourseParams,
   UpsertLMSOrganizationParams,
+  LMSSyncDocumentsResult,
 } from '@koh/common';
 import {
   LMSGet,
@@ -411,7 +412,7 @@ export class LMSIntegrationController {
   async forceSynchronizeCourse(
     @User() _user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
-  ): Promise<string> {
+  ): Promise<LMSSyncDocumentsResult> {
     const integration = await LMSCourseIntegrationModel.findOne({
       where: {
         courseId: courseId,
@@ -436,7 +437,7 @@ export class LMSIntegrationController {
     }
 
     try {
-      await this.integrationService.syncDocuments(courseId);
+      return await this.integrationService.syncDocuments(courseId);
     } catch (err) {
       console.error(err);
       throw new HttpException(
@@ -445,7 +446,7 @@ export class LMSIntegrationController {
       );
     }
 
-    return `Successfully forced synchronization with ${integration.orgIntegration.apiPlatform ?? 'LMS'} course.`;
+    //return `Successfully forced synchronization with ${integration.orgIntegration.apiPlatform ?? 'LMS'} course.`;
   }
 
   @Delete(':courseId/sync/clear')
