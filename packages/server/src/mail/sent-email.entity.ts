@@ -1,6 +1,7 @@
 import { BaseEntity, Column, Entity, PrimaryColumn } from 'typeorm';
 import { EmailMetadata, MailServiceType } from '@koh/common';
 
+// Need to save email ids in order to be able to reply to emails sent earlier (e.g. to reply that an anytime question already received help)
 @Entity('sent_email_model')
 export class SentEmailModel extends BaseEntity {
   @PrimaryColumn({ type: 'text' })
