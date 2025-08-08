@@ -7,7 +7,6 @@ import { AlertsModule } from './alerts/alerts.module';
 import { BackfillModule } from './backfill/backfill.module';
 import { CommandModule } from 'nestjs-command';
 import * as typeormConfig from '../ormconfig';
-import { AdminModule } from './admin/admin.module';
 import { CourseModule } from './course/course.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { HealthcheckModule } from './healthcheck/healthcheck.module';
@@ -82,7 +81,6 @@ import { RedisModule } from '@liaoliaots/nestjs-redis';
       ],
       isGlobal: true,
     }),
-    AdminModule,
     CommandModule,
     SSEModule,
     BackfillModule,

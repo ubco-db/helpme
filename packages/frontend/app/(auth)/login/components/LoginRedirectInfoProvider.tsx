@@ -63,7 +63,7 @@ export const useLoginRedirectInfoProvider =
 
     if (context === undefined) {
       throw new Error(
-        'useOrganization must be used within an LoginRedirectInfoProvider',
+        'useLoginRedirectInfoProvider must be used within an LoginRedirectInfoProvider',
       )
     }
 

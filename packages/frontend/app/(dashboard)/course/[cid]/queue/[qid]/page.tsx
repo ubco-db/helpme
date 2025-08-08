@@ -269,7 +269,9 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
           text: text || '',
           questionTypes: questionTypes,
           queueId: qid,
-          location: location ?? (isQueueHybrid ? 'Unselected' : undefined),
+          location:
+            location ??
+            (isQueueHybrid ? QuestionLocations.Unselected : undefined),
           force: force,
           groupable: false,
           isTaskQuestion,
@@ -1010,7 +1012,6 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
             {isDemoQueue && (
               <>
                 <CreateDemoModal
-                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                   configTasks={configTasks!} // configTasks is guaranteed to be defined here since isDemoQueue would be false otherwise. Typescript is being silly
                   studentAssignmentProgress={studentAssignmentProgress}
                   open={(!studentDemo && isJoiningDemo) || editDemoModalOpen}

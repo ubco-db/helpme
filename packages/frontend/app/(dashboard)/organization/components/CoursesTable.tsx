@@ -4,13 +4,14 @@ import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { SearchOutlined } from '@ant-design/icons'
 import { CourseResponse, GetOrganizationResponse } from '@koh/common'
-import { Button, Col, Input, List, Pagination, Row, Tag } from 'antd'
+import { Button, Checkbox, Col, Input, List, Pagination, Row, Tag } from 'antd'
 import { useEffect, useState } from 'react'
 import useSWR, { mutate } from 'swr'
 import BatchCourseCloneModal from './BatchCourseCloneModal'
 import { organizationApi } from '@/app/api/organizationApi'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import SemesterInfoPopover from '../../components/SemesterInfoPopover'
+import { cn } from '@/app/utils/generalUtils'
 
 const CoursesTable: React.FC = () => {
   const { userInfo } = useUserInfo()
@@ -18,6 +19,7 @@ const CoursesTable: React.FC = () => {
   const [page, setPage] = useState(1)
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
+  const [showIds, setShowIds] = useState(true)
   const [organization, setOrganization] = useState<GetOrganizationResponse>()
 
   const [isCloneModalOpen, setIsCloneModalOpen] = useState(false)
@@ -84,7 +86,15 @@ const CoursesTable: React.FC = () => {
                 onPressEnter={handleSearch}
               />
             </Col>
-            <Col className="flex gap-2" flex="none">
+            <Col className="flex items-center gap-2" flex="none">
+              <Col>
+                <Checkbox
+                  checked={showIds}
+                  onChange={() => setShowIds((prev) => !prev)}
+                >
+                  Show IDs
+                </Checkbox>
+              </Col>
               <Button type="primary" href={`/organization/course/add`}>
                 Add New Course
               </Button>
@@ -115,6 +125,14 @@ const CoursesTable: React.FC = () => {
                   <List.Item.Meta
                     title={
                       <span>
+                        <span
+                          className={cn(
+                            showIds ? '' : 'hidden',
+                            'text-helpmeblue font-semibold',
+                          )}
+                        >
+                          {item.courseId}
+                        </span>{' '}
                         {item.courseName}
                         <span className="text-gray-500">
                           {' '}

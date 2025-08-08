@@ -99,6 +99,7 @@ import {
   UpsertLMSCourseParams,
   UpsertLMSOrganizationParams,
   UserMailSubscription,
+  LMSSyncDocumentsResult,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -399,6 +400,11 @@ class APIClient {
         `/api/v1/courses/limited/${courseId}/${code}`,
         GetLimitedCourseResponse,
       ),
+    setCourseInviteRedirectCookie: async (
+      courseId: number,
+      code: string,
+    ): Promise<void> =>
+      this.req('POST', `/api/v1/courses/redirect_cookie/${courseId}/${code}`),
     updateUserRole: async (
       courseId: number,
       userId: number,
@@ -1154,7 +1160,7 @@ class APIClient {
       this.req('GET', `/api/v1/lms/${courseId}/files`),
     toggleSync: async (courseId: number): Promise<string> =>
       this.req('POST', `/api/v1/lms/${courseId}/sync`),
-    forceSync: async (courseId: number): Promise<string> =>
+    forceSync: async (courseId: number): Promise<LMSSyncDocumentsResult> =>
       this.req('POST', `/api/v1/lms/${courseId}/sync/force`),
     clearDocuments: async (courseId: number): Promise<string> =>
       this.req('DELETE', `/api/v1/lms/${courseId}/sync/clear`),

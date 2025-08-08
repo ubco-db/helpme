@@ -4,7 +4,7 @@ import {
   sendEmailParams,
   SentEmailResponse,
 } from '@koh/common';
-import { MailerService } from '@nestjs-modules/mailer';
+import { MailerService } from '@nest-modules/mailer';
 import { MailServiceModel } from './mail-services.entity';
 import { Injectable } from '@nestjs/common';
 import { UserModel } from 'profile/user.entity';

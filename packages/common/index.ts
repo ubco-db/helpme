@@ -47,6 +47,23 @@ export function timeDiffInMins(a: Date, b: Date): number {
 // NOTE: These are not the DB data types. They are only used for the api
 
 /**
+ * Represents one of two possible roles for the global account
+ */
+export enum UserRole {
+  USER = 'user',
+  ADMIN = 'admin',
+}
+
+/**
+ * Represents a user's role in an organization.
+ */
+export enum OrganizationRole {
+  MEMBER = 'member',
+  ADMIN = 'admin',
+  PROFESSOR = 'professor',
+}
+
+/**
  * Represents a user.
  * @param id - The unique id of the user in our db.
  * @param email - The email string of the user if they provide it (nullable)
@@ -146,6 +163,10 @@ export class UserPartial {
   @IsOptional()
   @IsString()
   TANotes?: string
+
+  @IsEnum(OrganizationRole)
+  @IsOptional()
+  organizationRole?: OrganizationRole
 }
 
 /**
@@ -533,22 +554,6 @@ export type GetInteractionsAndQuestionsResponse = {
 export type GetChatbotHistoryResponse = {
   history: InteractionResponse[]
 }
-/**
- * Represents one of two possible roles for the global account
- */
-export enum UserRole {
-  USER = 'user',
-  ADMIN = 'admin',
-}
-
-/**
- * Represents a user's role in an organization.
- */
-export enum OrganizationRole {
-  MEMBER = 'member',
-  ADMIN = 'admin',
-  PROFESSOR = 'professor',
-}
 
 /**
  * A Queue that students can join with their tickets.
@@ -569,7 +574,11 @@ export interface Queue {
 }
 
 // Queue location/type for different queues within each course
-export type QueueTypes = 'online' | 'hybrid' | 'inPerson'
+export enum QueueTypes {
+  Online = 'online',
+  Hybrid = 'hybrid',
+  InPerson = 'inPerson',
+}
 
 export enum ExtraTAStatus {
   HELPING_IN_ANOTHER_QUEUE = 'Helping student in another queue',
@@ -1416,6 +1425,12 @@ export type LMSFileUploadResponse = {
   reason?: LMSErrorType
 }
 
+export type LMSSyncDocumentsResult = {
+  itemsSynced: number
+  itemsRemoved: number
+  errors: number
+}
+
 export enum LMSApiResponseStatus {
   None = '',
   InvalidPlatform = 'The specified LMS platform is not registered with the HelpMe system.',
@@ -1528,8 +1543,8 @@ export type OrganizationProfessor = {
   organizationUser: {
     id: number
     name: string
-    lacksProfOrgRole?: boolean
   }
+  trueRole?: OrganizationRole
   userId: number
 }
 
@@ -1613,7 +1628,11 @@ export class GetStudentQuestionResponse extends Question {
   queueId!: number
 }
 
-export type QuestionLocations = 'Online' | 'In-Person' | 'Unselected'
+export enum QuestionLocations {
+  'Online' = 'Online',
+  'InPerson' = 'In-Person',
+  'Unselected' = 'Unselected',
+}
 
 export class CreateQuestionParams {
   @IsString()

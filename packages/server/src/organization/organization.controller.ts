@@ -533,48 +533,65 @@ export class OrganizationController {
       courseInfo.course.timezone = courseDetails.timezone;
 
       await manager.save(courseInfo.course);
-      // Remove current professors
-      await manager.delete(UserCourseModel, {
-        courseId: cid,
-        role: Role.PROFESSOR,
-      });
 
-      for (const profId of courseDetails.profIds) {
-        const chosenProfessor = await manager.findOne(UserModel, {
-          where: { id: profId },
-        });
-
-        if (!chosenProfessor) {
-          throw new HttpException(
-            ERROR_MESSAGES.profileController.userResponseNotFound,
-            HttpStatus.NOT_FOUND,
-          );
-        }
-
-        const userCourse = await manager.findOne(UserCourseModel, {
+      // If user is an admin, update professors according to list
+      if (user.organizationUser.role == OrganizationRole.ADMIN) {
+        // Retrieve any current professors
+        const currentProfs = await manager.find(UserCourseModel, {
           where: {
-            userId: profId,
             courseId: cid,
+            role: Role.PROFESSOR,
           },
         });
 
-        // User is already in the course
-        if (userCourse) {
-          userCourse.role = Role.PROFESSOR;
-          try {
-            await manager.save(userCourse);
-          } catch (err) {
-            throw new HttpException(err, HttpStatus.INTERNAL_SERVER_ERROR);
+        const demoted = currentProfs
+          .filter((v) => !courseDetails.profIds.includes(v.userId))
+          .map((v) => v.id);
+        const promoted = courseDetails.profIds.filter(
+          (v0) => !currentProfs.some((v1) => v0 == v1.userId),
+        );
+
+        // Demote professors not specified in list back to student
+        await manager.update(
+          UserCourseModel,
+          { id: In(demoted) },
+          { role: Role.STUDENT },
+        );
+
+        // Upsert professors specified in list
+        for (const profId of promoted) {
+          const chosenProfessor = await manager.findOne(UserModel, {
+            where: { id: profId },
+          });
+
+          if (!chosenProfessor) {
+            throw new HttpException(
+              ERROR_MESSAGES.profileController.userResponseNotFound,
+              HttpStatus.NOT_FOUND,
+            );
           }
-        } else {
+
           try {
-            const newUserCourse = manager.create(UserCourseModel, {
-              userId: profId,
-              courseId: cid,
-              role: Role.PROFESSOR,
+            const exists = await manager.findOne(UserCourseModel, {
+              where: {
+                userId: profId,
+                courseId: cid,
+              },
             });
-            await manager.save(newUserCourse);
+            if (exists) {
+              exists.role = Role.PROFESSOR;
+              await manager.save(exists);
+            } else {
+              await manager
+                .create(UserCourseModel, {
+                  userId: profId,
+                  courseId: cid,
+                  role: Role.PROFESSOR,
+                })
+                .save();
+            }
           } catch (err) {
+            console.error(err);
             throw new HttpException(err, HttpStatus.INTERNAL_SERVER_ERROR);
           }
         }
@@ -1405,7 +1422,7 @@ export class OrganizationController {
     return res.status(HttpStatus.OK).send(userInfo);
   }
 
-  @Get(':oid/get_users/:page?')
+  @Get(':oid/get_users{/:page}')
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
   async getUsers(
@@ -1422,7 +1439,7 @@ export class OrganizationController {
     return await this.organizationService.getUsers(oid, page, pageSize, search);
   }
 
-  @Get(':oid/get_courses/:page?')
+  @Get(':oid/get_courses{/:page}')
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
   async getCourses(
@@ -1467,7 +1484,11 @@ export class OrganizationController {
           courseId: cid,
           role: Role.PROFESSOR,
         },
-        relations: ['user'],
+        relations: {
+          user: {
+            organizationUser: true,
+          },
+        },
       });
 
       // filter out professors that are already an organization professor
@@ -1482,14 +1503,15 @@ export class OrganizationController {
           id: prof.organizationUser.id,
           name: prof.organizationUser.name,
         },
+        trueRole: prof.role,
         userId: prof.userId,
       })),
       ...courseProfs.map((prof) => ({
         organizationUser: {
           id: prof.user.id,
           name: prof.user.name,
-          lacksProfOrgRole: true,
         },
+        trueRole: prof.user.organizationUser.role,
         userId: prof.userId,
       })),
     ];
@@ -1636,7 +1658,7 @@ export class OrganizationController {
     }
   }
 
-  @Get(':oid/role_history/:page?')
+  @Get(':oid/role_history{/:page}')
   @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
   @Roles(OrganizationRole.ADMIN)
   async getRoleHistory(
