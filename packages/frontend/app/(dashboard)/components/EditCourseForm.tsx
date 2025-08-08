@@ -13,6 +13,7 @@ import {
 } from '@koh/common'
 import { Alert, Button, Form, Input, message, Select, Tag, Tooltip } from 'antd'
 import { useEffect, useState } from 'react'
+import { CrownFilled } from '@ant-design/icons'
 
 type EditCourseFormProps = {
   courseData: OrganizationCourseResponse
@@ -265,14 +266,29 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
               showSearch
               optionFilterProp="label"
               options={professors.map((prof: OrganizationProfessor) => ({
-                key: prof.organizationUser.id,
-                label: prof.organizationUser.name,
+                key: `${prof.organizationUser.name}-${prof.organizationUser.id}`,
+                label: (
+                  <span>
+                    {prof.organizationUser.name}
+                    {prof.trueRole == OrganizationRole.ADMIN && (
+                      <Tooltip
+                        title={'This user is an organization administrator.'}
+                      >
+                        <CrownFilled
+                          className={
+                            'ml-1 text-yellow-500 transition-all hover:text-yellow-300'
+                          }
+                        />
+                      </Tooltip>
+                    )}
+                  </span>
+                ),
                 value: prof.organizationUser.id,
               }))}
               filterSort={(optionA, optionB) =>
-                (optionA?.label ?? '')
+                (optionA?.key ?? '')
                   .toLowerCase()
-                  .localeCompare((optionB?.label ?? '').toLowerCase())
+                  .localeCompare((optionB?.key ?? '').toLowerCase())
               }
               tagRender={(props) => {
                 const { label, value, closable, onClose } = props
@@ -283,9 +299,14 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
                   event.stopPropagation()
                 }
                 // find the professor with the given id and see if they have lacksProfOrgRole
-                const lacksProfOrgRole = professors.find(
+                const match = professors.find(
                   (prof) => prof.organizationUser.id === value,
-                )?.organizationUser.lacksProfOrgRole
+                )
+                const lacksProfOrgRole = ![
+                  OrganizationRole.ADMIN,
+                  OrganizationRole.PROFESSOR,
+                ].includes(match?.trueRole ?? OrganizationRole.MEMBER)
+
                 return (
                   <Tooltip
                     title={
