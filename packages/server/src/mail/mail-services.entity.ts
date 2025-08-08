@@ -13,7 +13,11 @@ export class MailServiceModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'enum', enum: OrganizationRole, nullable: true })
+  @Column({
+    type: 'enum',
+    enum: OrganizationRole,
+    default: OrganizationRole.MEMBER,
+  })
   mailType: OrganizationRole;
 
   @Column({
