@@ -1,10 +1,10 @@
 import {
-  UserFactory,
-  CourseFactory,
-  UserCourseFactory,
   calendarFactory,
+  CourseFactory,
   OrganizationFactory,
   OrganizationUserFactory,
+  UserCourseFactory,
+  UserFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { CalendarModel } from '../src/calendar/calendar.entity';
@@ -72,9 +72,9 @@ describe('Calendar Integration', () => {
   });
   afterEach(async () => {
     // delete all calendar staff
-    await CalendarStaffModel.delete({});
+    await CalendarStaffModel.clear();
     // delete all calendar events
-    await CalendarModel.delete({});
+    await CalendarModel.clear();
   });
 
   describe('POST /calendar/:cid', () => {
