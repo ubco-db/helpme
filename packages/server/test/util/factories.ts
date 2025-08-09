@@ -26,6 +26,7 @@ export let OrganizationUserFactory: FactoryService['OrganizationUserFactory'];
 export let ChatTokenFactory: FactoryService['ChatTokenFactory'];
 export let StudentTaskProgressFactory: FactoryService['StudentTaskProgressFactory'];
 export let mailServiceFactory: FactoryService['mailServiceFactory'];
+export let SentEmailFactory: FactoryService['SentEmailFactory'];
 export let userSubscriptionFactory: FactoryService['userSubscriptionFactory'];
 export let CalendarStaffFactory: FactoryService['CalendarStaffFactory'];
 export let calendarFactory: FactoryService['calendarFactory'];
@@ -66,6 +67,7 @@ export function initFactoriesFromService(service: FactoryService) {
   ChatTokenFactory = service.ChatTokenFactory;
   StudentTaskProgressFactory = service.StudentTaskProgressFactory;
   mailServiceFactory = service.mailServiceFactory;
+  SentEmailFactory = service.SentEmailFactory;
   userSubscriptionFactory = service.userSubscriptionFactory;
   CalendarStaffFactory = service.CalendarStaffFactory;
   calendarFactory = service.calendarFactory;

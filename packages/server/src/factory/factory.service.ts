@@ -54,6 +54,7 @@ import { OrganizationChatbotSettingsModel } from '../chatbot/chatbot-infrastruct
 import { LLMTypeModel } from '../chatbot/chatbot-infrastructure-models/llm-type.entity';
 import { ChatbotProviderModel } from '../chatbot/chatbot-infrastructure-models/chatbot-provider.entity';
 import { CourseChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
+import { SentEmailModel } from '../mail/sent-email.entity';
 
 /* Has all of our factories and initializes them with the db dataSource. 
   If you want to use one of these factories, import it from factories.ts instead.
@@ -90,6 +91,7 @@ export class FactoryService {
   public ChatTokenFactory: Factory<ChatTokenModel>;
   public StudentTaskProgressFactory: Factory<StudentTaskProgressModel>;
   public mailServiceFactory: Factory<MailServiceModel>;
+  public SentEmailFactory: Factory<SentEmailModel>;
   public userSubscriptionFactory: Factory<UserSubscriptionModel>;
   public CalendarStaffFactory: Factory<CalendarStaffModel>;
   public calendarFactory: Factory<CalendarModel>;
@@ -280,6 +282,13 @@ export class FactoryService {
       .attr('mailType', OrganizationRole.PROFESSOR)
       .attr('serviceType', MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED)
       .attr('name', 'async_question_created');
+
+    this.SentEmailFactory = new Factory(SentEmailModel, dataSource)
+      .sequence('emailId', (i) =>
+        parseInt(i.toString().padEnd(16, '0')).toString(16),
+      )
+      .attr('subject', 'Email Subject Line')
+      .attr('serviceType', MailServiceType.ASYNC_QUESTION_FLAGGED);
 
     this.userSubscriptionFactory = new Factory(
       UserSubscriptionModel,
