@@ -144,6 +144,34 @@ export class CourseController {
       courseInviteCode: courseWithOrganization.courseInviteCode,
     };
 
+    res.status(HttpStatus.OK).send(course_response);
+    return;
+  }
+
+  @Post('redirect_cookie/:id/:code')
+  async setCourseInviteRedirectCookie(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('code') code: string,
+    @Res() res: Response,
+  ): Promise<Response<GetLimitedCourseResponse>> {
+    const courseWithOrganization = await CourseModel.findOne({
+      where: {
+        id: id,
+        courseInviteCode: code,
+      },
+      relations: ['organizationCourse', 'organizationCourse.organization'],
+    });
+
+    if (!courseWithOrganization) {
+      res.status(HttpStatus.NOT_FOUND).send({
+        message: ERROR_MESSAGES.courseController.courseNotFound,
+      });
+      return;
+    }
+
+    const organization =
+      courseWithOrganization.organizationCourse?.organization || null;
+
     res.cookie(
       '__SECURE_REDIRECT',
       `${id},${code}${organization ? `,${organization.id}` : ''}`,
@@ -153,7 +181,9 @@ export class CourseController {
       },
     );
 
-    res.status(HttpStatus.OK).send(course_response);
+    res.status(HttpStatus.OK).send({
+      message: 'Course invite redirect cookie set',
+    });
     return;
   }
 
@@ -664,7 +694,7 @@ export class CourseController {
     }
   }
 
-  @Get(':id/get_user_info/:page/:role?')
+  @Get(':id/get_user_info/:page{/:role}')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR)
   async getUserInfo(

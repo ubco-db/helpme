@@ -112,11 +112,20 @@ export class OrganizationService {
 
     if (search) {
       const likeSearch = `%${search.replace(' ', '')}%`.toUpperCase();
+      const numericSearch = search
+        .match(/[0-9]*/g)
+        .map((v) => parseInt(v))
+        .filter((v) => !!v);
       organizationCourses.andWhere(
         new Brackets((q) => {
           q.where('UPPER("CourseModel"."name") like :searchString', {
             searchString: likeSearch,
           });
+          if (numericSearch.length > 0) {
+            q.orWhere('"CourseModel"."id" IN (:...numericSearch)', {
+              numericSearch,
+            });
+          }
         }),
       );
     }

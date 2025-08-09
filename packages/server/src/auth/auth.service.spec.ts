@@ -67,7 +67,6 @@ jest.mock('google-auth-library', () => {
 });
 
 class MockMailService {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async sendUserVerificationCode(
     code: string,
     receiver: string,
@@ -164,7 +163,7 @@ describe('AuthService', () => {
           'Doe',
           1,
         ),
-      ).rejects.toThrowError(
+      ).rejects.toThrow(
         'A non-SSO account already exists with this email. Please login with your email and password instead.',
       );
       expect(roleChangeSpy).not.toHaveBeenCalled();
@@ -183,7 +182,7 @@ describe('AuthService', () => {
           'Doe',
           1,
         ),
-      ).rejects.toThrowError(
+      ).rejects.toThrow(
         'A non-SSO account already exists with this email. Please login with your email and password instead.',
       );
       expect(roleChangeSpy).not.toHaveBeenCalled();
@@ -260,7 +259,7 @@ describe('AuthService', () => {
 
       await expect(
         service.loginWithGoogle('valid_code', organization.id),
-      ).rejects.toThrowError(
+      ).rejects.toThrow(
         'A non-SSO account already exists with this email. Please login with your email and password instead.',
       );
       expect(roleChangeSpy).not.toHaveBeenCalled();
@@ -279,7 +278,7 @@ describe('AuthService', () => {
 
       await expect(
         service.loginWithGoogle('valid_code', organization.id),
-      ).rejects.toThrowError(
+      ).rejects.toThrow(
         'A non-google account already exists with this email on HelpMe. Please try logging in with your email and password instead (or another SSO provider)',
       );
       expect(roleChangeSpy).not.toHaveBeenCalled();
@@ -395,7 +394,7 @@ describe('AuthService', () => {
           -1,
           1,
         ),
-      ).rejects.toThrowError('Email already exists');
+      ).rejects.toThrow('Email already exists');
       expect(roleChangeSpy).not.toHaveBeenCalled();
     });
 

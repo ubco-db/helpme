@@ -15,9 +15,7 @@ import {
 import { CourseModel } from '../course/course.entity';
 import { UserModel } from '../profile/user.entity';
 import { QuestionModel } from '../question/question.entity';
-import { HttpException, HttpStatus } from '@nestjs/common';
 import {
-  ERROR_MESSAGES,
   OpenQuestionStatus,
   QueueConfig,
   QueueTypes,
@@ -61,7 +59,7 @@ export class QueueModel extends BaseEntity {
   @Column({ default: false })
   allowQuestions: boolean;
 
-  @Column({ default: 'hybrid' })
+  @Column({ type: 'enum', enum: QueueTypes, default: QueueTypes.Hybrid })
   type: QueueTypes;
 
   @Column('text', { nullable: true })

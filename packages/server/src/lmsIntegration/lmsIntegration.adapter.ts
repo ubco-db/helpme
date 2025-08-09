@@ -286,6 +286,11 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
             announcement.posted_at.trim() != ''
               ? new Date(announcement.posted_at)
               : undefined,
+          modified:
+            announcement.last_reply_at != undefined &&
+            announcement.last_reply_at.trim() != ''
+              ? new Date(announcement.last_reply_at)
+              : undefined,
         } as LMSAnnouncement;
       });
     announcements.sort((a0, a1) => {
@@ -338,6 +343,11 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
           due:
             assignment.due_at != undefined && assignment.due_at.trim() != ''
               ? new Date(assignment.due_at)
+              : undefined,
+          modified:
+            assignment.updated_at != undefined &&
+            assignment.updated_at.trim() != ''
+              ? new Date(assignment.updated_at)
               : undefined,
         } as LMSAssignment;
       });

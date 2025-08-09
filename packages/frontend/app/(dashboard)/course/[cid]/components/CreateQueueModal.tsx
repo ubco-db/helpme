@@ -1,15 +1,14 @@
 import { QuestionCircleOutlined } from '@ant-design/icons'
 import { QueueTypes, Role, validateQueueConfigInput } from '@koh/common'
 import {
-  Modal,
-  Form,
-  Radio,
-  Input,
-  Switch,
-  Tooltip,
   Button,
+  Form,
+  Input,
   message,
+  Modal,
+  Radio,
   Segmented,
+  Tooltip,
 } from 'antd'
 import TextArea from 'antd/lib/input/TextArea'
 import { useState } from 'react'
@@ -50,11 +49,10 @@ const CreateQueueModal: React.FC<CreateQueueModalProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [hoveredConfig, setHoveredConfig] = useState<ConfigPresets>('default')
 
-  const queueTypeOptions = [
-    { label: 'Online', value: 'online' },
-    { label: 'Hybrid', value: 'hybrid' },
-    { label: 'In-Person', value: 'inPerson' },
-  ]
+  const queueTypeOptions = Object.keys(QueueTypes).map((k) => ({
+    label: k,
+    value: (QueueTypes as Record<string, string>)[k] as QueueTypes,
+  }))
 
   const onFinish = async (values: FormValues) => {
     setIsLoading(true)
@@ -122,7 +120,7 @@ const CreateQueueModal: React.FC<CreateQueueModalProps> = ({
           form={form}
           name="form_in_modal"
           initialValues={{
-            type: 'hybrid',
+            type: QueueTypes.Hybrid,
             allowTA: true,
           }}
           clearOnDestroy

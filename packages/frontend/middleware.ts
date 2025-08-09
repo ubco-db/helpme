@@ -41,7 +41,9 @@ export async function middleware(
 
   // Case: User tries to access a page that requires authentication without an auth token
   if (!cookies.has('auth_token') && !isPublicPageRequested) {
-    return NextResponse.redirect(new URL('/login', url))
+    return NextResponse.redirect(
+      new URL(`/login?redirect=${nextUrl.pathname}`, url),
+    )
   }
 
   // Case: User has auth token and tries to access a page that requires authentication
@@ -58,7 +60,10 @@ export async function middleware(
           () => {
             // run this function once out of retry attempts
             const response = NextResponse.redirect(
-              new URL('/login?error=sessionExpired', url),
+              new URL(
+                `/login?error=sessionExpired&redirect=${nextUrl.pathname}`,
+                url,
+              ),
             )
             response.cookies.delete('auth_token')
             return response
@@ -122,7 +127,7 @@ export async function middleware(
         return await handleRetry(request, () => {
           const response = NextResponse.redirect(
             new URL(
-              `/login?error=errorCode${data.status}${encodeURIComponent(data.statusText)}`,
+              `/login?error=errorCode${data.status}${encodeURIComponent(data.statusText)}&redirect=${nextUrl.pathname}`,
               url,
             ),
           )
@@ -177,7 +182,7 @@ export async function middleware(
           },
         })
         const response = NextResponse.redirect(
-          new URL('/login?error=fetchError', url),
+          new URL(`/login?error=fetchError&redirect=${nextUrl.pathname}`, url),
         )
         return response
       })

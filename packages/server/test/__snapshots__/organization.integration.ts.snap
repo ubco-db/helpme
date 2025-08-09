@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`Organization Integration GET /organization should return 200 and list of organizations 1`] = `
 [
@@ -45,7 +45,7 @@ exports[`Organization Integration GET /organization/:oid should return 200 and r
 }
 `;
 
-exports[`Organization Integration GET /organization/:oid/get_courses/:page? should return 200 when user is an admin 1`] = `
+exports[`Organization Integration GET /organization/:oid/get_courses{/:page} should return 200 when user is an admin 1`] = `
 [
   {
     "courseId": 1,
@@ -84,7 +84,7 @@ exports[`Organization Integration GET /organization/:oid/get_user/:uid should re
 }
 `;
 
-exports[`Organization Integration GET /organization/:oid/get_users/:page? should return 200 when user is an admin 1`] = `
+exports[`Organization Integration GET /organization/:oid/get_users{/:page} should return 200 when user is an admin 1`] = `
 [
   {
     "email": "user@ubc.ca",

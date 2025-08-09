@@ -1,20 +1,20 @@
 import { API } from '@/app/api'
 import UserAvatar from '@/app/components/UserAvatar'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import {
+  CrownFilled,
   DownOutlined,
   QuestionCircleOutlined,
   SearchOutlined,
   UserDeleteOutlined,
 } from '@ant-design/icons'
-import { Role, User, UserPartial } from '@koh/common'
+import { OrganizationRole, Role, User, UserPartial } from '@koh/common'
 import {
   Button,
   Dropdown,
   Input,
   List,
-  Menu,
   message,
   Modal,
   Pagination,
@@ -26,7 +26,6 @@ import {
 import TextArea from 'antd/es/input/TextArea'
 import { Notebook, NotebookText } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { cn } from '@/app/utils/generalUtils'
 
 type CourseRosterTableProps = {
   courseId: number
@@ -214,7 +213,20 @@ const RosterItem: React.FC<{
           avatar={
             <UserAvatar photoURL={item.photoURL} username={item.name ?? ''} />
           }
-          title={<span className="mr-0 md:mr-2">{item.name}</span>}
+          title={
+            <span className="mr-0 md:mr-2">
+              {item.name}
+              {item.organizationRole == OrganizationRole.ADMIN && (
+                <Tooltip title={'This user is an organization administrator.'}>
+                  <CrownFilled
+                    className={
+                      'ml-1 text-yellow-500 transition-all hover:text-yellow-300'
+                    }
+                  />
+                </Tooltip>
+              )}
+            </span>
+          }
           className="flex flex-grow items-center"
         />
         {isSensitiveInfoHidden ? (

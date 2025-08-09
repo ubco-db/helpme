@@ -85,7 +85,6 @@ import { RedisModule } from '@liaoliaots/nestjs-redis';
       ],
       isGlobal: true,
     }),
-    AdminModule,
     CommandModule,
     SSEModule,
     BackfillModule,

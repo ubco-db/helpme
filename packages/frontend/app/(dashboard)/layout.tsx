@@ -14,7 +14,7 @@ import Image from 'next/image'
 import ChatbotContextProvider from './course/[cid]/components/chatbot/ChatbotProvider'
 import FooterBar from './components/FooterBar'
 import { AsyncToasterProvider } from '../contexts/AsyncToasterContext'
-import { ReloadOutlined, LogoutOutlined } from '@ant-design/icons'
+import { LogoutOutlined, ReloadOutlined } from '@ant-design/icons'
 import { getErrorMessage } from '../utils/generalUtils'
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
@@ -35,7 +35,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         })
         .catch((error) => {
           if (error.status === 401) {
-            router.push('/api/v1/logout')
+            router.push(`/api/v1/logout?redirect=${pathname}`)
           } else {
             setErrorGettingUser(getErrorMessage(error))
           }
@@ -60,7 +60,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <Button
         icon={<LogoutOutlined />}
         onClick={() => {
-          router.push('/api/v1/logout')
+          router.push(`/api/v1/logout?redirect=${pathname}`)
         }}
         danger
       >
@@ -86,7 +86,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <p>
         <Link
           className="text-xl text-blue-500"
-          href="/api/v1/logout"
+          href={`/api/v1/logout?redirect=${pathname}`}
           prefetch={false}
         >
           Log Out
