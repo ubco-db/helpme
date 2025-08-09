@@ -1,17 +1,18 @@
-import { Role, MailServiceType, asyncQuestionStatus } from '@koh/common';
+import { asyncQuestionStatus, MailServiceType, Role } from '@koh/common';
 import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
 import { CourseModel } from 'course/course.entity';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { UserModel } from 'profile/user.entity';
 import {
-  UserFactory,
-  CourseFactory,
-  UserCourseFactory,
-  AsyncQuestionFactory,
-  userSubscriptionFactory,
-  mailServiceFactory,
   AsyncQuestionCommentFactory,
+  AsyncQuestionFactory,
+  CourseFactory,
+  mailServiceFactory,
+  SentEmailFactory,
+  UserCourseFactory,
+  UserFactory,
+  userSubscriptionFactory,
 } from './util/factories';
 import {
   expectEmailNotSent,
@@ -288,7 +289,7 @@ describe('AsyncQuestion Integration - Email Tests', () => {
 
       // ensure mailService.sendEmail was actually called
       expectEmailSent(
-        [staffMember.email],
+        [[staffMember.email]],
         [MailServiceType.ASYNC_QUESTION_FLAGGED],
       );
     });
@@ -316,7 +317,7 @@ describe('AsyncQuestion Integration - Email Tests', () => {
         .expect(200);
       // checks
       expectEmailSent(
-        [staffMember.email, otherStaffMember.email],
+        [[staffMember.email, otherStaffMember.email]],
         [
           MailServiceType.ASYNC_QUESTION_FLAGGED,
           MailServiceType.ASYNC_QUESTION_FLAGGED,
@@ -385,7 +386,7 @@ describe('AsyncQuestion Integration - Email Tests', () => {
         .expect(200);
       // only 1 email is sent, and that's to staffMember, and not to the other student
       expectEmailSent(
-        [staffMember.email],
+        [[staffMember.email]],
         [MailServiceType.ASYNC_QUESTION_FLAGGED],
       );
     });
@@ -408,6 +409,26 @@ describe('AsyncQuestion Integration - Email Tests', () => {
       expectEmailSent(
         [questionOwner.email],
         [MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED],
+      );
+    });
+    it('sends a reply email to original NeedsFeedback email when a staff makes the question HumanAnswered', async () => {
+      await SentEmailFactory.create({
+        subject: 'Question Needs Feedback',
+        accepted: [staffMember.email],
+        serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
+        metadata: { asyncQuestionId: asyncQuestion.id },
+      });
+      await supertest({ userId: staffMember.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({ status: asyncQuestionStatus.HumanAnswered })
+        .expect(200);
+
+      expectEmailSent(
+        [questionOwner.email, [staffMember.email]],
+        [
+          MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
+          MailServiceType.ASYNC_QUESTION_FLAGGED,
+        ],
       );
     });
     it('does NOT send an email for otherStudent if they are subscribed', async () => {

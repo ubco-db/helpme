@@ -9,6 +9,7 @@ import { AsyncQuestionCommentModel } from './asyncQuestionComment.entity';
 import * as Sentry from '@sentry/nestjs';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 import { CourseSettingsModel } from '../course/course_settings.entity';
+import { SentEmailModel } from '../mail/sent-email.entity';
 
 @Injectable()
 export class AsyncQuestionService {
@@ -40,7 +41,7 @@ export class AsyncQuestionService {
       // note: not awaiting since it can take a moment to send emails
       this.mailService
         .sendEmail({
-          receiver: question.creator.email,
+          receiverOrReceivers: question.creator.email,
           type: service.serviceType,
           subject: `HelpMe - ${commenterIsStaff ? commenter.name : 'Someone'} Commented on Your Anytime Question`,
           content: `<br> <b>${commenterIsStaff ? commenter.name : 'Someone'} has commented on your "${question.questionAbstract ?? (question.questionText ? question.questionText.slice(0, 50) : '')}" Anytime Question:</b> 
@@ -97,7 +98,7 @@ export class AsyncQuestionService {
     Promise.allSettled(
       subscriptions.map((sub) =>
         this.mailService.sendEmail({
-          receiver: sub.user.email,
+          receiverOrReceivers: sub.user.email,
           type: MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST,
           subject: `HelpMe - ${commenterIsStaff ? commenter.name : 'Someone'} Commented on an Anytime Question You Commented on`,
           content: `<br> <b>${commenterIsStaff ? commenter.name : 'Someone'} has commented on the "${updatedQuestion.questionAbstract ?? (updatedQuestion.questionText ? updatedQuestion.questionText.slice(0, 50) : '')}" Anytime Question:</b> 
@@ -146,31 +147,34 @@ export class AsyncQuestionService {
 
     // Send emails in parallel
     // note: not awaiting since it can take a moment to send emails
-    Promise.allSettled(
-      subscriptions.map((sub) =>
-        this.mailService.sendEmail({
-          receiver: sub.user.email,
-          type: MailServiceType.ASYNC_QUESTION_FLAGGED,
-          subject: 'HelpMe - New Question Marked as Needing Attention',
-          content: `<br> <b>A new question has been posted on the Anytime Question Hub and has been marked as needing attention:</b> 
+
+    if (subscriptions.length == 0) return;
+
+    this.mailService
+      .sendEmail({
+        receiverOrReceivers: subscriptions.map((s) => s.user.email),
+        type: MailServiceType.ASYNC_QUESTION_FLAGGED,
+        subject: 'HelpMe - New Question Marked as Needing Attention',
+        content: `<br> <b>A new question has been posted on the Anytime Question Hub and has been marked as needing attention:</b> 
                     <br> ${question.questionAbstract ? `<b>Question Abstract:</b> ${question.questionAbstract}` : ''}
                     <br> ${question.questionTypes?.length > 0 ? `<b>Question Types:</b> ${question.questionTypes.map((qt) => qt.name).join(', ')}` : ''}
                     <br> ${question.questionText ? `<b>Question Text:</b> ${question.questionText}` : ''}
                     <br>
                     <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Answer It Here</a> <br>`,
-        }),
-      ),
-    ).then((sendEmailResults) => {
-      // Capture any email failures in Sentry
-      sendEmailResults.forEach((result) => {
-        if (result.status === 'rejected') {
-          Sentry.captureException(result.reason);
-        }
-      });
-    });
+        track: true,
+        metadata: {
+          asyncQuestionId: question.id,
+        },
+      })
+      .catch((err) => Sentry.captureException(err));
   }
 
-  async sendQuestionAnsweredEmail(question: AsyncQuestionModel) {
+  async sendQuestionAnsweredEmails(question: AsyncQuestionModel) {
+    await this.sendQuestionAnsweredFollowup(question).catch((err) => {
+      console.error(err);
+      Sentry.captureException(err);
+    });
+
     const subscription = await UserSubscriptionModel.findOne({
       where: {
         userId: question.creator.id,
@@ -188,7 +192,7 @@ export class AsyncQuestionService {
       const { cleanAnswer } = parseThinkBlock(question.answerText);
       this.mailService
         .sendEmail({
-          receiver: question.creator.email,
+          receiverOrReceivers: question.creator.email,
           type: service.serviceType,
           subject: 'HelpMe - Your Anytime Question Has Been Answered',
           content: `<br> <b>Your question on the Anytime Question Hub has been answered or verified by staff.</b> 
@@ -199,6 +203,41 @@ export class AsyncQuestionService {
           console.error('Failed to send email Human Answered email: ' + err);
           Sentry.captureException(err);
         });
+    }
+  }
+
+  async sendQuestionAnsweredFollowup(question: AsyncQuestionModel) {
+    const needsAttentionEmails = await SentEmailModel.createQueryBuilder('se')
+      .select()
+      .where('se.serviceType = :serviceType', {
+        serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
+      })
+      .andWhere('se.metadata @> :metadata', {
+        metadata: { asyncQuestionId: question.id },
+      })
+      .getMany();
+
+    if (needsAttentionEmails.length > 0) {
+      Promise.allSettled([
+        needsAttentionEmails.map(async (email) =>
+          this.mailService.replyToSentEmail(
+            email,
+            `<br> <b>This is a follow-up notice. The anytime question referenced by the previous email has now received an answer.</b>
+           <br> No further intervention is required at this time.
+           <br> 
+           <br> The answer:
+           <br> ${question.answerText}
+           <br>
+           <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View It Here</a> <br>`,
+          ),
+        ),
+      ]).then((results) => {
+        for (const result of results) {
+          if (result.status == 'rejected') {
+            Sentry.captureException(result.reason);
+          }
+        }
+      });
     }
   }
 
@@ -224,7 +263,7 @@ export class AsyncQuestionService {
       // note: not awaiting since it can take a moment to send emails
       this.mailService
         .sendEmail({
-          receiver: question.creator.email,
+          receiverOrReceivers: question.creator.email,
           type: service.serviceType,
           subject: 'HelpMe - Your Anytime Question Status Has Changed',
           content: `<br> <b>The status of your question on the Anytime Question Hub has been updated by a staff member.</b> 
@@ -255,7 +294,7 @@ export class AsyncQuestionService {
       // note: not awaiting since it can take a moment to send emails
       this.mailService
         .sendEmail({
-          receiver: updatedQuestion.creator.email,
+          receiverOrReceivers: updatedQuestion.creator.email,
           type: service.serviceType,
           subject: 'HelpMe - Your Anytime Question Has Been Upvoted',
           content: `<br> <b>Your question on the Anytime Question Hub has received an upvote.</b> 

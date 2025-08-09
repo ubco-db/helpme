@@ -260,14 +260,27 @@ export const mockRedisQueueService = {
 export const overrideRedisQueue: ModuleModifier = (builder) =>
   builder.overrideProvider(RedisQueueService).useValue(mockRedisQueueService);
 
+const mockSendEmail = jest.fn().mockImplementation(() => Promise.resolve());
 export const mockEmailService = {
-  sendEmail: jest.fn().mockImplementation(() => Promise.resolve()),
+  sendEmail: mockSendEmail,
+  replyToSentEmail: jest.fn().mockImplementation((sentEmail, content) => {
+    mockSendEmail({
+      subject: `Re: ${sentEmail.subject}`,
+      content,
+      receiverOrReceivers: sentEmail.accepted,
+      type: sentEmail.serviceType,
+      replyId: sentEmail.emailId,
+    });
+  }),
 };
 
 export const overrideEmailService: ModuleModifier = (builder) =>
   builder.overrideProvider(MailService).useValue(mockEmailService);
 /* Takes an array of emails (receivers) and type of email (types)*/
-export const expectEmailSent = (receivers: string[], types: string[]): void => {
+export const expectEmailSent = (
+  receivers: (string | string[])[],
+  types: string[],
+): void => {
   expect(mockEmailService.sendEmail).toHaveBeenCalledTimes(receivers.length);
   const calls = mockEmailService.sendEmail.mock.calls.map((args) => args[0]);
   // expect that each receiver was sent an email of the correct type
@@ -275,7 +288,7 @@ export const expectEmailSent = (receivers: string[], types: string[]): void => {
     expect.arrayContaining(
       receivers.map((item, i) =>
         expect.objectContaining({
-          receiver: receivers[i],
+          receiverOrReceivers: receivers[i],
           type: types[i],
         }),
       ),

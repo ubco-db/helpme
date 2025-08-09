@@ -828,7 +828,7 @@ export class CourseService {
     `;
 
     this.mailService.sendEmail({
-      receiver: user.email,
+      receiverOrReceivers: user.email,
       type: MailServiceType.COURSE_CLONE_SUMMARY,
       subject: 'HelpMe - Course Clone Summary',
       content: bodyRender,

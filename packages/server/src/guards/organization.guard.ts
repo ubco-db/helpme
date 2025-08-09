@@ -26,10 +26,7 @@ export class OrganizationGuard implements CanActivate {
     );
   }
 
-  async setupData(
-     
-    request: any,
-  ): Promise<{ user: OrganizationUserModel }> {
+  async setupData(request: any): Promise<{ user: OrganizationUserModel }> {
     const user = await OrganizationUserModel.findOne({
       where: {
         userId:
