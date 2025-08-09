@@ -24,11 +24,28 @@ export class LMSCourseIntegrationModel extends BaseEntity {
   @Column({ type: 'text' })
   apiCourseId: string;
 
-  @Column({ type: 'text' })
-  apiKey: string;
+  // STANDARD IMPL
+  @Column({ type: 'text', nullable: true })
+  apiKey?: string;
 
   @Column({ type: 'timestamp', nullable: true })
-  apiKeyExpiry: Date;
+  apiKeyExpiry?: Date;
+
+  // OAUTH-FLOW IMPL
+  @Column({ type: 'text', nullable: true })
+  apiToken?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  apiTokenAcquired?: Date;
+
+  @Column({ type: 'integer', nullable: true, default: 3600000 })
+  apiTokenTTL?: number; // MILLISECONDS
+
+  @Column({ type: 'text', nullable: true })
+  apiRefreshToken?: string;
+
+  @Column({ type: 'boolean', default: false })
+  apiTokenExpired?: false;
 
   @Column({ type: 'boolean', default: false })
   lmsSynchronize: boolean;
