@@ -306,7 +306,9 @@ export class ChatbotApiService {
       // Add the main file with fieldname "file"
       formData.append(
         'file',
-        new Blob([file.buffer], { type: 'application/pdf' }), // it's always going to be pdf
+        new Blob([file.buffer.buffer as ArrayBuffer], {
+          type: 'application/pdf',
+        }), // it's always going to be pdf
         file.originalname.replace(/\.[^/.]+$/, '.pdf'), // Replace original extension with .pdf
       );
 
@@ -371,7 +373,7 @@ export class ChatbotApiService {
 
       formData.append(
         'file',
-        new Blob([file.buffer], { type: file.mimetype }),
+        new Blob([file.buffer.buffer as ArrayBuffer], { type: file.mimetype }),
         file.originalname,
       );
 
