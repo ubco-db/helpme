@@ -1,4 +1,4 @@
-import { INestApplication, Type } from '@nestjs/common';
+import { DynamicModule, INestApplication, Module, Type } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule, TestingModuleBuilder } from '@nestjs/testing';
@@ -22,6 +22,13 @@ import { FactoryService } from 'factory/factory.service';
 import { initFactoriesFromService } from './factories';
 import { BaseExceptionFilter } from 'exception_filters/generic-exception.filter';
 import { APP_FILTER } from '@nestjs/core';
+import { ChatbotController } from '../../src/chatbot/chatbot.controller';
+import { CacheModule } from '@nestjs/cache-manager';
+import { ChatbotService } from '../../src/chatbot/chatbot.service';
+import { ChatbotApiService } from '../../src/chatbot/chatbot-api.service';
+import { ChatbotSettingsSubscriber } from '../../src/chatbot/chatbot-infrastructure-models/chatbot-settings.subscriber';
+import { ChatbotModule } from '../../src/chatbot/chatbot.module';
+import { ChatbotDataSourceModule } from '../../src/chatbot/chatbot-datasource/chatbot-datasource.module';
 
 export interface SupertestOptions {
   userId?: number;
@@ -39,10 +46,26 @@ export const TestTypeOrmConfig: PostgresConnectionOptions = {
 };
 export const TestTypeOrmModule = TypeOrmModule.forRoot(TestTypeOrmConfig);
 
+export const TestChatbotConnectionOptions: PostgresConnectionOptions = {
+  ...TestTypeOrmConfig,
+  database: 'chatbot_test',
+  entities: undefined,
+};
+export const TestChatbotDataSourceModule = ChatbotDataSourceModule.forRoot(
+  TestChatbotConnectionOptions,
+);
+
 export const TestConfigModule = ConfigModule.forRoot({
   envFilePath: ['.env.development'],
   isGlobal: true,
 });
+
+@Module({
+  controllers: [ChatbotController],
+  imports: [CacheModule.register()],
+  providers: [ChatbotService, ChatbotApiService],
+})
+export class TestChatbotModule {}
 
 export function setupIntegrationTest(
   module: Type<any>,
@@ -126,6 +149,10 @@ export function setupIntegrationTest(
         },
       ],
     });
+
+    testModuleBuilder
+      .overrideModule(ChatbotDataSourceModule)
+      .useModule(TestChatbotDataSourceModule);
 
     if (modifyModule) {
       testModuleBuilder = modifyModule(testModuleBuilder);

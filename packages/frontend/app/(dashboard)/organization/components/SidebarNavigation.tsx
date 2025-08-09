@@ -5,6 +5,7 @@ import {
   CodeOutlined,
   ExperimentOutlined,
   InteractionOutlined,
+  RobotOutlined,
   SettingOutlined,
   TeamOutlined,
   UserOutlined,
@@ -33,6 +34,12 @@ const items = [
     label: 'Settings',
     icon: <SettingOutlined />,
     url: '/organization/settings',
+  },
+  {
+    key: 'ai',
+    label: 'AI Settings',
+    icon: <RobotOutlined />,
+    url: '/organization/ai',
   },
   {
     key: 'lms_integrations',

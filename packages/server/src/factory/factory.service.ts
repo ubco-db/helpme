@@ -3,6 +3,8 @@ import {
   AlertType,
   asyncQuestionStatus,
   calendarEventLocationType,
+  ChatbotServiceProvider,
+  ChatbotServiceType,
   LMSIntegrationPlatform,
   MailServiceType,
   OrganizationRole,
@@ -42,6 +44,16 @@ import { QueueChatsModel } from '../queueChats/queue-chats.entity';
 import { DataSource } from 'typeorm';
 import { Injectable } from '@nestjs/common';
 import { OrganizationSettingsModel } from '../organization/organization_settings.entity';
+import {
+  ChatbotProviderFactory,
+  CourseChatbotSettingsFactory,
+  LLMTypeFactory,
+  OrganizationChatbotSettingsFactory,
+} from '../../test/util/factories';
+import { OrganizationChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/organization-chatbot-settings.entity';
+import { LLMTypeModel } from '../chatbot/chatbot-infrastructure-models/llm-type.entity';
+import { ChatbotProviderModel } from '../chatbot/chatbot-infrastructure-models/chatbot-provider.entity';
+import { CourseChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
 import { SentEmailModel } from '../mail/sent-email.entity';
 
 /* Has all of our factories and initializes them with the db dataSource. 
@@ -89,6 +101,10 @@ export class FactoryService {
   public lmsAssignmentFactory: Factory<LMSAssignmentModel>;
   public queueChatsFactory: Factory<QueueChatsModel>;
   public OrganizationSettingsFactory: Factory<OrganizationSettingsModel>;
+  public OrganizationChatbotSettingsFactory: Factory<OrganizationChatbotSettingsModel>;
+  public ChatbotProviderFactory: Factory<ChatbotProviderModel>;
+  public LLMTypeFactory: Factory<LLMTypeModel>;
+  public CourseChatbotSettingsFactory: Factory<CourseChatbotSettingsModel>;
 
   constructor(dataSource: DataSource) {
     this.UserFactory = new Factory(UserModel, dataSource)
@@ -340,5 +356,50 @@ export class FactoryService {
       OrganizationSettingsModel,
       dataSource,
     ).assocOne('organization', this.OrganizationFactory);
+
+    this.OrganizationChatbotSettingsFactory = new Factory(
+      OrganizationChatbotSettingsModel,
+      dataSource,
+    ).assocOne('organization', this.OrganizationFactory);
+
+    this.ChatbotProviderFactory = new Factory(ChatbotProviderModel, dataSource)
+      .assocOne(
+        'organizationChatbotSettings',
+        this.OrganizationChatbotSettingsFactory,
+      )
+      .attr('baseUrl', 'https://fake-ollama-url.com')
+      .attr('providerType', ChatbotServiceProvider.Ollama)
+      .attr('nickname', 'Ollama Provider');
+
+    this.OrganizationChatbotSettingsFactory.assocOne(
+      'defaultProvider',
+      this.ChatbotProviderFactory,
+    ).assocMany('providers', this.ChatbotProviderFactory);
+
+    this.LLMTypeFactory = new Factory(LLMTypeModel, dataSource)
+      .assocOne('provider', this.ChatbotProviderFactory)
+      .attr('modelName', 'qwen2.5:7b')
+      .attr('isText', true)
+      .attr('isVision', false)
+      .attr('isThinking', false);
+
+    this.ChatbotProviderFactory.assocOne('defaultModel', this.LLMTypeFactory)
+      .assocOne('defaultVisionModel', this.LLMTypeFactory)
+      .assocMany('availableModels', this.LLMTypeFactory);
+
+    this.CourseChatbotSettingsFactory = new Factory(
+      CourseChatbotSettingsModel,
+      dataSource,
+    )
+      .assocOne('organizationSettings', this.OrganizationChatbotSettingsFactory)
+      .assocOne('llmModel', this.LLMTypeFactory)
+      .assocOne('course', this.CourseFactory);
+
+    this.LLMTypeFactory.assocMany('courses', this.CourseChatbotSettingsFactory);
+
+    this.OrganizationChatbotSettingsFactory.assocMany(
+      'courseSettingsInstances',
+      this.CourseChatbotSettingsFactory,
+    );
   }
 }
