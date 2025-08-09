@@ -72,9 +72,9 @@ describe('Calendar Integration', () => {
   });
   afterEach(async () => {
     // delete all calendar staff
-    await CalendarStaffModel.clear();
+    await CalendarStaffModel.createQueryBuilder().delete().execute();
     // delete all calendar events
-    await CalendarModel.clear();
+    await CalendarModel.createQueryBuilder().delete().execute();
   });
 
   describe('POST /calendar/:cid', () => {

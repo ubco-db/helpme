@@ -19,10 +19,10 @@ describe('SemesterController Integration', () => {
   let semester2: SemesterModel;
 
   beforeEach(async () => {
-    await SemesterModel.clear();
-    await OrganizationUserModel.clear();
-    await UserModel.clear();
-    await OrganizationModel.clear();
+    await SemesterModel.createQueryBuilder().delete().execute();
+    await OrganizationUserModel.createQueryBuilder().delete().execute();
+    await UserModel.createQueryBuilder().delete().execute();
+    await OrganizationModel.createQueryBuilder().delete().execute();
   });
 
   describe('GET /semesters/:oid', () => {

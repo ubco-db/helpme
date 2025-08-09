@@ -1396,7 +1396,7 @@ describe('Organization Integration', () => {
         serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
       });
 
-      await UserSubscriptionModel.clear();
+      await UserSubscriptionModel.createQueryBuilder().delete().execute();
 
       const res = await supertest({ userId: admin.id }).post(
         `/organization/${organization.id}/populate_subscription_table`,
@@ -1495,7 +1495,7 @@ describe('Organization Integration', () => {
         serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
       });
 
-      await UserSubscriptionModel.clear();
+      await UserSubscriptionModel.createQueryBuilder().delete().execute();
 
       const res = await supertest({ userId: admin.id }).post(
         `/organization/${organization.id}/populate_subscription_table`,
@@ -1571,7 +1571,7 @@ describe('Organization Integration', () => {
         serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
       });
 
-      await UserSubscriptionModel.clear();
+      await UserSubscriptionModel.createQueryBuilder().delete().execute();
 
       const res = await supertest({ userId: admin.id }).post(
         `/organization/${organization.id}/populate_subscription_table`,
