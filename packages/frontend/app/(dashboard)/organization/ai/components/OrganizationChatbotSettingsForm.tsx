@@ -201,6 +201,7 @@ const OrganizationChatbotSettingsForm: React.FC<
       provider,
       ...prev.slice(editingCreateProvider.index + 1),
     ])
+    setEditingCreateProvider(undefined)
     setOnReload(true)
   }
 

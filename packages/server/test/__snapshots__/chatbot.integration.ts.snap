@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`ChatbotController Integration GET course/:courseId should return course settings (ROLE: admin) 1`] = `
 {

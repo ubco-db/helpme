@@ -354,24 +354,11 @@ export class ChatbotService {
         ...params,
       } as DeepPartial<OrganizationChatbotSettingsModel>);
 
-      // Don't do Promise.all as it has weird interactions in transactions
-      const newProviders: ChatbotProviderModel[] = [];
       for (const prov of providers) {
-        newProviders.push(
-          await this.createChatbotProvider(orgChatbotSettings, prov, em),
-        );
+        await this.createChatbotProvider(orgChatbotSettings, prov, em);
       }
 
-      let defaultProvider: ChatbotProviderModel;
-      if (providerIndex != undefined) {
-        defaultProvider = newProviders[providerIndex];
-      }
-      defaultProvider ??= newProviders[0];
-      orgChatbotSettings.defaultProvider = defaultProvider;
-
-      inserted = await em
-        .getRepository(OrganizationChatbotSettingsModel)
-        .save(orgChatbotSettings);
+      inserted = await orgChatbotSettingsRepo.save(orgChatbotSettings);
       await queryRunner.commitTransaction();
     } catch (err) {
       if (queryRunner.isTransactionActive && !queryRunner.isReleased) {
@@ -386,6 +373,49 @@ export class ChatbotService {
       throw err;
     } finally {
       await queryRunner.release();
+    }
+
+    if (inserted) {
+      const newProviders = await ChatbotProviderModel.find({
+        where: {
+          orgChatbotSettingsId: inserted.id,
+        },
+      });
+
+      let defaultProvider: ChatbotProviderModel;
+      if (providerIndex != undefined) {
+        defaultProvider = newProviders[providerIndex];
+      }
+      defaultProvider ??= newProviders[0];
+
+      const qr = this.dataSource.createQueryRunner();
+      await qr.connect();
+      await qr.startTransaction();
+      try {
+        if (!defaultProvider) {
+          throw new BadRequestException(
+            ERROR_MESSAGES.chatbotService.defaultModelNotFound,
+          );
+        }
+        await qr.manager
+          .getRepository(OrganizationChatbotSettingsModel)
+          .update(
+            { id: inserted.id },
+            { defaultProviderId: defaultProvider.id },
+          );
+
+        await qr.commitTransaction();
+      } catch (err) {
+        if (qr.isTransactionActive) {
+          await qr.rollbackTransaction();
+        }
+        await qr.manager.delete(OrganizationChatbotSettingsModel, {
+          id: inserted.id,
+        });
+        throw err;
+      } finally {
+        await qr.release();
+      }
     }
 
     inserted = await OrganizationChatbotSettingsModel.findOne({
@@ -555,7 +585,7 @@ export class ChatbotService {
       defaultProvider != organization.defaultProviderId &&
       organization.providers.some((p) => p.id == defaultProvider)
         ? defaultProvider
-        : (organization.defaultProviderId ?? organization.providers[0].id);
+        : (organization.defaultProviderId ?? organization.providers[0]?.id);
 
     await OrganizationChatbotSettingsModel.update(
       {
@@ -650,29 +680,23 @@ export class ChatbotService {
       }
 
       if (params.modifiedModels) {
-        Object.keys(params.modifiedModels).forEach((k) => {
-          const i = parseInt(k);
-          if ((params?.deletedModels ?? []).includes(i)) {
-            delete params.modifiedModels[i];
-          }
-        });
-        for (const k of Object.keys(params.modifiedModels)) {
-          const id = parseInt(k);
-          const modified = params.modifiedModels[id];
-          const modelIndex = models.findIndex((m) => m.id == id);
+        params.modifiedModels = params.modifiedModels.filter(
+          (m0) => !params.deletedModels?.some((m1) => m1 == m0.modelId),
+        );
+        for (const modified of params.modifiedModels) {
+          const modelIndex = models.findIndex((m) => m.id == modified.modelId);
           if (modelIndex < 0) {
             throw new NotFoundException(
               ERROR_MESSAGES.chatbotService.modelNotFound,
             );
           }
           const model = models[modelIndex];
-
           if (
             modified.isText != undefined &&
             !modified.isText &&
-            (params.defaultModelId == id ||
+            (params.defaultModelId == modified.modelId ||
               (params.defaultModelId == undefined &&
-                provider.defaultModelId == id))
+                provider.defaultModelId == modified.modelId))
           ) {
             throw new BadRequestException(
               ERROR_MESSAGES.chatbotService.cannotChangeDefaultModelType(
@@ -684,9 +708,9 @@ export class ChatbotService {
           if (
             modified.isVision != undefined &&
             !modified.isVision &&
-            (params.defaultVisionModelId == id ||
+            (params.defaultVisionModelId == modified.modelId ||
               (params.defaultVisionModelId == undefined &&
-                provider.defaultVisionModelId == id))
+                provider.defaultVisionModelId == modified.modelId))
           ) {
             throw new BadRequestException(
               ERROR_MESSAGES.chatbotService.cannotChangeDefaultModelType(

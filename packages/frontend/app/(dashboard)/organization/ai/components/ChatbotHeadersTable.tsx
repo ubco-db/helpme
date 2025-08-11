@@ -55,6 +55,11 @@ const ChatbotHeadersTable: React.FC<ChatbotHeadersTableProps> = ({
           changed.push(match)
         }
       }
+      changed.push(
+        ...headers.filter(
+          (h0) => !Object.keys(initialHeaders ?? {}).some((h1) => h0.key == h1),
+        ),
+      )
       const newHeaders: ChatbotAllowedHeaders = { ...initialHeaders }
       changed.forEach((h) => (newHeaders[h.key] = h.value))
       deleted.forEach((h) => delete newHeaders[h])

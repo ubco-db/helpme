@@ -748,6 +748,7 @@ export class CreateChatbotProviderBody {
 
   @IsArray()
   @Type(() => CreateLLMTypeBody)
+  @ValidateNested({ each: true })
   models!: CreateLLMTypeBody[]
 
   @IsString()
@@ -800,18 +801,21 @@ export class UpdateChatbotProviderBody {
 
   @IsArray()
   @IsOptional()
+  @Type(() => Number)
+  @ValidateNested({ each: true })
   deletedModels?: number[]
 
   @IsArray()
   @IsOptional()
   @Type(() => CreateLLMTypeBody)
+  @ValidateNested({ each: true })
   addedModels?: CreateLLMTypeBody[]
 
-  @IsObject()
+  @IsArray()
   @IsOptional()
-  @ValidateNested({ each: true })
   @Type(() => UpdateLLMTypeBody)
-  modifiedModels?: Record<number, UpdateLLMTypeBody>
+  @ValidateNested({ each: true })
+  modifiedModels?: UpdateLLMTypeBody[]
 
   @IsArray()
   @IsOptional()
@@ -844,6 +848,10 @@ export class CreateLLMTypeBody {
 }
 
 export class UpdateLLMTypeBody {
+  @IsNumber()
+  @IsOptional()
+  modelId?: number
+
   @IsString()
   @IsOptional()
   modelName?: string

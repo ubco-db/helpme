@@ -189,33 +189,40 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
   )
 
   const getModifiedModels = () => {
-    if (provider === undefined) return {}
-    const mods: Record<number, UpdateLLMTypeBody> = {}
-    models
-      .map((m0) => ({
-        m0,
-        m1: provider.availableModels.find((m1) => m1.modelName == m0.modelName),
-      }))
-      .forEach(({ m0, m1 }) => {
-        const model = m0
-        const original = m1
-        if (!original) return
-        if (
-          model.isText != original.isText ||
-          model.isVision != original.isVision ||
-          model.isThinking != original.isThinking ||
-          model.isRecommended != original.isRecommended ||
-          JSON.stringify(model?.additionalNotes ?? []) !=
-            JSON.stringify(original?.additionalNotes ?? [])
-        )
-          mods[original.id] = {
-            isRecommended: model.isRecommended,
-            isText: model.isText,
-            isVision: model.isVision,
-            isThinking: model.isThinking,
-            additionalNotes: model.additionalNotes,
-          }
-      })
+    if (provider === undefined) return []
+    const mods: UpdateLLMTypeBody[] = []
+    for (const model of models) {
+      const original = provider.availableModels.find(
+        (m) => m.modelName == model.modelName,
+      )
+      if (!original) continue
+      if (
+        model.isText != original.isText ||
+        model.isVision != original.isVision ||
+        model.isThinking != original.isThinking ||
+        model.isRecommended != original.isRecommended ||
+        JSON.stringify(model?.additionalNotes ?? []) !=
+          JSON.stringify(original?.additionalNotes ?? [])
+      ) {
+        console.log({
+          modelId: model.id,
+          isRecommended: model.isRecommended,
+          isText: model.isText,
+          isVision: model.isVision,
+          isThinking: model.isThinking,
+          additionalNotes: model.additionalNotes,
+        })
+        mods.push({
+          modelId: model.id,
+          isRecommended: model.isRecommended,
+          isText: model.isText,
+          isVision: model.isVision,
+          isThinking: model.isThinking,
+          additionalNotes: model.additionalNotes,
+        } satisfies UpdateLLMTypeBody)
+      }
+    }
+    console.log(mods)
     return mods
   }
 
@@ -285,7 +292,13 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
             values = { ...values, apiKey: undefined }
           }
 
-          const addedModels = getAddedModels()
+          const addedModels = getAddedModels().map((m: any) => {
+            delete m.id
+            delete m.families
+            delete m.parameterSize
+            delete m.provider
+            return m as CreateLLMTypeBody
+          })
           const modifiedModels = getModifiedModels()
           const deletedModels = getDeletedModels()
           API.chatbot.adminOnly
@@ -367,7 +380,7 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
           defaultVisionModelName != provider.defaultVisionModel.modelName ||
           haveNotesChanged ||
           addedModels.length > 0 ||
-          Object.keys(modifiedModels).length > 0 ||
+          modifiedModels.length > 0 ||
           deletedModels.length > 0
       : false
   }, [
@@ -770,7 +783,9 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
                 onClick={handleFinish}
                 disabled={provider != undefined && !haveSettingsChanged}
               >
-                {provider != undefined ? 'Confirm Edits' : 'Create Provider'}
+                {props != undefined || provider != undefined
+                  ? 'Confirm Edits'
+                  : 'Create Provider'}
               </Button>
             </Tooltip>
           </Card>

@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource, RemoveOptions, SaveOptions } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { ChatbotService, openAIModels } from './chatbot.service';
 import {
   TestChatbotDataSourceModule,
@@ -7,16 +7,16 @@ import {
   TestTypeOrmModule,
 } from '../../test/util/testUtils';
 import {
-  UserFactory,
-  CourseFactory,
-  InteractionFactory,
-  initFactoriesFromService,
-  OrganizationFactory,
-  OrganizationCourseFactory,
-  OrganizationChatbotSettingsFactory,
   ChatbotProviderFactory,
-  LLMTypeFactory,
   CourseChatbotSettingsFactory,
+  CourseFactory,
+  initFactoriesFromService,
+  InteractionFactory,
+  LLMTypeFactory,
+  OrganizationChatbotSettingsFactory,
+  OrganizationCourseFactory,
+  OrganizationFactory,
+  UserFactory,
 } from '../../test/util/factories';
 import { ChatbotQuestionModel } from './question.entity';
 import { FactoryModule } from 'factory/factory.module';
@@ -567,7 +567,9 @@ describe('ChatbotService', () => {
         });
       });
 
-      expect(updateChatbotRepositorySpy).toHaveBeenCalledTimes(courses1.length);
+      expect(updateChatbotRepositorySpy).toHaveBeenCalledTimes(
+        4 * courses1.length,
+      );
       for (const course of courses1) {
         const courseSetting = await CourseChatbotSettingsModel.findOne({
           where: {
@@ -728,7 +730,9 @@ describe('ChatbotService', () => {
           );
         });
 
-      expect(updateChatbotRepositorySpy).toHaveBeenCalledTimes(courses0.length);
+      expect(updateChatbotRepositorySpy).toHaveBeenCalledTimes(
+        2 * courses0.length,
+      );
       params.models.forEach((model) => {
         const resultModel = result.availableModels.find(
           (m) => m.modelName == model.modelName,
