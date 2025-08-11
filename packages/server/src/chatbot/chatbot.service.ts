@@ -525,6 +525,7 @@ export class ChatbotService {
     params: CreateLLMTypeBody,
     entityManager?: EntityManager,
   ): Promise<LLMTypeModel> {
+    delete (params as any).provider;
     return await (
       entityManager
         ? entityManager.getRepository(LLMTypeModel)
@@ -554,7 +555,7 @@ export class ChatbotService {
       defaultProvider != organization.defaultProviderId &&
       organization.providers.some((p) => p.id == defaultProvider)
         ? defaultProvider
-        : organization.defaultProviderId;
+        : (organization.defaultProviderId ?? organization.providers[0].id);
 
     await OrganizationChatbotSettingsModel.update(
       {
@@ -879,6 +880,8 @@ export class ChatbotService {
       : CourseChatbotSettingsModel.getRepository();
 
     const llmType = await repository.findOne({ where: { id: llmTypeId } });
+    if (!llmType) return;
+
     const provider = await providerRepository.findOne({
       where: {
         id: llmType.providerId,

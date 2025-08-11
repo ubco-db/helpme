@@ -14,6 +14,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  ValidateNested,
 } from 'class-validator'
 import 'reflect-metadata'
 import { Cache } from 'cache-manager'
@@ -746,6 +747,7 @@ export class CreateChatbotProviderBody {
   apiKey?: string
 
   @IsArray()
+  @Type(() => CreateLLMTypeBody)
   models!: CreateLLMTypeBody[]
 
   @IsString()
@@ -802,10 +804,13 @@ export class UpdateChatbotProviderBody {
 
   @IsArray()
   @IsOptional()
+  @Type(() => CreateLLMTypeBody)
   addedModels?: CreateLLMTypeBody[]
 
   @IsObject()
   @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => UpdateLLMTypeBody)
   modifiedModels?: Record<number, UpdateLLMTypeBody>
 
   @IsArray()
