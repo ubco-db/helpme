@@ -758,6 +758,7 @@ export class CreateChatbotProviderBody {
   defaultVisionModelName!: string
 
   @IsArray()
+  @IsString({ each: true })
   @IsOptional()
   additionalNotes?: string[]
 }
@@ -800,9 +801,8 @@ export class UpdateChatbotProviderBody {
   defaultVisionModelId?: number
 
   @IsArray()
+  @IsNumber({}, { each: true })
   @IsOptional()
-  @Type(() => Number)
-  @ValidateNested({ each: true })
   deletedModels?: number[]
 
   @IsArray()
@@ -818,6 +818,7 @@ export class UpdateChatbotProviderBody {
   modifiedModels?: UpdateLLMTypeBody[]
 
   @IsArray()
+  @IsString({ each: true })
   @IsOptional()
   additionalNotes?: string[]
 }
@@ -843,6 +844,7 @@ export class CreateLLMTypeBody {
   providerId?: number
 
   @IsArray()
+  @IsString({ each: true })
   @IsOptional()
   additionalNotes?: string[]
 }
@@ -873,6 +875,7 @@ export class UpdateLLMTypeBody {
   isThinking?: boolean
 
   @IsArray()
+  @IsString({ each: true })
   @IsOptional()
   additionalNotes?: string[]
 }
