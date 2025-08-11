@@ -6,12 +6,10 @@ import {
   FindOptionsWhere,
   In,
   InsertEvent,
-  RemoveEvent,
   UpdateEvent,
 } from 'typeorm';
 import { CourseChatbotSettingsModel } from './course-chatbot-settings.entity';
 import { ChatbotApiService } from '../chatbot-api.service';
-import { InjectDataSource } from '@nestjs/typeorm';
 import { HttpException } from '@nestjs/common';
 import { LLMTypeModel } from './llm-type.entity';
 import { ChatbotProviderModel } from './chatbot-provider.entity';
@@ -163,7 +161,10 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
           });
         try {
           await event.queryRunner.connect();
-          await event.queryRunner.startTransaction();
+          const alreadyInTransaction = event.queryRunner.isTransactionActive;
+          if (!alreadyInTransaction) {
+            await event.queryRunner.startTransaction();
+          }
           await Promise.all(
             toUpdateGrouped.map(
               async (toUpdate) =>
@@ -178,7 +179,9 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
                 ),
             ),
           );
-          await event.queryRunner.commitTransaction();
+          if (!alreadyInTransaction) {
+            await event.queryRunner.commitTransaction();
+          }
         } catch (err) {
           if (event.queryRunner.isTransactionActive) {
             await event.queryRunner.rollbackTransaction();
@@ -196,7 +199,10 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
         if (updatedDefaultModel) {
           try {
             await event.queryRunner.connect();
-            await event.queryRunner.startTransaction();
+            const alreadyInTransaction = event.queryRunner.isTransactionActive;
+            if (!alreadyInTransaction) {
+              await event.queryRunner.startTransaction();
+            }
             await event.queryRunner.manager.update(
               CourseChatbotSettingsModel,
               {
@@ -208,7 +214,9 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
                 llmId: event.entity.defaultModelId,
               },
             );
-            await event.queryRunner.commitTransaction();
+            if (!alreadyInTransaction) {
+              await event.queryRunner.commitTransaction();
+            }
           } catch (err) {
             if (event.queryRunner.isTransactionActive) {
               await event.queryRunner.rollbackTransaction();

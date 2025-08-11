@@ -349,12 +349,10 @@ export class ChatbotService {
       const orgChatbotSettingsRepo = em.getRepository(
         OrganizationChatbotSettingsModel,
       );
-      const orgChatbotSettings = await orgChatbotSettingsRepo
-        .create({
-          organizationId,
-          ...params,
-        } as DeepPartial<OrganizationChatbotSettingsModel>)
-        .save();
+      const orgChatbotSettings = await orgChatbotSettingsRepo.save({
+        organizationId,
+        ...params,
+      } as DeepPartial<OrganizationChatbotSettingsModel>);
 
       // Don't do Promise.all as it has weird interactions in transactions
       const newProviders: ChatbotProviderModel[] = [];
@@ -371,7 +369,9 @@ export class ChatbotService {
       defaultProvider ??= newProviders[0];
       orgChatbotSettings.defaultProvider = defaultProvider;
 
-      inserted = await em.save(orgChatbotSettings);
+      inserted = await em
+        .getRepository(OrganizationChatbotSettingsModel)
+        .save(orgChatbotSettings);
       await queryRunner.commitTransaction();
     } catch (err) {
       if (queryRunner.isTransactionActive && !queryRunner.isReleased) {
@@ -379,7 +379,9 @@ export class ChatbotService {
       }
       if (inserted) {
         // Just in case the transaction wasn't fully rolled back
-        await inserted.remove();
+        await queryRunner.manager.delete(OrganizationChatbotSettingsModel, {
+          id: inserted.id,
+        });
       }
       throw err;
     } finally {
@@ -458,13 +460,10 @@ export class ChatbotService {
         );
       }
 
-      provider = await em
-        .getRepository(ChatbotProviderModel)
-        .create({
-          organizationChatbotSettings,
-          ...params,
-        })
-        .save();
+      provider = await em.getRepository(ChatbotProviderModel).save({
+        organizationChatbotSettings,
+        ...params,
+      });
 
       models = models.map((model) => ({
         ...model,
@@ -488,7 +487,7 @@ export class ChatbotService {
       provider.defaultModelId = defaultModel.id;
       provider.defaultVisionModelId = defaultVisionModel.id;
 
-      provider = await em.save(provider);
+      provider = await em.getRepository(ChatbotProviderModel).save(provider);
 
       if (queryRunner) {
         await queryRunner.commitTransaction();
@@ -501,7 +500,9 @@ export class ChatbotService {
       }
       if (provider) {
         // Just in case it wasn't fully rolled back
-        await provider.remove();
+        await queryRunner.manager.delete(ChatbotProviderModel, {
+          id: provider.id,
+        });
       }
       throw err;
     } finally {
@@ -528,12 +529,10 @@ export class ChatbotService {
       entityManager
         ? entityManager.getRepository(LLMTypeModel)
         : LLMTypeModel.getRepository()
-    )
-      .create({
-        ...params,
-        additionalNotes: params.additionalNotes ?? [],
-      })
-      .save();
+    ).save({
+      ...params,
+      additionalNotes: params.additionalNotes ?? [],
+    });
   }
 
   async updateOrganizationSettings(
@@ -591,6 +590,7 @@ export class ChatbotService {
     provider: ChatbotProviderModel,
     params: UpdateChatbotProviderBody,
   ): Promise<ChatbotProviderModel> {
+    const providerId = provider.id;
     const originalAttrs = pick(provider, [
       'providerType',
       'nickname',
@@ -614,7 +614,7 @@ export class ChatbotService {
           await this.createLLMType(
             {
               ...added,
-              providerId: provider.id,
+              providerId: providerId,
               additionalNotes: added.additionalNotes ?? [],
             },
             em,
@@ -623,7 +623,7 @@ export class ChatbotService {
       }
 
       const models = await em.find(LLMTypeModel, {
-        where: { providerId: provider.id },
+        where: { providerId: providerId },
       });
 
       const defaultModel = params.defaultModelName
@@ -709,10 +709,10 @@ export class ChatbotService {
       await em.update(
         ChatbotProviderModel,
         {
-          id: provider.id,
+          id: providerId,
         },
         {
-          id: provider.id, // Effectively does nothing as it's only for subscriber callbacks
+          id: providerId, // Effectively does nothing as it's only for subscriber callbacks
           ...originalAttrs,
           ...dropUndefined(
             pick(params, [
@@ -774,6 +774,7 @@ export class ChatbotService {
       },
       {
         id: llmType.id, // Effectively does nothing as it's only for subscriber callbacks
+        providerId: llmType.providerId,
         ...originalAttrs,
         ...dropUndefined(
           pick(params, [
