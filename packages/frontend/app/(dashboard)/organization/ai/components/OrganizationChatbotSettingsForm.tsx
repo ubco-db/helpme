@@ -111,6 +111,7 @@ const OrganizationChatbotSettingsForm: React.FC<
   const haveSettingsChanged = useMemo(() => {
     return organizationSettings !== undefined
       ? Object.keys(formValues)
+          .filter((k) => k != 'defaultProviderId')
           .map(
             (k) =>
               formValues[k as keyof OrganizationChatbotSettingsDefaults] !=
@@ -144,7 +145,6 @@ const OrganizationChatbotSettingsForm: React.FC<
             message.success(
               `Successfully created organization chatbot settings!`,
             )
-            console.log(settings)
             if (setSettings) setSettings(settings)
           })
           .catch((err) => {

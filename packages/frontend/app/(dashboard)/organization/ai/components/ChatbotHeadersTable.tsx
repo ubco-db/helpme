@@ -316,6 +316,7 @@ const EditableCell: React.FC<React.PropsWithChildren<EditableCellProps>> = ({
             ? ((record as Record<string, string>)[dataIndex] ?? viableKeys[0])
             : (record as Record<string, string>)[dataIndex]
         }
+        rules={[{ required: true }]}
       >
         {inputNode}
       </Form.Item>
