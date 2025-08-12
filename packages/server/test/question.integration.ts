@@ -877,7 +877,7 @@ describe('Question Integration', () => {
       }
       expect(response.status).toBe(201);
       expect(response.body).toMatchObject({
-        text: "Don't know recursion",
+        text: 'Help me',
         helpedAt: null,
         closedAt: null,
         questionTypes: [],
