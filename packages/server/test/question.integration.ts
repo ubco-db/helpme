@@ -71,7 +71,7 @@ describe('Question Integration', () => {
     },
   ];
 
-  describe('POST /questions', () => {
+  describe('POST /questions/:queueId', () => {
     const postQuestion = async (
       user: UserModel,
       queue: QueueModel,
@@ -80,10 +80,9 @@ describe('Question Integration', () => {
       isTaskQuestion = false,
       questionText = "Don't know recursion",
     ): Promise<supertest.Test> =>
-      await supertest({ userId: user.id }).post('/questions').send({
+      await supertest({ userId: user.id }).post(`/questions/${queue.id}`).send({
         text: questionText,
         questionTypes: questionTypes,
-        queueId: queue.id,
         force: force,
         groupable: true,
         isTaskQuestion,
@@ -119,7 +118,7 @@ describe('Question Integration', () => {
       await StudentCourseFactory.create({ user, courseId: queue.courseId });
       expect(await QuestionModel.count({ where: { queueId: 1 } })).toEqual(0);
       const response = await supertest({ userId: user.id })
-        .post('/questions')
+        .post(`/questions/${queue.id}`)
         .send({
           text: "Don't know recursion",
           questionTypes: [sendQuestionTypes],

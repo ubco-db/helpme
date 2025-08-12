@@ -5,18 +5,11 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  NotImplementedException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserModel } from '../profile/user.entity';
-
-export interface RolesGuard {
-  canActivate(context: ExecutionContext): Promise<boolean>;
-
-  matchRoles(roles: string[], user: UserModel, courseId: number): boolean;
-
-  setupData(request: any): Promise<{ courseId: number; user: UserModel }>;
-}
 
 /**
  * This is an abstract guard that gets extended by other guards (e.g. CourseRolesGuard and QueueRolesGuard)
@@ -36,8 +29,9 @@ export abstract class RolesGuard implements CanActivate {
       // if it doesn't have the roles decorator, maybe it has the CourseRoles decorator?
       roles = this.reflector.get<string[]>('CourseRoles', context.getHandler());
       if (!roles) {
-        // if it lacks any role decorator, then this guard won't do anything (TODO: maybe throw a NotImplementedException instead? Though doing this may break some endpoints)
-        return true;
+        throw new NotImplementedException(
+          'This endpoint is missing the @Roles decorator (and thus any RolesGuard will not work). Please notify a developer and we will fix it as soon as we can.',
+        );
       }
     }
     const request = context.switchToHttp().getRequest();
@@ -75,4 +69,9 @@ export abstract class RolesGuard implements CanActivate {
 
     return remaining.length > 0;
   }
+
+  // You implement this with a child class so that it provides a courseId and user (and user must have the courses relation loaded!)
+  abstract setupData(
+    request: any,
+  ): Promise<{ courseId: number; user: UserModel }>;
 }
