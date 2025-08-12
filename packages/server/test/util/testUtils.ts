@@ -19,9 +19,16 @@ import { RedisModule, RedisService } from '@liaoliaots/nestjs-redis';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
-import { initFactoriesFromService } from './factories';
+import {
+  CourseFactory,
+  initFactoriesFromService,
+  QueueFactory,
+  UserFactory,
+} from './factories';
 import { BaseExceptionFilter } from 'exception_filters/generic-exception.filter';
 import { APP_FILTER } from '@nestjs/core';
+import { Role } from '@koh/common';
+import { UserCourseModel } from 'profile/user-course.entity';
 
 export interface SupertestOptions {
   userId?: number;
@@ -340,3 +347,72 @@ async function ensureAllRedisConnected(
     );
   }
 }
+
+export const failedPermsCheckForCourse = async (
+  route: (courseId: number) => string,
+  courseRole: Role,
+  method: 'GET' | 'POST' | 'DELETE',
+) => {
+  const user = await UserFactory.create();
+  const course = await CourseFactory.create();
+
+  await UserCourseModel.create({
+    userId: user.id,
+    courseId: course.id,
+    role: courseRole,
+  }).save();
+
+  const sp = supertest({ userId: user.id });
+  const path = route(course.id);
+  let res: any;
+  switch (method) {
+    case 'DELETE':
+      res = await sp.delete(path);
+      break;
+    case 'GET':
+      res = await sp.get(path);
+      break;
+    case 'POST':
+      res = await sp.post(path);
+      break;
+  }
+  expect(res.statusCode).toBe(403);
+};
+
+export const failedPermsCheckForQueue = async (
+  route: (queueId: number) => string,
+  courseRole: Role,
+  method: 'GET' | 'POST' | 'DELETE',
+) => {
+  const user = await UserFactory.create();
+  const course = await CourseFactory.create();
+  const queue = await QueueFactory.create({ courseId: course.id });
+
+  await UserCourseModel.create({
+    userId: user.id,
+    courseId: course.id,
+    role: courseRole,
+  }).save();
+
+  const sp = supertest({ userId: user.id });
+  const path = route(queue.id);
+  let res: any;
+  switch (method) {
+    case 'DELETE':
+      res = await sp.delete(path);
+      break;
+    case 'GET':
+      res = await sp.get(path);
+      break;
+    case 'POST':
+      res = await sp.post(path);
+      break;
+  }
+  expect(res.statusCode).toBe(403);
+};
+
+// TODO: add a function for not allowing someone to access a route because they are not in the course (said function will need to be passed what a successful call would look like and then just call it from another user who is in the same or but different course).
+
+// TODO: Add some functions for calling routes with bad data to make sure said data isn't being accepted.
+// Idk exactly how to go about it, but I know one thing that can be broken is typeorm if you pass it the name of entities that are null, which would cause errors.
+// Could also try to call with a bunch of the correct properties but all booleans or all strings or something.
