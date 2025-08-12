@@ -813,12 +813,12 @@ describe('Question Integration', () => {
     });
     it('should return 200 when staff accesses route', async () => {
       const course = await CourseFactory.create();
-      const student = await UserFactory.create();
-      await StudentCourseFactory.create({ course: course, user: student });
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({ courseId: course.id, userId: ta.id });
       const queue = await QueueFactory.create({ course: course });
       const question = await QuestionFactory.create({ queue: queue });
 
-      const response = await supertest({ userId: student.id }).get(
+      const response = await supertest({ userId: ta.id }).get(
         `/questions/allQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
@@ -829,7 +829,7 @@ describe('Question Integration', () => {
   describe('POST /questions/TAcreate/:queueId/:userId', () => {
     it('should return 403 when non-staff accesses route', async () => {
       await failedPermsCheckForQueue(
-        (queueId) => `/questions/TAcreate/${queueId}`,
+        (queueId) => `/questions/TAcreate/${queueId}/1`,
         Role.STUDENT,
         'POST',
         supertest,
@@ -837,11 +837,15 @@ describe('Question Integration', () => {
     });
     it('should return 201 when staff accesses route', async () => {
       const course = await CourseFactory.create();
-      const student = await UserFactory.create();
-      await StudentCourseFactory.create({ course: course, user: student });
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({ courseId: course.id, userId: ta.id });
       const queue = await QueueFactory.create({ course: course });
-      const question = await QuestionFactory.create({ queue: queue });
-      const response = await supertest({ userId: student.id })
+      const student = await UserFactory.create();
+      await StudentCourseFactory.create({
+        courseId: course.id,
+        userId: student.id,
+      });
+      const response = await supertest({ userId: ta.id })
         .post(`/questions/TAcreate/${queue.id}/${student.id}`)
         .send({
           text: 'Help me',
