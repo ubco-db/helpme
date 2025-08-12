@@ -789,7 +789,7 @@ describe('Question Integration', () => {
       const response = await postQuestion(user, queue, questionTypes);
       expect(response.status).toBe(201);
     });
-    it.each([Role.STUDENT, Role.TA])(
+    it.each([Role.PROFESSOR, Role.TA])(
       'should return 403 when staff accesses the route',
       async (role) => {
         await failedPermsCheckForQueue(

@@ -379,6 +379,10 @@ export const failedPermsCheckForCourse = async (
       res = await sp.post(path);
       break;
   }
+  if (res.statusCode !== 403) {
+    // failing test
+    console.error(res.body);
+  }
   expect(res.statusCode).toBe(403);
 };
 
@@ -392,7 +396,7 @@ export const failedPermsCheckForQueue = async (
 ) => {
   const user = await UserFactory.create();
   const course = await CourseFactory.create();
-  const queue = await QueueFactory.create({ courseId: course.id });
+  const queue = await QueueFactory.create({ course: course });
 
   await UserCourseModel.create({
     userId: user.id,
@@ -413,6 +417,10 @@ export const failedPermsCheckForQueue = async (
     case 'POST':
       res = await sp.post(path);
       break;
+  }
+  if (res.statusCode !== 403) {
+    // failing test
+    console.error(res.body);
   }
   expect(res.statusCode).toBe(403);
 };
