@@ -856,6 +856,7 @@ describe('Question Integration', () => {
       const queue = await QueueFactory.create({
         course: course,
         staffList: [ta],
+        allowQuestions: true,
       });
       const student = await UserFactory.create();
       await StudentCourseFactory.create({
