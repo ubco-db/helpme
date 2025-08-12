@@ -802,10 +802,10 @@ describe('Question Integration', () => {
     );
   });
 
-  describe('GET /allQuestions/:cid', () => {
+  describe('GET /questions/allQuestions/:cid', () => {
     it('should return 403 when non-staff accesses route', async () => {
       await failedPermsCheckForCourse(
-        (courseId) => `/allQuestions/${courseId}`,
+        (courseId) => `/questions/allQuestions/${courseId}`,
         Role.STUDENT,
         'GET',
         supertest,
@@ -819,17 +819,17 @@ describe('Question Integration', () => {
       const question = await QuestionFactory.create({ queue: queue });
 
       const response = await supertest({ userId: student.id }).get(
-        `/allQuestions/${course.id}`,
+        `/questions/allQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
       expect(response.body).toContainEqual(question);
     });
   });
 
-  describe('POST /TAcreate/:queueId/:userId', () => {
+  describe('POST /questions/TAcreate/:queueId/:userId', () => {
     it('should return 403 when non-staff accesses route', async () => {
       await failedPermsCheckForQueue(
-        (queueId) => `/TAcreate/${queueId}`,
+        (queueId) => `/questions/TAcreate/${queueId}`,
         Role.STUDENT,
         'POST',
         supertest,
@@ -842,7 +842,7 @@ describe('Question Integration', () => {
       const queue = await QueueFactory.create({ course: course });
       const question = await QuestionFactory.create({ queue: queue });
       const response = await supertest({ userId: student.id })
-        .post(`/TAcreate/${queue.id}/${student.id}`)
+        .post(`/questions/TAcreate/${queue.id}/${student.id}`)
         .send({
           text: 'Help me',
           questionTypes: [],
