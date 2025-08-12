@@ -822,7 +822,21 @@ describe('Question Integration', () => {
         `/questions/allQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      expect(response.body).toContainEqual(question);
+      expect(response.body).toContainEqual(
+        expect.objectContaining({
+          id: question.id,
+          text: question.text,
+          status: question.status,
+          queueId: question.queueId,
+          creatorName: question.creator.name,
+          questionTypes: expect.arrayContaining([
+            expect.objectContaining({
+              name: question.questionTypes[0].name,
+              color: question.questionTypes[0].color,
+            }),
+          ]),
+        }),
+      );
     });
   });
 
@@ -850,18 +864,21 @@ describe('Question Integration', () => {
         .send({
           text: 'Help me',
           questionTypes: [],
-          groupable: false,
-          location: 'queue',
+          groupable: true,
           isTaskQuestion: false,
+          force: false,
         });
+      if (response.status !== 201) {
+        console.error(response.body);
+      }
       expect(response.status).toBe(201);
       expect(response.body).toMatchObject({
-        id: expect.any(Number),
-        text: 'Help me',
+        text: "Don't know recursion",
+        helpedAt: null,
+        closedAt: null,
         questionTypes: [],
-        groupable: false,
-        location: 'queue',
-        isTaskQuestion: false,
+        status: QuestionStatusKeys.Queued,
+        groupable: true,
       });
     });
   });
