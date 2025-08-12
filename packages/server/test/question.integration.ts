@@ -853,7 +853,10 @@ describe('Question Integration', () => {
       const course = await CourseFactory.create();
       const ta = await UserFactory.create();
       await TACourseFactory.create({ courseId: course.id, userId: ta.id });
-      const queue = await QueueFactory.create({ course: course });
+      const queue = await QueueFactory.create({
+        course: course,
+        staffList: [ta],
+      });
       const student = await UserFactory.create();
       await StudentCourseFactory.create({
         courseId: course.id,
@@ -866,7 +869,7 @@ describe('Question Integration', () => {
           questionTypes: [],
           groupable: true,
           isTaskQuestion: false,
-          force: false,
+          force: true,
         });
       if (response.status !== 201) {
         console.error(response.body);
