@@ -802,6 +802,66 @@ describe('Question Integration', () => {
     );
   });
 
+  describe('GET /allQuestions/:cid', () => {
+    it('should return 403 when non-staff accesses route', async () => {
+      await failedPermsCheckForCourse(
+        (courseId) => `/allQuestions/${courseId}`,
+        Role.STUDENT,
+        'GET',
+        supertest,
+      );
+    });
+    it('should return 200 when staff accesses route', async () => {
+      const course = await CourseFactory.create();
+      const student = await UserFactory.create();
+      await StudentCourseFactory.create({ course: course, user: student });
+      const queue = await QueueFactory.create({ course: course });
+      const question = await QuestionFactory.create({ queue: queue });
+
+      const response = await supertest({ userId: student.id }).get(
+        `/allQuestions/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      expect(response.body).toContainEqual(question);
+    });
+  });
+
+  describe('POST /TAcreate/:queueId/:userId', () => {
+    it('should return 403 when non-staff accesses route', async () => {
+      await failedPermsCheckForQueue(
+        (queueId) => `/TAcreate/${queueId}`,
+        Role.STUDENT,
+        'POST',
+        supertest,
+      );
+    });
+    it('should return 201 when staff accesses route', async () => {
+      const course = await CourseFactory.create();
+      const student = await UserFactory.create();
+      await StudentCourseFactory.create({ course: course, user: student });
+      const queue = await QueueFactory.create({ course: course });
+      const question = await QuestionFactory.create({ queue: queue });
+      const response = await supertest({ userId: student.id })
+        .post(`/TAcreate/${queue.id}/${student.id}`)
+        .send({
+          text: 'Help me',
+          questionTypes: [],
+          groupable: false,
+          location: 'queue',
+          isTaskQuestion: false,
+        });
+      expect(response.status).toBe(201);
+      expect(response.body).toMatchObject({
+        id: expect.any(Number),
+        text: 'Help me',
+        questionTypes: [],
+        groupable: false,
+        location: 'queue',
+        isTaskQuestion: false,
+      });
+    });
+  });
+
   describe('PATCH /questions/:id', () => {
     it('will accurately set waitTime and helpTime when going from Drafting -> Queued -> Helping -> Paused -> Helping -> Requeueing -> Queued -> Helping -> Resolved', async () => {
       // Create an alert to hopefully avoid create alert table error?
@@ -2102,66 +2162,6 @@ describe('Question Integration', () => {
       ).toMatchObject({
         status: QuestionStatusKeys.Paused,
         lastReadyAt: expect.any(Date),
-      });
-    });
-  });
-
-  describe('GET /allQuestions/:cid', () => {
-    it('should return 403 when non-staff accesses route', async () => {
-      await failedPermsCheckForCourse(
-        (courseId) => `/allQuestions/${courseId}`,
-        Role.STUDENT,
-        'GET',
-        supertest,
-      );
-    });
-    it('should return 200 when staff accesses route', async () => {
-      const course = await CourseFactory.create();
-      const student = await UserFactory.create();
-      await StudentCourseFactory.create({ course: course, user: student });
-      const queue = await QueueFactory.create({ course: course });
-      const question = await QuestionFactory.create({ queue: queue });
-
-      const response = await supertest({ userId: student.id }).get(
-        `/allQuestions/${course.id}`,
-      );
-      expect(response.status).toBe(200);
-      expect(response.body).toContainEqual(question);
-    });
-  });
-
-  describe('POST /TAcreate/:queueId/:userId', () => {
-    it('should return 403 when non-staff accesses route', async () => {
-      await failedPermsCheckForQueue(
-        (queueId) => `/TAcreate/${queueId}`,
-        Role.STUDENT,
-        'POST',
-        supertest,
-      );
-    });
-    it('should return 201 when staff accesses route', async () => {
-      const course = await CourseFactory.create();
-      const student = await UserFactory.create();
-      await StudentCourseFactory.create({ course: course, user: student });
-      const queue = await QueueFactory.create({ course: course });
-      const question = await QuestionFactory.create({ queue: queue });
-      const response = await supertest({ userId: student.id })
-        .post(`/TAcreate/${queue.id}/${student.id}`)
-        .send({
-          text: 'Help me',
-          questionTypes: [],
-          groupable: false,
-          location: 'queue',
-          isTaskQuestion: false,
-        });
-      expect(response.status).toBe(201);
-      expect(response.body).toMatchObject({
-        id: expect.any(Number),
-        text: 'Help me',
-        questionTypes: [],
-        groupable: false,
-        location: 'queue',
-        isTaskQuestion: false,
       });
     });
   });
