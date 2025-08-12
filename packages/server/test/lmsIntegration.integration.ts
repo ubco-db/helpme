@@ -70,6 +70,7 @@ describe('Lms Integration Integrations', () => {
           (id) => `/lms/${id}${route}`,
           role,
           'GET',
+          supertest,
         );
       },
     );
@@ -83,6 +84,7 @@ describe('Lms Integration Integrations', () => {
           (id) => `/lms/${id}/test`,
           courseRole,
           'POST',
+          supertest,
         );
       },
     );
@@ -96,6 +98,7 @@ describe('Lms Integration Integrations', () => {
           (id) => `/lms/course/${id}`,
           courseRole,
           'GET',
+          supertest,
         );
       },
     );
@@ -109,6 +112,7 @@ describe('Lms Integration Integrations', () => {
           (id) => `/lms/course/${id}/upsert`,
           courseRole,
           'POST',
+          supertest,
         );
       },
     );
@@ -122,6 +126,7 @@ describe('Lms Integration Integrations', () => {
           (id) => `/lms/course/${id}/remove`,
           courseRole,
           'DELETE',
+          supertest,
         );
       },
     );
@@ -135,6 +140,7 @@ describe('Lms Integration Integrations', () => {
           (id) => `/lms/${id}/sync`,
           courseRole,
           'POST',
+          supertest,
         );
       },
     );
@@ -155,6 +161,7 @@ describe('Lms Integration Integrations', () => {
           (id) => `/lms/${id}/sync/force`,
           courseRole,
           'POST',
+          supertest,
         );
       },
     );
@@ -175,6 +182,7 @@ describe('Lms Integration Integrations', () => {
           (id) => `/lms/${id}/sync/clear`,
           courseRole,
           'DELETE',
+          supertest,
         );
       },
     );
@@ -208,6 +216,7 @@ describe('Lms Integration Integrations', () => {
           (id) => `/lms/${id}/sync/announcement/0/toggle`,
           courseRole,
           'POST',
+          supertest,
         );
       },
     );
@@ -219,6 +228,7 @@ describe('Lms Integration Integrations', () => {
           (id) => `/lms/${id}/sync/assignment/0/toggle`,
           courseRole,
           'POST',
+          supertest,
         );
       },
     );
@@ -230,6 +240,7 @@ describe('Lms Integration Integrations', () => {
           (id) => `/lms/${id}/sync/page/0/toggle`,
           courseRole,
           'POST',
+          supertest,
         );
       },
     );
@@ -241,6 +252,7 @@ describe('Lms Integration Integrations', () => {
           (id) => `/lms/${id}/sync/file/0/toggle`,
           courseRole,
           'POST',
+          supertest,
         );
       },
     );

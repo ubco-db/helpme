@@ -125,7 +125,6 @@ describe('Question Integration', () => {
         .send({
           text: "Don't know recursion",
           questionTypes: [sendQuestionTypes],
-          queueId: queue.id,
           force: false,
           groupable: true,
         })
@@ -159,11 +158,10 @@ describe('Question Integration', () => {
       await StudentCourseFactory.create({ user, courseId: queue.courseId });
       expect(await QuestionModel.count({ where: { queueId: 1 } })).toEqual(0);
       const response = await supertest({ userId: user.id })
-        .post('/questions')
+        .post(`/questions/${queue.id}`)
         .send({
           text: "Don't know recursion",
           questionTypes: [],
-          queueId: queue.id,
           force: false,
           groupable: true,
         })
@@ -217,14 +215,19 @@ describe('Question Integration', () => {
       expect(response.status).toBe(403);
     });
     it('post question fails with non-existent queue', async () => {
+      const course = await CourseFactory.create();
+      const user = await UserFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
       // wait 0.25s to help deadlock issue?
       await new Promise((resolve) => setTimeout(resolve, 250));
-      await supertest({ userId: 99 })
-        .post('/questions')
+      await supertest({ userId: user.id })
+        .post('/questions/999')
         .send({
           text: "Don't know recursion",
           questionTypes: QuestionTypes,
-          queueId: 999,
           force: false,
           groupable: true,
         })
@@ -793,6 +796,7 @@ describe('Question Integration', () => {
           (queueId) => `/questions/${queueId}`,
           role,
           'POST',
+          supertest,
         );
       },
     );
@@ -1061,7 +1065,7 @@ describe('Question Integration', () => {
         .send({
           text: 'NEW TEXT',
         })
-        .expect(404);
+        .expect(403);
     });
     it('PATCH taHelped as student is not allowed', async () => {
       const course = await CourseFactory.create();
@@ -1206,12 +1210,6 @@ describe('Question Integration', () => {
           questionTypes: [{ id: qt.id }],
         })
         .expect(200);
-      await supertest({ userId: ta.id })
-        .patch(`/questions/${q.id}`)
-        .send({
-          queueId: 999,
-        })
-        .expect(401);
       await supertest({ userId: ta.id })
         .patch(`/questions/${q.id}`)
         .send({
@@ -2114,6 +2112,7 @@ describe('Question Integration', () => {
         (courseId) => `/allQuestions/${courseId}`,
         Role.STUDENT,
         'GET',
+        supertest,
       );
     });
     it('should return 200 when staff accesses route', async () => {
@@ -2137,6 +2136,7 @@ describe('Question Integration', () => {
         (queueId) => `/TAcreate/${queueId}`,
         Role.STUDENT,
         'POST',
+        supertest,
       );
     });
     it('should return 201 when staff accesses route', async () => {

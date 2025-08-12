@@ -352,6 +352,9 @@ export const failedPermsCheckForCourse = async (
   route: (courseId: number) => string,
   courseRole: Role,
   method: 'GET' | 'POST' | 'DELETE',
+  supertest: (
+    options?: SupertestOptions,
+  ) => supertest.SuperTest<supertest.Test>,
 ) => {
   const user = await UserFactory.create();
   const course = await CourseFactory.create();
@@ -383,6 +386,9 @@ export const failedPermsCheckForQueue = async (
   route: (queueId: number) => string,
   courseRole: Role,
   method: 'GET' | 'POST' | 'DELETE',
+  supertest: (
+    options?: SupertestOptions,
+  ) => supertest.SuperTest<supertest.Test>,
 ) => {
   const user = await UserFactory.create();
   const course = await CourseFactory.create();
