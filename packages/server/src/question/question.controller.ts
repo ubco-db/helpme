@@ -47,12 +47,18 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { QueueService } from '../queue/queue.service';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QuestionService } from './question.service';
+import { CourseRolesGuard } from 'guards/course-roles.guard';
+import { QueueRolesGuard } from 'guards/queue-role.guard';
 
 // NOTE: FIXME: EVERY REQUEST INTO QUESTIONCONTROLLER REQUIRES THE BODY TO HAVE A
 // FIELD questionId OR queueId! If not, stupid weird untraceable bugs will happen
 // and you will lose a lot of development time
+// Adam Update: this message has been here for a while and idk who wrote it.
+// It's because this whole controller used to have QuestionRolesGuard,
+// which is used to check if the user has access to the course that the question is in.
+// Without a questionId or queueId, the guard would just default to throwing a bad request exception.
 @Controller('questions')
-@UseGuards(JwtAuthGuard, QuestionRolesGuard, EmailVerifiedGuard)
+@UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class QuestionController {
   constructor(
@@ -63,6 +69,8 @@ export class QuestionController {
   ) {}
 
   @Get('allQuestions/:cid')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
   async getAllQuestions(
     @Param('cid', ParseIntPipe) cid: number,
   ): Promise<questions[]> {
@@ -102,20 +110,16 @@ export class QuestionController {
     });
   }
 
-  @Post('TAcreate/:userId')
+  @Post('TAcreate/:queueId/:userId')
+  @UseGuards(QueueRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
   async TAcreateQuestion(
     @Body() body: CreateQuestionParams,
+    @Param('queueId', ParseIntPipe) queueId: number,
     @Param('userId', ParseIntPipe) userId: number,
   ): Promise<any> {
-    const {
-      text,
-      questionTypes,
-      groupable,
-      location,
-      isTaskQuestion,
-      queueId,
-      force,
-    } = body;
+    const { text, questionTypes, groupable, location, isTaskQuestion, force } =
+      body;
 
     const queue = await QueueModel.findOne({
       where: { id: queueId },
@@ -210,21 +214,16 @@ export class QuestionController {
     }
   }
 
-  @Post()
+  @Post(':queueId')
+  @UseGuards(QueueRolesGuard)
   @Roles(Role.STUDENT)
   async createQuestion(
     @Body() body: CreateQuestionParams,
     @User() user: UserModel,
+    @Param('queueId', ParseIntPipe) queueId: number,
   ): Promise<CreateQuestionResponse> {
-    const {
-      text,
-      questionTypes,
-      groupable,
-      location,
-      isTaskQuestion,
-      queueId,
-      force,
-    } = body;
+    const { text, questionTypes, groupable, location, isTaskQuestion, force } =
+      body;
 
     const queue = await QueueModel.findOne({
       where: { id: queueId },
@@ -342,8 +341,8 @@ export class QuestionController {
   }
 
   @Patch(':questionId')
+  @UseGuards(QuestionRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
-  // TODO: Use queueRole decorator, but we need to fix its performance first
   async updateQuestion(
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateQuestionParams,
@@ -567,6 +566,7 @@ export class QuestionController {
   }
 
   @Post(':questionId/notify')
+  @UseGuards(QuestionRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
   async notify(
     @Param('questionId', ParseIntPipe) questionId: number,

@@ -802,12 +802,21 @@ class APIClient {
         `/api/v1/queues/${queueId}/questions`,
         ListQuestionsResponse,
       ),
-    create: async (params: CreateQuestionParams) =>
-      this.req('POST', `/api/v1/questions`, CreateQuestionResponse, params),
-    TAcreate: async (params: CreateQuestionParams, userId: number) =>
+    create: async (params: CreateQuestionParams, queueId: number) =>
       this.req(
         'POST',
-        `/api/v1/questions/TAcreate/${userId}`,
+        `/api/v1/questions/${queueId}`,
+        CreateQuestionResponse,
+        params,
+      ),
+    TAcreate: async (
+      params: CreateQuestionParams,
+      queueId: number,
+      userId: number,
+    ) =>
+      this.req(
+        'POST',
+        `/api/v1/questions/TAcreate/${queueId}/${userId}`,
         CreateQuestionResponse,
         params,
       ),
