@@ -484,6 +484,15 @@ describe('ChatbotController Integration', () => {
     });
 
     it('should delete the organization settings', async () => {
+      const user = await getUser(OrganizationRole.ADMIN);
+      const organizationSettings =
+        await OrganizationChatbotSettingsFactory.create({
+          organization,
+        });
+      await CourseChatbotSettingsFactory.create({
+        course: orgCourse.course,
+        organizationSettings,
+      });
       const spy0: jest.SpyInstance = jest.spyOn(
         ChatbotApiService.prototype,
         'resetChatbotSettings',
@@ -494,15 +503,6 @@ describe('ChatbotController Integration', () => {
         'updateChatbotSettings',
       );
       spy1.mockResolvedValue(undefined);
-      const user = await getUser(OrganizationRole.ADMIN);
-      const organizationSettings =
-        await OrganizationChatbotSettingsFactory.create({
-          organization,
-        });
-      await CourseChatbotSettingsFactory.create({
-        course: orgCourse.course,
-        organizationSettings,
-      });
       await supertest({ userId: user.id })
         .delete(`/chatbot/organization/${organization.id}`)
         .expect(200);
