@@ -10,7 +10,6 @@ import {
   InternalServerErrorException,
   NotFoundException,
   Param,
-  ParseEnumPipe,
   ParseIntPipe,
   Patch,
   Post,
@@ -29,8 +28,8 @@ import {
   ChatbotAskParams,
   ChatbotAskResponse,
   ChatbotAskSuggestedParams,
-  ChatbotQueryParams,
   ChatbotProvider,
+  ChatbotQueryParams,
   ChatbotQuestionResponseChatbotDB,
   ChatbotQuestionResponseHelpMeDB,
   ChatbotServiceProvider,
@@ -43,9 +42,9 @@ import {
   CreateLLMTypeBody,
   CreateOrganizationChatbotSettingsBody,
   ERROR_MESSAGES,
+  GetAvailableModelsBody,
   GetChatbotHistoryResponse,
   GetInteractionsAndQuestionsResponse,
-  GetAvailableModelsBody,
   InteractionResponse,
   LLMType,
   OllamaLLMType,
@@ -84,6 +83,7 @@ import { CourseRoles } from '../decorators/course-roles.decorator';
 import { OrgRoles } from '../decorators/org-roles.decorator';
 import { ChatbotLegacyEndpointGuard } from '../guards/chatbot-legacy-endpoint.guard';
 import { OrganizationCourseModel } from '../organization/organization-course.entity';
+import { pick } from 'lodash';
 
 @Controller('chatbot')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -887,6 +887,7 @@ export class ChatbotController {
   @Roles(OrganizationRole.ADMIN)
   async deleteOrganizationSettings(
     @Param('oid', ParseIntPipe) organizationId: number,
+    @User({ chat_token: true }) user: UserModel,
   ): Promise<void> {
     const original = await OrganizationChatbotSettingsModel.findOne({
       where: { organizationId },
@@ -896,7 +897,55 @@ export class ChatbotController {
         ERROR_MESSAGES.chatbotController.organizationSettingsNotFound,
       );
     }
+    handleChatbotTokenCheck(user);
+    const applicableCourses = await CourseChatbotSettingsModel.find({
+      where: {
+        organizationSettings: {
+          organizationId,
+        },
+      },
+    });
+
     await this.chatbotService.deleteOrganizationSettings(organizationId);
+
+    // Reset courses to legacy state
+    for (const course of applicableCourses) {
+      const params = pick(course, [
+        'prompt',
+        'topK',
+        'temperature',
+        'similarityThresholdDocuments',
+        'similarityThresholdQuestions',
+      ]);
+      const usingDefaults = pick(course, [
+        'usingDefaultPrompt',
+        'usingDefaultTopK',
+        'usingDefaultTemperature',
+        'usingDefaultSimilarityThresholdDocuments',
+        'usingDefaultSimilarityThresholdQuestions',
+      ]);
+      Object.keys(params).forEach((k0) => {
+        Object.keys(usingDefaults).forEach((k1) => {
+          if (k1.toLowerCase().includes(k0)) {
+            if (usingDefaults[k1]) {
+              delete params[k0];
+            }
+          }
+        });
+      });
+
+      // Reset to defaults
+      await this.chatbotApiService.resetChatbotSettings(
+        course.courseId,
+        user.chat_token.token,
+      );
+      // Update with any modified values
+      await this.chatbotApiService.updateChatbotSettings(
+        params,
+        course.courseId,
+        user.chat_token.token,
+      );
+    }
   }
 
   @Get('organization/:oid/course')

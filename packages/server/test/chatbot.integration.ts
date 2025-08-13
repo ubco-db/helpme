@@ -13,6 +13,7 @@ import {
 } from '@koh/common';
 import {
   ChatbotProviderFactory,
+  ChatTokenFactory,
   CourseChatbotSettingsFactory,
   CourseFactory,
   InteractionFactory,
@@ -36,9 +37,10 @@ import { ChatbotProviderModel } from '../src/chatbot/chatbot-infrastructure-mode
 import { ChatbotService } from '../src/chatbot/chatbot.service';
 import { CourseChatbotSettingsModel } from '../src/chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
 import { UserModel } from '../src/profile/user.entity';
+import { ChatbotApiService } from '../src/chatbot/chatbot-api.service';
 
 describe('ChatbotController Integration', () => {
-  const { supertest } = setupIntegrationTest(ChatbotModule);
+  const { supertest, getTestModule } = setupIntegrationTest(ChatbotModule);
 
   describe('PATCH /chatbot/questionScore/:courseId/:questionId', () => {
     it('should allow a student to update the score of a question', async () => {
@@ -270,9 +272,17 @@ describe('ChatbotController Integration', () => {
     };
   };
 
-  const getUser = async (role: OrganizationRole | Role) => {
-    const user = await UserFactory.create();
-
+  const getUser = async (role: OrganizationRole | Role, token = true) => {
+    let user = await UserFactory.create();
+    if (token) {
+      await ChatTokenFactory.create({
+        user,
+      });
+      user = await UserModel.findOne({
+        where: { id: user.id },
+        relations: { chat_token: true },
+      });
+    }
     if (Object.values(OrganizationRole).some((k) => k == role)) {
       await OrganizationUserFactory.create({
         organization,
@@ -463,14 +473,57 @@ describe('ChatbotController Integration', () => {
       );
     });
 
-    it('should delete the organization settings', async () => {
-      const user = await getUser(OrganizationRole.ADMIN);
+    it('should fail if user has no chat token', async () => {
+      const user = await getUser(OrganizationRole.ADMIN, false);
       await OrganizationChatbotSettingsFactory.create({
         organization,
       });
       await supertest({ userId: user.id })
         .delete(`/chatbot/organization/${organization.id}`)
+        .expect(403);
+    });
+
+    it('should delete the organization settings', async () => {
+      const spy0: jest.SpyInstance = jest.spyOn(
+        ChatbotApiService.prototype,
+        'resetChatbotSettings',
+      );
+      spy0.mockResolvedValue(undefined);
+      const spy1: jest.SpyInstance = jest.spyOn(
+        ChatbotApiService.prototype,
+        'updateChatbotSettings',
+      );
+      spy1.mockResolvedValue(undefined);
+      const user = await getUser(OrganizationRole.ADMIN);
+      const organizationSettings =
+        await OrganizationChatbotSettingsFactory.create({
+          organization,
+        });
+      await CourseChatbotSettingsFactory.create({
+        course: orgCourse.course,
+        organizationSettings,
+      });
+      await supertest({ userId: user.id })
+        .delete(`/chatbot/organization/${organization.id}`)
         .expect(200);
+      expect(spy0).toHaveBeenCalledTimes(1);
+      expect(spy0).toHaveBeenCalledWith(
+        orgCourse.courseId,
+        user.chat_token.token,
+      );
+      expect(spy1).toHaveBeenCalledTimes(1);
+      expect(spy1).toHaveBeenCalledWith(
+        {
+          prompt:
+            'You are a course help assistant for a course. Here are some rules for question answering:  1) You may use markdown for styling your answers. 2) Refer to context when you see fit. 3) Try not giving the assignment question answers directly to students, instead provide hints.',
+          similarityThresholdDocuments: 0.55,
+          similarityThresholdQuestions: 0.9,
+          temperature: 0.7,
+          topK: 5,
+        },
+        orgCourse.courseId,
+        user.chat_token.token,
+      );
       expect(
         await OrganizationChatbotSettingsModel.findOne({
           where: { organizationId: organization.id },
