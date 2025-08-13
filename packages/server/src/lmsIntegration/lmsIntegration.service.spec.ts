@@ -6,7 +6,12 @@ import {
 } from './lmsIntegration.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
+import {
+  TestChatbotModule,
+  TestChatbotDataSourceModule,
+  TestConfigModule,
+  TestTypeOrmModule,
+} from '../../test/util/testUtils';
 import {
   AbstractLMSAdapter,
   LMSIntegrationAdapter,
@@ -27,7 +32,7 @@ import {
   LMSIntegrationPlatform,
 } from '@koh/common';
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
-import { HttpStatus } from '@nestjs/common';
+import { HttpStatus, InjectionToken, Provider } from '@nestjs/common';
 import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
 import { CourseModel } from '../course/course.entity';
 import { OrganizationModel } from '../organization/organization.entity';
@@ -37,6 +42,8 @@ import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
 import { ChatbotModule } from '../chatbot/chatbot.module';
 import { ChatbotApiService } from '../chatbot/chatbot-api.service';
+import { getDataSourceToken, InjectDataSource } from '@nestjs/typeorm';
+import { ChatbotSettingsSubscriber } from '../chatbot/chatbot-infrastructure-models/chatbot-settings.subscriber';
 
 const mockCacheManager = {
   get: jest.fn(),
@@ -58,9 +65,10 @@ describe('LMSIntegrationService', () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [
         TestTypeOrmModule,
+        TestChatbotDataSourceModule,
         TestConfigModule,
         FactoryModule,
-        ChatbotModule,
+        TestChatbotModule,
       ],
       providers: [
         LMSIntegrationService,

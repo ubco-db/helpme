@@ -56,7 +56,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 when user is not an admin', async () => {
+    it('should return 403 when user is not an admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
 
@@ -69,7 +69,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/populate_chat_token_table`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should return 200 when chat token table is populated', async () => {
@@ -91,7 +91,7 @@ describe('Organization Integration', () => {
   });
 
   describe('POST /organization/:oid/add_member/:uid', () => {
-    it('should return 403 when user is not logged in', async () => {
+    it('should return 401 when user is not logged in', async () => {
       const response = await supertest().post('/organization/1/add_member/1');
 
       expect(response.status).toBe(401);
@@ -144,7 +144,7 @@ describe('Organization Integration', () => {
   });
 
   describe('GET /organization/:oid/get_users{/:page}', () => {
-    it('should return 403 when user is not logged in', async () => {
+    it('should return 401 when user is not logged in', async () => {
       const organization = await OrganizationFactory.create();
       const response = await supertest().get(
         `/organization/${organization.id}/get_users/1`,
@@ -153,7 +153,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 when user is not an admin', async () => {
+    it('should return 403 when user is not an admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
 
@@ -166,7 +166,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/get_users/1`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should return 200 when user is an admin', async () => {
@@ -189,7 +189,7 @@ describe('Organization Integration', () => {
   });
 
   describe('GET /organization/:oid/get_courses{/:page}', () => {
-    it('should return 403 when user is not logged in', async () => {
+    it('should return 401 when user is not logged in', async () => {
       const organization = await OrganizationFactory.create();
       const response = await supertest().get(
         `/organization/${organization.id}/get_courses/1`,
@@ -198,7 +198,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 when user is not an admin', async () => {
+    it('should return 403 when user is not an admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
 
@@ -211,7 +211,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/get_courses/1`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should return 200 when user is an admin', async () => {
@@ -240,7 +240,7 @@ describe('Organization Integration', () => {
   });
 
   describe('GET /organization/:oid/stats', () => {
-    it('should return 403 when user is not logged in', async () => {
+    it('should return 401 when user is not logged in', async () => {
       const organization = await OrganizationFactory.create();
       const response = await supertest().get(
         `/organization/${organization.id}/stats`,
@@ -249,7 +249,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 when user is not an admin', async () => {
+    it('should return 403 when user is not an admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
 
@@ -262,7 +262,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/stats`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should return 200 when user is an admin', async () => {
@@ -298,7 +298,7 @@ describe('Organization Integration', () => {
   });
 
   describe('GET /organization/:oid/get_user/:uid', () => {
-    it('should return 403 when user is not logged in', async () => {
+    it('should return 401 when user is not logged in', async () => {
       const organization = await OrganizationFactory.create();
       const response = await supertest().get(
         `/organization/${organization.id}/get_user/1`,
@@ -307,7 +307,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 when user is not an admin', async () => {
+    it('should return 403 when user is not an admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
 
@@ -320,7 +320,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/get_user/1`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should return 401 when searching for user not in the same organization', async () => {
@@ -421,7 +421,7 @@ describe('Organization Integration', () => {
   });
 
   describe('GET /organization/:oid', () => {
-    it('should return 403 when user is not logged in', async () => {
+    it('should return 401 when user is not logged in', async () => {
       const organization = await OrganizationFactory.create();
       const response = await supertest().get(
         `/organization/${organization.id}`,
@@ -467,7 +467,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 when user is not an admin', async () => {
+    it('should return 403 when user is not an admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
 
@@ -480,7 +480,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/update_account_access/1`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should return 401 when user to update is organization admin', async () => {
@@ -585,7 +585,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/update_user_role`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should return 400 when request missing body', async () => {
@@ -695,7 +695,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 when user is not an admin', async () => {
+    it('should return 403 when user is not an admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const userTwo = await UserFactory.create();
@@ -714,7 +714,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/edit_user/1`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should return 401 when user to update is global admin', async () => {
@@ -1271,7 +1271,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 when user is not an admin', async () => {
+    it('should return 403 when user is not an admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
 
@@ -1285,7 +1285,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/reset_chat_token_limit`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
     it('should reset chat token limits successfully', async () => {
       const admin = await UserFactory.create();
@@ -1396,7 +1396,7 @@ describe('Organization Integration', () => {
         serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
       });
 
-      await UserSubscriptionModel.delete({});
+      await UserSubscriptionModel.createQueryBuilder().delete().execute();
 
       const res = await supertest({ userId: admin.id }).post(
         `/organization/${organization.id}/populate_subscription_table`,
@@ -1451,7 +1451,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 when user is not an admin', async () => {
+    it('should return 403 when user is not an admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
 
@@ -1465,7 +1465,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/populate_subscription_table`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should populate subscription table successfully', async () => {
@@ -1495,9 +1495,7 @@ describe('Organization Integration', () => {
         serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
       });
 
-      await UserSubscriptionModel.delete({});
-
-      const existingSubscriptions = await UserSubscriptionModel.find();
+      await UserSubscriptionModel.createQueryBuilder().delete().execute();
 
       const res = await supertest({ userId: admin.id }).post(
         `/organization/${organization.id}/populate_subscription_table`,
@@ -1573,7 +1571,7 @@ describe('Organization Integration', () => {
         serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
       });
 
-      await UserSubscriptionModel.delete({});
+      await UserSubscriptionModel.createQueryBuilder().delete().execute();
 
       const res = await supertest({ userId: admin.id }).post(
         `/organization/${organization.id}/populate_subscription_table`,
@@ -1629,7 +1627,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 when user is not an admin', async () => {
+    it('should return 403 when user is not an admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
@@ -1648,7 +1646,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/update_course_access/${course.id}`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should return 404 when course not found', async () => {
@@ -2025,7 +2023,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 when is not admin', async () => {
+    it('should return 403 when user is not an admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
 
@@ -2038,7 +2036,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/update_account_access/1`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should return 401 when user to update is organization admin', async () => {
@@ -2122,7 +2120,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 when is not admin', async () => {
+    it('should return 403 when user is not an admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
 
@@ -2135,7 +2133,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/update`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should return 400 when organization name is too short', async () => {
@@ -2648,7 +2646,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 when is not admin', async () => {
+    it('should return 403 when user is not an admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
 
@@ -2661,7 +2659,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/delete_profile_picture/1`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should return 401 when user to update is organization admin', async () => {
@@ -2808,7 +2806,7 @@ describe('Organization Integration', () => {
       expect(res.status).toBe(401);
     });
 
-    it('should return 401 when user is not admin', async () => {
+    it('should return 403 when user is not admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
 
@@ -2821,7 +2819,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/upload_logo`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should return 200 when existing logo is delete and logo is uploaded', async () => {
@@ -2886,7 +2884,7 @@ describe('Organization Integration', () => {
       expect(res.status).toBe(401);
     });
 
-    it('should return 401 when user is not admin', async () => {
+    it('should return 403 when user is not admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
 
@@ -2899,7 +2897,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/upload_banner`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
   });
 
@@ -2913,7 +2911,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 when user is not an admin or professor', async () => {
+    it('should return 403 when user is not an admin or professor', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
       const course = await CourseFactory.create();
@@ -2932,7 +2930,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/create_course`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should return 401 when user is a professor and org settings has professors disallowed from creating courses', async () => {
@@ -3290,7 +3288,7 @@ describe('Organization Integration', () => {
       expect(res.status).toBe(401);
     });
 
-    it('should return 401 when user is not admin', async () => {
+    it('should return 403 when user is not admin', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
 
@@ -3303,7 +3301,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/cronjobs`,
       );
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it('should return 200 when user is admin', async () => {
@@ -3364,7 +3362,7 @@ describe('Organization Integration', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should return 401 if user is not an admin', async () => {
+    it('should return 403 if user is not an admin', async () => {
       const user = await UserFactory.create();
       // Ensure user has a chat token for the guard to pass initial checks before role check
       const token = await ChatTokenFactory.create({ user });
@@ -3383,8 +3381,8 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}/clone_courses`,
       );
 
-      // Expect 401 Unauthorized because the user is logged in but not an admin
-      expect(response.status).toBe(401);
+      // Expect 403 because the user is logged in but not an admin
+      expect(response.status).toBe(403);
     });
 
     it('should return 404 if user has no chat token', async () => {

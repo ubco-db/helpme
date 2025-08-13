@@ -35,7 +35,7 @@ describe('Lms Integration Integrations', () => {
 
   describe('GET lms/org/:oid/*', () => {
     it.each([OrganizationRole.PROFESSOR, OrganizationRole.MEMBER])(
-      'should return 401 when org non-administrator calls route',
+      'should return 403 when org non-administrator calls route',
       async (orgRole: OrganizationRole) => {
         const user = await UserFactory.create();
         const organization = await OrganizationFactory.create();
@@ -50,7 +50,7 @@ describe('Lms Integration Integrations', () => {
           `/lms/org/${organization.id}`,
         );
 
-        expect(res.status).toBe(401);
+        expect(res.status).toBe(403);
       },
     );
   });

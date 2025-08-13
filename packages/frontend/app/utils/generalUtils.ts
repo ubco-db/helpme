@@ -1,4 +1,4 @@
-import { OrganizationSettingsResponse, Role, User } from '@koh/common'
+import { LLMType, OrganizationSettingsResponse, Role, User } from '@koh/common'
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import * as Sentry from '@sentry/nextjs'
@@ -280,4 +280,85 @@ export function checkCourseCreatePermissions(
     (userInfo?.organization?.organizationRole == OrganizationRole.PROFESSOR &&
       organizationSettings?.allowProfCourseCreate)
   )
+}
+
+export function getModelSpeedAndQualityEstimate<T extends LLMType>(model: T) {
+  const notes: string[] = []
+  let speed = 0
+  let quality = 0
+
+  if (model.modelName.startsWith('gpt-')) {
+    let suffix = -1
+    const suffixes = ['-mini', '-turbo', '-nano']
+    let i = 0
+    while (suffix == -1 && i < suffixes.length) {
+      suffix = model.modelName.indexOf(suffixes[i])
+      i++
+    }
+    const number = parseFloat(
+      model.modelName
+        .substring('gpt-'.length, suffix != -1 ? suffix : undefined)
+        .replace(/o/, '.0'),
+    )
+    const miniMultiplier = model.modelName.includes('mini')
+      ? 1
+      : model.modelName.includes('nano')
+        ? 2
+        : 0
+
+    if (miniMultiplier == 0) {
+      notes.push(
+        'This model is likely to be expensive for each use. It may offer more cost-effective versions (mini, nano).',
+      )
+    } else {
+      notes.push(
+        'This model is a smaller, faster version of a larger model. It is cheaper, but responses can be less accurate.',
+      )
+    }
+
+    speed = 100 - 10 * number + miniMultiplier * 10
+    quality = 20 * number + miniMultiplier * -10
+  } else {
+    let paramSize = 0
+    let str = 'm'
+    if ('parameterSize' in model && model['parameterSize'] != undefined) {
+      const match = (model.parameterSize as string).match(/[0-9.]*/)
+      if (match != null && !isNaN(parseFloat(match[0]))) {
+        paramSize = parseFloat(match[0])
+        str = (model.parameterSize as string)
+          .toLowerCase()
+          .substring(match[0].length)
+      }
+    }
+    if (paramSize == 0) {
+      const split = model.modelName.split(':')
+      const match = split[1].match(/[0-9.]*/)
+      if (match != null && !isNaN(parseFloat(match[0]))) {
+        paramSize = parseFloat(match[0])
+        str = split[1].substring(match[0].length)
+      }
+    }
+    const multiplier = (() => {
+      switch (str) {
+        case 'm':
+          return 1
+        case 'b':
+          return 1000
+        default:
+          return 0
+      }
+    })()
+    paramSize = Math.max(1, Math.min(paramSize * multiplier, 100000))
+
+    const log = -Math.log10(paramSize / 100000) / 5
+    speed =
+      Math.max(0, Math.min(1, (0.5 + log) * (model.isThinking ? 0.75 : 1))) *
+      100
+    quality =
+      Math.max(
+        0,
+        Math.min(1, (model.isThinking ? 1.25 : 1) * (1 - log) - log),
+      ) * 100
+  }
+  return { speed, quality, notes }
 }
