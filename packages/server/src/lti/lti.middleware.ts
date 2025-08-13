@@ -12,7 +12,6 @@ import { isProd } from '@koh/common';
 import { UserModel } from '../profile/user.entity';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { JwtService } from '@nestjs/jwt';
-import { LoginController } from '../login/login.controller';
 import { getCookie } from '../common/helpers';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const Database = require('ltijs-postgresql');
@@ -140,15 +139,19 @@ export default class LtiMiddleware {
         );
       }
 
-      if (!authCookie) {
-        await LoginController.attachAuthToken(
-          response,
-          userId,
-          this.jwtService,
-          this.configService,
-          60 * 60, // Expires in 1 Hour
-        );
-      }
+      // This isn't going to work because of Third-Party cookies not mattering + iframe probably
+      // Will have to just embed the token in a request which retrieves info from the frontend manually
+      // This will be really hacky probably but we need a way to track the auth state
+      //
+      // if (!authCookie) {
+      //   await LoginController.attachAuthToken(
+      //     response,
+      //     userId,
+      //     this.jwtService,
+      //     this.configService,
+      //     60 * 60, // Expires in 1 Hour
+      //   );
+      // }
 
       if (reservedUrls.includes(request.url)) {
         return response.redirect(`/api/v1/lti/${request.path}`);
