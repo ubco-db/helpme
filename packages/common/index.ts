@@ -3346,15 +3346,6 @@ export const ERROR_MESSAGES = {
     resourceDisabled:
       "The resource type of the document you're trying to operate on is disabled.",
   },
-  lmsAdapter: {
-    ltiNotImplemented: 'LTI Configuration is not properly implemented.',
-    ltiConfigNotFound:
-      'LTI Configuration for this organization not found. Cannot use OAuth2 pipeline for authorization.',
-    apiTokenInvalid:
-      'Authorization token for the integration is invalid and cannot be used to access the LMS API.',
-    missingRefreshToken:
-      'Refresh token is missing. Cannot receive authorization for data retrieval from LMS. Re-authorization through LMS is necessary.',
-  },
   semesterController: {
     notAllowedToCreateSemester: (role: OrganizationRole) =>
       `Members with role ${role} are not allowed to create semesters`,

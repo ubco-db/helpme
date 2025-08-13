@@ -1,12 +1,6 @@
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
 import {
-  ERROR_MESSAGES,
   LMSAnnouncement,
   LMSApiResponseStatus,
   LMSAssignment,
@@ -17,7 +11,6 @@ import {
 } from '@koh/common';
 import { LMSUpload } from './lmsIntegration.service';
 import { Cache } from 'cache-manager';
-import { LTIConfigModel } from '../lti/organization-lti-config.entity';
 
 @Injectable()
 export class LMSIntegrationAdapter {
@@ -39,30 +32,6 @@ export abstract class AbstractLMSAdapter {
     protected integration: LMSCourseIntegrationModel,
     protected cacheManager?: Cache,
   ) {}
-
-  async getAuthorizationBearer(): Promise<string> {
-    return null;
-  }
-
-  isAPITokenExpired(): boolean {
-    return (
-      new Date().getTime() -
-        (this.integration.apiTokenAcquired?.getTime() ?? 0) >
-      this.integration.apiTokenTTL
-    );
-  }
-
-  async getLTIConfig(): Promise<LTIConfigModel | undefined> {
-    return await LTIConfigModel.findOne({
-      where: {
-        organizationId: this.integration.orgIntegration.organizationId,
-      },
-    });
-  }
-
-  async checkAPIToken(): Promise<string> {
-    return null;
-  }
 
   getPlatform(): LMSIntegrationPlatform | null {
     return null;
@@ -141,68 +110,6 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     return LMSIntegrationPlatform.Canvas;
   }
 
-  async getAuthorizationBearer(): Promise<string> {
-    if (this.integration.apiKey != undefined) {
-      return `Bearer ${this.integration.apiKey}`;
-    }
-    const apiToken = this.checkAPIToken();
-    if (!apiToken) {
-      throw new BadRequestException(ERROR_MESSAGES.lmsAdapter.apiTokenInvalid);
-    }
-    return `Bearer ${apiToken}`;
-  }
-
-  async checkAPIToken(): Promise<string> {
-    if (this.integration.apiToken == undefined || this.isAPITokenExpired()) {
-      if (this.integration.apiRefreshToken == undefined) {
-        throw new InternalServerErrorException(
-          ERROR_MESSAGES.lmsAdapter.missingRefreshToken,
-        );
-      }
-      const ltiConfig = await this.getLTIConfig();
-      if (!ltiConfig)
-        throw new NotFoundException(
-          ERROR_MESSAGES.lmsAdapter.ltiConfigNotFound,
-        );
-      type CanvasRefreshTokenResponse = {
-        access_token: string;
-        refresh_token: string;
-        expires_in: number;
-      };
-      return await fetch(
-        `https://${this.integration.orgIntegration.rootUrl}/login/oauth2/token`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            grant_type: 'refresh_token',
-            client_id: ltiConfig.clientId,
-            client_secret: ltiConfig.clientSecret,
-            refresh_token: this.integration.apiRefreshToken,
-          }),
-        },
-      )
-        .then((response) => {
-          return response.json();
-        })
-        .then((json: CanvasRefreshTokenResponse) => {
-          LMSCourseIntegrationModel.update(
-            {
-              courseId: this.integration.courseId,
-            },
-            {
-              apiToken: json.access_token,
-              apiRefreshToken: json.refresh_token,
-              apiTokenTTL: json.expires_in,
-              apiTokenAcquired: new Date(),
-            },
-          );
-          return json.access_token;
-        });
-    } else {
-      return this.integration.apiToken;
-    }
-  }
-
   async Get(
     path: string,
   ): Promise<{ status: LMSApiResponseStatus; data?: any; nextLink?: string }> {
@@ -225,7 +132,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     const result = await fetch(url, {
       method: 'GET',
       headers: {
-        Authorization: await this.getAuthorizationBearer(),
+        Authorization: `Bearer ${this.integration.apiKey}`,
       },
     })
       .then((response) => {

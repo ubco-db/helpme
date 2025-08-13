@@ -15,7 +15,6 @@ import { SemesterModel } from '../semester/semester.entity';
 import { SuperCourseModel } from 'course/super-course.entity';
 import { OrganizationSettingsModel } from './organization_settings.entity';
 import { OrganizationRoleHistory } from './organization_role_history.entity';
-import { LTIConfigModel } from '../lti/organization-lti-config.entity';
 
 @Entity('organization_model')
 export class OrganizationModel extends BaseEntity {
@@ -96,11 +95,4 @@ export class OrganizationModel extends BaseEntity {
   @JoinColumn({ name: 'organizationId' })
   @OneToMany(() => SuperCourseModel, (superCourse) => superCourse.organization)
   superCourses: SuperCourseModel[];
-
-  @Exclude()
-  @JoinColumn({ name: 'organizationId' })
-  @OneToOne(() => LTIConfigModel, (ltiConfig) => ltiConfig.organization, {
-    nullable: true,
-  })
-  ltiConfig: LTIConfigModel;
 }
