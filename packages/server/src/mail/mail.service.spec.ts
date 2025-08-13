@@ -1,18 +1,29 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MailerService } from '@nest-modules/mailer';
+import { MailerService } from './mailer.service';
 import { MailService } from './mail.service';
 import { MailServiceModel } from './mail-services.entity';
 import { UserModel } from 'profile/user.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import * as Common from '@koh/common';
 import { MailServiceType, OrganizationRole, Role } from '@koh/common';
+import {
+  initFactoriesFromService,
+  SentEmailFactory,
+} from '../../test/util/factories';
+import { SentEmailModel } from './sent-email.entity';
+import { FactoryService } from 'factory/factory.service';
+import { FactoryModule } from '../factory/factory.module';
+import { TestTypeOrmModule } from '../../test/util/testUtils';
+import { DataSource } from 'typeorm';
 
 describe('MailService', () => {
+  let module: TestingModule;
   let service: MailService;
   let mailerService: MailerService;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
+      imports: [TestTypeOrmModule, FactoryModule],
       providers: [
         MailService,
         {
@@ -29,6 +40,16 @@ describe('MailService', () => {
     // mock isProd to true so that it actually calls mailerService's sendMail (instead of writing to file)
     // this is fine since sendMail is mocked above. BE CAREFUL modifying these tests so you don't accidentally send emails
     jest.spyOn(Common, 'isProd').mockReturnValue(true);
+
+    // Grab FactoriesService from Nest
+    const factories = module.get<FactoryService>(FactoryService);
+    // Initialize the named exports to point to the actual factories
+    initFactoriesFromService(factories);
+  });
+
+  afterEach(async () => {
+    const dataSource = module.get<DataSource>(DataSource);
+    await dataSource.synchronize(true);
   });
 
   it('should be defined', () => {
@@ -68,21 +89,52 @@ describe('MailService', () => {
   });
 
   describe('sendEmail', () => {
-    it('should send an email based on emailPost params', async () => {
-      const emailPost = {
-        type: 'async_question_human_answered' as MailServiceType,
-        receiver: 'example@example.com',
-        subject: 'Welcome!',
-        content: 'Thank you for joining us.',
-      };
+    it.each([
+      'example@example.com',
+      ['example1@example.com', 'example2@example.com'],
+    ])(
+      'should send an email based on emailPost params',
+      async (receiverOrReceivers: string | string[]) => {
+        const emailPost = {
+          type: 'async_question_human_answered' as MailServiceType,
+          receiverOrReceivers,
+          subject: 'Welcome!',
+          content: 'Thank you for joining us.',
+        };
 
-      await service.sendEmail(emailPost);
+        await service.sendEmail(emailPost);
 
+        expect(mailerService.sendMail).toHaveBeenCalledWith({
+          to: receiverOrReceivers,
+          from: '"HelpMe Support"',
+          subject: emailPost.subject,
+          html: expect.stringContaining(emailPost.content),
+        });
+      },
+    );
+  });
+
+  describe('replyToSentEmail', () => {
+    it('should send a reply email based on previously sent email', async () => {
+      const previousEmail = await SentEmailFactory.create({
+        accepted: ['example1@example.com', 'example2@example.com'],
+        subject: 'subject',
+        serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
+      });
+      await service.replyToSentEmail(previousEmail, 'reply');
+
+      expect(
+        await SentEmailModel.findOne({
+          where: { emailId: previousEmail.emailId },
+        }),
+      ).toBeFalsy();
       expect(mailerService.sendMail).toHaveBeenCalledWith({
-        to: emailPost.receiver,
+        to: previousEmail.accepted,
         from: '"HelpMe Support"',
-        subject: emailPost.subject,
-        html: expect.stringContaining(emailPost.content),
+        subject: 'Re: subject',
+        html: expect.stringContaining('reply'),
+        inReplyTo: previousEmail.emailId,
+        references: previousEmail.emailId,
       });
     });
   });

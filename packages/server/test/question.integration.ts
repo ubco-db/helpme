@@ -3,6 +3,7 @@ import {
   ERROR_MESSAGES,
   OpenQuestionStatus,
   QuestionStatusKeys,
+  Role,
 } from '@koh/common';
 import { UserModel } from 'profile/user.entity';
 import { QueueModel } from 'queue/queue.entity';
@@ -22,6 +23,8 @@ import {
 } from './util/factories';
 import {
   expectUserNotified,
+  failedPermsCheckForCourse,
+  failedPermsCheckForQueue,
   modifyMockNotifs,
   setupIntegrationTest,
 } from './util/testUtils';
@@ -71,7 +74,7 @@ describe('Question Integration', () => {
     },
   ];
 
-  describe('POST /questions', () => {
+  describe('POST /questions/:queueId', () => {
     const postQuestion = async (
       user: UserModel,
       queue: QueueModel,
@@ -80,10 +83,9 @@ describe('Question Integration', () => {
       isTaskQuestion = false,
       questionText = "Don't know recursion",
     ): Promise<supertest.Test> =>
-      await supertest({ userId: user.id }).post('/questions').send({
+      await supertest({ userId: user.id }).post(`/questions/${queue.id}`).send({
         text: questionText,
         questionTypes: questionTypes,
-        queueId: queue.id,
         force: force,
         groupable: true,
         isTaskQuestion,
@@ -119,11 +121,10 @@ describe('Question Integration', () => {
       await StudentCourseFactory.create({ user, courseId: queue.courseId });
       expect(await QuestionModel.count({ where: { queueId: 1 } })).toEqual(0);
       const response = await supertest({ userId: user.id })
-        .post('/questions')
+        .post(`/questions/${queue.id}`)
         .send({
           text: "Don't know recursion",
           questionTypes: [sendQuestionTypes],
-          queueId: queue.id,
           force: false,
           groupable: true,
         })
@@ -157,11 +158,10 @@ describe('Question Integration', () => {
       await StudentCourseFactory.create({ user, courseId: queue.courseId });
       expect(await QuestionModel.count({ where: { queueId: 1 } })).toEqual(0);
       const response = await supertest({ userId: user.id })
-        .post('/questions')
+        .post(`/questions/${queue.id}`)
         .send({
           text: "Don't know recursion",
           questionTypes: [],
-          queueId: queue.id,
           force: false,
           groupable: true,
         })
@@ -215,14 +215,19 @@ describe('Question Integration', () => {
       expect(response.status).toBe(403);
     });
     it('post question fails with non-existent queue', async () => {
+      const course = await CourseFactory.create();
+      const user = await UserFactory.create();
+      const ta = await TACourseFactory.create({
+        course: course,
+        user: await UserFactory.create(),
+      });
       // wait 0.25s to help deadlock issue?
       await new Promise((resolve) => setTimeout(resolve, 250));
-      await supertest({ userId: 99 })
-        .post('/questions')
+      await supertest({ userId: user.id })
+        .post('/questions/999')
         .send({
           text: "Don't know recursion",
           questionTypes: QuestionTypes,
-          queueId: 999,
           force: false,
           groupable: true,
         })
@@ -784,6 +789,102 @@ describe('Question Integration', () => {
       const response = await postQuestion(user, queue, questionTypes);
       expect(response.status).toBe(201);
     });
+    it.each([Role.PROFESSOR, Role.TA])(
+      'should return 403 when staff accesses the route',
+      async (role) => {
+        await failedPermsCheckForQueue(
+          (queueId) => `/questions/${queueId}`,
+          role,
+          'POST',
+          supertest,
+        );
+      },
+    );
+  });
+
+  describe('GET /questions/allQuestions/:cid', () => {
+    it('should return 403 when non-staff accesses route', async () => {
+      await failedPermsCheckForCourse(
+        (courseId) => `/questions/allQuestions/${courseId}`,
+        Role.STUDENT,
+        'GET',
+        supertest,
+      );
+    });
+    it('should return 200 when staff accesses route', async () => {
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({ courseId: course.id, userId: ta.id });
+      const queue = await QueueFactory.create({ course: course });
+      const question = await QuestionFactory.create({ queue: queue });
+
+      const response = await supertest({ userId: ta.id }).get(
+        `/questions/allQuestions/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      expect(response.body).toContainEqual(
+        expect.objectContaining({
+          id: question.id,
+          text: question.text,
+          status: question.status,
+          queueId: question.queueId,
+          creatorName: question.creator.name,
+          questionTypes: expect.arrayContaining([
+            expect.objectContaining({
+              name: question.questionTypes[0].name,
+              color: question.questionTypes[0].color,
+            }),
+          ]),
+        }),
+      );
+    });
+  });
+
+  describe('POST /questions/TAcreate/:queueId/:userId', () => {
+    it('should return 403 when non-staff accesses route', async () => {
+      await failedPermsCheckForQueue(
+        (queueId) => `/questions/TAcreate/${queueId}/1`,
+        Role.STUDENT,
+        'POST',
+        supertest,
+      );
+    });
+    it('should return 201 when staff accesses route', async () => {
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({ courseId: course.id, userId: ta.id });
+      const queue = await QueueFactory.create({
+        course: course,
+        staffList: [ta],
+        allowQuestions: true,
+      });
+      const student = await UserFactory.create();
+      await StudentCourseFactory.create({
+        courseId: course.id,
+        userId: student.id,
+      });
+      const response = await supertest({ userId: ta.id })
+        .post(`/questions/TAcreate/${queue.id}/${student.id}`)
+        .send({
+          text: 'Help me',
+          questionTypes: [],
+          groupable: true,
+          isTaskQuestion: false,
+          force: true,
+        });
+      if (response.status !== 201) {
+        console.error(response.body);
+      }
+      expect(response.status).toBe(201);
+      expect(response.body).toMatchObject({
+        text: 'Help me',
+        helpedAt: null,
+        closedAt: null,
+        questionTypes: [],
+        status: QuestionStatusKeys.Queued,
+        groupable: true,
+      });
+    });
   });
 
   describe('PATCH /questions/:id', () => {
@@ -1049,7 +1150,7 @@ describe('Question Integration', () => {
         .send({
           text: 'NEW TEXT',
         })
-        .expect(404);
+        .expect(403);
     });
     it('PATCH taHelped as student is not allowed', async () => {
       const course = await CourseFactory.create();
@@ -1194,12 +1295,6 @@ describe('Question Integration', () => {
           questionTypes: [{ id: qt.id }],
         })
         .expect(200);
-      await supertest({ userId: ta.id })
-        .patch(`/questions/${q.id}`)
-        .send({
-          queueId: 999,
-        })
-        .expect(401);
       await supertest({ userId: ta.id })
         .patch(`/questions/${q.id}`)
         .send({

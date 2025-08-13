@@ -46,6 +46,7 @@ import { ChatbotDocPdfModel } from './src/chatbot/chatbot-doc-pdf.entity';
 import { SuperCourseModel } from './src/course/super-course.entity';
 import { OrganizationSettingsModel } from './src/organization/organization_settings.entity';
 import { OrganizationRoleHistory } from './src/organization/organization_role_history.entity';
+import { SentEmailModel } from './src/mail/sent-email.entity';
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
   config();
@@ -116,6 +117,7 @@ const typeorm: DataSourceOptions = {
     LMSFileModel,
     ChatbotDocPdfModel,
     SuperCourseModel,
+    SentEmailModel,
     OrganizationSettingsModel,
     OrganizationRoleHistory,
   ],

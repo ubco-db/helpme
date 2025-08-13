@@ -1,30 +1,16 @@
-import { MailerModule } from '@nest-modules/mailer';
 import { Global, Module } from '@nestjs/common';
 import { MailService } from './mail.service';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { MailController } from './mail.controller';
 import { MailServicesController } from './mail-services.controller';
 import { UserModel } from 'profile/user.entity';
+import { MailerService } from './mailer.service';
 
 @Global()
 @Module({
   controllers: [MailController, MailServicesController],
-  imports: [
-    MailerModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        transport: {
-          service: 'gmail',
-          auth: {
-            user: configService.get<string>('GMAIL_USER'),
-            pass: configService.get<string>('GMAIL_PASSWORD'),
-          },
-        },
-      }),
-      inject: [ConfigService],
-    }),
-  ],
-  providers: [MailService],
+  imports: [ConfigModule],
+  providers: [MailService, MailerService],
   exports: [MailService],
 })
 export class MailModule {}

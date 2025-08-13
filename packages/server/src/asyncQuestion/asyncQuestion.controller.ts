@@ -374,7 +374,7 @@ export class asyncQuestionController {
     if (body.status === asyncQuestionStatus.HumanAnswered) {
       question.closedAt = new Date();
       question.taHelpedId = userId;
-      await this.asyncQuestionService.sendQuestionAnsweredEmail(question);
+      await this.asyncQuestionService.sendQuestionAnsweredEmails(question);
     } else if (
       body.status !== asyncQuestionStatus.TADeleted &&
       body.status !== asyncQuestionStatus.StudentDeleted
