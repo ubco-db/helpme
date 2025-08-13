@@ -7,7 +7,10 @@ import {
   UserFactory,
 } from './util/factories';
 import { UserCourseModel } from '../src/profile/user-course.entity';
-import { setupIntegrationTest } from './util/testUtils';
+import {
+  failedPermsCheckForCourse,
+  setupIntegrationTest,
+} from './util/testUtils';
 import { LmsIntegrationModule } from '../src/lmsIntegration/lmsIntegration.module';
 import { OrganizationUserModel } from '../src/organization/organization-user.entity';
 import { CourseModel } from '../src/course/course.entity';
@@ -29,37 +32,6 @@ describe('Lms Integration Integrations', () => {
       role: Role.PROFESSOR,
     }).save();
   });
-
-  const failedPermsCheck = async (
-    route: (id: number) => string,
-    courseRole: Role,
-    method: 'GET' | 'POST' | 'DELETE',
-  ) => {
-    const user = await UserFactory.create();
-    const course = await CourseFactory.create();
-
-    await UserCourseModel.create({
-      userId: user.id,
-      courseId: course.id,
-      role: courseRole,
-    }).save();
-
-    const sp = supertest({ userId: user.id });
-    const path = route(course.id);
-    let res: any;
-    switch (method) {
-      case 'DELETE':
-        res = await sp.delete(path);
-        break;
-      case 'GET':
-        res = await sp.get(path);
-        break;
-      case 'POST':
-        res = await sp.post(path);
-        break;
-    }
-    expect(res.statusCode).toBe(403);
-  };
 
   describe('GET lms/org/:oid/*', () => {
     it.each([OrganizationRole.PROFESSOR, OrganizationRole.MEMBER])(
@@ -94,7 +66,12 @@ describe('Lms Integration Integrations', () => {
     ])(
       'should return 403 when non-professor accesses route',
       async ({ role, route }) => {
-        await failedPermsCheck((id) => `/lms/${id}${route}`, role, 'GET');
+        await failedPermsCheckForCourse(
+          (id) => `/lms/${id}${route}`,
+          role,
+          'GET',
+          supertest,
+        );
       },
     );
   });
@@ -103,7 +80,12 @@ describe('Lms Integration Integrations', () => {
     it.each([Role.STUDENT, Role.TA])(
       'should return 403 when non-professor accesses route',
       async (courseRole) => {
-        await failedPermsCheck((id) => `/lms/${id}/test`, courseRole, 'POST');
+        await failedPermsCheckForCourse(
+          (id) => `/lms/${id}/test`,
+          courseRole,
+          'POST',
+          supertest,
+        );
       },
     );
   });
@@ -112,7 +94,12 @@ describe('Lms Integration Integrations', () => {
     it.each([Role.STUDENT, Role.TA])(
       'should return 403 when non-professor accesses route',
       async (courseRole) => {
-        await failedPermsCheck((id) => `/lms/course/${id}`, courseRole, 'GET');
+        await failedPermsCheckForCourse(
+          (id) => `/lms/course/${id}`,
+          courseRole,
+          'GET',
+          supertest,
+        );
       },
     );
   });
@@ -121,10 +108,11 @@ describe('Lms Integration Integrations', () => {
     it.each([Role.STUDENT, Role.TA])(
       'should return 403 when non-professor accesses route',
       async (courseRole) => {
-        await failedPermsCheck(
+        await failedPermsCheckForCourse(
           (id) => `/lms/course/${id}/upsert`,
           courseRole,
           'POST',
+          supertest,
         );
       },
     );
@@ -134,10 +122,11 @@ describe('Lms Integration Integrations', () => {
     it.each([Role.STUDENT, Role.TA])(
       'should return 403 when non-professor accesses route',
       async (courseRole) => {
-        await failedPermsCheck(
+        await failedPermsCheckForCourse(
           (id) => `/lms/course/${id}/remove`,
           courseRole,
           'DELETE',
+          supertest,
         );
       },
     );
@@ -147,7 +136,12 @@ describe('Lms Integration Integrations', () => {
     it.each([Role.STUDENT, Role.TA])(
       'should return 403 when non-professor accesses route',
       async (courseRole) => {
-        await failedPermsCheck((id) => `/lms/${id}/sync`, courseRole, 'POST');
+        await failedPermsCheckForCourse(
+          (id) => `/lms/${id}/sync`,
+          courseRole,
+          'POST',
+          supertest,
+        );
       },
     );
 
@@ -163,10 +157,11 @@ describe('Lms Integration Integrations', () => {
     it.each([Role.STUDENT, Role.TA])(
       'should return 403 when non-professor accesses route',
       async (courseRole) => {
-        await failedPermsCheck(
+        await failedPermsCheckForCourse(
           (id) => `/lms/${id}/sync/force`,
           courseRole,
           'POST',
+          supertest,
         );
       },
     );
@@ -183,10 +178,11 @@ describe('Lms Integration Integrations', () => {
     it.each([Role.STUDENT, Role.TA])(
       'should return 403 when non-professor accesses route',
       async (courseRole) => {
-        await failedPermsCheck(
+        await failedPermsCheckForCourse(
           (id) => `/lms/${id}/sync/clear`,
           courseRole,
           'DELETE',
+          supertest,
         );
       },
     );
@@ -216,10 +212,11 @@ describe('Lms Integration Integrations', () => {
     it.each([Role.STUDENT, Role.TA])(
       'should return 403 when non-professor accesses route',
       async (courseRole) => {
-        await failedPermsCheck(
+        await failedPermsCheckForCourse(
           (id) => `/lms/${id}/sync/announcement/0/toggle`,
           courseRole,
           'POST',
+          supertest,
         );
       },
     );
@@ -227,10 +224,11 @@ describe('Lms Integration Integrations', () => {
     it.each([Role.STUDENT, Role.TA])(
       'should return 403 when non-professor accesses route',
       async (courseRole) => {
-        await failedPermsCheck(
+        await failedPermsCheckForCourse(
           (id) => `/lms/${id}/sync/assignment/0/toggle`,
           courseRole,
           'POST',
+          supertest,
         );
       },
     );
@@ -238,10 +236,11 @@ describe('Lms Integration Integrations', () => {
     it.each([Role.STUDENT, Role.TA])(
       'should return 403 when non-professor accesses route',
       async (courseRole) => {
-        await failedPermsCheck(
+        await failedPermsCheckForCourse(
           (id) => `/lms/${id}/sync/page/0/toggle`,
           courseRole,
           'POST',
+          supertest,
         );
       },
     );
@@ -249,10 +248,11 @@ describe('Lms Integration Integrations', () => {
     it.each([Role.STUDENT, Role.TA])(
       'should return 403 when non-professor accesses route',
       async (courseRole) => {
-        await failedPermsCheck(
+        await failedPermsCheckForCourse(
           (id) => `/lms/${id}/sync/file/0/toggle`,
           courseRole,
           'POST',
+          supertest,
         );
       },
     );

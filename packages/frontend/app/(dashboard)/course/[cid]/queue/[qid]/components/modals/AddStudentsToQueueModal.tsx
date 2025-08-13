@@ -107,13 +107,13 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
           text: addingDemo
             ? `Mark ${values.taskIds.map((task) => `"${task}"`).join(' ')}`
             : (values.questionText ?? ''),
-          queueId: queueId,
           location: values.location,
           force: true,
           groupable: false,
           questionTypes: addingDemo ? [] : newQuestionTypeInput,
           isTaskQuestion: addingDemo,
         },
+        queueId,
         selectedStudent.id,
       )
       .then(async (response) => {

@@ -265,17 +265,19 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
       location?: QuestionLocations,
     ) => {
       await API.questions
-        .create({
-          text: text || '',
-          questionTypes: questionTypes,
-          queueId: qid,
-          location:
-            location ??
-            (isQueueHybrid ? QuestionLocations.Unselected : undefined),
-          force: force,
-          groupable: false,
-          isTaskQuestion,
-        })
+        .create(
+          {
+            text: text || '',
+            questionTypes: questionTypes,
+            location:
+              location ??
+              (isQueueHybrid ? QuestionLocations.Unselected : undefined),
+            force: force,
+            groupable: false,
+            isTaskQuestion,
+          },
+          qid,
+        )
         .then(async (newQuestion) => {
           await updateQuestionStatus(newQuestion.id, OpenQuestionStatus.Queued)
         })
@@ -365,14 +367,16 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
         ? ERROR_MESSAGES.questionController.createQuestion.oneDemoAtATime
         : ERROR_MESSAGES.questionController.createQuestion.oneQuestionAtATime
       await API.questions
-        .create({
-          queueId: qid,
-          text: '',
-          force: force,
-          questionTypes: undefined,
-          groupable: false,
-          isTaskQuestion,
-        })
+        .create(
+          {
+            text: '',
+            force: force,
+            questionTypes: undefined,
+            groupable: false,
+            isTaskQuestion,
+          },
+          qid,
+        )
         .then(async (createdQuestion) => {
           // preemptively update the local question data by adding the new question to the queue
           if (queueQuestions) {

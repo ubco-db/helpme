@@ -1648,9 +1648,6 @@ export class CreateQuestionParams {
   @IsBoolean()
   isTaskQuestion = false
 
-  @IsInt()
-  queueId!: number
-
   @IsString()
   @IsOptional()
   location?: QuestionLocations
