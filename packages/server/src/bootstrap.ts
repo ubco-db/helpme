@@ -11,6 +11,7 @@ import { ApplicationConfigService } from './config/application_config.service';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Chromiumly } from 'chromiumly';
 import helmet from 'helmet';
+import LtiMiddleware from './lti/lti.middleware';
 
 export async function bootstrap(hot: any): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -34,6 +35,11 @@ export async function bootstrap(hot: any): Promise<void> {
 
   addGlobalsToApp(app);
   app.setGlobalPrefix('api/v1');
+
+  // Setup LTIJS as a middleware to listen at /api/v1/lti
+  const ltiMiddleware = new LtiMiddleware(app);
+  app.getHttpAdapter().use('/api/v1/lti', await ltiMiddleware.setup());
+
   app.use(morgan('dev'));
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));

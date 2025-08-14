@@ -47,6 +47,7 @@ import { SuperCourseModel } from './src/course/super-course.entity';
 import { OrganizationSettingsModel } from './src/organization/organization_settings.entity';
 import { OrganizationRoleHistory } from './src/organization/organization_role_history.entity';
 import { SentEmailModel } from './src/mail/sent-email.entity';
+import { LTIConfigModel } from './src/lti/lti_config.entity';
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
   config();
@@ -71,8 +72,8 @@ const inCLI = {
 const typeorm: DataSourceOptions = {
   type: 'postgres',
   url: !isProd()
-    ? `postgres://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@localhost:5432/dev`
-    : `postgres://${process.env.POSTGRES_NONROOT_USER}:${process.env.POSTGRES_NONROOT_PASSWORD}@coursehelp.ubc.ca:5432/prod`,
+    ? `postgres://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@${process.env.POSTGRES_HOST ?? 'localhost'}:5432/dev`
+    : `postgres://${process.env.POSTGRES_NONROOT_USER}:${process.env.POSTGRES_NONROOT_PASSWORD}@${process.env.POSTGRES_HOST ?? 'coursehelp.ubc.ca'}:5432/prod`,
   synchronize: process.env.NODE_ENV !== 'production',
   entities: [
     CourseModel,
@@ -120,6 +121,7 @@ const typeorm: DataSourceOptions = {
     SentEmailModel,
     OrganizationSettingsModel,
     OrganizationRoleHistory,
+    LTIConfigModel,
   ],
   logging:
     process.env.NODE_ENV !== 'production'
