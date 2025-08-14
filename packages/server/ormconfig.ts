@@ -72,8 +72,8 @@ const inCLI = {
 const typeorm: DataSourceOptions = {
   type: 'postgres',
   url: !isProd()
-    ? `postgres://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@localhost:5432/dev`
-    : `postgres://${process.env.POSTGRES_NONROOT_USER}:${process.env.POSTGRES_NONROOT_PASSWORD}@coursehelp.ubc.ca:5432/prod`,
+    ? `postgres://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@${process.env.POSTGRES_HOST ?? 'localhost'}:5432/dev`
+    : `postgres://${process.env.POSTGRES_NONROOT_USER}:${process.env.POSTGRES_NONROOT_PASSWORD}@${process.env.POSTGRES_HOST ?? 'coursehelp.ubc.ca'}:5432/prod`,
   synchronize: process.env.NODE_ENV !== 'production',
   entities: [
     CourseModel,

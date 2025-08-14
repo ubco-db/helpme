@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
-import { IdToken, Provider as lti } from 'ltijs';
+import { IdToken, Provider as lti, ProviderOptions } from 'ltijs';
 import { Request, Response } from 'express';
 import { LTIConfigModel } from './lti_config.entity';
 import { isProd } from '@koh/common';
@@ -35,6 +35,9 @@ export default class LtiMiddleware {
   }
 
   async setup() {
+    if (lti && lti.app) {
+      await lti.close();
+    }
     lti.setup(
       this.configService.get<string>('LTI_SECRET_KEY'),
       {
@@ -47,7 +50,7 @@ export default class LtiMiddleware {
           pass: this.configService.get<string>(
             `POSTGRES_${isProd() ? 'NONROOT_' : ''}PASSWORD`,
           ),
-          host: !isProd() ? 'localhost' : 'coursehelp.ubc.ca',
+          host: this.configService.get<string>('POSTGRES_HOST'),
         }),
       },
       {
@@ -59,8 +62,12 @@ export default class LtiMiddleware {
           sameSite: 'None',
         },
         https: isProd(),
-      },
+        logger: true,
+        devMode: !isProd(),
+      } as ProviderOptions,
     );
+
+    lti.whitelist(reservedRoutes.keysetUrl);
 
     lti.onConnect(
       (connection: IdToken, request: Request, response: Response) => {
@@ -70,7 +77,6 @@ export default class LtiMiddleware {
 
     const deployResult = await lti.deploy({
       serverless: true,
-      silent: true,
     });
     if (!deployResult) throw new Error('Failed to initialize LTI middleware');
 
@@ -96,6 +102,7 @@ export default class LtiMiddleware {
     request: Request,
     response: Response,
   ) {
+    console.log(request.url);
     try {
       let userId: number | undefined = undefined;
       let courseId: number | undefined = undefined;
