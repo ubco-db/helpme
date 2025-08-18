@@ -3054,6 +3054,18 @@ export enum LMSIntegrationPlatform {
   Canvas = 'Canvas',
 }
 
+export type LtiConfig = {
+  id: number
+  url: string
+  iss: string
+  name: string
+  clientId?: string
+  authenticationEndpoint: string
+  accesstokenEndpoint: string
+  keysetEndpoint: string
+  organizations: number[]
+}
+
 export function parseThinkBlock(answer: string) {
   // Look for <think>...</think> (the "s" flag lets it match across multiple lines)
   const thinkRegex = /<think>([\s\S]*?)<\/think>/

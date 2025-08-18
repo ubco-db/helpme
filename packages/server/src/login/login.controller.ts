@@ -141,22 +141,12 @@ export class LoginController {
     userId: number,
     redirect?: string,
   ) {
-    // Expires in 30 days
-    const authToken = await this.jwtService.signAsync({
+    await LoginController.attachAuthToken(
+      res,
       userId,
-      expiresIn: 60 * 60 * 24 * 30,
-    });
-
-    if (authToken === null || authToken === undefined) {
-      throw new HttpException(
-        ERROR_MESSAGES.loginController.invalidTempJWTToken,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    const isSecure = this.configService
-      .get<string>('DOMAIN')
-      .startsWith('https://');
+      this.jwtService,
+      this.configService,
+    );
 
     let redirectUrl: string;
     const cookie = getCookie(req, '__SECURE_REDIRECT');
@@ -170,6 +160,9 @@ export class LoginController {
           res.clearCookie('queueInviteInfo');
         });
     } else if (cookie) {
+      const isSecure = this.configService
+        .get<string>('DOMAIN')
+        .startsWith('https://');
       const decodedCookie = decodeURIComponent(cookie);
       redirectUrl = `/invite?cid=${decodedCookie.split(',')[0]}&code=${encodeURIComponent(decodedCookie.split(',')[1])}`;
       res.clearCookie('__SECURE_REDIRECT', {
@@ -182,9 +175,32 @@ export class LoginController {
       redirectUrl = '/courses';
     }
 
-    res
-      .cookie('auth_token', authToken, { httpOnly: true, secure: isSecure })
-      .redirect(HttpStatus.FOUND, redirectUrl);
+    res.redirect(HttpStatus.FOUND, redirectUrl);
+  }
+
+  static async attachAuthToken(
+    res: Response,
+    userId: number,
+    jwtService: JwtService,
+    configService: ConfigService,
+    expiresIn: number = 60 * 60 * 24 * 30, // Expires in 30 days (Default)
+  ) {
+    // Expires in 30 days
+    const authToken = await jwtService.signAsync({
+      userId,
+      expiresIn,
+    });
+
+    if (authToken === null || authToken === undefined) {
+      throw new HttpException(
+        ERROR_MESSAGES.loginController.invalidTempJWTToken,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    const isSecure = configService.get<string>('DOMAIN').startsWith('https://');
+
+    res.cookie('auth_token', authToken, { httpOnly: true, secure: isSecure });
   }
 
   @Get('/logout')

@@ -7,6 +7,7 @@ import * as Sentry from '@sentry/nextjs'
 // These are the public pages that do not require authentication. Adding an * will match any characters after the page (e.g. if the page has search query params).
 const publicPages = [
   '/login',
+  '/lti*',
   '/register',
   '/failed*',
   '/password*',
