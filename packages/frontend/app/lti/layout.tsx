@@ -11,7 +11,7 @@ import StandardPageContainer from '@/app/components/standardPageContainer'
 import Link from 'next/link'
 import HeaderBar from '@/app/components/HeaderBar'
 import ChatbotContextProvider from '@/app/(dashboard)/course/[cid]/components/chatbot/ChatbotProvider'
-import { Spin } from 'antd'
+import { Alert, Spin } from 'antd'
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [profile, setProfile] = useState<User>()
@@ -34,18 +34,40 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     fetchUserDetails().then()
   }, [])
 
-  return errorGettingUser != undefined ? (
-    <main className="mt-20 flex content-center justify-center gap-3">
-      <p>There was an error getting your user details: </p>
-      <p>{errorGettingUser}</p>
-    </main>
-  ) : !profile ? (
-    <main className="mt-20 flex content-center justify-center">
-      <Spin size="large" className="text-nowrap" tip="Loading User...">
-        <div className="p-16" />
-      </Spin>
-    </main>
-  ) : (
+  if (errorGettingUser != undefined) {
+    return (
+      <main className="mt-20 flex content-center justify-center gap-3">
+        <p>There was an error getting your user details: </p>
+        <p>{errorGettingUser}</p>
+      </main>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <main className="mt-20 flex content-center justify-center">
+        <Spin size="large" className="text-nowrap" tip="Loading User...">
+          <div className="p-16" />
+        </Spin>
+      </main>
+    )
+  }
+
+  if (pathname.includes('admin') && profile.userRole != 'admin') {
+    return (
+      <main className="mt-20 flex content-center justify-center">
+        <div className="container mx-auto h-auto w-full text-center">
+          <Alert
+            message="Error"
+            description="You are not authorized to view this page."
+            type="error"
+          />
+        </div>
+      </main>
+    )
+  }
+
+  return (
     <div>
       <UserInfoProvider profile={profile}>
         <header className={`border-b border-b-zinc-200 bg-white`}>

@@ -5,25 +5,28 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
-import { IdToken, Provider as lti, ProviderOptions } from 'ltijs';
-import { Request, Response } from 'express';
+import {
+  Request as ExpressRequest,
+  Response as ExpressResponse,
+} from 'express';
 import { LTIConfigModel } from './lti_config.entity';
 import { isProd } from '@koh/common';
 import { UserModel } from '../profile/user.entity';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { JwtService } from '@nestjs/jwt';
 import { getCookie } from '../common/helpers';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Database = require('ltijs-postgresql');
-
-const reservedRoutes = {
-  loginUrl: 'api/v1/lti/login',
-  keysetUrl: 'api/v1/lti/keys',
-};
-
-const reservedUrls = Object.keys(reservedRoutes).map((k) => reservedRoutes[k]);
+import { Database as LtiDatabase, IdToken, Provider as lti } from './lti.types';
 
 export default class LtiMiddleware {
+  static readonly prefix = 'api/v1/lti/external';
+  static readonly reservedRoutes = {
+    loginUrl: `${LtiMiddleware.prefix}/login`,
+    keysetUrl: `${LtiMiddleware.prefix}/keys`,
+    dynRegRoute: `${LtiMiddleware.prefix}/register`,
+  };
+
+  private readonly redirectRoutes: string[] = [];
+
   private readonly configService: ConfigService;
   private readonly jwtService: JwtService;
   private readonly dataSource: DataSource;
@@ -32,6 +35,9 @@ export default class LtiMiddleware {
     this.configService = this.app.get<ConfigService>(ConfigService);
     this.jwtService = this.app.get<JwtService>(JwtService);
     this.dataSource = this.app.get<DataSource>(DataSource);
+    this.redirectRoutes = [
+      `${this.configService.get<string>('DOMAIN')}/lti/:cid`,
+    ];
   }
 
   async setup() {
@@ -42,7 +48,7 @@ export default class LtiMiddleware {
       this.configService.get<string>('LTI_SECRET_KEY'),
       {
         // Database
-        plugin: new Database({
+        plugin: new LtiDatabase({
           database: 'lti',
           user: this.configService.get<string>(
             `POSTGRES_${isProd() ? 'NONROOT_' : ''}USER`,
@@ -55,23 +61,76 @@ export default class LtiMiddleware {
       },
       {
         // LTI Configuration Options
-        appUrl: '',
-        ...reservedRoutes,
+        appUrl: LtiMiddleware.prefix,
+        ...LtiMiddleware.reservedRoutes,
+        dynReg: {
+          url: `${this.configService.get<string>('DOMAIN')}`,
+          name: 'HelpMe',
+          logo: `${this.configService.get<string>('DOMAIN')}/favicon.ico`,
+          description:
+            'External UBC-affiliated application. This tool provides access to its course-specific chatbots.',
+          redirectUris: this.redirectRoutes,
+          customParameters: {},
+          autoActivate: false,
+        },
         cookies: {
           secure: true,
           sameSite: 'None',
         },
         https: isProd(),
-        logger: true,
         devMode: !isProd(),
-      } as ProviderOptions,
+      },
     );
 
-    lti.whitelist(reservedRoutes.keysetUrl);
+    lti.whitelist(LtiMiddleware.reservedRoutes.keysetUrl);
 
     lti.onConnect(
-      (connection: IdToken, request: Request, response: Response) => {
+      (
+        connection: IdToken,
+        request: ExpressRequest,
+        response: ExpressResponse,
+      ) => {
         this.onConnectHandler(connection, request, response);
+      },
+    );
+
+    lti.onDynamicRegistration(
+      async (token: IdToken, req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          if (!req.query.openid_configuration) {
+            return res.status(400).send({
+              status: 400,
+              error: 'Bad Request',
+              details: {
+                message: 'Missing parameter: "openid_configuration".',
+              },
+            });
+          }
+          const message = await lti.DynamicRegistration.register(
+            req.query.openid_configuration as string,
+            req.query.registration_token as string,
+            {
+              'https://purl.imsglobal.org/spec/lti-tool-configuration': {},
+            },
+          );
+          res.setHeader('Content-type', 'text/html');
+          return res.send(message);
+        } catch (err) {
+          if (err.message === 'PLATFORM_ALREADY_REGISTERED') {
+            return res.status(403).send({
+              status: 403,
+              error: 'Forbidden',
+              details: { message: 'Platform already registered.' },
+            });
+          }
+          return res
+            .status(500)
+            .send({
+              status: 500,
+              error: 'Internal Server Error',
+              details: { message: err.message },
+            });
+        }
       },
     );
 
@@ -83,6 +142,7 @@ export default class LtiMiddleware {
     const ltiConfigurations = await this.dataSource.manager
       .getRepository(LTIConfigModel)
       .find();
+
     for (const ltiConfig of ltiConfigurations) {
       await lti.registerPlatform({
         url: ltiConfig.url,
@@ -99,8 +159,8 @@ export default class LtiMiddleware {
 
   async onConnectHandler(
     connection: IdToken,
-    request: Request,
-    response: Response,
+    request: ExpressRequest,
+    response: ExpressResponse,
   ) {
     console.log(request.url);
     try {
@@ -160,10 +220,10 @@ export default class LtiMiddleware {
       //   );
       // }
 
-      if (reservedUrls.includes(request.url)) {
+      if (Object.values(LtiMiddleware.reservedRoutes).includes(request.url)) {
         return response.redirect(`/api/v1/lti/${request.path}`);
       } else {
-        return response.redirect(`/lti/${courseId}/${request.path}`);
+        return response.redirect(`/api/v1/lti/${courseId}/${request.path}`);
       }
     } catch (err) {
       if (err instanceof HttpException) {

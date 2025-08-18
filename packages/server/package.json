@@ -139,7 +139,6 @@
     "@types/superagent": "^8.1.4",
     "@types/supertest": "^2.0.8",
     "@types/web-push": "3.6.4",
-    "@types/ltijs": "^4.0.12",
     "cross-env": "^7.0.2",
     "jest": "^30.0.5",
     "json5": "^2.2.3",

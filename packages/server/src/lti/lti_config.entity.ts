@@ -25,4 +25,7 @@ export class LTIConfigModel extends BaseEntity {
 
   @Column({ type: 'text' })
   keysetEndpoint: string;
+
+  @Column({ type: 'integer', array: true, default: [] })
+  organizations: number[];
 }
