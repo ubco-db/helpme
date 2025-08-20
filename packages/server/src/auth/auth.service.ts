@@ -20,6 +20,7 @@ import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { OrganizationService } from '../organization/organization.service';
+import { SlackLinkCodeModel } from '../slack/slack-link-code.entity';
 
 @Injectable()
 export class AuthService {
@@ -319,5 +320,71 @@ export class AuthService {
       token += characters.charAt(randomIndex);
     }
     return token;
+  }
+
+  // Simple Slack linking methods
+  async generateSlackLinkCode(userId: number): Promise<string> {
+    const user = await UserModel.findOne({ where: { id: userId } });
+    if (!user) throw new BadRequestException('User not found');
+
+    const code = v4();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    await SlackLinkCodeModel.create({ code, userId, expiresAt }).save();
+    console.log(
+      `[Slack] Generated code ${code.slice(0, 8)}... for user ${userId}`,
+    );
+
+    return code;
+  }
+
+  async exchangeSlackLinkCode(code: string): Promise<number> {
+    console.log(`[Slack] Exchanging code ${code.slice(0, 8)}...`);
+
+    if (!code || typeof code !== 'string') {
+      throw new BadRequestException('Invalid code');
+    }
+
+    const record = await SlackLinkCodeModel.findOne({ where: { code } });
+    if (!record) {
+      throw new BadRequestException('Code not found');
+    }
+
+    if (record.expiresAt < new Date()) {
+      await SlackLinkCodeModel.remove(record);
+      throw new BadRequestException('Code expired');
+    }
+
+    await SlackLinkCodeModel.remove(record);
+    console.log(`[Slack] Code exchanged for user ${record.userId}`);
+
+    return record.userId;
+  }
+
+  async getSlackUserData(userId: number) {
+    const user = await UserModel.findOne({
+      where: { id: userId },
+      relations: [
+        'organizationUser',
+        'courses',
+        'courses.course',
+        'chat_token',
+      ],
+    });
+
+    if (!user) throw new BadRequestException('User not found');
+
+    return {
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      organizationId: user.organizationUser?.organizationId || null,
+      courses:
+        user.courses?.map((uc) => ({
+          id: uc.courseId,
+          name: uc.course?.name || 'Unknown Course',
+        })) || [],
+      chatToken: user.chat_token?.token || null,
+    };
   }
 }

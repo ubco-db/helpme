@@ -121,6 +121,10 @@ export class AuthController {
             `${this.GOOGLE_AUTH_URL}?client_id=${process.env.GOOGLE_CLIENT_ID}.apps.googleusercontent.com` +
             `&redirect_uri=${process.env.GOOGLE_REDIRECT_URI}&response_type=code&scope=openid%20profile%20email`,
         });
+      case 'slack': {
+        const startUrl = `${process.env.DOMAIN}/api/v1/auth/slack/start?oid=${organizationId}`;
+        return res.status(200).send({ redirectUri: startUrl });
+      }
       default:
         return res
           .status(HttpStatus.BAD_REQUEST)
@@ -473,6 +477,13 @@ export class AuthController {
               Number(organizationId),
             );
             break;
+          case 'slack': {
+            return res
+              .status(HttpStatus.BAD_REQUEST)
+              .send({
+                message: 'Use /auth/slack/start and /auth/slack/exchange',
+              });
+          }
           default:
             return res
               .status(HttpStatus.BAD_REQUEST)
@@ -548,5 +559,75 @@ export class AuthController {
 
   private isSecure(): boolean {
     return this.configService.get<string>('DOMAIN').startsWith('https://');
+  }
+
+  // Simple Slack linking endpoints
+  @Get('slack/start')
+  async slackStart(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query('state') state?: string,
+    @Query('redirect_uri') redirectUri?: string,
+  ): Promise<void> {
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const finishUrl = `${origin}/api/v1/auth/slack/finish?state=${state || ''}&redirect_uri=${redirectUri || ''}`;
+
+    const hasAuth = !!getCookie(req, 'auth_token');
+    if (!hasAuth) {
+      res.redirect(
+        HttpStatus.FOUND,
+        `/login?redirect=${encodeURIComponent(finishUrl)}`,
+      );
+      return;
+    }
+
+    res.redirect(HttpStatus.FOUND, finishUrl);
+  }
+
+  @Get('slack/finish')
+  @UseGuards(JwtAuthGuard)
+  async slackFinish(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query('state') state?: string,
+    @Query('redirect_uri') redirectUri?: string,
+  ): Promise<void> {
+    if (!redirectUri) {
+      res.status(HttpStatus.BAD_REQUEST).send('Missing redirect_uri');
+      return;
+    }
+
+    const userId = Number((req.user as RequestUser).userId);
+    const code = await this.authService.generateSlackLinkCode(userId);
+
+    const url = new URL(redirectUri);
+    url.searchParams.set('state', state || '');
+    url.searchParams.set('code', code);
+
+    console.log(`[Slack] Redirecting to ${url.toString()}`);
+    res.redirect(HttpStatus.FOUND, url.toString());
+  }
+
+  @Post('slack/exchange')
+  async slackExchange(
+    @Body() body: { code: string },
+    @Res() res: Response,
+  ): Promise<void> {
+    try {
+      const { code } = body;
+      if (!code) {
+        res.status(HttpStatus.BAD_REQUEST).json({ error: 'Missing code' });
+        return;
+      }
+
+      const userId = await this.authService.exchangeSlackLinkCode(code);
+      const userData = await this.authService.getSlackUserData(userId);
+
+      console.log(`[Slack] Successfully linked user ${userId}`);
+      res.status(HttpStatus.OK).json(userData);
+    } catch (error) {
+      console.log(`[Slack] Exchange error: ${error.message}`);
+      res.status(HttpStatus.BAD_REQUEST).json({ error: error.message });
+    }
   }
 }
