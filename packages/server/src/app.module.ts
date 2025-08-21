@@ -40,7 +40,9 @@ import { RedisModule } from '@liaoliaots/nestjs-redis';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot(typeormConfig),
+    TypeOrmModule.forRoot({
+      ...typeormConfig,
+    }),
     SentryModule.forRoot(),
     // Only use 'pub' for publishing events, 'sub' for subscribing, and 'db' for writing to key/value store
     RedisModule.forRoot({
