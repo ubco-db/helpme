@@ -4,6 +4,7 @@ import {
   AddDocumentChunkParams,
   ChatbotQuestionResponseChatbotDB,
   ChatbotSettings,
+  ChatbotSettingsMetadata,
   ChatbotSettingsUpdateParams,
   UpdateChatbotQuestionParams,
   UpdateDocumentAggregateParams,
@@ -179,6 +180,19 @@ export class ChatbotApiService {
     return this.request('GET', `course-setting/${courseId}`, userToken);
   }
 
+  async createChatbotSettings(
+    settings: ChatbotSettingsMetadata,
+    courseId: number,
+    userToken: string,
+  ) {
+    return this.request(
+      'POST',
+      `course-setting/${courseId}`,
+      userToken,
+      settings,
+    );
+  }
+
   async updateChatbotSettings(
     settings: ChatbotSettingsUpdateParams,
     courseId: number,
@@ -194,6 +208,10 @@ export class ChatbotApiService {
 
   async resetChatbotSettings(courseId: number, userToken: string) {
     return this.request('PATCH', `course-setting/${courseId}/reset`, userToken);
+  }
+
+  async deleteChatbotSettings(courseId: number, userToken: string) {
+    return this.request('DELETE', `course-setting/${courseId}`, userToken);
   }
 
   // Document endpoints
@@ -288,7 +306,9 @@ export class ChatbotApiService {
       // Add the main file with fieldname "file"
       formData.append(
         'file',
-        new Blob([file.buffer], { type: 'application/pdf' }), // it's always going to be pdf
+        new Blob([file.buffer.buffer as ArrayBuffer], {
+          type: 'application/pdf',
+        }), // it's always going to be pdf
         file.originalname.replace(/\.[^/.]+$/, '.pdf'), // Replace original extension with .pdf
       );
 
@@ -353,7 +373,7 @@ export class ChatbotApiService {
 
       formData.append(
         'file',
-        new Blob([file.buffer], { type: file.mimetype }),
+        new Blob([file.buffer.buffer as ArrayBuffer], { type: file.mimetype }),
         file.originalname,
       );
 

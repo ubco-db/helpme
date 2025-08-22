@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer'
+import { Exclude, Type } from 'class-transformer'
 import {
   IsArray,
   IsBoolean,
@@ -6,6 +6,7 @@ import {
   IsEnum,
   IsHexColor,
   IsIn,
+  IsInstance,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -13,6 +14,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  ValidateNested,
 } from 'class-validator'
 import 'reflect-metadata'
 import { Cache } from 'cache-manager'
@@ -503,12 +505,379 @@ export interface ChatbotAskResponseChatbotDB {
   isPreviousQuestion: boolean
 }
 
+export enum ChatbotServiceType {
+  LEGACY = 'legacy',
+  LATEST = 'latest',
+}
+
 export interface AddChatbotQuestionParams {
   question: string
   answer: string
   verified: boolean
   suggested: boolean
   sourceDocuments: SourceDocument[]
+}
+
+export interface OrganizationChatbotSettings {
+  id: number
+
+  defaultProvider: ChatbotProvider
+  providers: ChatbotProvider[]
+
+  default_prompt?: string
+  default_temperature?: number
+  default_topK?: number
+  default_similarityThresholdDocuments?: number
+  default_similarityThresholdQuestions?: number
+}
+
+export interface CourseChatbotSettings {
+  id: number
+  course: CoursePartial
+  courseId: number
+  llmId: number
+  llmModel: LLMType
+  prompt: string
+  temperature: number
+  topK: number
+  similarityThresholdDocuments: number
+  // similarityThresholdQuestions: number;
+  usingDefaultModel: boolean
+  usingDefaultPrompt: boolean
+  usingDefaultTemperature: boolean
+  usingDefaultTopK: boolean
+  usingDefaultSimilarityThresholdDocuments: boolean
+  // usingDefaultSimilarityThresholdQuestions: boolean;
+}
+
+export interface CourseChatbotSettingsForm {
+  llmId?: number
+  prompt?: string
+  temperature?: number
+  topK?: number
+  similarityThresholdDocuments?: number
+}
+
+export class ChatbotProvider {
+  id!: number
+
+  @Exclude()
+  @IsOptional()
+  nickname?: string
+
+  @Exclude()
+  @IsOptional()
+  baseUrl?: string
+
+  @Exclude()
+  @IsOptional()
+  apiKey?: string
+
+  @IsBoolean()
+  hasApiKey!: boolean
+
+  providerType!: ChatbotServiceProvider
+
+  headers!: ChatbotAllowedHeaders
+
+  availableModels!: LLMType[]
+
+  defaultModel!: LLMType
+
+  defaultVisionModel!: LLMType
+
+  @IsOptional()
+  additionalNotes?: string[]
+}
+
+export interface LLMType {
+  id: number
+  modelName: string
+  isRecommended: boolean
+  isText: boolean
+  isVision: boolean
+  isThinking: boolean
+  provider: ChatbotProvider
+  additionalNotes?: string[]
+  providerNotes?: string[]
+}
+
+export interface OllamaLLMType extends LLMType {
+  parameterSize: string
+  families: string[]
+}
+
+export interface OpenAILLMType extends LLMType {
+  families: string[]
+}
+
+export class OrganizationChatbotSettingsDefaults {
+  @IsInt()
+  @IsOptional()
+  defaultProvider?: number
+
+  @IsString()
+  @IsOptional()
+  default_prompt?: string | null
+
+  @IsNumber()
+  @IsOptional()
+  default_temperature?: number | null
+
+  @IsInt()
+  @IsOptional()
+  default_topK?: number | null
+
+  @IsNumber()
+  @IsOptional()
+  default_similarityThresholdDocuments?: number | null
+
+  @IsNumber()
+  @IsOptional()
+  default_similarityThresholdQuestions?: number | null
+}
+
+export class CreateOrganizationChatbotSettingsBody extends OrganizationChatbotSettingsDefaults {
+  @IsArray()
+  @IsOptional()
+  providers?: CreateChatbotProviderBody[]
+}
+
+export class ChatbotAllowedHeaders {
+  Authorization?: string
+}
+
+export type ChatbotAllowedHeadersType = {
+  key: keyof ChatbotAllowedHeaders
+  value: string
+}
+
+export const ChatbotAllowedHeadersList = Object.keys(
+  new ChatbotAllowedHeaders(),
+) as (keyof ChatbotAllowedHeaders)[]
+
+export enum ChatbotServiceProvider {
+  OpenAI = 'openai',
+  Ollama = 'ollama',
+}
+
+export class OllamaModelDetails {
+  @IsString()
+  parent_model!: string
+
+  @IsString()
+  format!: string
+
+  @IsString()
+  family!: string
+
+  @IsArray()
+  families!: string[]
+
+  @IsString()
+  parameter_size!: string
+
+  @IsString()
+  quantization_level!: string
+}
+
+export class OllamaModelDescription {
+  @IsString()
+  name!: string
+
+  @IsString()
+  model!: string
+
+  @IsDate()
+  modifiedAt!: Date
+
+  @IsInt()
+  size!: number
+
+  @IsInstance(OllamaModelDetails)
+  details!: OllamaModelDetails
+}
+
+export class OpenAIModelDescription {
+  @IsString()
+  id!: string
+
+  @IsString()
+  object!: string
+
+  @IsString()
+  created!: string
+
+  @IsString()
+  owned_by!: string
+}
+
+export class GetAvailableModelsBody {
+  @IsString()
+  @IsOptional()
+  baseUrl?: string
+
+  @IsString()
+  @IsOptional()
+  apiKey?: string
+
+  @IsObject()
+  @IsOptional()
+  headers?: ChatbotAllowedHeaders
+}
+
+export class CreateChatbotProviderBody {
+  @IsString()
+  @IsOptional()
+  nickname?: string
+
+  @IsEnum(ChatbotServiceProvider)
+  providerType!: ChatbotServiceProvider
+
+  @IsObject()
+  @IsOptional()
+  headers?: ChatbotAllowedHeaders
+
+  @IsString()
+  @IsOptional()
+  baseUrl?: string
+
+  @IsString()
+  @IsOptional()
+  apiKey?: string
+
+  @IsArray()
+  @Type(() => CreateLLMTypeBody)
+  @ValidateNested({ each: true })
+  models!: CreateLLMTypeBody[]
+
+  @IsString()
+  defaultModelName!: string
+
+  @IsString()
+  defaultVisionModelName!: string
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  additionalNotes?: string[]
+}
+
+export class UpdateChatbotProviderBody {
+  @IsEnum(ChatbotServiceProvider)
+  @IsOptional()
+  providerType?: ChatbotServiceProvider
+
+  @IsString()
+  @IsOptional()
+  nickname?: string
+
+  @IsObject()
+  @IsOptional()
+  headers?: ChatbotAllowedHeaders
+
+  @IsString()
+  @IsOptional()
+  baseUrl?: string
+
+  @IsString()
+  @IsOptional()
+  apiKey?: string
+
+  @IsString()
+  @IsOptional()
+  defaultModelName?: string
+
+  @IsString()
+  @IsOptional()
+  defaultVisionModelName?: string
+
+  @IsInt()
+  @IsOptional()
+  defaultModelId?: number
+
+  @IsInt()
+  @IsOptional()
+  defaultVisionModelId?: number
+
+  @IsArray()
+  @IsNumber({}, { each: true })
+  @IsOptional()
+  deletedModels?: number[]
+
+  @IsArray()
+  @IsOptional()
+  @Type(() => CreateLLMTypeBody)
+  @ValidateNested({ each: true })
+  addedModels?: CreateLLMTypeBody[]
+
+  @IsArray()
+  @IsOptional()
+  @Type(() => UpdateLLMTypeBody)
+  @ValidateNested({ each: true })
+  modifiedModels?: UpdateLLMTypeBody[]
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  additionalNotes?: string[]
+}
+
+export class CreateLLMTypeBody {
+  @IsString()
+  modelName!: string
+
+  @IsBoolean()
+  isRecommended!: boolean
+
+  @IsBoolean()
+  isText!: boolean
+
+  @IsBoolean()
+  isVision!: boolean
+
+  @IsBoolean()
+  isThinking!: boolean
+
+  @IsInt()
+  @IsOptional()
+  providerId?: number
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  additionalNotes?: string[]
+}
+
+export class UpdateLLMTypeBody {
+  @IsNumber()
+  @IsOptional()
+  modelId?: number
+
+  @IsString()
+  @IsOptional()
+  modelName?: string
+
+  @IsBoolean()
+  @IsOptional()
+  isRecommended?: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  isText?: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  isVision?: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  isThinking?: boolean
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  additionalNotes?: string[]
 }
 
 export interface ChatbotSettings {
@@ -518,20 +887,58 @@ export interface ChatbotSettings {
   metadata: ChatbotSettingsMetadata
 }
 
-export interface ChatbotSettingsMetadata {
+export interface ProviderMetadata {
+  type: ChatbotServiceProvider
+  baseUrl: string
+  apiKey: string
+  defaultModelName: string
+  defaultVisionModelName: string
+  headers: ChatbotAllowedHeaders
+}
+
+export interface ModelMetadata {
+  provider: ProviderMetadata
   modelName: string
+}
+
+export interface OrganizationChatbotSettingsMetadata {
+  defaultProvider: ProviderMetadata
+}
+
+export interface ChatbotSettingsMetadata {
+  organizationSettings?: OrganizationChatbotSettingsMetadata
+  model?: ModelMetadata
+  modelName?: string
   prompt: string
   similarityThresholdDocuments: number
+  similarityThresholdQuestions: number
   temperature: number
   topK: number
 }
-export interface ChatbotSettingsUpdateParams {
-  modelName?: string
+
+export class UpsertCourseChatbotSettings {
+  @IsInt()
+  @IsOptional()
+  llmId?: number
+
+  @IsString()
+  @IsOptional()
   prompt?: string
+
+  @IsNumber()
+  @IsOptional()
   similarityThresholdDocuments?: number
+
+  @IsNumber()
+  @IsOptional()
   temperature?: number
+
+  @IsNumber()
+  @IsOptional()
   topK?: number
 }
+
+export type ChatbotSettingsUpdateParams = Partial<ChatbotSettingsMetadata>
 
 export interface InteractionResponse {
   id: number
@@ -3070,6 +3477,22 @@ export function parseThinkBlock(answer: string) {
   return { thinkText, cleanAnswer }
 }
 
+export function dropUndefined(obj: any, dropNull = false) {
+  if (typeof obj !== 'object' || (!dropNull && obj === null)) {
+    return obj // Ignore non-objects and null
+  }
+
+  for (const key of Object.keys(obj)) {
+    if (obj[key] === undefined || (dropNull && obj[key] === null)) {
+      delete obj[key]
+    } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+      obj[key] = dropUndefined(obj[key])
+    }
+  }
+
+  return obj
+}
+
 export const ERROR_MESSAGES = {
   common: {
     pageOutOfBounds: "Can't retrieve out of bounds page.",
@@ -3105,6 +3528,36 @@ export const ERROR_MESSAGES = {
   organizationService: {
     cannotCreateOrgNotFound:
       'Organization settings could not be created; organization not found.',
+  },
+  chatbotController: {
+    organizationSettingsAlreadyExists:
+      'Chatbot settings for this organization already exists.',
+    organizationSettingsNotFound:
+      'Chatbot settings for this organization could not be found.',
+    chatbotProviderNotFound: 'Specified chatbot provider does not exist.',
+    modelNotFound: 'Specified LLM type not found.',
+    courseSettingsNotFound:
+      'Chatbot settings for this course could not be found.',
+    invalidProvider: 'Specified provider type was invalid.',
+    invalidProviderParams: (params: string[]) =>
+      `Missing necessary parameters ${params.join(', ')} to invoke provider.`,
+    incompatibleProvider: (provider: ChatbotServiceProvider) =>
+      `Specified chatbot provider is not an ${provider} provider.`,
+  },
+  chatbotService: {
+    defaultModelNotFound:
+      'Specified default model was not found in list of models',
+    courseSettingsNotFound:
+      'Course-specific chatbot settings could not be found.',
+    providersRequired:
+      'At least one provider is required to create a chatbot setting for the organization.',
+    cannotDeleteDefaultProvider:
+      "Cannot delete the default provider for the organization's chatbot settings.",
+    cannotDeleteDefaultModel:
+      'Cannot delete the default model of the provider.',
+    modelNotFound: 'Specified model was not found in list of models',
+    cannotChangeDefaultModelType: (type: 'text' | 'vision') =>
+      `Cannot change the type of default ${type} model to non-${type}`,
   },
   courseController: {
     checkIn: {
@@ -3216,6 +3669,10 @@ export const ERROR_MESSAGES = {
     invalidTempJWTToken: 'Error occurred while signing a JWT token',
     addUserFromKhoury:
       'Error occurred while translating account from Khoury to Office Hours',
+  },
+  chatbotEndpointGuard: {
+    legacyEndpointIncompatible: (endpoint: string) =>
+      `Oops! It seems the action you were trying to do uses legacy functionality while your course is set up to use the updated methods.\nPlease notify site administrators of this issue so it can be solved as soon as possible!\n(Endpoint: ${endpoint})`,
   },
   questionRoleGuard: {
     questionNotFound: 'Question not found',
