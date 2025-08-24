@@ -63,6 +63,8 @@ import {
   LMSFile,
   LMSOrganizationIntegrationPartial,
   LMSPage,
+  LMSQuiz,
+  LMSQuizAccessLevel,
   MailServiceWithSubscription,
   OllamaLLMType,
   OrganizationChatbotSettings,
@@ -1339,6 +1341,8 @@ class APIClient {
       this.req('GET', `/api/v1/lms/${courseId}/pages`),
     getFiles: async (courseId: number): Promise<LMSFile[]> =>
       this.req('GET', `/api/v1/lms/${courseId}/files`),
+    getQuizzes: async (courseId: number): Promise<LMSQuiz[]> =>
+      this.req('GET', `/api/v1/lms/${courseId}/quizzes`),
     toggleSync: async (courseId: number): Promise<string> =>
       this.req('POST', `/api/v1/lms/${courseId}/sync`),
     forceSync: async (courseId: number): Promise<LMSSyncDocumentsResult> =>
@@ -1389,6 +1393,46 @@ class APIClient {
         undefined,
         file,
       ),
+    toggleSyncQuiz: async (
+      courseId: number,
+      quizId: number,
+      quiz: LMSQuiz,
+    ): Promise<string> =>
+      this.req(
+        'POST',
+        `/api/v1/lms/${courseId}/sync/quiz/${quizId}/toggle`,
+        undefined,
+        quiz,
+      ),
+    updateQuizAccessLevel: async (
+      courseId: number,
+      quizId: number,
+      accessLevel: LMSQuizAccessLevel,
+    ): Promise<string> =>
+      this.req(
+        'POST',
+        `/api/v1/lms/${courseId}/quiz/${quizId}/access-level`,
+        undefined,
+        { accessLevel },
+      ),
+    getQuizContentPreview: async (
+      courseId: number,
+      quizId: number,
+      accessLevel: LMSQuizAccessLevel,
+    ): Promise<{ content: string }> =>
+      this.req(
+        'GET',
+        `/api/v1/lms/${courseId}/quiz/${quizId}/preview/${accessLevel}`,
+      ),
+    bulkUpdateQuizSync: async (
+      courseId: number,
+      action: 'enable' | 'disable',
+      quizIds?: number[],
+    ): Promise<string> =>
+      this.req('POST', `/api/v1/lms/${courseId}/quizzes/bulk-sync`, undefined, {
+        action,
+        quizIds,
+      }),
     updateSelectedResourceTypes: async (
       courseId: number,
       selectedResourceTypes: string[],
