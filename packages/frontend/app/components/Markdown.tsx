@@ -53,20 +53,28 @@ const MarkdownCustom: React.FC<MarkdownCustomProps> = ({
         code({ node, inline, className, children, ...props }: any) {
           const match = /language-(\w+)/.exec(className || '')
           return !inline && match ? (
-            <SyntaxHighlighter
-              style={
-                variant === 'blue'
-                  ? dracula
-                  : variant === 'lightblue'
-                    ? coldarkCold
-                    : oneLight
-              }
-              language={match[1]}
-              PreTag="div"
-              {...props}
-            >
-              {String(children).replace(/\n$/, '')}
-            </SyntaxHighlighter>
+            <>
+              {/*
+              In some environments, components which return Promises or arrays do not work.
+              This is due to some changes to react and @types/react, and the component
+              packages have not been updated to fix these issues.
+            */}
+              {/* @ts-expect-error Server Component */}
+              <SyntaxHighlighter
+                style={
+                  variant === 'blue'
+                    ? dracula
+                    : variant === 'lightblue'
+                      ? coldarkCold
+                      : oneLight
+                }
+                language={match[1]}
+                PreTag="div"
+                {...props}
+              >
+                {String(children).replace(/\n$/, '')}
+              </SyntaxHighlighter>
+            </>
           ) : (
             <code className={className} {...props}>
               {children}

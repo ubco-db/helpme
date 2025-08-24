@@ -1,15 +1,15 @@
 'use client'
 
-import { useState, useEffect, ReactElement, useCallback, use } from 'react'
+import { ReactElement, use, useCallback, useEffect, useState } from 'react'
 import {
-  Table,
   Button,
-  Modal,
-  Input,
-  Form,
-  message,
-  InputNumber,
   Empty,
+  Form,
+  Input,
+  InputNumber,
+  message,
+  Modal,
+  Table,
 } from 'antd'
 import Link from 'next/link'
 import { getErrorMessage } from '@/app/utils/generalUtils'
@@ -122,6 +122,12 @@ export default function ChatbotDocuments(
             prefetch={false}
             rel="noopener noreferrer"
           >
+            {/*
+              In some environments, components which return Promises or arrays do not work.
+              This is due to some changes to react and @types/react, and the component
+              packages have not been updated to fix these issues.
+            */}
+            {/* @ts-expect-error Server Component */}
             <Highlighter
               highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
               searchWords={[search]}
@@ -138,6 +144,12 @@ export default function ChatbotDocuments(
       key: 'pageContent',
       render: (text: string) => (
         <ExpandableText maxRows={4}>
+          {/*
+              In some environments, components which return Promises or arrays do not work.
+              This is due to some changes to react and @types/react, and the component
+              packages have not been updated to fix these issues.
+            */}
+          {/* @ts-expect-error Server Component */}
           <Highlighter
             highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
             searchWords={[search]}

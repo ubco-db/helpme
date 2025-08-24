@@ -2,8 +2,7 @@
 
 import { userApi } from '@/app/api/userApi'
 import { Button, Card, Form, Input, message, Spin } from 'antd'
-import React from 'react'
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import ReCAPTCHA from 'react-google-recaptcha'
 
 export default function ForgetPassword() {
@@ -73,6 +72,7 @@ export default function ForgetPassword() {
           form={form}
           onFinish={sendResetPasswordEmail}
         >
+          {/* @ts-expect-error Server Component */}
           <ReCAPTCHA
             ref={recaptchaRef}
             size="invisible"

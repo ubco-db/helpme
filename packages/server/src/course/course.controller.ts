@@ -374,7 +374,7 @@ export class CourseController {
       return this.courseService.createQueue(
         courseId,
         room,
-        body.type,
+        body.type ?? QueueTypes.Hybrid,
         body.notes,
         body.isProfessorQueue,
         newConfig,

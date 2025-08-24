@@ -133,6 +133,12 @@ export default function ChatbotQuestions(
       },
       render: (text: string) => (
         <ExpandableText maxRows={3}>
+          {/*
+              In some environments, components which return Promises or arrays do not work.
+              This is due to some changes to react and @types/react, and the component
+              packages have not been updated to fix these issues.
+            */}
+          {/* @ts-expect-error Server Component */}
           <Highlighter
             highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
             searchWords={[search]}
@@ -171,6 +177,12 @@ export default function ChatbotQuestions(
                 </span>
               </Tooltip>
             )}
+            {/*
+              In some environments, components which return Promises or arrays do not work.
+              This is due to some changes to react and @types/react, and the component
+              packages have not been updated to fix these issues.
+            */}
+            {/* @ts-expect-error Server Component */}
             <Highlighter
               highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
               searchWords={[search]}

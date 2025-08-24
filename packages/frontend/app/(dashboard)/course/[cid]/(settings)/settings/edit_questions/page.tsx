@@ -14,7 +14,7 @@ import {
   TableColumnType,
   Typography,
 } from 'antd'
-import { useEffect, useRef, useState, use } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FilterConfirmProps } from 'antd/es/table/interface'
 import { questions, QuestionType, UpdateQuestionParams } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
@@ -175,7 +175,7 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
       const newQuestionTypes = row.QuestionTypeIds
         ? questionTypes.filter((questionType) =>
             // I think typescript is having a stroke
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+             
             row.QuestionTypeIds!.includes(questionType.id),
           )
         : []
@@ -332,12 +332,20 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
         )
       } else {
         return searchedColumn === dataIndex ? (
-          <Highlighter
-            highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
-            searchWords={[searchText]}
-            autoEscape
-            textToHighlight={text ? text.toString() : ''}
-          />
+          <>
+            {/*
+              In some environments, components which return Promises or arrays do not work.
+              This is due to some changes to react and @types/react, and the component
+              packages have not been updated to fix these issues.
+            */}
+            {/* @ts-expect-error Server Component */}
+            <Highlighter
+              highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
+              searchWords={[searchText]}
+              autoEscape
+              textToHighlight={text ? text.toString() : ''}
+            />
+          </>
         ) : (
           text
         )
