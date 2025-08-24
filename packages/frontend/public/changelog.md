@@ -29,6 +29,7 @@
 - Fixed an issue where chatbot responses would have weird formatting issues whenever responses contained multiple $ signs
 - Fixed an issue where chatbot responses would overflow outside its chat box for formulas
 - Improved loading performance on the LMS Integrations page
+- Fixed an issue where unpublished Canvas pages were being auto-synchronized into the chatbot. Previously synchronized unpublished pages will automatically be removed from the chatbot's knowledgebase in the next sync
 - Improved LMS synchronization behavior and improved user feedback after triggering a force synchronization
 - Improved the login page to combine the organization selector with the rest of the login page, with UBC default selected 
 - Fixed an issue where after getting invited to a course, you would always be redirected into that course for subsequent logins
