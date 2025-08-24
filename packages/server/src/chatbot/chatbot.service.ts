@@ -1265,7 +1265,7 @@ export class ChatbotService {
           families: model.details.families ?? [model.details.family],
           parameterSize: model.details.parameter_size,
           isRecommended: false,
-          isText: !isVision,
+          isText: true,
           isVision,
           isThinking,
           provider: null,
