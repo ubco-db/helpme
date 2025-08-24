@@ -4,6 +4,7 @@ import {
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
@@ -35,7 +36,7 @@ export class OrganizationRolesGuard implements CanActivate {
   }
 
   async setupData(
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+     
     request: any,
   ): Promise<{ user: OrganizationUserModel }> {
     const user = await OrganizationUserModel.findOne({
@@ -57,7 +58,7 @@ export class OrganizationRolesGuard implements CanActivate {
     });
 
     if (remaining.length <= 0) {
-      throw new UnauthorizedException(
+      throw new ForbiddenException(
         ERROR_MESSAGES.roleGuard.mustBeRoleToAccess(roles),
       );
     }

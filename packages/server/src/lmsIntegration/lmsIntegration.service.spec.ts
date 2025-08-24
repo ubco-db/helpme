@@ -6,7 +6,11 @@ import {
 } from './lmsIntegration.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
+import {
+  TestChatbotConnectionOptions,
+  TestConfigModule,
+  TestTypeOrmModule,
+} from '../../test/util/testUtils';
 import {
   AbstractLMSAdapter,
   LMSIntegrationAdapter,
@@ -60,7 +64,7 @@ describe('LMSIntegrationService', () => {
         TestTypeOrmModule,
         TestConfigModule,
         FactoryModule,
-        ChatbotModule,
+        ChatbotModule.forRoot(TestChatbotConnectionOptions),
       ],
       providers: [
         LMSIntegrationService,

@@ -1,10 +1,8 @@
-/* eslint-disable @typescript-eslint/no-empty-function */
 import { Test, TestingModule } from '@nestjs/testing';
 import { BackupService, baseBackupCommand } from './backup.service';
 import * as fs from 'fs';
-import { exec } from 'child_process';
 import { Stats } from 'fs';
-import path from 'path';
+import { exec } from 'child_process';
 
 jest.mock('fs');
 jest.mock('child_process', () => ({
@@ -233,7 +231,7 @@ describe('BackupService', () => {
           isFIFO: () => false,
           isSocket: () => false,
         },
-      ] as fs.Dirent[]);
+      ] as fs.Dirent<any>[]);
 
       jest.spyOn(fs, 'statSync').mockImplementation((filePath: string) => {
         const mockStats = {

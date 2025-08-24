@@ -481,7 +481,7 @@ export default function LMSDocumentList<
               (d as LMSPage).title
                 .toLowerCase()
                 .includes(search.toLowerCase()) ||
-              (d as LMSPage).body.toLowerCase().includes(search.toLowerCase())
+              (d as LMSPage).body?.toLowerCase().includes(search.toLowerCase())
             )
           case 'File':
             return (

@@ -26,8 +26,8 @@ export class LMSPageModel extends BaseEntity {
   @Column({ type: 'text' })
   title: string;
 
-  @Column({ type: 'text' })
-  body: string;
+  @Column({ type: 'text', nullable: true })
+  body?: string;
 
   @Column({ type: 'text', nullable: true })
   url: string;
