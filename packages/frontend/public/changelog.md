@@ -1,3 +1,43 @@
+## Version 1.6.0 - Canvas Files Integration, Queue -> Anytime Question Conversion, Improved Login Redirect
+
+*Aug 24th, 2025*
+
+
+#### New Features
+
+- ***General***
+  - Students now have the option to convert their Queue questions to Anytime questions after the last staff member checks-out of the queue (previously, they only had the option to stay or leave the queue)
+  - Anytime Questions now have a button that will use AI to generate an abstract based on the question text
+  - Improved Login Redirect
+    - After trying to access a page while logged out, you will be redirected to the login page, and then redirected *back* to the page you were trying to access rather than to My Courses or a course home page
+- ***Faculty-only***
+  - Canvas Files are now a resource that can be synchronized into the chatbot knowledge base
+    - These files are not stored on HelpMe directly
+    - Any citations to these documents will link to the file on Canvas directly (meaning that protected Canvas documents can still be uploaded to the Chatbot without worry that students can access it)
+  - Anytime Questions' "Needs Attention" emails now receive a reply when someone else helps the question
+    - This should help scenarios of many profs/TAs all needing to login just to find out a different TA already helped them
+  - Added newer, faster, better (probably) local LLM models 
+
+
+#### Improvements
+
+- Added Organization-level chatbot settings, allowing organization admins to limit what LLM models can be used based on the organization's requirements
+  - For example, in order to comply with UBC's PIA professors must not be allowed to choose OpenAI models for their courses since these models communicate with OpenAI servers (apparently a tooltip explaining as such is not enough) 
+  - This will be further expanded to allow for per-faculty customization in the future
+- Anytime Questions' "Needs Attention" emails are now sent as one email to all profs/TAs rather than to each individually
+  - This allows staff members to optionally discuss an Anytime question with each other before/after a response is made if they would like  
+- Fixed an issue where chatbot responses would have weird formatting issues whenever responses contained multiple $ signs
+- Fixed an issue where chatbot responses would overflow outside its chat box for formulas
+- Improved loading performance on the LMS Integrations page
+- Improved LMS synchronization behavior and improved user feedback after triggering a force synchronization
+- Improved the login page to combine the organization selector with the rest of the login page, with UBC default selected 
+- Fixed an issue where after getting invited to a course, you would always be redirected into that course for subsequent logins
+  - Should now be less annoying if you have multiple courses
+  - Was intentionally not fixed since it resulted in less clicks needed in some instances, but the improved login redirect does a much better (and predictable) job
+- Various security improvements and fixes
+
+***
+
 ## Version 1.5.2 - Chatbot Configuration Tutorial, Canvas Pages Synchronization, More Anytime Options 
 
 *July 19th, 2025*
@@ -15,6 +55,7 @@
 - ***Faculty-only***
   - Created a Chatbot Configuration Tutorial, which you can view here: [https://youtu.be/Y8v8HfEpkqo](https://youtu.be/Y8v8HfEpkqo)
   - Canvas Pages are now a resource that can be synchronized into the chatbot knowledge base
+    - Any citations to these pages will link to the page on Canvas directly
 
 
 #### Improvements
