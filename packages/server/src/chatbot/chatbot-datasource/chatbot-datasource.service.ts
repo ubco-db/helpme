@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 import { DataSource } from 'typeorm';
 
@@ -116,6 +116,8 @@ export class ChatbotDataSourceService implements OnModuleDestroy {
         console.error(err);
       }
     }
-    await this.dataSource.destroy();
+    if (this.dataSource.isInitialized) {
+      await this.dataSource.destroy();
+    }
   }
 }

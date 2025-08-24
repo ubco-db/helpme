@@ -13,6 +13,8 @@ import { UserModel } from '../profile/user.entity';
 import { OrganizationChatbotSettingsModel } from './chatbot-infrastructure-models/organization-chatbot-settings.entity';
 import {
   ChatbotAllowedHeaders,
+  ChatbotSettings,
+  ChatbotSettingsMetadata,
   CourseChatbotSettingsForm,
   CreateChatbotProviderBody,
   CreateLLMTypeBody,
@@ -35,6 +37,8 @@ import { CourseChatbotSettingsModel } from './chatbot-infrastructure-models/cour
 import { JSDOM } from 'jsdom';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
+import { ChatbotApiService } from './chatbot-api.service';
+import { ChatbotDataSourceService } from './chatbot-datasource/chatbot-datasource.service';
 
 // OpenAI makes it really annoying to scrape any data related
 // to the model capabilities (text, image processing) (selfish, much?)
@@ -131,6 +135,8 @@ export class ChatbotService {
 
   constructor(
     private dataSource: DataSource,
+    private chatbotDataSource: ChatbotDataSourceService,
+    private chatbotApiService: ChatbotApiService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
@@ -449,16 +455,83 @@ export class ChatbotService {
       },
     });
 
-    const { defaults, usingDefaults } =
-      await this.getUsingCourseDefaultsParams(orgChatbotSettings);
-
     for (const course of hasNoCourseSetting) {
+      let existingSetting: ChatbotSettings;
+      try {
+        existingSetting = await this.chatbotApiService.getChatbotSettings(
+          course.id,
+          '',
+        );
+      } catch (err) {
+        try {
+          const dataSource = await this.chatbotDataSource.getDataSource();
+          const qry = dataSource.createQueryRunner();
+          await qry.connect();
+          existingSetting = await qry.query(
+            await qry.query(
+              'SELECT * FROM course_setting WHERE "pageContent" = $1',
+              [String(course.id)],
+            ),
+          )[0];
+        } catch (_err) {}
+      }
+      if (!existingSetting) {
+        console.error(
+          `Failed to load existing chatbot settings for course ${course.id}`,
+        );
+      }
+
+      const originals = dropUndefined(
+        pick((existingSetting?.metadata ?? {}) as ChatbotSettingsMetadata, [
+          'prompt',
+          'temperature',
+          'topK',
+          'similarityThresholdDocuments',
+          'similarityThresholdQuestions',
+        ]),
+        true,
+      );
+
+      const { defaults, usingDefaults } =
+        await this.getUsingCourseDefaultsParams(orgChatbotSettings, originals);
+
+      let matchingModel: LLMTypeModel;
+      if (
+        existingSetting?.metadata?.modelName != undefined ||
+        existingSetting?.metadata?.model?.modelName != undefined
+      ) {
+        for (const provider of orgChatbotSettings.providers) {
+          console.log(
+            existingSetting.metadata.modelName,
+            existingSetting.metadata.model?.modelName,
+          );
+          matchingModel = provider.availableModels.find(
+            (m) =>
+              (m.modelName == existingSetting.metadata.modelName ||
+                m.modelName == existingSetting.metadata.model?.modelName) &&
+              m.isText,
+          );
+          if (matchingModel) {
+            if (
+              matchingModel.id !=
+              orgChatbotSettings.defaultProvider.defaultModelId
+            ) {
+              usingDefaults['usingDefaultModel'] = false;
+            }
+            break;
+          }
+        }
+      }
+
       await CourseChatbotSettingsModel.create({
         courseId: course.id,
         organizationSettingsId: orgChatbotSettings.id,
-        llmId: orgChatbotSettings.defaultProvider.defaultModelId,
         ...defaults,
+        ...originals,
         ...usingDefaults,
+        llmId: matchingModel
+          ? matchingModel.id
+          : orgChatbotSettings.defaultProvider.defaultModelId,
       }).save();
     }
   }
