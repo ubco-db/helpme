@@ -50,7 +50,7 @@ const InsightsMenu: React.FC<InsightsMenuProps> = ({
     }
   })
 
-  const handleInsightsClick = (item: MenuItem) => {
+  const handleInsightsClick = (item: any) => {
     if (item == undefined) {
       setCategory('Dashboard')
       return

@@ -6,10 +6,13 @@ import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
 export default function ErrorPage429({
-  error,
+  params,
 }: {
-  error: Error & { digest?: string }
+  params: {
+    error: Error & { digest?: string }
+  }
 }) {
+  const { error } = params
   const router = useRouter()
   useEffect(() => {
     Sentry.captureException(error)

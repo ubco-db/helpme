@@ -96,13 +96,13 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                 event.stopPropagation()
               }
               // find the professor with the given id and see if they have lacksProfOrgRole
+              const match = professors.find(
+                (prof) => prof.organizationUser.id === value,
+              )
               const lacksProfOrgRole = ![
                 OrganizationRole.ADMIN,
                 OrganizationRole.PROFESSOR,
-              ].includes(
-                professors.find((prof) => prof.organizationUser.id === value)
-                  ?.trueRole ?? OrganizationRole.MEMBER,
-              )
+              ].includes(match?.trueRole ?? OrganizationRole.MEMBER)
               return (
                 <Tooltip
                   title={

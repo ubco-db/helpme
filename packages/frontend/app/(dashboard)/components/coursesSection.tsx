@@ -18,6 +18,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
   enabledTableView,
 }) => {
   // For some reason, jdenticon is not working when imported as a module and needs to use require
+  // eslint-disable @typescript-eslint/no-var-requires
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const jdenticon = require('jdenticon')
   const iconSize = 60

@@ -384,7 +384,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     const pages: LMSPage[] = [];
 
     // Individual page calls will now be cached by the Get() method
-    for (const page of data) {
+    for (const page of data.filter((datum: any) => datum.published == true)) {
       const pageResult = await this.Get(
         `courses/${this.integration.apiCourseId}/pages/${page.url}`,
       );
