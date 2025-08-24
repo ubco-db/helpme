@@ -3229,6 +3229,16 @@ export const ERROR_MESSAGES = {
     addUserFromKhoury:
       'Error occurred while translating account from Khoury to Office Hours',
   },
+  ltiController: {
+    missingIdToken: 'LTI identification token is missing.',
+  },
+  ltiService: {
+    unparsableCourseId: 'Course identifier could not be parsed from request',
+    noMatchCourse:
+      'No matching course in HelpMe was found, cannot fulfill request',
+    noMatchUserCourse:
+      'Failed to find matching user/course pair based on request from LTI within the HelpMe system.',
+  },
   questionRoleGuard: {
     questionNotFound: 'Question not found',
     queueOfQuestionNotFound: 'Cannot find queue of question',

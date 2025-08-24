@@ -1,24 +1,20 @@
-import {
-  HttpException,
-  INestApplication,
-  NotFoundException,
-} from '@nestjs/common';
+import { HttpException, INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import {
+  Express,
+  NextFunction,
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
 import { LTIConfigModel } from './lti_config.entity';
 import { isProd } from '@koh/common';
-import { UserModel } from '../profile/user.entity';
-import { UserCourseModel } from '../profile/user-course.entity';
+import { AuthTokenMethodEnum, IdToken, register } from 'lti-typescript';
 import { JwtService } from '@nestjs/jwt';
-import { getCookie } from '../common/helpers';
-import { Database as LtiDatabase, IdToken, Provider as lti } from './lti.types';
+import { LtiService } from './lti.service';
 
 export default class LtiMiddleware {
-  static readonly prefix = 'api/v1/lti/external';
+  static readonly prefix = '/api/v1/lti';
   static readonly reservedRoutes = {
     loginUrl: `${LtiMiddleware.prefix}/login`,
     keysetUrl: `${LtiMiddleware.prefix}/keys`,
@@ -29,35 +25,63 @@ export default class LtiMiddleware {
 
   private readonly configService: ConfigService;
   private readonly jwtService: JwtService;
+  private readonly ltiService: LtiService;
   private readonly dataSource: DataSource;
 
-  constructor(private app: INestApplication) {
+  static async enable(app: INestApplication, baseUrl: string) {
+    try {
+      const ltiMiddleware = new LtiMiddleware(app);
+      const ltiApp = await ltiMiddleware.setup();
+      app.use(baseUrl, ltiApp);
+    } catch (err) {
+      // Don't allow LTI failure to prevent application from working, but log its error
+      console.error(`FAILED TO INITIALIZE LTI AS A MIDDLEWARE: ${err}`);
+    }
+  }
+
+  private constructor(private app: INestApplication) {
     this.configService = this.app.get<ConfigService>(ConfigService);
     this.jwtService = this.app.get<JwtService>(JwtService);
+    this.ltiService = this.app.get<LtiService>(LtiService);
     this.dataSource = this.app.get<DataSource>(DataSource);
     this.redirectRoutes = [
       `${this.configService.get<string>('DOMAIN')}/lti/:cid`,
     ];
   }
 
-  async setup() {
-    if (lti && lti.app) {
-      await lti.close();
-    }
-    lti.setup(
+  private async setup(): Promise<Express> {
+    const variables: Record<string, any> = {
+      secret: this.configService.get<string>('LTI_SECRET_KEY'),
+      user: this.configService.get<string>(
+        `POSTGRES${isProd() ? '_NONROOT' : ''}_USER`,
+      ),
+      pwd: this.configService.get<string>(
+        `POSTGRES${isProd() ? '_NONROOT' : ''}_PASSWORD`,
+      ),
+      host:
+        (this.configService.get<string>('POSTGRES_HOST') ?? isProd())
+          ? 'coursehelp.ubc.ca'
+          : 'localhost',
+      port: this.configService.get<string>('POSTGRES_PORT') ?? '5432',
+      db: this.configService.get<string>('LTI_DATABASE') ?? 'lti',
+    };
+    Object.entries(variables).forEach(([k, v]) => {
+      if (!v) {
+        throw new Error(`Missing ${k} environment variable.`);
+      }
+    });
+
+    const provider = await register(
       this.configService.get<string>('LTI_SECRET_KEY'),
       {
-        // Database
-        plugin: new LtiDatabase({
-          database: 'lti',
-          user: this.configService.get<string>(
-            `POSTGRES_${isProd() ? 'NONROOT_' : ''}USER`,
-          ),
-          pass: this.configService.get<string>(
-            `POSTGRES_${isProd() ? 'NONROOT_' : ''}PASSWORD`,
-          ),
-          host: this.configService.get<string>('POSTGRES_HOST'),
-        }),
+        type: 'postgres',
+        url: `postgres://${variables.user}:${variables.password}@${variables.host}:${variables.port}/${variables.db}`,
+        synchronize:
+          this.configService.get<string>('NODE_ENV') !== 'production',
+        logging:
+          this.configService.get<string>('NODE_ENV') !== 'production'
+            ? ['error', 'warn']
+            : !!process.env.TYPEORM_LOGGING,
       },
       {
         // LTI Configuration Options
@@ -74,28 +98,18 @@ export default class LtiMiddleware {
           autoActivate: false,
         },
         cookies: {
-          secure: true,
-          sameSite: 'None',
+          secure: isProd(),
+          sameSite: 'none',
         },
-        https: isProd(),
         devMode: !isProd(),
+        debug: false,
       },
     );
 
-    lti.whitelist(LtiMiddleware.reservedRoutes.keysetUrl);
+    provider.onConnect(this.onConnectHandler);
 
-    lti.onConnect(
-      (
-        connection: IdToken,
-        request: ExpressRequest,
-        response: ExpressResponse,
-      ) => {
-        this.onConnectHandler(connection, request, response);
-      },
-    );
-
-    lti.onDynamicRegistration(
-      async (token: IdToken, req: ExpressRequest, res: ExpressResponse) => {
+    provider.onDynamicRegistration(
+      async (req: ExpressRequest, res: ExpressResponse) => {
         try {
           if (!req.query.openid_configuration) {
             return res.status(400).send({
@@ -106,7 +120,7 @@ export default class LtiMiddleware {
               },
             });
           }
-          const message = await lti.DynamicRegistration.register(
+          const message = await provider.DynamicRegistration.register(
             req.query.openid_configuration as string,
             req.query.registration_token as string,
             {
@@ -123,108 +137,61 @@ export default class LtiMiddleware {
               details: { message: 'Platform already registered.' },
             });
           }
-          return res
-            .status(500)
-            .send({
-              status: 500,
-              error: 'Internal Server Error',
-              details: { message: err.message },
-            });
+          return res.status(500).send({
+            status: 500,
+            error: 'Internal Server Error',
+            details: { message: err.message },
+          });
         }
       },
     );
 
-    const deployResult = await lti.deploy({
+    const deployResult = await provider.deploy({
       serverless: true,
     });
-    if (!deployResult) throw new Error('Failed to initialize LTI middleware');
+    if (!deployResult) {
+      throw new Error('Failed to initialize LTI middleware');
+    }
 
     const ltiConfigurations = await this.dataSource.manager
       .getRepository(LTIConfigModel)
       .find();
 
     for (const ltiConfig of ltiConfigurations) {
-      await lti.registerPlatform({
-        url: ltiConfig.url,
+      await provider.registerPlatform({
+        platformUrl: ltiConfig.url,
         name: ltiConfig.name,
         clientId: ltiConfig.clientId ?? 'NOT_IMPLEMENTED',
         authenticationEndpoint: ltiConfig.authenticationEndpoint,
-        accesstokenEndpoint: ltiConfig.accesstokenEndpoint,
-        authConfig: { method: 'JWK_SET', key: ltiConfig.keysetEndpoint },
+        accessTokenEndpoint: ltiConfig.accesstokenEndpoint,
+        authToken: {
+          method: AuthTokenMethodEnum.JWK_SET,
+          key: ltiConfig.keysetEndpoint,
+        },
       });
     }
 
-    return lti.app;
+    return provider.app;
   }
 
-  async onConnectHandler(
-    connection: IdToken,
+  private async onConnectHandler(
+    token: IdToken,
     request: ExpressRequest,
     response: ExpressResponse,
+    next: NextFunction,
   ) {
-    console.log(request.url);
     try {
-      let userId: number | undefined = undefined;
-      let courseId: number | undefined = undefined;
+      if (!Object.values(LtiMiddleware.reservedRoutes).includes(request.url)) {
+        const userCourseId = request.query.auth
+          ? (this.jwtService.decode(request.query.auth as string) as {
+              userCourseId: number;
+            })
+          : await this.ltiService.findMatchingUserCourse(token);
 
-      const authCookie = getCookie(request, 'auth_token');
-      const user = authCookie
-        ? (this.jwtService.decode(authCookie) as { userId: number })
-        : undefined;
-
-      const matchingUserIds =
-        user?.userId != undefined
-          ? [user?.userId]
-          : (
-              await UserModel.find({
-                where: { email: connection.userInfo.email },
-              })
-            ).map((u) => u.id);
-
-      if (matchingUserIds.length > 0) {
-        for (const matchingUserId of matchingUserIds) {
-          const userCourse = await UserCourseModel.findOne({
-            where: {
-              userId: matchingUserId,
-              courseId:
-                connection.platformInfo[
-                  'https://purl.imsglobal.org/spec/lti/claim/custom'
-                ].canvas_course_id,
-            },
-          });
-          if (!userCourse) {
-            continue;
-          }
-          courseId = userCourse.courseId;
-          userId = matchingUserId;
-          break;
-        }
-      }
-      if (userId == undefined || courseId == undefined) {
-        throw new NotFoundException(
-          'Failed to find matching user/course pair based on request from LTI within the HelpMe system.',
-        );
+        request.query.ucid = String(userCourseId);
       }
 
-      // This isn't going to work because of Third-Party cookies not mattering + iframe probably
-      // Will have to just embed the token in a request which retrieves info from the frontend manually
-      // This will be really hacky probably but we need a way to track the auth state
-      //
-      // if (!authCookie) {
-      //   await LoginController.attachAuthToken(
-      //     response,
-      //     userId,
-      //     this.jwtService,
-      //     this.configService,
-      //     60 * 60, // Expires in 1 Hour
-      //   );
-      // }
-
-      if (Object.values(LtiMiddleware.reservedRoutes).includes(request.url)) {
-        return response.redirect(`/api/v1/lti/${request.path}`);
-      } else {
-        return response.redirect(`/api/v1/lti/${courseId}/${request.path}`);
-      }
+      return next();
     } catch (err) {
       if (err instanceof HttpException) {
         return response.status(err.getStatus()).send(err.getResponse());

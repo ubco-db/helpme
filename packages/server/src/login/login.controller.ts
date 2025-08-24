@@ -141,12 +141,15 @@ export class LoginController {
     userId: number,
     redirect?: string,
   ) {
-    await LoginController.attachAuthToken(
-      res,
+    const authToken = await LoginController.generateAuthToken(
       userId,
       this.jwtService,
-      this.configService,
     );
+    const isSecure = this.configService
+      .get<string>('DOMAIN')
+      .startsWith('https://');
+
+    res.cookie('auth_token', authToken, { httpOnly: true, secure: isSecure });
 
     let redirectUrl: string;
     const cookie = getCookie(req, '__SECURE_REDIRECT');
@@ -178,11 +181,9 @@ export class LoginController {
     res.redirect(HttpStatus.FOUND, redirectUrl);
   }
 
-  static async attachAuthToken(
-    res: Response,
+  static async generateAuthToken(
     userId: number,
     jwtService: JwtService,
-    configService: ConfigService,
     expiresIn: number = 60 * 60 * 24 * 30, // Expires in 30 days (Default)
   ) {
     // Expires in 30 days
@@ -198,9 +199,7 @@ export class LoginController {
       );
     }
 
-    const isSecure = configService.get<string>('DOMAIN').startsWith('https://');
-
-    res.cookie('auth_token', authToken, { httpOnly: true, secure: isSecure });
+    return authToken;
   }
 
   @Get('/logout')
