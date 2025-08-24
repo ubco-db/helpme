@@ -40,7 +40,7 @@ import { UserModel } from '../src/profile/user.entity';
 import { ChatbotApiService } from '../src/chatbot/chatbot-api.service';
 
 describe('ChatbotController Integration', () => {
-  const { supertest, getTestModule } = setupIntegrationTest(ChatbotModule);
+  const { supertest } = setupIntegrationTest(ChatbotModule);
 
   describe('PATCH /chatbot/questionScore/:courseId/:questionId', () => {
     it('should allow a student to update the score of a question', async () => {

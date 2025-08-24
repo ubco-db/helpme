@@ -467,11 +467,11 @@ export class ChatbotService {
           const dataSource = await this.chatbotDataSource.getDataSource();
           const qry = dataSource.createQueryRunner();
           await qry.connect();
-          existingSetting = await qry.query(
+          existingSetting = (
             await qry.query(
               'SELECT * FROM course_setting WHERE "pageContent" = $1',
               [String(course.id)],
-            ),
+            )
           )[0];
         } catch (_err) {}
       }
