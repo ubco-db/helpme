@@ -11,7 +11,11 @@ import {
   Tag,
   Tooltip,
 } from 'antd'
-import { GetOrganizationResponse, OrganizationProfessor } from '@koh/common'
+import {
+  GetOrganizationResponse,
+  OrganizationProfessor,
+  OrganizationRole,
+} from '@koh/common'
 import { API } from '@/app/api'
 import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
 
@@ -92,9 +96,13 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
                 event.stopPropagation()
               }
               // find the professor with the given id and see if they have lacksProfOrgRole
-              const lacksProfOrgRole = professors.find(
+              const match = professors.find(
                 (prof) => prof.organizationUser.id === value,
-              )?.organizationUser.lacksProfOrgRole
+              )
+              const lacksProfOrgRole = ![
+                OrganizationRole.ADMIN,
+                OrganizationRole.PROFESSOR,
+              ].includes(match?.trueRole ?? OrganizationRole.MEMBER)
               return (
                 <Tooltip
                   title={

@@ -4,7 +4,6 @@ import {
   asyncQuestionStatus,
   calendarEventLocationType,
   ChatbotServiceProvider,
-  ChatbotServiceType,
   LMSIntegrationPlatform,
   MailServiceType,
   OrganizationRole,
@@ -44,12 +43,6 @@ import { QueueChatsModel } from '../queueChats/queue-chats.entity';
 import { DataSource } from 'typeorm';
 import { Injectable } from '@nestjs/common';
 import { OrganizationSettingsModel } from '../organization/organization_settings.entity';
-import {
-  ChatbotProviderFactory,
-  CourseChatbotSettingsFactory,
-  LLMTypeFactory,
-  OrganizationChatbotSettingsFactory,
-} from '../../test/util/factories';
 import { OrganizationChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/organization-chatbot-settings.entity';
 import { LLMTypeModel } from '../chatbot/chatbot-infrastructure-models/llm-type.entity';
 import { ChatbotProviderModel } from '../chatbot/chatbot-infrastructure-models/chatbot-provider.entity';

@@ -1,6 +1,6 @@
 'use client'
 
-import { message, Button, Card, Col, Form, Input, Row } from 'antd'
+import { Button, Card, Col, Form, Input, message, Row } from 'antd'
 import React, { ReactElement, useEffect, useState } from 'react'
 import ReCAPTCHA from 'react-google-recaptcha'
 import { LeftOutlined } from '@ant-design/icons'
@@ -97,6 +97,12 @@ export default function RegisterPage(): ReactElement {
               initialValues={{ remember: true }}
               onFinish={createAccount}
             >
+              {/*
+              In some environments, components which return Promises or arrays do not work.
+              This is due to some changes to react and @types/react, and the component
+              packages have not been updated to fix these issues.
+              */}
+              {/* @ts-expect-error Server Component */}
               <ReCAPTCHA
                 ref={recaptchaRef}
                 size="invisible"

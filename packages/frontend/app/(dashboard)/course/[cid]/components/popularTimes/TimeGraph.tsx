@@ -183,14 +183,17 @@ const TimeGraph: React.FC<TimeGraphProps> = ({
       </svg>
 
       {tooltipOpen && tooltipData && (
-        <TooltipInPortal
-          key={Math.random()} // update tooltip bounds each render
-          top={tooltipTop}
-          left={tooltipLeft}
-          style={tooltipStyles}
-        >
-          {formatWaitTime(tooltipData)}
-        </TooltipInPortal>
+        <>
+          {/* @ts-expect-error Server Component */}
+          <TooltipInPortal
+            key={Math.random()} // update tooltip bounds each render
+            top={tooltipTop}
+            left={tooltipLeft}
+            style={tooltipStyles}
+          >
+            {formatWaitTime(tooltipData)}
+          </TooltipInPortal>
+        </>
       )}
     </div>
   )

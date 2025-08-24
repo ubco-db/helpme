@@ -57,7 +57,7 @@ async function ensureSubscription(): Promise<PushSubscription | null> {
     console.log(PUBLICKEY)
     const applicationServerKey = urlB64ToUint8Array(PUBLICKEY)
     const options = { applicationServerKey, userVisibleOnly: true }
-    subscription = await registration.pushManager.subscribe(options)
+    subscription = await registration.pushManager.subscribe(options as any)
   }
   return subscription
 }

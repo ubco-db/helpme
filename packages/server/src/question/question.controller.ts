@@ -5,6 +5,7 @@ import {
   ERROR_MESSAGES,
   LimboQuestionStatus,
   OpenQuestionStatus,
+  QuestionLocations,
   questions,
   QuestionStatusKeys,
   Role,
@@ -192,7 +193,7 @@ export class QuestionController {
         queueId: queueId,
         creator: user,
         text,
-        location,
+        location: location ?? QuestionLocations.Unselected,
         questionTypes,
         groupable,
         isTaskQuestion,
@@ -316,7 +317,7 @@ export class QuestionController {
       isTaskQuestion,
       status: QuestionStatusKeys.Drafting,
       createdAt: new Date(),
-      location,
+      location: location ?? QuestionLocations.Unselected,
     });
     // check to make sure all tasks are in the config
     if (text != '' && isTaskQuestion) {
