@@ -882,7 +882,6 @@ export class UpdateLLMTypeBody {
 
 export interface ChatbotSettings {
   id: string
-  AvailableModelTypes: Record<string, string>
   pageContent: string
   metadata: ChatbotSettingsMetadata
 }
@@ -1785,7 +1784,7 @@ export type LMSAnnouncement = {
 export type LMSPage = {
   id: number
   title: string
-  body: string
+  body?: string
   url: string
   frontPage: boolean
   syncEnabled?: boolean
