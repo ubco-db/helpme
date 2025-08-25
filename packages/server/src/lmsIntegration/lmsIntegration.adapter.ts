@@ -8,6 +8,7 @@ import {
   LMSFile,
   LMSIntegrationPlatform,
   LMSPage,
+  LMSQuiz,
 } from '@koh/common';
 import { LMSUpload } from './lmsIntegration.service';
 import { Cache } from 'cache-manager';
@@ -85,6 +86,13 @@ export abstract class AbstractLMSAdapter {
   async getFiles(): Promise<{
     status: LMSApiResponseStatus;
     files: LMSFile[];
+  }> {
+    return null;
+  }
+
+  async getQuizzes(): Promise<{
+    status: LMSApiResponseStatus;
+    quizzes: LMSQuiz[];
   }> {
     return null;
   }
@@ -443,6 +451,76 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     };
   }
 
+  async getQuizzes(): Promise<{
+    status: LMSApiResponseStatus;
+    quizzes: LMSQuiz[];
+  }> {
+    const { status, data } = await this.GetPaginated(
+      `courses/${this.integration.apiCourseId}/quizzes`,
+    );
+
+    if (status != LMSApiResponseStatus.Success) return { status, quizzes: [] };
+
+    const quizzes: LMSQuiz[] = [];
+
+    for (const quiz of data.filter((q: any) => q.published)) {
+      const { status: quizStatus, data: quizData } = await this.Get(
+        `courses/${this.integration.apiCourseId}/quizzes/${quiz.id}?include[]=questions`,
+      );
+
+      let questionsData = quizData?.questions || [];
+      if (!questionsData || questionsData.length === 0) {
+        const { status: questionsStatus, data: questionsResponse } =
+          await this.Get(
+            `courses/${this.integration.apiCourseId}/quizzes/${quiz.id}/questions`,
+          );
+        if (questionsStatus === LMSApiResponseStatus.Success) {
+          questionsData = questionsResponse || [];
+        }
+      }
+
+      // Placeholder questions if no questions fetched from the API
+      if (questionsData.length === 0 && quizData?.question_count > 0) {
+        console.log(
+          `Quiz ${quiz.id}: No question details available (likely permissions), using question_count: ${quizData.question_count}`,
+        );
+        for (let i = 1; i <= quizData.question_count; i++) {
+          questionsData.push({
+            id: `placeholder_${quiz.id}_${i}`,
+            question_text: `Question ${i} (content not accessible via API)`,
+            question_type: 'multiple_choice_question',
+          });
+        }
+      }
+
+      if (quizStatus === LMSApiResponseStatus.Success) {
+        // Helper function to safely parse dates
+        const safeParseDate = (
+          dateString: string | null | undefined,
+        ): Date | undefined => {
+          if (!dateString) return undefined;
+          const parsed = new Date(dateString);
+          return isNaN(parsed.getTime()) ? undefined : parsed;
+        };
+
+        quizzes.push({
+          id: quiz.id,
+          title: quiz.title,
+          description: quiz.description,
+          due: safeParseDate(quiz.due_at),
+          unlock: safeParseDate(quiz.unlock_at),
+          lock: safeParseDate(quiz.lock_at),
+          timeLimit: quiz.time_limit,
+          allowedAttempts: quiz.allowed_attempts,
+          questions: questionsData,
+          modified: safeParseDate(quiz.updated_at) || new Date(),
+        } as LMSQuiz);
+      }
+    }
+
+    return { status: LMSApiResponseStatus.Success, quizzes };
+  }
+
   getDocumentLink(documentId: number, documentType: LMSUpload): string {
     switch (documentType) {
       case LMSUpload.Announcements:
@@ -453,6 +531,8 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
         return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/pages/${documentId}/`;
       case LMSUpload.Files:
         return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/files/${documentId}/`;
+      case LMSUpload.Quizzes:
+        return `https://${this.integration.orgIntegration.rootUrl}/courses/${this.integration.apiCourseId}/quizzes/${documentId}/`;
       default:
         return '';
     }
