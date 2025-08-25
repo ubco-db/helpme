@@ -264,7 +264,7 @@ export default function LMSQuizDocumentList({
           )}
           <span className="text-sm text-gray-600">
             {filteredDocuments.length} quiz
-            {filteredDocuments.length !== 1 ? 'es' : ''}
+            {filteredDocuments.length !== 1 ? 'zes' : ''}
           </span>
         </div>
       </div>
