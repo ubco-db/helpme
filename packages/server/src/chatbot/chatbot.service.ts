@@ -821,6 +821,7 @@ export class ChatbotService {
               'apiKey',
               'defaultModelId',
               'defaultVisionModelId',
+              'additionalNotes',
             ]),
           ),
         },
