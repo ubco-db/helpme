@@ -197,8 +197,8 @@ describe('ChatbotService', () => {
           isVision: false,
         },
         {
-          isText: false,
-          isThinking: false,
+          isText: true,
+          isThinking: true,
           isVision: true,
         },
         {
@@ -1798,7 +1798,7 @@ describe('ChatbotService', () => {
               families: model.details.families,
               parameterSize: model.details.parameter_size,
               isRecommended: false,
-              isText: !isVision,
+              isText: true,
               isVision,
               isThinking,
               provider: null,
