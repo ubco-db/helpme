@@ -384,7 +384,7 @@ describe('ChatbotController Integration', () => {
               {
                 modelName: 'model2',
                 isRecommended: false,
-                isText: false,
+                isText: true,
                 isVision: true,
                 isThinking: false,
               },
