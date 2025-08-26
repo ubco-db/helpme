@@ -72,11 +72,12 @@ const inCLI = {
   migrations: ['migration/*.ts'],
 };
 
+const usr = !isProd() ? 'POSTGRES_USER' : 'POSTGRES_NONROOT_USER';
+const pwd = !isProd() ? 'POSTGRES_PASSWORD' : 'POSTGRES_NONROOT_PASSWORD';
+
 const typeorm: DataSourceOptions = {
   type: 'postgres',
-  url: !isProd()
-    ? `postgres://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@localhost:5432/dev`
-    : `postgres://${process.env.POSTGRES_NONROOT_USER}:${process.env.POSTGRES_NONROOT_PASSWORD}@coursehelp.ubc.ca:5432/prod`,
+  url: `postgres://${process.env[usr]}:${process.env[pwd]}@${process.env.POSTGRES_HOST}:${process.env.POSTGRES_PORT}/${process.env.POSTGRES_DB}`,
   synchronize: process.env.NODE_ENV !== 'production',
   entities: [
     CourseModel,

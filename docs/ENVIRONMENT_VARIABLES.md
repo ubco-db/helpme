@@ -1,5 +1,29 @@
 ## postgres.env (place in packages/server)
 
+###### POSTGRES_HOST
+
+**Purpose:** host name for the postgres database
+
+**How to get:** Leave as-is from example (localhost).
+
+###### POSTGRES_PORT
+
+**Purpose:** host name for the postgres database
+
+**How to get:** Leave as-is from example if your database port is not customized (5432).
+
+###### POSTGRES_DB
+
+**Purpose:** database name for the postgres database
+
+**How to get:** Leave as-is from example (dev).
+
+###### POSTGRES_CHATBOT_DB
+
+**Purpose:** database name for the postgres chatbot database
+
+**How to get:** Leave as-is from example (chatbot).
+
 ###### POSTGRES_USER
 
 **Purpose:** username of the root user for the postgres db
