@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   Body,
-  ClassSerializerInterceptor,
   Controller,
   Delete,
   Get,
@@ -84,10 +83,14 @@ import { OrgRoles } from '../decorators/org-roles.decorator';
 import { ChatbotLegacyEndpointGuard } from '../guards/chatbot-legacy-endpoint.guard';
 import { OrganizationCourseModel } from '../organization/organization-course.entity';
 import { pick } from 'lodash';
+import {
+  IgnoreableClassSerializerInterceptor,
+  IgnoreSerializer,
+} from '../interceptors/IgnoreableClassSerializerInterceptor';
 
 @Controller('chatbot')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-@UseInterceptors(ClassSerializerInterceptor)
+@UseInterceptors(IgnoreableClassSerializerInterceptor)
 export class ChatbotController {
   constructor(
     private readonly chatbotService: ChatbotService,
@@ -491,6 +494,7 @@ export class ChatbotController {
   // note that there is no corresponding endpoint for this one on the frontend as you are supposed to make links to it
   @Get('document/:courseId/:docId')
   @UseGuards(CourseRolesBypassHelpMeCourseGuard)
+  @IgnoreSerializer()
   @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
   async getChatbotDocument(
     @Param('courseId', ParseIntPipe) courseId: number,
@@ -509,7 +513,12 @@ export class ChatbotController {
         .getRawOne<{ doc_docName: string; file_size: string }>();
 
       if (!docInfo) {
-        return res.status(HttpStatus.NOT_FOUND).send('Document not found');
+        return res
+          .set({
+            'Content-Type': 'text/plain',
+          })
+          .status(HttpStatus.NOT_FOUND)
+          .send('Document not found');
       }
 
       const fileSize = parseInt(docInfo.file_size, 10);

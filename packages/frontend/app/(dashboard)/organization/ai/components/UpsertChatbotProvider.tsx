@@ -204,14 +204,6 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
         JSON.stringify(model?.additionalNotes ?? []) !=
           JSON.stringify(original?.additionalNotes ?? [])
       ) {
-        console.log({
-          modelId: model.id,
-          isRecommended: model.isRecommended,
-          isText: model.isText,
-          isVision: model.isVision,
-          isThinking: model.isThinking,
-          additionalNotes: model.additionalNotes,
-        })
         mods.push({
           modelId: model.id,
           isRecommended: model.isRecommended,
@@ -222,7 +214,6 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
         } satisfies UpdateLLMTypeBody)
       }
     }
-    console.log(mods)
     return mods
   }
 

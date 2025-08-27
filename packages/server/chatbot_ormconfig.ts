@@ -1,7 +1,6 @@
 import { config } from 'dotenv';
 import { isProd } from '@koh/common';
 import * as fs from 'fs';
-import { DataSourceOptions } from 'typeorm';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
 // set .envs to their default values if the developer hasn't yet set them
@@ -21,11 +20,12 @@ if (fs.existsSync('postgres.env')) {
   );
 }
 
+const usr = !isProd() ? 'POSTGRES_USER' : 'POSTGRES_NONROOT_USER';
+const pwd = !isProd() ? 'POSTGRES_PASSWORD' : 'POSTGRES_NONROOT_PASSWORD';
+
 const typeorm: PostgresConnectionOptions = {
   type: 'postgres',
-  url: !isProd()
-    ? `postgres://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@localhost:5432/chatbot`
-    : `postgres://${process.env.POSTGRES_NONROOT_USER}:${process.env.POSTGRES_NONROOT_PASSWORD}@coursehelp.ubc.ca:5432/chatbot`,
+  url: `postgres://${process.env[usr]}:${process.env[pwd]}@${process.env.POSTGRES_HOST}:${process.env.POSTGRES_PORT}/${process.env.POSTGRES_CHATBOT_DB}`,
   synchronize: false,
   logging:
     process.env.NODE_ENV !== 'production'

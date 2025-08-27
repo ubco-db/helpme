@@ -287,7 +287,8 @@ export function getModelSpeedAndQualityEstimate<T extends LLMType>(model: T) {
   let speed = 0
   let quality = 0
 
-  if (model.modelName.startsWith('gpt-')) {
+  const isOllamaLike = model.modelName.match(/(.)*:([0-9]+.?[0-9]?)/)
+  if (model.modelName.startsWith('gpt-') && !isOllamaLike) {
     let suffix = -1
     const suffixes = ['-mini', '-turbo', '-nano']
     let i = 0
