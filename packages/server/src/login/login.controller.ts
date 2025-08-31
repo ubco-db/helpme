@@ -185,11 +185,12 @@ export class LoginController {
     userId: number,
     jwtService: JwtService,
     expiresIn: number = 60 * 60 * 24 * 30, // Expires in 30 days (Default)
+    restrictPaths?: (RegExp | string) | (RegExp | string)[],
   ) {
-    // Expires in 30 days
     const authToken = await jwtService.signAsync({
       userId,
       expiresIn,
+      restrictPaths,
     });
 
     if (authToken === null || authToken === undefined) {

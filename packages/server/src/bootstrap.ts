@@ -39,7 +39,16 @@ export async function bootstrap(hot: any): Promise<void> {
   app.use(morgan('dev'));
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
-  app.use(helmet());
+  // If not an LTI route, use standard helmet
+  app.use(/\/api\/v1(?!\/lti)/, helmet());
+  // If an LTI route, use customized helmet
+  app.use(
+    /\/api\/v1\/lti/,
+    helmet({
+      frameguard: false,
+      contentSecurityPolicy: false,
+    }),
+  );
   app.use(
     expressSession({
       secret: process.env.SESSION_SECRET,
@@ -51,13 +60,13 @@ export async function bootstrap(hot: any): Promise<void> {
     }),
   );
 
-  // Setup LTIJS as a middleware to listen at /api/v1/lti
-  await LtiMiddleware.enable(app, 'api/v1/lti');
-
   app.enableCors({
     origin: '*',
     allowedHeaders: 'Content-Type, Accept',
   });
+
+  // Setup LTIJS as a middleware to listen at /api/v1/lti
+  await LtiMiddleware.enable(app, '/api/v1/lti');
 
   // Chromiumly is used with the gotenberg docker service for pdf conversion
   Chromiumly.configure({ endpoint: 'http://localhost:3004' });

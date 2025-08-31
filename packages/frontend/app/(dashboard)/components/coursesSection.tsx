@@ -11,11 +11,13 @@ import CoursesSectionTableView from './CoursesSectionTableView'
 interface CoursesSectionProps {
   semesters: SemesterPartial[]
   enabledTableView: boolean
+  ltiView?: boolean
 }
 
 const CoursesSection: React.FC<CoursesSectionProps> = ({
   semesters,
   enabledTableView,
+  ltiView,
 }) => {
   // For some reason, jdenticon is not working when imported as a module and needs to use require
   // eslint-disable @typescript-eslint/no-var-requires
@@ -178,18 +180,22 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
 
                 <Link
                   id={index === 0 ? 'skip-link-target' : ''}
-                  href={`course/${course.course.id}`}
+                  href={
+                    ltiView
+                      ? `lti/${course.course.id}`
+                      : `course/${course.course.id}`
+                  }
                 >
                   <Button
                     type="primary"
                     className="mt-5 rounded p-[1.1rem] font-medium"
                     block
                   >
-                    Course page
+                    {ltiView ? 'Chatbot' : 'Course page'}
                   </Button>
                 </Link>
 
-                {course.role === Role.PROFESSOR && (
+                {course.role === Role.PROFESSOR && !ltiView && (
                   <Link href={`/course/${course.course.id}/settings`}>
                     <Button
                       type="primary"

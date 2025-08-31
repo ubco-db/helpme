@@ -30,7 +30,7 @@ import {
   chatbotStartingMessageCourse,
   chatbotStartingMessageSystem,
 } from '@/app/typings/chatbot'
-import { API } from '@/app/api'
+import { API as DefaultAPI, APIClient } from '@/app/api'
 import MarkdownCustom from '@/app/components/Markdown'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -65,6 +65,7 @@ interface ChatbotProps {
   setChatbotQuestionType: React.Dispatch<
     React.SetStateAction<ChatbotQuestionType>
   >
+  API?: APIClient
 }
 
 const Chatbot: React.FC<ChatbotProps> = ({
@@ -84,6 +85,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
   setHelpmeQuestionId,
   chatbotQuestionType,
   setChatbotQuestionType,
+  API = DefaultAPI,
 }): ReactElement => {
   const [input, setInput] = useState('')
   const { userInfo, setUserInfo } = useUserInfo()

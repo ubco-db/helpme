@@ -11,8 +11,8 @@ import {
   ChatbotAskParams,
   ChatbotAskResponse,
   ChatbotAskSuggestedParams,
-  ChatbotQueryParams,
   ChatbotProvider,
+  ChatbotQueryParams,
   ChatbotQuestionResponseChatbotDB,
   ChatbotQuestionResponseHelpMeDB,
   ChatbotServiceProvider,
@@ -29,6 +29,7 @@ import {
   CreateAsyncQuestions,
   CreateChatbotProviderBody,
   CreateLLMTypeBody,
+  CreateLtiPlatform,
   CreateOrganizationChatbotSettingsBody,
   CreateQuestionParams,
   CreateQuestionResponse,
@@ -63,8 +64,9 @@ import {
   LMSFile,
   LMSOrganizationIntegrationPartial,
   LMSPage,
+  LMSSyncDocumentsResult,
+  LtiPlatform,
   MailServiceWithSubscription,
-  OllamaLLMType,
   OrganizationChatbotSettings,
   OrganizationChatbotSettingsDefaults,
   OrganizationCourseResponse,
@@ -104,6 +106,7 @@ import {
   UpdateChatbotQuestionParams,
   UpdateDocumentChunkParams,
   UpdateLLMTypeBody,
+  UpdateLtiPlatform,
   UpdateOrganizationCourseDetailsParams,
   UpdateOrganizationDetailsParams,
   UpdateOrganizationUserRole,
@@ -115,7 +118,6 @@ import {
   UpsertLMSCourseParams,
   UpsertLMSOrganizationParams,
   UserMailSubscription,
-  LMSSyncDocumentsResult,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -142,8 +144,9 @@ export interface ChatQuestionResponse {
   total: number
 }
 
-class APIClient {
+export class APIClient {
   private axios: AxiosInstance
+  private readonly auth_token: string | null = null
 
   /**
    * Send HTTP and return data, optionally serialized with class-transformer (helpful for Date serialization)
@@ -167,9 +170,43 @@ class APIClient {
     body?: any,
     params?: any,
   ): Promise<T> {
+    if (this.auth_token) {
+      const res = await (
+        await fetch(
+          this.baseURL +
+            url +
+            (params ? '?' + new URLSearchParams(params).toString() : ''),
+          {
+            method,
+            body: JSON.stringify(body),
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: this.auth_token,
+              Cookie: this.auth_token,
+            },
+          },
+        )
+      ).json()
+      if ('statusCode' in res) {
+        throw res
+      }
+      return responseClass ? plainToClass(responseClass, res) : res
+    }
+
     const res = (await this.axios.request({ method, url, data: body, params }))
       .data
     return responseClass ? plainToClass(responseClass, res) : res
+  }
+
+  /**
+   * Sets the auth token that will be used for subsequent requests.
+   *
+   * @param authToken The value for the auth token, if specified. Otherwise sets to null.
+   * @returns APIClient
+   */
+  withAuthorization(authToken: string | null): APIClient {
+    if (!authToken) return this
+    return new APIClient(process.env.NEXT_PUBLIC_API_URL, authToken)
   }
 
   auth = {
@@ -843,7 +880,7 @@ class APIClient {
           `/api/v1/questionType/${courseId}/${queueId}`,
           undefined,
         )
-      } catch (error) {
+      } catch (_) {
         return []
       }
     },
@@ -1403,8 +1440,30 @@ class APIClient {
       this.req('POST', `/api/v1/lms/${courseId}/test`, undefined, props),
   }
 
-  constructor(baseURL = '') {
-    this.axios = Axios.create({ baseURL: baseURL })
+  lti = {
+    admin: {
+      getPlatforms: async (): Promise<LtiPlatform[]> =>
+        this.req('GET', '/api/v1/lti/platform'),
+      getPlatform: async (id: string): Promise<LtiPlatform> =>
+        this.req('GET', `/api/v1/lti/platform/${id}`),
+      createPlatform: async (params: CreateLtiPlatform): Promise<LtiPlatform> =>
+        this.req('POST', '/api/v1/lti/platform', undefined, params),
+      updatePlatform: async (
+        id: string,
+        params: UpdateLtiPlatform,
+      ): Promise<LtiPlatform> =>
+        this.req('PATCH', `/api/v1/lti/platform/${id}`, undefined, params),
+      deletePlatform: async (id: string): Promise<void> =>
+        this.req('DELETE', `/api/v1/lti/platform/${id}`),
+    },
+  }
+
+  constructor(
+    private baseURL = '',
+    auth_token?: string,
+  ) {
+    this.axios = Axios.create({ baseURL: this.baseURL })
+    this.auth_token = auth_token ?? null
   }
 }
 

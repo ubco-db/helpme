@@ -9,9 +9,6 @@ export class LTIConfigModel extends BaseEntity {
   url: string;
 
   @Column({ type: 'text' })
-  iss: string;
-
-  @Column({ type: 'text' })
   name: string;
 
   @Column({ type: 'text', nullable: true })
@@ -21,10 +18,10 @@ export class LTIConfigModel extends BaseEntity {
   authenticationEndpoint: string;
 
   @Column({ type: 'text' })
-  accesstokenEndpoint: string;
+  accessTokenEndpoint: string;
 
   @Column({ type: 'text' })
-  keysetEndpoint: string;
+  keySetEndpoint: string;
 
   @Column({ type: 'integer', array: true, default: [] })
   organizations: number[];

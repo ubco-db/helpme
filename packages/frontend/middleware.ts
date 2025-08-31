@@ -3,11 +3,13 @@ import { userApi } from './app/api/userApi'
 import { OrganizationRole } from './app/typings/user'
 import { isProd, User } from './middlewareType'
 import * as Sentry from '@sentry/nextjs'
+import { UserRole } from '@koh/common'
 
 // These are the public pages that do not require authentication. Adding an * will match any characters after the page (e.g. if the page has search query params).
 const publicPages = [
   '/login',
-  '/lti*',
+  '/lti',
+  '/lti/[0-9]+*',
   '/register',
   '/failed*',
   '/password*',
@@ -81,10 +83,7 @@ export async function middleware(
         // The best solution we have right now is just sending them to the /429 page, which has a back button.
         // This should now never happen since the handleRetry will try again after 0.25s, 1s, and then 2s.
         return await handleRetry(request, () => {
-          const response = NextResponse.redirect(
-            new URL('/error_pages/429', url),
-          )
-          return response
+          return NextResponse.redirect(new URL('/error_pages/429', url))
         })
       } else if (data.status >= 400) {
         // this really is not meant to happen
@@ -148,17 +147,14 @@ export async function middleware(
         nextUrl.pathname.startsWith('/verify') &&
         !isEmailVerified(userData)
       ) {
-        const response = NextResponse.next()
-        return response
+        return NextResponse.next()
       } else if (
         nextUrl.pathname.startsWith('/verify') &&
         isEmailVerified(userData)
       ) {
-        const response = NextResponse.redirect(new URL('/courses', url))
-        return response
+        return NextResponse.redirect(new URL('/courses', url))
       } else if (!isEmailVerified(userData)) {
-        const response = NextResponse.redirect(new URL('/verify', url))
-        return response
+        return NextResponse.redirect(new URL('/verify', url))
       }
 
       // Redirect to /courses if user is not an admin and tries to access pages that should be accessed by organization admin (or professor)
@@ -168,8 +164,15 @@ export async function middleware(
         userData.organization.organizationRole !== OrganizationRole.ADMIN &&
         userData.organization.organizationRole !== OrganizationRole.PROFESSOR
       ) {
-        const response = NextResponse.redirect(new URL('/courses', url))
-        return response
+        return NextResponse.redirect(new URL('/courses', url))
+      }
+
+      // Redirect to /courses if user is not an admin and tries to access pages that should be accessed by an application admin
+      if (
+        nextUrl.pathname.startsWith('/admin') &&
+        userData.userRole !== UserRole.ADMIN
+      ) {
+        return NextResponse.redirect(new URL('/courses', url))
       }
     } catch (error) {
       return await handleRetry(request, () => {
@@ -182,28 +185,26 @@ export async function middleware(
             error,
           },
         })
-        const response = NextResponse.redirect(
+        return NextResponse.redirect(
           new URL(`/login?error=fetchError&redirect=${nextUrl.pathname}`, url),
         )
-        return response
       })
     }
   }
 
-  // Case: User has auth token and tries to access a public page that isn't /invite
+  // Case: User has auth token and tries to access a public page that isn't /invite or /lti or /qi or /error_pages
   if (
     isPublicPageRequested &&
     cookies.has('auth_token') &&
+    !nextUrl.pathname.startsWith('/lti') &&
     !nextUrl.pathname.startsWith('/invite') &&
     !nextUrl.pathname.startsWith('/qi/') &&
     !nextUrl.pathname.startsWith('/error_pages')
   ) {
-    const response = NextResponse.redirect(new URL('/courses', url))
-    return response
+    return NextResponse.redirect(new URL('/courses', url))
   }
 
-  const response = NextResponse.next()
-  return response
+  return NextResponse.next()
 }
 
 /**

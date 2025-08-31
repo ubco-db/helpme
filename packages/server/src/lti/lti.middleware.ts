@@ -2,25 +2,29 @@ import { HttpException, INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import {
-  Express,
   NextFunction,
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-import { LTIConfigModel } from './lti_config.entity';
 import { isProd } from '@koh/common';
-import { AuthTokenMethodEnum, IdToken, register } from 'lti-typescript';
+import {
+  Database,
+  IdToken,
+  PlatformModel,
+  Provider,
+  register,
+} from 'lti-typescript';
 import { JwtService } from '@nestjs/jwt';
 import { LtiService } from './lti.service';
+import { pick } from 'lodash';
 
 export default class LtiMiddleware {
-  static readonly prefix = '/api/v1/lti';
-  static readonly reservedRoutes = {
-    loginUrl: `${LtiMiddleware.prefix}/login`,
-    keysetUrl: `${LtiMiddleware.prefix}/keys`,
-    dynRegRoute: `${LtiMiddleware.prefix}/register`,
+  private prefix: string;
+  private reservedRoutes: {
+    loginUrl?: string;
+    keySetUrl?: string;
+    dynRegUrl?: string;
   };
-
   private readonly redirectRoutes: string[] = [];
 
   private readonly configService: ConfigService;
@@ -28,42 +32,58 @@ export default class LtiMiddleware {
   private readonly ltiService: LtiService;
   private readonly dataSource: DataSource;
 
-  static async enable(app: INestApplication, baseUrl: string) {
+  static async enable(app: INestApplication, baseUrl: string): Promise<void> {
     try {
-      const ltiMiddleware = new LtiMiddleware(app);
-      const ltiApp = await ltiMiddleware.setup();
-      app.use(baseUrl, ltiApp);
+      const ltiMiddleware = new LtiMiddleware(app, baseUrl);
+      const provider = await ltiMiddleware.setup();
+      app.use(baseUrl, provider.app);
+
+      const ltiService = app.get<LtiService>(LtiService);
+      ltiService.provider = provider;
     } catch (err) {
       // Don't allow LTI failure to prevent application from working, but log its error
-      console.error(`FAILED TO INITIALIZE LTI AS A MIDDLEWARE: ${err}`);
+      console.error(`FAILED TO INITIALIZE LTI AS A MIDDLEWARE`);
+      console.error(err);
     }
   }
 
-  private constructor(private app: INestApplication) {
+  private baseRoute(): string {
+    return `${this.configService.get<string>('DOMAIN')}${this.prefix}`;
+  }
+  private constructor(
+    private app: INestApplication,
+    baseUrl: string,
+  ) {
     this.configService = this.app.get<ConfigService>(ConfigService);
     this.jwtService = this.app.get<JwtService>(JwtService);
     this.ltiService = this.app.get<LtiService>(LtiService);
     this.dataSource = this.app.get<DataSource>(DataSource);
+
+    this.prefix = (baseUrl.startsWith('/') ? '' : '/') + baseUrl;
+    this.reservedRoutes = {
+      loginUrl: `/login`,
+      keySetUrl: `/keys`,
+      dynRegUrl: `/register`,
+    };
+
     this.redirectRoutes = [
-      `${this.configService.get<string>('DOMAIN')}/lti/:cid`,
+      this.baseRoute(),
+      `${this.configService.get<string>('DOMAIN')}/lti`,
     ];
   }
 
-  private async setup(): Promise<Express> {
+  private async setup(): Promise<Provider> {
     const variables: Record<string, any> = {
       secret: this.configService.get<string>('LTI_SECRET_KEY'),
       user: this.configService.get<string>(
         `POSTGRES${isProd() ? '_NONROOT' : ''}_USER`,
       ),
-      pwd: this.configService.get<string>(
+      password: this.configService.get<string>(
         `POSTGRES${isProd() ? '_NONROOT' : ''}_PASSWORD`,
       ),
-      host:
-        (this.configService.get<string>('POSTGRES_HOST') ?? isProd())
-          ? 'coursehelp.ubc.ca'
-          : 'localhost',
-      port: this.configService.get<string>('POSTGRES_PORT') ?? '5432',
-      db: this.configService.get<string>('LTI_DATABASE') ?? 'lti',
+      host: this.configService.get<string>('POSTGRES_HOST'),
+      port: this.configService.get<string>('POSTGRES_PORT'),
+      db: this.configService.get<string>('POSTGRES_LTI_DB'),
     };
     Object.entries(variables).forEach(([k, v]) => {
       if (!v) {
@@ -72,7 +92,7 @@ export default class LtiMiddleware {
     });
 
     const provider = await register(
-      this.configService.get<string>('LTI_SECRET_KEY'),
+      variables.secret,
       {
         type: 'postgres',
         url: `postgres://${variables.user}:${variables.password}@${variables.host}:${variables.port}/${variables.db}`,
@@ -85,10 +105,10 @@ export default class LtiMiddleware {
       },
       {
         // LTI Configuration Options
-        appUrl: LtiMiddleware.prefix,
-        ...LtiMiddleware.reservedRoutes,
+        appUrl: this.prefix,
+        ...this.reservedRoutes,
         dynReg: {
-          url: `${this.configService.get<string>('DOMAIN')}`,
+          url: `${this.configService.get<string>('DOMAIN')}${this.prefix}`,
           name: 'HelpMe',
           logo: `${this.configService.get<string>('DOMAIN')}/favicon.ico`,
           description:
@@ -101,8 +121,9 @@ export default class LtiMiddleware {
           secure: isProd(),
           sameSite: 'none',
         },
-        devMode: !isProd(),
-        debug: false,
+        cors: true,
+        devMode: false,
+        debug: true,
       },
     );
 
@@ -120,12 +141,10 @@ export default class LtiMiddleware {
               },
             });
           }
+
           const message = await provider.DynamicRegistration.register(
             req.query.openid_configuration as string,
             req.query.registration_token as string,
-            {
-              'https://purl.imsglobal.org/spec/lti-tool-configuration': {},
-            },
           );
           res.setHeader('Content-type', 'text/html');
           return res.send(message);
@@ -146,32 +165,41 @@ export default class LtiMiddleware {
       },
     );
 
+    const ltiConfigs = await Database.find(PlatformModel);
+
+    provider.whitelist = [
+      {
+        route: /\/platform.*/,
+        method: 'ALL',
+      },
+      `/static`,
+    ];
+
+    for (const ltiConfig of ltiConfigs) {
+      await provider.registerPlatform({
+        ...pick(ltiConfig, [
+          'platformUrl',
+          'name',
+          'clientId',
+          'authenticationEndpoint',
+          'accessTokenEndpoint',
+          'authorizationServer',
+          'active',
+          'kid',
+        ]),
+        authToken: ltiConfig.authToken(),
+      });
+    }
+
     const deployResult = await provider.deploy({
       serverless: true,
     });
+
     if (!deployResult) {
       throw new Error('Failed to initialize LTI middleware');
     }
 
-    const ltiConfigurations = await this.dataSource.manager
-      .getRepository(LTIConfigModel)
-      .find();
-
-    for (const ltiConfig of ltiConfigurations) {
-      await provider.registerPlatform({
-        platformUrl: ltiConfig.url,
-        name: ltiConfig.name,
-        clientId: ltiConfig.clientId ?? 'NOT_IMPLEMENTED',
-        authenticationEndpoint: ltiConfig.authenticationEndpoint,
-        accessTokenEndpoint: ltiConfig.accesstokenEndpoint,
-        authToken: {
-          method: AuthTokenMethodEnum.JWK_SET,
-          key: ltiConfig.keysetEndpoint,
-        },
-      });
-    }
-
-    return provider.app;
+    return provider;
   }
 
   private async onConnectHandler(
@@ -181,16 +209,10 @@ export default class LtiMiddleware {
     next: NextFunction,
   ) {
     try {
-      if (!Object.values(LtiMiddleware.reservedRoutes).includes(request.url)) {
-        const userCourseId = request.query.auth
-          ? (this.jwtService.decode(request.query.auth as string) as {
-              userCourseId: number;
-            })
-          : await this.ltiService.findMatchingUserCourse(token);
-
-        request.query.ucid = String(userCourseId);
+      if (!Object.values(this.reservedRoutes).includes(request.url)) {
+        response.locals.ucid =
+          await this.ltiService.findMatchingUserCourse(token);
       }
-
       return next();
     } catch (err) {
       if (err instanceof HttpException) {

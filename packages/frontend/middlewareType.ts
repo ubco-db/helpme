@@ -23,6 +23,11 @@ export const getEnv = (): 'production' | 'dev' => {
 
 export const isProd = (): boolean => domain() === PROD_URL
 
+/* Duplicate of the UserRole enum in common/index.ts */
+export enum UserRole {
+  USER = 'user',
+  ADMIN = 'admin',
+}
 /* Duplicate of the User type in common/index.ts */
 export class User {
   id!: number
@@ -38,7 +43,7 @@ export class User {
   desktopNotifsEnabled!: boolean
   desktopNotifs!: DesktopNotifPartial[]
   insights!: string[]
-  userRole!: string
+  userRole!: UserRole
   organization?: OrganizationUserPartial
   chat_token!: ChatTokenPartial
   accountType!: AccountType

@@ -88,7 +88,7 @@ export class User {
   desktopNotifsEnabled!: boolean
   @Type(() => DesktopNotifPartial)
   desktopNotifs!: DesktopNotifPartial[]
-  userRole!: string
+  userRole!: UserRole
   organization?: OrganizationUserPartial
   chat_token!: ChatTokenPartial
   accountType!: AccountType
@@ -3460,16 +3460,122 @@ export enum LMSIntegrationPlatform {
   Canvas = 'Canvas',
 }
 
-export type LtiConfig = {
-  id: number
-  url: string
-  iss: string
-  name: string
+export enum AuthMethodEnum {
+  RSA_KEY = 'RSA_KEY',
+  JWK_KEY = 'JWK_KEY',
+  JWK_SET = 'JWK_SET',
+}
+
+export class LtiAuthConfig {
+  @IsEnum(AuthMethodEnum)
+  method!: AuthMethodEnum
+
+  @IsString()
+  key!: string
+}
+
+export class UpdateLtiAuthConfig {
+  @IsEnum(AuthMethodEnum)
+  @IsOptional()
+  method?: AuthMethodEnum
+
+  @IsString()
+  @IsOptional()
+  key?: string
+}
+
+export class LtiPlatform {
+  @IsString()
+  kid!: string
+
+  @IsString()
+  platformUrl!: string
+
+  @IsString()
+  clientId!: string
+
+  @IsString()
+  name!: string
+
+  @IsString()
+  authenticationEndpoint!: string
+
+  @IsString()
+  accessTokenEndpoint!: string
+
+  @IsString()
+  @IsOptional()
+  authorizationServer?: string
+
+  @IsBoolean()
+  active!: boolean
+
+  @ValidateNested()
+  @Type(() => LtiAuthConfig)
+  authToken!: LtiAuthConfig
+}
+
+export class CreateLtiPlatform {
+  @IsString()
+  platformUrl!: string
+
+  @IsString()
+  clientId!: string
+
+  @IsString()
+  name!: string
+
+  @IsString()
+  authenticationEndpoint!: string
+
+  @IsString()
+  accessTokenEndpoint!: string
+
+  @IsString()
+  @IsOptional()
+  authorizationServer?: string
+
+  @IsBoolean()
+  active!: boolean
+
+  @ValidateNested()
+  @Type(() => LtiAuthConfig)
+  authToken!: LtiAuthConfig
+}
+
+export class UpdateLtiPlatform {
+  @IsString()
+  @IsOptional()
+  platformUrl?: string
+
+  @IsString()
+  @IsOptional()
   clientId?: string
-  authenticationEndpoint: string
-  accesstokenEndpoint: string
-  keysetEndpoint: string
-  organizations: number[]
+
+  @IsString()
+  @IsOptional()
+  name?: string
+
+  @IsString()
+  @IsOptional()
+  authenticationEndpoint?: string
+
+  @IsString()
+  @IsOptional()
+  accessTokenEndpoint?: string
+
+  @IsString()
+  @IsOptional()
+  authorizationServer?: string
+
+  @IsBoolean()
+  @IsOptional()
+  active?: boolean
+
+  @ValidateNested()
+  @Type(() => UpdateLtiAuthConfig)
+  @IsOptional()
+  authToken?: UpdateLtiAuthConfig
 }
 
 export function parseThinkBlock(answer: string) {
@@ -3683,6 +3789,10 @@ export const ERROR_MESSAGES = {
   },
   ltiController: {
     missingIdToken: 'LTI identification token is missing.',
+    missingUserCourseId: 'User course identifier is missing.',
+    userCourseNotFound: 'No matching user-course relation was found.',
+    missingParameters: 'Missing or invalid parameters for request',
+    ltiDataSourceUninitialized: 'LTI datasource is not initialized.',
   },
   ltiService: {
     unparsableCourseId: 'Course identifier could not be parsed from request',

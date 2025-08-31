@@ -2,6 +2,9 @@ import { User } from '@/middlewareType'
 import { LoginData, PasswordResetData, RegisterData } from '../typings/user'
 import { fetchAuthToken } from './cookieApi'
 import * as Sentry from '@sentry/nextjs'
+import { getErrorMessage } from '@/app/utils/generalUtils'
+import { SetStateAction } from 'react'
+import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 
 /**
  * User "API".
@@ -15,15 +18,13 @@ export const userApi = {
    * @returns {Promise<Response>} - The response from the server
    */
   registerAccount: async (registerData: RegisterData): Promise<Response> => {
-    const response = await fetch('/api/v1/auth/register', {
+    return await fetch('/api/v1/auth/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(registerData),
     })
-
-    return response
   },
 
   /**
@@ -32,14 +33,12 @@ export const userApi = {
    * @returns {Promise<Response>} - The response from the server
    */
   loginWithGoogle: async (organizationId: number): Promise<Response> => {
-    const response = await fetch(`/api/v1/auth/link/google/${organizationId}`, {
+    return await fetch(`/api/v1/auth/link/google/${organizationId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
     })
-
-    return response
   },
 
   /**
@@ -98,9 +97,7 @@ export const userApi = {
 
   /**
    * Login with email and password
-   * @param username {string} - The email to login with
-   * @param password {string} - The password to login with
-   * @param token {string} - The reCAPTCHA token
+   * @param loginData {LoginData} - The data for the login request (email, password, recaptchaToken)
    * @returns {Promise<Response>} - The response from the server
    */
   login: async (loginData: LoginData): Promise<Response> => {
@@ -123,4 +120,24 @@ export const userApi = {
 
     return fetch('/api/v1/auth/password/reset', request)
   },
+}
+
+export async function fetchUserDetails(
+  setProfile: React.Dispatch<SetStateAction<any | undefined>>,
+  setErrorGettingUser: React.Dispatch<SetStateAction<string | undefined>>,
+  router: AppRouterInstance,
+  pathname: string,
+) {
+  await userApi
+    .getUser()
+    .then((userDetails) => {
+      setProfile(userDetails)
+    })
+    .catch((error) => {
+      if (error.status === 401) {
+        router.push(`/api/v1/logout?redirect=${pathname}`)
+      } else {
+        setErrorGettingUser(getErrorMessage(error))
+      }
+    })
 }
