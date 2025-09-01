@@ -14,7 +14,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { LtiCourseId, LtiUserId } from '../decorators/lti.decorator';
+import { LtiCourseId, LtiUser } from '../decorators/lti.decorator';
 import express from 'express';
 import { LtiGuard } from '../guards/lti.guard';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -28,6 +28,7 @@ import {
   UpdateLtiPlatform,
 } from '@koh/common';
 import { plainToClass } from 'class-transformer';
+import { UserModel } from '../profile/user.entity';
 
 @Controller('lti')
 export class LtiController {
@@ -37,7 +38,7 @@ export class LtiController {
   @UseGuards(LtiGuard)
   async index(
     @Res() res: express.Response,
-    @LtiUserId() userId: number,
+    @LtiUser({ organizationUser: true }) user: UserModel,
     @LtiCourseId() courseId?: number,
     @Query('lti_storage_target') lti_storage_target?: string,
   ) {
@@ -45,12 +46,12 @@ export class LtiController {
     if (courseId) {
       qry.set('cid', String(courseId));
     }
-    const auth = await this.ltiService.generateAuthToken(userId);
+    const auth = await this.ltiService.generateAuthToken(user.id);
     if (lti_storage_target) {
       qry.set('auth_token', auth);
       qry.set('lti_storage_target', lti_storage_target);
     } else {
-      res = await this.ltiService.attachAuthToken(userId, res, auth);
+      res = await this.ltiService.attachAuthToken(user.id, res, auth);
     }
     res.redirect(`/lti${qry.size > 0 ? '?' + qry.toString() : ''}`);
   }

@@ -1,13 +1,10 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { UserCourseModel } from '../profile/user-course.entity';
 import { FindOptionsRelations } from 'typeorm';
 import { IdToken } from 'lti-typescript';
 import { UserModel } from '../profile/user.entity';
 import { CourseModel } from '../course/course.entity';
 
-export const LtiUser = createParamDecorator<
-  FindOptionsRelations<UserCourseModel>
->(
+export const LtiUser = createParamDecorator<FindOptionsRelations<UserModel>>(
   async (
     relations: FindOptionsRelations<UserModel>,
     ctx: ExecutionContext,
@@ -26,7 +23,7 @@ export const LtiUser = createParamDecorator<
 );
 
 export const LtiCourse = createParamDecorator<
-  FindOptionsRelations<UserCourseModel>
+  FindOptionsRelations<CourseModel>
 >(
   async (
     relations: FindOptionsRelations<CourseModel>,
@@ -59,6 +56,6 @@ export const LtiCourseId = createParamDecorator(
 
 export const LtiToken = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): IdToken => {
-    return ctx.switchToHttp().getRequest().locals['token'];
+    return ctx.switchToHttp().getResponse().locals['token'];
   },
 );

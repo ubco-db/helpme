@@ -20,6 +20,14 @@ export class LMSAccessToken {
   userId: number;
   refresh_token: string;
   expires_in: number; // Seconds
+
+  constructor() {
+    this.access_token = '';
+    this.token_type = '';
+    this.refresh_token = '';
+    this.userId = 1;
+    this.expires_in = 0;
+  }
 }
 
 @Entity('lms_access_token_model')
@@ -68,7 +76,7 @@ export class LMSAccessTokenModel extends BaseEntity {
     };
 
     Object.keys(token).forEach((k0) => {
-      if (!Object.keys(LMSAccessToken).includes(k0)) {
+      if (!Object.keys(new LMSAccessToken()).includes(k0)) {
         delete token[k0];
       }
     });

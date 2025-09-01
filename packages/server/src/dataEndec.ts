@@ -1,4 +1,6 @@
-import crypto from 'crypto';
+import * as crypto from 'crypto';
+
+const algorithm = 'aes-256-cbc';
 
 export class DataEndec {
   constructor(private encryptionKey: string) {}
@@ -8,14 +10,18 @@ export class DataEndec {
    * @param {String} data - Data to be encrypted
    */
   async encrypt(data: any): Promise<{ iv: string; data: string }> {
-    const hash = crypto.createHash('sha256');
-    hash.update(this.encryptionKey);
-    const key = Uint8Array.prototype.slice.call(hash.digest(), 0, 32);
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-    let encrypted = cipher.update(data);
+    const iv = Buffer.from(crypto.randomBytes(16));
+    const cipher = crypto.createCipheriv(
+      algorithm,
+      Buffer.from(this.encryptionKey).slice(0, 32),
+      iv,
+    );
+    let encrypted = cipher.update(JSON.stringify(data));
     encrypted = Buffer.concat([encrypted, cipher.final()]);
-    return { iv: iv.toString('hex'), data: encrypted.toString('hex') };
+    return {
+      data: encrypted.toString('hex'),
+      iv: iv.toString('hex'),
+    };
   }
 
   /**
@@ -24,17 +30,14 @@ export class DataEndec {
    * @param {String} iv - Encryption iv
    */
   async decrypt<T>(data: string, iv: string): Promise<T> {
-    const hash = crypto.createHash('sha256');
-    hash.update(this.encryptionKey);
-    const key = Uint8Array.prototype.slice.call(hash.digest(), 0, 32);
-    const newIv = Buffer.from(iv, 'hex');
-    const encryptedText = Buffer.from(data, 'hex');
+    const iv_buf = Buffer.from(iv, 'hex');
+    const encrypted_buf = Buffer.from(data, 'hex');
     const decipher = crypto.createDecipheriv(
-      'aes-256-cbc',
-      Buffer.from(key),
-      newIv,
+      algorithm,
+      Buffer.from(this.encryptionKey).slice(0, 32),
+      iv_buf,
     );
-    let decrypted = decipher.update(encryptedText);
+    let decrypted = decipher.update(encrypted_buf);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return JSON.parse(decrypted.toString());
   }

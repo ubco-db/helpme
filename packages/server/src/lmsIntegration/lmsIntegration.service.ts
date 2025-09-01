@@ -5,10 +5,12 @@ import {
 } from './lmsIntegration.adapter';
 import {
   CoursePartial,
+  dropUndefined,
   ERROR_MESSAGES,
   LMSAnnouncement,
   LMSApiResponseStatus,
   LMSAssignment,
+  LMSCourseAPIResponse,
   LMSCourseIntegrationPartial,
   LMSFile,
   LMSFileUploadResponse,
@@ -19,6 +21,8 @@ import {
   LMSResourceType,
   LMSSyncDocumentsResult,
   SupportedLMSFileTypes,
+  UpsertLMSCourseParams,
+  UpsertLMSOrganizationParams,
 } from '@koh/common';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -32,12 +36,11 @@ import { UserModel } from '../profile/user.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { v4 } from 'uuid';
 import * as Sentry from '@sentry/browser';
-import { ConfigService } from '@nestjs/config';
 import { convert } from 'html-to-text';
 import { ChatbotApiService } from '../chatbot/chatbot-api.service';
 import { Cache } from 'cache-manager';
 import { LMSAccessTokenModel } from './lms-access-token.entity';
-import { DataSource } from 'typeorm';
+import { pick } from 'lodash';
 
 export enum LMSGet {
   Course,
@@ -64,12 +67,9 @@ export class LMSIntegrationService {
   constructor(
     @Inject(LMSIntegrationAdapter)
     private integrationAdapter: LMSIntegrationAdapter,
-    @Inject(ConfigService)
-    private configService: ConfigService,
     @Inject(ChatbotApiService)
     private chatbotApiService: ChatbotApiService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-    private dataSource: DataSource,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -114,26 +114,59 @@ export class LMSIntegrationService {
 
   public async upsertOrganizationLMSIntegration(
     organizationId: number,
-    rootUrl: string,
-    apiPlatform: LMSIntegrationPlatform,
+    props: UpsertLMSOrganizationParams,
   ) {
     let integration = await LMSOrganizationIntegrationModel.findOne({
-      where: { organizationId: organizationId, apiPlatform: apiPlatform },
+      where: { organizationId: organizationId, apiPlatform: props.apiPlatform },
+      relations: {
+        userAccessTokens: true,
+      },
     });
-    let isUpdate = false;
-    if (integration) {
-      integration.rootUrl = rootUrl;
-      isUpdate = true;
-    } else {
-      integration = new LMSOrganizationIntegrationModel();
-      integration.organizationId = organizationId;
-      integration.apiPlatform = apiPlatform;
-      integration.rootUrl = rootUrl;
+
+    if (integration != undefined && !props.rootUrl) {
+      throw new HttpException(
+        ERROR_MESSAGES.lmsController.lmsIntegrationUrlRequired,
+        HttpStatus.BAD_REQUEST,
+      );
     }
-    await LMSOrganizationIntegrationModel.upsert(integration, [
-      'organizationId',
-      'apiPlatform',
-    ]);
+
+    if (props.rootUrl.startsWith('https') || props.rootUrl.startsWith('http'))
+      throw new HttpException(
+        ERROR_MESSAGES.lmsController.lmsIntegrationProtocolIncluded,
+        HttpStatus.BAD_REQUEST,
+      );
+
+    const isUpdate = integration != undefined;
+    if (integration) {
+      // Invalidate any tokens that are out-of-date with settings
+      if (
+        (props.clientId && integration.clientId != props.clientId) ||
+        (props.clientSecret && integration.clientSecret != props.clientSecret)
+      ) {
+        for (let token of integration.userAccessTokens) {
+          try {
+            token = Object.assign(token, {
+              organizationIntegration: integration,
+            });
+            await AbstractLMSAdapter.logoutAuth(token);
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          } catch (_ignored) {}
+        }
+        await LMSAccessTokenModel.remove(integration.userAccessTokens);
+      }
+
+      await LMSOrganizationIntegrationModel.save({
+        ...dropUndefined(props),
+        organizationId: organizationId,
+        apiPlatform: props.apiPlatform,
+      });
+    } else {
+      integration = await LMSOrganizationIntegrationModel.create({
+        organizationId,
+        ...dropUndefined(props),
+      }).save();
+    }
+
     return isUpdate
       ? `Successfully updated integration for ${integration.apiPlatform}`
       : `Successfully created integration for ${integration.apiPlatform}`;
@@ -144,78 +177,66 @@ export class LMSIntegrationService {
     organizationIntegration: LMSOrganizationIntegrationModel,
     raw: LMSPostResponseBody,
   ): Promise<LMSAccessTokenModel> {
-    let id: number = 0;
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
+    let id: number | undefined;
     try {
-      const em = queryRunner.manager;
-      const accessTokenRepository =
-        em.getRepository<LMSAccessTokenModel>(LMSAccessTokenModel);
-
-      const token = await accessTokenRepository.save({
+      const token = await LMSAccessTokenModel.create({
         user,
         organizationIntegration,
-      });
-
-      await token.encryptToken(raw);
-
+      }).save();
       id = token.id;
-
-      await queryRunner.commitTransaction();
+      return await token.encryptToken(raw);
     } catch (err) {
-      if (queryRunner.isTransactionActive && !queryRunner.isReleased) {
-        await queryRunner.rollbackTransaction();
+      if (id) {
+        await LMSAccessTokenModel.delete({
+          id,
+        });
       }
       throw err;
-    } finally {
-      if (!queryRunner.isReleased) {
-        await queryRunner.release();
-      }
     }
+  }
 
-    return await LMSAccessTokenModel.findOne({
-      where: {
-        id,
-      },
-    });
+  public async destroyAccessToken(token: LMSAccessTokenModel) {
+    const result = await AbstractLMSAdapter.logoutAuth(token);
+    if (result) {
+      await LMSAccessTokenModel.remove(token);
+    }
+    return result;
   }
 
   public async getAPICourses(
     accessToken: LMSAccessTokenModel,
   ): Promise<LMSCourseAPIResponse[]> {
-    return await AbstractLMSAdapter.getUserCourses(accessToken);
+    const result = await AbstractLMSAdapter.getUserCourses(accessToken);
+    if (result.status != LMSApiResponseStatus.Success) {
+      throw new HttpException('', this.lmsStatusToHttpStatus(result.status));
+    }
+    return result.courses;
   }
 
   public async createCourseLMSIntegration(
     orgIntegration: LMSOrganizationIntegrationModel,
     courseId: number,
-    apiCourseId: string,
-    apiKey: string,
-    apiKeyExpiry?: Date,
+    props: Omit<UpsertLMSCourseParams, 'apiPlatform'>,
   ) {
-    const integration = new LMSCourseIntegrationModel();
-    integration.orgIntegration = orgIntegration;
-    integration.courseId = courseId;
-    integration.apiKey = apiKey;
-    integration.apiCourseId = apiCourseId;
-    integration.apiKeyExpiry = apiKeyExpiry;
-    await LMSCourseIntegrationModel.upsert(integration, ['courseId']);
+    await LMSCourseIntegrationModel.save({
+      ...dropUndefined(
+        pick(props, ['apiKey', 'apiKeyExpiry', 'accessTokenId', 'apiCourseId']),
+        true,
+      ),
+      courseId,
+      orgIntegration,
+    });
     return `Successfully linked course with ${orgIntegration.apiPlatform}`;
   }
 
   public async updateCourseLMSIntegration(
     integration: LMSCourseIntegrationModel,
     orgIntegration: LMSOrganizationIntegrationModel,
-    apiKeyExpiryDeleted = false,
-    apiCourseId?: string,
-    apiKey?: string,
-    apiKeyExpiry?: Date,
+    props: Omit<UpsertLMSCourseParams, 'apiPlatform'>,
   ) {
     if (
       integration.orgIntegration.apiPlatform != orgIntegration.apiPlatform ||
-      (apiCourseId != undefined && integration.apiCourseId != apiCourseId)
+      (props.apiCourseId && integration.apiCourseId != props.apiCourseId)
     ) {
       // If the integration changes to another platform, clear out the previously saved assignments
       // Or: if the apiCourseId changes, the information is no longer relevant - clear out old documents
@@ -225,14 +246,21 @@ export class LMSIntegrationService {
       );
     }
 
-    integration.orgIntegration = orgIntegration;
-    integration.apiKey = apiKey ?? integration.apiKey;
-    integration.apiCourseId = apiCourseId ?? integration.apiCourseId;
-    integration.apiKeyExpiry = apiKeyExpiryDeleted
-      ? null
-      : (apiKeyExpiry ?? integration.apiKeyExpiry);
+    await LMSCourseIntegrationModel.save({
+      ...pick(integration, [
+        'apiKey',
+        'apiCourseId',
+        'accessTokenId',
+        'courseId',
+        'lmsSynchronize',
+      ]),
+      ...dropUndefined(pick(props, ['apiKey', 'apiCourseId', 'accessTokenId'])),
+      apiKeyExpiry: props.apiKeyExpiryDeleted
+        ? null
+        : (props.apiKeyExpiry ?? integration.apiKeyExpiry),
+      orgIntegration,
+    });
 
-    await LMSCourseIntegrationModel.upsert(integration, ['courseId']);
     return `Successfully updated link with ${integration.orgIntegration.apiPlatform}`;
   }
 
@@ -256,12 +284,15 @@ export class LMSIntegrationService {
 
   async testConnection(
     orgIntegration: LMSOrganizationIntegrationModel,
-    apiKey: string,
     apiCourseId: string,
+    apiKey?: string,
+    accessToken?: LMSAccessTokenModel,
   ): Promise<LMSApiResponseStatus> {
     const tempIntegration = new LMSCourseIntegrationModel();
     tempIntegration.apiKey = apiKey;
     tempIntegration.apiCourseId = apiCourseId;
+    tempIntegration.accessToken = accessToken;
+    tempIntegration.accessTokenId = accessToken.id;
     tempIntegration.orgIntegration = orgIntegration;
 
     const adapter = await this.integrationAdapter.getAdapter(
@@ -1232,11 +1263,16 @@ export class LMSIntegrationService {
       });
   }
 
-  getPartialOrgLmsIntegration(lmsIntegration: LMSOrganizationIntegrationModel) {
+  getPartialOrgLmsIntegration(
+    lmsIntegration: LMSOrganizationIntegrationModel,
+  ): LMSOrganizationIntegrationPartial {
     return {
       organizationId: lmsIntegration.organizationId,
       apiPlatform: lmsIntegration.apiPlatform,
       rootUrl: lmsIntegration.rootUrl,
+      clientId: lmsIntegration.clientId,
+      hasClientSecret: lmsIntegration.clientSecret != undefined,
+      secure: lmsIntegration.secure,
       courseIntegrations:
         lmsIntegration.courseIntegrations?.map((cint) =>
           this.getPartialCourseLmsIntegration(cint, lmsIntegration.apiPlatform),
@@ -1247,7 +1283,7 @@ export class LMSIntegrationService {
   getPartialCourseLmsIntegration(
     lmsIntegration: LMSCourseIntegrationModel,
     platform?: LMSIntegrationPlatform,
-  ) {
+  ): LMSCourseIntegrationPartial {
     return {
       apiPlatform:
         platform ??
@@ -1263,6 +1299,8 @@ export class LMSIntegrationService {
       } satisfies CoursePartial,
       apiCourseId: lmsIntegration.apiCourseId,
       apiKeyExpiry: lmsIntegration.apiKeyExpiry,
+      hasApiKey: lmsIntegration.apiKey != undefined,
+      accessTokenId: lmsIntegration.accessTokenId,
       lmsSynchronize: lmsIntegration.lmsSynchronize,
       isExpired:
         lmsIntegration.apiKeyExpiry != undefined &&

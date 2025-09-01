@@ -1715,93 +1715,260 @@ export class GetOrganizationResponse {
   ssoUrl?: string
 }
 
-export type UpsertLMSOrganizationParams = {
-  apiPlatform: LMSIntegrationPlatform
-  rootUrl: string
+export enum LMSIntegrationPlatform {
+  None = 'None',
+  Canvas = 'Canvas',
 }
 
-export type RemoveLMSOrganizationParams = {
-  apiPlatform: LMSIntegrationPlatform
+export class UpsertLMSOrganizationParams {
+  @IsEnum(LMSIntegrationPlatform)
+  apiPlatform!: LMSIntegrationPlatform
+
+  @IsOptional()
+  @IsString()
+  rootUrl?: string
+
+  @IsOptional()
+  @IsString()
+  clientId?: string
+
+  @IsOptional()
+  @IsString()
+  clientSecret?: string
+
+  @IsOptional()
+  @IsBoolean()
+  secure?: boolean
 }
 
-export type UpsertLMSCourseParams = {
-  apiPlatform: LMSIntegrationPlatform
-  apiKey: string
+export class RemoveLMSOrganizationParams {
+  @IsEnum(LMSIntegrationPlatform)
+  apiPlatform!: LMSIntegrationPlatform
+}
+
+export class UpsertLMSCourseParams {
+  @IsEnum(LMSIntegrationPlatform)
+  apiPlatform!: LMSIntegrationPlatform
+
+  @IsOptional()
+  @IsInt()
+  accessTokenId?: number
+
+  @IsOptional()
+  @IsString()
+  apiKey?: string
+
+  @IsOptional()
+  @Type(() => Date)
   apiKeyExpiry?: Date
+
+  @IsOptional()
+  @IsBoolean()
   apiKeyExpiryDeleted?: boolean
-  apiCourseId: string
+
+  @IsOptional()
+  apiCourseId?: string
 }
 
-export type TestLMSIntegrationParams = {
-  apiPlatform: LMSIntegrationPlatform
-  apiKey: string
-  apiCourseId: string
+export class TestLMSIntegrationParams {
+  @IsEnum(LMSIntegrationPlatform)
+  apiPlatform!: LMSIntegrationPlatform
+
+  @IsOptional()
+  @IsString()
+  apiKey?: string
+
+  @IsOptional()
+  @IsNumber()
+  accessTokenId?: number
+
+  @IsNotEmpty()
+  apiCourseId!: string
 }
 
 export class LMSOrganizationIntegrationPartial {
+  @IsNumber()
   organizationId!: number
+
+  @IsEnum(LMSIntegrationPlatform)
   apiPlatform!: LMSIntegrationPlatform
+
+  @IsString()
   rootUrl!: string
+
+  @IsOptional()
+  @IsString()
+  clientId?: string
+
+  @IsBoolean()
+  hasClientSecret!: boolean
+
+  @IsBoolean()
+  secure!: boolean
+
+  @ValidateNested({ each: true })
+  @Type(() => LMSCourseIntegrationPartial)
+  @IsArray()
   courseIntegrations!: LMSCourseIntegrationPartial[]
 }
 
 export class LMSCourseIntegrationPartial {
+  @IsNumber()
   courseId!: number
+
   course!: CoursePartial
+
+  @IsEnum(LMSIntegrationPlatform)
   apiPlatform!: LMSIntegrationPlatform
+
+  @IsOptional()
+  @IsNumber()
+  accessTokenId?: number
+
   apiCourseId!: string
-  apiKeyExpiry!: Date
+
+  @IsOptional()
+  @IsBoolean()
+  hasApiKey?: boolean
+
+  @IsOptional()
+  @Type(() => Date)
+  apiKeyExpiry?: Date
+
+  @IsBoolean()
   lmsSynchronize!: boolean
+
+  @IsBoolean()
   isExpired!: boolean
+
+  @IsArray()
   selectedResourceTypes?: LMSResourceType[]
 }
 
-export type LMSCourseAPIResponse = {
-  id: number
-  name: string
-  code: string
-  studentCount: number
+export class LMSCourseAPIResponse {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  name!: string
+
+  @IsString()
+  code!: string
+
+  @IsInt()
+  studentCount!: number
 }
 
-export type LMSAssignment = {
-  id: number
-  name: string
-  description: string
+export class LMSAssignment {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  name!: string
+
+  @IsString()
+  description!: string
+
+  @IsOptional()
+  @IsBoolean()
   syncEnabled?: boolean
+
+  @IsOptional()
+  @IsDate()
   due?: Date
+
+  @IsOptional()
+  @IsDate()
   modified?: Date
+
+  @IsOptional()
+  @IsDate()
   uploaded?: Date
 }
 
-export type LMSAnnouncement = {
-  id: number
-  title: string
-  message: string
-  posted: Date
+export class LMSAnnouncement {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  title!: string
+
+  @IsString()
+  message!: string
+
+  @IsOptional()
+  @IsDate()
+  posted?: Date
+
+  @IsOptional()
+  @IsBoolean()
   syncEnabled?: boolean
+
+  @IsOptional()
+  @IsDate()
   modified?: Date
+
+  @IsOptional()
+  @IsDate()
   uploaded?: Date
 }
 
-export type LMSPage = {
-  id: number
-  title: string
+export class LMSPage {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  title!: string
+
+  @IsOptional()
+  @IsString()
   body?: string
-  url: string
-  frontPage: boolean
+
+  @IsString()
+  url!: string
+
+  @IsBoolean()
+  frontPage!: boolean
+
+  @IsOptional()
+  @IsBoolean()
   syncEnabled?: boolean
+
+  @IsOptional()
+  @IsDate()
   modified?: Date
+
+  @IsOptional()
+  @IsDate()
   uploaded?: Date
 }
 
-export type LMSFile = {
-  id: number
-  name: string
-  url: string
-  contentType: string
-  size: number
+export class LMSFile {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  name!: string
+
+  @IsString()
+  url!: string
+
+  @IsString()
+  contentType!: string
+
+  @IsNumber()
+  size!: number
+
+  @IsOptional()
+  @IsBoolean()
   syncEnabled?: boolean
+
+  @IsOptional()
+  @IsDate()
   modified?: Date
+
+  @IsOptional()
+  @IsDate()
   uploaded?: Date
 }
 
@@ -3464,11 +3631,6 @@ export type UnreadAsyncQuestionResponse = {
   count: number
 }
 
-export enum LMSIntegrationPlatform {
-  None = 'None',
-  Canvas = 'Canvas',
-}
-
 export class LMSAuthResponseQuery {
   @IsString()
   @IsOptional()
@@ -4005,8 +4167,20 @@ export const ERROR_MESSAGES = {
     missingCodeQueryParameter: 'Missing code query parameter.',
     stateExpired: 'State for authorization request has expired.',
     failedToGetAccessToken: 'Failed to retrieve access token.',
-    orgLmsIntegrationMissingClientId:
-      'Organization integration has no defined client ID.',
+    missingClientId: 'Organization integration has no defined client ID.',
+    missingClientSecret:
+      'Organization integration has no defined client secret.',
+    missingApiKeyOrToken:
+      'Course integration requires an API key or an access token to be created.',
+    unauthorizedForToken: 'The specified access token does not belong to you.',
+    apiKeyDisabled:
+      'Usage of API key for LMS integrations is not allowed in this organization.',
+    accessTokenMismatch:
+      'The selected access token is not valid for the specified platform.',
+  },
+  lmsAdapter: {
+    missingAccessToken:
+      'No access token found for course. Cannot authorize requests.',
   },
   semesterController: {
     notAllowedToCreateSemester: (role: OrganizationRole) =>

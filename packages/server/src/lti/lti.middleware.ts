@@ -248,6 +248,7 @@ export default class LtiMiddleware {
         await LtiService.findMatchingUserAndCourse(token);
       response.locals.userId = userId;
       response.locals.courseId = courseId;
+
       return next();
     } catch (err) {
       Debug.log(this, err);

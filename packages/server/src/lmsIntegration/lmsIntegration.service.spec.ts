@@ -197,11 +197,10 @@ describe('LMSIntegrationService', () => {
     });
 
     it('should behave as create if integration is found', async () => {
-      const response = await service.upsertOrganizationLMSIntegration(
-        org.id,
-        'www.example.com',
-        LMSIntegrationPlatform.Canvas,
-      );
+      const response = await service.upsertOrganizationLMSIntegration(org.id, {
+        rootUrl: 'www.example.com',
+        apiPlatform: LMSIntegrationPlatform.Canvas,
+      });
 
       const created = await LMSOrganizationIntegrationModel.findOne({
         where: {
@@ -222,11 +221,10 @@ describe('LMSIntegrationService', () => {
         apiPlatform: LMSIntegrationPlatform.Canvas,
       }).save();
 
-      const response = await service.upsertOrganizationLMSIntegration(
-        org.id,
-        'www.example2.com',
-        LMSIntegrationPlatform.Canvas,
-      );
+      const response = await service.upsertOrganizationLMSIntegration(org.id, {
+        rootUrl: 'www.example2.com',
+        apiPlatform: LMSIntegrationPlatform.Canvas,
+      });
 
       const updated = await LMSOrganizationIntegrationModel.findOne({
         where: {
@@ -256,7 +254,10 @@ describe('LMSIntegrationService', () => {
     });
 
     it('should create a new course integration without an expiry', async () => {
-      await service.createCourseLMSIntegration(orgInt, course.id, 'abc', 'def');
+      await service.createCourseLMSIntegration(orgInt, course.id, {
+        apiCourseId: '1',
+        apiKey: 'abc',
+      });
 
       const check = await LMSCourseIntegrationModel.findOne({
         where: {
@@ -268,13 +269,11 @@ describe('LMSIntegrationService', () => {
     });
 
     it('should create a new course integration with an expiry', async () => {
-      await service.createCourseLMSIntegration(
-        orgInt,
-        course.id,
-        'abc',
-        'def',
-        new Date(),
-      );
+      await service.createCourseLMSIntegration(orgInt, course.id, {
+        apiCourseId: '1',
+        apiKey: 'abc',
+        apiKeyExpiry: new Date(),
+      });
       const check = await LMSCourseIntegrationModel.findOne({
         where: {
           courseId: course.id,
@@ -371,7 +370,8 @@ describe('LMSIntegrationService', () => {
           return false;
         },
 
-        async Get(url: string): Promise<{
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        async Get(_url: string): Promise<{
           status: LMSApiResponseStatus;
           data?: any;
           nextLink?: string;

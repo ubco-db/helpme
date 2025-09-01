@@ -62,9 +62,11 @@ import {
   LMSCourseAPIResponse,
   LMSCourseIntegrationPartial,
   LMSFile,
+  LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
   LMSSyncDocumentsResult,
+  LMSToken,
   LtiPlatform,
   MailServiceWithSubscription,
   OrganizationChatbotSettings,
@@ -171,17 +173,6 @@ export class APIClient {
     const res = (await this.axios.request({ method, url, data: body, params }))
       .data
     return responseClass ? plainToClass(responseClass, res) : res
-  }
-
-  /**
-   * Sets the auth token that will be used for subsequent requests.
-   *
-   * @param authToken The value for the auth token, if specified. Otherwise sets to null.
-   * @returns APIClient
-   */
-  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-  withAuthorization(authToken: string | null): APIClient {
-    return this
   }
 
   auth = {
@@ -1409,6 +1400,19 @@ export class APIClient {
       this.req('POST', `/api/v1/lms/course/${courseId}/resources`, undefined, {
         selectedResourceTypes,
       }),
+    deleteAccessToken: async (tokenId: number): Promise<boolean> =>
+      this.req('DELETE', `/api/v1/lms/oauth2/token/${tokenId}`),
+    getAccessTokens: async (
+      platform?: LMSIntegrationPlatform,
+    ): Promise<LMSToken[]> =>
+      this.req(
+        'GET',
+        `/api/v1/lms/oauth2/token${platform != undefined ? `?platform=${platform}` : ''}`,
+      ),
+    getUserCourses: async (tokenId: number): Promise<LMSCourseAPIResponse[]> =>
+      this.req('GET', `/api/v1/lms/course/list/${tokenId}`),
+    redirectAuthUrl: (courseId?: number): string =>
+      `/api/v1/lms/oauth2/authorize${courseId != undefined ? `?courseId=${courseId}` : ''}`,
     testIntegration: async (
       courseId: number,
       props: TestLMSIntegrationParams,
