@@ -51,7 +51,8 @@ import { ChatbotProviderModel } from './src/chatbot/chatbot-infrastructure-model
 import { CourseChatbotSettingsModel } from './src/chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
 import { OrganizationChatbotSettingsModel } from './src/chatbot/chatbot-infrastructure-models/organization-chatbot-settings.entity';
 import { LLMTypeModel } from './src/chatbot/chatbot-infrastructure-models/llm-type.entity';
-import { LTIConfigModel } from './src/lti/lti_config.entity';
+import { LMSAccessTokenModel } from './src/lmsIntegration/lms-access-token.entity';
+import { LMSAuthStateModel } from './src/lmsIntegration/lms-auth-state.entity';
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
   config();
@@ -130,7 +131,8 @@ const typeorm: DataSourceOptions = {
     CourseChatbotSettingsModel,
     OrganizationChatbotSettingsModel,
     LLMTypeModel,
-    LTIConfigModel,
+    LMSAuthStateModel,
+    LMSAccessTokenModel,
   ],
   logging:
     process.env.NODE_ENV !== 'production'

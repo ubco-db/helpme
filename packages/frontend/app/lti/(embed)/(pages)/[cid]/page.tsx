@@ -1,17 +1,12 @@
 'use client'
 
-import { ReactElement, useEffect, useMemo } from 'react'
+import { ReactElement, useEffect } from 'react'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useChatbotContext } from '@/app/(dashboard)/course/[cid]/components/chatbot/ChatbotProvider'
 import Chatbot from '@/app/(dashboard)/course/[cid]/components/chatbot/Chatbot'
 import { useLtiCourse } from '@/app/contexts/LtiCourseContext'
-import { useLtiContext } from '@/app/contexts/LtiContext'
-import { API } from '@/app/api'
 
 export default function LtiCoursePage(): ReactElement {
-  const { authToken } = useLtiContext()
-  const customAPI = useMemo(() => API.withAuthorization(authToken), [authToken])
-
   const { courseId, course, courseFeatures } = useLtiCourse()
 
   // chatbot
@@ -61,7 +56,6 @@ export default function LtiCoursePage(): ReactElement {
               chatbotQuestionType={chatbotQuestionType}
               setChatbotQuestionType={setChatbotQuestionType}
               setIsOpen={() => {}}
-              API={customAPI}
             />
           </div>
         ) : (

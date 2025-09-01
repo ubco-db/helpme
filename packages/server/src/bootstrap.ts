@@ -39,9 +39,10 @@ export async function bootstrap(hot: any): Promise<void> {
   app.use(morgan('dev'));
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
-  // If not an LTI route, use standard helmet
+  // If not an LTI route, use standard helmet, cookieParser
+  app.use(/\/api\/v1(?!\/lti)/, cookieParser());
   app.use(/\/api\/v1(?!\/lti)/, helmet());
-  // If an LTI route, use customized helmet
+  // If an LTI route, use customized helmet, cookieParser
   app.use(
     /\/api\/v1\/lti/,
     helmet({
@@ -49,6 +50,7 @@ export async function bootstrap(hot: any): Promise<void> {
       contentSecurityPolicy: false,
     }),
   );
+  app.use(/\/api\/v1\/lti/, cookieParser(process.env.LTI_SECRET_KEY));
   app.use(
     expressSession({
       secret: process.env.SESSION_SECRET,
@@ -90,5 +92,4 @@ export function addGlobalsToApp(app: INestApplication): void {
     }),
   );
   app.useGlobalPipes(new StripUndefinedPipe());
-  app.use(cookieParser());
 }

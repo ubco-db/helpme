@@ -1,7 +1,6 @@
 'use client'
-import { use, useEffect, useMemo, useState } from 'react'
+import { use, useEffect, useState } from 'react'
 
-import { useLtiContext } from '@/app/contexts/LtiContext'
 import { API } from '@/app/api'
 import { CourseSettingsResponse, GetCourseResponse } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
@@ -20,9 +19,6 @@ export default function Layout(props: {
   const { cid } = params
   const courseId = Number(cid)
 
-  const { authToken } = useLtiContext()
-  const customAPI = useMemo(() => API.withAuthorization(authToken), [authToken])
-
   const [course, setCourse] = useState<GetCourseResponse>()
   const [courseFeatures, setCourseFeatures] = useState<CourseSettingsResponse>()
   const [getCourseError, setGetCourseError] = useState<string>()
@@ -30,7 +26,7 @@ export default function Layout(props: {
   useEffect(() => {
     const getData = async () => {
       let succeeded = false
-      await customAPI.course
+      await API.course
         .get(courseId)
         .then((course) => {
           setCourse(course)
@@ -40,7 +36,7 @@ export default function Layout(props: {
           setGetCourseError(getErrorMessage(err))
         })
       if (succeeded) {
-        await customAPI.course
+        await API.course
           .getCourseFeatures(courseId)
           .then((courseFeatures) => {
             setCourseFeatures(courseFeatures)

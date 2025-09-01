@@ -8,8 +8,7 @@ import { UserRole } from '@koh/common'
 // These are the public pages that do not require authentication. Adding an * will match any characters after the page (e.g. if the page has search query params).
 const publicPages = [
   '/login',
-  '/lti',
-  '/lti/[0-9]+*',
+  '/lti*',
   '/register',
   '/failed*',
   '/password*',
@@ -49,146 +48,191 @@ export async function middleware(
     )
   }
 
-  // Case: User has auth token and tries to access a page that requires authentication
-  if (cookies.has('auth_token') && !isPublicPageRequested) {
-    // Check if the auth token is valid
-    try {
-      const data = await userApi.getUser(true)
+  let data: Response | undefined
+  let userData: User | undefined
+  try {
+    data = cookies.has('auth_token') ? await userApi.getUser(true) : undefined
+    userData =
+      data && (data.ok || data.status == 302)
+        ? ((await data?.json()) as User)
+        : undefined
+  } catch (error) {
+    return await handleRetry(request, () => {
+      console.error('Error fetching user data in middleware:', error)
+      Sentry.captureEvent({
+        message: `Unknown error in middleware`,
+        level: 'error',
+        extra: {
+          requestedRoute: nextUrl.pathname,
+          error,
+        },
+      })
+      return NextResponse.redirect(
+        new URL(`/login?error=fetchError&redirect=${nextUrl.pathname}`, url),
+      )
+    })
+  }
 
-      // If the auth token is invalid, redirect to /login
-      if (data.status === 401) {
-        // I have no clue if the session is actually expired or what exactly.
-        return await handleRetry(
-          request, // pass in the request (gets sent to middleware() again)
-          () => {
-            // run this function once out of retry attempts
-            const response = NextResponse.redirect(
-              new URL(
-                `/login?error=sessionExpired&redirect=${nextUrl.pathname}`,
-                url,
-              ),
-            )
-            response.cookies.delete('auth_token')
-            return response
-          },
-          1, // retry only once
-        )
-      } else if (data.status >= 300 && data.status < 400) {
-        // The user was redirected (from some other part of our app, maybe even this middleware)
-        // We should just let them through to the next page
-        return NextResponse.next()
-      } else if (data.status === 429) {
-        // Too many requests (somehow. This should never happen since the getUser api has no throttler, but i'm leaving this here in case that changes).
-        // Ideally, we would just do an antd message.error, but we can't do that in middelware since it's server-side.
-        // The best solution we have right now is just sending them to the /429 page, which has a back button.
-        // This should now never happen since the handleRetry will try again after 0.25s, 1s, and then 2s.
-        return await handleRetry(request, () => {
-          return NextResponse.redirect(new URL('/error_pages/429', url))
-        })
-      } else if (data.status >= 400) {
-        // this really is not meant to happen
-        if (data.headers.get('content-type')?.includes('application/json')) {
-          const userData: User = await data.json()
-          Sentry.captureEvent({
-            message: `Unknown error in middleware ${data.status}: ${data.statusText}`,
-            level: 'error',
-            extra: {
-              requestedRoute: nextUrl.pathname,
-              statusText: data.statusText,
-              statusCode: data.status,
-              userId: userData.id,
-              userEmail: userData.email,
-              userRole: userData.organization?.organizationRole,
-            },
-          })
-        } else if (data.headers.get('content-type')?.includes('text/html')) {
-          const text = await data.text()
-          Sentry.captureEvent({
-            message: `Unknown error in middleware ${data.status}: ${data.statusText}`,
-            level: 'error',
-            extra: {
-              requestedRoute: nextUrl.pathname,
-              statusText: data.statusText,
-              statusCode: data.status,
-              text,
-            },
-          })
-        } else {
-          Sentry.captureEvent({
-            message: `Unknown error in middleware ${data.status}: ${data.statusText}`,
-            level: 'error',
-            extra: {
-              requestedRoute: nextUrl.pathname,
-              statusText: data.statusText,
-              statusCode: data.status,
-            },
-          })
-        }
-        return await handleRetry(request, () => {
+  // Case: User has auth token and tries to access a page that requires authentication
+  if (data && !isPublicPageRequested) {
+    // If the auth token is invalid, redirect to /login
+    if (data.status === 401) {
+      // I have no clue if the session is actually expired or what exactly.
+      return await handleRetry(
+        request, // pass in the request (gets sent to middleware() again)
+        () => {
+          // run this function once out of retry attempts
           const response = NextResponse.redirect(
             new URL(
-              `/login?error=errorCode${data.status}${encodeURIComponent(data.statusText)}&redirect=${nextUrl.pathname}`,
+              `/login?error=sessionExpired&redirect=${nextUrl.pathname}`,
               url,
             ),
           )
           response.cookies.delete('auth_token')
           return response
-        })
-      }
-
-      const userData: User = await data.json()
-
-      // Case: User has auth token and tries to access a page that requires email verification.
-      //  Check:
-      //  - if page is /verify and email is not verified, allow access
-      //  - if page is /verify and email is verified, redirect to /courses
-      //  - if email is not verified, redirect to /verify
-      if (
-        nextUrl.pathname.startsWith('/verify') &&
-        !isEmailVerified(userData)
-      ) {
-        return NextResponse.next()
-      } else if (
-        nextUrl.pathname.startsWith('/verify') &&
-        isEmailVerified(userData)
-      ) {
-        return NextResponse.redirect(new URL('/courses', url))
-      } else if (!isEmailVerified(userData)) {
-        return NextResponse.redirect(new URL('/verify', url))
-      }
-
-      // Redirect to /courses if user is not an admin and tries to access pages that should be accessed by organization admin (or professor)
-      if (
-        nextUrl.pathname.startsWith('/organization') &&
-        userData.organization &&
-        userData.organization.organizationRole !== OrganizationRole.ADMIN &&
-        userData.organization.organizationRole !== OrganizationRole.PROFESSOR
-      ) {
-        return NextResponse.redirect(new URL('/courses', url))
-      }
-
-      // Redirect to /courses if user is not an admin and tries to access pages that should be accessed by an application admin
-      if (
-        nextUrl.pathname.startsWith('/admin') &&
-        userData.userRole !== UserRole.ADMIN
-      ) {
-        return NextResponse.redirect(new URL('/courses', url))
-      }
-    } catch (error) {
+        },
+        1, // retry only once
+      )
+    } else if (data.status >= 300 && data.status < 400) {
+      // The user was redirected (from some other part of our app, maybe even this middleware)
+      // We should just let them through to the next page
+      return NextResponse.next()
+    } else if (data.status === 429) {
+      // Too many requests (somehow. This should never happen since the getUser api has no throttler, but i'm leaving this here in case that changes).
+      // Ideally, we would just do an antd message.error, but we can't do that in middelware since it's server-side.
+      // The best solution we have right now is just sending them to the /429 page, which has a back button.
+      // This should now never happen since the handleRetry will try again after 0.25s, 1s, and then 2s.
       return await handleRetry(request, () => {
-        console.error('Error fetching user data in middleware:', error)
+        return NextResponse.redirect(new URL('/error_pages/429', url))
+      })
+    } else if (data.status >= 400) {
+      // this really is not meant to happen
+      if (data.headers.get('content-type')?.includes('application/json')) {
+        const userData: User = await data.json()
         Sentry.captureEvent({
-          message: `Unknown error in middleware`,
+          message: `Unknown error in middleware ${data.status}: ${data.statusText}`,
           level: 'error',
           extra: {
             requestedRoute: nextUrl.pathname,
-            error,
+            statusText: data.statusText,
+            statusCode: data.status,
+            userId: userData.id,
+            userEmail: userData.email,
+            userRole: userData.organization?.organizationRole,
           },
         })
-        return NextResponse.redirect(
-          new URL(`/login?error=fetchError&redirect=${nextUrl.pathname}`, url),
+      } else if (data.headers.get('content-type')?.includes('text/html')) {
+        const text = await data.text()
+        Sentry.captureEvent({
+          message: `Unknown error in middleware ${data.status}: ${data.statusText}`,
+          level: 'error',
+          extra: {
+            requestedRoute: nextUrl.pathname,
+            statusText: data.statusText,
+            statusCode: data.status,
+            text,
+          },
+        })
+      } else {
+        Sentry.captureEvent({
+          message: `Unknown error in middleware ${data.status}: ${data.statusText}`,
+          level: 'error',
+          extra: {
+            requestedRoute: nextUrl.pathname,
+            statusText: data.statusText,
+            statusCode: data.status,
+          },
+        })
+      }
+      return await handleRetry(request, () => {
+        const response = NextResponse.redirect(
+          new URL(
+            `/login?error=errorCode${data.status}${encodeURIComponent(data.statusText)}&redirect=${nextUrl.pathname}`,
+            url,
+          ),
         )
+        response.cookies.delete('auth_token')
+        return response
       })
+    }
+  }
+
+  // Case: User has auth token, but auth token defines restrict paths
+  // Solution: Redirect to /login if there's no match
+  // Skipped if the requested page is not a public page
+  if (
+    userData &&
+    userData.restrictPaths != undefined &&
+    !isPublicPageRequested
+  ) {
+    const pathOrPaths = userData.restrictPaths
+    const requestPath = nextUrl.pathname
+    let isAllowedOnPath: boolean
+    if (Array.isArray(pathOrPaths)) {
+      isAllowedOnPath = false
+      for (const path of pathOrPaths) {
+        if (path.startsWith('r')) {
+          const regex = new RegExp(path.substring(1), 'i')
+          if (regex.test(requestPath)) {
+            isAllowedOnPath = true
+            break
+          }
+        } else {
+          if (requestPath == path) {
+            isAllowedOnPath = true
+            break
+          }
+        }
+      }
+    } else {
+      if (pathOrPaths.startsWith('r')) {
+        const regex = new RegExp(pathOrPaths.substring(1), 'i')
+        isAllowedOnPath = regex.test(requestPath)
+      } else {
+        isAllowedOnPath = requestPath == (pathOrPaths as string)
+      }
+    }
+
+    if (!isAllowedOnPath) {
+      return NextResponse.redirect(
+        new URL(`/api/v1/logout?redirect=${nextUrl.pathname}`, url),
+      )
+    }
+  }
+
+  if (userData && !isPublicPageRequested) {
+    // Case: User has auth token and tries to access a page that requires email verification.
+    //  Check:
+    //  - if page is /verify and email is not verified, allow access
+    //  - if page is /verify and email is verified, redirect to /courses
+    //  - if email is not verified, redirect to /verify
+    if (nextUrl.pathname.startsWith('/verify') && !isEmailVerified(userData)) {
+      return NextResponse.next()
+    } else if (
+      nextUrl.pathname.startsWith('/verify') &&
+      isEmailVerified(userData)
+    ) {
+      return NextResponse.redirect(new URL('/courses', url))
+    } else if (!isEmailVerified(userData)) {
+      return NextResponse.redirect(new URL('/verify', url))
+    }
+
+    // Redirect to /courses if user is not an admin and tries to access pages that should be accessed by organization admin (or professor)
+    if (
+      nextUrl.pathname.startsWith('/organization') &&
+      userData.organization &&
+      userData.organization.organizationRole !== OrganizationRole.ADMIN &&
+      userData.organization.organizationRole !== OrganizationRole.PROFESSOR
+    ) {
+      return NextResponse.redirect(new URL('/courses', url))
+    }
+
+    // Redirect to /courses if user is not an admin and tries to access pages that should be accessed by an application admin
+    if (
+      nextUrl.pathname.startsWith('/admin') &&
+      userData.userRole !== UserRole.ADMIN
+    ) {
+      return NextResponse.redirect(new URL('/courses', url))
     }
   }
 

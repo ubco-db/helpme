@@ -10,14 +10,11 @@ import { AsyncToasterProvider } from '@/app/contexts/AsyncToasterContext'
 import { ReloadOutlined } from '@ant-design/icons'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
-import { useLtiContext } from '@/app/contexts/LtiContext'
 import StandardPageContainer from '@/app/components/standardPageContainer'
 import Link from 'next/link'
 import HeaderBar from '@/app/lti/(embed)/components/LtiHeaderBar'
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { authToken } = useLtiContext()
-
   const [profile, setProfile] = useState<User>()
   const [errorGettingUser, setErrorGettingUser] = useState<string | undefined>(
     undefined,
@@ -25,9 +22,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   useEffect(() => {
     const fetchUserDetails = async () => {
-      if (!authToken) return
-      await API.withAuthorization(authToken)
-        .profile.index()
+      await API.profile
+        .index()
         .then((userDetails) => {
           if (!userDetails.organization) {
             throw new Error('No organization found for user profile.')
@@ -39,7 +35,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         })
     }
     fetchUserDetails()
-  }, [authToken])
+  }, [])
 
   return errorGettingUser ? (
     <main className="mt-20 flex flex-col content-center justify-center gap-3">

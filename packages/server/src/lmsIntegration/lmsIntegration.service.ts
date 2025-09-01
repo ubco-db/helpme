@@ -15,9 +15,10 @@ import {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
+  LMSPostResponseBody,
   LMSResourceType,
-  SupportedLMSFileTypes,
   LMSSyncDocumentsResult,
+  SupportedLMSFileTypes,
 } from '@koh/common';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -35,6 +36,8 @@ import { ConfigService } from '@nestjs/config';
 import { convert } from 'html-to-text';
 import { ChatbotApiService } from '../chatbot/chatbot-api.service';
 import { Cache } from 'cache-manager';
+import { LMSAccessTokenModel } from './lms-access-token.entity';
+import { DataSource } from 'typeorm';
 
 export enum LMSGet {
   Course,
@@ -66,6 +69,7 @@ export class LMSIntegrationService {
     @Inject(ChatbotApiService)
     private chatbotApiService: ChatbotApiService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private dataSource: DataSource,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -133,6 +137,55 @@ export class LMSIntegrationService {
     return isUpdate
       ? `Successfully updated integration for ${integration.apiPlatform}`
       : `Successfully created integration for ${integration.apiPlatform}`;
+  }
+
+  public async createAccessToken(
+    user: UserModel,
+    organizationIntegration: LMSOrganizationIntegrationModel,
+    raw: LMSPostResponseBody,
+  ): Promise<LMSAccessTokenModel> {
+    let id: number = 0;
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const em = queryRunner.manager;
+      const accessTokenRepository =
+        em.getRepository<LMSAccessTokenModel>(LMSAccessTokenModel);
+
+      const token = await accessTokenRepository.save({
+        user,
+        organizationIntegration,
+      });
+
+      await token.encryptToken(raw);
+
+      id = token.id;
+
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      if (queryRunner.isTransactionActive && !queryRunner.isReleased) {
+        await queryRunner.rollbackTransaction();
+      }
+      throw err;
+    } finally {
+      if (!queryRunner.isReleased) {
+        await queryRunner.release();
+      }
+    }
+
+    return await LMSAccessTokenModel.findOne({
+      where: {
+        id,
+      },
+    });
+  }
+
+  public async getAPICourses(
+    accessToken: LMSAccessTokenModel,
+  ): Promise<LMSCourseAPIResponse[]> {
+    return await AbstractLMSAdapter.getUserCourses(accessToken);
   }
 
   public async createCourseLMSIntegration(

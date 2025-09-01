@@ -14,8 +14,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { UserCourse } from '../decorators/lti.decorator';
-import { UserCourseModel } from '../profile/user-course.entity';
+import { LtiCourseId, LtiUserId } from '../decorators/lti.decorator';
 import express from 'express';
 import { LtiGuard } from '../guards/lti.guard';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -38,19 +37,20 @@ export class LtiController {
   @UseGuards(LtiGuard)
   async index(
     @Res() res: express.Response,
-    @UserCourse() userCourse: UserCourseModel,
+    @LtiUserId() userId: number,
+    @LtiCourseId() courseId?: number,
     @Query('lti_storage_target') lti_storage_target?: string,
   ) {
     const qry = new URLSearchParams();
-    qry.set('cid', String(userCourse.courseId));
-    if (lti_storage_target !== undefined && lti_storage_target !== null) {
+    if (courseId) {
+      qry.set('cid', String(courseId));
+    }
+    const auth = await this.ltiService.generateAuthToken(userId);
+    if (lti_storage_target) {
+      qry.set('auth_token', auth);
       qry.set('lti_storage_target', lti_storage_target);
-      qry.set(
-        'auth_token',
-        await this.ltiService.generateAuthToken(userCourse.userId),
-      );
     } else {
-      res = await this.ltiService.attachAuthToken(userCourse.userId, res);
+      res = await this.ltiService.attachAuthToken(userId, res, auth);
     }
     res.redirect(`/lti${qry.size > 0 ? '?' + qry.toString() : ''}`);
   }
@@ -111,6 +111,18 @@ export class LtiController {
   @UseGuards(JwtAuthGuard, AdminRoleGuard)
   async deletePlatform(@Param('kid') kid: string): Promise<void> {
     await this.ltiService.provider.deletePlatformById(kid);
+  }
+
+  @Patch('/platform/:kid/toggle')
+  @UseGuards(JwtAuthGuard, AdminRoleGuard)
+  async togglePlatform(@Param('kid') kid: string): Promise<LtiPlatform> {
+    const platform = await this.ltiService.provider.getPlatformById(kid);
+    if (platform) {
+      await platform.setActive(!platform.active);
+    }
+    return mapToLocalPlatform(
+      await Database.findOne(PlatformModel, { where: { kid } }),
+    );
   }
 
   @Get('/static')

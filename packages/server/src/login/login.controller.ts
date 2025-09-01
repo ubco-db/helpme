@@ -208,11 +208,8 @@ export class LoginController {
     @Res() res: Response,
     @Query('redirect') redirect?: string,
   ): Promise<void> {
-    const isSecure = this.configService
-      .get<string>('DOMAIN')
-      .startsWith('https://');
     res
-      .clearCookie('auth_token', { httpOnly: true, secure: isSecure })
+      .clearCookie('auth_token')
       .redirect(302, redirect ? `/login?redirect=${redirect}` : '/login');
   }
 }

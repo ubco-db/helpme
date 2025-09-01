@@ -7,8 +7,6 @@ import React, {
   useEffect,
   useState,
 } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { fetchAuthToken } from '@/app/api/cookieApi'
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const LtiMessages = [
@@ -50,7 +48,6 @@ interface LtiMessengerType {
 }
 
 interface LtiContextSpecific {
-  authToken: string | null
   setOnGetDataResponse: React.Dispatch<
     React.SetStateAction<LtiMessageDataFx | undefined>
   >
@@ -81,23 +78,14 @@ export const LtiContextProvider: React.FC<LtiProviderProps> = ({
   lti_storage_target,
   children,
 }: LtiProviderProps) => {
-  const searchParams = useSearchParams()
   const [onGetDataResponse, setOnGetDataResponse] = useState<LtiMessageDataFx>()
   const [onPutDataResponse, setOnPutDataResponse] = useState<LtiMessageDataFx>()
-
-  const [authToken, setAuthToken] = useState<string | null>(null)
 
   const onGetData = (data: {
     key: string
     value: string | null
     message_id: string
   }) => {
-    const { key, value } = data
-
-    if (key == 'auth_token') {
-      setAuthToken(value)
-    }
-
     if (onGetDataResponse) {
       onGetDataResponse(data)
     }
@@ -108,12 +96,6 @@ export const LtiContextProvider: React.FC<LtiProviderProps> = ({
     value: string | null
     message_id: string
   }) => {
-    const { key, value } = data
-
-    if (key == 'auth_token') {
-      setAuthToken(value)
-    }
-
     if (onPutDataResponse) {
       onPutDataResponse(data)
     }
@@ -126,25 +108,6 @@ export const LtiContextProvider: React.FC<LtiProviderProps> = ({
     onGetData,
   )
 
-  useEffect(() => {
-    const getAuthToken = async () => {
-      if (lti_storage_target) {
-        try {
-          ltiMessenger.postGetData({ key: 'auth_token' })
-        } catch (_) {}
-      }
-      if (lti_storage_target) {
-        const auth = searchParams.get('auth_token')
-        setAuthToken(auth)
-        ltiMessenger.postPutData({ key: 'auth_token', value: auth })
-      } else {
-        const auth = await fetchAuthToken()
-        setAuthToken(auth)
-      }
-    }
-    getAuthToken()
-  }, [ltiMessenger, lti_storage_target, searchParams])
-
   // Return the user state and setUser function
   return (
     <LtiContext.Provider
@@ -152,7 +115,6 @@ export const LtiContextProvider: React.FC<LtiProviderProps> = ({
         ...ltiMessenger,
         setOnGetDataResponse,
         setOnPutDataResponse,
-        authToken,
       }}
     >
       {children}

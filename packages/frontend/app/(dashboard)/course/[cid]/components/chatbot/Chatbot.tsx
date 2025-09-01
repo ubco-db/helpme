@@ -30,7 +30,7 @@ import {
   chatbotStartingMessageCourse,
   chatbotStartingMessageSystem,
 } from '@/app/typings/chatbot'
-import { API as DefaultAPI, APIClient } from '@/app/api'
+import { API } from '@/app/api'
 import MarkdownCustom from '@/app/components/Markdown'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -65,7 +65,6 @@ interface ChatbotProps {
   setChatbotQuestionType: React.Dispatch<
     React.SetStateAction<ChatbotQuestionType>
   >
-  API?: APIClient
 }
 
 const Chatbot: React.FC<ChatbotProps> = ({
@@ -85,7 +84,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
   setHelpmeQuestionId,
   chatbotQuestionType,
   setChatbotQuestionType,
-  API = DefaultAPI,
 }): ReactElement => {
   const [input, setInput] = useState('')
   const { userInfo, setUserInfo } = useUserInfo()
@@ -256,7 +254,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
       <div
         className={cn(
           variant === 'small'
-            ? 'fixed bottom-0 z-50 max-h-[90vh] w-screen md:bottom-1 md:right-1 md:max-w-[400px]'
+            ? 'fixed bottom-0 z-40 max-h-[90vh] w-screen md:bottom-1 md:right-1 md:max-w-[400px]'
             : variant === 'big'
               ? 'flex h-[80vh] w-screen flex-col overflow-auto md:w-[90%]'
               : variant === 'huge'

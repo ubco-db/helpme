@@ -2,44 +2,63 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { FindOptionsRelations } from 'typeorm';
 import { IdToken } from 'lti-typescript';
+import { UserModel } from '../profile/user.entity';
+import { CourseModel } from '../course/course.entity';
 
-export const UserCourse = createParamDecorator<
+export const LtiUser = createParamDecorator<
   FindOptionsRelations<UserCourseModel>
 >(
   async (
-    relations: FindOptionsRelations<UserCourseModel>,
+    relations: FindOptionsRelations<UserModel>,
     ctx: ExecutionContext,
-  ): Promise<UserCourseModel> => {
-    const ucid = ctx.switchToHttp().getResponse().locals['ucid'];
-    if (ucid === undefined || ucid === null) {
-      return null;
+  ): Promise<UserModel> => {
+    const userId = ctx.switchToHttp().getResponse().locals['userId'];
+    if (!userId) {
+      return undefined;
     }
-    return await UserCourseModel.findOne({
-      where: { id: ucid },
+    return await UserModel.findOne({
+      where: { id: userId },
       relations: {
         ...relations,
-        user: relations.user ?? true,
-        course: relations.course ?? true,
       },
     });
   },
 );
-export const UserCourseId = createParamDecorator(
-  (ctx: ExecutionContext): number => {
-    const ucid = ctx.switchToHttp().getResponse().locals['ucid'];
-    if (ucid === undefined || ucid === null) {
-      return null;
+
+export const LtiCourse = createParamDecorator<
+  FindOptionsRelations<UserCourseModel>
+>(
+  async (
+    relations: FindOptionsRelations<CourseModel>,
+    ctx: ExecutionContext,
+  ): Promise<CourseModel> => {
+    const courseId = ctx.switchToHttp().getResponse().locals['courseId'];
+    if (!courseId) {
+      return undefined;
     }
-    return ucid;
+    return await CourseModel.findOne({
+      where: { id: courseId },
+      relations: {
+        ...relations,
+      },
+    });
+  },
+);
+
+export const LtiUserId = createParamDecorator(
+  (data: unknown, ctx: ExecutionContext): number => {
+    return ctx.switchToHttp().getResponse().locals['userId'];
+  },
+);
+
+export const LtiCourseId = createParamDecorator(
+  (data: unknown, ctx: ExecutionContext): number => {
+    return ctx.switchToHttp().getResponse().locals['courseId'];
   },
 );
 
 export const LtiToken = createParamDecorator(
-  (ctx: ExecutionContext): IdToken => {
-    const token = ctx.switchToHttp().getRequest().locals['token'];
-    if (token === undefined || token === null) {
-      return null;
-    }
-    return token;
+  (data: unknown, ctx: ExecutionContext): IdToken => {
+    return ctx.switchToHttp().getRequest().locals['token'];
   },
 );

@@ -146,7 +146,7 @@ const NavBar = ({
             <Image
               width={48}
               height={48}
-              className="h-12 w-full object-contain p-1 pr-4"
+              className="h-12 w-full object-contain p-1 pl-4"
               alt="Organization Logo"
               src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
             />

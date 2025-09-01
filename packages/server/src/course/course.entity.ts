@@ -31,7 +31,7 @@ export class CourseModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToMany((type) => QueueModel, (q) => q.course)
+  @OneToMany(() => QueueModel, (q) => q.course)
   queues: QueueModel[];
 
   @Column('text')
@@ -54,11 +54,11 @@ export class CourseModel extends BaseEntity {
   @Exclude()
   questionTimer?: number; // Legacy
 
-  @OneToMany((type) => UserCourseModel, (ucm) => ucm.course)
+  @OneToMany(() => UserCourseModel, (ucm) => ucm.course)
   @Exclude()
   userCourses: UserCourseModel[];
 
-  @OneToMany((type) => InteractionModel, (interaction) => interaction.course)
+  @OneToMany(() => InteractionModel, (interaction) => interaction.course)
   @Exclude()
   interactions: InteractionModel[];
 
@@ -81,11 +81,11 @@ export class CourseModel extends BaseEntity {
   @Column('text', { default: 'America/Los Angeles' })
   timezone: string;
 
-  @OneToMany((type) => EventModel, (event) => event.course)
+  @OneToMany(() => EventModel, (event) => event.course)
   @Exclude()
   events: EventModel[];
 
-  @OneToMany((type) => AlertModel, (alert) => alert.course)
+  @OneToMany(() => AlertModel, (alert) => alert.course)
   @Exclude()
   alerts: AlertModel[];
 
@@ -101,7 +101,7 @@ export class CourseModel extends BaseEntity {
   deletedAt?: Date;
 
   @OneToOne(
-    (type) => OrganizationCourseModel,
+    () => OrganizationCourseModel,
     (organizationCourse) => organizationCourse.course,
   )
   organizationCourse: OrganizationCourseModel;
@@ -110,7 +110,7 @@ export class CourseModel extends BaseEntity {
   courseInviteCode?: string;
 
   @OneToOne(
-    (type) => CourseSettingsModel,
+    () => CourseSettingsModel,
     (courseSettings) => courseSettings.course,
     { cascade: true },
   )
@@ -126,22 +126,19 @@ export class CourseModel extends BaseEntity {
   taskProgresses: StudentTaskProgressModel[];
 
   @OneToOne(
-    (type) => LMSCourseIntegrationModel,
+    () => LMSCourseIntegrationModel,
     (integration) => integration.course,
   )
   lmsIntegration?: LMSCourseIntegrationModel;
 
   @OneToMany(
-    (type) => UnreadAsyncQuestionModel,
+    () => UnreadAsyncQuestionModel,
     (unreadAsyncQuestion) => unreadAsyncQuestion.course,
   )
   @Exclude()
   unreadAsyncQuestions: UnreadAsyncQuestionModel[];
 
-  @OneToMany(
-    (type) => ChatbotDocPdfModel,
-    (chatbotDocPdf) => chatbotDocPdf.course,
-  )
+  @OneToMany(() => ChatbotDocPdfModel, (chatbotDocPdf) => chatbotDocPdf.course)
   @Exclude()
   chatbot_doc_pdfs: ChatbotDocPdfModel[];
 
@@ -157,7 +154,7 @@ export class CourseModel extends BaseEntity {
   @Exclude()
   @JoinColumn({ referencedColumnName: 'courseId' })
   @OneToOne(
-    (type) => CourseChatbotSettingsModel,
+    () => CourseChatbotSettingsModel,
     (courseChatbotSettings) => courseChatbotSettings.course,
   )
   chatbotSettings: CourseChatbotSettingsModel;

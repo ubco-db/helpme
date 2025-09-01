@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { UserModel } from '../profile/user.entity';
 import { IdToken, Provider } from 'lti-typescript';
@@ -12,13 +8,18 @@ import { LoginController } from '../login/login.controller';
 import { JwtService } from '@nestjs/jwt';
 import express from 'express';
 import { ConfigService } from '@nestjs/config';
+import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
+
+// LTI Tool can only access the following API routes
 
 const restrictPaths = [
-  /^\/api\/v1\/courses\/[0-9]+(\/features)?$/,
-  /^\/api\/v1\/profile$/,
-  /^\/api\/v1\/chatbot\/question\/suggested\/[0-9]+$/,
-  /^\/api\/v1\/chatbot\/ask\/[0-9]+$/,
-  /^\/api\/v1\/chatbot\/askSuggested\/[0-9]+$/,
+  'r^\\/lti.*$',
+  'r^\\/api\\/v1\\/courses\\/[0-9]+(\\/features)?$',
+  'r^\\/api\\/v1\\/profile$',
+  'r^\\/api\\/v1\\/chatbot\\/question\\/suggested\\/[0-9]+$',
+  'r^\\/api\\/v1\\/semesters\\/[0-9]+$',
+  'r^\\/api\\/v1\\/chatbot\\/ask\\/[0-9]+$',
+  'r^\\/api\\/v1\\/chatbot\\/askSuggested\\/[0-9]+$',
 ];
 
 @Injectable()
@@ -39,50 +40,70 @@ export class LtiService {
     private jwtService: JwtService,
   ) {}
 
-  async findMatchingUserCourse(connection: IdToken) {
-    const matchingUserIds = (
-      await UserModel.find({
-        where: { email: connection.userInfo.email },
-      })
-    ).map((u) => u.id);
+  static async findMatchingUserAndCourse(
+    token: IdToken,
+  ): Promise<{ userId: number; courseId?: number }> {
+    const domain = token.iss.replace(/http(s?):\/\//, '');
+    const organizationMatch: LMSOrganizationIntegrationModel =
+      await LMSOrganizationIntegrationModel.createQueryBuilder(
+        'org_integration',
+      )
+        .select()
+        .where('org_integration.rootUrl LIKE :url', { url: domain })
+        .getOne();
 
-    let userCourseId: number | undefined = undefined;
+    let matchingUsers = await UserModel.find({
+      where: { email: token.userInfo.email },
+      relations: {
+        organizationUser: true,
+      },
+    });
+
+    if (organizationMatch) {
+      matchingUsers = matchingUsers.filter(
+        (u) =>
+          u.organizationUser.organizationId == organizationMatch.organizationId,
+      );
+    }
+
+    if (matchingUsers.length < 0) {
+      throw new NotFoundException(ERROR_MESSAGES.ltiService.noMatchingUser);
+    }
+    const matchingUserIds = matchingUsers.map((u) => u.id);
+    let userId: number = matchingUserIds[0];
+    let courseId: number | undefined = undefined;
 
     if (matchingUserIds.length > 0) {
-      const platformCourseId = LtiService.extractCourseId(connection);
-      if (platformCourseId === undefined) {
-        throw new BadRequestException(
-          ERROR_MESSAGES.ltiService.unparsableCourseId,
-        );
-      }
-      const lmsCourseIntegration = await LMSCourseIntegrationModel.findOne({
-        where: {
-          apiCourseId: platformCourseId,
-        },
-      });
-      if (!lmsCourseIntegration) {
-        throw new NotFoundException(ERROR_MESSAGES.ltiService.noMatchCourse);
-      }
-      for (const matchingUserId of matchingUserIds) {
-        const userCourse = await UserCourseModel.findOne({
+      const platformCourseId = LtiService.extractCourseId(token);
+      if (platformCourseId != undefined) {
+        const lmsCourseIntegration = await LMSCourseIntegrationModel.findOne({
           where: {
-            userId: matchingUserId,
-            courseId: lmsCourseIntegration.courseId,
+            apiCourseId: platformCourseId,
           },
         });
-        if (!userCourse) {
-          continue;
+        if (lmsCourseIntegration) {
+          for (const matchingUserId of matchingUserIds) {
+            const userCourse = await UserCourseModel.findOne({
+              where: {
+                userId: matchingUserId,
+                courseId: lmsCourseIntegration.courseId,
+              },
+            });
+            if (!userCourse) {
+              continue;
+            }
+            userId = userCourse.userId;
+            courseId = userCourse.courseId;
+            break;
+          }
         }
-        userCourseId = userCourse.id;
-        break;
       }
     }
 
-    if (userCourseId == undefined) {
-      throw new NotFoundException(ERROR_MESSAGES.ltiService.noMatchUserCourse);
-    }
-
-    return userCourseId;
+    return {
+      userId,
+      courseId,
+    };
   }
 
   async generateAuthToken(userId: number) {
@@ -95,21 +116,23 @@ export class LtiService {
     );
   }
 
-  async attachAuthToken(userId: number, res: express.Response) {
-    const authToken = await this.generateAuthToken(userId);
+  async attachAuthToken(userId: number, res: express.Response, token?: string) {
+    const authToken = token ?? (await this.generateAuthToken(userId));
 
-    const isSecure = this.configService
-      .get<string>('DOMAIN')
-      .startsWith('https://');
+    res.clearCookie('auth_token');
+    res.cookie('auth_token', authToken, {
+      httpOnly: true,
+      sameSite: 'none',
+      secure: true,
+    });
 
-    res.cookie('auth-token', authToken, { httpOnly: true, secure: isSecure });
     return res;
   }
 
-  private static extractCourseId(connection: IdToken) {
-    switch (connection.platformInfo.name) {
+  private static extractCourseId(token: IdToken) {
+    switch (token.platformInfo.product_family_code) {
       case 'canvas':
-        return connection.platformContext.custom?.canvas_course_id;
+        return token.platformContext.custom?.canvas_course_id;
       default:
         return undefined;
     }

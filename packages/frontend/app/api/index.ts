@@ -146,8 +146,6 @@ export interface ChatQuestionResponse {
 
 export class APIClient {
   private axios: AxiosInstance
-  private readonly auth_token: string | null = null
-
   /**
    * Send HTTP and return data, optionally serialized with class-transformer (helpful for Date serialization)
    * @param method HTTP method
@@ -170,29 +168,6 @@ export class APIClient {
     body?: any,
     params?: any,
   ): Promise<T> {
-    if (this.auth_token) {
-      const res = await (
-        await fetch(
-          this.baseURL +
-            url +
-            (params ? '?' + new URLSearchParams(params).toString() : ''),
-          {
-            method,
-            body: JSON.stringify(body),
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: this.auth_token,
-              Cookie: this.auth_token,
-            },
-          },
-        )
-      ).json()
-      if ('statusCode' in res) {
-        throw res
-      }
-      return responseClass ? plainToClass(responseClass, res) : res
-    }
-
     const res = (await this.axios.request({ method, url, data: body, params }))
       .data
     return responseClass ? plainToClass(responseClass, res) : res
@@ -204,9 +179,9 @@ export class APIClient {
    * @param authToken The value for the auth token, if specified. Otherwise sets to null.
    * @returns APIClient
    */
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
   withAuthorization(authToken: string | null): APIClient {
-    if (!authToken) return this
-    return new APIClient(process.env.NEXT_PUBLIC_API_URL, authToken)
+    return this
   }
 
   auth = {
@@ -880,6 +855,7 @@ export class APIClient {
           `/api/v1/questionType/${courseId}/${queueId}`,
           undefined,
         )
+        /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
       } catch (_) {
         return []
       }
@@ -1458,12 +1434,8 @@ export class APIClient {
     },
   }
 
-  constructor(
-    private baseURL = '',
-    auth_token?: string,
-  ) {
+  constructor(private baseURL = '') {
     this.axios = Axios.create({ baseURL: this.baseURL })
-    this.auth_token = auth_token ?? null
   }
 }
 

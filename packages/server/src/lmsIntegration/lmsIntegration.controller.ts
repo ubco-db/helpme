@@ -5,30 +5,40 @@ import {
   Delete,
   HttpException,
   HttpStatus,
+  NotFoundException,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   Post,
+  Query,
+  Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { Get } from '@nestjs/common/decorators';
 import {
   ERROR_MESSAGES,
+  LMSAnnouncement,
   LMSApiResponseStatus,
   LMSAssignment,
-  LMSAnnouncement,
+  LMSAuthResponseQuery,
+  LMSCourseAPIResponse,
   LMSCourseIntegrationPartial,
   LMSFile,
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
+  LMSPostAuthBody,
+  LMSPostResponseBody,
   LMSResourceType,
+  LMSSyncDocumentsResult,
+  LMSToken,
   OrganizationRole,
   RemoveLMSOrganizationParams,
   Role,
   TestLMSIntegrationParams,
   UpsertLMSCourseParams,
   UpsertLMSOrganizationParams,
-  LMSSyncDocumentsResult,
 } from '@koh/common';
 import {
   LMSGet,
@@ -46,10 +56,18 @@ import { OrganizationRolesGuard } from '../guards/organization-roles.guard';
 import { OrganizationGuard } from '../guards/organization.guard';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
+import { AbstractLMSAdapter } from './lmsIntegration.adapter';
+import express from 'express';
+import { LMSAuthStateModel } from './lms-auth-state.entity';
+import crypto from 'crypto';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('lms')
 export class LMSIntegrationController {
-  constructor(private integrationService: LMSIntegrationService) {}
+  constructor(
+    private configService: ConfigService,
+    private integrationService: LMSIntegrationService,
+  ) {}
 
   @Post('org/:oid/upsert')
   @UseGuards(
@@ -149,6 +167,208 @@ export class LMSIntegrationController {
     return lmsIntegrations.map((int) =>
       this.integrationService.getPartialOrgLmsIntegration(int),
     );
+  }
+
+  @Get('course/:courseId/auth')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async getAuthOptions(
+    @User({
+      lmsAccessTokens: { organizationIntegration: true },
+      organizationUser: true,
+    })
+    user: UserModel,
+    @Query('platform', ParseEnumPipe<LMSIntegrationPlatform>)
+    platform?: LMSIntegrationPlatform,
+  ): Promise<LMSToken[]> {
+    return user.lmsAccessTokens
+      .filter((v) =>
+        platform != undefined
+          ? v.organizationIntegration.apiPlatform == platform
+          : true,
+      )
+      .map((v) => ({
+        id: v.id,
+        platform: v.organizationIntegration.apiPlatform,
+      }));
+  }
+
+  @Get('oauth2/authorize')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async authorize(
+    @User({ organizationUser: true }) user: UserModel,
+    @Res() response: express.Response,
+    @Query('courseId') courseId?: number,
+  ): Promise<any> {
+    let organizationIntegration: LMSOrganizationIntegrationModel;
+    try {
+      organizationIntegration = await LMSOrganizationIntegrationModel.findOne({
+        where: {
+          organizationId: user.organizationUser.organizationId,
+          apiPlatform: LMSIntegrationPlatform.Canvas,
+        },
+      });
+
+      if (!organizationIntegration) {
+        throw new NotFoundException(
+          ERROR_MESSAGES.lmsController.orgLmsIntegrationNotFound,
+        );
+      }
+      if (organizationIntegration.clientId == undefined) {
+        throw new BadRequestException(
+          ERROR_MESSAGES.lmsController.orgLmsIntegrationMissingClientId,
+        );
+      }
+
+      return await AbstractLMSAdapter.redirectAuth(
+        response,
+        organizationIntegration,
+        user.id,
+        this.configService,
+        courseId ? `/course/${courseId}/settings/lms_integrations` : '/courses',
+      );
+    } catch (err) {
+      if (organizationIntegration) {
+        await LMSAuthStateModel.delete({
+          organizationIntegration,
+          user,
+        });
+      }
+      const status = err instanceof HttpException ? err.getStatus() : 500;
+      response
+        .status(status)
+        .redirect(
+          (courseId
+            ? `/course/${courseId}/settings/lms_integrations`
+            : '/courses') + `?error_message=${(err as HttpException).message}`,
+        );
+    }
+  }
+
+  @Get('oauth2/response')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async authorizeResponse(
+    @Query() authQuery: LMSAuthResponseQuery,
+    @Res() res: express.Response,
+  ): Promise<any> {
+    let stateModel: LMSAuthStateModel;
+    try {
+      const { error, error_description, code, state } = authQuery;
+      if (error || error_description) {
+        throw new BadRequestException({ error, error_description });
+      }
+
+      stateModel = await LMSAuthStateModel.findOne({
+        where: { state },
+        relations: {
+          user: true,
+          organizationIntegration: true,
+        },
+      });
+      if (!stateModel) {
+        throw new NotFoundException(ERROR_MESSAGES.lmsController.stateNotFound);
+      }
+
+      if (!code) {
+        await LMSAuthStateModel.remove(stateModel);
+        throw new BadRequestException(
+          ERROR_MESSAGES.lmsController.missingCodeQueryParameter,
+        );
+      }
+
+      const expired =
+        (Date.now() - stateModel.createdAt.getTime()) / 1000 >
+        stateModel.expiresAt;
+      if (expired) {
+        await LMSAuthStateModel.remove(stateModel);
+        throw new BadRequestException(
+          ERROR_MESSAGES.lmsController.stateExpired,
+        );
+      }
+
+      let secret: string;
+      if (stateModel.organizationIntegration.clientSecret == undefined) {
+        secret = crypto.randomBytes(32).toString('hex');
+        stateModel.organizationIntegration.clientSecret = secret;
+        await LMSOrganizationIntegrationModel.save(
+          stateModel.organizationIntegration,
+        );
+      } else {
+        secret = stateModel.organizationIntegration.clientSecret;
+      }
+
+      const authBody: LMSPostAuthBody = {
+        grant_type: 'authorization_code',
+        client_id: stateModel.organizationIntegration.clientId,
+        client_secret: secret,
+        redirect_uri: `${this.configService.get<string>('DOMAIN')}/api/v1/lms/oauth2/response`,
+        code,
+      };
+
+      const response = await AbstractLMSAdapter.postAuth(
+        authBody,
+        stateModel.organizationIntegration,
+      );
+      if (response.ok) {
+        await this.integrationService.createAccessToken(
+          stateModel.user,
+          stateModel.organizationIntegration,
+          (await response.json()) as LMSPostResponseBody,
+        );
+        res
+          .status(200)
+          .redirect(
+            (stateModel.redirectUrl ?? '/courses') +
+              `?success_message=Generated access token for use with ${stateModel.organizationIntegration.apiPlatform}!`,
+          );
+      } else {
+        throw new BadRequestException(
+          ERROR_MESSAGES.lmsController.failedToGetAccessToken,
+        );
+      }
+    } catch (err) {
+      if (stateModel) {
+        await LMSAuthStateModel.remove(stateModel);
+        stateModel = undefined;
+      }
+      const status = err instanceof HttpException ? err.getStatus() : 500;
+      res
+        .status(status)
+        .redirect(
+          (stateModel?.redirectUrl ?? `/courses`) +
+            `?error_message=${(err as HttpException).message}`,
+        );
+    } finally {
+      if (stateModel) {
+        await LMSAuthStateModel.remove(stateModel);
+      }
+    }
+  }
+
+  @Get('course/:platform')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async getApiCourseList(
+    @User({
+      lmsAccessTokens: { organizationIntegration: true },
+      organizationUser: true,
+    })
+    user: UserModel,
+    @Param('platform', ParseEnumPipe<LMSIntegrationPlatform>)
+    platform: LMSIntegrationPlatform,
+  ): Promise<LMSCourseAPIResponse[]> {
+    const accessToken = user.lmsAccessTokens.find(
+      (v) => v.organizationIntegration.apiPlatform == platform,
+    );
+    if (!accessToken) {
+      throw new UnauthorizedException(
+        ERROR_MESSAGES.lmsController.noAccessToken,
+      );
+    }
+
+    return await this.integrationService.getAPICourses(accessToken);
   }
 
   @Get('course/:courseId/integrations')

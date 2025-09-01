@@ -22,9 +22,7 @@ export async function fetchAuthToken(): Promise<string> {
     const cookieStore = await cookies()
     const auth_token = cookieStore.get('auth_token')
 
-    const result = `auth_token=${auth_token?.value || ''}`
-
-    return result
+    return `auth_token=${auth_token?.value || ''}`
   } catch (error) {
     console.error('Failed to fetch auth token: ' + error)
     return ''

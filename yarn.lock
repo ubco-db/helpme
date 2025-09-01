@@ -10058,7 +10058,7 @@ lru-cache@^7.14.1:
 
 "lti-typescript@github:bhunt02/lti-typescript#release":
   version "0.1.0"
-  resolved "https://codeload.github.com/bhunt02/lti-typescript/tar.gz/8f01f2f56d69123103c1e0b6ccc3c115ce7cc4c8"
+  resolved "https://codeload.github.com/bhunt02/lti-typescript/tar.gz/2181c154b0d59b53c6936875614c9aea606fabdf"
   dependencies:
     body-parser "^1.20.2"
     cookie-parser "^1.4.7"

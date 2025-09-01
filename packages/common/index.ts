@@ -94,6 +94,7 @@ export class User {
   accountType!: AccountType
   emailVerified!: boolean
   readChangeLog!: boolean
+  restrictPaths?: string | string[]
 }
 
 export class ChatTokenPartial {
@@ -1756,6 +1757,7 @@ export class LMSCourseIntegrationPartial {
 }
 
 export type LMSCourseAPIResponse = {
+  id: number
   name: string
   code: string
   studentCount: number
@@ -2696,6 +2698,9 @@ export class OrganizationSettingsResponse {
   @IsBoolean()
   allowProfCourseCreate!: boolean
 
+  @IsBoolean()
+  allowLMSApiKey!: boolean
+
   @IsOptional()
   @IsBoolean()
   settingsFound?: boolean
@@ -2705,10 +2710,14 @@ export class OrganizationSettingsResponse {
   }
 }
 
-export const validOrganizationSettings = ['allowProfCourseCreate']
+export const validOrganizationSettings = [
+  'allowProfCourseCreate',
+  'allowLMSApiKey',
+]
 
 export const OrganizationSettingsDefaults = {
   allowProfCourseCreate: true,
+  allowLMSApiKey: false,
 }
 
 export class OrganizationSettingsRequestBody {
@@ -3460,6 +3469,51 @@ export enum LMSIntegrationPlatform {
   Canvas = 'Canvas',
 }
 
+export class LMSAuthResponseQuery {
+  @IsString()
+  @IsOptional()
+  error?: any
+
+  @IsString()
+  @IsOptional()
+  error_description?: string
+
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  code?: string
+
+  @IsString()
+  @IsNotEmpty()
+  state!: string
+}
+
+export type LMSPostAuthBody = {
+  grant_type: 'authorization_code'
+  client_id: string
+  client_secret: string
+  redirect_uri: string
+  code: string
+  replace_tokens?: 1 | 0
+}
+
+export type LMSPostResponseBody = {
+  access_token: string
+  token_type: string
+  user: { id: number; name: string }
+  refresh_token: string
+  expires_in: number
+  canvas_region?: string
+}
+
+export class LMSToken {
+  @IsInt()
+  id!: number
+
+  @IsEnum(LMSIntegrationPlatform)
+  platform!: LMSIntegrationPlatform
+}
+
 export enum AuthMethodEnum {
   RSA_KEY = 'RSA_KEY',
   JWK_KEY = 'JWK_KEY',
@@ -3796,10 +3850,8 @@ export const ERROR_MESSAGES = {
   },
   ltiService: {
     unparsableCourseId: 'Course identifier could not be parsed from request',
-    noMatchCourse:
-      'No matching course in HelpMe was found, cannot fulfill request',
-    noMatchUserCourse:
-      'Failed to find matching user/course pair based on request from LTI within the HelpMe system.',
+    noMatchingUser:
+      'Failed to find a user which matches credentials sent in LTI launch request.',
   },
   chatbotEndpointGuard: {
     legacyEndpointIncompatible: (endpoint: string) =>
@@ -3921,6 +3973,8 @@ export const ERROR_MESSAGES = {
     questionTypeNotFound: 'Question type not found',
   },
   lmsController: {
+    apiKeyExpired: 'The API key for the integration has expired.',
+    noAccessToken: 'No access token found for the given platform.',
     noLMSIntegration:
       'The course has no registered LMS integration, or its registered LMS integration is invalid.',
     noAssignmentsSaved:
@@ -3947,6 +4001,12 @@ export const ERROR_MESSAGES = {
       'Cannot synchronize a document when synchronization is disabled.',
     resourceDisabled:
       "The resource type of the document you're trying to operate on is disabled.",
+    stateNotFound: 'No matching state was found.',
+    missingCodeQueryParameter: 'Missing code query parameter.',
+    stateExpired: 'State for authorization request has expired.',
+    failedToGetAccessToken: 'Failed to retrieve access token.',
+    orgLmsIntegrationMissingClientId:
+      'Organization integration has no defined client ID.',
   },
   semesterController: {
     notAllowedToCreateSemester: (role: OrganizationRole) =>

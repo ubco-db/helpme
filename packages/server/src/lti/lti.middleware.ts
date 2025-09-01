@@ -9,7 +9,10 @@ import {
 import { isProd } from '@koh/common';
 import {
   Database,
+  Debug,
+  DynamicRegistrationSecondaryOptions,
   IdToken,
+  LtiMessageRegistration,
   PlatformModel,
   Provider,
   register,
@@ -91,6 +94,35 @@ export default class LtiMiddleware {
       }
     });
 
+    const secondaryOptions: DynamicRegistrationSecondaryOptions = {
+      scope: [
+        'https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly',
+      ].join(' '),
+      client_name: 'HelpMe',
+      'https://purl.imsglobal.org/spec/lti-tool-configuration': {
+        messages: [
+          {
+            type: 'LtiResourceLinkRequest',
+            placements: [
+              // CANVAS
+              'link_selection',
+              'course_home_sub_navigation',
+              'course_navigation',
+              'module_menu',
+            ],
+            // CANVAS PROPERTIES
+            'https://canvas.instructure.com/lti/launch_height': '100%',
+            'https://canvas.instructure.com/lti/launch_width': '100%',
+            // possible values: "default" | "full_width" | "full_width_in_context" | "full_width_with_nav" | "in_nav_context" | "borderless" | "new_window"
+            'https://canvas.instructure.com/lti/display_type':
+              'full_width_with_nav',
+          },
+        ] as (LtiMessageRegistration & any)[],
+      },
+      // CANVAS PROPERTIES
+      'https://canvas.instructure.com/lti/privacy_level': 'public',
+    } as DynamicRegistrationSecondaryOptions & any;
+
     const provider = await register(
       variables.secret,
       {
@@ -105,25 +137,27 @@ export default class LtiMiddleware {
       },
       {
         // LTI Configuration Options
-        appUrl: this.prefix,
+        appUrl: '/',
         ...this.reservedRoutes,
         dynReg: {
-          url: `${this.configService.get<string>('DOMAIN')}${this.prefix}`,
+          url: `${this.configService.get<string>('DOMAIN')}`,
           name: 'HelpMe',
-          logo: `${this.configService.get<string>('DOMAIN')}/favicon.ico`,
+          logo: `${this.configService.get<string>('DOMAIN')}/helpme_logo_small.png`,
           description:
             'External UBC-affiliated application. This tool provides access to its course-specific chatbots.',
           redirectUris: this.redirectRoutes,
-          customParameters: {},
-          autoActivate: false,
+          customParameters: {
+            canvas_course_id: '$Canvas.course.id',
+          },
+          autoActivate: true,
         },
         cookies: {
-          secure: isProd(),
+          httpOnly: true,
+          secure: true,
           sameSite: 'none',
         },
         cors: true,
-        devMode: false,
-        debug: true,
+        prefix: this.prefix,
       },
     );
 
@@ -145,6 +179,7 @@ export default class LtiMiddleware {
           const message = await provider.DynamicRegistration.register(
             req.query.openid_configuration as string,
             req.query.registration_token as string,
+            secondaryOptions,
           );
           res.setHeader('Content-type', 'text/html');
           return res.send(message);
@@ -204,17 +239,18 @@ export default class LtiMiddleware {
 
   private async onConnectHandler(
     token: IdToken,
-    request: ExpressRequest,
+    _: ExpressRequest,
     response: ExpressResponse,
     next: NextFunction,
   ) {
     try {
-      if (!Object.values(this.reservedRoutes).includes(request.url)) {
-        response.locals.ucid =
-          await this.ltiService.findMatchingUserCourse(token);
-      }
+      const { userId, courseId } =
+        await LtiService.findMatchingUserAndCourse(token);
+      response.locals.userId = userId;
+      response.locals.courseId = courseId;
       return next();
     } catch (err) {
+      Debug.log(this, err);
       if (err instanceof HttpException) {
         return response.status(err.getStatus()).send(err.getResponse());
       } else {

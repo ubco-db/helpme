@@ -1,33 +1,33 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { IdToken } from 'lti-typescript';
-import { UserCourseModel } from '../profile/user-course.entity';
+import { UserModel } from '../profile/user.entity';
 
 @Injectable()
 export class LtiGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const response = context.switchToHttp().getResponse();
-    const { ucid, token } = await this.setupData(response);
+    const { userId, token } = await this.setupData(response);
 
-    return this.hasAuthorization(ucid, token);
+    return this.hasAuthorization(userId, token);
   }
 
-  async setupData(response: any): Promise<{ ucid: number; token: IdToken }> {
-    const ucid = response.locals['ucid'];
+  async setupData(response: any): Promise<{ userId: number; token: IdToken }> {
+    const userId = response.locals['userId'];
     const token = response.locals['token'];
 
     return {
-      ucid,
+      userId,
       token,
     };
   }
 
-  async hasAuthorization(ucid: number, token: IdToken): Promise<boolean> {
-    if (ucid === undefined || ucid === null || !token) {
+  async hasAuthorization(userId: number, token: IdToken): Promise<boolean> {
+    if (!userId || !token) {
       return false;
     }
 
-    const userCourse = await UserCourseModel.findOne({
-      where: { id: ucid },
+    const userCourse = await UserModel.findOne({
+      where: { id: userId },
     });
 
     return !!userCourse;

@@ -49,6 +49,7 @@ export class User {
   accountType!: AccountType
   emailVerified!: boolean
   readChangeLog!: boolean
+  restrictPaths?: string | string[]
 }
 
 export enum AccountType {
