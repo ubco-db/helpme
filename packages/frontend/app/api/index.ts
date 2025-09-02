@@ -1411,8 +1411,17 @@ export class APIClient {
       ),
     getUserCourses: async (tokenId: number): Promise<LMSCourseAPIResponse[]> =>
       this.req('GET', `/api/v1/lms/course/list/${tokenId}`),
-    redirectAuthUrl: (courseId?: number): string =>
-      `/api/v1/lms/oauth2/authorize${courseId != undefined ? `?courseId=${courseId}` : ''}`,
+    redirectAuthUrl: (
+      platform?: LMSIntegrationPlatform,
+      courseId?: number,
+      fromLti?: boolean,
+    ): string => {
+      const qry = new URLSearchParams()
+      if (platform) qry.set('platform', String(platform))
+      if (courseId) qry.set('courseId', String(courseId))
+      if (fromLti) qry.set('fromLti', String(fromLti))
+      return `/api/v1/lms/oauth2/authorize${qry.size > 0 ? '?' + qry.toString() : ''}`
+    },
     testIntegration: async (
       courseId: number,
       props: TestLMSIntegrationParams,

@@ -20,6 +20,7 @@ const restrictPaths = [
   'r^\\/api\\/v1\\/semesters\\/[0-9]+$',
   'r^\\/api\\/v1\\/chatbot\\/ask\\/[0-9]+$',
   'r^\\/api\\/v1\\/chatbot\\/askSuggested\\/[0-9]+$',
+  'r^\\/api\\/v1\\/lms.*$',
 ];
 
 @Injectable()
@@ -129,7 +130,7 @@ export class LtiService {
     return res;
   }
 
-  private static extractCourseId(token: IdToken) {
+  static extractCourseId(token: IdToken) {
     switch (token.platformInfo.product_family_code) {
       case 'canvas':
         return token.platformContext.custom?.canvas_course_id;

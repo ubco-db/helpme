@@ -84,7 +84,10 @@ export function useCourseLmsIntegration(
 
     const getResources = async () => {
       if (integration != undefined && courseId != undefined) {
-        if (!integration.isExpired) {
+        if (
+          (integration.hasApiKey && !integration.isExpired) ||
+          integration.accessTokenId != undefined
+        ) {
           await getResource(
             API.lmsIntegration.getCourse(courseId),
             setCourse,

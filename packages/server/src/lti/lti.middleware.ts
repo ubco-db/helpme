@@ -115,7 +115,7 @@ export default class LtiMiddleware {
             'https://canvas.instructure.com/lti/launch_width': '100%',
             // possible values: "default" | "full_width" | "full_width_in_context" | "full_width_with_nav" | "in_nav_context" | "borderless" | "new_window"
             'https://canvas.instructure.com/lti/display_type':
-              'full_width_with_nav',
+              'full_width_in_context',
           },
         ] as (LtiMessageRegistration & any)[],
       },

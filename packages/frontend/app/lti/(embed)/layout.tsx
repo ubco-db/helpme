@@ -9,6 +9,7 @@ import { useSessionStorage } from '@/app/hooks/useSessionStorage'
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [content, setContent] = useState<React.ReactNode>(<></>)
   const searchParams = useSearchParams()
+
   const [ltiStorageTarget, setLtiStorageTarget] = useSessionStorage<string>(
     'lti_storage_target',
     null,

@@ -14,16 +14,22 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { LtiCourseId, LtiUser } from '../decorators/lti.decorator';
+import { LtiCourseId, LtiToken, LtiUser } from '../decorators/lti.decorator';
 import express from 'express';
 import { LtiGuard } from '../guards/lti.guard';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { AdminRoleGuard } from '../guards/admin-role.guard';
-import { Database, PlatformModel, PlatformProperties } from 'lti-typescript';
+import {
+  Database,
+  IdToken,
+  PlatformModel,
+  PlatformProperties,
+} from 'lti-typescript';
 import {
   AuthMethodEnum,
   CreateLtiPlatform,
   ERROR_MESSAGES,
+  LMSIntegrationPlatform,
   LtiPlatform,
   UpdateLtiPlatform,
 } from '@koh/common';
@@ -38,6 +44,7 @@ export class LtiController {
   @UseGuards(LtiGuard)
   async index(
     @Res() res: express.Response,
+    @LtiToken() token: IdToken,
     @LtiUser({ organizationUser: true }) user: UserModel,
     @LtiCourseId() courseId?: number,
     @Query('lti_storage_target') lti_storage_target?: string,
@@ -46,6 +53,15 @@ export class LtiController {
     if (courseId) {
       qry.set('cid', String(courseId));
     }
+    const platformMatch =
+      Object.values(LMSIntegrationPlatform).find(
+        (v) => v.toLowerCase() == token.platformInfo.product_family_code,
+      ) ?? LMSIntegrationPlatform.None;
+
+    const apiCid = LtiService.extractCourseId(token);
+    qry.set('api_course_id', String(apiCid));
+    qry.set('lms_platform', platformMatch);
+
     const auth = await this.ltiService.generateAuthToken(user.id);
     if (lti_storage_target) {
       qry.set('auth_token', auth);
@@ -53,6 +69,7 @@ export class LtiController {
     } else {
       res = await this.ltiService.attachAuthToken(user.id, res, auth);
     }
+
     res.redirect(`/lti${qry.size > 0 ? '?' + qry.toString() : ''}`);
   }
 

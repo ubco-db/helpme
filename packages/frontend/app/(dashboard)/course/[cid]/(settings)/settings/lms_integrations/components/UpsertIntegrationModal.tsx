@@ -48,6 +48,9 @@ type CreateIntegrationModalProps = {
     id?: number,
   ) => Promise<LMSApiResponseStatus>
   onCreate: () => void
+  lockApiCourseId?: string
+  lti?: boolean
+  onTokenGenerate?: () => void
 }
 
 const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
@@ -62,6 +65,9 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
   isTesting,
   testLMSConnection,
   onCreate,
+  lockApiCourseId,
+  lti,
+  onTokenGenerate,
 }) => {
   const router = useRouter()
   const [form] = Form.useForm<UpsertLMSCourseParams>()
@@ -111,7 +117,10 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
         .getUserCourses(formValues.accessTokenId)
         .then((res) => {
           setAvailableCourses(res ?? [])
-          if (Array.isArray(res)) {
+          if (
+            Array.isArray(res) &&
+            !res.find((v) => String(v.id) == formValues.apiCourseId)
+          ) {
             form.setFieldsValue({
               apiCourseId: res[0]?.id as any,
             })
@@ -233,7 +242,21 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
   }
 
   const handleGenerate = () => {
-    router.push(API.lmsIntegration.redirectAuthUrl(courseId))
+    const url = API.lmsIntegration.redirectAuthUrl(
+      selectedIntegration?.apiPlatform ?? baseIntegration?.apiPlatform,
+      courseId,
+      lti,
+    )
+
+    if (onTokenGenerate) {
+      onTokenGenerate()
+    }
+
+    if (lti) {
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } else {
+      router.push(url)
+    }
   }
 
   const handleInvalidate = () => {
@@ -271,12 +294,16 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
   return (
     <Modal
       title={
-        baseIntegration != undefined
-          ? 'Update LMS Integration'
-          : 'Create LMS Integration'
+        lti
+          ? 'LMS Integration'
+          : baseIntegration != undefined
+            ? 'Update LMS Integration'
+            : 'Create LMS Integration'
       }
       open={isOpen}
-      okText={baseIntegration == undefined ? 'Create' : 'Update'}
+      okText={
+        lti ? 'Confirm' : baseIntegration == undefined ? 'Create' : 'Update'
+      }
       onOk={() => upsertCourseIntegration()}
       onCancel={modalCleanup}
     >
@@ -293,7 +320,9 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
                       ? dayjs(baseIntegration.apiKeyExpiry)
                       : undefined,
                 }
-              : {}),
+              : {
+                  apiCourseId: lockApiCourseId,
+                }),
           }}
           onValuesChange={(changedValues) => {
             if (Object.keys(changedValues).includes('apiKey')) {
@@ -374,7 +403,7 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
             ]}
           >
             {availableCourses && availableCourses.length > 0 ? (
-              <Select>
+              <Select disabled={lockApiCourseId != undefined}>
                 {availableCourses.map((v, i) => (
                   <Select.Option value={v.id} key={`course-${i}`}>
                     {v.name}

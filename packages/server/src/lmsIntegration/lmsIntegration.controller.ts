@@ -8,6 +8,7 @@ import {
   HttpStatus,
   NotFoundException,
   Param,
+  ParseBoolPipe,
   ParseEnumPipe,
   ParseIntPipe,
   Post,
@@ -212,13 +213,37 @@ export class LMSIntegrationController {
     @User({ organizationUser: true }) user: UserModel,
     @Res() response: express.Response,
     @Query('courseId') courseId?: number,
+    @Query(
+      'platform',
+      new ParseEnumPipe(LMSIntegrationPlatform, { optional: true }),
+    )
+    platform?: LMSIntegrationPlatform,
+    @Query('fromLti', new ParseBoolPipe({ optional: true })) fromLti?: boolean,
   ): Promise<void> {
+    if (!platform) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.lmsController.missingPlatformQuery,
+      );
+    }
+
+    const qry = new URLSearchParams();
+
+    const route = fromLti
+      ? `/lti`
+      : courseId
+        ? `/course/${courseId}/settings/lms_integrations`
+        : `/courses`;
+
+    if (fromLti) {
+      qry.set('force_close', String(true));
+    }
+
     let organizationIntegration: LMSOrganizationIntegrationModel;
     try {
       organizationIntegration = await LMSOrganizationIntegrationModel.findOne({
         where: {
           organizationId: user.organizationUser.organizationId,
-          apiPlatform: LMSIntegrationPlatform.Canvas,
+          apiPlatform: platform,
         },
       });
 
@@ -255,14 +280,12 @@ export class LMSIntegrationController {
       });
 
       if (hasToken) {
-        response
-          .status(302)
-          .redirect(
-            (courseId
-              ? `/course/${courseId}/settings/lms_integrations`
-              : '/courses') +
-              `?success_message=Access token for use with ${organizationIntegration.apiPlatform} has already been created.`,
-          );
+        qry.set(
+          'success_message',
+          `Access token for use with ${organizationIntegration.apiPlatform} has already been created.`,
+        );
+
+        response.status(302).redirect(route + '?' + qry.toString());
       }
 
       return await AbstractLMSAdapter.redirectAuth(
@@ -270,7 +293,7 @@ export class LMSIntegrationController {
         organizationIntegration,
         user.id,
         this.configService,
-        courseId ? `/course/${courseId}/settings/lms_integrations` : '/courses',
+        route + '?' + qry.toString(),
       );
     } catch (err) {
       if (organizationIntegration) {
@@ -280,14 +303,9 @@ export class LMSIntegrationController {
         });
       }
       const status = err instanceof HttpException ? err.getStatus() : 500;
-      response
-        .status(status)
-        .redirect(
-          (courseId
-            ? `/course/${courseId}/settings/lms_integrations`
-            : '/courses') +
-            `?platform=${organizationIntegration?.apiPlatform}&error_message=${(err as HttpException).message}`,
-        );
+      qry.set('error_message', (err as HttpException).message);
+      qry.set('platform', organizationIntegration?.apiPlatform);
+      response.status(status).redirect(route + '?' + qry.toString());
     }
   }
 
@@ -369,11 +387,17 @@ export class LMSIntegrationController {
           raw,
         );
 
+        const params = new URLSearchParams(stateModel.redirectUrl);
+        params.set('platform', stateModel.organizationIntegration.apiPlatform);
+        params.set(
+          'success_message',
+          `Generated access token for use with ${stateModel.organizationIntegration.apiPlatform}!`,
+        );
+
         return res
           .status(200)
           .redirect(
-            (stateModel.redirectUrl ?? '/courses') +
-              `?platform=${stateModel.organizationIntegration.apiPlatform}&success_message=Generated access token for use with ${stateModel.organizationIntegration.apiPlatform}!`,
+            (stateModel.redirectUrl ?? '/courses') + '?' + params.toString(),
           );
       } else {
         throw new BadRequestException(
@@ -382,15 +406,20 @@ export class LMSIntegrationController {
       }
     } catch (err) {
       console.error(err);
+      let qry: URLSearchParams;
       if (stateModel) {
+        qry = new URLSearchParams(stateModel.redirectUrl);
         await LMSAuthStateModel.remove(stateModel);
+      } else {
+        qry = new URLSearchParams();
       }
+      qry.set('platform', stateModel?.organizationIntegration.apiPlatform);
+      qry.set('error_message', (err as Error).message);
       const status = err instanceof HttpException ? err.getStatus() : 500;
       return res
         .status(status)
         .redirect(
-          (stateModel?.redirectUrl ?? `/courses`) +
-            `?platform=${stateModel?.organizationIntegration.apiPlatform}&error_message=${(err as HttpException).message}`,
+          (stateModel?.redirectUrl ?? '/courses') + '?' + qry.toString(),
         );
     }
   }

@@ -7,13 +7,26 @@ import CoursesSection from '@/app/(dashboard)/components/coursesSection'
 import Image from 'next/image'
 import { API } from '@/app/api'
 import { SemesterPartial } from '@koh/common'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 export default function LtiLandingPage(): ReactElement {
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
 
+  if (window && window.self == window.top && searchParams.get('force_close')) {
+    window.self.close()
+  }
+
   useEffect(() => {
+    const platform = searchParams.get('lms_platform')
+    const apiCourseId = searchParams.get('api_course_id')
+    if (platform && apiCourseId) {
+      sessionStorage.setItem(
+        'lms_info',
+        JSON.stringify({ platform, apiCourseId }),
+      )
+    }
     const cid = searchParams.get('cid')
     if (cid) {
       const newSearchParams = new URLSearchParams()
@@ -21,8 +34,10 @@ export default function LtiLandingPage(): ReactElement {
         k != 'cid' ? newSearchParams.set(k, v) : '',
       )
       router.push(
-        `/lti/${cid}${newSearchParams.size > 0 ? newSearchParams.toString() : ''}`,
+        `/lti/${cid}${newSearchParams.size > 0 ? '?' + newSearchParams.toString() : ''}`,
       )
+    } else {
+      router.push(pathname)
     }
   }, [router, searchParams])
 

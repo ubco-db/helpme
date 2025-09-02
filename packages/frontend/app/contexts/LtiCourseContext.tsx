@@ -37,10 +37,10 @@ export const LtiCourseProvider: React.FC<LtiCourseProviderProps> = ({
   )
 }
 
-export const useLtiCourse = (dynamic?: boolean): LtiCourseContextType => {
+export const useLtiCourse = (): LtiCourseContextType => {
   const context = useContext(ltiCourseContext)
 
-  if (context === undefined && !dynamic) {
+  if (context === undefined) {
     throw new Error('useLtiCourse must be used within a LtiCourseProvider')
   }
 

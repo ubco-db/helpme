@@ -17,7 +17,7 @@ import {
   Tabs,
   Tooltip,
 } from 'antd'
-import { use, useCallback, useEffect, useMemo, useState } from 'react'
+import React, { use, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   LMSAnnouncement,
   LMSApiResponseStatus,
@@ -443,6 +443,16 @@ export default function CourseLMSIntegrationPage(props: {
             <div className={'flex flex-col'}>
               <p>
                 This course is not integrated with a learning management system.
+              </p>
+              <p>
+                By integrating a course with a learning management system, you
+                can enable documents to be retrieved by HelpMe automatically.
+                These will be used to build your course chatbot's knowledge
+                base.
+              </p>
+              <p>
+                Other benefits include being able to view which students from
+                your course do not have a corresponding enrollment on the LMS.
               </p>
               {lmsIntegrations.length == 0 ? (
                 <>

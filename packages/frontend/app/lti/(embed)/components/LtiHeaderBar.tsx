@@ -1,10 +1,14 @@
 'use client'
 
-import React, { HTMLAttributeAnchorTarget, useState } from 'react'
+import React, {
+  HTMLAttributeAnchorTarget,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { cn, getRoleInCourse } from '@/app/utils/generalUtils'
 import Image from 'next/image'
-import { useLtiCourse } from '@/app/contexts/LtiCourseContext'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   NavigationMenu,
@@ -17,7 +21,7 @@ import {
 import NextLink from 'next/link'
 import { GetCourseResponse, OrganizationRole, Role, User } from '@koh/common'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { ExpandOutlined, HomeOutlined } from '@ant-design/icons'
+import { ExpandOutlined, HomeOutlined, SyncOutlined } from '@ant-design/icons'
 import { MenuIcon, Undo2 } from 'lucide-react'
 import { SelfAvatar } from '@/app/components/UserAvatar'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
@@ -26,6 +30,7 @@ import {
   DrawerContent,
   DrawerTrigger,
 } from '@/app/components/ui/drawer'
+import { API } from '@/app/api'
 
 /**
  * This custom Link is wrapped around nextjs's Link to improve accessibility and styling. Not to be used outside of this navigation menu.
@@ -164,6 +169,17 @@ const NavBar = ({
                   {course.name}
                 </Link>
               </NavigationMenuItem>
+              {[Role.PROFESSOR].includes(role) && (
+                <NavigationMenuItem>
+                  <Link
+                    href={`/lti/${course.id}/integration`}
+                    onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                  >
+                    <SyncOutlined className="mr-3 text-2xl" />
+                    Integration
+                  </Link>
+                </NavigationMenuItem>
+              )}
               <NavigationMenuItem>
                 <Link
                   href={`/lti`}
@@ -238,8 +254,27 @@ const HeaderBar: React.FC = () => {
   const { userInfo } = useUserInfo()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 768px)')
-  const ltiCourseContext = useLtiCourse(true)
-  const course = ltiCourseContext?.course
+  const pathname = usePathname()
+
+  const courseId = useMemo(() => {
+    const urlSegments = pathname.split('/')
+    const temp = parseInt(urlSegments[2])
+    if (!isNaN(temp)) return temp
+    return undefined
+  }, [pathname])
+
+  const [course, setCourse] = useState<GetCourseResponse>()
+  useEffect(() => {
+    if (courseId != undefined) {
+      API.course
+        .get(courseId)
+        .then((course) => setCourse(course))
+        .catch((err) => {})
+    } else {
+      setCourse(undefined)
+    }
+  }, [courseId])
+
   // DESKTOP HEADER
   return isDesktop ? (
     <NavBar userInfo={userInfo} course={course} />

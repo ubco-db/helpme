@@ -4177,6 +4177,7 @@ export const ERROR_MESSAGES = {
       'Usage of API key for LMS integrations is not allowed in this organization.',
     accessTokenMismatch:
       'The selected access token is not valid for the specified platform.',
+    missingPlatformQuery: 'Platform query parameter is required.',
   },
   lmsAdapter: {
     missingAccessToken:
