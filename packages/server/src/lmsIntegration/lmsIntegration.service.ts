@@ -1464,7 +1464,7 @@ export class LMSIntegrationService {
           }
         }
 
-        if (accessLevel === LMSQuizAccessLevel.FULL_ACCESS && q.answers) {
+        if (accessLevel === LMSQuizAccessLevel.FULL_ACCESS && q.answers?.length > 0) {
           content += '\n   Answer options:';
           q.answers.forEach((a: any) => {
             const marker = a.weight > 0 ? ' [CORRECT]' : '';
