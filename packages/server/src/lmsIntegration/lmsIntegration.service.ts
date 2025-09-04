@@ -1464,11 +1464,20 @@ export class LMSIntegrationService {
           }
         }
 
-        if (accessLevel === LMSQuizAccessLevel.FULL_ACCESS && q.answers?.length > 0) {
+        if (
+          accessLevel === LMSQuizAccessLevel.FULL_ACCESS &&
+          q.answers?.length > 0
+        ) {
           content += '\n   Answer options:';
           q.answers.forEach((a: any) => {
             const marker = a.weight > 0 ? ' [CORRECT]' : '';
             content += `\n   - ${a.text}${marker}`;
+
+            if (a.comments_html) {
+              content += `\n     Answer feedback: ${convert(a.comments_html)}`;
+            } else if (a.comments) {
+              content += `\n     Answer feedback: ${a.comments}`;
+            }
           });
 
           if (q.correct_comments_html) {
