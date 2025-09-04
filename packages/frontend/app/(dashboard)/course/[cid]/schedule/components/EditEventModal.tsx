@@ -173,8 +173,6 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     onClose()
   }
 
-  console.log(event)
-
   return (
     <Modal
       open={visible}
