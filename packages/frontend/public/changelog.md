@@ -1,3 +1,18 @@
+## Version 1.6.1 - Bug Fixes
+
+*Sep 7th, 2025*
+
+#### Improvements
+
+- Fixed an issue where queues were not showing up-to-date information
+- Fixed an issue where .md documents uploaded via github to the chatbot were giving errors
+- Fixed an issue where tables in chatbot responses would overflow. They should now have a horizontal scroll bar
+- Fixed a small bug where Start Date would appear as invalid when converting a one-time calendar event to a recurring one
+- Fixed an issue where calendar events could not be converted from recurring to one-time events
+- Various security improvements and fixes 
+
+***
+
 ## Version 1.6.0 - Canvas Files Integration, Queue -> Anytime Question Conversion, Improved Login Redirect
 
 *Aug 24th, 2025*
