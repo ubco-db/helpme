@@ -123,6 +123,16 @@ export const QuizContentPreviewModal: React.FC<
         />
       )}
 
+      {selectedAccessLevel === currentAccessLevel && (
+        <Alert
+          message="Preview Mode"
+          description={`This is the current access level for this quiz.`}
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
       <div style={{ marginBottom: 8 }}>
         <Text strong>Content that will be sent to the chatbot:</Text>
       </div>

@@ -465,11 +465,12 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
 
     for (const quiz of data.filter((q: any) => q.published)) {
       const { status: quizStatus, data: quizData } = await this.Get(
-        `courses/${this.integration.apiCourseId}/quizzes/${quiz.id}?include[]=questions`,
+        `courses/${this.integration.apiCourseId}/quizzes/${quiz.id}`,
       );
 
-      let questionsData = quizData?.questions || [];
-      if (!questionsData || questionsData.length === 0) {
+      let questionsData = [];
+
+      if (quizData?.question_count > 0) {
         const { status: questionsStatus, data: questionsResponse } =
           await this.Get(
             `courses/${this.integration.apiCourseId}/quizzes/${quiz.id}/questions`,

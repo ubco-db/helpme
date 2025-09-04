@@ -1457,7 +1457,9 @@ export class LMSIntegrationService {
           accessLevel ===
           LMSQuizAccessLevel.LOGISTICS_QUESTIONS_GENERAL_COMMENTS
         ) {
-          if (q.neutral_comments) {
+          if (q.neutral_comments_html) {
+            content += `\n   General comments: ${convert(q.neutral_comments_html)}`;
+          } else if (q.neutral_comments) {
             content += `\n   General comments: ${q.neutral_comments}`;
           }
         }
@@ -1469,15 +1471,21 @@ export class LMSIntegrationService {
             content += `\n   - ${a.text}${marker}`;
           });
 
-          if (q.correct_comments) {
+          if (q.correct_comments_html) {
+            content += `\n   Correct answer feedback: ${convert(q.correct_comments_html)}`;
+          } else if (q.correct_comments) {
             content += `\n   Correct answer feedback: ${q.correct_comments}`;
           }
 
-          if (q.incorrect_comments) {
+          if (q.incorrect_comments_html) {
+            content += `\n   Incorrect answer feedback: ${convert(q.incorrect_comments_html)}`;
+          } else if (q.incorrect_comments) {
             content += `\n   Incorrect answer feedback: ${q.incorrect_comments}`;
           }
 
-          if (q.neutral_comments) {
+          if (q.neutral_comments_html) {
+            content += `\n   General comments: ${convert(q.neutral_comments_html)}`;
+          } else if (q.neutral_comments) {
             content += `\n   General comments: ${q.neutral_comments}`;
           }
         }
