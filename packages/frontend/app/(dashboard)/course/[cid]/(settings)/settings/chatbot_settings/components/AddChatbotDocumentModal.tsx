@@ -66,57 +66,72 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
     onClose()
   }
 
-  const uploadFiles = async (files: RcFile[]) => {
-    for (const file of files) {
-      // if the file is already uploading or done, skip it and inform the user
-      if (fileList.find((f) => f.uid === file.uid)?.status === 'uploading') {
-        message.info(`${file.name} is still being processed.`)
-        continue
-      } else if (fileList.find((f) => f.uid === file.uid)?.status === 'done') {
-        message.info(`${file.name} is already done being processed.`)
-        continue
-      }
+  const uploadNextFile = async (i: number, files: RcFile[]) => {
+    const file = files[i]
+    // if the file is already uploading or done, skip it and inform the user
+    if (fileList.find((f) => f.uid === file.uid)?.status === 'uploading') {
+      message.info(`${file.name} is still being processed.`)
+      return
+    } else if (fileList.find((f) => f.uid === file.uid)?.status === 'done') {
+      message.info(`${file.name} is already done being processed.`)
+      return
+    }
 
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('parseAsPng', isSlideDeck.toString())
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('parseAsPng', isSlideDeck.toString())
 
-      setFileList((prevFileList) =>
-        prevFileList.map((f) =>
-          f.uid === file.uid ? { ...f, status: 'uploading' } : f,
-        ),
-      )
+    setFileList((prevFileList) =>
+      prevFileList.map((f) =>
+        f.uid === file.uid ? { ...f, status: 'uploading' } : f,
+      ),
+    )
 
-      runAsyncToast(
-        () => API.chatbot.staffOnly.uploadDocument(courseId, formData),
-        (result, error) => {
-          if (error) {
-            setFileList((prevFileList) =>
-              prevFileList.map((f) =>
-                f.uid === file.uid
-                  ? { ...f, status: 'error', response: getErrorMessage(error) }
-                  : f,
-              ),
-            )
-          } else {
-            // success
-            getDocuments()
-            // remove the file from the list
-            setFileList((prevFileList) =>
-              prevFileList.filter((f) => f.uid !== file.uid),
+    runAsyncToast(
+      () => API.chatbot.staffOnly.uploadDocument(courseId, formData),
+      (result, error) => {
+        // handle the success/error
+        if (error) {
+          setFileList((prevFileList) =>
+            prevFileList.map((f) =>
+              f.uid === file.uid
+                ? { ...f, status: 'error', response: getErrorMessage(error) }
+                : f,
+            ),
+          )
+        } else {
+          // success
+          getDocuments()
+          // remove the file from the list
+          setFileList((prevFileList) =>
+            prevFileList.filter((f) => f.uid !== file.uid),
+          )
+          // if it's the last file (and there's more than 1 document being uploaded), say that all documents have finished
+          if (i >= files.length - 1 && files.length > 1) {
+            message.info(
+              `All ${files.length} uploaded chatbot documents have finished processing`,
+              3.5,
             )
           }
-        },
-        {
-          successMsg: `${file.name} uploaded and processed!`,
-          errorMsg: `Failed to upload/process ${file.name}`,
-          appendApiError: true,
-          successDuration: 3500,
-        },
-      )
-    }
+        }
+        // queue up the next file (which is technically recursive, I guess)
+        if (i < files.length - 1) {
+          uploadNextFile(i + 1, files)
+        }
+      },
+      {
+        successMsg: `${file.name} uploaded and processed!`,
+        errorMsg: `Failed to upload/process ${file.name}`,
+        appendApiError: true,
+        successDuration: 3500,
+      },
+    )
+  }
+
+  const uploadFiles = async (files: RcFile[]) => {
+    uploadNextFile(0, files)
     message.info(
-      'All documents have been queued for processing. You will be notified of completion.',
+      `${files.length === 1 ? 'The document' : `All ${files.length} documents`} have been queued for processing. You will be notified of completion.`,
       3.5,
     )
     onClose()

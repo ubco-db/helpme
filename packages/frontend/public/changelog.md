@@ -5,6 +5,7 @@
 #### Improvements
 
 - Fixed an issue where queues were not showing up-to-date information
+- Fixed an issue where uploading too many documents to the chatbot at the same time would result in an error 
 - Fixed an issue where .md documents uploaded via github to the chatbot were giving errors
 - Fixed an issue where tables in chatbot responses would overflow. They should now have a horizontal scroll bar
 - Fixed a small bug where Start Date would appear as invalid when converting a one-time calendar event to a recurring one
