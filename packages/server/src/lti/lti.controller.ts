@@ -10,9 +10,9 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   Res,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { LtiCourseId, LtiToken, LtiUser } from '../decorators/lti.decorator';
 import express from 'express';
@@ -20,13 +20,13 @@ import { LtiGuard } from '../guards/lti.guard';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { AdminRoleGuard } from '../guards/admin-role.guard';
 import {
+  AuthTokenMethodEnum,
   Database,
   IdToken,
   PlatformModel,
   PlatformProperties,
 } from 'lti-typescript';
 import {
-  AuthMethodEnum,
   CreateLtiPlatform,
   ERROR_MESSAGES,
   LMSIntegrationPlatform,
@@ -35,13 +35,19 @@ import {
 } from '@koh/common';
 import { plainToClass } from 'class-transformer';
 import { UserModel } from '../profile/user.entity';
+import {
+  IgnoreableClassSerializerInterceptor,
+  IgnoreSerializer,
+} from '../interceptors/IgnoreableClassSerializerInterceptor';
 
 @Controller('lti')
+@UseInterceptors(IgnoreableClassSerializerInterceptor)
 export class LtiController {
   constructor(private ltiService: LtiService) {}
 
   @All()
   @UseGuards(LtiGuard)
+  @IgnoreSerializer()
   async index(
     @Res() res: express.Response,
     @LtiToken() token: IdToken,
@@ -142,25 +148,18 @@ export class LtiController {
       await Database.findOne(PlatformModel, { where: { kid } }),
     );
   }
-
-  @Get('/static')
-  async static(@Req() req: express.Request, @Res() res: express.Response) {
-    res
-      .status(200)
-      .set('Content-Type', 'text/html')
-      .send(
-        '<html lang="en"><head><title>HelpMe</title></head><body><h1>Static</h1></body></html>',
-      );
-  }
 }
 
-function mapToLocalPlatform(platform: PlatformModel): LtiPlatform {
+export function mapToLocalPlatform(platform: PlatformModel): LtiPlatform {
   if (!platform) return undefined;
+
+  const authToken = platform.authToken();
+  if (authToken.method !== AuthTokenMethodEnum.JWK_SET) {
+    authToken.key = '********************************';
+  }
+
   return plainToClass(LtiPlatform, {
     ...platform,
-    authToken: {
-      method: platform.authTokenMethod as unknown as AuthMethodEnum,
-      key: platform.authTokenKey,
-    },
+    authToken,
   });
 }

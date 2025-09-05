@@ -203,16 +203,6 @@ export class LMSIntegrationService {
     return result;
   }
 
-  public async getAPICourses(
-    accessToken: LMSAccessTokenModel,
-  ): Promise<LMSCourseAPIResponse[]> {
-    const result = await AbstractLMSAdapter.getUserCourses(accessToken);
-    if (result.status != LMSApiResponseStatus.Success) {
-      throw new HttpException('', this.lmsStatusToHttpStatus(result.status));
-    }
-    return result.courses;
-  }
-
   public async createCourseLMSIntegration(
     orgIntegration: LMSOrganizationIntegrationModel,
     courseId: number,
@@ -310,6 +300,16 @@ export class LMSIntegrationService {
       throw new HttpException(status, this.lmsStatusToHttpStatus(status));
 
     return status;
+  }
+
+  public async getAPICourses(
+    accessToken: LMSAccessTokenModel,
+  ): Promise<LMSCourseAPIResponse[]> {
+    const result = await AbstractLMSAdapter.getUserCourses(accessToken);
+    if (result.status != LMSApiResponseStatus.Success) {
+      throw new HttpException('', this.lmsStatusToHttpStatus(result.status));
+    }
+    return result.courses;
   }
 
   async getItems(courseId: number, type: LMSGet) {

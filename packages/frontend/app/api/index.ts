@@ -1400,6 +1400,14 @@ export class APIClient {
       this.req('POST', `/api/v1/lms/course/${courseId}/resources`, undefined, {
         selectedResourceTypes,
       }),
+    getOrganizationAccessTokens: async (
+      organizationId: number,
+      platform?: LMSIntegrationPlatform,
+    ): Promise<LMSToken[]> =>
+      this.req(
+        'GET',
+        `/api/v1/lms/org/${organizationId}/token${platform != undefined ? `?platform=${platform}` : ''}`,
+      ),
     deleteAccessToken: async (tokenId: number): Promise<boolean> =>
       this.req('DELETE', `/api/v1/lms/oauth2/token/${tokenId}`),
     getAccessTokens: async (
@@ -1444,6 +1452,8 @@ export class APIClient {
         this.req('PATCH', `/api/v1/lti/platform/${id}`, undefined, params),
       deletePlatform: async (id: string): Promise<void> =>
         this.req('DELETE', `/api/v1/lti/platform/${id}`),
+      togglePlatform: async (id: string): Promise<LtiPlatform> =>
+        this.req('PATCH', `/api/v1/lti/platform/${id}/toggle`),
     },
   }
 

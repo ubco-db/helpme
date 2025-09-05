@@ -21,7 +21,7 @@ export class LMSAuthStateModel extends BaseEntity {
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 
-  @Column({ type: 'integer', default: 10 })
+  @Column({ type: 'integer', default: 60 })
   expiresAt: number;
 
   @Column({ type: 'integer' })

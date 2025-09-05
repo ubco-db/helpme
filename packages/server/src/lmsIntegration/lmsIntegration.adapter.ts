@@ -135,6 +135,11 @@ export abstract class AbstractLMSAdapter {
         organizationIntegration: true,
       },
     });
+    if (!accessToken) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.lmsAdapter.missingAccessToken,
+      );
+    }
     const token = await accessToken.getToken();
 
     if (accessToken.isExpired(token)) {

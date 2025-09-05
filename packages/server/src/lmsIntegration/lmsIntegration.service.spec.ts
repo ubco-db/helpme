@@ -18,10 +18,12 @@ import {
 import {
   CourseFactory,
   initFactoriesFromService,
+  LMSAccessTokenFactory,
   lmsCourseIntFactory,
   lmsOrgIntFactory,
   OrganizationCourseFactory,
   OrganizationFactory,
+  UserFactory,
 } from '../../test/util/factories';
 import {
   LMSAnnouncement,
@@ -29,6 +31,7 @@ import {
   LMSAssignment,
   LMSCourseAPIResponse,
   LMSIntegrationPlatform,
+  LMSPostResponseBody,
 } from '@koh/common';
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
 import { HttpStatus } from '@nestjs/common';
@@ -41,6 +44,9 @@ import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
 import { ChatbotModule } from '../chatbot/chatbot.module';
 import { ChatbotApiService } from '../chatbot/chatbot-api.service';
+import { LMSAccessTokenModel } from './lms-access-token.entity';
+import { UserModel } from '../profile/user.entity';
+import * as crypto from 'crypto';
 
 const mockCacheManager = {
   get: jest.fn(),
@@ -87,8 +93,12 @@ describe('LMSIntegrationService', () => {
   });
 
   afterAll(async () => {
-    jest.clearAllMocks();
     await dataSource.destroy();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   beforeEach(async () => {
@@ -122,9 +132,9 @@ describe('LMSIntegrationService', () => {
         });
       }
 
-      const old = service.syncDocuments;
       const findSpy = jest.spyOn(LMSCourseIntegrationModel, 'find');
-      service.syncDocuments = jest.fn(async () => undefined);
+      const syncDocSpy = jest.spyOn(service, 'syncDocuments');
+      syncDocSpy.mockImplementation(async () => undefined);
       await service.resynchronizeCourseIntegrations();
 
       expect(findSpy).toHaveBeenCalledTimes(1);
@@ -132,7 +142,10 @@ describe('LMSIntegrationService', () => {
         where: { lmsSynchronize: true },
       });
 
-      expect(service.syncDocuments).toHaveBeenCalledTimes(2);
+      const nCourses = courses.filter(
+        (c) => c.lmsIntegration.lmsSynchronize,
+      ).length;
+      expect(service.syncDocuments).toHaveBeenCalledTimes(nCourses);
       let i = 1;
       for (const course of courses.filter(
         (c) => c.lmsIntegration.lmsSynchronize,
@@ -140,7 +153,8 @@ describe('LMSIntegrationService', () => {
         expect(service.syncDocuments).toHaveBeenNthCalledWith(i, course.id);
         ++i;
       }
-      service.syncDocuments = old;
+      syncDocSpy.mockRestore();
+      findSpy.mockRestore();
     });
   });
 
@@ -192,6 +206,7 @@ describe('LMSIntegrationService', () => {
 
   describe('upsertOrganizationLMSIntegration', () => {
     let org: OrganizationModel;
+
     beforeEach(async () => {
       org = await OrganizationFactory.create();
     });
@@ -238,6 +253,83 @@ describe('LMSIntegrationService', () => {
     });
   });
 
+  describe('createAccessToken', () => {
+    let user: UserModel;
+
+    beforeEach(async () => {
+      user = await UserFactory.create({});
+    });
+
+    it('should fail if integration has no defined secret', async () => {
+      const orgInt = await lmsOrgIntFactory.create();
+      const token = {
+        access_token: crypto.randomBytes(16).toString('hex'),
+        token_type: 'Bearer',
+        user: {
+          id: 0,
+          name: 'Heinz Doofenschmirtz',
+        },
+        refresh_token: crypto.randomBytes(16).toString('hex'),
+        expires_in: 0,
+      } satisfies LMSPostResponseBody;
+
+      await expect(
+        service.createAccessToken(user, orgInt, token),
+      ).rejects.toThrow(
+        new Error('Cannot use encryption without a defined secret!'),
+      );
+    });
+
+    it('should encrypt data in a way that is retrievable', async () => {
+      const orgInt = await lmsOrgIntFactory.create({
+        clientSecret: crypto.randomBytes(32).toString('hex'),
+      });
+
+      const token = {
+        access_token: crypto.randomBytes(16).toString('hex'),
+        token_type: 'Bearer',
+        user: {
+          id: 0,
+          name: 'Heinz Doofenschmirtz',
+        },
+        refresh_token: crypto.randomBytes(16).toString('hex'),
+        expires_in: 0,
+      } satisfies LMSPostResponseBody;
+
+      const accessToken = await service.createAccessToken(user, orgInt, token);
+
+      expect(accessToken.iv).toBeDefined();
+      expect(accessToken.data).toBeDefined();
+      const expectToken = {
+        ...token,
+        userId: 0,
+      };
+      delete expectToken.user;
+      expect(await accessToken.getToken()).toEqual(expectToken);
+    });
+  });
+
+  describe('destroyAccessToken', () => {
+    it.each([
+      ['not', "doesn't", false],
+      ['', '', true],
+    ])('should destroy access token if succeeds', async (_m0, _m1, bool) => {
+      const spy = jest.spyOn(AbstractLMSAdapter, 'logoutAuth');
+      spy.mockResolvedValue(bool);
+      const token = await LMSAccessTokenFactory.create();
+      expect(await service.destroyAccessToken(token)).toBe(bool);
+      const find = await LMSAccessTokenModel.findOne({
+        where: { id: token.id },
+      });
+
+      if (bool) {
+        expect(find).toBeNull();
+      } else {
+        expect(find).toBeDefined();
+      }
+    });
+  });
+
   describe('createCourseLMSIntegration', () => {
     let org: OrganizationModel;
     let orgInt: LMSOrganizationIntegrationModel;
@@ -265,14 +357,20 @@ describe('LMSIntegrationService', () => {
         },
       });
       expect(check).toBeTruthy();
+      expect(check.apiKey).toBe('abc');
       expect(check.apiKeyExpiry).toBeNull();
+      expect(check.accessTokenId).toBeNull();
     });
 
     it('should create a new course integration with an expiry', async () => {
+      const token = await LMSAccessTokenFactory.create({
+        organizationIntegration: orgInt,
+      });
       await service.createCourseLMSIntegration(orgInt, course.id, {
         apiCourseId: '1',
         apiKey: 'abc',
         apiKeyExpiry: new Date(),
+        accessTokenId: token.id,
       });
       const check = await LMSCourseIntegrationModel.findOne({
         where: {
@@ -280,18 +378,18 @@ describe('LMSIntegrationService', () => {
         },
       });
       expect(check).toBeTruthy();
+      expect(check.apiKey).toBe('abc');
       expect(check.apiKeyExpiry).toBeTruthy();
+      expect(check.accessTokenId).toBe(token.id);
     });
   });
-
-  /*
-  Failing for some reason
 
   describe('updateCourseLMSIntegration', () => {
     let org: OrganizationModel;
     let orgInt: LMSOrganizationIntegrationModel;
     let course: CourseModel;
     let courseInt: LMSCourseIntegrationModel;
+    let token: LMSAccessTokenModel;
 
     beforeEach(async () => {
       org = await OrganizationFactory.create();
@@ -300,25 +398,31 @@ describe('LMSIntegrationService', () => {
         rootUrl: 'www.example.com',
         apiPlatform: LMSIntegrationPlatform.Canvas,
       }).save();
+
       course = await CourseFactory.create();
       courseInt = await LMSCourseIntegrationModel.create({
         orgIntegration: orgInt,
         course: course,
-        apiCourseId: 'abc',
-        apiKey: 'def',
+        apiCourseId: '0',
+        apiKey: 'oldkey',
+        apiKeyExpiry: new Date(),
       }).save();
+
+      token = await LMSAccessTokenFactory.create({
+        organizationIntegration: orgInt,
+      });
     });
 
     it('should update parameters', async () => {
       const now = new Date();
-      await service.updateCourseLMSIntegration(
-        courseInt,
-        orgInt,
-        false,
-        'ghi',
-        'jkl',
-        now,
-      );
+
+      await service.updateCourseLMSIntegration(courseInt, orgInt, {
+        apiCourseId: '1',
+        apiKey: 'key',
+        apiKeyExpiry: now,
+        apiKeyExpiryDeleted: false,
+        accessTokenId: token.id,
+      });
 
       const updated = await LMSCourseIntegrationModel.findOne({
         where: {
@@ -327,19 +431,18 @@ describe('LMSIntegrationService', () => {
       });
 
       expect(updated).toBeTruthy();
-      expect(updated.apiCourseId).toBe('ghi');
-      expect(updated.apiKey).toBe('jkl');
-      expect(updated.apiKeyExpiry).toBe(now);
+      expect(updated.apiCourseId).toBe('1');
+      expect(updated.apiKey).toBe('key');
+      expect(updated.apiKeyExpiry).toEqual(now);
+      expect(updated.accessTokenId).toBe(token.id);
     });
 
     it('should delete expiry when specified', async () => {
-      await service.updateCourseLMSIntegration(
-        courseInt,
-        orgInt,
-        true,
-        'ghi',
-        'jkl',
-      );
+      await service.updateCourseLMSIntegration(courseInt, orgInt, {
+        apiCourseId: '1',
+        apiKey: 'key',
+        apiKeyExpiryDeleted: true,
+      });
 
       const updated = await LMSCourseIntegrationModel.findOne({
         where: {
@@ -348,12 +451,11 @@ describe('LMSIntegrationService', () => {
       });
 
       expect(updated).toBeTruthy();
-      expect(updated.apiCourseId).toBe('ghi');
-      expect(updated.apiKey).toBe('jkl');
-      expect(updated.apiKeyExpiry).toBeUndefined();
+      expect(updated.apiCourseId).toBe('1');
+      expect(updated.apiKey).toBe('key');
+      expect(updated.apiKeyExpiry).toBeNull();
     });
   });
-   */
 
   describe('getItems', () => {
     let getAdapter: any;

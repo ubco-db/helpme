@@ -1,4 +1,4 @@
-import { DynamicModule, INestApplication, Module, Type } from '@nestjs/common';
+import { INestApplication, Module, Type } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule, TestingModuleBuilder } from '@nestjs/testing';
@@ -34,6 +34,7 @@ import { ChatbotApiService } from '../../src/chatbot/chatbot-api.service';
 import { ChatbotDataSourceModule } from '../../src/chatbot/chatbot-datasource/chatbot-datasource.module';
 import { Role } from '@koh/common';
 import { UserCourseModel } from 'profile/user-course.entity';
+import express from 'express';
 
 export interface SupertestOptions {
   userId?: number;
@@ -76,6 +77,11 @@ export function setupIntegrationTest(
   module: Type<any>,
   modifyModule?: ModuleModifier,
   additionalModules: Type<any>[] = [],
+  additionalMiddlewares: ((
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => any)[] = [],
 ): {
   supertest: (u?: SupertestOptions) => supertest.SuperTest<supertest.Test>;
   getTestModule: () => TestingModule;
@@ -167,7 +173,12 @@ export function setupIntegrationTest(
     // Create and configure the application
 
     app = testModule.createNestApplication();
-    addGlobalsToApp(app);
+    addGlobalsToApp(app, true);
+    if (additionalMiddlewares) {
+      for (const mw of additionalMiddlewares) {
+        app.use(mw);
+      }
+    }
     jwtService = testModule.get<JwtService>(JwtService);
     appConfig = testModule.get<ApplicationConfigService>(
       ApplicationConfigService,

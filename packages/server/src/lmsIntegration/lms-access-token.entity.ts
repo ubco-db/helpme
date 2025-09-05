@@ -38,6 +38,7 @@ export class LMSAccessTokenModel extends BaseEntity {
   @Column({ type: 'integer' })
   userId: number;
 
+  @Exclude()
   @Column({ type: 'text', nullable: true })
   iv?: string;
 

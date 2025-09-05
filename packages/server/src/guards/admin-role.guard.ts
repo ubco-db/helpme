@@ -20,7 +20,7 @@ export class AdminRoleGuard implements CanActivate {
 
     if (user.userRole !== UserRole.ADMIN) {
       throw new ForbiddenException(
-        ERROR_MESSAGES.roleGuard.mustBeRoleToAccess(['ADMIN']),
+        ERROR_MESSAGES.roleGuard.mustBeRoleToAccess([UserRole.ADMIN]),
       );
     }
 

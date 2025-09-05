@@ -37,6 +37,11 @@ const UpsertLtiPlatformModal: React.FC<UpsertLtiPlatformModalProps> = ({
 }) => {
   const [isKeyDisabled, setIsKeyDisabled] = useState(false)
 
+  const [isKeyModified, setIsKeyModified] = useState(false)
+  const [methodValue, setMethodValue] = useState<AuthMethodEnum>(
+    AuthMethodEnum.JWK_SET,
+  )
+
   const [createForm] = Form.useForm<CreateLtiPlatform>()
   const [updateForm] = Form.useForm<UpdateLtiPlatform>()
 
@@ -51,6 +56,7 @@ const UpsertLtiPlatformModal: React.FC<UpsertLtiPlatformModalProps> = ({
     form: FormInstance<CreateLtiPlatform> | FormInstance<UpdateLtiPlatform>,
   ) => {
     setIsKeyDisabled(watchValue?.method == AuthMethodEnum.JWK_SET)
+    setMethodValue(watchValue?.method)
     if (watchValue?.method == AuthMethodEnum.JWK_SET) {
       form.setFieldsValue({
         authToken: {
@@ -64,8 +70,12 @@ const UpsertLtiPlatformModal: React.FC<UpsertLtiPlatformModalProps> = ({
   const onWatchTokenChange = (
     watchValue: string,
     form: FormInstance<CreateLtiPlatform> | FormInstance<UpdateLtiPlatform>,
+    isUpdateForm: boolean = false,
   ) => {
     const authToken = form.getFieldValue('authToken')
+    if (isUpdateForm) {
+      setIsKeyModified(!!watchValue)
+    }
     if (watchValue && authToken?.method == AuthMethodEnum.JWK_SET) {
       form.setFieldsValue({
         authToken: {
@@ -98,10 +108,12 @@ const UpsertLtiPlatformModal: React.FC<UpsertLtiPlatformModalProps> = ({
   }
 
   const onFinish = () => {
-    console.log(createForm.getFieldsValue())
     ;(focus != undefined ? updateForm : createForm)
       .validateFields()
       .then(async (values) => {
+        if (focus != undefined && !isKeyModified) {
+          delete values.authToken?.key
+        }
         let success: boolean
         if (focus != undefined) {
           success = await onUpdate(focus.kid, values)
@@ -130,7 +142,7 @@ const UpsertLtiPlatformModal: React.FC<UpsertLtiPlatformModalProps> = ({
     >
       {focus != undefined && (
         <Form form={updateForm} initialValues={focus}>
-          <FormFields isKeyDisabled={isKeyDisabled} />
+          <FormFields isKeyDisabled={isKeyDisabled} methodValue={methodValue} />
         </Form>
       )}
       {isCreating && (
@@ -143,7 +155,7 @@ const UpsertLtiPlatformModal: React.FC<UpsertLtiPlatformModalProps> = ({
             active: true,
           }}
         >
-          <FormFields isKeyDisabled={isKeyDisabled} />
+          <FormFields isKeyDisabled={isKeyDisabled} methodValue={methodValue} />
         </Form>
       )}
     </Modal>
@@ -152,9 +164,10 @@ const UpsertLtiPlatformModal: React.FC<UpsertLtiPlatformModalProps> = ({
 
 export default UpsertLtiPlatformModal
 
-const FormFields: React.FC<{ isKeyDisabled: boolean }> = ({
-  isKeyDisabled,
-}) => {
+const FormFields: React.FC<{
+  isKeyDisabled: boolean
+  methodValue?: AuthMethodEnum
+}> = ({ isKeyDisabled, methodValue }) => {
   return (
     <>
       <Form.Item
@@ -310,10 +323,25 @@ const FormFields: React.FC<{ isKeyDisabled: boolean }> = ({
           },
         ]}
       >
-        <Input
-          disabled={isKeyDisabled}
-          placeholder={'https://instructure.canvas.com/authorization'}
-        />
+        {methodValue == AuthMethodEnum.JWK_SET ? (
+          <Input disabled={isKeyDisabled} placeholder={'URL'} />
+        ) : methodValue == AuthMethodEnum.RSA_KEY ? (
+          <Input.TextArea
+            placeholder={'RSA Key'}
+            autoSize={{
+              minRows: 3,
+              maxRows: 10,
+            }}
+          />
+        ) : methodValue == AuthMethodEnum.JWK_KEY ? (
+          <Input.TextArea
+            placeholder={'JSON Web Key'}
+            autoSize={{
+              minRows: 3,
+              maxRows: 9,
+            }}
+          />
+        ) : null}
       </Form.Item>
       <Form.Item
         name={'active'}

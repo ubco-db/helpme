@@ -3634,7 +3634,7 @@ export type UnreadAsyncQuestionResponse = {
 export class LMSAuthResponseQuery {
   @IsString()
   @IsOptional()
-  error?: any
+  error?: string
 
   @IsString()
   @IsOptional()
@@ -3671,6 +3671,22 @@ export type LMSPostResponseBody = {
 export class LMSToken {
   @IsInt()
   id!: number
+
+  @IsOptional()
+  @IsInt()
+  organizationId?: number
+
+  @IsOptional()
+  @IsInt()
+  userId?: number
+
+  @IsOptional()
+  @IsString()
+  userEmail?: string
+
+  @IsOptional()
+  @IsString()
+  userName?: string
 
   @IsEnum(LMSIntegrationPlatform)
   platform!: LMSIntegrationPlatform
@@ -3729,6 +3745,12 @@ export class LtiPlatform {
   @ValidateNested()
   @Type(() => LtiAuthConfig)
   authToken!: LtiAuthConfig
+
+  @Exclude()
+  authTokenMethod?: string
+
+  @Exclude()
+  authTokenKey?: string
 }
 
 export class CreateLtiPlatform {
@@ -4171,13 +4193,14 @@ export const ERROR_MESSAGES = {
     missingClientSecret:
       'Organization integration has no defined client secret.',
     missingApiKeyOrToken:
-      'Course integration requires an API key or an access token to be created.',
+      'Course integration requires an API key or an access token.',
     unauthorizedForToken: 'The specified access token does not belong to you.',
     apiKeyDisabled:
       'Usage of API key for LMS integrations is not allowed in this organization.',
     accessTokenMismatch:
       'The selected access token is not valid for the specified platform.',
     missingPlatformQuery: 'Platform query parameter is required.',
+    accessTokenNotFound: 'Access token with given ID was not found.',
   },
   lmsAdapter: {
     missingAccessToken:

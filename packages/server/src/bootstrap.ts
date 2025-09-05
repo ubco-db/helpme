@@ -19,7 +19,6 @@ export async function bootstrap(hot: any): Promise<void> {
   });
 
   app.enableShutdownHooks(); // So we can clean up SSE.
-  addGlobalsToApp(app);
   app.setGlobalPrefix('api/v1');
 
   const configService = app.get(ApplicationConfigService);
@@ -39,18 +38,7 @@ export async function bootstrap(hot: any): Promise<void> {
   app.use(morgan('dev'));
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
-  // If not an LTI route, use standard helmet, cookieParser
-  app.use(/\/api\/v1(?!\/lti)/, cookieParser());
-  app.use(/\/api\/v1(?!\/lti)/, helmet());
-  // If an LTI route, use customized helmet, cookieParser
-  app.use(
-    /\/api\/v1\/lti/,
-    helmet({
-      frameguard: false,
-      contentSecurityPolicy: false,
-    }),
-  );
-  app.use(/\/api\/v1\/lti/, cookieParser(process.env.LTI_SECRET_KEY));
+
   app.use(
     expressSession({
       secret: process.env.SESSION_SECRET,
@@ -83,7 +71,43 @@ export async function bootstrap(hot: any): Promise<void> {
 }
 
 // Global settings that should be true in prod and in integration tests
-export function addGlobalsToApp(app: INestApplication): void {
+export function addGlobalsToApp(app: INestApplication, test = false): void {
+  if (!test) {
+    app.use(/\/api\/v1(?!\/lti)/, (req, res, next) => {
+      console.log('regular middleware used');
+      next();
+    });
+    app.use(/\/api\/v1\/lti/, (req, res, next) => {
+      console.log('lti middleware used');
+      next();
+    });
+    // If not an LTI route, use standard helmet, cookieParser
+    // Regex: (?!\/lti) means NOT /lti, avoids using these middlewares at (/api/v1)/lti routes
+    app.use(/\/api\/v1(?!\/lti)/, cookieParser());
+    app.use(/\/api\/v1(?!\/lti)/, helmet());
+    // If an LTI route, use customized helmet, cookieParser
+    app.use(
+      /\/api\/v1\/lti/,
+      helmet({
+        frameguard: false,
+        contentSecurityPolicy: false,
+      }),
+    );
+    app.use(/\/api\/v1\/lti/, cookieParser(process.env.LTI_SECRET_KEY));
+  } else {
+    app.use(/(?!\/lti)/, cookieParser());
+    app.use(/(?!\/lti)/, helmet());
+    // If an LTI route, use customized helmet, cookieParser
+    app.use(
+      /\/lti/,
+      helmet({
+        frameguard: false,
+        contentSecurityPolicy: false,
+      }),
+    );
+    app.use(/\/lti/, cookieParser(process.env.LTI_SECRET_KEY));
+  }
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

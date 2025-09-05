@@ -26,10 +26,10 @@ export class LtiGuard implements CanActivate {
       return false;
     }
 
-    const userCourse = await UserModel.findOne({
+    const user = await UserModel.findOne({
       where: { id: userId },
     });
 
-    return !!userCourse;
+    return !!user;
   }
 }

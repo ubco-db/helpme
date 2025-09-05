@@ -28,7 +28,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     const requestPath: string = request.path;
 
     const pathOrPaths: string | string[] = user.restrictPaths;
-    if (!pathOrPaths) return user;
+    if (!pathOrPaths) {
+      return user;
+    }
 
     let isAllowedOnPath: boolean;
     if (Array.isArray(pathOrPaths)) {

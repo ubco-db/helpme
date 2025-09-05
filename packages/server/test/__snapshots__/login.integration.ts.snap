@@ -1,9 +1,9 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`Login Integration POST /ubc_login returns 200 if password is correct 1`] = `
 {
   "email": "user@ubc.ca",
   "password": "realpassword",
-  "token": "{\"userId\":1}",
+  "token": "{"userId":1}",
 }
 `;

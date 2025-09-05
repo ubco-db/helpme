@@ -7,12 +7,11 @@ import { ERROR_MESSAGES } from '@koh/common';
 import { LoginController } from '../login/login.controller';
 import { JwtService } from '@nestjs/jwt';
 import express from 'express';
-import { ConfigService } from '@nestjs/config';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 
 // LTI Tool can only access the following API routes
 
-const restrictPaths = [
+export const restrictPaths = [
   'r^\\/lti.*$',
   'r^\\/api\\/v1\\/courses\\/[0-9]+(\\/features)?$',
   'r^\\/api\\/v1\\/profile$',
@@ -36,10 +35,7 @@ export class LtiService {
     this._provider = provider;
   }
 
-  constructor(
-    private configService: ConfigService,
-    private jwtService: JwtService,
-  ) {}
+  constructor(private jwtService: JwtService) {}
 
   static async findMatchingUserAndCourse(
     token: IdToken,
@@ -67,7 +63,7 @@ export class LtiService {
       );
     }
 
-    if (matchingUsers.length < 0) {
+    if (matchingUsers.length <= 0) {
       throw new NotFoundException(ERROR_MESSAGES.ltiService.noMatchingUser);
     }
     const matchingUserIds = matchingUsers.map((u) => u.id);

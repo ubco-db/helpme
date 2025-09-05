@@ -9,15 +9,14 @@ import {
   message,
   Pagination,
   Popconfirm,
+  Switch,
   Table,
   Tooltip,
 } from 'antd'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import {
-  CheckCircleOutlined,
   DeleteOutlined,
   EditOutlined,
-  PauseCircleOutlined,
   PlusOutlined,
   SearchOutlined,
 } from '@ant-design/icons'
@@ -92,6 +91,26 @@ export default function LtiAdminPage(): ReactElement {
       })
   }
 
+  const toggleLtiPlatform = async (id: string) => {
+    return await API.lti.admin
+      .togglePlatform(id)
+      .then((platform) => {
+        const idxOf = ltiPlatforms.findIndex((p) => p.kid == id)
+        if (idxOf >= 0) {
+          setLtiPlatforms((prev) => [
+            ...prev.slice(0, idxOf),
+            platform,
+            ...prev.slice(idxOf + 1),
+          ])
+        }
+        return true
+      })
+      .catch((err) => {
+        message.error(`Failed to update LTI platform: ${getErrorMessage(err)}`)
+        return false
+      })
+  }
+
   const matchingPlatforms = useMemo(
     () =>
       search
@@ -113,21 +132,27 @@ export default function LtiAdminPage(): ReactElement {
 
   const columns: any[] = [
     {
+      dataIndex: 'active',
+      title: 'Active',
+      width: '8%',
+      render: (active: boolean, platform: LtiPlatform, index: number) => (
+        <div key={`active-${index}`} className={'w-min'}>
+          <Switch
+            checked={active}
+            onChange={() => toggleLtiPlatform(platform.kid)}
+          />
+        </div>
+      ),
+    },
+    {
       dataIndex: 'kid',
       title: 'ID',
+      ellipsis: true,
+      width: '15%',
       render: (id: string, record: LtiPlatform, index: number) => (
-        <div key={`kid-${index}`} className={'w-min'}>
-          <div className={'mr-1 truncate'}>{id}</div>
-          {record.active ? (
-            <Tooltip title={'This platform is active.'}>
-              <CheckCircleOutlined className={'text-green-500'} />
-            </Tooltip>
-          ) : (
-            <Tooltip title={'This platform is inactive.'}>
-              <PauseCircleOutlined className={'text-gray-300'} />
-            </Tooltip>
-          )}
-        </div>
+        <Tooltip title={id} key={`kid-${index}`}>
+          <span>{id}</span>
+        </Tooltip>
       ),
     },
     {
@@ -176,7 +201,7 @@ export default function LtiAdminPage(): ReactElement {
     <>
       <div className={'flex w-full flex-grow flex-col gap-4'}>
         <h1>LTI Platforms</h1>
-        <div className={'flex items-center gap-2'}>
+        <div className={'flex w-full items-center gap-2'}>
           <Input
             className={'w-full'}
             placeholder="Search Users (press enter to search)"
