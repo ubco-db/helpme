@@ -88,6 +88,22 @@ const MarkdownCustom: React.FC<MarkdownCustomProps> = ({
           <ol className="ml-6 list-decimal space-y-1">{children}</ol>
         ),
         li: ({ children }) => <li className="text-gray-700">{children}</li>,
+        table: ({ node, children, ...props }: any) => (
+          // create a wrapper around the table so it can be scrolled horizontally
+          <div className="w-full overflow-x-auto">
+            <table {...props} className="min-w-full table-auto">
+              {children}
+            </table>
+          </div>
+        ),
+        th: ({ children }) => (
+          <th className="border border-gray-300 p-1">{children}</th>
+        ),
+        td: ({ children }) => (
+          <td className="max-w-[16rem] border border-gray-300 p-1">
+            {children}
+          </td>
+        ),
         hr: () => <hr className="my-6 border-gray-300" />, // Custom styling for horizontal rule ('***' in markdown)
       }}
     >

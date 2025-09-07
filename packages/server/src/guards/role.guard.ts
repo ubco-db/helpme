@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserModel } from '../profile/user.entity';
+import * as Sentry from '@sentry/browser';
 
 /**
  * This is an abstract guard that gets extended by other guards (e.g. CourseRolesGuard and QueueRolesGuard)
@@ -29,6 +30,11 @@ export abstract class RolesGuard implements CanActivate {
       // if it doesn't have the roles decorator, maybe it has the CourseRoles decorator?
       roles = this.reflector.get<string[]>('CourseRoles', context.getHandler());
       if (!roles) {
+        Sentry.captureException(
+          new NotImplementedException(
+            `${context.getHandler().name} is missing the @Roles decorator (and thus any RolesGuard will not work and this endpoint returns 501).`,
+          ),
+        );
         throw new NotImplementedException(
           'This endpoint is missing the @Roles decorator (and thus any RolesGuard will not work). Please notify a developer and we will fix it as soon as we can.',
         );

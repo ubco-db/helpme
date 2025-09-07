@@ -141,6 +141,13 @@ export class CalendarController {
       await this.dataSource.transaction(async (transactionalEntityManager) => {
         const oldStaff = event.staff.map((staff) => ({ ...staff }));
         Object.assign(event, body);
+        if (!body.startDate && !body.endDate && !body.daysOfWeek) {
+          // make it non-recurring if these params are not sent
+          // Yes this makes this endpoint more of a PUT than a PATCH but this was the easiest solution at the time
+          event.startDate = null;
+          event.endDate = null;
+          event.daysOfWeek = null;
+        }
         await event.save();
         // is this logic most optimized? No, not really, but it's simple and covers the case where the start/end/daysOfWeek change
         // delete all old staff associations and cron jobs

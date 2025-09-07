@@ -174,6 +174,7 @@ export class QueueController {
    * Note there is a similar method in queue-invite.controller.ts
    *  */
   @Get(':queueId/sse')
+  @Roles(Role.TA, Role.PROFESSOR, Role.STUDENT)
   sendEvent(
     @Param('queueId', ParseIntPipe) queueId: number,
     @QueueRole() role: Role,
