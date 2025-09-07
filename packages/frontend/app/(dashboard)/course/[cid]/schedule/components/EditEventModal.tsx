@@ -225,8 +225,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
             daysOfWeek: event?.daysOfWeek
               ? event.daysOfWeek.map((dayInt) => intToDayMapping[dayInt])
               : [],
-            startDate: event ? dayjs(event.startDate) : undefined,
-            endDate: event ? dayjs(event.endRecur) : undefined,
+            startDate: event?.startDate ? dayjs(event.startDate) : undefined,
+            endDate: event?.endRecur ? dayjs(event.endRecur) : undefined,
             staffIds: event?.staffIds || [],
           }}
           clearOnDestroy
