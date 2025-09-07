@@ -129,14 +129,21 @@ export class LoginService {
     courseService?: CourseService,
     ltiService?: LtiService,
   ): Promise<Response | { res: Response; redirectUrl: string }> {
-    const { redirect, emailVerification, cookieOptions } = options;
+    const { emailVerification, cookieOptions } = options;
+    let { redirect } = options;
 
     let redirectUrl: string;
-    const queryParams = new URLSearchParams(
-      redirect != undefined
-        ? redirect.substring(redirect.indexOf('?'))
-        : undefined,
-    );
+    const initialParams: Record<string, string> = redirect
+      ?.split('?')[1]
+      ?.split('&')
+      .map((v) => v.split('='))
+      .reduce((p, c) => ({ ...p, [c[0]]: c[1] }), {});
+
+    const paramIndex = redirect?.indexOf('?') ?? -1;
+    if (paramIndex >= 0) {
+      redirect = redirect.substring(0, paramIndex);
+    }
+    const queryParams = new URLSearchParams(initialParams);
 
     const secureRedirectCookie = getCookie(req, '__SECURE_REDIRECT');
     const queueInviteCookie = getCookie(req, 'queueInviteInfo');
@@ -171,7 +178,10 @@ export class LoginService {
       redirectUrl = emailVerification ? undefined : '/courses';
     }
 
-    redirectUrl = `${redirectUrl}${queryParams.size > 0 ? '?' + queryParams.toString() : ''}`;
+    redirectUrl =
+      redirectUrl != undefined
+        ? `${redirectUrl}${queryParams.size > 0 ? '?' + queryParams.toString() : ''}`
+        : undefined;
 
     if (emailVerification && redirectUrl) {
       return res.status(HttpStatus.TEMPORARY_REDIRECT).send({

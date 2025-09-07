@@ -100,7 +100,7 @@ export class AuthService {
     let baseUrl: string;
     const query = new URLSearchParams();
     const openIDScopes = ['openid', 'profile', 'email'];
-    const redirect_uri = getAuthRedirectUri(auth_method);
+    const redirect_uri = `${this.configService.get('DOMAIN')}${getAuthRedirectUri(auth_method)}`;
     query.set('redirect_uri', redirect_uri);
 
     switch (auth_method) {
@@ -715,7 +715,8 @@ export class AuthService {
         organizationUser: true,
       },
     });
-    return user && user.organizationUser.organizationId === oid ? true : false;
+    console.log(user);
+    return user != undefined && user.organizationUser?.organizationId == oid;
   }
 
   async createPasswordResetToken(user: UserModel): Promise<string> {

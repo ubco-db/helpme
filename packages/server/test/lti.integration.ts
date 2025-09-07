@@ -19,6 +19,7 @@ import {
   CreateLtiPlatform,
   ERROR_MESSAGES,
   LtiPlatform,
+  Role,
   UpdateLtiPlatform,
   UserRole,
 } from '@koh/common';
@@ -49,11 +50,12 @@ describe('LtiController', () => {
     next: express.NextFunction,
   ) => {
     res.locals.token = {
+      userInfo: { email: 'fake_email@example.com' },
       platformInfo: { product_family_code: 'canvas' },
       platformContext: { custom: { canvas_course_id: 'abcdefg' } },
     };
-    res.locals.userId = user.id;
-    res.locals.courseId = course.id;
+    res.locals.userId = user?.id;
+    res.locals.courseId = course?.id;
 
     next();
   };
@@ -83,10 +85,6 @@ describe('LtiController', () => {
 
     user = await UserFactory.create();
     course = await CourseFactory.create();
-    await UserCourseFactory.create({
-      user,
-      course,
-    });
     platforms = [];
     for (let i = 0; i < 3; i++) {
       const platform = await provider.registerPlatform({
@@ -114,7 +112,9 @@ describe('LtiController', () => {
   });
 
   describe('ALL lti/', () => {
-    it('should redirect to lti courses page with query params', async () => {
+    it('should redirect to login if user and/or course not found', async () => {
+      user = undefined;
+      course = undefined;
       await supertest()
         .get('/lti')
         .expect(302)
@@ -122,8 +122,57 @@ describe('LtiController', () => {
           const location = new URL(
             'https://example.com' + response.headers['location'],
           );
-          expect(location.pathname).toEqual('/lti');
-          expect(location.searchParams.get('cid')).toEqual(String(course.id));
+          expect(location.pathname).toEqual(`/lti/login`);
+        });
+    });
+
+    it('should create course invite if user does not exist but course found', async () => {
+      user = undefined;
+      await supertest()
+        .get('/lti')
+        .expect(302)
+        .then((response) => {
+          const location = new URL(
+            'https://example.com' + response.headers['location'],
+          );
+          expect(response.headers['set-cookie']?.[0]).toEqual(
+            expect.stringContaining('__COURSE_INVITE='),
+          );
+          expect(location.pathname).toEqual(`/lti/login`);
+          expect(location.searchParams.get('redirect')).toEqual(
+            `/lti/${course.id}`,
+          );
+        });
+    });
+
+    it('should redirect to lti courses page without query params if student', async () => {
+      await supertest()
+        .get('/lti')
+        .expect(302)
+        .then((response) => {
+          const location = new URL(
+            'https://example.com' + response.headers['location'],
+          );
+          expect(location.pathname).toEqual(`/lti/${course.id}`);
+          expect(location.searchParams.get('api_course_id')).toEqual(null);
+          expect(location.searchParams.get('lms_platform')).toEqual(null);
+        });
+    });
+
+    it('should redirect to lti courses page without query params if professor', async () => {
+      await UserCourseFactory.create({
+        user,
+        course,
+        role: Role.PROFESSOR,
+      });
+      await supertest()
+        .get('/lti')
+        .expect(302)
+        .then((response) => {
+          const location = new URL(
+            'https://example.com' + response.headers['location'],
+          );
+          expect(location.pathname).toEqual(`/lti/${course.id}`);
           expect(location.searchParams.get('api_course_id')).toEqual('abcdefg');
           expect(location.searchParams.get('lms_platform')).toEqual('Canvas');
         });

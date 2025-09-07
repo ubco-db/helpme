@@ -183,6 +183,6 @@ export class LtiAuthController {
   }
 
   private getAuthRedirectUri(method: string): string {
-    return `${this.configService.get('DOMAIN')}/api/v1/lti/auth/callback/${method}`;
+    return `/api/v1/lti/auth/callback/${method}`;
   }
 }

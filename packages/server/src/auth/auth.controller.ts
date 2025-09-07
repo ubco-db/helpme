@@ -257,7 +257,7 @@ export class AuthController {
   }
 
   private getAuthRedirectUri(method: string): string {
-    return `${this.configService.get('DOMAIN')}/api/v1/auth/callback/${method}`;
+    return `/api/v1/auth/callback/${method}`;
   }
 
   private isSecure(): boolean {

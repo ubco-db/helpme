@@ -1,4 +1,3 @@
-import { AuthModule } from 'auth/auth.module';
 import { setupIntegrationTest } from './util/testUtils';
 import { JwtService } from '@nestjs/jwt';
 import {
@@ -9,12 +8,8 @@ import {
 import { AuthService } from 'auth/auth.service';
 import { AccountType } from '@koh/common';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
-import {
-  TokenAction,
-  TokenType,
-  UserTokenModel,
-} from 'profile/user-token.entity';
 import { LoginTicket, OAuth2Client } from 'google-auth-library';
+import { LtiModule } from '../src/lti/lti.module';
 
 jest.mock('google-auth-library', () => ({
   OAuth2Client: jest.fn().mockImplementation(
@@ -46,7 +41,7 @@ jest.mock('superagent', () => ({
 describe('Auth Integration', () => {
   let jwtService: JwtService;
   let authService: AuthService;
-  const { supertest, getTestModule } = setupIntegrationTest(AuthModule);
+  const { supertest, getTestModule } = setupIntegrationTest(LtiModule);
 
   beforeEach(async () => {
     const testModule = getTestModule();
@@ -55,40 +50,44 @@ describe('Auth Integration', () => {
     jwtService = testModule.get<JwtService>(JwtService);
   });
 
-  describe('GET link/:method/:oid', () => {
+  describe('GET /lti/auth/link/:method/:oid', () => {
     it('should return 200 and redirect to google', async () => {
-      const res = await supertest().get('/auth/link/google/1');
+      const res = await supertest().get('/lti/auth/link/google/1');
 
       expect(res.status).toBe(200);
       expect(res.get('Set-Cookie')[0]).toContain('organization.id=1;');
     });
   });
 
-  describe('GET shibboleth/:oid', () => {
-    it("should redirect to failed/40000 when organization doesn't exist", async () => {
-      const res = await supertest().get('/auth/shibboleth/0');
+  describe('GET /lti/auth/shibboleth/:oid', () => {
+    it("should redirect to /lti/failed/40000 when organization doesn't exist", async () => {
+      const res = await supertest().get('/lti/auth/shibboleth/0');
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/failed/40000');
+      expect(res.header['location']).toBe('/lti/failed/40000');
     });
 
-    it('should redirect to /failed/40002 when SSO is disabled', async () => {
+    it('should redirect to /lti/failed/40002 when SSO is disabled', async () => {
       const organization = await OrganizationFactory.create({
         ssoEnabled: false,
       });
-      const res = await supertest().get(`/auth/shibboleth/${organization.id}`);
+      const res = await supertest().get(
+        `/lti/auth/shibboleth/${organization.id}`,
+      );
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/failed/40002');
+      expect(res.header['location']).toBe('/lti/failed/40002');
     });
 
-    it('should redirect to login?error when headers are missing', async () => {
+    it('should redirect to /lti/login?error when headers are missing', async () => {
       const organization = await OrganizationFactory.create({
         ssoEnabled: true,
       });
-      const res = await supertest().get(`/auth/shibboleth/${organization.id}`);
+      const res = await supertest().get(
+        `/lti/auth/shibboleth/${organization.id}`,
+      );
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toContain('/login?error=errorCode400');
+      expect(res.header['location']).toContain('/lti/login?error=errorCode400');
     });
 
     it('should redirect to login?error when authService failed', async () => {
@@ -96,22 +95,21 @@ describe('Auth Integration', () => {
         ssoEnabled: true,
       });
 
-      const spy = jest.spyOn(authService, 'loginWithShibboleth');
+      const spy = jest.spyOn(AuthService.prototype, 'loginWithShibboleth');
       spy.mockRejectedValue(new Error('some error'));
 
       const res = await supertest()
-        .get(`/auth/shibboleth/${organization.id}`)
+        .get(`/lti/auth/shibboleth/${organization.id}`)
         .set('x-trust-auth-uid', '1')
         .set('x-trust-auth-mail', 'failing_email@ubc.ca')
         .set('x-trust-auth-role', 'student@ubc.ca')
         .set('x-trust-auth-givenname', 'John')
         .set('x-trust-auth-lastname', 'Doe');
-
+      spy.mockRestore();
       expect(res.status).toBe(302);
       expect(res.header['location']).toContain(
-        '/login?error=errorCode500some%20error',
+        '/lti/login?error=errorCode500some%20error',
       );
-      spy.mockRestore();
     });
 
     it('should sign in user when authService succeeded', async () => {
@@ -124,7 +122,7 @@ describe('Auth Integration', () => {
       });
 
       const res = await supertest()
-        .get(`/auth/shibboleth/${organization.id}`)
+        .get(`/lti/auth/shibboleth/${organization.id}`)
         .set('x-trust-auth-uid', '1')
         .set('x-trust-auth-mail', 'mocked_email@ubc.ca')
         .set('x-trust-auth-role', 'student@ubc.ca')
@@ -141,7 +139,7 @@ describe('Auth Integration', () => {
       await jwtService.signAsync({ userId: 1 });
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/courses');
+      expect(res.header['location']).toBe('/lti');
     });
 
     it('should sign in and redirect to /course/:cid/invite when __SECURE_REDIRECT cookie is present', async () => {
@@ -154,7 +152,7 @@ describe('Auth Integration', () => {
       });
 
       const res = await supertest()
-        .get(`/auth/shibboleth/${organization.id}`)
+        .get(`/lti/auth/shibboleth/${organization.id}`)
         .set('Cookie', `__SECURE_REDIRECT=1,inviteCode`)
         .set('x-trust-auth-uid', '1')
         .set('x-trust-auth-mail', 'mocked_email@ubc.ca')
@@ -176,33 +174,35 @@ describe('Auth Integration', () => {
     });
   });
 
-  describe('GET callback/:method', () => {
-    it('should redirect to /failed/40000 when cookie is missing', async () => {
-      const res = await supertest().get('/auth/callback/google');
+  describe('GET /lti/auth/callback/:method', () => {
+    it('should redirect to /lti/failed/40000 when cookie is missing', async () => {
+      const res = await supertest().get('/lti/auth/callback/google');
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/failed/40000');
+      expect(res.header['location']).toBe('/lti/failed/40000');
     });
 
-    it('should redirect to login?error when authService failed', async () => {
-      const spy = jest.spyOn(authService, 'loginWithGoogle');
+    it('should redirect to /lti/login?error when authService failed', async () => {
+      const organization = await OrganizationFactory.create();
+      const spy = jest.spyOn(AuthService.prototype, 'loginWithGoogle');
       spy.mockRejectedValue(new Error('Some error'));
 
       const res = await supertest()
-        .get('/auth/callback/google')
-        .set('Cookie', 'organization.id=1');
+        .get('/lti/auth/callback/google')
+        .set('Cookie', `organization.id=${organization.id}`);
+
+      spy.mockRestore();
 
       expect(res.status).toBe(302);
       expect(res.header['location']).toContain(
-        '/login?error=errorCode500Some%20error',
+        '/lti/login?error=errorCode500Some%20error',
       );
-      spy.mockRestore();
     });
 
     it('should sign in user when authService succeeded', async () => {
       const organization = await OrganizationFactory.create();
       const res = await supertest()
-        .get('/auth/callback/google')
+        .get('/lti/auth/callback/google')
         .set('Cookie', `organization.id=${organization.id}`)
         .query({ code: 'expectedCode' });
 
@@ -210,14 +210,14 @@ describe('Auth Integration', () => {
       await jwtService.signAsync({ userId: 1 });
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/courses');
+      expect(res.header['location']).toBe('/lti');
     });
   });
 
-  describe('POST register', () => {
+  describe('POST /lti/auth/register', () => {
     it('should return BAD REQUEST when Google returned false for recaptcha', () => {
       return supertest()
-        .post('/auth/register')
+        .post('/lti/auth/register')
         .send({
           firstName: 'John',
           lastName: 'Doe',
@@ -233,7 +233,7 @@ describe('Auth Integration', () => {
 
     it('should return BAD REQUEST when firstName is shorter than 1 character', () => {
       return supertest()
-        .post('/auth/register')
+        .post('/lti/auth/register')
         .send({
           firstName: '',
           lastName: 'Doe',
@@ -249,7 +249,7 @@ describe('Auth Integration', () => {
 
     it('should return BAD REQUEST when firsName is longer than 32 characters', () => {
       return supertest()
-        .post('/auth/register')
+        .post('/lti/auth/register')
         .send({
           firstName: 'a'.repeat(33),
           lastName: 'Doe',
@@ -265,7 +265,7 @@ describe('Auth Integration', () => {
 
     it('should return BAD REQUEST when lastName is shorter than 1 character', () => {
       return supertest()
-        .post('/auth/register')
+        .post('/lti/auth/register')
         .send({
           firstName: 'John',
           lastName: '',
@@ -281,7 +281,7 @@ describe('Auth Integration', () => {
 
     it('should return BAD REQUEST when lastName is longer than 32 characters', () => {
       return supertest()
-        .post('/auth/register')
+        .post('/lti/auth/register')
         .send({
           firstName: 'John',
           lastName: 'a'.repeat(33),
@@ -297,7 +297,7 @@ describe('Auth Integration', () => {
 
     it('should return BAD REQUEST when email is shorter than 4 characters', () => {
       return supertest()
-        .post('/auth/register')
+        .post('/lti/auth/register')
         .send({
           firstName: 'John',
           lastName: 'Doe',
@@ -313,7 +313,7 @@ describe('Auth Integration', () => {
 
     it('should return BAD REQUEST when email is longer than 64 characters', () => {
       return supertest()
-        .post('/auth/register')
+        .post('/lti/auth/register')
         .send({
           firstName: 'John',
           lastName: 'Doe',
@@ -329,7 +329,7 @@ describe('Auth Integration', () => {
 
     it('should return BAD REQUEST when password is shorter than 6 characters', () => {
       return supertest()
-        .post('/auth/register')
+        .post('/lti/auth/register')
         .send({
           firstName: 'John',
           lastName: 'Doe',
@@ -345,7 +345,7 @@ describe('Auth Integration', () => {
 
     it('should return BAD REQUEST when password is longer than 32 characters', () => {
       return supertest()
-        .post('/auth/register')
+        .post('/lti/auth/register')
         .send({
           firstName: 'John',
           lastName: 'Doe',
@@ -361,7 +361,7 @@ describe('Auth Integration', () => {
 
     it('should return BAD REQUEST when passwords do not match', () => {
       return supertest()
-        .post('/auth/register')
+        .post('/lti/auth/register')
         .send({
           firstName: 'John',
           lastName: 'Doe',
@@ -377,7 +377,7 @@ describe('Auth Integration', () => {
 
     it('should return BAD REQUEST when organization does not exist', () => {
       return supertest()
-        .post('/auth/register')
+        .post('/lti/auth/register')
         .send({
           firstName: 'John',
           lastName: 'Doe',
@@ -397,7 +397,7 @@ describe('Auth Integration', () => {
         email: 'email@email.com',
       });
 
-      const res = await supertest().post('/auth/register').send({
+      const res = await supertest().post('/lti/auth/register').send({
         firstName: 'John',
         lastName: 'Doe',
         email: 'email@email.com',
@@ -424,7 +424,7 @@ describe('Auth Integration', () => {
         organization,
       });
 
-      const res = await supertest().post('/auth/register').send({
+      const res = await supertest().post('/lti/auth/register').send({
         firstName: 'John',
         lastName: 'Doe',
         email: 'new@email.com',
@@ -443,7 +443,7 @@ describe('Auth Integration', () => {
 
       await jwtService.signAsync({ userId: 1 });
 
-      const res = await supertest().post('/auth/register').send({
+      const res = await supertest().post('/lti/auth/register').send({
         firstName: 'John',
         lastName: 'Doe',
         email: 'email@email.com',
@@ -459,10 +459,10 @@ describe('Auth Integration', () => {
     });
   });
 
-  describe('POST password/reset', () => {
+  describe('POST /lti/auth/password/reset', () => {
     it('should return BAD REQUEST when Google returned false for recaptcha', () => {
       return supertest()
-        .post('/auth/password/reset')
+        .post('/lti/auth/password/reset')
         .send({
           email: 'email.com',
           recaptchaToken: 'invalid',
@@ -474,7 +474,7 @@ describe('Auth Integration', () => {
     it('should return BAD REQUEST when user does not exist', async () => {
       const organization = await OrganizationFactory.create();
 
-      const res = await supertest().post('/auth/password/reset').send({
+      const res = await supertest().post('/lti/auth/password/reset').send({
         email: 'email.com',
         recaptchaToken: 'token',
         organizationId: organization.id,
@@ -495,7 +495,7 @@ describe('Auth Integration', () => {
         userId: user.id,
       }).save();
 
-      const res = await supertest().post('/auth/password/reset').send({
+      const res = await supertest().post('/lti/auth/password/reset').send({
         email: user.email,
         recaptchaToken: 'token',
         organizationId: organization.id,
@@ -516,207 +516,13 @@ describe('Auth Integration', () => {
         userId: user.id,
       }).save();
 
-      const res = await supertest().post('/auth/password/reset').send({
+      const res = await supertest().post('/lti/auth/password/reset').send({
         email: user.email,
         recaptchaToken: 'token',
         organizationId: organization.id,
       });
 
       expect(res.status).toBe(202);
-    });
-  });
-
-  describe('POST password/reset/:token', () => {
-    it('should return BAD REQUEST when password and confirmPassword do not match', async () => {
-      const res = await supertest().post('/auth/password/reset/123').send({
-        password: 'password',
-        confirmPassword: 'password1',
-      });
-
-      expect(res.status).toBe(400);
-    });
-
-    it('should return BAD REQUEST when token is invalid', async () => {
-      const res = await supertest().post('/auth/password/reset/invalid').send({
-        password: 'password',
-        confirmPassword: 'password',
-      });
-
-      expect(res.status).toBe(400);
-    });
-
-    it('should return BAD REQUEST when token is expired', async () => {
-      const user = await UserFactory.create();
-      const userToken = await UserTokenModel.create({
-        user,
-        token: 'expired',
-        token_type: TokenType.PASSWORD_RESET,
-        token_action: TokenAction.ACTION_PENDING,
-        created_at: parseInt(new Date().getTime().toString()) - 10_000,
-        expires_at: parseInt(new Date().getTime().toString()) - 10_000,
-      }).save();
-
-      const res = await supertest()
-        .post(`/auth/password/reset/${userToken.token}`)
-        .send({
-          password: 'password',
-          confirmPassword: 'password',
-        });
-
-      expect(res.status).toBe(400);
-    });
-
-    it('should return ACCEPTED when token is valid', async () => {
-      const user = await UserFactory.create();
-      const userToken = await UserTokenModel.create({
-        user,
-        token: 'valid',
-        token_type: TokenType.PASSWORD_RESET,
-        token_action: TokenAction.ACTION_PENDING,
-        created_at: parseInt(new Date().getTime().toString()),
-        expires_at: parseInt(new Date().getTime().toString()) + 20_000,
-      }).save();
-
-      const res = await supertest()
-        .post(`/auth/password/reset/${userToken.token}`)
-        .send({
-          password: 'password',
-          confirmPassword: 'password',
-        });
-
-      expect(res.status).toBe(202);
-    });
-  });
-
-  describe('GET password/reset/validate/:token', () => {
-    it('should return BAD REQUEST when token not found', async () => {
-      const res = await supertest().get(
-        '/auth/password/reset/validate/invalid',
-      );
-
-      expect(res.status).toBe(400);
-    });
-
-    it('should return BAD REQUEST when token is expired', async () => {
-      const user = await UserFactory.create();
-      const userToken = await UserTokenModel.create({
-        user,
-        token: 'expired',
-        token_type: TokenType.PASSWORD_RESET,
-        token_action: TokenAction.ACTION_PENDING,
-        created_at: parseInt(new Date().getTime().toString()) - 10_000,
-        expires_at: parseInt(new Date().getTime().toString()) - 10_000,
-      }).save();
-
-      const res = await supertest().get(
-        `/auth/password/reset/validate/${userToken.token}`,
-      );
-
-      expect(res.body.message).toBe('Password reset token has expired');
-      expect(res.status).toBe(400);
-    });
-
-    it('should return ACCEPTED when token is valid', async () => {
-      const user = await UserFactory.create();
-      const userToken = await UserTokenModel.create({
-        user,
-        token: 'valid',
-        token_type: TokenType.PASSWORD_RESET,
-        token_action: TokenAction.ACTION_PENDING,
-        created_at: parseInt(new Date().getTime().toString()),
-        expires_at: parseInt(new Date().getTime().toString()) + 20_000,
-      }).save();
-
-      const res = await supertest().get(
-        `/auth/password/reset/validate/${userToken.token}`,
-      );
-
-      expect(res.status).toBe(202);
-    });
-  });
-
-  describe('POST registration/verify', () => {
-    it('should return BAD REQUEST when token not found', async () => {
-      const user = await UserFactory.create();
-      const res = await supertest({ userId: user.id })
-        .post('/auth/registration/verify')
-        .send({
-          token: 'invalid',
-        });
-
-      expect(res.body.message).toBe(
-        'Verification code was not found or it is not valid',
-      );
-      expect(res.status).toBe(400);
-    });
-
-    it('should return BAD REQUEST when token has expired', async () => {
-      const user = await UserFactory.create();
-      const userToken = await UserTokenModel.create({
-        user,
-        token: 'expired',
-        token_type: TokenType.EMAIL_VERIFICATION,
-        token_action: TokenAction.ACTION_PENDING,
-        created_at: parseInt(new Date().getTime().toString()) - 10_000,
-        expires_at: parseInt(new Date().getTime().toString()) - 10_000,
-      }).save();
-
-      const res = await supertest({ userId: user.id })
-        .post('/auth/registration/verify')
-        .send({
-          token: userToken.token,
-        });
-
-      expect(res.body.message).toBe('Verification code has expired');
-      expect(res.status).toBe(400);
-    });
-
-    it('should return ACCEPTED when token is valid', async () => {
-      const user = await UserFactory.create();
-
-      const userToken = await UserTokenModel.create({
-        user,
-        token: 'valid',
-        token_type: TokenType.EMAIL_VERIFICATION,
-        token_action: TokenAction.ACTION_PENDING,
-        created_at: parseInt(new Date().getTime().toString()),
-        expires_at: parseInt(new Date().getTime().toString()) + 20_000,
-      }).save();
-
-      const res = await supertest({ userId: user.id })
-        .post('/auth/registration/verify')
-        .send({
-          token: userToken.token,
-        });
-
-      expect(res.status).toBe(202);
-    });
-
-    it('should return TEMPORARY REDIRECT when __SECURE_REDIRECT cookie is present', async () => {
-      const user = await UserFactory.create();
-
-      const userToken = await UserTokenModel.create({
-        user,
-        token: 'valid',
-        token_type: TokenType.EMAIL_VERIFICATION,
-        token_action: TokenAction.ACTION_PENDING,
-        created_at: parseInt(new Date().getTime().toString()),
-        expires_at: parseInt(new Date().getTime().toString()) + 20_000,
-      }).save();
-
-      const token = jwtService.sign({ userId: user.id });
-      const res = await supertest()
-        .post('/auth/registration/verify')
-        .set(
-          'Cookie',
-          `auth_token=${token};__SECURE_REDIRECT=${Buffer.from(`/course`).toString('base64')}`,
-        )
-        .send({
-          token: userToken.token,
-        });
-
-      console.log(res.body);
-      expect(res.status).toBe(307);
     });
   });
 });
