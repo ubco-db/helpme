@@ -73,14 +73,6 @@ export async function bootstrap(hot: any): Promise<void> {
 // Global settings that should be true in prod and in integration tests
 export function addGlobalsToApp(app: INestApplication, test = false): void {
   if (!test) {
-    app.use(/\/api\/v1(?!\/lti)/, (req, res, next) => {
-      console.log('regular middleware used');
-      next();
-    });
-    app.use(/\/api\/v1\/lti/, (req, res, next) => {
-      console.log('lti middleware used');
-      next();
-    });
     // If not an LTI route, use standard helmet, cookieParser
     // Regex: (?!\/lti) means NOT /lti, avoids using these middlewares at (/api/v1)/lti routes
     app.use(/\/api\/v1(?!\/lti)/, cookieParser());

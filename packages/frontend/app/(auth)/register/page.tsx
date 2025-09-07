@@ -1,16 +1,24 @@
 'use client'
 
 import { Button, Card, Col, Form, Input, message, Row } from 'antd'
-import React, { ReactElement, useEffect, useState } from 'react'
+import React, { ReactElement, useEffect, useMemo, useState } from 'react'
 import ReCAPTCHA from 'react-google-recaptcha'
 import { LeftOutlined } from '@ant-design/icons'
-import { useRouter } from 'next/navigation'
-import { userApi } from '@/app/api/userApi'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { API } from '@/app/api'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 export default function RegisterPage(): ReactElement {
   const [organizationId, setOrganizationId] = useState(0)
   const [domLoaded, setDomLoaded] = useState(false)
   const router = useRouter()
+  const pathName = usePathname()
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get('redirect')
+
+  const isLti = useMemo(() => {
+    return pathName.startsWith('/lti')
+  }, [pathName])
 
   const [registerForm] = Form.useForm()
   const recaptchaRef = React.createRef<ReCAPTCHA>()
@@ -44,7 +52,7 @@ export default function RegisterPage(): ReactElement {
 
     const token = await recaptchaRef?.current?.executeAsync()
 
-    const response = await userApi.registerAccount({
+    const loginParams = {
       firstName,
       lastName,
       email,
@@ -53,19 +61,19 @@ export default function RegisterPage(): ReactElement {
       sid: studentId,
       organizationId,
       recaptchaToken: token ?? '',
-    })
-
-    if (response.status !== 201) {
-      const data = await response.json()
-
-      message.error(data.message)
-    } else {
-      localStorage.removeItem('organizationId')
-
-      router.push('/courses')
     }
 
-    return
+    const response = await (isLti
+      ? API.lti.auth.registerAccount(loginParams)
+      : API.auth.registerAccount(loginParams))
+
+    if (response.status !== 201) {
+      message.error(getErrorMessage(response.data))
+      return
+    }
+
+    localStorage.removeItem('organizationId')
+    router.push(redirect ? redirect : isLti ? '/lti' : '/courses')
   }
 
   useEffect(() => {

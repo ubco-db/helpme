@@ -2,7 +2,6 @@ import { config } from 'dotenv';
 import { isProd } from '@koh/common';
 import * as fs from 'fs';
 import { DataSourceOptions } from 'typeorm';
-import { AdminUserModel } from './src/admin/admin-user.entity';
 import { CourseModel } from './src/course/course.entity';
 import { SemesterModel } from './src/semester/semester.entity';
 import { DesktopNotifModel } from './src/notification/desktop-notif.entity';
@@ -53,6 +52,7 @@ import { OrganizationChatbotSettingsModel } from './src/chatbot/chatbot-infrastr
 import { LLMTypeModel } from './src/chatbot/chatbot-infrastructure-models/llm-type.entity';
 import { LMSAccessTokenModel } from './src/lmsIntegration/lms-access-token.entity';
 import { LMSAuthStateModel } from './src/lmsIntegration/lms-auth-state.entity';
+import { LtiCourseInviteModel } from './src/lti/lti-course-invite.entity';
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
   config();
@@ -95,7 +95,6 @@ const typeorm: DataSourceOptions = {
     QuestionTypeModel,
     QueueModel,
     DesktopNotifModel,
-    AdminUserModel,
     EventModel,
     QuestionGroupModel,
     AlertModel,
@@ -133,6 +132,7 @@ const typeorm: DataSourceOptions = {
     LLMTypeModel,
     LMSAuthStateModel,
     LMSAccessTokenModel,
+    LtiCourseInviteModel,
   ],
   logging:
     process.env.NODE_ENV !== 'production'

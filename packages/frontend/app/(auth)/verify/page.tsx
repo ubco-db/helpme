@@ -1,62 +1,60 @@
 'use client'
 
-import { authApi } from '@/app/api/authApi'
-import { mailApi } from '@/app/api/mailApi'
-import { userApi } from '@/app/api/userApi'
 import StandardPageContainer from '@/app/components/standardPageContainer'
 import { User } from '@koh/common'
 import { Button, Card, Form, Input, message, Spin } from 'antd'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
+import { API, fetchUserDetails } from '@/app/api'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 export default function VerifyEmailPage() {
   const [form] = Form.useForm()
   const router = useRouter()
+  const pathName = usePathname()
   const [profile, setProfile] = useState<User>()
 
-  useEffect(() => {
-    const fetchUserDetails = async () => {
-      await userApi.getUser().then((userDetails) => {
-        setProfile(userDetails)
-      })
-    }
+  const isLti = useMemo(() => {
+    return pathName.startsWith('/lti')
+  }, [pathName])
 
-    fetchUserDetails()
+  useEffect(() => {
+    fetchUserDetails(setProfile)
   }, [])
 
   const resendVerificationCode = async () => {
-    const response = await mailApi.resendVerificationCode()
-    const data = await response.json()
+    const response = await API.mail.resendVerificationCode()
+    const data = response.data
 
-    if (!response.ok) {
-      const error = (data && data.message) || response.statusText
+    if (!(response.status >= 200 && response.status < 300)) {
+      const error = getErrorMessage(data)
       message.error(error)
-      return Promise.reject(error)
-    } else {
-      message.success('Verification code has been resent.')
+      return
     }
+    message.success('Verification code has been resent.')
   }
 
   const validateVerificationCode = async () => {
     const formValues: { verificationCode: string } = await form.validateFields()
     const verificationCode = formValues.verificationCode.toUpperCase()
 
-    const response = await authApi.verifyEmail(verificationCode)
+    const response = await (isLti
+      ? API.lti.auth.verifyEmail(verificationCode)
+      : API.auth.verifyEmail(verificationCode))
 
-    const data = await response.json()
+    const data = response.data
 
-    if (response.status == 307) {
+    if (response.status == 307 || response.status == 302) {
       router.push(data.redirectUri)
       return
     }
 
-    if (!response.ok) {
-      const error = (data && data.message) || response.statusText
-      message.error(error)
-      return Promise.reject(error)
-    } else {
-      router.push('/courses')
+    if (!(response.status >= 200 && response.status < 300)) {
+      message.error(getErrorMessage(response.data))
+      return
     }
+
+    router.push(isLti ? '/lti' : '/courses')
   }
 
   return profile ? (
@@ -116,7 +114,7 @@ export default function VerifyEmailPage() {
             </Button>
 
             <div className="mt-4 text-center">
-              <a href="/api/v1/logout">Logout</a>
+              <a href={'/api/v1/logout'}>Logout</a>
             </div>
           </Form>
         </Card>

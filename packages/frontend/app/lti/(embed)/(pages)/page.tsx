@@ -85,7 +85,7 @@ export default function LtiLandingPage(): ReactElement {
           .length === 0 ? (
           <Empty
             className="max-h-min"
-            description="You are not enrolled in any courses"
+            description="You are not enrolled in any courses."
           />
         ) : (
           <CoursesSection

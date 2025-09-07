@@ -51,27 +51,27 @@ export class OrganizationModel extends BaseEntity {
 
   @Exclude()
   @OneToOne(
-    (type) => OrganizationSettingsModel,
+    () => OrganizationSettingsModel,
     (organizationSettings) => organizationSettings.organization,
   )
   organizationSettings: OrganizationSettingsModel;
 
   @Exclude()
   @OneToMany(
-    (type) => OrganizationRoleHistory,
+    () => OrganizationRoleHistory,
     (roleHistory) => roleHistory.organization,
   )
   organizationRoleHistory: OrganizationRoleHistory[];
 
   @Exclude()
   @JoinColumn({ name: 'organizationId' })
-  @OneToMany((type) => SemesterModel, (semester) => semester.organization)
+  @OneToMany(() => SemesterModel, (semester) => semester.organization)
   semesters: SemesterModel[];
 
   @Exclude()
   @JoinColumn({ name: 'organizationId' })
   @OneToMany(
-    (type) => OrganizationUserModel,
+    () => OrganizationUserModel,
     (organizationUser) => organizationUser.organization,
   )
   organizationUsers: OrganizationUserModel[];
@@ -79,7 +79,7 @@ export class OrganizationModel extends BaseEntity {
   @Exclude()
   @JoinColumn({ name: 'organizationId' })
   @OneToMany(
-    (type) => OrganizationCourseModel,
+    () => OrganizationCourseModel,
     (organizationCourse) => organizationCourse.organization,
   )
   organizationCourses: OrganizationCourseModel[];
@@ -87,7 +87,7 @@ export class OrganizationModel extends BaseEntity {
   @Exclude()
   @JoinColumn({ name: 'organizationId' })
   @OneToMany(
-    (type) => LMSOrganizationIntegrationModel,
+    () => LMSOrganizationIntegrationModel,
     (integration) => integration.organization,
   )
   organizationIntegrations: LMSOrganizationIntegrationModel[];
@@ -98,9 +98,9 @@ export class OrganizationModel extends BaseEntity {
   superCourses: SuperCourseModel[];
 
   @Exclude()
-  @JoinColumn({ name: 'organizationId' })
+  @JoinColumn({ referencedColumnName: 'organizationId' })
   @OneToOne(
-    (type) => OrganizationChatbotSettingsModel,
+    () => OrganizationChatbotSettingsModel,
     (orgChatbotSettings) => orgChatbotSettings.organization,
   )
   chatbotSettings: OrganizationChatbotSettingsModel;

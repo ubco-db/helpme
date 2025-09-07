@@ -38,17 +38,17 @@ describe('Login Integration', () => {
       t.overrideProvider(JwtService).useValue(mockJWT),
   );
 
-  describe('POST /ubc_login', () => {
+  describe('POST /login', () => {
     it('returns 400 if no email is provided', async () => {
       await supertest()
-        .post('/ubc_login')
+        .post('/login')
         .send({ password: 'fake_password', recaptchaToken: 'token' })
         .expect(400);
     });
 
     it('returns 400 if recaptcha returned response false', async () => {
       await supertest()
-        .post('/ubc_login')
+        .post('/login')
         .send({
           email: 'fake_email@ubc.ca',
           password: 'fake_password',
@@ -59,7 +59,7 @@ describe('Login Integration', () => {
 
     it('returns 404 if user not found', async () => {
       await supertest()
-        .post('/ubc_login')
+        .post('/login')
         .send({
           email: 'fake_email@ubc.ca',
           password: 'fake_password',
@@ -73,7 +73,7 @@ describe('Login Integration', () => {
       await mockJWT.signAsync({ userId: user.id });
 
       await supertest()
-        .post('/ubc_login')
+        .post('/login')
         .send({
           email: user.email,
           password: 'invalid_password',
@@ -93,7 +93,7 @@ describe('Login Integration', () => {
       await mockJWT.signAsync({ userId: user.id });
 
       await supertest()
-        .post('/ubc_login')
+        .post('/login')
         .send({
           email: user.email,
           password: 'realpassword',
@@ -109,7 +109,7 @@ describe('Login Integration', () => {
       const user = await UserFactory.create({ password: password });
       await mockJWT.signAsync({ userId: user.id });
 
-      const res = await supertest().post('/ubc_login').send({
+      const res = await supertest().post('/login').send({
         email: user.email,
         password: 'realpassword',
         recaptchaToken: 'token',
@@ -133,7 +133,7 @@ describe('Login Integration', () => {
       await mockJWT.signAsync({ userId: user.id });
 
       await supertest()
-        .post('/ubc_login')
+        .post('/login')
         .send({
           email: user.email,
           password: 'real_password',
@@ -156,7 +156,7 @@ describe('Login Integration', () => {
       await mockJWT.signAsync({ userId: user.id });
 
       await supertest()
-        .post('/ubc_login')
+        .post('/login')
         .send({
           email: user.email,
           password: 'real_password',

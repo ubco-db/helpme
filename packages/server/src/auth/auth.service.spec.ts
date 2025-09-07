@@ -22,6 +22,10 @@ import { OrganizationModule } from '../organization/organization.module';
 import { OrganizationService } from '../organization/organization.service';
 import { RedisProfileModule } from '../redisProfile/redis-profile.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { LoginModule } from '../login/login.module';
+import { LoginService } from '../login/login.service';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 // Extend the OAuth2Client mock with additional methods
 jest.mock('google-auth-library', () => {
@@ -92,6 +96,7 @@ describe('AuthService', () => {
         TestConfigModule,
         FactoryModule,
         MailModule,
+        LoginModule,
         OrganizationModule,
         RedisProfileModule,
         RedisModule.forRoot({
@@ -113,9 +118,17 @@ describe('AuthService', () => {
             },
           ],
         }),
+        JwtModule.registerAsync({
+          imports: [ConfigModule],
+          inject: [ConfigService],
+          useFactory: async (configService: ConfigService) => ({
+            secret: configService.get('JWT_SECRET'),
+          }),
+        }),
       ],
       providers: [
         AuthService,
+        LoginService,
         OrganizationService,
         RedisProfileModule,
         { provide: MailService, useClass: MockMailService },
@@ -376,6 +389,15 @@ describe('AuthService', () => {
   });
 
   describe('register', () => {
+    const params = {
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'existingEmail@mail.com',
+      password: 'password',
+      sid: -1,
+      organizationId: 1,
+    };
+
     afterEach(() => {
       roleChangeSpy?.mockClear();
     });
@@ -385,30 +407,20 @@ describe('AuthService', () => {
         email: 'existingEmail@mail.com',
       }).save();
 
-      await expect(
-        service.register(
-          'John',
-          'Doe',
-          'existingEmail@mail.com',
-          'password',
-          -1,
-          1,
-        ),
-      ).rejects.toThrow('Email already exists');
+      await expect(service.register(params)).rejects.toThrow(
+        'Email already exists',
+      );
       expect(roleChangeSpy).not.toHaveBeenCalled();
     });
 
     it('should create a new user when email does not exist with empty sid', async () => {
       const organization = await OrganizationFactory.create();
 
-      const userId = await service.register(
-        'John',
-        'Doe',
-        'email@mail.com',
-        'password',
-        -1,
-        organization.id,
-      );
+      const userId = await service.register({
+        ...params,
+        email: 'email@mail.com',
+        organizationId: organization.id,
+      });
 
       const user = await UserModel.findOne({
         where: {
@@ -433,14 +445,12 @@ describe('AuthService', () => {
     it('should create a new user when email does not exist with sid', async () => {
       const organization = await OrganizationFactory.create();
 
-      const userId = await service.register(
-        'John',
-        'Doe',
-        'email@mail.com',
-        'password',
-        123456,
-        organization.id,
-      );
+      const userId = await service.register({
+        ...params,
+        email: 'email@mail.com',
+        sid: 123456,
+        organizationId: organization.id,
+      });
 
       const user = await UserModel.findOne({
         where: {
@@ -465,7 +475,10 @@ describe('AuthService', () => {
 
     it('should throw an error when unexpected error occurs', async () => {
       await expect(
-        service.register('John', 'Doe', 'email@mail.com', 'password', -1, 1),
+        service.register({
+          ...params,
+          email: 'email@mail.com',
+        }),
       ).rejects.toThrow();
     });
   });

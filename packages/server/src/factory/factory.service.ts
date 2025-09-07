@@ -50,8 +50,9 @@ import { CourseChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-mo
 import { SentEmailModel } from '../mail/sent-email.entity';
 import { LMSAuthStateModel } from '../lmsIntegration/lms-auth-state.entity';
 import { LMSAccessTokenModel } from '../lmsIntegration/lms-access-token.entity';
+import { LtiCourseInviteModel } from '../lti/lti-course-invite.entity';
 
-/* Has all of our factories and initializes them with the db dataSource. 
+/* Has all of our factories and initializes them with the db dataSource.
   If you want to use one of these factories, import it from factories.ts instead.
 
   If you are creating a new factory, first create it here and then modify factories.ts so that it exports it.
@@ -102,6 +103,7 @@ export class FactoryService {
   public CourseChatbotSettingsFactory: Factory<CourseChatbotSettingsModel>;
   public LMSAuthStateFactory: Factory<LMSAuthStateModel>;
   public LMSAccessTokenFactory: Factory<LMSAccessTokenModel>;
+  public LtiCourseInviteFactory: Factory<LtiCourseInviteModel>;
 
   constructor(dataSource: DataSource) {
     this.UserFactory = new Factory(UserModel, dataSource)
@@ -407,5 +409,9 @@ export class FactoryService {
     this.LMSAccessTokenFactory = new Factory(LMSAccessTokenModel, dataSource)
       .assocOne('user', this.UserFactory)
       .assocOne('organizationIntegration', this.lmsOrgIntFactory);
+
+    this.LtiCourseInviteFactory = new Factory(LtiCourseInviteModel, dataSource)
+      .assocOne('course', this.CourseFactory)
+      .attr('inviteCode', v4());
   }
 }

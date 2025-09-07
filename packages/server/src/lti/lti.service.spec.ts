@@ -7,15 +7,22 @@ import {
   CourseFactory,
   initFactoriesFromService,
   lmsCourseIntFactory,
+  LtiCourseInviteFactory,
+  OrganizationCourseFactory,
+  OrganizationFactory,
+  OrganizationUserFactory,
   UserCourseFactory,
   UserFactory,
 } from '../../test/util/factories';
-import { LtiService, restrictPaths } from './lti.service';
+import { LtiService } from './lti.service';
 import { IdToken, Provider } from 'lti-typescript';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { NotFoundException } from '@nestjs/common';
 import { ERROR_MESSAGES } from '@koh/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { UserModel } from '../profile/user.entity';
+import { CourseModel } from '../course/course.entity';
+import { LtiCourseInviteModel } from './lti-course-invite.entity';
 
 const idToken = {
   iss: 'http://canvas.docker/',
@@ -90,15 +97,184 @@ describe('LtiService', () => {
     });
   });
 
-  describe('(static) findMatchingUserCourse', () => {
-    it('should throw error if no users match idtoken email', async () => {
+  describe('createCourseInvite', () => {
+    it('should throw error if JWT fails to be signed', async () => {
+      const course = await CourseFactory.create();
+      const spy = jest.spyOn(JwtService.prototype, 'sign');
+
+      spy.mockReturnValue(null as any);
+
       await expect(
-        LtiService.findMatchingUserAndCourse(idToken as unknown as IdToken),
-      ).rejects.toThrow(
-        new NotFoundException(ERROR_MESSAGES.ltiService.noMatchingUser),
+        service.createCourseInvite(course.id, 'email'),
+      ).rejects.toThrow(ERROR_MESSAGES.ltiService.errorSigningJwt);
+
+      spy.mockRestore();
+    });
+
+    it('should create JWT and return the token', async () => {
+      const course = await CourseFactory.create();
+
+      const result = await service.createCourseInvite(course.id, 'email');
+
+      expect(result).toBeDefined();
+      expect(jwtService.verify(result)).toEqual(
+        expect.objectContaining({
+          courseId: course.id,
+          iat: expect.anything(),
+          inviteCode: expect.anything(),
+        }),
+      );
+    });
+  });
+
+  describe('checkCourseInvite', () => {
+    let user: UserModel;
+    let course: CourseModel;
+
+    beforeEach(async () => {
+      user = await UserFactory.create();
+      course = await CourseFactory.create();
+    });
+
+    it('should throw error if token invalid or missing properties', async () => {
+      let token = '';
+      await expect(service.checkCourseInvite(user.id, token)).rejects.toThrow(
+        ERROR_MESSAGES.ltiService.invalidInviteJwt,
+      );
+
+      token = jwtService.sign({ courseId: course.id });
+      await expect(service.checkCourseInvite(user.id, token)).rejects.toThrow(
+        ERROR_MESSAGES.ltiService.invalidInviteJwt,
+      );
+
+      token = jwtService.sign({ courseId: 'ABC' });
+      await expect(service.checkCourseInvite(user.id, token)).rejects.toThrow(
+        ERROR_MESSAGES.ltiService.invalidInviteJwt,
+      );
+
+      token = jwtService.sign({ inviteCode: 'abc' });
+      await expect(service.checkCourseInvite(user.id, token)).rejects.toThrow(
+        ERROR_MESSAGES.ltiService.invalidInviteJwt,
       );
     });
 
+    it('should throw error if matching invite not found', async () => {
+      const token = jwtService.sign({ courseId: course.id, inviteCode: 'abc' });
+      await expect(service.checkCourseInvite(user.id, token)).rejects.toThrow(
+        new NotFoundException(ERROR_MESSAGES.ltiService.courseInviteNotFound),
+      );
+    });
+
+    it('should throw error if invite email != user email', async () => {
+      const invite = await LtiCourseInviteFactory.create({
+        course,
+        email: 'email@example.com',
+      });
+      const token = jwtService.sign({
+        courseId: course.id,
+        inviteCode: invite.inviteCode,
+      });
+
+      await expect(service.checkCourseInvite(user.id, token)).rejects.toThrow(
+        ERROR_MESSAGES.ltiService.courseInviteEmailMismatch,
+      );
+    });
+
+    it('should throw error if course belongs to different organization than user', async () => {
+      const org0 = await OrganizationFactory.create();
+      const org1 = await OrganizationFactory.create();
+
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization: org0,
+      });
+
+      await OrganizationCourseFactory.create({
+        course,
+        organization: org1,
+      });
+
+      const invite = await LtiCourseInviteFactory.create({
+        course,
+        email: user.email,
+      });
+      const token = jwtService.sign({
+        courseId: course.id,
+        inviteCode: invite.inviteCode,
+      });
+
+      await expect(service.checkCourseInvite(user.id, token)).rejects.toThrow(
+        new NotFoundException(
+          ERROR_MESSAGES.ltiService.courseInviteOrganizationMismatch,
+        ),
+      );
+    });
+
+    it('should throw error if the invite is expired', async () => {
+      const org = await OrganizationFactory.create();
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization: org,
+      });
+      await OrganizationCourseFactory.create({
+        course,
+        organization: org,
+      });
+
+      const invite = await LtiCourseInviteFactory.create({
+        course,
+        email: user.email,
+        expires: 0,
+      });
+      const token = jwtService.sign({
+        courseId: course.id,
+        inviteCode: invite.inviteCode,
+      });
+      await expect(service.checkCourseInvite(user.id, token)).rejects.toThrow(
+        ERROR_MESSAGES.ltiService.courseInviteExpired,
+      );
+    });
+
+    it('should succeed, create enrollment & delete invites like the invite', async () => {
+      const org = await OrganizationFactory.create();
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization: org,
+      });
+      await OrganizationCourseFactory.create({
+        course,
+        organization: org,
+      });
+
+      const invites: LtiCourseInviteModel[] = [];
+      for (let i = 0; i < 3; i++) {
+        invites.push(
+          await LtiCourseInviteFactory.create({
+            course,
+            email: user.email,
+          }),
+        );
+      }
+      const token = jwtService.sign({
+        courseId: course.id,
+        inviteCode: invites[0].inviteCode,
+      });
+      await expect(service.checkCourseInvite(user.id, token)).resolves.toEqual(
+        course.id,
+      );
+
+      expect(
+        await LtiCourseInviteModel.find({
+          where: {
+            course,
+            email: user.email,
+          },
+        }),
+      ).toHaveLength(0);
+    });
+  });
+
+  describe('(static) findMatchingUserCourse', () => {
     it('should return matching user', async () => {
       const user = await UserFactory.create({
         email: 'testuser@example.com',
@@ -131,26 +307,6 @@ describe('LtiService', () => {
       );
       expect(userId).toEqual(user.id);
       expect(courseId).toEqual(course.id);
-    });
-  });
-
-  describe('generateAuthToken', () => {
-    it('should generate an auth token', async () => {
-      const user = await UserFactory.create();
-      const tokenString = await service.generateAuthToken(user.id);
-
-      const token = jwtService.verify<{
-        userId: number;
-        expiresIn: number;
-        restrictPaths?: (RegExp | string)[];
-      }>(tokenString);
-
-      expect(token).toEqual({
-        userId: user.id,
-        expiresIn: 60 * 10,
-        restrictPaths,
-        iat: expect.anything(),
-      });
     });
   });
 });

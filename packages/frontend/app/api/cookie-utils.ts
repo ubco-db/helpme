@@ -3,14 +3,7 @@
 import { cookies } from 'next/headers'
 
 /**
- * Cookie "API".
- * Note: our main "API" is in index.ts
- * TODO: This should be merged into the main API file and all calls to these methods should be changed.
- * Though maybe this one should just be a regular function and moved to a utils file
- */
-
-/**
- * Fetches the 'auth_token' from the cookies.
+ * Fetches the 'auth_token' (or 'lti_auth_token') from the cookies.
  *
  * @async
  * @function fetchAuthToken
@@ -20,6 +13,12 @@ import { cookies } from 'next/headers'
 export async function fetchAuthToken(): Promise<string> {
   try {
     const cookieStore = await cookies()
+    const lti_auth_token = cookieStore.get('lti_auth_token')
+
+    if (lti_auth_token) {
+      return `lti_auth_token=${lti_auth_token.value}`
+    }
+
     const auth_token = cookieStore.get('auth_token')
 
     return `auth_token=${auth_token?.value || ''}`

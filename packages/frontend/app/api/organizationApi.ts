@@ -1,4 +1,5 @@
-import { fetchAuthToken } from './cookieApi'
+import { fetchAuthToken } from './cookie-utils'
+
 const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? ''
 /**
  * Organization "API".
@@ -28,13 +29,6 @@ export const organizationApi = {
         },
         credentials: 'include',
       },
-    )
-    return response.json()
-  },
-
-  getOrganizationStats: async (organizationId: number) => {
-    const response = await fetch(
-      `${baseUrl}/api/v1/organization/${organizationId}/stats`,
     )
     return response.json()
   },

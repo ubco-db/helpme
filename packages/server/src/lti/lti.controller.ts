@@ -10,11 +10,12 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   Res,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { LtiCourseId, LtiToken, LtiUser } from '../decorators/lti.decorator';
+import { LtiCourse, LtiToken, LtiUser } from '../decorators/lti.decorator';
 import express from 'express';
 import { LtiGuard } from '../guards/lti.guard';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -31,6 +32,7 @@ import {
   ERROR_MESSAGES,
   LMSIntegrationPlatform,
   LtiPlatform,
+  Role,
   UpdateLtiPlatform,
 } from '@koh/common';
 import { plainToClass } from 'class-transformer';
@@ -39,48 +41,101 @@ import {
   IgnoreableClassSerializerInterceptor,
   IgnoreSerializer,
 } from '../interceptors/IgnoreableClassSerializerInterceptor';
+import { EmailVerifiedGuard } from '../guards/email-verified.guard';
+import { CourseModel } from '../course/course.entity';
+import { UserCourseModel } from '../profile/user-course.entity';
+import { restrictPaths } from './lti-auth.controller';
+import { LoginService } from '../login/login.service';
 
 @Controller('lti')
 @UseInterceptors(IgnoreableClassSerializerInterceptor)
 export class LtiController {
-  constructor(private ltiService: LtiService) {}
+  constructor(
+    private ltiService: LtiService,
+    private loginService: LoginService,
+  ) {}
 
   @All()
   @UseGuards(LtiGuard)
   @IgnoreSerializer()
   async index(
+    @Req() req: express.Request,
     @Res() res: express.Response,
     @LtiToken() token: IdToken,
-    @LtiUser({ organizationUser: true }) user: UserModel,
-    @LtiCourseId() courseId?: number,
+    @LtiUser({ organizationUser: true }) user?: UserModel,
+    @LtiCourse({ organizationCourse: { organization: true } })
+    course?: CourseModel,
     @Query('lti_storage_target') lti_storage_target?: string,
   ) {
     const qry = new URLSearchParams();
-    if (courseId) {
-      qry.set('cid', String(courseId));
+
+    // If the user does not exist, but the course was found, create an invite and set it as a cookie
+    if (!user && course && token.userInfo.email != undefined) {
+      qry.set('redirect', `/lti/${course.id}`);
+
+      try {
+        const invite = await this.ltiService.createCourseInvite(
+          course.id,
+          token.userInfo.email,
+        );
+        res.cookie('__COURSE_INVITE', invite, LtiService.cookieOptions);
+      } catch (_ignored) {}
     }
-    const platformMatch =
-      Object.values(LMSIntegrationPlatform).find(
-        (v) => v.toLowerCase() == token.platformInfo.product_family_code,
-      ) ?? LMSIntegrationPlatform.None;
 
-    const apiCid = LtiService.extractCourseId(token);
-    qry.set('api_course_id', String(apiCid));
-    qry.set('lms_platform', platformMatch);
+    // If the user does not exist, redirect to login.
+    if (!user) {
+      return res.redirect(
+        `/lti/login${qry.size > 0 ? `?${qry.toString()}` : ''}`,
+      );
+    }
 
-    const auth = await this.ltiService.generateAuthToken(user.id);
+    let enrollment = await UserCourseModel.findOne({
+      where: {
+        userId: user.id,
+        courseId: course.id,
+      },
+    });
+    // If the user has no enrollment.
+    if (!enrollment) {
+      enrollment = await UserCourseModel.create({
+        userId: user.id,
+        courseId: course.id,
+        role: Role.STUDENT,
+      }).save();
+    }
+
+    if (enrollment?.role == Role.PROFESSOR) {
+      const platformMatch =
+        Object.values(LMSIntegrationPlatform).find(
+          (v) => v.toLowerCase() == token.platformInfo.product_family_code,
+        ) ?? LMSIntegrationPlatform.None;
+      const apiCid = LtiService.extractCourseId(token);
+      qry.set('api_course_id', String(apiCid));
+      qry.set('lms_platform', platformMatch);
+    }
+
     if (lti_storage_target) {
-      qry.set('auth_token', auth);
       qry.set('lti_storage_target', lti_storage_target);
-    } else {
-      res = await this.ltiService.attachAuthToken(user.id, res, auth);
     }
 
-    res.redirect(`/lti${qry.size > 0 ? '?' + qry.toString() : ''}`);
+    await this.loginService.enter(
+      req,
+      res,
+      user.id,
+      undefined,
+      this.ltiService,
+      {
+        cookieName: 'lti_auth_token',
+        cookieOptions: LtiService.cookieOptions,
+        restrictPaths,
+        expiresIn: 60 * 10,
+        redirect: `/lti${course ? `/${course.id}` : ''}${qry.size > 0 ? '?' + qry.toString() : ''}`,
+      },
+    );
   }
 
   @Get('/platform')
-  @UseGuards(JwtAuthGuard, AdminRoleGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminRoleGuard)
   async getPlatforms(): Promise<LtiPlatform[]> {
     if (!Database.dataSource.isInitialized) {
       throw new BadRequestException(
@@ -91,7 +146,7 @@ export class LtiController {
   }
 
   @Get('/platform/:kid')
-  @UseGuards(JwtAuthGuard, AdminRoleGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminRoleGuard)
   async getPlatform(@Param('kid') kid: string): Promise<LtiPlatform> {
     if (!Database.dataSource.isInitialized) {
       throw new BadRequestException(
@@ -104,7 +159,7 @@ export class LtiController {
   }
 
   @Post('/platform')
-  @UseGuards(JwtAuthGuard, AdminRoleGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminRoleGuard)
   async createPlatform(
     @Body() params: CreateLtiPlatform,
   ): Promise<LtiPlatform> {
@@ -117,7 +172,7 @@ export class LtiController {
   }
 
   @Patch('/platform/:kid')
-  @UseGuards(JwtAuthGuard, AdminRoleGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminRoleGuard)
   async updatePlatform(
     @Param('kid') kid: string,
     @Body() params: UpdateLtiPlatform,
@@ -132,13 +187,13 @@ export class LtiController {
   }
 
   @Delete('/platform/:kid')
-  @UseGuards(JwtAuthGuard, AdminRoleGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminRoleGuard)
   async deletePlatform(@Param('kid') kid: string): Promise<void> {
     await this.ltiService.provider.deletePlatformById(kid);
   }
 
   @Patch('/platform/:kid/toggle')
-  @UseGuards(JwtAuthGuard, AdminRoleGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminRoleGuard)
   async togglePlatform(@Param('kid') kid: string): Promise<LtiPlatform> {
     const platform = await this.ltiService.provider.getPlatformById(kid);
     if (platform) {
@@ -146,6 +201,18 @@ export class LtiController {
     }
     return mapToLocalPlatform(
       await Database.findOne(PlatformModel, { where: { kid } }),
+    );
+  }
+
+  @Get('/platform/:kid/registration')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminRoleGuard)
+  async checkRegistrationStatus(
+    @Param('kid') kid: string,
+  ): Promise<LtiPlatform> {
+    const platform = await this.ltiService.provider.getPlatformById(kid);
+
+    return await this.ltiService.provider.DynamicRegistration.getRegistration(
+      platform,
     );
   }
 }

@@ -8,8 +8,7 @@ import { LayoutProps } from '@/app/typings/types'
 import ChatbotContextProvider from '../../../(dashboard)/course/[cid]/components/chatbot/ChatbotProvider'
 import { AsyncToasterProvider } from '@/app/contexts/AsyncToasterContext'
 import { ReloadOutlined } from '@ant-design/icons'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { API } from '@/app/api'
+import { fetchUserDetails } from '@/app/api'
 import StandardPageContainer from '@/app/components/standardPageContainer'
 import Link from 'next/link'
 import HeaderBar from '@/app/lti/(embed)/components/LtiHeaderBar'
@@ -21,20 +20,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   )
 
   useEffect(() => {
-    const fetchUserDetails = async () => {
-      await API.profile
-        .index()
-        .then((userDetails) => {
-          if (!userDetails.organization) {
-            throw new Error('No organization found for user profile.')
-          }
-          setProfile(userDetails)
-        })
-        .catch((error) => {
-          setErrorGettingUser(getErrorMessage(error))
-        })
-    }
-    fetchUserDetails()
+    fetchUserDetails((userDetails) => {
+      if (!userDetails.organization) {
+        setErrorGettingUser('No organization found for user profile.')
+        return
+      }
+      setProfile(userDetails)
+    }, setErrorGettingUser)
   }, [])
 
   return errorGettingUser ? (

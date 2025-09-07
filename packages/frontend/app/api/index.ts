@@ -121,9 +121,19 @@ import {
   UpsertLMSOrganizationParams,
   UserMailSubscription,
 } from '@koh/common'
-import Axios, { AxiosInstance, Method } from 'axios'
+import Axios, { AxiosInstance, AxiosResponse, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
 import { ClassType } from 'class-transformer/ClassTransformer'
+import {
+  LoginData,
+  PasswordConfirmationData,
+  PasswordResetData,
+  RegisterData,
+} from '@/app/typings/user'
+import * as Sentry from '@sentry/nextjs'
+import { SetStateAction } from 'react'
+import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 // Return type of array item, if T is an array
 type ItemIfArray<T> = T extends (infer I)[] ? I : T
@@ -170,20 +180,94 @@ export class APIClient {
     body?: any,
     params?: any,
   ): Promise<T> {
-    const res = (await this.axios.request({ method, url, data: body, params }))
-      .data
+    const headers = this.authToken ? { cookie: this.authToken } : undefined
+    const res = (
+      await this.axios.request({ method, url, data: body, params, headers })
+    ).data
     return responseClass ? plainToClass(responseClass, res) : res
   }
 
+  /**
+   * Send HTTP and return full response
+   * @param method HTTP method
+   * @param url URL to send req to
+   * @param body body to send with req
+   * @param params any query parameters to include in req URL
+   */
+  private async request(
+    method: Method,
+    url: string,
+    body?: any,
+    params?: any,
+  ): Promise<AxiosResponse> {
+    const headers = this.authToken ? { cookie: this.authToken } : undefined
+    return await this.axios.request({
+      method,
+      url,
+      data: body,
+      params,
+      headers,
+    })
+  }
+
+  login = {
+    index: (loginData: LoginData) =>
+      this.request('POST', `/api/v1/login`, loginData),
+  }
+
   auth = {
-    loginWithGoogle: async (
-      organizationId: number,
-    ): Promise<{ redirectUri: string }> =>
-      this.req('GET', `/api/v1/auth/link/google/${organizationId}`, undefined),
+    shibboleth: (organizationId: any) =>
+      `/api/v1/auth/shibboleth/${organizationId}`,
+    registerAccount: async (registerData: RegisterData) =>
+      this.request('POST', '/api/v1/auth/register', registerData),
+    requestPasswordReset: async (passwordResetData: PasswordResetData) =>
+      this.request('POST', '/api/v1/auth/password/reset', passwordResetData),
+    verifyEmail: async (token: string) =>
+      this.request('POST', '/api/v1/auth/registration/verify', { token }),
+    resetPassword: async (
+      token: string,
+      confirmation: PasswordConfirmationData,
+    ) =>
+      this.req(
+        'POST',
+        `/api/v1/auth/password/reset/${token}`,
+        undefined,
+        confirmation,
+      ),
+    validateResetToken: async (token: string | null) =>
+      this.req('GET', `/api/v1/auth/reset/validate/${token}`),
+    loginWithGoogle: async (organizationId: number) =>
+      this.request('GET', `/api/v1/auth/link/google/${organizationId}`),
   }
   profile = {
-    index: async (): Promise<GetProfileResponse> =>
-      this.req('GET', `/api/v1/profile`, GetProfileResponse),
+    getUser: async (): Promise<GetProfileResponse> => {
+      const response = await this.profile.fullResponse()
+      const contentType = response.headers['content-type'] ?? ''
+
+      if (contentType.includes('application/json')) {
+        if (response.status >= 400) {
+          const body = response.data
+          return Promise.reject(body)
+        }
+        return response.data as any // Type assertion needed due to conditional return type
+      } else if (contentType.includes('text/html')) {
+        const text = response.data as string
+        Sentry.captureEvent({
+          message: `Unknown error in getUser ${response.status}: ${response.statusText}`,
+          level: 'error',
+          extra: {
+            text,
+            response,
+          },
+        })
+        return Promise.reject(text)
+      } else {
+        return Promise.reject(
+          'Unknown error in getUser' + JSON.stringify(response),
+        )
+      }
+    },
+    fullResponse: async () => this.request('GET', `/api/v1/profile`),
     patch: async (body?: UpdateProfileParams): Promise<GetProfileResponse> =>
       this.req('PATCH', `/api/v1/profile`, undefined, body),
     deleteProfilePicture: async (): Promise<void> =>
@@ -665,6 +749,10 @@ export class APIClient {
     toggleFavourited: async (courseId: number) => {
       return this.req('PATCH', `/api/v1/courses/${courseId}/toggle_favourited`)
     },
+  }
+  mail = {
+    resendVerificationCode: async () =>
+      this.request('POST', '/api/v1/mail/registration/resend'),
   }
   emailNotification = {
     get: async (): Promise<MailServiceWithSubscription[]> =>
@@ -1438,6 +1526,22 @@ export class APIClient {
   }
 
   lti = {
+    auth: {
+      shibboleth: (organizationId: any) =>
+        `/api/v1/lti/authshibboleth/${organizationId}`,
+      requestPasswordReset: async (passwordResetData: PasswordResetData) =>
+        this.request(
+          'POST',
+          '/api/v1/lti/auth/password/reset',
+          passwordResetData,
+        ),
+      registerAccount: async (registerData: RegisterData) =>
+        this.request('POST', '/api/v1/lti/auth/register', registerData),
+      verifyEmail: async (token: string) =>
+        this.request('POST', '/api/v1/lti/auth/registration/verify', { token }),
+      loginWithGoogle: async (organizationId: number) =>
+        this.request('GET', `/api/v1/lti/auth/link/google/${organizationId}`),
+    },
     admin: {
       getPlatforms: async (): Promise<LtiPlatform[]> =>
         this.req('GET', '/api/v1/lti/platform'),
@@ -1454,10 +1558,15 @@ export class APIClient {
         this.req('DELETE', `/api/v1/lti/platform/${id}`),
       togglePlatform: async (id: string): Promise<LtiPlatform> =>
         this.req('PATCH', `/api/v1/lti/platform/${id}/toggle`),
+      checkRegistration: async (id: string): Promise<LtiPlatform> =>
+        this.req('GET', `/api/v1/lti/platform/${id}/registration`),
     },
   }
 
-  constructor(private baseURL = '') {
+  constructor(
+    private baseURL = '',
+    private authToken: string = '',
+  ) {
     this.axios = Axios.create({ baseURL: this.baseURL })
   }
 }
@@ -1467,3 +1576,30 @@ export class APIClient {
  * TODO: Some of the ones here are old and should be removed, others are missing types, and the other Api files should be merged with this one.
  */
 export const API = new APIClient(process.env.NEXT_PUBLIC_API_URL)
+
+export async function fetchUserDetails(
+  setProfile: React.Dispatch<SetStateAction<any | undefined>>,
+  setErrorGettingUser?: React.Dispatch<SetStateAction<string | undefined>>,
+  router?: AppRouterInstance,
+  pathname?: string,
+  onFinally?: () => any,
+) {
+  await API.profile
+    .getUser()
+    .then((userDetails) => {
+      setProfile(userDetails)
+    })
+    .catch((error) => {
+      if (setErrorGettingUser) {
+        setErrorGettingUser(getErrorMessage(error))
+      }
+      if (error.status === 401) {
+        router?.push(`/api/v1/logout${pathname ? `?redirect=${pathname}` : ''}`)
+      }
+    })
+    .finally(() => {
+      if (onFinally) {
+        onFinally()
+      }
+    })
+}

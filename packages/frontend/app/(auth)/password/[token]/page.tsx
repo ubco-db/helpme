@@ -1,11 +1,11 @@
 'use client'
 
-import { Button, Card, Form, Input, message, Spin } from 'antd'
-import { useRouter } from 'next/navigation'
-import { Result } from 'antd'
-import { useEffect, useState, use } from 'react'
-import { authApi } from '@/app/api/authApi'
+import { Button, Card, Form, Input, message, Result, Spin } from 'antd'
+import { usePathname, useRouter } from 'next/navigation'
+import { use, useEffect, useMemo, useState } from 'react'
 import { PasswordConfirmationData } from '@/app/typings/user'
+import { API } from '@/app/api'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 const PasswordResetPage = (props: { params: Promise<{ token: string }> }) => {
   const params = use(props.params)
@@ -13,23 +13,23 @@ const PasswordResetPage = (props: { params: Promise<{ token: string }> }) => {
   const [isTokenValid, setIsTokenValid] = useState(false)
   const [invalidTokenMessage, setInvalidTokenMessage] = useState(null)
   const [resetPasswordForm] = Form.useForm()
+  const pathName = usePathname()
+
+  const isLti = useMemo(() => {
+    return pathName.startsWith('/lti')
+  }, [pathName])
 
   useEffect(() => {
-    const fetchToken = async () => {
-      const response = await fetch(
-        `/api/v1/auth/password/reset/validate/${params.token}`,
-      )
-
-      if (response.ok) {
-        setIsTokenValid(true)
-      } else {
-        const data = await response.json()
-
-        setInvalidTokenMessage(data.message)
-      }
+    const validateToken = async () => {
+      await API.auth
+        .validateResetToken(params.token)
+        .then(() => setIsTokenValid(true))
+        .catch((err) => {
+          setIsTokenValid(false)
+          setInvalidTokenMessage(getErrorMessage(err))
+        })
     }
-
-    fetchToken()
+    validateToken()
   }, [params.token])
 
   const resetPassword = async () => {
@@ -46,21 +46,16 @@ const PasswordResetPage = (props: { params: Promise<{ token: string }> }) => {
       confirmPassword: confirmPasswordField,
     }
 
-    const response = await authApi.resetPassword(
-      params.token,
-      passwordConfirmationPayloadData,
-    )
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      const error = (data && data.message) || response.statusText
-      message.error(error)
-      return Promise.reject(error)
-    } else {
-      message.success('Password reset successfully')
-      router.push('/login')
-    }
+    return await API.auth
+      .resetPassword(params.token, passwordConfirmationPayloadData)
+      .then(() => {
+        message.success('Password reset successfully')
+        router.push(isLti ? '/lti/login' : '/login')
+      })
+      .catch((err) => {
+        const error = getErrorMessage(err)
+        message.error(error)
+      })
   }
 
   if (isTokenValid) {
@@ -144,7 +139,7 @@ const PasswordResetPage = (props: { params: Promise<{ token: string }> }) => {
               type="primary"
               className="h-auto items-center justify-center rounded-lg border px-5 py-3"
               key="login"
-              onClick={() => router.push('/login')}
+              onClick={() => router.push(isLti ? '/lti/login' : '/login')}
             >
               Go to Login Page
             </Button>,

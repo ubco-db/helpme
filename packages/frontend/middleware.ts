@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { userApi } from './app/api/userApi'
 import { OrganizationRole } from './app/typings/user'
 import { isProd, User } from './middlewareType'
 import * as Sentry from '@sentry/nextjs'
 import { UserRole } from '@koh/common'
+import { RequestCookies } from 'next/dist/compiled/@edge-runtime/cookies'
+import getAPI from '@/app/api/server'
 
 // These are the public pages that do not require authentication. Adding an * will match any characters after the page (e.g. if the page has search query params).
 const publicPages = [
   '/login',
-  '/lti*',
   '/register',
   '/failed*',
   '/password*',
@@ -27,6 +27,36 @@ const isPublicPage = (url: string) => {
 
 const isEmailVerified = (userData: User): boolean => {
   return userData.emailVerified
+}
+
+async function fetchUser(cookies: RequestCookies) {
+  if (!cookies.has('auth_token') && !cookies.has('lti_auth_token')) {
+    return undefined
+  }
+
+  const API = await getAPI()
+  const response = await API.profile.fullResponse()
+
+  if (response.headers?.['content-type']?.includes('application/json')) {
+    if (response.status >= 400) {
+      const body = response.data
+      return Promise.reject(body)
+    }
+    return response.data as any // Type assertion needed due to conditional return type
+  } else if (response.headers?.['content-type']?.includes('text/html')) {
+    const text = response.data as string
+    Sentry.captureEvent({
+      message: `Unknown error in getUser ${response.status}: ${response.statusText}`,
+      level: 'error',
+      extra: {
+        text,
+        response,
+      },
+    })
+    return Promise.reject(text)
+  } else {
+    return Promise.reject('Unknown error in getUser' + JSON.stringify(response))
+  }
 }
 
 export async function middleware(
@@ -50,8 +80,10 @@ export async function middleware(
 
   let data: Response | undefined
   let userData: User | undefined
+
   try {
-    data = cookies.has('auth_token') ? await userApi.getUser(true) : undefined
+    data = await fetchUser(cookies)
+
     userData =
       data && (data.ok || data.status == 302)
         ? ((await data?.json()) as User)

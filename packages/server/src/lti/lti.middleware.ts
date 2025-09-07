@@ -19,7 +19,11 @@ import {
 } from 'lti-typescript';
 import { JwtService } from '@nestjs/jwt';
 import { LtiService } from './lti.service';
-import { pick } from 'lodash';
+
+const dynRegScopes = [
+  'https://purl.imsglobal.org/spec/lti-reg/scope/registration',
+  'https://purl.imsglobal.org/spec/lti-reg/scope/registration.readonly',
+];
 
 export default class LtiMiddleware {
   private prefix: string;
@@ -97,6 +101,7 @@ export default class LtiMiddleware {
     const secondaryOptions: DynamicRegistrationSecondaryOptions = {
       scope: [
         'https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly',
+        ...dynRegScopes,
       ].join(' '),
       client_name: 'HelpMe',
       'https://purl.imsglobal.org/spec/lti-tool-configuration': {
@@ -142,7 +147,7 @@ export default class LtiMiddleware {
         dynReg: {
           url: `${this.configService.get<string>('DOMAIN')}`,
           name: 'HelpMe',
-          logo: `${this.configService.get<string>('DOMAIN')}/helpme_logo_small.png`,
+          logo: `${this.configService.get<string>('DOMAIN')}/favicon.ico`,
           description:
             'External UBC-affiliated application. This tool provides access to its course-specific chatbots.',
           redirectUris: this.redirectRoutes,
@@ -156,6 +161,7 @@ export default class LtiMiddleware {
           secure: true,
           sameSite: 'none',
         },
+        debug: !isProd(),
         cors: true,
         prefix: this.prefix,
       },
@@ -200,31 +206,19 @@ export default class LtiMiddleware {
       },
     );
 
-    const ltiConfigs = await Database.find(PlatformModel);
+    const platforms = await Database.find(PlatformModel);
 
     provider.whitelist = [
       {
         route: /\/platform.*/,
         method: 'ALL',
       },
+      {
+        route: /\/auth.*/,
+        method: 'ALL',
+      },
       `/static`,
     ];
-
-    for (const ltiConfig of ltiConfigs) {
-      await provider.registerPlatform({
-        ...pick(ltiConfig, [
-          'platformUrl',
-          'name',
-          'clientId',
-          'authenticationEndpoint',
-          'accessTokenEndpoint',
-          'authorizationServer',
-          'active',
-          'kid',
-        ]),
-        authToken: ltiConfig.authToken(),
-      });
-    }
 
     const deployResult = await provider.deploy({
       serverless: true,
@@ -232,6 +226,35 @@ export default class LtiMiddleware {
 
     if (!deployResult) {
       throw new Error('Failed to initialize LTI middleware');
+    }
+
+    for (const platformModel of platforms.filter(
+      (c) => c.dynamicallyRegistered && c.registrationEndpoint,
+    )) {
+      try {
+        const platform = await provider.getPlatformById(platformModel.kid);
+        const hasReadScope =
+          platform.scopesSupported.includes(dynRegScopes[0]) ||
+          platform.scopesSupported.includes(dynRegScopes[1]);
+        const hasWriteScope = platform.scopesSupported.includes(
+          dynRegScopes[0],
+        );
+        if (platform && hasReadScope) {
+          try {
+            const registration =
+              await provider.DynamicRegistration.getRegistration(platform);
+            if (hasWriteScope && registration != undefined) {
+              await provider.DynamicRegistration.updateRegistration(platform);
+            }
+          } catch (err) {
+            // Delete platforms with 'not found' registrations
+            if ((err as Error).message.includes('404:')) {
+              await provider.deletePlatformById(platform.kid);
+            }
+          }
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_err) {}
     }
 
     return provider;

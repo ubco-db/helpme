@@ -3746,6 +3746,20 @@ export class LtiPlatform {
   @Type(() => LtiAuthConfig)
   authToken!: LtiAuthConfig
 
+  @IsBoolean()
+  @IsOptional()
+  dynamicallyRegistered?: boolean
+
+  @IsString()
+  @IsOptional()
+  productFamilyCode?: string
+
+  @Exclude()
+  registrationEndpoint?: string
+
+  @Exclude()
+  scopesAllowed?: string[]
+
   @Exclude()
   authTokenMethod?: string
 
@@ -4033,9 +4047,13 @@ export const ERROR_MESSAGES = {
     ltiDataSourceUninitialized: 'LTI datasource is not initialized.',
   },
   ltiService: {
-    unparsableCourseId: 'Course identifier could not be parsed from request',
-    noMatchingUser:
-      'Failed to find a user which matches credentials sent in LTI launch request.',
+    errorSigningJwt: 'Error occurred signing JWT.',
+    invalidInviteJwt: 'Invite code was invalid.',
+    courseInviteNotFound: 'Matching course invite was not found.',
+    courseInviteEmailMismatch: 'Course invite was not issued for this email.',
+    courseInviteOrganizationMismatch:
+      'Course invite is for a course in another organization than account.',
+    courseInviteExpired: 'Course invite has expired.',
   },
   chatbotEndpointGuard: {
     legacyEndpointIncompatible: (endpoint: string) =>

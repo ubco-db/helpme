@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { UserInfoProvider } from '../contexts/userContext'
 import { User } from '@koh/common'
-import { fetchUserDetails } from '../api/userApi'
+import { fetchUserDetails } from '@/app/api'
 import Link from 'next/link'
 import { Button, Spin } from 'antd'
 import HeaderBar from '../components/HeaderBar'

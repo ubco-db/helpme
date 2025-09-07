@@ -369,6 +369,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
         'url:GET|/api/v1/courses/:course_id/pages/:url_or_id',
         'url:GET|/api/v1/courses/:course_id/files',
         'url:GET|/api/v1/courses/:course_id/quizzes',
+        'url:GET|/api/v1/courses/:course_id/quizzes/:quiz_id/questions',
       ].join(' '),
       redirect_uri: `${configService.get<string>('DOMAIN')}/api/v1/lms/oauth2/response`,
     });

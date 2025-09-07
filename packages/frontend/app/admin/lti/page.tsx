@@ -4,6 +4,7 @@ import { CreateLtiPlatform, LtiPlatform, UpdateLtiPlatform } from '@koh/common'
 import { ReactElement, useEffect, useMemo, useState } from 'react'
 import { API } from '@/app/api'
 import {
+  Badge,
   Button,
   Input,
   message,
@@ -19,6 +20,7 @@ import {
   EditOutlined,
   PlusOutlined,
   SearchOutlined,
+  SyncOutlined,
 } from '@ant-design/icons'
 import UpsertLtiPlatformModal from '@/app/admin/lti/components/UpsertLtiPlatformModal'
 
@@ -111,6 +113,20 @@ export default function LtiAdminPage(): ReactElement {
       })
   }
 
+  const checkLtiRegistration = async (id: string) => {
+    return await API.lti.admin
+      .checkRegistration(id)
+      .then((response) => {
+        return response != undefined
+      })
+      .catch((err) => {
+        message.error(
+          `Failed to check LTI platform registration: ${getErrorMessage(err)}`,
+        )
+        return false
+      })
+  }
+
   const matchingPlatforms = useMemo(
     () =>
       search
@@ -145,6 +161,20 @@ export default function LtiAdminPage(): ReactElement {
       ),
     },
     {
+      dataIndex: 'dynamicallyRegistered',
+      title: 'Registration Type',
+      width: '10%',
+      render: (dynamicallyRegistered: boolean, _: any, index: number) => (
+        <div key={`dynReg-${index}`} className={'w-min'}>
+          {dynamicallyRegistered ? (
+            <Badge color={'purple'} count={'Dynamic'} />
+          ) : (
+            <Badge color={'green'} count={'Standard'} />
+          )}
+        </div>
+      ),
+    },
+    {
       dataIndex: 'kid',
       title: 'ID',
       ellipsis: true,
@@ -172,6 +202,25 @@ export default function LtiAdminPage(): ReactElement {
       title: 'Actions',
       render: (_: any, record: LtiPlatform, index: number) => (
         <div key={`actions-${index}`} className={'flex flex-col gap-1'}>
+          {record.dynamicallyRegistered && (
+            <Tooltip
+              title={
+                ['canvas'].includes(record.productFamilyCode ?? '')
+                  ? 'This tool does not support dynamic registration configuration updates or reads.'
+                  : null
+              }
+            >
+              <Button
+                disabled={['canvas'].includes(record.productFamilyCode ?? '')}
+                icon={<SyncOutlined />}
+                onClick={() => checkLtiRegistration(record.kid)}
+                color={'purple'}
+                variant={'solid'}
+              >
+                Check Registration
+              </Button>
+            </Tooltip>
+          )}
           <Button
             icon={<EditOutlined />}
             onClick={() => setFocus(record)}

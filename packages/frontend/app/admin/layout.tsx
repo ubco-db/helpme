@@ -3,7 +3,7 @@
 import SidebarNavigation from './components/SidebarNavigation'
 import React, { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { fetchUserDetails } from '@/app/api/userApi'
+import { fetchUserDetails } from '@/app/api'
 import { Button, Spin } from 'antd'
 import { LogoutOutlined, ReloadOutlined } from '@ant-design/icons'
 import { AsyncToasterProvider } from '@/app/contexts/AsyncToasterContext'
