@@ -114,7 +114,18 @@ export default function CoursesPage(): ReactElement {
           .length === 0 ? (
           <Empty
             className="max-h-min"
-            description="You are not enrolled in any course"
+            description={
+              <p className="text-center">
+                You are not enrolled in any course.
+                <br />
+                If you are a student, try clicking your professor&apos;s course
+                invite link.
+                <br />
+                If you are a professor, please email{' '}
+                <a href="mailto:adam.fipke@ubc.ca">adam.fipke@ubc.ca</a> for
+                access.
+              </p>
+            }
           />
         ) : (
           <CoursesSection
