@@ -259,10 +259,14 @@ describe('AuthService', () => {
         const loginSpy = jest.spyOn(LoginService.prototype, 'enter');
 
         let res: any = new MockResponse() as any;
-        res = (await service.registerAccount({} as any, res as any, {
-          ...registrationParams,
-          sid,
-        })) as any;
+        res = (await service.registerAccount(
+          { headers: {} } as any,
+          res as any,
+          {
+            ...registrationParams,
+            sid,
+          },
+        )) as any;
 
         const { userId } = jwtService.decode(
           res._cookies[
@@ -523,9 +527,7 @@ describe('AuthService', () => {
       const res: any = new MockResponse() as any;
       await service.ssoAuthCallback(
         {
-          headers: {
-            cookie: `organization.id=${org.id}`,
-          },
+          headers: {},
         } as any,
         res as any,
         '',
@@ -548,9 +550,7 @@ describe('AuthService', () => {
       const res: any = new MockResponse() as any;
       await service.ssoAuthCallback(
         {
-          headers: {
-            cookie: `organization.id=${org.id}`,
-          },
+          headers: {},
         } as any,
         res as any,
         '',
@@ -569,9 +569,7 @@ describe('AuthService', () => {
       const res: any = new MockResponse() as any;
       await service.ssoAuthCallback(
         {
-          headers: {
-            cookie: `organization.id=${organization.id}`,
-          },
+          headers: {},
         } as any,
         res as any,
         '',
@@ -595,9 +593,7 @@ describe('AuthService', () => {
       let res: any = new MockResponse() as any;
       await service.ssoAuthCallback(
         {
-          headers: {
-            cookie: `organization.id=${organization.id}`,
-          },
+          headers: {},
         } as any,
         res as any,
         'google',
@@ -616,9 +612,7 @@ describe('AuthService', () => {
       });
       await service.ssoAuthCallback(
         {
-          headers: {
-            cookie: `organization.id=${organization.id}`,
-          },
+          headers: {},
         } as any,
         res as any,
         'google',
@@ -645,9 +639,7 @@ describe('AuthService', () => {
       const res: any = new MockResponse() as any;
       await service.ssoAuthCallback(
         {
-          headers: {
-            cookie: `organization.id=${organization.id}`,
-          },
+          headers: {},
         } as any,
         res as any,
         'google',

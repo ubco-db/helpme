@@ -83,7 +83,7 @@ describe('LoginService', () => {
 
       let res: MockResponse = new MockResponse();
       res = (await service.enter(
-        {} as Request,
+        { headers: {} } as Request,
         res as any,
         user.id,
       )) as unknown as MockResponse;
@@ -110,7 +110,7 @@ describe('LoginService', () => {
 
         let res: MockResponse = new MockResponse();
         res = (await service.enter(
-          {} as Request,
+          { headers: {} } as Request,
           res as any,
           user.id,
           undefined,
@@ -194,7 +194,7 @@ describe('LoginService', () => {
 
       let res: MockResponse = new MockResponse();
       await service.enter(
-        {} as Request,
+        { headers: {} } as Request,
         res as any,
         user.id,
         undefined,
@@ -219,7 +219,7 @@ describe('LoginService', () => {
       });
 
       await service.enter(
-        {} as Request,
+        { headers: {} } as Request,
         res as any,
         user.id,
         undefined,
@@ -253,7 +253,7 @@ describe('LoginService', () => {
 
         const res: MockResponse = new MockResponse();
         await service.enter(
-          {} as Request,
+          { headers: {} } as Request,
           res as any,
           user.id,
           undefined,
