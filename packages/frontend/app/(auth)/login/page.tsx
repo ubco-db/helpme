@@ -220,6 +220,12 @@ export default function LoginPage() {
     }
   }, [storedId])
 
+  useEffect(() => {
+    if (isNaN(parseInt(String(storedId)))) {
+      setStoredId(String(organizations[0]?.id))
+    }
+  }, [organizations])
+
   if (errorGettingOrgs) {
     return (
       <main>

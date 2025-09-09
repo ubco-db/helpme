@@ -26,20 +26,26 @@ import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { v4 } from 'uuid';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { OrganizationService } from '../organization/organization.service';
-import { CookieOptions, Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { CourseService } from '../course/course.service';
 import { LtiService } from '../lti/lti.service';
 import { OrganizationModel } from '../organization/organization.entity';
-import { getCookie } from '../common/helpers';
 import * as request from 'superagent';
 import { LoginEntryOptions, LoginService } from '../login/login.service';
+import { AuthStateModel } from './auth-state.entity';
+import * as crypto from 'crypto';
+import { Cron, CronExpression } from '@nestjs/schedule';
+
+export const AUTH_URL = {
+  google: 'https://accounts.google.com/o/oauth2/v2/auth',
+};
+
+export const OPEN_ID_AUTH = ['google'];
+export const OPEN_ID_SCOPES = ['openid', 'profile', 'email'];
 
 @Injectable()
 export class AuthService {
-  private readonly GOOGLE_AUTH_URL =
-    'https://accounts.google.com/o/oauth2/v2/auth';
-
   client: OAuth2Client;
 
   constructor(
@@ -49,10 +55,20 @@ export class AuthService {
     private organizationService: OrganizationService,
   ) {
     this.client = new OAuth2Client(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI,
+      this.configService.get<string>('GOOGLE_CLIENT_ID'),
+      this.configService.get<string>('GOOGLE_CLIENT_SECRET'),
+      this.configService.get<string>('GOOGLE_REDIRECT_URI'),
     );
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: 'CLEAR_AUTH_STATES' })
+  async clearAuthStates() {
+    await AuthStateModel.createQueryBuilder()
+      .delete()
+      .where(
+        `(EXTRACT(EPOCH FROM NOW()) - EXTRACT(EPOCH FROM auth_state_model."createdAt")) > auth_state_model."expiresIn"`,
+      )
+      .execute();
   }
 
   async registerAccount(
@@ -88,31 +104,41 @@ export class AuthService {
     }
   }
 
-  ssoAuthInit(
+  async ssoAuthInit(
     res: Response,
     auth_method: string,
     organizationId: number,
-    cookieOptions: CookieOptions,
     getAuthRedirectUri: (method: string) => string,
-  ): Response<{ redirectUri: string } | { message: string }> {
-    res.cookie('organization.id', organizationId, cookieOptions);
+  ): Promise<Response<{ redirectUri: string } | { message: string }>> {
+    if (!(await OrganizationModel.findOne({ where: { id: organizationId } }))) {
+      return res.status(404).send({ message: 'Organization not found' });
+    }
 
-    let baseUrl: string;
+    const authState = await AuthStateModel.create({
+      state: crypto.randomBytes(32).toString('hex'),
+      organizationId,
+    }).save();
+
+    const baseUrl = AUTH_URL[auth_method];
     const query = new URLSearchParams();
-    const openIDScopes = ['openid', 'profile', 'email'];
+
+    query.set('state', authState.state);
+
+    if (OPEN_ID_AUTH.includes(auth_method)) {
+      query.set('scope', OPEN_ID_SCOPES.join(' '));
+    }
+
     const redirect_uri = `${this.configService.get('DOMAIN')}${getAuthRedirectUri(auth_method)}`;
     query.set('redirect_uri', redirect_uri);
 
     switch (auth_method) {
       case 'google':
-        baseUrl = this.GOOGLE_AUTH_URL;
         query.set(
           'client_id',
           this.configService.get<string>('GOOGLE_CLIENT_ID') +
             '.apps.googleusercontent.com',
         );
         query.set('response_type', 'code');
-        query.set('scope', openIDScopes.join(' '));
 
         return res
           .status(200)
@@ -132,6 +158,11 @@ export class AuthService {
     ltiService?: LtiService,
     options: LoginEntryOptions & { prefix?: string } = {},
   ) {
+    const cookieOptions = options?.cookieOptions ?? {
+      secure: this.configService.get<string>('DOMAIN').startsWith('https'),
+      httpOnly: true,
+    };
+
     const organization = await OrganizationModel.findOne({
       where: { id: organizationId },
     });
@@ -169,7 +200,10 @@ export class AuthService {
         userId,
         courseService,
         ltiService,
-        options,
+        {
+          cookieOptions,
+          ...options,
+        },
       );
     } catch (err) {
       if (err instanceof HttpException) {
@@ -188,69 +222,92 @@ export class AuthService {
     res: Response,
     auth_method: string,
     auth_code: string,
+    auth_state: string,
     courseService?: CourseService,
     ltiService?: LtiService,
     options: LoginEntryOptions & { prefix?: string } = {},
-  ): Promise<Response<void>> {
+  ): Promise<Response<void> | void> {
     const cookieOptions = options?.cookieOptions ?? {
       secure: this.configService.get<string>('DOMAIN').startsWith('https'),
       httpOnly: true,
     };
-    const organizationId = getCookie(req, 'organization.id');
 
-    if (!organizationId) {
-      res.redirect(`${options.prefix ?? ''}/failed/40000`);
-    } else {
-      try {
-        let payload: number;
+    if (!auth_state) {
+      return res.redirect(`${options?.prefix ?? ''}/failed/40003`);
+    }
 
-        switch (auth_method) {
-          case 'google':
-            payload = await this.loginWithGoogle(
-              auth_code,
-              Number(organizationId),
-            );
-            break;
-          default:
-            return res
-              .status(HttpStatus.BAD_REQUEST)
-              .send({ message: 'Invalid auth method' });
-        }
+    const authState = await AuthStateModel.findOne({
+      where: {
+        state: auth_state,
+      },
+      relations: {
+        organization: true,
+      },
+    });
 
-        res.clearCookie('organization.id', cookieOptions);
+    if (!authState) {
+      return res.redirect(`${options?.prefix ?? ''}/failed/40000`);
+    }
 
-        await this.loginService.enter(
-          req,
-          res,
-          payload,
-          courseService,
-          ltiService,
-          {
-            ...options,
-            cookieOptions,
-          },
+    if (!authState.organization.googleAuthEnabled) {
+      return res.redirect(`${options?.prefix ?? ''}/failed/40002`);
+    }
+
+    if (
+      (Date.now() - authState.createdAt.getTime()) / 1000 >
+      authState.expiresIn
+    ) {
+      return res.redirect(`${options?.prefix ?? ''}/failed/40004`);
+    }
+
+    await authState.remove();
+
+    try {
+      let userId: number;
+
+      switch (auth_method) {
+        case 'google':
+          userId = await this.loginWithGoogle(
+            auth_code,
+            Number(authState.organizationId),
+          );
+          break;
+        default:
+          return res
+            .status(HttpStatus.BAD_REQUEST)
+            .send({ message: 'Invalid auth method' });
+      }
+
+      return await this.loginService.enter(
+        req,
+        res,
+        userId,
+        courseService,
+        ltiService,
+        {
+          cookieOptions,
+          ...options,
+        },
+      );
+    } catch (err) {
+      if (err instanceof HttpException) {
+        return res.redirect(
+          `${options.prefix ?? ''}/login?error=errorCode${err.getStatus()}${encodeURIComponent(err.message)}`,
         );
-      } catch (err) {
-        if (err instanceof HttpException) {
-          res.redirect(
-            `${options.prefix ?? ''}/login?error=errorCode${err.getStatus()}${encodeURIComponent(err.message)}`,
-          );
-        } else {
-          res.redirect(
-            `${options.prefix ?? ''}/login?error=errorCode${HttpStatus.INTERNAL_SERVER_ERROR}${encodeURIComponent(err.message)}`,
-          );
-        }
+      } else {
+        return res.redirect(
+          `${options.prefix ?? ''}/login?error=errorCode${HttpStatus.INTERNAL_SERVER_ERROR}${encodeURIComponent(err.message)}`,
+        );
       }
     }
   }
 
   async verifyRegistrationToken(
-    req: Request,
     res: Response,
+    userId: number,
     registrationTokenDetails: RegistrationTokenDetails,
   ): Promise<Response | number> {
     const { token } = registrationTokenDetails;
-    const userId = Number((req.user as { userId: number }).userId);
 
     const emailToken = await UserTokenModel.findOne({
       where: {
@@ -270,7 +327,10 @@ export class AuthService {
       });
     }
 
-    if (emailToken.expires_at < parseInt(new Date().getTime().toString())) {
+    if (
+      (Date.now() - emailToken.createdAt.getTime()) / 1000 >
+      emailToken.expiresIn
+    ) {
       return res.status(HttpStatus.BAD_REQUEST).send({
         message: 'Verification code has expired',
       });
@@ -306,7 +366,7 @@ export class AuthService {
     }
 
     const response = await request.post(
-      `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.PRIVATE_RECAPTCHA_SITE_KEY}&response=${recaptchaToken}`,
+      `https://www.google.com/recaptcha/api/siteverify?secret=${this.configService.get<string>('PRIVATE_RECAPTCHA_SITE_KEY')}&response=${recaptchaToken}`,
     );
 
     if (!response.body.success) {
@@ -390,12 +450,12 @@ export class AuthService {
       relations: ['organizationUser'],
     });
 
-    const resetLink = await this.createPasswordResetToken(user);
+    const resetToken = await this.createPasswordResetToken(user);
 
     this.mailerService
       .sendPasswordResetEmail(
         user.email,
-        `${process.env.DOMAIN}${prefix ?? ''}/password/${resetLink}`,
+        `${this.configService.get<string>('DOMAIN')}${prefix ?? ''}/password/${resetToken}`,
       )
       .then();
 
@@ -419,7 +479,7 @@ export class AuthService {
     }
 
     const response = await request.post(
-      `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.PRIVATE_RECAPTCHA_SITE_KEY}&response=${recaptchaToken}`,
+      `https://www.google.com/recaptcha/api/siteverify?secret=${this.configService.get<string>('PRIVATE_RECAPTCHA_SITE_KEY')}&response=${recaptchaToken}`,
     );
 
     if (!response.body.success) {
@@ -551,7 +611,7 @@ export class AuthService {
 
     const ticket = await this.client.verifyIdToken({
       idToken: tokens.id_token,
-      audience: `${process.env.GOOGLE_CLIENT_ID}.apps.googleusercontent.com`,
+      audience: `${this.configService.get<string>('GOOGLE_CLIENT_ID')}.apps.googleusercontent.com`,
     });
 
     const payload = ticket.getPayload();
@@ -668,14 +728,10 @@ export class AuthService {
         }).save();
       }
 
-      const createdAt: number = parseInt(new Date().getTime().toString());
       const token: string = this.generateToken(8);
-
       await UserTokenModel.create({
         user: newUser,
         token: token,
-        created_at: createdAt,
-        expires_at: createdAt + 1000 * 60 * 60 * 24,
       }).save();
 
       await this.mailerService.sendUserVerificationCode(token, email);
@@ -715,19 +771,14 @@ export class AuthService {
         organizationUser: true,
       },
     });
-    console.log(user);
     return user != undefined && user.organizationUser?.organizationId == oid;
   }
 
   async createPasswordResetToken(user: UserModel): Promise<string> {
     const token = this.generateToken(12).toLowerCase();
-    const createdAt = parseInt(new Date().getTime().toString());
-
     await UserTokenModel.create({
       user,
       token,
-      created_at: createdAt,
-      expires_at: createdAt + 1000 * 60 * 60 * 24,
       token_type: TokenType.PASSWORD_RESET,
     }).save();
 

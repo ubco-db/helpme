@@ -84,9 +84,9 @@ export class LtiController {
 
     // If the user does not exist, redirect to login.
     if (!user) {
-      return res.redirect(
-        `/lti/login${qry.size > 0 ? `?${qry.toString()}` : ''}`,
-      );
+      return res
+        .clearCookie('lti_auth_token', LtiService.cookieOptions)
+        .redirect(`/lti/login${qry.size > 0 ? `?${qry.toString()}` : ''}`);
     }
 
     let enrollment = await UserCourseModel.findOne({

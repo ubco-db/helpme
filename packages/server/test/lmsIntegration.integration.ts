@@ -1165,7 +1165,6 @@ describe('Lms Integration Integrations', () => {
         clientSecret: crypto.randomBytes(32).toString('hex'),
       });
       state = await LMSAuthStateFactory.create({
-        state: crypto.randomBytes(32).toString('hex'),
         user,
         organizationIntegration: orgInt,
       });
@@ -1229,7 +1228,7 @@ describe('Lms Integration Integrations', () => {
       const expiredState = await LMSAuthStateFactory.create({
         user,
         organizationIntegration: orgInt,
-        expiresAt: 0,
+        expiresIn: 0,
       });
       const params = new URLSearchParams({
         state: expiredState.state,

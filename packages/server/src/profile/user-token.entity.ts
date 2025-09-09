@@ -1,6 +1,7 @@
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
   Entity,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -25,11 +26,14 @@ export class UserTokenModel extends BaseEntity {
   @Column('text')
   token: string;
 
-  @Column({ type: 'bigint' })
-  created_at: number;
-
-  @Column({ type: 'bigint' })
+  @Column({ type: 'bigint', default: 1000 * 60 * 60 * 24 })
   expires_at: number;
+
+  @CreateDateColumn({ type: 'timestamp with time zone' })
+  createdAt: Date;
+
+  @Column({ type: 'bigint', default: 1000 * 60 * 60 * 24 })
+  expiresIn: number;
 
   @Column({
     type: 'text',
@@ -45,6 +49,8 @@ export class UserTokenModel extends BaseEntity {
   })
   token_action: TokenAction;
 
-  @ManyToOne((type) => UserModel, (user) => user.tokens)
+  @ManyToOne((type) => UserModel, (user) => user.tokens, {
+    onDelete: 'CASCADE',
+  })
   user: UserModel;
 }

@@ -129,7 +129,7 @@ export class LtiService {
       );
     }
 
-    const enrollment = UserCourseModel.findOne({
+    const enrollment = await UserCourseModel.findOne({
       where: {
         userId,
         courseId: courseId,

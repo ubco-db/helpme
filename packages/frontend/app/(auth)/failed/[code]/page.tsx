@@ -11,6 +11,8 @@ const FAILED_CODES: { [key: number]: string } = {
   40000: 'Organization not found',
   40001: 'Malformed request',
   40002: "Organization doesn't support SSO",
+  40003: 'Missing or invalid authentication request state parameter',
+  40004: 'Authentication request state expired',
 }
 
 const AuthFailed = (props: { params: Promise<{ code: string }> }) => {

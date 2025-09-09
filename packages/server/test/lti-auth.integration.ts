@@ -1,6 +1,10 @@
 import { setupIntegrationTest } from './util/testUtils';
 import { JwtService } from '@nestjs/jwt';
 import {
+  AuthStateFactory,
+  CourseFactory,
+  LtiCourseInviteFactory,
+  OrganizationCourseFactory,
   OrganizationFactory,
   OrganizationUserFactory,
   UserFactory,
@@ -38,7 +42,7 @@ jest.mock('superagent', () => ({
   }),
 }));
 
-describe('Auth Integration', () => {
+describe('LTI Auth Integration', () => {
   let jwtService: JwtService;
   let authService: AuthService;
   const { supertest, getTestModule } = setupIntegrationTest(LtiModule);
@@ -51,11 +55,17 @@ describe('Auth Integration', () => {
   });
 
   describe('GET /lti/auth/link/:method/:oid', () => {
-    it('should return 200 and redirect to google', async () => {
-      const res = await supertest().get('/lti/auth/link/google/1');
+    it('should return 400 if organization not found', async () => {
+      const res = await supertest().get('/lti/auth/link/google/0');
 
+      expect(res.status).toBe(404);
+      expect(res.body).toHaveProperty('message', 'Organization not found');
+    });
+
+    it('should return 200 and redirect to google', async () => {
+      const org = await OrganizationFactory.create();
+      const res = await supertest().get(`/lti/auth/link/google/${org.id}`);
       expect(res.status).toBe(200);
-      expect(res.get('Set-Cookie')[0]).toContain('organization.id=1;');
     });
   });
 
@@ -175,21 +185,69 @@ describe('Auth Integration', () => {
   });
 
   describe('GET /lti/auth/callback/:method', () => {
-    it('should redirect to /lti/failed/40000 when cookie is missing', async () => {
-      const res = await supertest().get('/lti/auth/callback/google');
+    it.each(['', '?state='])(
+      'should redirect to /lti/failed/40000 if auth state parameter invalid or not found',
+      async (end) => {
+        const res = await supertest().get(`/lti/auth/callback/google${end}`);
+
+        expect(res.status).toBe(302);
+        expect(res.header['location']).toContain('/lti/failed/40003');
+      },
+    );
+
+    it('should redirect to /lti/failed/40000 if matching auth state not found', async () => {
+      const res = await supertest().get(`/lti/auth/callback/google?state=abc`);
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/lti/failed/40000');
+      expect(res.header['location']).toContain('/lti/failed/40000');
+    });
+
+    it('should redirect to /lti/failed/40002 if organization not enabled google auth', async () => {
+      const organization = await OrganizationFactory.create({
+        googleAuthEnabled: false,
+      });
+      const authState = await AuthStateFactory.create({
+        organization,
+      });
+
+      const res = await supertest().get(
+        `/lti/auth/callback/google?state=${authState.state}`,
+      );
+
+      expect(res.status).toBe(302);
+      expect(res.header['location']).toContain('/lti/failed/40002');
+    });
+
+    it('should redirect to /lti/failed/40004 if auth state expired', async () => {
+      const organization = await OrganizationFactory.create({
+        googleAuthEnabled: true,
+      });
+      const authState = await AuthStateFactory.create({
+        organization,
+        expiresIn: 0,
+      });
+
+      const res = await supertest().get(
+        `/lti/auth/callback/google?state=${authState.state}`,
+      );
+
+      expect(res.status).toBe(302);
+      expect(res.header['location']).toContain('/lti/failed/40004');
     });
 
     it('should redirect to /lti/login?error when authService failed', async () => {
-      const organization = await OrganizationFactory.create();
+      const organization = await OrganizationFactory.create({
+        googleAuthEnabled: true,
+      });
+      const authState = await AuthStateFactory.create({
+        organization,
+      });
       const spy = jest.spyOn(AuthService.prototype, 'loginWithGoogle');
       spy.mockRejectedValue(new Error('Some error'));
 
-      const res = await supertest()
-        .get('/lti/auth/callback/google')
-        .set('Cookie', `organization.id=${organization.id}`);
+      const res = await supertest().get(
+        `/lti/auth/callback/google?state=${authState.state}`,
+      );
 
       spy.mockRestore();
 
@@ -201,10 +259,12 @@ describe('Auth Integration', () => {
 
     it('should sign in user when authService succeeded', async () => {
       const organization = await OrganizationFactory.create();
+      const authState = await AuthStateFactory.create({
+        organization,
+      });
       const res = await supertest()
-        .get('/lti/auth/callback/google')
-        .set('Cookie', `organization.id=${organization.id}`)
-        .query({ code: 'expectedCode' });
+        .get(`/lti/auth/callback/google`)
+        .query({ code: 'expectedCode', state: authState.state });
 
       await authService.loginWithGoogle('expectedCode', organization.id);
       await jwtService.signAsync({ userId: 1 });
@@ -453,6 +513,40 @@ describe('Auth Integration', () => {
         organizationId: organization.id,
         recaptchaToken: 'token',
       });
+
+      expect(res.status).toBe(201);
+      expect(res.get('Set-Cookie')[0]).toContain('auth_token');
+    });
+
+    it('should return cookie with auth_token and create course enrollment if cookie is present when user is registered', async () => {
+      const organization = await OrganizationFactory.create();
+
+      await jwtService.signAsync({ userId: 1 });
+
+      const course = await CourseFactory.create();
+      await OrganizationCourseFactory.create({
+        organization,
+        course,
+      });
+
+      const courseInvite = await LtiCourseInviteFactory.create({
+        email: 'email@email.com',
+        course: course,
+      });
+
+      const res = await supertest()
+        .post('/lti/auth/register')
+        .set('Cookie', `__COURSE_INVITE=${courseInvite.inviteCode}`)
+        .send({
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'email@email.com',
+          password: 'password',
+          confirmPassword: 'password',
+          sid: 2,
+          organizationId: organization.id,
+          recaptchaToken: 'token',
+        });
 
       expect(res.status).toBe(201);
       expect(res.get('Set-Cookie')[0]).toContain('auth_token');

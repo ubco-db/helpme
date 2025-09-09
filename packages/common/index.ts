@@ -1476,7 +1476,7 @@ export type DesktopNotifBody = {
 // Office Hours Response Types
 export class GetProfileResponse extends User {}
 
-export class UBCOloginParam {
+export class LoginParam {
   @IsString()
   email!: string
 

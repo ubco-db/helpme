@@ -1,107 +1,34 @@
 import { DataSource } from 'typeorm';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
-import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
+import {
+  MockResponse,
+  TestConfigModule,
+  TestTypeOrmModule,
+} from '../../test/util/testUtils';
 import { FactoryModule } from '../factory/factory.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { FactoryService } from '../factory/factory.service';
 import {
+  CourseFactory,
   initFactoriesFromService,
+  LtiCourseInviteFactory,
+  OrganizationCourseFactory,
+  OrganizationFactory,
+  OrganizationUserFactory,
+  QueueFactory,
+  QueueInviteFactory,
   UserFactory,
 } from '../../test/util/factories';
 import { LoginService } from './login.service';
 import { ERROR_MESSAGES } from '@koh/common';
-import { Locals, Request, Response } from 'express';
-import { CookieOptions } from 'express-serve-static-core';
+import { Request } from 'express';
 import { UserModel } from '../profile/user.entity';
-
-class MockResponse<
-  TBody = any,
-  TLocals = Record<string, any>,
-> extends Response {
-  _headers: Record<string, string> = {};
-  statusCode: number;
-  _redirect: string;
-  _cookies: Record<string, string> = {};
-  _body: TBody;
-  locals: TLocals & Locals;
-  headersSent: boolean;
-
-  set(field: any, value?: string | string[]): this {
-    if (typeof field === 'string') {
-      this._headers[field] = Array.isArray(value) ? value.join(';') : value;
-    } else {
-      this._headers = {
-        ...this._headers,
-        ...field,
-      };
-    }
-    return this;
-  }
-
-  header(field: any, value?: string | string[]): this {
-    return this.set(field, value);
-  }
-
-  get(field: string): string | undefined {
-    return this._headers[field];
-  }
-
-  cookie(name: string, val: string | any, options?: CookieOptions): this {
-    this._cookies[`${name}${options ? '-' + JSON.stringify(options) : ''}`] =
-      typeof val == 'string' ? val : JSON.stringify(val);
-    this._headers['cookie'] = Object.entries(this._cookies)
-      .map(([k, v]) => `${k.substring(0, k.indexOf('-'))}=${v}`)
-      .join('; ');
-    return this;
-  }
-
-  clearCookie(name: string, options?: CookieOptions): this {
-    delete this._cookies[`${name}-${JSON.stringify(options)}`];
-    this._headers['cookie'] = Object.entries(this._cookies)
-      .map(([k, v]) => `${k.substring(0, k.indexOf('-'))}=${v}`)
-      .join('; ');
-    return this;
-  }
-
-  location(url: string): this {
-    this._headers['location'] = url;
-    return this;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-expect-error
-  status(code: number): this {
-    this.statusCode = code;
-    return this;
-  }
-
-  sendStatus(code: number): this {
-    this.statusCode = code;
-    this.send();
-    return this;
-  }
-
-  redirect(url: string): void;
-  redirect(code: number | string, url?: string): void {
-    if (typeof code === 'string') {
-      this._redirect = code;
-      this.statusCode = 302;
-    } else {
-      this._redirect = url;
-      this.statusCode = code;
-    }
-  }
-
-  send(body?: any): this {
-    if (!this.statusCode) {
-      this.statusCode = 200;
-    }
-    this._body = body;
-    this.headersSent = true;
-    return this;
-  }
-}
+import { CourseService } from '../course/course.service';
+import { LtiService } from '../lti/lti.service';
+import { CourseModel } from '../course/course.entity';
+import { QueueModel } from '../queue/queue.entity';
+import { OrganizationModel } from '../organization/organization.entity';
 
 describe('LoginService', () => {
   let service: LoginService;
@@ -207,6 +134,52 @@ describe('LoginService', () => {
       },
     );
 
+    it.each([undefined, 'lti_auth_token'])(
+      'should return a 200 response and perform lti cookie op with token immediately if specified',
+      async (cookieName) => {
+        const opts = {
+          returnImmediate: true,
+          returnImmediateMessage: 'MESSAGE',
+          cookieName,
+          cookieOptions: {
+            secure: true,
+          },
+        };
+
+        const fakeLti = {
+          checkCourseInvite: jest.fn().mockImplementation((res) => res),
+        } as any;
+        let res: MockResponse = new MockResponse();
+        res = (await service.enter(
+          {
+            headers: {
+              cookie: '__COURSE_INVITE=aklfgadfjhlkajdfh',
+            },
+          } as Request,
+          res as any,
+          user.id,
+          undefined,
+          fakeLti,
+          opts,
+        )) as unknown as MockResponse;
+
+        expect(res.statusCode).toEqual(200);
+        expect(
+          res._cookies[
+            `${cookieName ?? 'auth_token'}-${JSON.stringify(opts.cookieOptions)}`
+          ],
+        ).toBeDefined();
+        const cookie =
+          res._cookies[
+            `${cookieName ?? 'auth_token'}-${JSON.stringify(opts.cookieOptions)}`
+          ];
+        const payload = jwtService.decode(cookie);
+        expect(fakeLti.checkCourseInvite).toHaveBeenCalledTimes(1);
+        expect(payload.userId).toEqual(user.id);
+        expect(res._body).toHaveProperty('message', 'MESSAGE');
+      },
+    );
+
     it('should return if handleCookies sent headers', async () => {
       const opts = {
         cookieOptions: {
@@ -301,13 +274,243 @@ describe('LoginService', () => {
         const payload = jwtService.decode(cookie);
         expect(payload.userId).toEqual(user.id);
         expect(res._redirect).toEqual('redirect');
+        spy.mockRestore();
       },
     );
   });
 
   describe('handleCookies', () => {
-    // TODO: Implement tests for 'handleCookies' function
-    it('', async () => {});
+    let organization: OrganizationModel;
+    let user: UserModel;
+    let course: CourseModel;
+    let queue: QueueModel;
+
+    beforeEach(async () => {
+      user = await UserFactory.create();
+      course = await CourseFactory.create();
+      organization = await OrganizationFactory.create();
+      await OrganizationCourseFactory.create({
+        course,
+        organization,
+      });
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization,
+      });
+      queue = await QueueFactory.create({ course });
+      await QueueInviteFactory.create({ queue, inviteCode: 'abcdefg' });
+    });
+
+    it.each([
+      [
+        'should return redirectURL = /invite?cid=:courseId&code=:courseInviteCode if secure redirect cookie is set',
+        true,
+        false,
+        false,
+        false,
+        false,
+      ],
+      [
+        'should process queue invite cookie if queue invite cookie is set',
+        false,
+        true,
+        false,
+        false,
+        false,
+      ],
+      [
+        'should return redirectURL = /lti/:courseId if lti invite cookie is set',
+        false,
+        false,
+        true,
+        false,
+        false,
+      ],
+      [
+        'should return redirectURL = redirect value if it is defined in params and append its search params',
+        false,
+        false,
+        false,
+        true,
+        false,
+      ],
+      [
+        'should return redirectURL = /courses',
+        false,
+        false,
+        false,
+        false,
+        false,
+      ],
+      [
+        'should return redirectURL = /invite?cid=:courseId&code=:courseInviteCode if secure redirect cookie is set with 307 if email verification is set',
+        true,
+        false,
+        false,
+        false,
+        true,
+      ],
+      [
+        'should process queue invite cookie if queue invite cookie is set with 307 if email verification is set',
+        false,
+        true,
+        false,
+        false,
+        true,
+      ],
+      [
+        'should return redirectURL = /lti/:courseId if lti invite cookie is set with 307 if email verification is set',
+        false,
+        false,
+        true,
+        false,
+        true,
+      ],
+      [
+        'should return redirectURL = redirect value if it is defined in params and append its search params 307 if email verification is set',
+        false,
+        false,
+        false,
+        true,
+        true,
+      ],
+      [
+        'should return no redirect url with 202 if email verification is set',
+        false,
+        false,
+        false,
+        false,
+        true,
+      ],
+    ])(
+      '%s',
+      async (
+        _m0,
+        secureRedirect: boolean,
+        queueInvite: boolean,
+        ltiInvite: boolean,
+        explicitRedirect: boolean,
+        emailVerification: boolean,
+      ) => {
+        const options = {
+          cookieOptions: {
+            secure: true,
+            httpOnly: true,
+          },
+          redirect: explicitRedirect ? '/redirect?example=value' : undefined,
+          emailVerification,
+        };
+        const courseService = new CourseService(
+          {} as any,
+          {} as any,
+          dataSource,
+        );
+        const ltiService = new LtiService(jwtService);
+
+        const cookies: string[] = [];
+        if (ltiInvite) {
+          const invite = await LtiCourseInviteFactory.create({
+            email: user.email,
+            course: course,
+          });
+          const token = jwtService.sign({
+            courseId: course.id,
+            inviteCode: invite.inviteCode,
+          });
+          cookies.push(`__COURSE_INVITE=${token}`);
+        }
+
+        if (queueInvite) {
+          cookies.push(
+            `queueInviteInfo=${course.id},${queue.id},${organization.id},`,
+          );
+        }
+
+        if (secureRedirect) {
+          cookies.push(
+            `__SECURE_REDIRECT=${course.id},${course.courseInviteCode}${organization ? `,${organization.id}` : ''},`,
+          );
+        }
+
+        const req = {
+          headers: {
+            cookie: cookies.join(';'),
+          },
+        };
+
+        const response: MockResponse = new MockResponse() as any;
+        for (const cookie of cookies) {
+          const [key, value] = cookie.split('=');
+          response.cookie(key, value, options.cookieOptions);
+        }
+
+        const result = (await service.handleCookies(
+          req as any,
+          response as any,
+          user.id,
+          options,
+          courseService,
+          ltiService,
+        )) as any;
+
+        if (!emailVerification) {
+          expect('res' in result).toBeTruthy();
+          expect('redirectUrl' in result).toBeTruthy();
+
+          const { res, redirectUrl } = result;
+          expect(res.headersSent).toEqual(false);
+          if (queueInvite) {
+            expect(res._cookies['queueInviteInfo']).toBeUndefined();
+            expect(redirectUrl).toEqual(`/courses?err=notInCourse`);
+          } else if (secureRedirect) {
+            expect(res._cookies['__SECURE_REDIRECT']).toBeUndefined();
+            expect(redirectUrl).toEqual(
+              `/invite?cid=${course.id}&code=${course.courseInviteCode}`,
+            );
+          } else if (ltiInvite) {
+            expect(res._cookies['__COURSE_INVITE']).toBeUndefined();
+            expect(redirectUrl).toEqual(`/lti/${course.id}`);
+          } else if (explicitRedirect) {
+            expect(redirectUrl).toEqual(options.redirect);
+          } else {
+            expect(redirectUrl).toEqual('/courses');
+          }
+        } else {
+          const res = result as MockResponse;
+          expect(res.headersSent).toEqual(true);
+
+          if (queueInvite) {
+            expect(res._cookies['queueInviteInfo']).toBeUndefined();
+            expect(res._body).toHaveProperty(
+              'redirectUri',
+              `/courses?err=notInCourse`,
+            );
+          } else if (secureRedirect) {
+            expect(res._cookies['__SECURE_REDIRECT']).toBeUndefined();
+            expect(res._body).toHaveProperty(
+              'redirectUri',
+              `/invite?cid=${course.id}&code=${course.courseInviteCode}`,
+            );
+          } else if (ltiInvite) {
+            expect(res._cookies['__COURSE_INVITE']).toBeUndefined();
+            expect(res._body).toHaveProperty(
+              'redirectUri',
+              `/lti/${course.id}`,
+            );
+          } else if (explicitRedirect) {
+            expect(res._body).toHaveProperty('redirectUri', options.redirect);
+          } else {
+            expect(res._body).toHaveProperty('message', 'Email verified');
+          }
+
+          if (res._body.message != undefined) {
+            expect(res.statusCode).toEqual(202);
+          } else {
+            expect(res.statusCode).toEqual(307);
+          }
+        }
+      },
+    );
   });
 
   describe('generateAuthToken', () => {

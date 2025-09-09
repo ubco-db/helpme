@@ -16,6 +16,7 @@ import { SuperCourseModel } from 'course/super-course.entity';
 import { OrganizationSettingsModel } from './organization_settings.entity';
 import { OrganizationRoleHistory } from './organization_role_history.entity';
 import { OrganizationChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/organization-chatbot-settings.entity';
+import { AuthStateModel } from '../auth/auth-state.entity';
 
 @Entity('organization_model')
 export class OrganizationModel extends BaseEntity {
@@ -104,4 +105,11 @@ export class OrganizationModel extends BaseEntity {
     (orgChatbotSettings) => orgChatbotSettings.organization,
   )
   chatbotSettings: OrganizationChatbotSettingsModel;
+
+  @Exclude()
+  @OneToMany(
+    () => OrganizationChatbotSettingsModel,
+    (orgChatbotSettings) => orgChatbotSettings.organization,
+  )
+  userAuthStates: AuthStateModel;
 }

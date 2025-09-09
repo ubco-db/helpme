@@ -43,6 +43,7 @@ export let CourseChatbotSettingsFactory: FactoryService['CourseChatbotSettingsFa
 export let LMSAuthStateFactory: FactoryService['LMSAuthStateFactory'];
 export let LMSAccessTokenFactory: FactoryService['LMSAccessTokenFactory'];
 export let LtiCourseInviteFactory: FactoryService['LtiCourseInviteFactory'];
+export let AuthStateFactory: FactoryService['AuthStateFactory'];
 
 // We keep a helper so that in the test setup, once we have the real service,
 // we can “wire up” these variables.
@@ -89,4 +90,5 @@ export function initFactoriesFromService(service: FactoryService) {
   LMSAuthStateFactory = service.LMSAuthStateFactory;
   LMSAccessTokenFactory = service.LMSAccessTokenFactory;
   LtiCourseInviteFactory = service.LtiCourseInviteFactory;
+  AuthStateFactory = service.AuthStateFactory;
 }

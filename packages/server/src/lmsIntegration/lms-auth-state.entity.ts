@@ -22,7 +22,7 @@ export class LMSAuthStateModel extends BaseEntity {
   createdAt: Date;
 
   @Column({ type: 'integer', default: 60 })
-  expiresAt: number;
+  expiresIn: number;
 
   @Column({ type: 'integer' })
   userId: number;

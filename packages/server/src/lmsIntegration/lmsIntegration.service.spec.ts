@@ -19,6 +19,7 @@ import {
   CourseFactory,
   initFactoriesFromService,
   LMSAccessTokenFactory,
+  LMSAuthStateFactory,
   lmsCourseIntFactory,
   lmsOrgIntFactory,
   OrganizationCourseFactory,
@@ -47,6 +48,8 @@ import { ChatbotApiService } from '../chatbot/chatbot-api.service';
 import { LMSAccessTokenModel } from './lms-access-token.entity';
 import { UserModel } from '../profile/user.entity';
 import * as crypto from 'crypto';
+import { pick } from 'lodash';
+import { LMSAuthStateModel } from './lms-auth-state.entity';
 
 const mockCacheManager = {
   get: jest.fn(),
@@ -103,6 +106,44 @@ describe('LMSIntegrationService', () => {
 
   beforeEach(async () => {
     await dataSource.synchronize(true);
+  });
+
+  describe('clearLMSAuthStates', () => {
+    it('should remove any existing auth states that are expired', async () => {
+      const organizationIntegration = await lmsOrgIntFactory.create();
+      const user = await UserFactory.create();
+      const validAuthState = await LMSAuthStateFactory.create({
+        organizationIntegration,
+        user,
+      });
+      const invalidAuthState = await LMSAuthStateFactory.create({
+        organizationIntegration,
+        user,
+        expiresIn: 0,
+      });
+
+      await service.clearLMSAuthStates();
+
+      expect(
+        await LMSAuthStateModel.findOne({
+          where: { state: validAuthState.state },
+        }),
+      ).toEqual(
+        pick(validAuthState, [
+          'organizationId',
+          'state',
+          'createdAt',
+          'expiresIn',
+          'userId',
+          'redirectUrl',
+        ]),
+      );
+      expect(
+        await LMSAuthStateModel.findOne({
+          where: { state: invalidAuthState.state },
+        }),
+      ).toBeNull();
+    });
   });
 
   describe('resynchronizeCourseIntegrations', () => {

@@ -41,6 +41,7 @@ import { ChatbotApiService } from '../chatbot/chatbot-api.service';
 import { Cache } from 'cache-manager';
 import { LMSAccessTokenModel } from './lms-access-token.entity';
 import { pick } from 'lodash';
+import { LMSAuthStateModel } from './lms-auth-state.entity';
 
 export enum LMSGet {
   Course,
@@ -71,6 +72,16 @@ export class LMSIntegrationService {
     private chatbotApiService: ChatbotApiService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: 'CLEAR_LMS_AUTH_STATES' })
+  async clearLMSAuthStates() {
+    await LMSAuthStateModel.createQueryBuilder()
+      .delete()
+      .where(
+        `(EXTRACT(EPOCH FROM NOW()) - EXTRACT(EPOCH FROM lms_auth_state_model."createdAt")) > lms_auth_state_model."expiresIn"`,
+      )
+      .execute();
+  }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async resynchronizeCourseIntegrations() {

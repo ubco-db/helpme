@@ -16,7 +16,7 @@ UserModel {
   "name": "John Doe",
   "organizationUser": OrganizationUserModel {
     "id": 1,
-    "organizationId": 1,
+    "organizationId": 2,
     "role": "member",
     "userId": 1,
   },
@@ -44,7 +44,7 @@ UserModel {
   "name": "John Doe",
   "organizationUser": OrganizationUserModel {
     "id": 1,
-    "organizationId": 1,
+    "organizationId": 2,
     "role": "member",
     "userId": 1,
   },

@@ -7,8 +7,13 @@ import { LeftOutlined } from '@ant-design/icons'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useLocalStorage } from '@/app/hooks/useLocalStorage'
 
 export default function RegisterPage(): ReactElement {
+  const [storedId, setStoredId] = useLocalStorage<string>(
+    'organizationId',
+    null,
+  )
   const [organizationId, setOrganizationId] = useState(0)
   const [domLoaded, setDomLoaded] = useState(false)
   const router = useRouter()
@@ -78,8 +83,11 @@ export default function RegisterPage(): ReactElement {
 
   useEffect(() => {
     setDomLoaded(true)
-    setOrganizationId(parseInt(localStorage.getItem('organizationId') ?? ''))
   }, [])
+
+  useEffect(() => {
+    setOrganizationId(parseInt(String(storedId)))
+  }, [storedId])
 
   return (
     <div>

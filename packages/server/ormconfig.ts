@@ -53,6 +53,7 @@ import { LLMTypeModel } from './src/chatbot/chatbot-infrastructure-models/llm-ty
 import { LMSAccessTokenModel } from './src/lmsIntegration/lms-access-token.entity';
 import { LMSAuthStateModel } from './src/lmsIntegration/lms-auth-state.entity';
 import { LtiCourseInviteModel } from './src/lti/lti-course-invite.entity';
+import { AuthStateModel } from './src/auth/auth-state.entity';
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
   config();
@@ -133,6 +134,7 @@ const typeorm: DataSourceOptions = {
     LMSAuthStateModel,
     LMSAccessTokenModel,
     LtiCourseInviteModel,
+    AuthStateModel,
   ],
   logging:
     process.env.NODE_ENV !== 'production'

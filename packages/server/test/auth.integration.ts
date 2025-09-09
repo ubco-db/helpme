@@ -2,6 +2,7 @@ import { AuthModule } from 'auth/auth.module';
 import { setupIntegrationTest } from './util/testUtils';
 import { JwtService } from '@nestjs/jwt';
 import {
+  AuthStateFactory,
   OrganizationFactory,
   OrganizationUserFactory,
   UserFactory,
@@ -55,12 +56,18 @@ describe('Auth Integration', () => {
     jwtService = testModule.get<JwtService>(JwtService);
   });
 
-  describe('GET link/:method/:oid', () => {
-    it('should return 200 and redirect to google', async () => {
-      const res = await supertest().get('/auth/link/google/1');
+  describe('GET link/:method', () => {
+    it('should return 400 if organization not found', async () => {
+      const res = await supertest().get('/auth/link/google/0');
 
+      expect(res.status).toBe(404);
+      expect(res.body).toHaveProperty('message', 'Organization not found');
+    });
+
+    it('should return 200 and redirect to google', async () => {
+      const org = await OrganizationFactory.create();
+      const res = await supertest().get(`/auth/link/google/${org.id}`);
       expect(res.status).toBe(200);
-      expect(res.get('Set-Cookie')[0]).toContain('organization.id=1;');
     });
   });
 
@@ -177,20 +184,69 @@ describe('Auth Integration', () => {
   });
 
   describe('GET callback/:method', () => {
-    it('should redirect to /failed/40000 when cookie is missing', async () => {
-      const res = await supertest().get('/auth/callback/google');
+    it.each(['', '?state='])(
+      'should redirect to /lti/failed/40000 if auth state invalid or missing',
+      async (end) => {
+        const res = await supertest().get(`/auth/callback/google${end}`);
+
+        expect(res.status).toBe(302);
+        expect(res.header['location']).toContain('/failed/40003');
+      },
+    );
+
+    it('should redirect to /lti/failed/40000 if auth state not found', async () => {
+      const res = await supertest().get(`/auth/callback/google?state=abc`);
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/failed/40000');
+      expect(res.header['location']).toContain('/failed/40000');
+    });
+
+    it('should redirect to /failed/40002 if organization not enabled google auth', async () => {
+      const organization = await OrganizationFactory.create({
+        googleAuthEnabled: false,
+      });
+      const authState = await AuthStateFactory.create({
+        organization,
+      });
+
+      const res = await supertest().get(
+        `/auth/callback/google?state=${authState.state}`,
+      );
+
+      expect(res.status).toBe(302);
+      expect(res.header['location']).toContain('/failed/40002');
+    });
+
+    it('should redirect to /failed/40004 if auth state is expired', async () => {
+      const organization = await OrganizationFactory.create({
+        googleAuthEnabled: true,
+      });
+      const authState = await AuthStateFactory.create({
+        organization,
+        expiresIn: 0,
+      });
+
+      const res = await supertest().get(
+        `/auth/callback/google?state=${authState.state}`,
+      );
+
+      expect(res.status).toBe(302);
+      expect(res.header['location']).toContain('/failed/40004');
     });
 
     it('should redirect to login?error when authService failed', async () => {
+      const organization = await OrganizationFactory.create({
+        googleAuthEnabled: true,
+      });
+      const authState = await AuthStateFactory.create({
+        organization,
+      });
       const spy = jest.spyOn(authService, 'loginWithGoogle');
       spy.mockRejectedValue(new Error('Some error'));
 
-      const res = await supertest()
-        .get('/auth/callback/google')
-        .set('Cookie', 'organization.id=1');
+      const res = await supertest().get(
+        `/auth/callback/google?state=${authState.state}`,
+      );
 
       expect(res.status).toBe(302);
       expect(res.header['location']).toContain(
@@ -200,11 +256,15 @@ describe('Auth Integration', () => {
     });
 
     it('should sign in user when authService succeeded', async () => {
-      const organization = await OrganizationFactory.create();
+      const organization = await OrganizationFactory.create({
+        googleAuthEnabled: true,
+      });
+      const authState = await AuthStateFactory.create({
+        organization,
+      });
       const res = await supertest()
-        .get('/auth/callback/google')
-        .set('Cookie', `organization.id=${organization.id}`)
-        .query({ code: 'expectedCode' });
+        .get(`/auth/callback/google`)
+        .query({ code: 'expectedCode', state: authState.state });
 
       await authService.loginWithGoogle('expectedCode', organization.id);
       await jwtService.signAsync({ userId: 1 });
@@ -552,8 +612,7 @@ describe('Auth Integration', () => {
         token: 'expired',
         token_type: TokenType.PASSWORD_RESET,
         token_action: TokenAction.ACTION_PENDING,
-        created_at: parseInt(new Date().getTime().toString()) - 10_000,
-        expires_at: parseInt(new Date().getTime().toString()) - 10_000,
+        expiresIn: 0,
       }).save();
 
       const res = await supertest()
@@ -573,8 +632,6 @@ describe('Auth Integration', () => {
         token: 'valid',
         token_type: TokenType.PASSWORD_RESET,
         token_action: TokenAction.ACTION_PENDING,
-        created_at: parseInt(new Date().getTime().toString()),
-        expires_at: parseInt(new Date().getTime().toString()) + 20_000,
       }).save();
 
       const res = await supertest()
@@ -604,8 +661,7 @@ describe('Auth Integration', () => {
         token: 'expired',
         token_type: TokenType.PASSWORD_RESET,
         token_action: TokenAction.ACTION_PENDING,
-        created_at: parseInt(new Date().getTime().toString()) - 10_000,
-        expires_at: parseInt(new Date().getTime().toString()) - 10_000,
+        expiresIn: 0,
       }).save();
 
       const res = await supertest().get(
@@ -623,8 +679,6 @@ describe('Auth Integration', () => {
         token: 'valid',
         token_type: TokenType.PASSWORD_RESET,
         token_action: TokenAction.ACTION_PENDING,
-        created_at: parseInt(new Date().getTime().toString()),
-        expires_at: parseInt(new Date().getTime().toString()) + 20_000,
       }).save();
 
       const res = await supertest().get(
@@ -657,8 +711,7 @@ describe('Auth Integration', () => {
         token: 'expired',
         token_type: TokenType.EMAIL_VERIFICATION,
         token_action: TokenAction.ACTION_PENDING,
-        created_at: parseInt(new Date().getTime().toString()) - 10_000,
-        expires_at: parseInt(new Date().getTime().toString()) - 10_000,
+        expiresIn: 0,
       }).save();
 
       const res = await supertest({ userId: user.id })
@@ -679,8 +732,6 @@ describe('Auth Integration', () => {
         token: 'valid',
         token_type: TokenType.EMAIL_VERIFICATION,
         token_action: TokenAction.ACTION_PENDING,
-        created_at: parseInt(new Date().getTime().toString()),
-        expires_at: parseInt(new Date().getTime().toString()) + 20_000,
       }).save();
 
       const res = await supertest({ userId: user.id })
@@ -700,8 +751,6 @@ describe('Auth Integration', () => {
         token: 'valid',
         token_type: TokenType.EMAIL_VERIFICATION,
         token_action: TokenAction.ACTION_PENDING,
-        created_at: parseInt(new Date().getTime().toString()),
-        expires_at: parseInt(new Date().getTime().toString()) + 20_000,
       }).save();
 
       const token = jwtService.sign({ userId: user.id });

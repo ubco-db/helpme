@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/nextjs'
 import { UserRole } from '@koh/common'
 import { RequestCookies } from 'next/dist/compiled/@edge-runtime/cookies'
 import getAPI from '@/app/api/server'
+import { AxiosResponse } from 'axios'
 
 // These are the public pages that do not require authentication. Adding an * will match any characters after the page (e.g. if the page has search query params).
 const publicPages = [
@@ -16,6 +17,10 @@ const publicPages = [
   '/invite*',
   '/qi/*', // queue invite page
   '/error_pages*',
+  '/lti/login',
+  '/lti/register',
+  '/lti/failed*',
+  '/lti/password*',
 ]
 
 const isPublicPage = (url: string) => {
@@ -29,8 +34,11 @@ const isEmailVerified = (userData: User): boolean => {
   return userData.emailVerified
 }
 
-async function fetchUser(cookies: RequestCookies) {
-  if (!cookies.has('auth_token') && !cookies.has('lti_auth_token')) {
+async function fetchUser(
+  cookies: RequestCookies,
+  cookieName = 'auth_token',
+): Promise<AxiosResponse | undefined> {
+  if (!cookies.has(cookieName)) {
     return undefined
   }
 
@@ -42,7 +50,7 @@ async function fetchUser(cookies: RequestCookies) {
       const body = response.data
       return Promise.reject(body)
     }
-    return response.data as any // Type assertion needed due to conditional return type
+    return response // Type assertion needed due to conditional return type
   } else if (response.headers?.['content-type']?.includes('text/html')) {
     const text = response.data as string
     Sentry.captureEvent({
@@ -71,22 +79,32 @@ export async function middleware(
     return NextResponse.next()
   }
 
+  const hasToken = cookies.has('lti_auth_token') || cookies.has('auth_token')
+  const isInLti = cookies.has('lti_auth_token') && !cookies.has('auth_token')
+  const cookieName = isInLti ? 'lti_auth_token' : 'auth_token'
+  const defaultPage = isInLti ? '/lti' : '/courses'
+
   // Case: User tries to access a page that requires authentication without an auth token
-  if (!cookies.has('auth_token') && !isPublicPageRequested) {
+  if (!hasToken && !isPublicPageRequested) {
     return NextResponse.redirect(
-      new URL(`/login?redirect=${nextUrl.pathname}`, url),
+      new URL(
+        `${isInLti ? '/lti' : ''}/login?redirect=${nextUrl.pathname}`,
+        url,
+      ),
     )
   }
 
-  let data: Response | undefined
+  let response: AxiosResponse | undefined
   let userData: User | undefined
 
   try {
-    data = await fetchUser(cookies)
+    response = await fetchUser(cookies, cookieName)
 
     userData =
-      data && (data.ok || data.status == 302)
-        ? ((await data?.json()) as User)
+      response &&
+      ((response.status >= 200 && response.status < 300) ||
+        response.status == 302)
+        ? (response.data as User)
         : undefined
   } catch (error) {
     return await handleRetry(request, () => {
@@ -100,15 +118,18 @@ export async function middleware(
         },
       })
       return NextResponse.redirect(
-        new URL(`/login?error=fetchError&redirect=${nextUrl.pathname}`, url),
+        new URL(
+          `${isInLti ? '/lti' : ''}/login?error=fetchError&redirect=${nextUrl.pathname}`,
+          url,
+        ),
       )
     })
   }
 
   // Case: User has auth token and tries to access a page that requires authentication
-  if (data && !isPublicPageRequested) {
+  if (response && !isPublicPageRequested) {
     // If the auth token is invalid, redirect to /login
-    if (data.status === 401) {
+    if (response.status === 401) {
       // I have no clue if the session is actually expired or what exactly.
       return await handleRetry(
         request, // pass in the request (gets sent to middleware() again)
@@ -116,20 +137,21 @@ export async function middleware(
           // run this function once out of retry attempts
           const response = NextResponse.redirect(
             new URL(
-              `/login?error=sessionExpired&redirect=${nextUrl.pathname}`,
+              `${isInLti ? '/lti' : ''}/login?error=sessionExpired&redirect=${nextUrl.pathname}`,
               url,
             ),
           )
           response.cookies.delete('auth_token')
+          response.cookies.delete('lti_auth_token')
           return response
         },
         1, // retry only once
       )
-    } else if (data.status >= 300 && data.status < 400) {
+    } else if (response.status >= 300 && response.status < 400) {
       // The user was redirected (from some other part of our app, maybe even this middleware)
       // We should just let them through to the next page
       return NextResponse.next()
-    } else if (data.status === 429) {
+    } else if (response.status === 429) {
       // Too many requests (somehow. This should never happen since the getUser api has no throttler, but i'm leaving this here in case that changes).
       // Ideally, we would just do an antd message.error, but we can't do that in middelware since it's server-side.
       // The best solution we have right now is just sending them to the /429 page, which has a back button.
@@ -137,54 +159,55 @@ export async function middleware(
       return await handleRetry(request, () => {
         return NextResponse.redirect(new URL('/error_pages/429', url))
       })
-    } else if (data.status >= 400) {
+    } else if (response.status >= 400) {
       // this really is not meant to happen
-      if (data.headers.get('content-type')?.includes('application/json')) {
-        const userData: User = await data.json()
+      if (response.headers['content-type']?.includes('application/json')) {
+        const userData: User = await response.data
         Sentry.captureEvent({
-          message: `Unknown error in middleware ${data.status}: ${data.statusText}`,
+          message: `Unknown error in middleware ${response.status}: ${response.statusText}`,
           level: 'error',
           extra: {
             requestedRoute: nextUrl.pathname,
-            statusText: data.statusText,
-            statusCode: data.status,
+            statusText: response.statusText,
+            statusCode: response.status,
             userId: userData.id,
             userEmail: userData.email,
             userRole: userData.organization?.organizationRole,
           },
         })
-      } else if (data.headers.get('content-type')?.includes('text/html')) {
-        const text = await data.text()
+      } else if (response.headers['content-type']?.includes('text/html')) {
+        const text = (await response.data) as string
         Sentry.captureEvent({
-          message: `Unknown error in middleware ${data.status}: ${data.statusText}`,
+          message: `Unknown error in middleware ${response.status}: ${response.statusText}`,
           level: 'error',
           extra: {
             requestedRoute: nextUrl.pathname,
-            statusText: data.statusText,
-            statusCode: data.status,
+            statusText: response.statusText,
+            statusCode: response.status,
             text,
           },
         })
       } else {
         Sentry.captureEvent({
-          message: `Unknown error in middleware ${data.status}: ${data.statusText}`,
+          message: `Unknown error in middleware ${response.status}: ${response.statusText}`,
           level: 'error',
           extra: {
             requestedRoute: nextUrl.pathname,
-            statusText: data.statusText,
-            statusCode: data.status,
+            statusText: response.statusText,
+            statusCode: response.status,
           },
         })
       }
       return await handleRetry(request, () => {
-        const response = NextResponse.redirect(
+        const redirectResponse = NextResponse.redirect(
           new URL(
-            `/login?error=errorCode${data.status}${encodeURIComponent(data.statusText)}&redirect=${nextUrl.pathname}`,
+            `${isInLti ? '/lti' : ''}/login?error=errorCode${response.status}${encodeURIComponent(response.statusText)}&redirect=${nextUrl.pathname}`,
             url,
           ),
         )
-        response.cookies.delete('auth_token')
-        return response
+        redirectResponse.cookies.delete('auth_token')
+        redirectResponse.cookies.delete('lti_auth_token')
+        return redirectResponse
       })
     }
   }
@@ -227,7 +250,10 @@ export async function middleware(
 
     if (!isAllowedOnPath) {
       return NextResponse.redirect(
-        new URL(`/api/v1/logout?redirect=${nextUrl.pathname}`, url),
+        new URL(
+          `/api/v1/logout?redirect=${nextUrl.pathname}${isInLti ? '&lti=true' : ''}`,
+          url,
+        ),
       )
     }
   }
@@ -238,15 +264,20 @@ export async function middleware(
     //  - if page is /verify and email is not verified, allow access
     //  - if page is /verify and email is verified, redirect to /courses
     //  - if email is not verified, redirect to /verify
-    if (nextUrl.pathname.startsWith('/verify') && !isEmailVerified(userData)) {
+    if (
+      nextUrl.pathname.startsWith(`${isInLti ? '/lti' : ''}/verify`) &&
+      !isEmailVerified(userData)
+    ) {
       return NextResponse.next()
     } else if (
-      nextUrl.pathname.startsWith('/verify') &&
+      nextUrl.pathname.startsWith(`${isInLti ? '/lti' : ''}/verify`) &&
       isEmailVerified(userData)
     ) {
-      return NextResponse.redirect(new URL('/courses', url))
+      return NextResponse.redirect(new URL(defaultPage, url))
     } else if (!isEmailVerified(userData)) {
-      return NextResponse.redirect(new URL('/verify', url))
+      return NextResponse.redirect(
+        new URL(`${isInLti ? '/lti' : ''}/verify`, url),
+      )
     }
 
     // Redirect to /courses if user is not an admin and tries to access pages that should be accessed by organization admin (or professor)
@@ -256,7 +287,7 @@ export async function middleware(
       userData.organization.organizationRole !== OrganizationRole.ADMIN &&
       userData.organization.organizationRole !== OrganizationRole.PROFESSOR
     ) {
-      return NextResponse.redirect(new URL('/courses', url))
+      return NextResponse.redirect(new URL(defaultPage, url))
     }
 
     // Redirect to /courses if user is not an admin and tries to access pages that should be accessed by an application admin
@@ -264,20 +295,19 @@ export async function middleware(
       nextUrl.pathname.startsWith('/admin') &&
       userData.userRole !== UserRole.ADMIN
     ) {
-      return NextResponse.redirect(new URL('/courses', url))
+      return NextResponse.redirect(new URL(defaultPage, url))
     }
   }
 
   // Case: User has auth token and tries to access a public page that isn't /invite or /lti or /qi or /error_pages
   if (
     isPublicPageRequested &&
-    cookies.has('auth_token') &&
-    !nextUrl.pathname.startsWith('/lti') &&
+    hasToken &&
     !nextUrl.pathname.startsWith('/invite') &&
     !nextUrl.pathname.startsWith('/qi/') &&
     !nextUrl.pathname.startsWith('/error_pages')
   ) {
-    return NextResponse.redirect(new URL('/courses', url))
+    return NextResponse.redirect(new URL(defaultPage, url))
   }
 
   return NextResponse.next()

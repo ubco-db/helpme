@@ -23,7 +23,9 @@ export class OrganizationUserModel extends BaseEntity {
   @JoinColumn({ name: 'organizationId' })
   organization: OrganizationModel;
 
-  @OneToOne((type) => UserModel, (user) => user.organizationUser)
+  @OneToOne((type) => UserModel, (user) => user.organizationUser, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'userId' })
   organizationUser: UserModel;
 

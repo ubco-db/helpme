@@ -29,6 +29,7 @@ import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import * as bcrypt from 'bcrypt';
 import { CourseService } from 'course/course.service';
 import { LoginService } from '../login/login.service';
+import { UserId } from '../decorators/user.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -61,19 +62,15 @@ export class AuthController {
   }
 
   @Get('link/:method/:oid')
-  auth(
+  async auth(
     @Res() res: Response,
     @Param('method') auth_method: string,
     @Param('oid', ParseIntPipe) organizationId: number,
-  ) {
+  ): Promise<Response<{ redirectUri: string } | { message: string }>> {
     return this.authService.ssoAuthInit(
       res,
       auth_method,
       organizationId,
-      {
-        httpOnly: true,
-        secure: this.isSecure(),
-      },
       this.getAuthRedirectUri,
     );
   }
@@ -83,11 +80,12 @@ export class AuthController {
   async validateRegistrationToken(
     @Res() res: Response,
     @Req() req: Request,
+    @UserId() userId: number,
     @Body() registrationTokenDetails: RegistrationTokenDetails,
   ): Promise<Response<void>> {
     const result = await this.authService.verifyRegistrationToken(
-      req,
       res,
+      userId,
       registrationTokenDetails,
     );
 
@@ -130,7 +128,10 @@ export class AuthController {
       });
     }
 
-    if (passwordToken.expires_at < parseInt(new Date().getTime().toString())) {
+    if (
+      (Date.now() - passwordToken.createdAt.getTime()) / 1000 >
+      passwordToken.expiresIn
+    ) {
       return res.status(HttpStatus.BAD_REQUEST).send({
         message: 'Password reset token has expired',
       });
@@ -170,14 +171,17 @@ export class AuthController {
       });
     }
 
-    if (passwordToken.expires_at < parseInt(new Date().getTime().toString())) {
+    if (
+      (Date.now() - passwordToken.createdAt.getTime()) / 1000 >
+      passwordToken.expiresIn
+    ) {
       return res.status(HttpStatus.BAD_REQUEST).send({
         message: 'Password reset token has expired',
       });
     }
 
     passwordToken.token_action = TokenAction.ACTION_COMPLETE;
-    passwordToken.expires_at = parseInt(new Date().getTime().toString());
+    passwordToken.expiresIn = 0;
     await passwordToken.save();
 
     const salt = await bcrypt.genSalt(10);
@@ -238,13 +242,15 @@ export class AuthController {
     @Res() res: Response,
     @Param('method') auth_method: string,
     @Query('code') auth_code: string,
+    @Query('state') auth_state: string,
     @Req() req: Request,
-  ): Promise<Response<void>> {
+  ): Promise<Response<void> | void> {
     return await this.authService.ssoAuthCallback(
       req,
       res,
       auth_method,
       auth_code,
+      auth_state,
       this.courseService,
       undefined,
       {

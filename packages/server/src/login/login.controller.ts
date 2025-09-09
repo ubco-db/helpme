@@ -1,10 +1,11 @@
-import { ERROR_MESSAGES, isProd, UBCOloginParam } from '@koh/common';
+import { ERROR_MESSAGES, isProd, LoginParam } from '@koh/common';
 import {
   Body,
   Controller,
   Get,
   HttpException,
   HttpStatus,
+  ParseBoolPipe,
   Post,
   Query,
   Req,
@@ -36,7 +37,7 @@ export class LoginController {
   @Post('/login')
   async receiveDataFromLogin(
     @Res() res: Response,
-    @Body() body: UBCOloginParam,
+    @Body() body: LoginParam,
   ): Promise<any> {
     if (isProd()) {
       if (!body.recaptchaToken) {
@@ -149,13 +150,15 @@ export class LoginController {
   async logout(
     @Res() res: Response,
     @Query('redirect') redirect?: string,
+    @Query('lti', new ParseBoolPipe({ optional: true })) lti?: boolean,
   ): Promise<void> {
+    const loginUrl = (lti ? '/lti' : '') + '/login';
     res
       .clearCookie('auth_token', {
         httpOnly: true,
         secure: this.configService.get<string>('DOMAIN').startsWith('https'),
       })
       .clearCookie('lti_auth_token', LtiService.cookieOptions) // Clear LTI Auth Token
-      .redirect(302, redirect ? `/login?redirect=${redirect}` : '/login');
+      .redirect(302, redirect ? `${loginUrl}?redirect=${redirect}` : loginUrl);
   }
 }

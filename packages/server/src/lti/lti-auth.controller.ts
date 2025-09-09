@@ -21,6 +21,7 @@ import {
 } from '@koh/common';
 import { LtiService } from './lti.service';
 import { LoginService } from '../login/login.service';
+import { UserId } from '../decorators/user.decorator';
 
 // LTI Tool can only access the following API routes
 export const restrictPaths = [
@@ -32,6 +33,7 @@ export const restrictPaths = [
   'r^\\/api\\/v1\\/chatbot\\/ask\\/[0-9]+$',
   'r^\\/api\\/v1\\/chatbot\\/askSuggested\\/[0-9]+$',
   'r^\\/api\\/v1\\/lms.*$',
+  'r^\\/api\\/v1\\/lti\\/auth.*$',
 ];
 
 @Controller('lti/auth')
@@ -67,16 +69,15 @@ export class LtiAuthController {
   }
 
   @Get('link/:method/:oid')
-  ssoAuth(
+  async ssoAuth(
     @Res() res: Response,
     @Param('method') auth_method: string,
     @Param('oid', ParseIntPipe) organizationId: number,
-  ): Response<{ redirectUri: string }> {
+  ): Promise<Response<{ redirectUri: string } | { message: string }>> {
     return this.authService.ssoAuthInit(
       res,
       auth_method,
       organizationId,
-      LtiService.cookieOptions,
       this.getAuthRedirectUri,
     );
   }
@@ -86,11 +87,12 @@ export class LtiAuthController {
   async validateRegistrationToken(
     @Res() res: Response,
     @Req() req: Request,
+    @UserId() userId: number,
     @Body() registrationTokenDetails: RegistrationTokenDetails,
   ): Promise<Response<void>> {
     const result = await this.authService.verifyRegistrationToken(
-      req,
       res,
+      userId,
       registrationTokenDetails,
     );
 
@@ -162,13 +164,15 @@ export class LtiAuthController {
     @Res() res: Response,
     @Param('method') auth_method: string,
     @Query('code') auth_code: string,
+    @Query('state') auth_state: string,
     @Req() req: Request,
-  ): Promise<Response<void>> {
+  ): Promise<Response<void> | void> {
     return await this.authService.ssoAuthCallback(
       req,
       res,
       auth_method,
       auth_code,
+      auth_state,
       undefined,
       this.ltiService,
       {

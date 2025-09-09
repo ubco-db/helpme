@@ -58,9 +58,10 @@ export class LoginService {
     } = options ?? {};
     let cookieOptions = options?.cookieOptions ?? { httpOnly: true };
 
-    const secure = cookieOptions
-      ? cookieOptions.secure
-      : this.configService.get<string>('DOMAIN').startsWith('https://');
+    const secure =
+      cookieOptions?.secure != undefined
+        ? cookieOptions.secure
+        : this.configService.get<string>('DOMAIN').startsWith('https://');
 
     cookieOptions = {
       ...cookieOptions,
@@ -83,6 +84,15 @@ export class LoginService {
     }
 
     if (returnImmediate) {
+      const ltiInvite = getCookie(req, '__COURSE_INVITE');
+      if (ltiInvite && ltiService) {
+        res = await this.handleLTICourseInviteCookie(
+          res,
+          userId,
+          ltiInvite,
+          ltiService,
+        );
+      }
       return res
         .cookie(cookieName ?? 'auth_token', authToken, cookieOptions)
         .send({ message: returnImmediateMessage ?? 'OK' });
@@ -114,7 +124,7 @@ export class LoginService {
 
     return res
       .cookie(cookieName ?? 'auth_token', authToken, cookieOptions)
-      .redirect(HttpStatus.FOUND, redirectUrl);
+      .redirect(redirectUrl);
   }
 
   async handleCookies(
@@ -152,13 +162,19 @@ export class LoginService {
     if (queueInviteCookie && courseService) {
       await courseService
         .getQueueInviteRedirectURLandInviteToCourse(queueInviteCookie, userId)
-        .then((url) => {
-          redirectUrl = url;
-          res.clearCookie('queueInviteInfo');
+        .then((result) => {
+          redirectUrl = result.url;
+          for (const [key, value] of result.queryParams) {
+            queryParams.set(key, value);
+          }
+          res.clearCookie('queueInviteInfo', cookieOptions);
         });
     } else if (secureRedirectCookie) {
       const decodedCookie = decodeURIComponent(secureRedirectCookie);
-      redirectUrl = `/invite?cid=${decodedCookie.split(',')[0]}&code=${encodeURIComponent(decodedCookie.split(',')[1])}`;
+      const cookieParts = decodedCookie.split(',');
+      queryParams.set('cid', cookieParts[0]);
+      queryParams.set('code', encodeURIComponent(cookieParts[1]));
+      redirectUrl = `/invite`;
       res.clearCookie('__SECURE_REDIRECT', cookieOptions);
     } else if (ltiInviteCookie && ltiService) {
       const inviteToken = decodeURIComponent(ltiInviteCookie);
@@ -167,10 +183,14 @@ export class LoginService {
         try {
           courseId = await ltiService.checkCourseInvite(userId, inviteToken);
         } catch (err) {
-          queryParams.set('error_message', (err as Error).message);
+          queryParams.set('err', (err as Error).message);
         }
       }
-      redirectUrl = `/lti/${courseId}`;
+      if (courseId) {
+        redirectUrl = `/lti/${courseId}`;
+      } else {
+        redirectUrl = `/lti`;
+      }
       res.clearCookie('__COURSE_INVITE', cookieOptions);
     } else if (redirect) {
       redirectUrl = redirect;
@@ -197,6 +217,24 @@ export class LoginService {
       res,
       redirectUrl,
     };
+  }
+
+  async handleLTICourseInviteCookie(
+    res: Response,
+    userId: number,
+    inviteCookie: string,
+    ltiService: LtiService,
+  ) {
+    const inviteToken = decodeURIComponent(inviteCookie);
+    if (inviteToken) {
+      try {
+        await ltiService.checkCourseInvite(userId, inviteToken);
+        res.clearCookie('__COURSE_INVITE', LtiService.cookieOptions);
+      } catch (err) {
+        console.error(`Error occurred handling LTI course invite`, err);
+      }
+    }
+    return res;
   }
 
   async generateAuthToken(
