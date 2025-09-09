@@ -39,10 +39,20 @@ export default async function Layout({
     // get courseId from SECURE_REDIRECT (from invite code) and get the course's organization, and then set the organization to that
     const redirectCookieString = cookieStore.get('__SECURE_REDIRECT')
     if (redirectCookieString) {
-      const decodedCookie = decodeURIComponent(redirectCookieString.value)
-      const orgId = decodedCookie.split(',')[2]
+      const decodedCookie = decodeURIComponent(
+        redirectCookieString.value,
+      ).split(',')
+      const orgId = decodedCookie[2]
+      const courseId = decodedCookie[0]
+      const courseInviteCode = decodedCookie[1]
       if (Number(orgId)) {
         invitedOrgId = Number(orgId)
+      }
+      if (Number(courseId)) {
+        invitedCourseId = Number(courseId)
+      }
+      if (courseInviteCode) {
+        invitedCourseInviteCode = courseInviteCode
       }
     }
   }
