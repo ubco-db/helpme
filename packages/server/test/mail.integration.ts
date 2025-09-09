@@ -38,7 +38,13 @@ describe('Mail Integration', () => {
 
       await supertest({ userId: user.id })
         .post('/mail/registration/resend')
-        .expect(202);
+        .expect(202)
+        .then((response) => {
+          expect(response.body).toHaveProperty(
+            'message',
+            'Verification code resent',
+          );
+        });
     });
   });
 

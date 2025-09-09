@@ -27,9 +27,9 @@ export type sendEmailAsync = {
       provide: MailService,
       // Use an empty class for a mock implementation
       useValue: {
-        sendUserVerificationCode: () => 'fake code',
-        sendEmail: (_emailPost: sendEmailAsync) => 'fake email',
-        findAllSubscriptions: (user: UserModel) => ['fake subscription'],
+        sendUserVerificationCode: async () => 'fake code',
+        sendEmail: async (_emailPost: sendEmailAsync) => 'fake email',
+        findAllSubscriptions: async (user: UserModel) => ['fake subscription'],
       },
     },
   ],

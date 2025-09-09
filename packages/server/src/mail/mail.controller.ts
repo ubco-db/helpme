@@ -9,10 +9,6 @@ import {
 import { MailService } from './mail.service';
 import { UserId } from '../decorators/user.decorator';
 
-interface RequestUser {
-  userId: string;
-}
-
 @Controller('mail')
 // process emails
 export class MailController {
@@ -24,7 +20,7 @@ export class MailController {
     @Res() res: Response,
     @UserId() userId: number,
   ): Promise<Response<void>> {
-    const user = await UserTokenModel.findOne({
+    const token = await UserTokenModel.findOne({
       where: {
         user: { id: userId },
         token_type: TokenType.EMAIL_VERIFICATION,
@@ -33,18 +29,18 @@ export class MailController {
       relations: ['user'],
     });
 
-    if (!user) {
+    if (!token) {
       return res.status(HttpStatus.BAD_REQUEST).send({
         message: 'No pending verification code found',
       });
     }
 
-    user.createdAt = new Date();
-    user.expiresIn = 1000 * 60 * 15;
-    await user.save();
+    token.createdAt = new Date();
+    token.expiresIn = 1000 * 60 * 15;
+    await token.save();
 
     this.mailerService
-      .sendUserVerificationCode(user.token, user.user.email)
+      .sendUserVerificationCode(token.token, token.user.email)
       .then();
 
     return res.status(HttpStatus.ACCEPTED).send({
