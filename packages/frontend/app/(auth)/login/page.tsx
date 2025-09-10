@@ -2,7 +2,7 @@
 
 import { organizationApi } from '@/app/api/organizationApi'
 import { Alert, Button, Card, Form, Input, message, Select } from 'antd'
-import React, { SetStateAction, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Organization } from '@/app/typings/organization'
 import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import Image from 'next/image'
@@ -44,7 +44,8 @@ export default function LoginPage() {
     number | null
   >('organizationId', null)
 
-  const { invitedOrgId, invitedQueueId } = useLoginRedirectInfoProvider()
+  const { invitedOrgId, invitedCourseId, invitedQueueId } =
+    useLoginRedirectInfoProvider()
 
   // capture error from the query params in sentry
   useEffect(() => {
