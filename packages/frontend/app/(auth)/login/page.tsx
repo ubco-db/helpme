@@ -25,10 +25,6 @@ export default function LoginPage() {
 
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [organization, setOrganization] = useState<Organization | null>(null)
-  const [storedId, setStoredId] = useLocalStorage<string>(
-    'organizationId',
-    null,
-  )
   const [hasRetrievedOrganizations, setHasRetrievedOrganizations] =
     useState(false)
 
@@ -44,31 +40,11 @@ export default function LoginPage() {
   const error = searchParams.get('error')
   const [errorGettingOrgs, setErrorGettingOrgs] = useState(false)
   const redirect = searchParams.get('redirect')
+  const [localStorageOrgId, setLocalStorageOrgId] = useLocalStorage<
+    number | null
+  >('organizationId', null)
 
   const { invitedOrgId, invitedQueueId } = useLoginRedirectInfoProvider()
-
-  useEffect(() => {
-    async function getOrganizations() {
-      try {
-        const organizations = await organizationApi.getOrganizations()
-        setOrganizations(organizations)
-        setHasRetrievedOrganizations(true)
-      } catch (error: any) {
-        message.error(error)
-        setErrorGettingOrgs(true)
-        return
-      }
-    }
-    getOrganizations()
-  }, [])
-
-  const onPassChange = (e: { target: { value: SetStateAction<string> } }) => {
-    setPassword(e.target.value)
-  }
-
-  const onEmailChange = (e: { target: { value: SetStateAction<string> } }) => {
-    setEmail(e.target.value)
-  }
 
   // capture error from the query params in sentry
   useEffect(() => {
@@ -84,17 +60,77 @@ export default function LoginPage() {
     }
   }, [error])
 
-  const selectOrganization = (value: number) => {
-    if (organizations.length > 0) {
-      const organization = organizations.find((org) => org.id === value)
-      setStoredId(`${organization?.id}`)
-      if (!organization) {
-        message.error('Organization not found')
+  const selectOrganization = useCallback(
+    (value: number, newlyRetrievedOrganizations?: Organization[]) => {
+      const organizationsToUse = newlyRetrievedOrganizations
+        ? newlyRetrievedOrganizations
+        : organizations
+      if (organizationsToUse.length === 0) {
+        message.error('No organizations could be selected as none were found')
+        Sentry.captureEvent({
+          message:
+            'No organizations could be selected as none were found. This should not happen.',
+          level: 'error',
+        })
         return
       }
+      const organization = organizationsToUse.find((org) => org.id === value)
+      if (!organization) {
+        message.error('Organization not found')
+        Sentry.captureEvent({
+          message: 'Organization not found',
+          level: 'error',
+          extra: {
+            value,
+          },
+        })
+        return
+      }
+      setLocalStorageOrgId(organization.id)
       setOrganization(organization)
+    },
+    [organizations, setLocalStorageOrgId],
+  )
+
+  const smartlySetOrganization = useCallback(
+    async (organizations: Organization[]) => {
+      if (organizations.length === 1) {
+        selectOrganization(organizations[0].id, organizations)
+      } else if (invitedOrgId) {
+        // get courseId from SECURE_REDIRECT (from invite code) and get the course's organization, and then set the organization to that
+        selectOrganization(invitedOrgId, organizations)
+      } else if (localStorageOrgId) {
+        // if no invite ID, set it to whatever was in local storage (idea being that if you selected this org before, you probably want to select it again)
+        selectOrganization(localStorageOrgId, organizations)
+      } else {
+        // try to select the UBC organization as a default for everyone
+        const UBCOrg = organizations.find((org) => org.id === 1)
+        if (UBCOrg) {
+          selectOrganization(UBCOrg.id, organizations)
+        } else {
+          // if worst comes to worst, just select the first organization so that *something* is selected
+          selectOrganization(organizations[0].id, organizations)
+        }
+      }
+    },
+    [invitedOrgId, selectOrganization, localStorageOrgId],
+  )
+
+  useEffect(() => {
+    async function getOrganizations() {
+      try {
+        const organizations = await organizationApi.getOrganizations()
+        setOrganizations(organizations)
+        smartlySetOrganization(organizations)
+        setHasRetrievedOrganizations(true)
+      } catch (error: any) {
+        message.error(error)
+        setErrorGettingOrgs(true)
+        return
+      }
     }
-  }
+    getOrganizations()
+  }, [])
 
   async function login() {
     let loginData: LoginData
@@ -196,39 +232,6 @@ export default function LoginPage() {
     recaptchaRef?.current?.reset()
   }
 
-  useEffect(() => {
-    async function smartlySetOrganization() {
-      let id: number = organizations[0]?.id
-
-      // get courseId from SECURE_REDIRECT (from invite code) and get the course's organization, and then set the organization to that
-      if (invitedOrgId) {
-        id = invitedOrgId
-      } else {
-        const orgId = parseInt(String(storedId))
-        if (!isNaN(orgId)) {
-          id = orgId
-        }
-      }
-
-      if (organization?.id == id) return
-      selectOrganization(id)
-    }
-    smartlySetOrganization()
-  }, [invitedOrgId, organizations, storedId])
-
-  useEffect(() => {
-    const orgId = parseInt(String(storedId))
-    if (!isNaN(orgId)) {
-      selectOrganization(orgId)
-    }
-  }, [storedId])
-
-  useEffect(() => {
-    if (isNaN(parseInt(String(storedId)))) {
-      setStoredId(String(organizations[0]?.id))
-    }
-  }, [organizations])
-
   if (errorGettingOrgs) {
     return (
       <main>
@@ -242,7 +245,7 @@ export default function LoginPage() {
         </div>
       </main>
     )
-  } else if (organizations.length === 0 || !organizations) {
+  } else if (!organizations || organizations?.length === 0) {
     return (
       <main>
         {hasRetrievedOrganizations ? (
@@ -260,15 +263,26 @@ export default function LoginPage() {
     return (
       <main>
         <title>HelpMe | Login</title>
-        {invitedQueueId && (
+        {invitedCourseId && !invitedQueueId ? (
           <div className="container mx-auto h-auto w-full max-w-lg pt-10 text-center">
             <Alert
               message={
-                'You have been invited to join a queue! Please login to continue.'
+                'You have been invited to a course! Please login to continue.'
               }
               type="success"
             />
           </div>
+        ) : (
+          invitedQueueId && (
+            <div className="container mx-auto h-auto w-full max-w-lg pt-10 text-center">
+              <Alert
+                message={
+                  'You have been invited to join a queue! Please login to continue.'
+                }
+                type="success"
+              />
+            </div>
+          )
         )}
         {error && (
           <div className="container mx-auto h-auto w-full pt-10 text-center md:w-1/2">
@@ -288,7 +302,7 @@ export default function LoginPage() {
         <div
           className={cn(
             'container mx-auto h-auto w-full text-center md:w-1/2',
-            invitedQueueId || error ? 'pt-5' : 'pt-20',
+            invitedQueueId || error || invitedCourseId ? 'pt-5' : 'pt-20',
           )}
         >
           <Card className="mx-auto max-w-md sm:px-2 md:px-6">
@@ -301,7 +315,6 @@ export default function LoginPage() {
                 <Select
                   className="mt-2 w-full text-left"
                   placeholder="Available Organizations"
-                  defaultValue={organizations?.[0].id}
                   options={organizations.map((organization) => {
                     return {
                       label: organization.name,
@@ -414,7 +427,7 @@ export default function LoginPage() {
                   >
                     <Input
                       prefix={<UserOutlined className="site-form-item-icon" />}
-                      onChange={onEmailChange}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="rounded-lg border px-2 py-2"
                       placeholder="Email"
                       autoComplete="email"
@@ -433,7 +446,7 @@ export default function LoginPage() {
                   >
                     <Input
                       prefix={<LockOutlined className="site-form-item-icon" />}
-                      onChange={onPassChange}
+                      onChange={(e) => setPassword(e.target.value)}
                       type="password"
                       autoComplete="current-password"
                       className="rounded-lg border px-2 py-2"
