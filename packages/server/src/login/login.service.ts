@@ -1,4 +1,9 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CourseService } from '../course/course.service';
@@ -23,6 +28,31 @@ export class LoginService {
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {}
+
+  async initLoginEnter(
+    req: Request,
+    res: Response,
+    token: string,
+    courseService?: CourseService,
+    ltiService?: LtiService,
+    options: LoginEntryOptions = {},
+  ) {
+    const isVerified = await this.jwtService.verifyAsync(token);
+
+    if (!isVerified) {
+      throw new UnauthorizedException();
+    }
+
+    const payload = this.jwtService.decode(token) as { userId: number };
+    await this.enter(
+      req,
+      res,
+      payload.userId,
+      courseService,
+      ltiService,
+      options,
+    );
+  }
 
   /**
    * @description Performs the entry mechanism to authorize users.

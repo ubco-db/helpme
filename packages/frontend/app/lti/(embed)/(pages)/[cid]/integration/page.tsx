@@ -9,11 +9,10 @@ import {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   OrganizationSettingsResponse,
-  Role,
 } from '@koh/common'
 import React, { useEffect, useMemo, useState } from 'react'
 import { API } from '@/app/api'
-import { cn, getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { Button, Card, message, Modal } from 'antd'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import {
@@ -21,14 +20,9 @@ import {
   EditOutlined,
   PlusCircleOutlined,
 } from '@ant-design/icons'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { usePathname, useRouter } from 'next/navigation'
 import { useSessionStorage } from '@/app/hooks/useSessionStorage'
 
 export default function LtiIntegrationPage(): React.ReactElement {
-  const router = useRouter()
-  const pathname = usePathname()
-
   const [lmsInfo] = useSessionStorage<{
     platform: LMSIntegrationPlatform
     apiCourseId: string
@@ -45,9 +39,7 @@ export default function LtiIntegrationPage(): React.ReactElement {
     }
   }, [lmsInfo])
 
-  const { userInfo } = useUserInfo()
   const { courseId, course } = useLtiCourse()
-  const role = getRoleInCourse(userInfo, courseId)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [delModalOpen, setDelModalOpen] = useState(false)
@@ -71,7 +63,7 @@ export default function LtiIntegrationPage(): React.ReactElement {
           setOrgIntegration(res.find((v) => v.apiPlatform == platform))
           setIntegrationOptions(res)
         })
-        .catch((err) => {})
+        .catch(() => {})
 
       API.lmsIntegration
         .getCourseIntegration(courseId)
@@ -94,7 +86,7 @@ export default function LtiIntegrationPage(): React.ReactElement {
             setIntegrationExists(false)
           }
         })
-        .catch((err) => {})
+        .catch(() => {})
     }
     getIntegrations()
   }, [platform, apiCourseId, updateFlag])
@@ -155,10 +147,6 @@ export default function LtiIntegrationPage(): React.ReactElement {
       .catch((err) => message.error(getErrorMessage(err)))
   }
 
-  if (![Role.PROFESSOR].includes(role)) {
-    router.push(`/lti/${courseId}`)
-  }
-
   if (!courseIntegration || !platform || !apiCourseId) {
     return <CenteredSpinner tip={'Loading...'} />
   }
@@ -190,8 +178,8 @@ export default function LtiIntegrationPage(): React.ReactElement {
               HelpMe.
             </p>
             <p>
-              If you're finished generating the token, you can reload this page
-              by clicking the button below.
+              If you&#39;re finished generating the token, you can reload this
+              page by clicking the button below.
             </p>
             <Button
               onClick={() => window.location.reload()}
@@ -206,48 +194,41 @@ export default function LtiIntegrationPage(): React.ReactElement {
   }
 
   return (
-    <div className={'mt-4 flex flex-col gap-8'}>
+    <div className={'mt-4 flex w-full flex-col gap-8'}>
       <h1>Learning Management System Integration</h1>
-      {integrationExists && (
-        <div
-          className={cn(
-            courseIntegration.apiPlatform != platform
-              ? 'border-red-500 bg-red-100 text-red-700'
-              : 'border-green-500 bg-green-100 text-green-700',
-            'rounded-md border-2 p-4 shadow-md',
-          )}
-        >
+      {(integrationExists && (
+        <>
           {courseIntegration.apiPlatform != platform ? (
-            <span>
-              This course has an existing integration, but it's for a different
-              platform.
-            </span>
+            <MiniAlert
+              alertType={'error'}
+              title={'Platform Mismatch'}
+              description={`This course has an existing integration, but it is with ${courseIntegration.apiPlatform} and not ${platform}.`}
+            />
           ) : (
-            <span>
-              This course has an existing integration for this platform!
-            </span>
+            <MiniAlert
+              alertType={'success'}
+              title={'Integration Exists'}
+              description={`This course has an existing integration with ${platform}.`}
+            />
           )}
-        </div>
+        </>
+      )) || (
+        <MiniAlert
+          alertType={'warning'}
+          title={'No Integration'}
+          description={`This course does not have an existing integration with any platforms, including ${platform}.`}
+        />
       )}
       <Card
-        title={'Actions'}
+        title={<h2>Actions</h2>}
+        className={'max-w-3/4 self-center'}
         classNames={{ body: 'flex flex-col gap-4 items-center' }}
       >
-        <div className={'flex flex-col justify-center gap-1'}>
-          {!integrationExists ? (
-            <p className={'font-semibold text-green-600'}>
-              This course is not integrated with a learning management system.
-            </p>
-          ) : (
-            <p className={'font-semibold text-red-600'}>
-              This course is already integrated with a learning management
-              system.
-            </p>
-          )}
+        <div className={'text-md flex flex-col justify-center gap-1'}>
           <p>
             By integrating a course with a learning management system, you can
             enable documents to be retrieved by HelpMe automatically. These will
-            be used to build your course chatbot's knowledge base.
+            be used to build your course chatbot&#39;s knowledge base.
           </p>
           <p>
             Other benefits include being able to view which students from your
@@ -268,10 +249,26 @@ export default function LtiIntegrationPage(): React.ReactElement {
           ) : !integrationExists ? (
             <p>You can create a new integration for this course.</p>
           ) : (
-            <p>
-              You can update the existing integration for this course, or remove
-              it entirely.
-            </p>
+            <>
+              <p>
+                You can update the existing integration for this course, or
+                remove it entirely.
+              </p>
+              {courseIntegration.apiCourseId != apiCourseId && (
+                <MiniAlert
+                  alertType={'warning'}
+                  title={`${platform} Course Mismatch`}
+                  description={`
+                    This course from ${courseIntegration.apiPlatform} does not match the course this LTI tool
+                    launched for: it has course ID ${courseIntegration.apiCourseId}, but this tool launched for course
+                    ID ${apiCourseId}.
+                    
+                    Be careful modifying this integration as it could result in a temporary loss of documents if
+                    it's not meant to be integrated with this ${platform} course!
+                    `}
+                />
+              )}
+            </>
           )}
         </div>
         <div className={'flex w-min flex-col gap-2'}>
@@ -340,6 +337,41 @@ export default function LtiIntegrationPage(): React.ReactElement {
           configuration later if you wish to use it again.
         </p>
       </Modal>
+    </div>
+  )
+}
+
+const MiniAlert: React.FC<{
+  alertType: 'error' | 'warning' | 'success' | 'info'
+  title?: React.ReactNode
+  description?: React.ReactNode
+}> = ({ alertType, title, description }) => {
+  const color = (() => {
+    switch (alertType) {
+      case 'success':
+        return `border-green-500 bg-green-100 text-green-700`
+      case 'warning':
+        return `border-yellow-500 bg-yellow-50 text-yellow-700`
+      case 'error':
+        return `border-red-500 bg-red-100 text-red-700`
+      default:
+        return `border-blue-500 bg-blue-100 text-blue-700`
+    }
+  })()
+
+  return (
+    <div
+      className={cn(
+        color,
+        'flex flex-col gap-2 rounded-md border-2 p-4 shadow-md',
+      )}
+    >
+      {title != undefined && (
+        <span className={'text-lg font-semibold'}>{title}</span>
+      )}
+      {description != undefined && (
+        <span className={'text-md'}>{description}</span>
+      )}
     </div>
   )
 }

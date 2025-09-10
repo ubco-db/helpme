@@ -2,6 +2,7 @@
 
 import React, {
   HTMLAttributeAnchorTarget,
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -12,16 +13,23 @@ import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   NavigationMenu,
+  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
+  NavigationMenuTrigger,
   navigationMenuTriggerStyle,
   navigationMenuTriggerStyleForSubMenu,
 } from '@/app/components/ui/navigation-menu'
 import NextLink from 'next/link'
 import { GetCourseResponse, OrganizationRole, Role, User } from '@koh/common'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { ExpandOutlined, HomeOutlined, SyncOutlined } from '@ant-design/icons'
+import {
+  ExpandOutlined,
+  HomeOutlined,
+  LogoutOutlined,
+  SyncOutlined,
+} from '@ant-design/icons'
 import { MenuIcon, Undo2 } from 'lucide-react'
 import { SelfAvatar } from '@/app/components/UserAvatar'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
@@ -31,6 +39,7 @@ import {
   DrawerTrigger,
 } from '@/app/components/ui/drawer'
 import { API } from '@/app/api'
+import { Popconfirm } from 'antd'
 
 /**
  * This custom Link is wrapped around nextjs's Link to improve accessibility and styling. Not to be used outside of this navigation menu.
@@ -126,6 +135,14 @@ const NavBar = ({
   const role = getRoleInCourse(userInfo, course?.id ?? -1)
   const router = useRouter()
 
+  const setNavigationSubMenuRightSide = useCallback(() => {
+    const viewportElement = document.getElementById('navigation-menu-viewport')
+    if (viewportElement) {
+      viewportElement.classList.remove('left-0')
+      viewportElement.classList.add('right-0')
+    }
+  }, [])
+
   // Could this redirect be put elsewhere? Yes it can. However, since all of the data needed is already here and this component is on all course pages, this way is easiest and most efficient.
   if (
     course &&
@@ -138,7 +155,7 @@ const NavBar = ({
     return <CenteredSpinner tip="Course is archived. Redirecting..." />
   } else {
     return (
-      <NavigationMenu orientation={orientation}>
+      <NavigationMenu orientation={orientation} style={{ zIndex: 1100 }}>
         <NavigationMenuList>
           <NextLink
             href={course ? `/lti/${course.id}` : '/lti'}
@@ -213,12 +230,28 @@ const NavBar = ({
                 <ExpandOutlined className={'mr-2'} /> Open HelpMe
               </Link>
             </NavigationMenuItem>
-            <div>
-              <NavigationMenuItem className={`!pl-4`}>
+            <NavigationMenuItem className="!ml-auto hidden md:block">
+              <NavigationMenuTrigger
+                className={`!pl-4`}
+                onFocus={setNavigationSubMenuRightSide}
+                onClick={setNavigationSubMenuRightSide}
+                onMouseEnter={setNavigationSubMenuRightSide}
+              >
                 <SelfAvatar size={40} className="mr-2" />
                 {userInfo?.firstName}
-              </NavigationMenuItem>
-            </div>
+              </NavigationMenuTrigger>
+              <NavigationMenuContent className="hidden md:flex">
+                <ul className="grid w-max min-w-[200px] grid-cols-1 gap-1 p-2">
+                  <ListItem
+                    style={{ zIndex: 2000 }}
+                    key="logout"
+                    title="Logout"
+                    titleElement={<span className="text-red-700">Log Out</span>}
+                    href="/api/v1/logout?lti=true"
+                  ></ListItem>
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
           </div>
           {/* MOBILE ONLY PART OF NAVBAR */}
           <div className="!mb-2 !mt-auto -mr-5 block w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
@@ -231,15 +264,39 @@ const NavBar = ({
                 <ExpandOutlined className={'mr-2'} /> Open HelpMe
               </Link>
             </NavigationMenuItem>
-            <div>
-              <NavigationMenuItem
-                className="!pl-0"
-                onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+            <NavigationMenuItem className="md:hidden">
+              <SelfAvatar size={40} className="mr-2" />
+              {userInfo?.firstName}
+            </NavigationMenuItem>
+            <NavigationMenuItem className="mb-2 md:hidden">
+              <Popconfirm
+                title="Are you sure you want to log out?"
+                onConfirm={() => {
+                  router.push('/api/v1/logout?lti=true')
+                  if (setIsDrawerOpen) setIsDrawerOpen(false)
+                }}
+                okText="Yes"
+                cancelText="No"
+                // this places the Popconfirm just below the Link in the DOM rather than at the very bottom of the DOM (important for accessibility and prevent buttons being clicked underneath the Popconfirm)
+                getPopupContainer={(trigger) =>
+                  trigger.parentNode as HTMLElement
+                }
               >
-                <SelfAvatar size={40} className="mr-2" />
-                {userInfo?.firstName}
-              </NavigationMenuItem>
-            </div>
+                <Link
+                  href="/api/v1/logout?lti=true"
+                  className="text-red-700"
+                  onClick={(e) => {
+                    e.preventDefault()
+                  }}
+                >
+                  <LogoutOutlined
+                    size={40}
+                    className="mr-2 rotate-180 text-2xl"
+                  />
+                  Log Out
+                </Link>
+              </Popconfirm>
+            </NavigationMenuItem>
           </div>
         </NavigationMenuList>
       </NavigationMenu>
@@ -269,7 +326,9 @@ const HeaderBar: React.FC = () => {
       API.course
         .get(courseId)
         .then((course) => setCourse(course))
-        .catch((err) => {})
+        .catch(() => {
+          setCourse(undefined)
+        })
     } else {
       setCourse(undefined)
     }

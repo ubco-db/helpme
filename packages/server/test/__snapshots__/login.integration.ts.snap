@@ -4,6 +4,5 @@ exports[`Login Integration POST /login returns 200 if password is correct 1`] = 
 {
   "email": "user@ubc.ca",
   "password": "realpassword",
-  "token": "{"userId":1}",
 }
 `;

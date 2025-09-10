@@ -11,7 +11,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
-import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import {
@@ -41,9 +40,34 @@ export class LtiAuthController {
   constructor(
     private ltiService: LtiService,
     private authService: AuthService,
-    private configService: ConfigService,
     private loginService: LoginService,
   ) {}
+
+  @Get('/entry')
+  async loginEnter(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query('token') token: string,
+    @Query('redirect') redirect?: string,
+  ): Promise<void> {
+    if (!redirect || !redirect.startsWith('/lti')) {
+      redirect = '/lti';
+    }
+    return this.loginService.initLoginEnter(
+      req,
+      res,
+      token,
+      undefined,
+      this.ltiService,
+      {
+        cookieName: 'lti_auth_token',
+        restrictPaths,
+        redirect: redirect,
+        cookieOptions: LtiService.cookieOptions,
+        expiresIn: 60 * 10,
+      },
+    );
+  }
 
   @Get('shibboleth/:oid')
   async shibbolethAuth(

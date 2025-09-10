@@ -133,8 +133,7 @@ export default class LtiMiddleware {
       {
         type: 'postgres',
         url: `postgres://${variables.user}:${variables.password}@${variables.host}:${variables.port}/${variables.db}`,
-        synchronize:
-          this.configService.get<string>('NODE_ENV') !== 'production',
+        synchronize: true,
         logging:
           this.configService.get<string>('NODE_ENV') !== 'production'
             ? ['error', 'warn']
@@ -161,7 +160,8 @@ export default class LtiMiddleware {
           secure: true,
           sameSite: 'none',
         },
-        debug: !isProd(),
+        tokenMaxAge: 30,
+        debug: true,
         cors: true,
         prefix: this.prefix,
       },

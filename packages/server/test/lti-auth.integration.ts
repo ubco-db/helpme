@@ -7,6 +7,7 @@ import {
   OrganizationCourseFactory,
   OrganizationFactory,
   OrganizationUserFactory,
+  UserCourseFactory,
   UserFactory,
 } from './util/factories';
 import { AuthService } from 'auth/auth.service';
@@ -14,6 +15,7 @@ import { AccountType } from '@koh/common';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { LoginTicket, OAuth2Client } from 'google-auth-library';
 import { LtiModule } from '../src/lti/lti.module';
+import { restrictPaths } from '../src/lti/lti-auth.controller';
 
 jest.mock('google-auth-library', () => ({
   OAuth2Client: jest.fn().mockImplementation(
@@ -52,6 +54,58 @@ describe('LTI Auth Integration', () => {
 
     authService = testModule.get<AuthService>(AuthService);
     jwtService = testModule.get<JwtService>(JwtService);
+  });
+
+  describe('POST /lti/auth/entry', () => {
+    it('entry as user with courses goes to lti page', async () => {
+      const user = await UserFactory.create();
+      await UserCourseFactory.create({ user: user });
+      const token = await jwtService.signAsync({ userId: user.id });
+
+      const res = await supertest()
+        .get(`/lti/auth/entry?token=${token}`)
+        .expect(302);
+
+      expect(res.header['location']).toBe('/lti');
+
+      const cookie = res.get('Set-Cookie')[0];
+      const mainPart = cookie.substring(0, cookie.indexOf(';'));
+      const secondPart = cookie.substring(cookie.indexOf(';') + 1);
+      const [name, value] = mainPart.split('=');
+
+      expect(name).toEqual('lti_auth_token');
+
+      const jwtToken = jwtService.decode(value);
+
+      expect(jwtToken).toEqual(
+        expect.objectContaining({
+          userId: user.id,
+          restrictPaths,
+          expiresIn: 10 * 60,
+          iat: expect.anything(),
+        }),
+      );
+
+      const parts = secondPart.split(';').map((v) => v.trim());
+      const flags = parts.slice(1);
+
+      expect(flags).toHaveLength(3);
+      expect(flags[0]).toBe('HttpOnly');
+      expect(flags[1]).toBe('Secure');
+      expect(flags[2]).toBe('SameSite=None');
+    });
+
+    it('should fail with 401 if token is invalid', async () => {
+      const user = await UserFactory.create();
+      const token = await jwtService.signAsync({ userId: user.id });
+
+      const spy = jest.spyOn(JwtService.prototype, 'verifyAsync');
+      spy.mockResolvedValue(null);
+
+      await supertest().get(`/lti/auth/entry?token=${token}`).expect(401);
+
+      spy.mockRestore();
+    });
   });
 
   describe('GET /lti/auth/link/:method/:oid', () => {

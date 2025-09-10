@@ -1,11 +1,6 @@
 import { JwtService } from '@nestjs/jwt';
-import { TestingModuleBuilder } from '@nestjs/testing';
 import { LoginModule } from '../src/login/login.module';
-import {
-  OrganizationFactory,
-  UserCourseFactory,
-  UserFactory,
-} from './util/factories';
+import { OrganizationFactory, UserFactory } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import * as bcrypt from 'bcrypt';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
@@ -25,18 +20,14 @@ jest.mock('superagent', () => ({
   }),
 }));
 
-const mockJWT = {
-  signAsync: async (payload) => JSON.stringify(payload),
-  verifyAsync: async (payload) => JSON.parse(payload).token !== 'INVALID_TOKEN',
-  decode: (payload) => JSON.parse(payload),
-};
-
 describe('Login Integration', () => {
-  const { supertest } = setupIntegrationTest(
-    LoginModule,
-    (t: TestingModuleBuilder) =>
-      t.overrideProvider(JwtService).useValue(mockJWT),
-  );
+  let jwtService: JwtService;
+
+  const { supertest, getTestModule } = setupIntegrationTest(LoginModule);
+
+  beforeAll(() => {
+    jwtService = getTestModule().get<JwtService>(JwtService);
+  });
 
   describe('POST /login', () => {
     it('returns 400 if no email is provided', async () => {
@@ -70,7 +61,6 @@ describe('Login Integration', () => {
 
     it('returns 401 if password is incorrect', async () => {
       const user = await UserFactory.create({ password: 'real_password' });
-      await mockJWT.signAsync({ userId: user.id });
 
       await supertest()
         .post('/login')
@@ -90,7 +80,6 @@ describe('Login Integration', () => {
         password: password,
         accountDeactivated: true,
       });
-      await mockJWT.signAsync({ userId: user.id });
 
       await supertest()
         .post('/login')
@@ -107,7 +96,6 @@ describe('Login Integration', () => {
       const password = await bcrypt.hash('realpassword', salt);
 
       const user = await UserFactory.create({ password: password });
-      await mockJWT.signAsync({ userId: user.id });
 
       const res = await supertest().post('/login').send({
         email: user.email,
@@ -115,11 +103,19 @@ describe('Login Integration', () => {
         recaptchaToken: 'token',
       });
 
+      const token = '' + res.body.token;
+      const decoded = jwtService.decode(token);
+      expect(decoded).toEqual({
+        userId: user.id,
+        exp: expect.any(Number),
+        iat: expect.any(Number),
+      });
+      delete res.body.token;
       expect(res.body).toMatchSnapshot();
       expect(res.status).toBe(200);
     });
 
-    it('returns 401 when organization does not allow legacy auth', async () => {
+    it('returns 405 when organization does not allow legacy auth', async () => {
       const organization = await OrganizationFactory.create({
         legacyAuthEnabled: false,
       });
@@ -130,8 +126,6 @@ describe('Login Integration', () => {
         organizationId: organization.id,
       }).save();
 
-      await mockJWT.signAsync({ userId: user.id });
-
       await supertest()
         .post('/login')
         .send({
@@ -139,12 +133,12 @@ describe('Login Integration', () => {
           password: 'real_password',
           recaptchaToken: 'token',
         })
-        .expect(401);
+        .expect(405);
     });
 
-    it('returns 401 when user did not sign up with legacy account system', async () => {
+    it('returns 418 when user did not sign up with legacy account system', async () => {
       const organization = await OrganizationFactory.create({
-        legacyAuthEnabled: false,
+        legacyAuthEnabled: true,
       });
       const user = await UserFactory.create({ password: null });
 
@@ -153,7 +147,7 @@ describe('Login Integration', () => {
         organizationId: organization.id,
       }).save();
 
-      await mockJWT.signAsync({ userId: user.id });
+      await jwtService.signAsync({ userId: user.id });
 
       await supertest()
         .post('/login')
@@ -162,39 +156,55 @@ describe('Login Integration', () => {
           password: 'real_password',
           recaptchaToken: 'token',
         })
-        .expect(401);
+        .expect(418);
     });
   });
 
   describe('POST /login/entry', () => {
     it('request to entry with correct jwt payload works', async () => {
-      const token = await mockJWT.signAsync({ userId: 1 });
-
-      const res = await supertest()
-        .get(`/login/entry?token=${token}`)
-        .expect(302);
-
-      expect(res.header['location']).toBe('/courses');
-      expect(res.get('Set-Cookie')[0]).toContain('userId');
-    });
-
-    it('entry as user with courses goes to root page', async () => {
       const user = await UserFactory.create();
-      await UserCourseFactory.create({ user: user });
-      const token = await mockJWT.signAsync({ userId: user.id });
+      const token = await jwtService.signAsync({ userId: user.id });
 
       const res = await supertest()
         .get(`/login/entry?token=${token}`)
         .expect(302);
 
       expect(res.header['location']).toBe('/courses');
-      expect(res.get('Set-Cookie')[0]).toContain('userId');
+
+      const cookie = res.get('Set-Cookie')[0];
+      const mainPart = cookie.substring(0, cookie.indexOf(';'));
+      const secondPart = cookie.substring(cookie.indexOf(';') + 1);
+      const [name, value] = mainPart.split('=');
+
+      expect(name).toEqual('auth_token');
+
+      const jwtToken = jwtService.decode(value);
+
+      expect(jwtToken).toEqual(
+        expect.objectContaining({
+          userId: user.id,
+          expiresIn: 24 * 30 * 60 * 60,
+          iat: expect.anything(),
+        }),
+      );
+
+      const parts = secondPart.split(';').map((v) => v.trim());
+      const flags = parts.slice(1);
+
+      expect(flags).toHaveLength(1);
+      expect(flags[0]).toBe('HttpOnly');
     });
 
     it('request to entry with invalid jwt returns error', async () => {
-      const token = await mockJWT.signAsync({ token: 'INVALID_TOKEN' });
+      const user = await UserFactory.create();
+      const token = await jwtService.signAsync({ userId: user.id });
+
+      const spy = jest.spyOn(JwtService.prototype, 'verifyAsync');
+      spy.mockResolvedValue(null);
 
       await supertest().get(`/login/entry?token=${token}`).expect(401);
+
+      spy.mockRestore();
     });
   });
 

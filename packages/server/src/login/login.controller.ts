@@ -1,4 +1,4 @@
-import { ERROR_MESSAGES, isProd, LoginParam } from '@koh/common';
+import { AccountType, ERROR_MESSAGES, isProd, LoginParam } from '@koh/common';
 import {
   Body,
   Controller,
@@ -10,7 +10,6 @@ import {
   Query,
   Req,
   Res,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -72,8 +71,20 @@ export class LoginController {
       user.organizationUser &&
       user.organizationUser.organization.legacyAuthEnabled === false
     ) {
-      return res.status(HttpStatus.UNAUTHORIZED).send({
+      return res.status(HttpStatus.METHOD_NOT_ALLOWED).send({
         message: 'Organization does not allow login with username/password',
+      });
+    }
+
+    // Allow developers to use LEGACY auth on any account type,
+    // but don't allow this on production
+    if (
+      (isProd() && user.accountType != AccountType.LEGACY) ||
+      !user.password
+    ) {
+      return res.status(HttpStatus.I_AM_A_TEAPOT).send({
+        message:
+          'Account was registered with SSO and cannot be accessed with email/password login',
       });
     }
 
@@ -88,13 +99,6 @@ export class LoginController {
         ERROR_MESSAGES.loginController.invalidTempJWTToken,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
-    }
-
-    if (user.password === null || user.password === undefined) {
-      return res.status(HttpStatus.UNAUTHORIZED).send({
-        message:
-          'User was created with Institution/Google. Please login with Institution or Google instead',
-      });
     }
 
     bcrypt.compare(body.password, user.password, (err, data) => {
@@ -127,17 +131,10 @@ export class LoginController {
     @Query('token') token: string,
     @Query('redirect') redirect?: string,
   ): Promise<void> {
-    const isVerified = await this.jwtService.verifyAsync(token);
-
-    if (!isVerified) {
-      throw new UnauthorizedException();
-    }
-
-    const payload = this.jwtService.decode(token) as { userId: number };
-    await this.loginService.enter(
+    return this.loginService.initLoginEnter(
       req,
       res,
-      payload.userId,
+      token,
       this.courseService,
       undefined,
       {

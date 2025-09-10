@@ -148,7 +148,10 @@ export default function LoginPage() {
       if (redirect) {
         params.append('redirect', redirect)
       }
-      router.push(`/api/v1/login/entry?${params.toString()}`)
+      if (!redirect && isLti) {
+        params.set('redirect', '/lti')
+      }
+      router.push(isLti ? API.lti.auth.entry(params) : API.login.entry(params))
     }
   }
 

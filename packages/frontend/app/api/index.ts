@@ -121,7 +121,7 @@ import {
   UpsertLMSOrganizationParams,
   UserMailSubscription,
 } from '@koh/common'
-import Axios, { AxiosInstance, AxiosResponse, Method } from 'axios'
+import Axios, { AxiosError, AxiosInstance, AxiosResponse, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
 import { ClassType } from 'class-transformer/ClassTransformer'
 import {
@@ -158,6 +158,14 @@ export interface ChatQuestionResponse {
 
 export class APIClient {
   private axios: AxiosInstance
+
+  constructor(
+    private baseURL = '',
+    private authToken: string = '',
+  ) {
+    this.axios = Axios.create({ baseURL: this.baseURL })
+  }
+
   /**
    * Send HTTP and return data, optionally serialized with class-transformer (helpful for Date serialization)
    * @param method HTTP method
@@ -213,6 +221,8 @@ export class APIClient {
   login = {
     index: (loginData: LoginData) =>
       this.request('POST', `/api/v1/login`, loginData),
+    entry: (params: URLSearchParams) =>
+      `/api/v1/login/entry${params.size > 0 ? '?' + params.toString() : ''}`,
   }
 
   auth = {
@@ -1541,6 +1551,8 @@ export class APIClient {
         this.request('POST', '/api/v1/lti/auth/registration/verify', { token }),
       loginWithGoogle: async (organizationId: number) =>
         this.request('GET', `/api/v1/lti/auth/link/google/${organizationId}`),
+      entry: (params: URLSearchParams) =>
+        `/api/v1/lti/auth/entry${params.size > 0 ? '?' + params.toString() : ''}`,
     },
     admin: {
       getPlatforms: async (): Promise<LtiPlatform[]> =>
@@ -1562,13 +1574,6 @@ export class APIClient {
         this.req('GET', `/api/v1/lti/platform/${id}/registration`),
     },
   }
-
-  constructor(
-    private baseURL = '',
-    private authToken: string = '',
-  ) {
-    this.axios = Axios.create({ baseURL: this.baseURL })
-  }
 }
 
 /**
@@ -1589,7 +1594,7 @@ export async function fetchUserDetails(
     .then((userDetails) => {
       setProfile(userDetails)
     })
-    .catch((error) => {
+    .catch((error: AxiosError) => {
       if (setErrorGettingUser) {
         setErrorGettingUser(getErrorMessage(error))
       }

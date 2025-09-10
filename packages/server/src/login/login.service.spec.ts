@@ -29,6 +29,7 @@ import { LtiService } from '../lti/lti.service';
 import { CourseModel } from '../course/course.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { OrganizationModel } from '../organization/organization.entity';
+import { UnauthorizedException } from '@nestjs/common';
 
 describe('LoginService', () => {
   let service: LoginService;
@@ -68,6 +69,42 @@ describe('LoginService', () => {
 
   beforeEach(async () => {
     await dataSource.synchronize(true);
+  });
+
+  describe('initLoginEnter', () => {
+    it('should throw unauthorized exception if token verification fails', async () => {
+      const res = new MockResponse() as any;
+
+      const spy = jest.spyOn(JwtService.prototype, 'verifyAsync');
+      spy.mockResolvedValue(null);
+
+      await expect(
+        service.initLoginEnter({} as any, res, 'invalid_token'),
+      ).rejects.toThrow(new UnauthorizedException());
+      spy.mockRestore();
+    });
+
+    it('should call login entry with payload userId', async () => {
+      const user = await UserFactory.create();
+      const res = new MockResponse() as any;
+
+      const token = jwtService.sign({ userId: user.id });
+      const spy = jest.spyOn(service, 'enter');
+      spy.mockResolvedValue(undefined);
+
+      await service.initLoginEnter({} as any, res, token);
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        user.id,
+        undefined,
+        undefined,
+        undefined,
+      );
+      spy.mockRestore();
+    });
   });
 
   describe('enter', () => {
