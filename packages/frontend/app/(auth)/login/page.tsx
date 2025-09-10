@@ -320,13 +320,6 @@ export default function LoginPage() {
                   }}
                 />
               </div>
-              {!organization && (
-                <Alert
-                  message="No Organization Selected"
-                  description="Please select an organization above."
-                  type="warning"
-                />
-              )}
               {organization && organization.ssoEnabled && (
                 <Link
                   href={`/api/v1/auth/shibboleth/${organization.id}`}
