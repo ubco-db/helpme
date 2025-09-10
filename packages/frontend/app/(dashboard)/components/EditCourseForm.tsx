@@ -236,14 +236,20 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
             placeholder="Select Semester"
             notFoundContent="Your organization does not seem to have any semesters yet."
           >
-            {organization.semesters.map((semester) => (
-              <Select.Option key={semester.id} value={semester.id}>
-                <span>{`${semester.name}`}</span>{' '}
-                <span className="font-normal">
-                  {formatSemesterDate(semester)}
-                </span>
-              </Select.Option>
-            ))}
+            {organization.semesters
+              .filter(
+                (semester) =>
+                  new Date(semester.endDate) > new Date(1970) &&
+                  new Date(semester.endDate) > new Date(),
+              ) // filter out past semesters
+              .map((semester) => (
+                <Select.Option key={semester.id} value={semester.id}>
+                  <span>{`${semester.name}`}</span>{' '}
+                  <span className="font-normal">
+                    {formatSemesterDate(semester)}
+                  </span>
+                </Select.Option>
+              ))}
             <Select.Option key={'none'} value={-1}>
               <span>No semester</span>
             </Select.Option>
