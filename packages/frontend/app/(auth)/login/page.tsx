@@ -99,10 +99,14 @@ export default function LoginPage() {
       } else if (invitedOrgId) {
         // get courseId from SECURE_REDIRECT (from invite code) and get the course's organization, and then set the organization to that
         selectOrganization(invitedOrgId, organizations)
-      } else {
+      } else if (localStorageOrgId) {
         // if no invite ID, set it to whatever was in local storage (idea being that if you selected this org before, you probably want to select it again)
-        if (localStorageOrgId) {
-          selectOrganization(localStorageOrgId, organizations)
+        selectOrganization(localStorageOrgId, organizations)
+      } else {
+        // try to select the UBC organization as a default for everyone
+        const UBCOrg = organizations.find((org) => org.id === 1)
+        if (UBCOrg) {
+          selectOrganization(UBCOrg.id, organizations)
         } else {
           // if worst comes to worst, just select the first organization so that *something* is selected
           selectOrganization(organizations[0].id, organizations)
@@ -127,8 +131,6 @@ export default function LoginPage() {
     }
     getOrganizations()
   }, [])
-
-  console.log(organization)
 
   async function login() {
     let loginData: LoginData
