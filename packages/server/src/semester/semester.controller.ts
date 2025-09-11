@@ -94,8 +94,6 @@ export class SemesterController {
         organizationId,
       }).save();
 
-      console.log(newSemester);
-
       return newSemester;
     } catch (error) {
       console.error(error);
