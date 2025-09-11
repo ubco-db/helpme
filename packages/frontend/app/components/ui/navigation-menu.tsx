@@ -68,6 +68,7 @@ const navigationMenuTriggerStyle = cva([
   'inline-flex', // Display type
   'h-10', // Height
   'w-[50vw]', // on mobile devices, each link is 40% of the viewport width
+  'max-w-72', // For tablet-size, make sure the width of links isn't too wide
   'md:w-max', // On desktop devices use max width
   'items-center', // Vertical alignment
   'justify-start md:justify-center', // Horizontal alignment
