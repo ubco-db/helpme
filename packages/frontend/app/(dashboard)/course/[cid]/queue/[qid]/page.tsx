@@ -526,13 +526,13 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
               <Button
                 onClick={async() => {
                   try{
-                  await API.profile.patch({ desktopNotifsEnabled: true })
+                  await API.profile.patch({ desktopNotifsEnabled: true }) //link it directly to the desktop notifications API
                   message.success({
                     content: 'Notifications enabled!',
                     duration: 2,
                     style: { marginTop: '10px' },
                   })
-                  notifApi.destroy(key);
+                  notifApi.destroy(key); // Dismiss the notification
                 }
                 catch(e){
                   const errorMessage = getErrorMessage(e)
