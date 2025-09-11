@@ -90,7 +90,7 @@ export class LtiController {
     }
 
     if (course) {
-      let enrollment = await UserCourseModel.findOne({
+      const enrollment = await UserCourseModel.findOne({
         where: {
           userId: user.id,
           courseId: course?.id,
@@ -99,23 +99,21 @@ export class LtiController {
 
       // If the user has no enrollment.
       if (!enrollment) {
-        enrollment = await UserCourseModel.create({
+        await UserCourseModel.create({
           userId: user.id,
           courseId: course.id,
           role: Role.STUDENT,
         }).save();
       }
-
-      if (enrollment?.role == Role.PROFESSOR) {
-        const platformMatch =
-          Object.values(LMSIntegrationPlatform).find(
-            (v) => v.toLowerCase() == token.platformInfo.product_family_code,
-          ) ?? LMSIntegrationPlatform.None;
-        const apiCid = LtiService.extractCourseId(token);
-        qry.set('api_course_id', String(apiCid));
-        qry.set('lms_platform', platformMatch);
-      }
     }
+
+    const platformMatch =
+      Object.values(LMSIntegrationPlatform).find(
+        (v) => v.toLowerCase() == token.platformInfo.product_family_code,
+      ) ?? LMSIntegrationPlatform.None;
+    const apiCid = LtiService.extractCourseId(token);
+    qry.set('api_course_id', String(apiCid));
+    qry.set('lms_platform', platformMatch);
 
     if (lti_storage_target) {
       qry.set('lti_storage_target', lti_storage_target);

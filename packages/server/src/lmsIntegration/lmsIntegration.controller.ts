@@ -380,9 +380,6 @@ export class LMSIntegrationController {
     let stateModel: LMSAuthStateModel;
     try {
       const { error, error_description, code, state } = authQuery;
-      if (error || error_description) {
-        throw new BadRequestException(`${error}: ${error_description}`);
-      }
 
       stateModel = await LMSAuthStateModel.findOne({
         where: { state },
@@ -391,6 +388,11 @@ export class LMSIntegrationController {
           organizationIntegration: true,
         },
       });
+
+      if (error || error_description) {
+        throw new BadRequestException(`${error}: ${error_description}`);
+      }
+
       if (!stateModel) {
         throw new NotFoundException(ERROR_MESSAGES.lmsController.stateNotFound);
       }

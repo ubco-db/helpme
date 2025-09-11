@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { UserInfoProvider } from '@/app/contexts/userContext'
 import { User } from '@koh/common'
 import { Button, Spin } from 'antd'
@@ -10,8 +10,8 @@ import { AsyncToasterProvider } from '@/app/contexts/AsyncToasterContext'
 import { ReloadOutlined } from '@ant-design/icons'
 import { fetchUserDetails } from '@/app/api'
 import StandardPageContainer from '@/app/components/standardPageContainer'
-import Link from 'next/link'
 import HeaderBar from '@/app/lti/(embed)/components/LtiHeaderBar'
+import { useLtiContext } from '@/app/contexts/LtiContext'
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [profile, setProfile] = useState<User>()
@@ -54,13 +54,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <UserInfoProvider profile={profile}>
         <header className={`border-b border-b-zinc-200 bg-white`}>
           <StandardPageContainer className="!pl-0">
-            <Link href={'#skip-link-target'} className="skip-link">
-              Skip to main content
-            </Link>
             <HeaderBar />
           </StandardPageContainer>
         </header>
-        <main className="flex flex-grow flex-col">
+        <IFrameWrapper>
           <ChatbotContextProvider>
             <div
               className={
@@ -70,10 +67,53 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               {children}
             </div>
           </ChatbotContextProvider>
-        </main>
+        </IFrameWrapper>
       </UserInfoProvider>
     </AsyncToasterProvider>
   )
 }
 
 export default Layout
+
+function IFrameWrapper({
+  children,
+}: {
+  children: React.ReactNode
+}): React.ReactNode {
+  const { windowSize } = useLtiContext()
+
+  const [frameHeight, setFrameHeight] = useState<number>(window.innerHeight)
+  useEffect(() => {
+    const onResize = () => {
+      setFrameHeight(window.innerHeight)
+    }
+
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  const frameRatio = useMemo(
+    () => (windowSize ? frameHeight / windowSize.height : undefined),
+    [frameHeight, windowSize],
+  )
+
+  if (frameRatio == undefined) {
+    return children
+  }
+
+  const factor = Math.floor(frameRatio * 100)
+  const offset = Math.floor((100 - factor) / 2)
+  const transform = `scale(${factor}%) translate(0,-${offset}%)`
+
+  console.log(factor)
+  return (
+    <main
+      style={{
+        transform,
+      }}
+      className={'flex flex-grow flex-col'}
+    >
+      {children}
+    </main>
+  )
+}

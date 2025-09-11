@@ -37,7 +37,7 @@ export default function LtiCoursePage(): ReactElement {
       <>
         <title>{`HelpMe | ${course.name}`}</title>
         {courseFeatures?.chatBotEnabled ? (
-          <div className="mt-3 flex h-[100vh] flex-col items-center justify-items-end">
+          <div className="mt-3 flex h-full flex-col items-center justify-items-end">
             <Chatbot
               key={courseId}
               cid={courseId}

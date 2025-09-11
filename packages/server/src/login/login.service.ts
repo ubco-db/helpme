@@ -35,7 +35,7 @@ export class LoginService {
     token: string,
     courseService?: CourseService,
     ltiService?: LtiService,
-    options: LoginEntryOptions = {},
+    options?: LoginEntryOptions,
   ) {
     const isVerified = await this.jwtService.verifyAsync(token);
 

@@ -195,14 +195,20 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                   </Button>
                 </Link>
 
-                {course.role === Role.PROFESSOR && !ltiView && (
-                  <Link href={`/course/${course.course.id}/settings`}>
+                {course.role === Role.PROFESSOR && (
+                  <Link
+                    href={
+                      ltiView
+                        ? `/lti/${course.course.id}/integration`
+                        : `/course/${course.course.id}/settings`
+                    }
+                  >
                     <Button
                       type="primary"
                       className="mt-4 rounded p-[1.1rem] font-medium"
                       block
                     >
-                      Edit Course
+                      {ltiView ? 'LMS Integration' : 'Edit Course'}
                     </Button>
                   </Link>
                 )}

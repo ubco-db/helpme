@@ -12,18 +12,18 @@ export default async function Layout(props: {
   const { children } = props
 
   const profile = await API.profile.getUser().catch(() => {
-    redirect(`/lti/${params.cid}`)
+    redirect(`/lti/login?redirect=/lti/${params.cid}/integration`)
   })
   const cid = Number(params.cid)
 
   const courseRole = profile.courses.find((uc) => uc.course.id === cid)?.role
 
   if (courseRole !== Role.PROFESSOR) {
-    redirect(`/course/${params.cid}`)
+    redirect(`/lti/${params.cid}`)
   }
 
   return (
-    <div className="mb-10 mt-2 flex flex-col space-y-3 md:flex-row md:space-x-3 md:space-y-0">
+    <div className="mt-2 flex flex-col space-y-3 md:flex-row md:space-x-3 md:space-y-0">
       {children}
     </div>
   )

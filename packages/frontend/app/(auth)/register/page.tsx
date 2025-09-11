@@ -1,7 +1,7 @@
 'use client'
 
 import { Button, Card, Col, Form, Input, message, Row } from 'antd'
-import React, { ReactElement, useEffect, useMemo, useState } from 'react'
+import React, { ReactElement, use, useEffect, useMemo, useState } from 'react'
 import ReCAPTCHA from 'react-google-recaptcha'
 import { LeftOutlined } from '@ant-design/icons'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -9,12 +9,36 @@ import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useLocalStorage } from '@/app/hooks/useLocalStorage'
 
-export default function RegisterPage(): ReactElement {
-  const [storedId, setStoredId] = useLocalStorage<string>(
+const parseFromParam = (oid: any) => {
+  return parseInt(String(oid ?? ''))
+}
+
+export default function RegisterPage(props: {
+  params: Promise<{ oid?: number }>
+}): ReactElement {
+  const params = use(props.params)
+
+  const [storedId, setStoredId] = useLocalStorage<number>(
     'organizationId',
     null,
   )
-  const [organizationId, setOrganizationId] = useState(0)
+
+  const organizationId = useMemo(
+    () =>
+      !isNaN(parseFromParam(params.oid))
+        ? parseFromParam(params.oid)
+        : !isNaN(parseInt(String(storedId)))
+          ? parseInt(String(storedId))
+          : undefined,
+    [params.oid, storedId],
+  )
+
+  useEffect(() => {
+    if (organizationId) {
+      setStoredId(organizationId)
+    }
+  }, [organizationId])
+
   const [domLoaded, setDomLoaded] = useState(false)
   const router = useRouter()
   const pathName = usePathname()
@@ -39,7 +63,7 @@ export default function RegisterPage(): ReactElement {
     const { firstName, lastName, email, password, confirmPassword, sid } =
       formValues
 
-    if (isNaN(organizationId) || organizationId < 1) {
+    if (!organizationId || isNaN(organizationId)) {
       message.error('Organization not found.')
       return
     }
@@ -57,7 +81,7 @@ export default function RegisterPage(): ReactElement {
 
     const token = await recaptchaRef?.current?.executeAsync()
 
-    const loginParams = {
+    const registerParams = {
       firstName,
       lastName,
       email,
@@ -68,16 +92,17 @@ export default function RegisterPage(): ReactElement {
       recaptchaToken: token ?? '',
     }
 
-    const response = await (isLti
-      ? API.lti.auth.registerAccount(loginParams)
-      : API.auth.registerAccount(loginParams))
-
-    if (response.status !== 201) {
-      message.error(getErrorMessage(response.data))
+    const response = await (
+      isLti
+        ? API.lti.auth.registerAccount(registerParams)
+        : API.auth.registerAccount(registerParams)
+    ).catch((err) => {
+      message.error(getErrorMessage(err))
       return
-    }
+    })
 
-    localStorage.removeItem('organizationId')
+    if (!response) return
+
     router.push(redirect ? redirect : isLti ? '/lti' : '/courses')
   }
 
@@ -85,9 +110,23 @@ export default function RegisterPage(): ReactElement {
     setDomLoaded(true)
   }, [])
 
-  useEffect(() => {
-    setOrganizationId(parseInt(String(storedId)))
-  }, [storedId])
+  if (!organizationId) {
+    return (
+      <div className="mx-auto h-auto pt-20 text-center lg:container lg:mx-auto">
+        <Card className="mx-auto max-w-max sm:px-2 md:px-6">
+          <h2>No organization selected!</h2>
+          <p>Cannot register an account without an organization selected.</p>
+          <p>
+            Return to the login page and select an organization which supports
+            email-password registration:
+          </p>
+          <Button href={isLti ? '/lti/login' : '/login'}>
+            Return to Login
+          </Button>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div>

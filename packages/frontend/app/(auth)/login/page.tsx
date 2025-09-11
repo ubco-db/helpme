@@ -1,9 +1,7 @@
 'use client'
 
-import { organizationApi } from '@/app/api/organizationApi'
 import { Alert, Button, Card, Form, Input, message, Select } from 'antd'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Organization } from '@/app/typings/organization'
 import { LockOutlined, UserOutlined } from '@ant-design/icons'
 import Image from 'next/image'
 import ReCAPTCHA from 'react-google-recaptcha'
@@ -12,8 +10,8 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { LoginData } from '@/app/typings/user'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useLoginRedirectInfoProvider } from './components/LoginRedirectInfoProvider'
-import { isProd } from '@koh/common'
-import { cn } from '@/app/utils/generalUtils'
+import { isProd, OrganizationResponse } from '@koh/common'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import * as Sentry from '@sentry/nextjs'
 import { API } from '@/app/api'
 import { useLocalStorage } from '@/app/hooks/useLocalStorage'
@@ -23,8 +21,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [accountActiveResponse, setAccountActiveResponse] = useState(true)
 
-  const [organizations, setOrganizations] = useState<Organization[]>([])
-  const [organization, setOrganization] = useState<Organization | null>(null)
+  const [organizations, setOrganizations] = useState<OrganizationResponse[]>([])
+  const [organization, setOrganization] = useState<OrganizationResponse | null>(
+    null,
+  )
   const [hasRetrievedOrganizations, setHasRetrievedOrganizations] =
     useState(false)
 
@@ -36,6 +36,17 @@ export default function LoginPage() {
   const isLti = useMemo(() => {
     return pathName.startsWith('/lti')
   }, [pathName])
+
+  useEffect(() => {
+    if (window.sessionStorage.getItem('lms_info') && !isLti) {
+      const params = new URLSearchParams(searchParams.toString())
+      const redirect = params.get('redirect')
+      if (redirect && !redirect.startsWith('/lti')) {
+        params.delete('redirect')
+      }
+      router.push(`/lti/login${params.size > 0 ? '?' + params.toString() : ''}`)
+    }
+  }, [])
 
   const error = searchParams.get('error')
   const [errorGettingOrgs, setErrorGettingOrgs] = useState(false)
@@ -62,7 +73,7 @@ export default function LoginPage() {
   }, [error])
 
   const selectOrganization = useCallback(
-    (value: number, newlyRetrievedOrganizations?: Organization[]) => {
+    (value: number, newlyRetrievedOrganizations?: OrganizationResponse[]) => {
       const organizationsToUse = newlyRetrievedOrganizations
         ? newlyRetrievedOrganizations
         : organizations
@@ -94,7 +105,7 @@ export default function LoginPage() {
   )
 
   const smartlySetOrganization = useCallback(
-    async (organizations: Organization[]) => {
+    async (organizations: OrganizationResponse[]) => {
       if (organizations.length === 1) {
         selectOrganization(organizations[0].id, organizations)
       } else if (invitedOrgId) {
@@ -120,7 +131,7 @@ export default function LoginPage() {
   useEffect(() => {
     async function getOrganizations() {
       try {
-        const organizations = await organizationApi.getOrganizations()
+        const organizations = await API.organizations.getOrganizations()
         setOrganizations(organizations)
         smartlySetOrganization(organizations)
         setHasRetrievedOrganizations(true)
@@ -156,13 +167,10 @@ export default function LoginPage() {
       }
     }
 
-    const response = await API.login.index(loginData)
-    const data = await response.data
-    if (!(response.status >= 200 && response.status < 300)) {
-      const error = (data && data.message) || response.statusText
-      switch (response.status) {
+    const response = await API.login.index(loginData).catch((err: any) => {
+      switch (err.status) {
         case 401:
-          message.error(data.message)
+          message.error(err.message)
           break
         case 403:
           setAccountActiveResponse(false)
@@ -174,22 +182,25 @@ export default function LoginPage() {
           message.error('Too many requests. Please try again after 1min')
           break
         default:
-          message.error(error)
+          message.error(getErrorMessage(err))
           break
       }
+    })
+    if (!response) {
       return
-    } else {
-      const params = new URLSearchParams({
-        token: data.token,
-      })
-      if (redirect) {
-        params.append('redirect', redirect)
-      }
-      if (!redirect && isLti) {
-        params.set('redirect', '/lti')
-      }
-      router.push(isLti ? API.lti.auth.entry(params) : API.login.entry(params))
     }
+
+    const data = response.data
+    const params = new URLSearchParams({
+      token: data.token,
+    })
+    if (redirect) {
+      params.append('redirect', redirect)
+    }
+    if (!redirect && isLti) {
+      params.set('redirect', '/lti')
+    }
+    router.push(isLti ? API.lti.auth.entry(params) : API.login.entry(params))
   }
 
   async function loginWithGoogle() {
@@ -469,7 +480,13 @@ export default function LoginPage() {
                     <Link href={isLti ? '/lti/password' : '/password'}>
                       <Button type="link">Forgot password</Button>
                     </Link>
-                    <Link href={isLti ? '/lti/register' : '/password'}>
+                    <Link
+                      href={
+                        isLti
+                          ? `/lti/register/${organization.id}`
+                          : `/register/${organization.id}`
+                      }
+                    >
                       <Button type="link">Create account</Button>
                     </Link>
                   </div>

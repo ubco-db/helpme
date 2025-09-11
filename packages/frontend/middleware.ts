@@ -10,7 +10,7 @@ import { AxiosResponse } from 'axios'
 // These are the public pages that do not require authentication. Adding an * will match any characters after the page (e.g. if the page has search query params).
 const publicPages = [
   '/login',
-  '/register',
+  '/register*',
   '/failed*',
   '/password*',
   '/',
@@ -18,7 +18,7 @@ const publicPages = [
   '/qi/*', // queue invite page
   '/error_pages*',
   '/lti/login',
-  '/lti/register',
+  '/lti/register*',
   '/lti/failed*',
   '/lti/password*',
 ]
@@ -73,6 +73,24 @@ export async function middleware(
   const { url, nextUrl, cookies } = request
 
   const isPublicPageRequested = isPublicPage(nextUrl.pathname)
+
+  const searchParams =
+    url.indexOf('?') > 0
+      ? url
+          .substring(url.indexOf('?') + 1)
+          .split('&')
+          .map((v) => v.split('='))
+          .map(([k, v]) => ({ [decodeURIComponent(k)]: decodeURIComponent(v) }))
+          .reduce((p, c) => ({ ...p, ...c }), {})
+      : {}
+  console.log(searchParams)
+  const isLaunchFromLti = searchParams['launch_from_lti']
+
+  if (isLaunchFromLti) {
+    const response = NextResponse.redirect(new URL(`/login`, url))
+    response.cookies.delete('lti_auth_token')
+    return response
+  }
 
   // // Case: If not on production, allow access to /dev pages (to skip other middleware checks)
   if (nextUrl.pathname.startsWith('/dev') && !isProd()) {

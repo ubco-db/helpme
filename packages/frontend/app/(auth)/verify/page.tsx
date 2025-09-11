@@ -23,12 +23,10 @@ export default function VerifyEmailPage() {
   }, [])
 
   const resendVerificationCode = async () => {
-    const response = await API.mail.resendVerificationCode()
-    const data = response.data
-
-    if (!(response.status >= 200 && response.status < 300)) {
-      const error = getErrorMessage(data)
-      message.error(error)
+    const response = await API.mail.resendVerificationCode().catch((err) => {
+      message.error(getErrorMessage(err))
+    })
+    if (!response) {
       return
     }
     message.success('Verification code has been resent.')
@@ -38,9 +36,17 @@ export default function VerifyEmailPage() {
     const formValues: { verificationCode: string } = await form.validateFields()
     const verificationCode = formValues.verificationCode.toUpperCase()
 
-    const response = await (isLti
-      ? API.lti.auth.verifyEmail(verificationCode)
-      : API.auth.verifyEmail(verificationCode))
+    const response = await (
+      isLti
+        ? API.lti.auth.verifyEmail(verificationCode)
+        : API.auth.verifyEmail(verificationCode)
+    ).catch((err) => {
+      message.error(getErrorMessage(err))
+    })
+
+    if (!response) {
+      return
+    }
 
     const data = response.data
 
@@ -114,7 +120,7 @@ export default function VerifyEmailPage() {
             </Button>
 
             <div className="mt-4 text-center">
-              <a href={'/api/v1/logout'}>Logout</a>
+              <a href={`/api/v1/logout${isLti ? '?lti=true' : ''}`}>Logout</a>
             </div>
           </Form>
         </Card>

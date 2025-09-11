@@ -155,7 +155,7 @@ const NavBar = ({
     return <CenteredSpinner tip="Course is archived. Redirecting..." />
   } else {
     return (
-      <NavigationMenu orientation={orientation} style={{ zIndex: 1100 }}>
+      <NavigationMenu orientation={orientation} style={{ zIndex: 950 }}>
         <NavigationMenuList>
           <NextLink
             href={course ? `/lti/${course.id}` : '/lti'}
@@ -224,7 +224,7 @@ const NavBar = ({
           <div className={'!ml-auto hidden items-center md:flex'}>
             <NavigationMenuItem>
               <Link
-                href={`${process.env.NEXT_PUBLIC_HOST_PROTOCOL}://${process.env.NEXT_PUBLIC_HOSTNAME}${process.env.NEXT_PUBLIC_DEV_PORT ? `:${process.env.NEXT_PUBLIC_DEV_PORT}` : ''}/`}
+                href={`${process.env.NEXT_PUBLIC_HOST_PROTOCOL}://${process.env.NEXT_PUBLIC_HOSTNAME}${process.env.NEXT_PUBLIC_DEV_PORT ? `:${process.env.NEXT_PUBLIC_DEV_PORT}` : ''}/?launch_from_lti=true`}
                 target={'_blank'}
               >
                 <ExpandOutlined className={'mr-2'} /> Open HelpMe
@@ -258,7 +258,7 @@ const NavBar = ({
           <div className={'flex flex-col md:hidden'}>
             <NavigationMenuItem>
               <Link
-                href={`${process.env.NEXT_PUBLIC_HOST_PROTOCOL}://${process.env.NEXT_PUBLIC_HOSTNAME}${process.env.NEXT_PUBLIC_DEV_PORT ? `:${process.env.NEXT_PUBLIC_DEV_PORT}` : ''}/`}
+                href={`${process.env.NEXT_PUBLIC_HOST_PROTOCOL}://${process.env.NEXT_PUBLIC_HOSTNAME}${process.env.NEXT_PUBLIC_DEV_PORT ? `:${process.env.NEXT_PUBLIC_DEV_PORT}` : ''}/?launch_from_lti=true`}
                 target={'_blank'}
               >
                 <ExpandOutlined className={'mr-2'} /> Open HelpMe

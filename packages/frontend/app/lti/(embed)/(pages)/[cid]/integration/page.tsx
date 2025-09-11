@@ -19,6 +19,7 @@ import {
   DeleteOutlined,
   EditOutlined,
   PlusCircleOutlined,
+  SyncOutlined,
 } from '@ant-design/icons'
 import { useSessionStorage } from '@/app/hooks/useSessionStorage'
 
@@ -38,6 +39,21 @@ export default function LtiIntegrationPage(): React.ReactElement {
       }
     }
   }, [lmsInfo])
+
+  const [submitFlag, setSubmitFlag] = useSessionStorage<boolean>(
+    'submit_lms_integration',
+    false,
+  )
+
+  useEffect(() => {
+    if (submitFlag) {
+      message.info(
+        `Ensure you click the "Integrate with ${platform}" or "Update existing integration" button and submit the shown form with your new token!`,
+        10,
+      )
+      setSubmitFlag(false)
+    }
+  }, [])
 
   const { courseId, course } = useLtiCourse()
 
@@ -147,8 +163,44 @@ export default function LtiIntegrationPage(): React.ReactElement {
       .catch((err) => message.error(getErrorMessage(err)))
   }
 
-  if (!courseIntegration || !platform || !apiCourseId) {
+  if (!courseIntegration) {
     return <CenteredSpinner tip={'Loading...'} />
+  }
+
+  if (!lmsInfo) {
+    return (
+      <div
+        className={
+          'flex h-full w-full flex-row items-center justify-center p-20'
+        }
+      >
+        <MiniAlert
+          alertType={'warning'}
+          title={'Missing necessary information to display this page!'}
+          description={
+            <div className={'flex flex-col items-center gap-1'}>
+              <p>
+                When this page is loaded following an LTI launch, the necessary
+                parameters will be available.
+              </p>
+              <p>
+                If it is launched in a normal browser session of HelpMe, these
+                parameters will be missing.
+              </p>
+              <p>
+                It is likely this page was accessed after using the LTI login
+                entrypoint in a normal browser session.
+              </p>
+              <p>
+                You will need to log out of the application and re-authenticate
+                to start a proper session.
+              </p>
+              <a href={`/api/v1/logout`}>Logout</a>
+            </div>
+          }
+        />
+      </div>
+    )
   }
 
   const onTokenGenerate = async () => {
@@ -159,31 +211,40 @@ export default function LtiIntegrationPage(): React.ReactElement {
     return (
       <div
         className={
-          'flex h-full w-full flex-row items-center justify-center p-20'
+          'flex h-full w-full flex-row items-center justify-center md:p-20'
         }
       >
         <Card
+          className={'w-full md:max-w-[75%] lg:max-w-[50%]'}
           classNames={{
-            header: 'hidden',
+            header: 'text-center',
           }}
+          title={<h2>Action Required</h2>}
         >
           <div
             className={
-              'mt-20 flex flex-col items-center justify-center gap-8 text-xl'
+              'flex flex-col items-center justify-center gap-8 text-xl'
             }
           >
             <p>A new window was opened with the token generation request!</p>
             <p>
-              Please navigate to this window and finish the login to authorize
-              HelpMe.
+              Please navigate to the newly opened window and finish the login
+              with {platform} to authorize HelpMe to access your {platform}{' '}
+              course information.
             </p>
             <p>
-              If you&#39;re finished generating the token, you can reload this
-              page by clicking the button below.
+              If you&#39;re already finished authorizing HelpMe with {platform},
+              you can reload this page by clicking the button below.
             </p>
             <Button
-              onClick={() => window.location.reload()}
-              className={'mt-16 p-8 text-lg'}
+              onClick={() => {
+                setSubmitFlag(true)
+                window.location.reload()
+              }}
+              className={'p-6 text-lg font-semibold'}
+              variant={'solid'}
+              color={'primary'}
+              icon={<SyncOutlined />}
             >
               Reload Page
             </Button>
@@ -194,109 +255,7 @@ export default function LtiIntegrationPage(): React.ReactElement {
   }
 
   return (
-    <div className={'mt-4 flex w-full flex-col gap-8'}>
-      <h1>Learning Management System Integration</h1>
-      {(integrationExists && (
-        <>
-          {courseIntegration.apiPlatform != platform ? (
-            <MiniAlert
-              alertType={'error'}
-              title={'Platform Mismatch'}
-              description={`This course has an existing integration, but it is with ${courseIntegration.apiPlatform} and not ${platform}.`}
-            />
-          ) : (
-            <MiniAlert
-              alertType={'success'}
-              title={'Integration Exists'}
-              description={`This course has an existing integration with ${platform}.`}
-            />
-          )}
-        </>
-      )) || (
-        <MiniAlert
-          alertType={'warning'}
-          title={'No Integration'}
-          description={`This course does not have an existing integration with any platforms, including ${platform}.`}
-        />
-      )}
-      <Card
-        title={<h2>Actions</h2>}
-        className={'max-w-3/4 self-center'}
-        classNames={{ body: 'flex flex-col gap-4 items-center' }}
-      >
-        <div className={'text-md flex flex-col justify-center gap-1'}>
-          <p>
-            By integrating a course with a learning management system, you can
-            enable documents to be retrieved by HelpMe automatically. These will
-            be used to build your course chatbot&#39;s knowledge base.
-          </p>
-          <p>
-            Other benefits include being able to view which students from your
-            course do not have a corresponding enrollment on the LMS.
-          </p>
-          {!orgIntegration ? (
-            <>
-              <p className={'font-semibold'}>
-                The organization this course belongs to does not contain any
-                learning management system configurations which match {platform}
-                .
-              </p>
-              <p className={'font-semibold'}>
-                If you wish to integrate this course with a learning management
-                system, contact your organization administrator.
-              </p>
-            </>
-          ) : !integrationExists ? (
-            <p>You can create a new integration for this course.</p>
-          ) : (
-            <>
-              <p>
-                You can update the existing integration for this course, or
-                remove it entirely.
-              </p>
-              {courseIntegration.apiCourseId != apiCourseId && (
-                <MiniAlert
-                  alertType={'warning'}
-                  title={`${platform} Course Mismatch`}
-                  description={`
-                    This course from ${courseIntegration.apiPlatform} does not match the course this LTI tool
-                    launched for: it has course ID ${courseIntegration.apiCourseId}, but this tool launched for course
-                    ID ${apiCourseId}.
-                    
-                    Be careful modifying this integration as it could result in a temporary loss of documents if
-                    it's not meant to be integrated with this ${platform} course!
-                    `}
-                />
-              )}
-            </>
-          )}
-        </div>
-        <div className={'flex w-min flex-col gap-2'}>
-          <Button
-            type={'primary'}
-            icon={
-              !integrationExists ? <PlusCircleOutlined /> : <EditOutlined />
-            }
-            onClick={() => {
-              setModalOpen(true)
-            }}
-          >
-            {!integrationExists
-              ? `Integrate with ${platform}`
-              : `Update existing integration`}
-          </Button>
-          {integrationExists && (
-            <Button
-              type={'primary'}
-              icon={<DeleteOutlined />}
-              danger
-              onClick={() => setDelModalOpen(true)}
-            >
-              Delete integration
-            </Button>
-          )}
-        </div>
-      </Card>
+    <>
       <UpsertIntegrationModal
         isOpen={modalOpen}
         setIsOpen={setModalOpen}
@@ -337,7 +296,118 @@ export default function LtiIntegrationPage(): React.ReactElement {
           configuration later if you wish to use it again.
         </p>
       </Modal>
-    </div>
+      <Card
+        classNames={{ body: 'flex w-full flex-col gap-8' }}
+        title={
+          <h1 className={'text-center text-lg md:text-2xl'}>
+            Learning Management System Integration
+          </h1>
+        }
+      >
+        {(integrationExists && (
+          <>
+            {courseIntegration.apiPlatform != platform ? (
+              <MiniAlert
+                alertType={'error'}
+                title={'Platform Mismatch'}
+                description={`This course has an existing integration, but it is with ${courseIntegration.apiPlatform} and not ${platform}.`}
+              />
+            ) : (
+              <MiniAlert
+                alertType={'success'}
+                title={'Integration Exists'}
+                description={`This course has an existing integration with ${platform}.`}
+              />
+            )}
+          </>
+        )) || (
+          <MiniAlert
+            alertType={'warning'}
+            title={'No Integration'}
+            description={`This course does not have an existing integration with any platforms, including ${platform}.`}
+          />
+        )}
+        <Card
+          variant={'borderless'}
+          title={<h2>Actions</h2>}
+          className={'max-w-3/4 self-center'}
+          classNames={{ body: 'flex flex-col gap-4 items-center' }}
+        >
+          <div className={'text-md flex flex-col justify-center gap-1'}>
+            <p>
+              By integrating a course with a learning management system, you can
+              enable documents to be retrieved by HelpMe automatically. These
+              will be used to build your course chatbot&#39;s knowledge base.
+            </p>
+            <p>
+              Other benefits include being able to view which students from your
+              course do not have a corresponding enrollment on the LMS.
+            </p>
+            {!orgIntegration ? (
+              <>
+                <p className={'font-semibold'}>
+                  The organization this course belongs to does not contain any
+                  learning management system configurations which match{' '}
+                  {platform}.
+                </p>
+                <p className={'font-semibold'}>
+                  If you wish to integrate this course with a learning
+                  management system, contact your organization administrator.
+                </p>
+              </>
+            ) : !integrationExists ? (
+              <p>You can create a new integration for this course.</p>
+            ) : (
+              <>
+                <p>
+                  You can update the existing integration for this course, or
+                  remove it entirely.
+                </p>
+                {courseIntegration.apiCourseId != apiCourseId && (
+                  <MiniAlert
+                    alertType={'warning'}
+                    title={`${platform} Course Mismatch`}
+                    description={`
+                    This course from ${courseIntegration.apiPlatform} does not match the course this LTI tool
+                    launched for: it has course ID ${courseIntegration.apiCourseId}, but this tool launched for course
+                    ID ${apiCourseId}.
+                    
+                    Be careful modifying this integration as it could result in a temporary loss of documents if
+                    it's not meant to be integrated with this ${platform} course!
+                    `}
+                  />
+                )}
+              </>
+            )}
+          </div>
+          <div className={'flex w-min flex-col gap-2'}>
+            <Button
+              type={'primary'}
+              icon={
+                !integrationExists ? <PlusCircleOutlined /> : <EditOutlined />
+              }
+              onClick={() => {
+                setModalOpen(true)
+              }}
+            >
+              {!integrationExists
+                ? `Integrate with ${platform}`
+                : `Update existing integration`}
+            </Button>
+            {integrationExists && (
+              <Button
+                type={'primary'}
+                icon={<DeleteOutlined />}
+                danger
+                onClick={() => setDelModalOpen(true)}
+              >
+                Delete integration
+              </Button>
+            )}
+          </div>
+        </Card>
+      </Card>
+    </>
   )
 }
 

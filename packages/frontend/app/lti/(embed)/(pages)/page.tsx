@@ -6,13 +6,19 @@ import { Empty, message } from 'antd'
 import CoursesSection from '@/app/(dashboard)/components/coursesSection'
 import Image from 'next/image'
 import { API } from '@/app/api'
-import { SemesterPartial } from '@koh/common'
+import { LMSIntegrationPlatform, SemesterPartial } from '@koh/common'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useSessionStorage } from '@/app/hooks/useSessionStorage'
 
 export default function LtiLandingPage(): ReactElement {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+
+  const [lmsInfo, setLmsInfo] = useSessionStorage<{
+    apiCourseId: string
+    platform: LMSIntegrationPlatform
+  }>('lms_info', null)
 
   if (window && window.self == window.top && searchParams.get('force_close')) {
     window.self.close()
@@ -22,10 +28,7 @@ export default function LtiLandingPage(): ReactElement {
     const platform = searchParams.get('lms_platform')
     const apiCourseId = searchParams.get('api_course_id')
     if (platform && apiCourseId) {
-      sessionStorage.setItem(
-        'lms_info',
-        JSON.stringify({ platform, apiCourseId }),
-      )
+      setLmsInfo({ platform: platform as LMSIntegrationPlatform, apiCourseId })
     }
     const cid = searchParams.get('cid')
     if (cid) {
@@ -85,7 +88,31 @@ export default function LtiLandingPage(): ReactElement {
           .length === 0 ? (
           <Empty
             className="max-h-min"
-            description="You are not enrolled in any courses."
+            description={
+              <div className={'flex w-full justify-center'}>
+                <div className={'flex w-1/4 flex-col gap-2'}>
+                  <p className={'font-semibold'}>
+                    You are not enrolled in any courses.
+                  </p>
+                  {lmsInfo && lmsInfo.platform && (
+                    <>
+                      <p>
+                        This page is being displayed in {lmsInfo.platform}. The
+                        course in {lmsInfo.platform} it is being displayed for
+                        may be linked with a HelpMe equivalent. Try refreshing
+                        the page.
+                      </p>
+                      <p>
+                        If refreshing the page does not work, contact your
+                        instructor to ask them to connect their HelpMe course
+                        with this {lmsInfo.platform} course so you can be
+                        automatically added to their course.
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            }
           />
         ) : (
           <CoursesSection

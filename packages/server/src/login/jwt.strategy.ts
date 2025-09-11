@@ -9,7 +9,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(configService: ConfigService) {
     super({
       jwtFromRequest: (req: Request) =>
-        req.cookies['lti_auth_token'] ?? req.cookies['auth_token'],
+        req.cookies['auth_token'] ?? req.cookies['lti_auth_token'],
       ignoreExpiration: false,
       secretOrKey: configService.get('JWT_SECRET'),
     });

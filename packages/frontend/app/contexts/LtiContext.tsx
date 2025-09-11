@@ -3,6 +3,7 @@
 import React, {
   createContext,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -13,6 +14,8 @@ const LtiMessages = [
   'lti.capabilities',
   'lti.getPageContent',
   'lti.getPageSettings',
+  'lti.fetchWindowSize',
+  'lti.frameResize',
   'lti.put_data',
   'lti.get_data',
   'lti.showAlert',
@@ -33,11 +36,22 @@ interface PageSettings {
   window_width: number
 }
 
+interface WindowSize {
+  footer: number
+  width: number
+  height: number
+  offset: {
+    top: number
+    left: number
+  }
+}
+
 // Define context type
 interface LtiMessengerType {
   capabilities?: SupportedMessages[]
   pageContent?: string
   pageSettings?: PageSettings
+  windowSize?: WindowSize
   postPutData: (params: { key: string; value: string | null }) => void
   postGetData: (params: { key: string }) => void
   postShowAlert: (params: {
@@ -132,7 +146,7 @@ export const useLtiContext = (): LtiContextType => {
   return context
 }
 
-function post_message_proxy(target: any, window_params: any) {
+function post_message_proxy(target: Window, window_params: any) {
   target.postMessage(window_params, '*')
 }
 
@@ -166,7 +180,7 @@ function postMessage(
           }
         })
       }
-      if (lti_storage_target == '_parent') {
+      if (!lti_storage_target || lti_storage_target == '_parent') {
         return post_message_proxy(window.parent, { subject, ...params })
       } else {
         post_message_proxy(
@@ -203,6 +217,7 @@ function useLtiMessenger(
   const [capabilities, setCapabilities] = useState<SupportedMessages[]>()
   const [pageContent, setPageContent] = useState<string>()
   const [pageSettings, setPageSettings] = useState<PageSettings>()
+  const [windowSize, setWindowSize] = useState<WindowSize>()
 
   const generateMessageId = () => {
     const generate = (len: number) => {
@@ -220,8 +235,23 @@ function useLtiMessenger(
   }
 
   useEffect(() => {
-    const listeningFunction = (event: MessageEvent) => {
-      const data = JSON.parse(event.data)
+    postMessage(window, 'lti.capabilities', undefined, lti_storage_target)
+    postMessage(window, 'lti.getPageSettings', undefined, lti_storage_target)
+    postMessage(window, 'lti.getPageContent', undefined, lti_storage_target)
+    postMessage(window, 'lti.fetchWindowSize', undefined, lti_storage_target)
+  }, [window, lti_storage_target])
+
+  useEffect(() => {
+    if (windowSize) {
+      postMessage(window, 'lti.frameResize', {
+        height: windowSize.height - windowSize.offset.top,
+      })
+    }
+  }, [window, windowSize])
+
+  const listeningFunction = useCallback(
+    (event: MessageEvent) => {
+      const data = JSON.parse(JSON.stringify(event.data))
       if (data.error) {
         console.error(
           `Error returned from postMessage: ${event.data.error.code}: ${event.data.error.message}`,
@@ -254,24 +284,38 @@ function useLtiMessenger(
         case 'lti.getPageSettings':
           setPageSettings(data.pageSettings)
           break
+        case 'lti.fetchWindowSize':
+          setWindowSize({
+            width: data.width,
+            height: data.height,
+            footer: data.footer,
+            offset: data.offset,
+          })
+          break
         case 'lti.put_data':
           if (onPutDataResponse) onPutDataResponse(data)
           break
         case 'lti.get_data':
           if (onGetDataResponse) onGetDataResponse(data)
           break
+        case 'lti.frameResize':
         case 'lti.showAlert':
           break
       }
-    }
+    },
+    [keyMap, onGetDataResponse, onPutDataResponse],
+  )
+
+  useEffect(() => {
     window.addEventListener('message', listeningFunction)
-    return window.removeEventListener('message', listeningFunction)
-  }, [onGetDataResponse, onPutDataResponse, window, keyMap])
+    return () => window.removeEventListener('message', listeningFunction)
+  }, [window, listeningFunction])
 
   return {
     capabilities,
     pageContent,
     pageSettings,
+    windowSize,
     postPutData: (params: { key: string; value: string | null }) => {
       const msgId = generateMessageId()
       setKeyMap((prev) => ({ ...prev, [params.key]: msgId }))

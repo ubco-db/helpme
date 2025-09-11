@@ -7,14 +7,6 @@ const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? ''
  * TODO: This should be merged into the main API file and all calls to these methods should be changed.
  */
 export const organizationApi = {
-  getOrganizations: async () => {
-    const response = await fetch(`${baseUrl}/api/v1/organization`)
-    if (!response.ok) {
-      throw new Error('Failed to fetch organizations' + response.statusText)
-    }
-    return response.json()
-  },
-
   getOrganization: async (organizationId: number) => {
     const authToken = await fetchAuthToken()
 

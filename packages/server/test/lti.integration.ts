@@ -8,18 +8,13 @@ import {
 } from 'lti-typescript';
 import { UserModel } from '../src/profile/user.entity';
 import { CourseModel } from '../src/course/course.entity';
-import {
-  CourseFactory,
-  UserCourseFactory,
-  UserFactory,
-} from './util/factories';
+import { CourseFactory, UserFactory } from './util/factories';
 import express from 'express';
 import {
   AuthMethodEnum,
   CreateLtiPlatform,
   ERROR_MESSAGES,
   LtiPlatform,
-  Role,
   UpdateLtiPlatform,
   UserRole,
 } from '@koh/common';
@@ -145,26 +140,7 @@ describe('LtiController', () => {
         });
     });
 
-    it('should redirect to lti courses page without query params if student', async () => {
-      await supertest()
-        .get('/lti')
-        .expect(302)
-        .then((response) => {
-          const location = new URL(
-            'https://example.com' + response.headers['location'],
-          );
-          expect(location.pathname).toEqual(`/lti/${course.id}`);
-          expect(location.searchParams.get('api_course_id')).toEqual(null);
-          expect(location.searchParams.get('lms_platform')).toEqual(null);
-        });
-    });
-
-    it('should redirect to lti courses page without query params if professor', async () => {
-      await UserCourseFactory.create({
-        user,
-        course,
-        role: Role.PROFESSOR,
-      });
+    it('should redirect to lti courses page', async () => {
       await supertest()
         .get('/lti')
         .expect(302)
