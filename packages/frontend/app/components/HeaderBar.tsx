@@ -22,7 +22,7 @@ import {
   cn,
   getRoleInCourse,
 } from '../utils/generalUtils'
-import { Role, User } from '@koh/common'
+import { Role, User, UserRole } from '@koh/common'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { Drawer, DrawerContent, DrawerTrigger } from './ui/drawer'
 import {
@@ -347,6 +347,17 @@ const NavBar = ({
                     OrganizationRole.PROFESSOR
                       ? 'Semester Management'
                       : 'Organization Settings'}
+                  </Link>
+                </NavigationMenuItem>
+              )}
+              {userInfo.userRole == UserRole.ADMIN && (
+                <NavigationMenuItem>
+                  <Link
+                    href="/admin"
+                    className="md:pl-8"
+                    onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                  >
+                    Admin Panel
                   </Link>
                 </NavigationMenuItem>
               )}

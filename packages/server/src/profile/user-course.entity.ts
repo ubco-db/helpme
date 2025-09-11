@@ -17,7 +17,9 @@ export class UserCourseModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne((type) => UserModel, (user) => user.courses)
+  @ManyToOne((type) => UserModel, (user) => user.courses, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'userId' })
   user: UserModel;
 

@@ -48,8 +48,13 @@ import { LLMTypeModel } from '../chatbot/chatbot-infrastructure-models/llm-type.
 import { ChatbotProviderModel } from '../chatbot/chatbot-infrastructure-models/chatbot-provider.entity';
 import { CourseChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
 import { SentEmailModel } from '../mail/sent-email.entity';
+import { LMSAuthStateModel } from '../lmsIntegration/lms-auth-state.entity';
+import { LMSAccessTokenModel } from '../lmsIntegration/lms-access-token.entity';
+import { LtiCourseInviteModel } from '../lti/lti-course-invite.entity';
+import { AuthStateModel } from '../auth/auth-state.entity';
+import * as crypto from 'crypto';
 
-/* Has all of our factories and initializes them with the db dataSource. 
+/* Has all of our factories and initializes them with the db dataSource.
   If you want to use one of these factories, import it from factories.ts instead.
 
   If you are creating a new factory, first create it here and then modify factories.ts so that it exports it.
@@ -98,6 +103,10 @@ export class FactoryService {
   public ChatbotProviderFactory: Factory<ChatbotProviderModel>;
   public LLMTypeFactory: Factory<LLMTypeModel>;
   public CourseChatbotSettingsFactory: Factory<CourseChatbotSettingsModel>;
+  public LMSAuthStateFactory: Factory<LMSAuthStateModel>;
+  public LMSAccessTokenFactory: Factory<LMSAccessTokenModel>;
+  public LtiCourseInviteFactory: Factory<LtiCourseInviteModel>;
+  public AuthStateFactory: Factory<AuthStateModel>;
 
   constructor(dataSource: DataSource) {
     this.UserFactory = new Factory(UserModel, dataSource)
@@ -258,7 +267,7 @@ export class FactoryService {
       .attr('role', OrganizationRole.MEMBER);
 
     this.ChatTokenFactory = new Factory(ChatTokenModel, dataSource)
-      .attr('token', v4())
+      .sequence('token', () => v4())
       .attr('used', 0)
       .attr('max_uses', 30)
       .assocOne('user', this.UserFactory);
@@ -394,5 +403,22 @@ export class FactoryService {
       'courseSettingsInstances',
       this.CourseChatbotSettingsFactory,
     );
+
+    this.LMSAuthStateFactory = new Factory(LMSAuthStateModel, dataSource)
+      .assocOne('user', this.UserFactory)
+      .assocOne('organizationIntegration', this.lmsOrgIntFactory)
+      .sequence('state', () => crypto.randomBytes(32).toString('hex'));
+
+    this.LMSAccessTokenFactory = new Factory(LMSAccessTokenModel, dataSource)
+      .assocOne('user', this.UserFactory)
+      .assocOne('organizationIntegration', this.lmsOrgIntFactory);
+
+    this.LtiCourseInviteFactory = new Factory(LtiCourseInviteModel, dataSource)
+      .assocOne('course', this.CourseFactory)
+      .sequence('inviteCode', () => v4());
+
+    this.AuthStateFactory = new Factory(AuthStateModel, dataSource)
+      .assocOne('organization', this.OrganizationFactory)
+      .sequence('state', () => crypto.randomBytes(32).toString('hex'));
   }
 }

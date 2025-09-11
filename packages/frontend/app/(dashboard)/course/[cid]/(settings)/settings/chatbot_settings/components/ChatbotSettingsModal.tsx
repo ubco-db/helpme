@@ -90,7 +90,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
       form.setFieldsValue({ ...sets, ...formValues })
       setFormValues({ ...sets, ...formValues })
     }
-    // eslint-disable-next-line
+     
   }, [courseSettings, form])
 
   const areParamsDefault = useMemo(() => {

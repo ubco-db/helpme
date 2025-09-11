@@ -1,5 +1,6 @@
 import { GetCourseResponse } from '@koh/common'
-import { fetchAuthToken } from './cookieApi'
+import { fetchAuthToken } from './cookie-utils'
+
 const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
 /**
  * Course "API".
