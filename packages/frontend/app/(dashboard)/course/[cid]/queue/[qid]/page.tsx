@@ -111,6 +111,8 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
   const [questionTypes] = useQuestionTypes(cid, qid)
   const queueConfig = queue?.config
   const configTasks = queueConfig?.tasks
+  const [notifApi, notifContextHolder] = notification.useNotification()
+
   const isDemoQueue: boolean = !!configTasks && !!queueConfig.assignment_id
   const [studentAssignmentProgress, mutateStudentAssignmentProgress] =
     useStudentAssignmentProgress(
@@ -508,10 +510,12 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
 
   const handleFirstQuestionNotification = useCallback(
     (cid: number) => {
-      if (isFirstQuestion) {
+        if (isFirstQuestion) {
         // If they've asked a question, don't show this notification again
         setIsFirstQuestion(false)
-        notification.warning({
+        const key = 'enable-notifications';
+        notifApi.warning({
+          key,
           message: 'Enable Notifications',
           description: (
             <div>
@@ -520,9 +524,19 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
                 help.
               </span>
               <Button
-                onClick={() => {
-                  notification.destroy()
-                  router.push(`/profile?page=notifications`)
+                onClick={async() => {
+                  try{
+                  await API.profile.patch({ desktopNotifsEnabled: true })
+                  message.success({
+                    content: 'Notifications enabled!',
+                    duration: 2,
+                    style: { marginTop: '10px' },
+                  })
+                  notifApi.destroy(key);
+                }
+                catch(e){
+                  const errorMessage = getErrorMessage(e)
+                }
                 }}
                 className="ml-2"
                 aria-describedby="enable-notifications-text"
@@ -594,6 +608,7 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
   } else {
     return (
       <div className="flex h-full flex-1 flex-col md:flex-row">
+        {notifContextHolder}
         <title>{`HelpMe | ${course.name} - ${queue.room}`}</title>
         <QueueInfoColumn
           cid={cid}

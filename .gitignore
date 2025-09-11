@@ -57,3 +57,5 @@ husky.sh
 # location of desktop notifications sent on dev environment
 /packages/server/src/notification/desktop_notifications.log
 
+packages/server/postgres.env.example
+packages/server/postgres.env.example
