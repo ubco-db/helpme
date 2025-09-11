@@ -247,6 +247,13 @@ export class SeedController {
       name: 'Summer 2020',
     });
 
+    const testSemester = await this.factoryService.SemesterFactory.create({
+      organization: organization,
+      startDate: null,
+      endDate: null,
+      name: 'Test Semester',
+    });
+
     if (!course1Exists) {
       // possible collision:
       // If the dev env is active at midnight, the cron job will rescrape events from the ical which
@@ -280,6 +287,13 @@ export class SeedController {
       where: { name: 'CS 310' },
     });
 
+    const testCourse = await this.factoryService.CourseFactory.create({
+      name: 'Test Course',
+      timezone: 'America/Los_Angeles',
+      semester: testSemester,
+      sectionGroupName: '001',
+    });
+
     await this.factoryService.CourseSettingsFactory.create({
       course: course1,
       courseId: course1.id,
@@ -291,6 +305,15 @@ export class SeedController {
     await this.factoryService.CourseSettingsFactory.create({
       course: course2,
       courseId: course2.id,
+      chatBotEnabled: true,
+      asyncQueueEnabled: true,
+      adsEnabled: true,
+      queueEnabled: true,
+    });
+
+    await this.factoryService.CourseSettingsFactory.create({
+      course: testCourse,
+      courseId: testCourse.id,
       chatBotEnabled: true,
       asyncQueueEnabled: true,
       adsEnabled: true,
@@ -557,6 +580,13 @@ export class SeedController {
         courseId: course1.id,
         organization: organization,
         course: course1,
+      });
+
+      await this.factoryService.OrganizationCourseFactory.create({
+        organizationId: organization.id,
+        courseId: testCourse.id,
+        organization,
+        course: testCourse,
       });
     }
 
