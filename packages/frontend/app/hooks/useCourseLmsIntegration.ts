@@ -6,6 +6,7 @@ import {
   LMSCourseIntegrationPartial,
   LMSFile,
   LMSPage,
+  LMSQuiz,
 } from '@koh/common'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
@@ -18,6 +19,7 @@ export type CourseLmsIntegration = {
   announcements: LMSAnnouncement[]
   pages: LMSPage[]
   files: LMSFile[]
+  quizzes: LMSQuiz[]
   students: string[]
   isLoading: boolean
   isLoadingIntegration: boolean
@@ -27,6 +29,7 @@ export type CourseLmsIntegration = {
   isLoadingAnnouncements: boolean
   isLoadingFiles: boolean
   isLoadingPages: boolean
+  isLoadingQuizzes: boolean
 }
 
 export function useCourseLmsIntegration(
@@ -41,6 +44,7 @@ export function useCourseLmsIntegration(
   const [announcements, setAnnouncements] = useState<LMSAnnouncement[]>([])
   const [pages, setPages] = useState<LMSPage[]>([])
   const [files, setFiles] = useState<LMSFile[]>([])
+  const [quizzes, setQuizzes] = useState<LMSQuiz[]>([])
   const [students, setStudents] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isLoadingIntegration, setIsLoadingIntegration] =
@@ -54,6 +58,7 @@ export function useCourseLmsIntegration(
   const [isLoadingAnnouncements, setIsLoadingAnnouncements] =
     useState<boolean>(false)
   const [isLoadingFiles, setIsLoadingFiles] = useState<boolean>(false)
+  const [isLoadingQuizzes, setIsLoadingQuizzes] = useState<boolean>(false)
 
   const errorFx = (error: any) => {
     message.error(getErrorMessage(error))
@@ -114,6 +119,11 @@ export function useCourseLmsIntegration(
             setPages,
             setIsLoadingPages,
           )
+          await getResource(
+            API.lmsIntegration.getQuizzes(courseId),
+            setQuizzes,
+            setIsLoadingQuizzes,
+          )
           setIsLoading(false)
         }
       } else {
@@ -123,6 +133,7 @@ export function useCourseLmsIntegration(
         setIsLoadingFiles(false)
         setIsLoadingAssignments(false)
         setIsLoadingAnnouncements(false)
+        setIsLoadingQuizzes(false)
       }
     }
     getResources()
@@ -135,6 +146,7 @@ export function useCourseLmsIntegration(
     setAnnouncements([])
     setPages([])
     setFiles([])
+    setQuizzes([])
     setStudents([])
     setIsLoading(true)
     setIsLoadingIntegration(true)
@@ -143,6 +155,7 @@ export function useCourseLmsIntegration(
     setIsLoadingFiles(false)
     setIsLoadingAssignments(false)
     setIsLoadingAnnouncements(false)
+    setIsLoadingQuizzes(false)
   }
 
   useEffect(() => {
@@ -173,6 +186,7 @@ export function useCourseLmsIntegration(
     announcements,
     pages,
     files,
+    quizzes,
     students,
     isLoading,
     isLoadingIntegration,
@@ -182,5 +196,6 @@ export function useCourseLmsIntegration(
     isLoadingAnnouncements,
     isLoadingFiles,
     isLoadingPages,
+    isLoadingQuizzes,
   }
 }
