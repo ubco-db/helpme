@@ -68,6 +68,7 @@ export class SemesterController {
     @OrgRole() orgRole: OrganizationRole,
     @Body() semesterDetails: SemesterPartial,
   ): Promise<SemesterPartial> {
+    console.log(semesterDetails);
     try {
       await OrganizationModel.findOneOrFail({
         where: { id: organizationId },
@@ -92,6 +93,8 @@ export class SemesterController {
         ...semesterDetails,
         organizationId,
       }).save();
+
+      console.log(newSemester);
 
       return newSemester;
     } catch (error) {

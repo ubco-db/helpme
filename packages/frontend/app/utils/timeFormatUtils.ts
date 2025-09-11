@@ -155,6 +155,9 @@ export function formatDateAndTimeForExcel(date: Date | undefined): string {
  * @returns The formatted semester date
  */
 export function formatSemesterDate(semester: SemesterPartial): string {
+  if (!semester.startDate || !semester.endDate) {
+    return ''
+  }
   const startDate = new Date(semester.startDate)
   const endDate = new Date(semester.endDate)
 
