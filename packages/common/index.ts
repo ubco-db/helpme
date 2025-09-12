@@ -2414,12 +2414,12 @@ export class SemesterPartial {
   @IsOptional()
   @IsDate()
   @Type(() => Date)
-  startDate!: Date | null
+  startDate?: Date | null
 
   @IsOptional()
   @IsDate()
   @Type(() => Date)
-  endDate!: Date | null
+  endDate?: Date | null
 
   @IsOptional()
   @IsString()

@@ -155,7 +155,15 @@ const CoursesSectionTableView: React.FC<CoursesSectionTableViewProps> = ({
   return (
     <>
       {semesters
-        ?.sort((a, b) => b.endDate.valueOf() - a.endDate.valueOf())
+        ?.sort((a, b) => {
+          const aTime = a.startDate
+            ? new Date(a.startDate).getTime()
+            : -Infinity
+          const bTime = b.startDate
+            ? new Date(b.startDate).getTime()
+            : -Infinity
+          return bTime - aTime
+        })
         .map((semester) => {
           const semesterCourses = userInfo.courses.filter(
             (userCourse) => userCourse.course.semesterId === semester.id,
@@ -168,11 +176,15 @@ const CoursesSectionTableView: React.FC<CoursesSectionTableViewProps> = ({
             <div className="max-w-60 p-2">
               <p>
                 <strong>Start Date:</strong>{' '}
-                {new Date(semester.startDate).toLocaleDateString()}
+                {semester.startDate
+                  ? new Date(semester.startDate).toLocaleDateString()
+                  : '—'}
               </p>
               <p>
                 <strong>End Date:</strong>{' '}
-                {new Date(semester.endDate).toLocaleDateString()}
+                {semester.endDate
+                  ? new Date(semester.endDate).toLocaleDateString()
+                  : '—'}
               </p>
               {semester.description && (
                 <p>
