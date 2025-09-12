@@ -527,6 +527,10 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
                 onClick={async() => {
                   try{
                   await API.profile.patch({ desktopNotifsEnabled: true }) //link it directly to the desktop notifications API
+                  setUserInfo({
+      ...userInfo,
+      desktopNotifsEnabled: true
+    })
                   message.success({
                     content: 'Notifications enabled!',
                     duration: 2,
