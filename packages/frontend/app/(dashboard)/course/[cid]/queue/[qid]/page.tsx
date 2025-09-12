@@ -100,7 +100,7 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
     studentQuestionIndex,
     studentDemoIndex,
   } = useStudentQuestion(qid)
-  const { userInfo } = useUserInfo()
+  const { userInfo, setUserInfo } = useUserInfo()
   const isUserCheckedIn = isCheckedIn(queue?.staffList, userInfo.id)
   const { course } = useCourse(cid)
   const [editQuestionModalOpen, setEditQuestionModalOpen] = useState(false)
@@ -510,10 +510,10 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
 
   const handleFirstQuestionNotification = useCallback(
     (cid: number) => {
-        if (isFirstQuestion) {
+      if (isFirstQuestion) {
         // If they've asked a question, don't show this notification again
         setIsFirstQuestion(false)
-        const key = 'enable-notifications';
+        const key = 'enable-notifications'
         notifApi.warning({
           key,
           message: 'Enable Notifications',
@@ -524,23 +524,22 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
                 help.
               </span>
               <Button
-                onClick={async() => {
-                  try{
-                  await API.profile.patch({ desktopNotifsEnabled: true }) //link it directly to the desktop notifications API
-                  setUserInfo({
-      ...userInfo,
-      desktopNotifsEnabled: true
-    })
-                  message.success({
-                    content: 'Notifications enabled!',
-                    duration: 2,
-                    style: { marginTop: '10px' },
-                  })
-                  notifApi.destroy(key); // Dismiss the notification
-                }
-                catch(e){
-                  const errorMessage = getErrorMessage(e)
-                }
+                onClick={async () => {
+                  try {
+                    await API.profile.patch({ desktopNotifsEnabled: true }) //link it directly to the desktop notifications API
+                    setUserInfo({
+                      ...userInfo,
+                      desktopNotifsEnabled: true,
+                    })
+                    message.success({
+                      content: 'Notifications enabled!',
+                      duration: 2,
+                      style: { marginTop: '10px' },
+                    })
+                    notifApi.destroy(key) // Dismiss the notification
+                  } catch (e) {
+                    const errorMessage = getErrorMessage(e)
+                  }
                 }}
                 className="ml-2"
                 aria-describedby="enable-notifications-text"
