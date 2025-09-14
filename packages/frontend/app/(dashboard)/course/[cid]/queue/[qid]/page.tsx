@@ -157,6 +157,7 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
     'isFirstQuestion',
     true,
   )
+  const [isEnablingNotifications, setIsEnablingNotifications] = useState(false)
   const { helpingQuestions, isHelping } = getHelpingQuestions(
     queueQuestions,
     userInfo.id,
@@ -529,8 +530,11 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
                 help.
               </span>
               <Button
+                loading={isEnablingNotifications}
+                disabled={isEnablingNotifications}
                 onClick={async () => {
                   try {
+                    setIsEnablingNotifications(true)
                     await API.profile.patch({ desktopNotifsEnabled: true }) //link it directly to the desktop notifications API
                     const canNotify = await requestNotificationPermission()
                     if (canNotify === NotificationStates.notAllowed) {
@@ -557,6 +561,8 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
                   } catch (e) {
                     const errorMessage = getErrorMessage(e)
                     message.error(`Failed to enable notifications: ${errorMessage}`)
+                  } finally {
+                    setIsEnablingNotifications(false)
                   }
                 }}
                 className="ml-2"
