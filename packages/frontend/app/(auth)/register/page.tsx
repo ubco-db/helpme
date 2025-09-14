@@ -77,7 +77,7 @@ export default function RegisterPage(): ReactElement {
     <div>
       {domLoaded && (
         <div className="mx-auto h-auto pt-20 text-center lg:container lg:mx-auto">
-          <Card className="mx-auto max-w-max sm:px-2 md:px-6">
+          <Card className="mx-auto max-w-lg sm:px-2 md:px-6">
             <h2 className="my-4 flex items-center text-left">
               Create new account
             </h2>
@@ -177,6 +177,11 @@ export default function RegisterPage(): ReactElement {
                   {
                     max: 64,
                     message: 'Email must be at most 64 characters',
+                  },
+                  {
+                    pattern: /^(?!.*@.*ubc).*$/i, // Only allow emails that do not contain "ubc" after @
+                    message:
+                      'UBC email detected! Please use "Continue with UBC" on the login page instead.',
                   },
                 ]}
               >
