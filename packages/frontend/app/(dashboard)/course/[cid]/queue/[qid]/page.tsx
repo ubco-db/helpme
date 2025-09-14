@@ -70,6 +70,11 @@ import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 import { useUpdateAlertsWhenLastStaffChecksOut } from '@/app/hooks/useUpdateAlertsWhenLastStaffChecksOut'
 import { useQueueChatsMetadatas } from '@/app/hooks/useQueueChatsMetadatas'
 import QueueChats from '../../components/QueueChats'
+import {
+  NotificationStates,
+  registerNotificationSubscription,
+  requestNotificationPermission,
+} from '@/app/utils/notificationUtils'
 
 type QueuePageProps = {
   params: Promise<{ cid: string; qid: string }>
@@ -527,18 +532,31 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
                 onClick={async () => {
                   try {
                     await API.profile.patch({ desktopNotifsEnabled: true }) //link it directly to the desktop notifications API
-                    setUserInfo({
+                    const canNotify = await requestNotificationPermission()
+                    if (canNotify === NotificationStates.notAllowed) {
+                      message.warning('Please allow notifications in this browser') //if the user doesn't allow notifications, show a warning
+                      return
+                    }
+                    if (canNotify === NotificationStates.granted) {
+                      await registerNotificationSubscription() 
+                    }
+                    setUserInfo({ //update the user info
                       ...userInfo,
                       desktopNotifsEnabled: true,
                     })
-                    message.success({
-                      content: 'Notifications enabled!',
+                    notifApi.success({
+                      key,
+                      message: 'Success!',
+                      description: 'Notifications have been enabled for this device.',
+                      placement: 'bottomRight', //show the notification at the bottom right of the screen
                       duration: 2,
-                      style: { marginTop: '10px' },
                     })
-                    notifApi.destroy(key) // Dismiss the notification
+                    setTimeout(() => {
+                      notifApi.destroy(key)
+                    }, 3000)
                   } catch (e) {
                     const errorMessage = getErrorMessage(e)
+                    message.error(`Failed to enable notifications: ${errorMessage}`)
                   }
                 }}
                 className="ml-2"
@@ -554,7 +572,7 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
         })
       }
     },
-    [isFirstQuestion, router, setIsFirstQuestion],
+    [isFirstQuestion, router, setIsFirstQuestion, userInfo.desktopNotifsEnabled],
   )
 
   const finishHelpingAllStudents = useCallback(async () => {
