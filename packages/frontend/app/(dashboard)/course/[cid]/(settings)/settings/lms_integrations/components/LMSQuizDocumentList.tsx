@@ -252,6 +252,7 @@ export default function LMSQuizDocumentList({
                 Enable All Sync
               </Button>
               <Button
+                danger
                 icon={<StopOutlined />}
                 onClick={handleBulkDisableSync}
                 loading={bulkSyncLoading}
