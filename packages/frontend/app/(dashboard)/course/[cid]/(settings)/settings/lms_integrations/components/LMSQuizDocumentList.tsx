@@ -371,6 +371,7 @@ export default function LMSQuizDocumentList({
                         </Button>
                         {isQuizSyncEnabled && lmsSynchronize && (
                           <Button
+                            danger={quiz.syncEnabled}
                             type={quiz.syncEnabled ? 'default' : 'primary'}
                             icon={
                               quiz.syncEnabled ? (
