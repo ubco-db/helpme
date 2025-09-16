@@ -417,7 +417,7 @@ export class LMSIntegrationController {
                 'Clear',
               );
             } catch (error) {
-              console.error(`Failed to clear quiz ${quiz.id}:`, error);
+failures++;
               // Continue with other quizzes even if one fails
             }
           }
