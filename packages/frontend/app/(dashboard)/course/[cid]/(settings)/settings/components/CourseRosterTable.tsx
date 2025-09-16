@@ -113,6 +113,8 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
         courseId={courseId}
         userInfo={userInfo}
         role={role}
+        users={users}
+        setUsers={setUsers}
         isSensitiveInfoHidden={isSensitiveInfoHidden}
         handleRoleChange={handleRoleChange}
         onRoleChange={onRoleChange}
@@ -127,7 +129,13 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
       <>
         <div className="bg-white">
           <div className="mb-2 flex">
-            <h3 className="text-lg font-semibold">{listTitle}</h3>
+            <h3
+              className="text-lg font-semibold"
+              title={`There are ${totalUsers} ${listTitle} in this course`}
+            >
+              {listTitle}
+              {totalUsers > 0 && ` (${totalUsers})`}
+            </h3>
             {/* Only show this button if the table hides sensitive info */}
             {hideSensitiveInformation && (
               <Button
@@ -174,6 +182,8 @@ const RosterItem: React.FC<{
   item: UserPartial
   courseId: number
   role: Role
+  users: UserPartial[]
+  setUsers: (users: UserPartial[]) => void
   isSensitiveInfoHidden: boolean
   userInfo: User
   handleRoleChange: (userId: number, newRole: Role, userName: string) => void
@@ -183,6 +193,8 @@ const RosterItem: React.FC<{
   item,
   courseId,
   role,
+  users,
+  setUsers,
   isSensitiveInfoHidden,
   userInfo,
   handleRoleChange,
@@ -302,6 +314,7 @@ const RosterItem: React.FC<{
           <Popover
             trigger="click"
             overlayClassName="min-w-80"
+            destroyOnHidden={!canSave}
             content={
               <div className="flex flex-col gap-y-2">
                 <TextArea
@@ -324,7 +337,14 @@ const RosterItem: React.FC<{
                         .then(() => {
                           setSaveSuccessful(true)
                           setCanSave(false)
-                          item.TANotes = tempTaNotes
+                          setUsers(
+                            users.map((user) => {
+                              if (user.id === item.id) {
+                                return { ...user, TANotes: tempTaNotes }
+                              }
+                              return user
+                            }),
+                          )
                           // saved goes away after 1s
                           setTimeout(() => {
                             setSaveSuccessful(false)

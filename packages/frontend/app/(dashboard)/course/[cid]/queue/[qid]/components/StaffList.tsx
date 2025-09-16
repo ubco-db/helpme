@@ -124,7 +124,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
   return (
     <Popover
       open={popoverOpen || canSave}
-      destroyTooltipOnHide={false}
+      destroyOnHidden={false}
       onOpenChange={(open) => setPopoverOpen(open)}
       trigger={shouldShowEdit ? 'click' : 'hover'}
       mouseLeaveDelay={shouldShowEdit ? 0.5 : 0.1}
