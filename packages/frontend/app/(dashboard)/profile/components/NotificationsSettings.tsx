@@ -59,7 +59,7 @@ const NotificationsSettings: React.FC = () => {
         Get notified when you are getting helped (student) or when a new student
         enters the queue (staff). These will also work on mobile!
       </h3>
-      <Form wrapperCol={{ span: 10 }} form={form} initialValues={profile}>
+      <Form wrapperCol={{ span: 10 }} form={form} initialValues={userInfo}>
         <Form.Item
           style={{ flex: 1 }}
           label="Enable notifications on all devices"
