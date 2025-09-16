@@ -407,6 +407,8 @@ export class LMSIntegrationController {
           where: whereCondition,
         });
 
+let failures = 0;
+
         for (const quiz of quizzesToDisable) {
           if (quiz.chatbotDocumentId) {
             try {
@@ -431,7 +433,9 @@ failures++;
         const count = body.quizIds
           ? body.quizIds.length
           : quizzesToDisable.length;
-        return `Successfully disabled sync for ${count} quiz${count !== 1 ? 'es' : ''}`;
+const successMsg = count - failures > 0 ?  `Successfully disabled sync for ${count-failures} quiz${count-failures !== 1 ? 'es' : ''}.` : ''; 
+const failureMsg = $failures > 0 ? ` Failed to disable sync for ${failures} quiz${failures !== 1 ? 'es' : ''}.` : '';
+return (successMsg + failureMsg).trim();
       } else {
         if (!body.quizIds || body.quizIds.length === 0) {
           throw new BadRequestException('Quiz IDs required for enable action');
