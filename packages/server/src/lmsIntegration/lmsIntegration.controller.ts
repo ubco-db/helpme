@@ -416,7 +416,6 @@ export class LMSIntegrationController {
                 LMSUpload.Quizzes,
                 'Clear',
               );
-              console.log(`Clear result for quiz ${quiz.id}:`, result);
             } catch (error) {
               console.error(`Failed to clear quiz ${quiz.id}:`, error);
               // Continue with other quizzes even if one fails
