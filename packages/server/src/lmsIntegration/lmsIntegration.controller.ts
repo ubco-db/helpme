@@ -408,9 +408,6 @@ export class LMSIntegrationController {
         });
 
         for (const quiz of quizzesToDisable) {
-          console.log(
-            `Quiz ${quiz.id}: syncEnabled=${quiz.syncEnabled}, chatbotDocumentId=${quiz.chatbotDocumentId}`,
-          );
           if (quiz.chatbotDocumentId) {
             console.log(`Clearing quiz ${quiz.id} from chatbot`);
             try {
