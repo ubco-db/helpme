@@ -3,8 +3,8 @@ import { OrganizationRole } from './app/typings/user'
 import { isProd, User, UserRole } from './middlewareType'
 import * as Sentry from '@sentry/nextjs'
 import { RequestCookies } from 'next/dist/compiled/@edge-runtime/cookies'
-import getAPI from '@/app/api/server'
-import { AxiosResponse } from 'axios'
+import Axios, { AxiosResponse } from 'axios'
+import { fetchAuthToken } from '@/app/api/cookie-utils'
 
 // These are the public pages that do not require authentication. Adding an * will match any characters after the page (e.g. if the page has search query params).
 const publicPages = [
@@ -33,6 +33,9 @@ const isEmailVerified = (userData: User): boolean => {
   return userData.emailVerified
 }
 
+const axiosInstance = Axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
+})
 async function fetchUser(
   cookies: RequestCookies,
   cookieName = 'auth_token',
@@ -41,8 +44,10 @@ async function fetchUser(
     return undefined
   }
 
-  const API = await getAPI()
-  const response = await API.profile.fullResponse()
+  const authToken = await fetchAuthToken()
+  const response = await axiosInstance.get(`/api/v1/profile`, {
+    headers: { cookie: authToken },
+  })
 
   if (response.headers?.['content-type']?.includes('application/json')) {
     if (response.status >= 400) {
