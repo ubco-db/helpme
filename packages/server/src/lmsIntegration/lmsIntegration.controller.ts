@@ -409,7 +409,6 @@ export class LMSIntegrationController {
 
         for (const quiz of quizzesToDisable) {
           if (quiz.chatbotDocumentId) {
-            console.log(`Clearing quiz ${quiz.id} from chatbot`);
             try {
               const result = await this.integrationService.singleDocOperation(
                 courseId,
