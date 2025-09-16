@@ -69,20 +69,14 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
     setPage(1)
   }
 
-  const fetchUsers = async () => {
-    const data = await API.course.getUserInfo(courseId, page, role, search)
-    setUsers(data.users)
-    setTotalUsers(data.total)
-  }
-
   useEffect(() => {
+    const fetchUsers = async () => {
+      const data = await API.course.getUserInfo(courseId, page, role, search)
+      setUsers(data.users)
+      setTotalUsers(data.total)
+    }
     fetchUsers().then()
-  }, [page, search, role, courseId])
-
-  // everytime updateFlag changes, refresh the tables
-  useEffect(() => {
-    fetchUsers().then()
-  }, [updateFlag])
+  }, [page, search, role, courseId, updateFlag])
 
   const handleRoleChange = async (
     userId: number,
