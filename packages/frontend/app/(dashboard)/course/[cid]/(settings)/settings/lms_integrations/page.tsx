@@ -447,7 +447,7 @@ export default function CourseLMSIntegrationPage(props: {
               <p>
                 By integrating a course with a learning management system, you
                 can enable documents to be retrieved by HelpMe automatically.
-                These will be used to build your course chatbot's knowledge
+                These will be used to build your course chatbot&#39;s knowledge
                 base.
               </p>
               <p>

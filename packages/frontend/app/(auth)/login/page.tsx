@@ -246,7 +246,9 @@ export default function LoginPage() {
 
   if (errorGettingOrgs) {
     return (
-      <main>
+      <main
+        className={'container mx-auto h-auto w-full max-w-lg pt-10 text-center'}
+      >
         <title>HelpMe | Error</title>
         <div className="container mx-auto h-auto w-full pt-10 text-center">
           <Alert
@@ -259,7 +261,9 @@ export default function LoginPage() {
     )
   } else if (!organizations || organizations?.length === 0) {
     return (
-      <main>
+      <main
+        className={'container mx-auto h-auto w-full max-w-lg pt-10 text-center'}
+      >
         {hasRetrievedOrganizations ? (
           <Alert
             message="No Organizations"

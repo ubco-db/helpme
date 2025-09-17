@@ -87,7 +87,6 @@ export async function middleware(
           .map(([k, v]) => ({ [decodeURIComponent(k)]: decodeURIComponent(v) }))
           .reduce((p, c) => ({ ...p, ...c }), {})
       : {}
-  console.log(searchParams)
   const isLaunchFromLti = searchParams['launch_from_lti']
 
   if (isLaunchFromLti) {

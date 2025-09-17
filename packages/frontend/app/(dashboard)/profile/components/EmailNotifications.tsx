@@ -42,8 +42,8 @@ const EmailNotifications: React.FC = () => {
   // The fix to this was to just make the endpoint check if they are staff before sending the email rather than trying to sync the subscribed status with their role
   const showStaffNotifications =
     isStaffInAnyCourse ||
-    userInfo.userRole === OrganizationRole.PROFESSOR ||
-    userInfo.userRole === OrganizationRole.ADMIN
+    userInfo.organization?.organizationRole === OrganizationRole.PROFESSOR ||
+    userInfo.organization?.organizationRole === OrganizationRole.ADMIN
 
   const fetchSubscriptions = useCallback(async () => {
     try {
@@ -135,7 +135,7 @@ const EmailNotifications: React.FC = () => {
           <MailOutlined /> Email Notifications
         </h2>
       }
-      bordered
+      variant={'outlined'}
       classNames={{ body: 'py-2' }}
     >
       <h3 className="mb-2 text-lg text-gray-500">

@@ -1,13 +1,21 @@
 'use client'
 
 import { Button, Card, Col, Form, Input, message, Row } from 'antd'
-import React, { ReactElement, use, useEffect, useMemo, useState } from 'react'
+import React, {
+  ReactElement,
+  Suspense,
+  use,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import ReCAPTCHA from 'react-google-recaptcha'
 import { LeftOutlined } from '@ant-design/icons'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useLocalStorage } from '@/app/hooks/useLocalStorage'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
 
 const parseFromParam = (oid: any) => {
   return parseInt(String(oid ?? ''))
@@ -112,186 +120,190 @@ export default function RegisterPage(props: {
 
   if (!organizationId) {
     return (
-      <div className="mx-auto h-auto pt-20 text-center lg:container lg:mx-auto">
-        <Card className="mx-auto max-w-max sm:px-2 md:px-6">
-          <h2>No organization selected!</h2>
-          <p>Cannot register an account without an organization selected.</p>
-          <p>
-            Return to the login page and select an organization which supports
-            email-password registration:
-          </p>
-          <Button href={isLti ? '/lti/login' : '/login'}>
-            Return to Login
-          </Button>
-        </Card>
-      </div>
+      <Suspense fallback={<CenteredSpinner tip={'Loading...'} />}>
+        <div className="mx-auto h-auto pt-20 text-center lg:container lg:mx-auto">
+          <Card className="mx-auto max-w-max sm:px-2 md:px-6">
+            <h2>No organization selected!</h2>
+            <p>Cannot register an account without an organization selected.</p>
+            <p>
+              Return to the login page and select an organization which supports
+              email-password registration:
+            </p>
+            <Button href={isLti ? '/lti/login' : '/login'}>
+              Return to Login
+            </Button>
+          </Card>
+        </div>
+      </Suspense>
     )
   }
 
   return (
-    <div>
-      {domLoaded && (
-        <div className="mx-auto h-auto pt-20 text-center lg:container lg:mx-auto">
-          <Card className="mx-auto max-w-max sm:px-2 md:px-6">
-            <h2 className="my-4 flex items-center text-left">
-              Create new account
-            </h2>
-            <Button
-              className="flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left"
-              onClick={() => window.history.back()}
-            >
-              <LeftOutlined />
-              <span className="font-semibold"> Go Back</span>
-            </Button>
+    <Suspense fallback={<CenteredSpinner tip={'Loading...'} />}>
+      <div>
+        {domLoaded && (
+          <div className="mx-auto h-auto pt-20 text-center lg:container lg:mx-auto">
+            <Card className="mx-auto max-w-max sm:px-2 md:px-6">
+              <h2 className="my-4 flex items-center text-left">
+                Create new account
+              </h2>
+              <Button
+                className="flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left"
+                onClick={() => window.history.back()}
+              >
+                <LeftOutlined />
+                <span className="font-semibold"> Go Back</span>
+              </Button>
 
-            <Form
-              name="register"
-              className="register-form mt-4"
-              layout="vertical"
-              form={registerForm}
-              initialValues={{ remember: true }}
-              onFinish={createAccount}
-            >
-              {/*
+              <Form
+                name="register"
+                className="register-form mt-4"
+                layout="vertical"
+                form={registerForm}
+                initialValues={{ remember: true }}
+                onFinish={createAccount}
+              >
+                {/*
               In some environments, components which return Promises or arrays do not work.
               This is due to some changes to react and @types/react, and the component
               packages have not been updated to fix these issues.
               */}
-              {/* @ts-expect-error Server Component */}
-              <ReCAPTCHA
-                ref={recaptchaRef}
-                size="invisible"
-                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? ''}
-                onChange={onReCAPTCHAChange}
-              />
-
-              <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
-                <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                  <Form.Item
-                    label="First Name"
-                    name="firstName"
-                    rules={[
-                      {
-                        required: true,
-                        message: 'Please input your first name',
-                      },
-                      {
-                        min: 1,
-                        message: 'First name must be at least 1 character',
-                      },
-                      {
-                        max: 32,
-                        message: 'First name must be at most 32 characters',
-                      },
-                    ]}
-                  >
-                    <Input allowClear={true} />
-                  </Form.Item>
-                </Col>
-
-                <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                  <Form.Item
-                    label="Last Name"
-                    name="lastName"
-                    rules={[
-                      {
-                        required: true,
-                        message: 'Please input your last name',
-                      },
-                      {
-                        min: 1,
-                        message: 'Last name must be at least 1 character',
-                      },
-                      {
-                        max: 32,
-                        message: 'Last name must be at most 32 characters',
-                      },
-                    ]}
-                  >
-                    <Input allowClear={true} />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Form.Item
-                label="Email"
-                name="email"
-                rules={[
-                  {
-                    required: true,
-                    message: 'Please input your email',
-                  },
-                  {
-                    type: 'email',
-                    message: 'Please input a valid email',
-                  },
-                  {
-                    min: 4,
-                    message: 'Email must be at least 4 characters',
-                  },
-                  {
-                    max: 64,
-                    message: 'Email must be at most 64 characters',
-                  },
-                ]}
-              >
-                <Input allowClear={true} type="email" />
-              </Form.Item>
-
-              <Form.Item
-                label="Password"
-                name="password"
-                rules={[
-                  {
-                    required: true,
-                    message: 'Please input your password',
-                  },
-                  {
-                    min: 6,
-                    message: 'Password must be at least 6 characters',
-                  },
-                  {
-                    max: 32,
-                    message: 'Password must be at most 32 characters',
-                  },
-                ]}
-              >
-                <Input
-                  allowClear={true}
-                  type="password"
-                  autoComplete="new-password"
+                {/* @ts-expect-error Server Component */}
+                <ReCAPTCHA
+                  ref={recaptchaRef}
+                  size="invisible"
+                  sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? ''}
+                  onChange={onReCAPTCHAChange}
                 />
-              </Form.Item>
 
-              <Form.Item
-                label="Confirm Password"
-                name="confirmPassword"
-                rules={[
-                  { required: true, message: 'Please confirm your password' },
-                ]}
-              >
-                <Input
-                  allowClear={true}
-                  type="password"
-                  autoComplete="new-password"
-                />
-              </Form.Item>
+                <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
+                  <Col xs={{ span: 24 }} sm={{ span: 12 }}>
+                    <Form.Item
+                      label="First Name"
+                      name="firstName"
+                      rules={[
+                        {
+                          required: true,
+                          message: 'Please input your first name',
+                        },
+                        {
+                          min: 1,
+                          message: 'First name must be at least 1 character',
+                        },
+                        {
+                          max: 32,
+                          message: 'First name must be at most 32 characters',
+                        },
+                      ]}
+                    >
+                      <Input allowClear={true} />
+                    </Form.Item>
+                  </Col>
 
-              <Form.Item label="Student Number" name="sid">
-                <Input allowClear={true} />
-              </Form.Item>
+                  <Col xs={{ span: 24 }} sm={{ span: 12 }}>
+                    <Form.Item
+                      label="Last Name"
+                      name="lastName"
+                      rules={[
+                        {
+                          required: true,
+                          message: 'Please input your last name',
+                        },
+                        {
+                          min: 1,
+                          message: 'Last name must be at least 1 character',
+                        },
+                        {
+                          max: 32,
+                          message: 'Last name must be at most 32 characters',
+                        },
+                      ]}
+                    >
+                      <Input allowClear={true} />
+                    </Form.Item>
+                  </Col>
+                </Row>
 
-              <Button
-                type="primary"
-                htmlType="submit"
-                className="h-auto w-full items-center justify-center rounded-lg border px-2 py-2"
-              >
-                <span className="font-semibold">Sign up</span>
-              </Button>
-            </Form>
-          </Card>
-        </div>
-      )}
-    </div>
+                <Form.Item
+                  label="Email"
+                  name="email"
+                  rules={[
+                    {
+                      required: true,
+                      message: 'Please input your email',
+                    },
+                    {
+                      type: 'email',
+                      message: 'Please input a valid email',
+                    },
+                    {
+                      min: 4,
+                      message: 'Email must be at least 4 characters',
+                    },
+                    {
+                      max: 64,
+                      message: 'Email must be at most 64 characters',
+                    },
+                  ]}
+                >
+                  <Input allowClear={true} type="email" />
+                </Form.Item>
+
+                <Form.Item
+                  label="Password"
+                  name="password"
+                  rules={[
+                    {
+                      required: true,
+                      message: 'Please input your password',
+                    },
+                    {
+                      min: 6,
+                      message: 'Password must be at least 6 characters',
+                    },
+                    {
+                      max: 32,
+                      message: 'Password must be at most 32 characters',
+                    },
+                  ]}
+                >
+                  <Input
+                    allowClear={true}
+                    type="password"
+                    autoComplete="new-password"
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  label="Confirm Password"
+                  name="confirmPassword"
+                  rules={[
+                    { required: true, message: 'Please confirm your password' },
+                  ]}
+                >
+                  <Input
+                    allowClear={true}
+                    type="password"
+                    autoComplete="new-password"
+                  />
+                </Form.Item>
+
+                <Form.Item label="Student Number" name="sid">
+                  <Input allowClear={true} />
+                </Form.Item>
+
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  className="h-auto w-full items-center justify-center rounded-lg border px-2 py-2"
+                >
+                  <span className="font-semibold">Sign up</span>
+                </Button>
+              </Form>
+            </Card>
+          </div>
+        )}
+      </div>
+    </Suspense>
   )
 }
