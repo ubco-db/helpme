@@ -1,3 +1,18 @@
+## Version 1.6.2 - Bug Fixes
+
+*Sep 16th, 2025*
+
+#### Improvements
+
+- Fixed an issue on the login page where the organization selector was selecting UBC but not showing the login options in some cases
+- Improved the text when no courses are found on the 'My Courses' page
+- When creating courses, ended semesters now aren't selectable
+- When editing courses, ended semesters are now shown that they are ended and will show a warning as such
+- Made some improvements to the answers the System chatbot gives
+- Fixed an issue where navigation links were cut off on tablet sizes
+
+***
+
 ## Version 1.6.1 - Bug Fixes
 
 *Sep 7th, 2025*
