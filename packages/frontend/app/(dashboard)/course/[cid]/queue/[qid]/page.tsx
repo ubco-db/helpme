@@ -70,6 +70,11 @@ import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 import { useUpdateAlertsWhenLastStaffChecksOut } from '@/app/hooks/useUpdateAlertsWhenLastStaffChecksOut'
 import { useQueueChatsMetadatas } from '@/app/hooks/useQueueChatsMetadatas'
 import QueueChats from '../../components/QueueChats'
+import {
+  NotificationStates,
+  registerNotificationSubscription,
+  requestNotificationPermission,
+} from '@/app/utils/notificationUtils'
 
 type QueuePageProps = {
   params: Promise<{ cid: string; qid: string }>
@@ -100,7 +105,7 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
     studentQuestionIndex,
     studentDemoIndex,
   } = useStudentQuestion(qid)
-  const { userInfo } = useUserInfo()
+  const { userInfo, setUserInfo } = useUserInfo()
   const isUserCheckedIn = isCheckedIn(queue?.staffList, userInfo.id)
   const { course } = useCourse(cid)
   const [editQuestionModalOpen, setEditQuestionModalOpen] = useState(false)
@@ -111,6 +116,8 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
   const [questionTypes] = useQuestionTypes(cid, qid)
   const queueConfig = queue?.config
   const configTasks = queueConfig?.tasks
+  const [notifApi, notifContextHolder] = notification.useNotification()
+
   const isDemoQueue: boolean = !!configTasks && !!queueConfig.assignment_id
   const [studentAssignmentProgress, mutateStudentAssignmentProgress] =
     useStudentAssignmentProgress(
@@ -150,6 +157,7 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
     'isFirstQuestion',
     true,
   )
+  const [isEnablingNotifications, setIsEnablingNotifications] = useState(false)
   const { helpingQuestions, isHelping } = getHelpingQuestions(
     queueQuestions,
     userInfo.id,
@@ -511,7 +519,9 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
       if (isFirstQuestion) {
         // If they've asked a question, don't show this notification again
         setIsFirstQuestion(false)
-        notification.warning({
+        const key = 'enable-notifications'
+        notifApi.warning({
+          key,
           message: 'Enable Notifications',
           description: (
             <div>
@@ -520,9 +530,40 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
                 help.
               </span>
               <Button
-                onClick={() => {
-                  notification.destroy()
-                  router.push(`/profile?page=notifications`)
+                loading={isEnablingNotifications}
+                disabled={isEnablingNotifications}
+                onClick={async () => {
+                  try {
+                    setIsEnablingNotifications(true)
+                    await API.profile.patch({ desktopNotifsEnabled: true }) //link it directly to the desktop notifications API
+                    const canNotify = await requestNotificationPermission()
+                    if (canNotify === NotificationStates.notAllowed) {
+                      message.warning('Please allow notifications in this browser') //if the user doesn't allow notifications, show a warning
+                      return
+                    }
+                    if (canNotify === NotificationStates.granted) {
+                      await registerNotificationSubscription() 
+                    }
+                    setUserInfo({ //update the user info
+                      ...userInfo,
+                      desktopNotifsEnabled: true,
+                    })
+                    notifApi.success({
+                      key,
+                      message: 'Success!',
+                      description: 'Notifications have been enabled for this device.',
+                      placement: 'bottomRight', //show the notification at the bottom right of the screen
+                      duration: 2,
+                    })
+                    setTimeout(() => {
+                      notifApi.destroy(key)
+                    }, 3000)
+                  } catch (e) {
+                    const errorMessage = getErrorMessage(e)
+                    message.error(`Failed to enable notifications: ${errorMessage}`)
+                  } finally {
+                    setIsEnablingNotifications(false)
+                  }
                 }}
                 className="ml-2"
                 aria-describedby="enable-notifications-text"
@@ -537,7 +578,7 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
         })
       }
     },
-    [isFirstQuestion, router, setIsFirstQuestion],
+    [isFirstQuestion, router, setIsFirstQuestion, userInfo.desktopNotifsEnabled],
   )
 
   const finishHelpingAllStudents = useCallback(async () => {
@@ -594,6 +635,7 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
   } else {
     return (
       <div className="flex h-full flex-1 flex-col md:flex-row">
+        {notifContextHolder}
         <title>{`HelpMe | ${course.name} - ${queue.room}`}</title>
         <QueueInfoColumn
           cid={cid}
