@@ -46,20 +46,12 @@ export const OPEN_ID_SCOPES = ['openid', 'profile', 'email'];
 
 @Injectable()
 export class AuthService {
-  client: OAuth2Client;
-
   constructor(
     private configService: ConfigService,
     private loginService: LoginService,
     private mailerService: MailService,
     private organizationService: OrganizationService,
-  ) {
-    this.client = new OAuth2Client(
-      this.configService.get<string>('GOOGLE_CLIENT_ID'),
-      this.configService.get<string>('GOOGLE_CLIENT_SECRET'),
-      this.configService.get<string>('GOOGLE_REDIRECT_URI'),
-    );
-  }
+  ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: 'CLEAR_AUTH_STATES' })
   async clearAuthStates() {
@@ -108,7 +100,7 @@ export class AuthService {
     res: Response,
     auth_method: string,
     organizationId: number,
-    getAuthRedirectUri: (method: string) => string,
+    authMode: 'default' | 'lti' = 'default',
   ): Promise<Response<{ redirectUri: string } | { message: string }>> {
     if (!(await OrganizationModel.findOne({ where: { id: organizationId } }))) {
       return res.status(404).send({ message: 'Organization not found' });
@@ -128,7 +120,7 @@ export class AuthService {
       query.set('scope', OPEN_ID_SCOPES.join(' '));
     }
 
-    const redirect_uri = `${this.configService.get('DOMAIN')}${getAuthRedirectUri(auth_method)}`;
+    const redirect_uri = this.getAuthMethodRedirectUri(auth_method, authMode);
     query.set('redirect_uri', redirect_uri);
 
     switch (auth_method) {
@@ -226,6 +218,7 @@ export class AuthService {
     courseService?: CourseService,
     ltiService?: LtiService,
     options: LoginEntryOptions & { prefix?: string } = {},
+    authMode: 'default' | 'lti' = 'default',
   ): Promise<Response<void> | void> {
     const cookieOptions = options?.cookieOptions ?? {
       secure: this.configService.get<string>('DOMAIN').startsWith('https'),
@@ -270,6 +263,7 @@ export class AuthService {
           userId = await this.loginWithGoogle(
             auth_code,
             Number(authState.organizationId),
+            authMode,
           );
           break;
         default:
@@ -553,17 +547,19 @@ export class AuthService {
       },
     });
 
-    if (user && user.password) {
-      throw new BadRequestException(
-        'A non-SSO account already exists with this email. Please login with your email and password instead.',
-      );
-    }
+    // TODO: Remove comment
+    // if (user && user.password) {
+    //   throw new BadRequestException(
+    //     'A non-SSO account already exists with this email. Please login with your email and password instead.',
+    //   );
+    // }
 
-    if (user && user.accountType !== AccountType.SHIBBOLETH) {
-      throw new BadRequestException(
-        'A non-SSO account already exists with this email. Please login with your email and password instead.',
-      );
-    }
+    // TODO: Remove comment
+    // if (user && user.accountType !== AccountType.SHIBBOLETH) {
+    //   throw new BadRequestException(
+    //     'A non-SSO account already exists with this email. Please login with your email and password instead.',
+    //   );
+    // }
 
     if (user) {
       return user.id;
@@ -606,10 +602,19 @@ export class AuthService {
   async loginWithGoogle(
     auth_code: string,
     organizationId: number,
+    authMode: 'default' | 'lti' = 'default',
   ): Promise<number> {
-    const { tokens } = await this.client.getToken(auth_code);
+    const redirect_uri = this.getAuthMethodRedirectUri('google', authMode);
 
-    const ticket = await this.client.verifyIdToken({
+    const client = new OAuth2Client(
+      this.configService.get<string>('GOOGLE_CLIENT_ID'),
+      this.configService.get<string>('GOOGLE_CLIENT_SECRET'),
+      redirect_uri,
+    );
+
+    const { tokens } = await client.getToken(auth_code);
+
+    const ticket = await client.verifyIdToken({
       idToken: tokens.id_token,
       audience: `${this.configService.get<string>('GOOGLE_CLIENT_ID')}.apps.googleusercontent.com`,
     });
@@ -630,17 +635,19 @@ export class AuthService {
       relations: ['organizationUser'],
     });
 
-    if (user && user.password) {
-      throw new BadRequestException(
-        'A non-SSO account already exists with this email. Please login with your email and password instead.',
-      );
-    }
+    // TODO: Remove comment
+    // if (user && user.password) {
+    //   throw new BadRequestException(
+    //     'A non-SSO account already exists with this email. Please login with your email and password instead.',
+    //   );
+    // }
 
-    if (user && user.accountType !== AccountType.GOOGLE) {
-      throw new BadRequestException(
-        'A non-google account already exists with this email on HelpMe. Please try logging in with your email and password instead (or another SSO provider)',
-      );
-    }
+    // TODO: Remove comment
+    // if (user && user.accountType !== AccountType.GOOGLE) {
+    //   throw new BadRequestException(
+    //     'A non-google account already exists with this email on HelpMe. Please try logging in with your email and password instead (or another SSO provider)',
+    //   );
+    // }
 
     if (user) {
       return user.id;
@@ -783,6 +790,13 @@ export class AuthService {
     }).save();
 
     return token;
+  }
+
+  private getAuthMethodRedirectUri(
+    auth_method: string,
+    authMode: 'default' | 'lti' = 'default',
+  ) {
+    return `${this.configService.get('DOMAIN')}/api/v1${authMode == 'lti' ? '/lti' : ''}/auth/callback/${auth_method}`;
   }
 
   private generateToken(length: number): string {

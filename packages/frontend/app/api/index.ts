@@ -1,4 +1,5 @@
 import {
+  AccountRegistrationParams,
   AddChatbotQuestionParams,
   AddDocumentChunkParams,
   AllStudentAssignmentProgress,
@@ -67,6 +68,7 @@ import {
   LMSPage,
   LMSSyncDocumentsResult,
   LMSToken,
+  LoginParam,
   LtiPlatform,
   MailServiceWithSubscription,
   OrganizationChatbotSettings,
@@ -79,6 +81,8 @@ import {
   OrganizationSettingsResponse,
   OrganizationStatsResponse,
   OrgUser,
+  PasswordRequestResetBody,
+  PasswordRequestResetWithTokenBody,
   PreDeterminedQuestion,
   PublicQueueInvite,
   questions,
@@ -124,12 +128,6 @@ import {
 import Axios, { AxiosError, AxiosInstance, AxiosResponse, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
 import { ClassType } from 'class-transformer/ClassTransformer'
-import {
-  LoginData,
-  PasswordConfirmationData,
-  PasswordResetData,
-  RegisterData,
-} from '@/app/typings/user'
 import * as Sentry from '@sentry/nextjs'
 import { SetStateAction } from 'react'
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
@@ -137,24 +135,6 @@ import { getErrorMessage } from '@/app/utils/generalUtils'
 
 // Return type of array item, if T is an array
 type ItemIfArray<T> = T extends (infer I)[] ? I : T
-
-export interface ChatQuestion {
-  id: string
-  question: string
-  answer: string
-  user: string
-  sourceDocuments: {
-    name: string
-    type: string
-    parts: string[]
-  }[]
-  suggested: boolean
-}
-
-export interface ChatQuestionResponse {
-  chatQuestions: ChatQuestion[]
-  total: number
-}
 
 export class APIClient {
   private axios: AxiosInstance
@@ -219,7 +199,7 @@ export class APIClient {
   }
 
   login = {
-    index: (loginData: LoginData) =>
+    index: (loginData: LoginParam) =>
       this.request('POST', `/api/v1/login`, loginData),
     entry: (params: URLSearchParams) =>
       `/api/v1/login/entry${params.size > 0 ? '?' + params.toString() : ''}`,
@@ -228,15 +208,15 @@ export class APIClient {
   auth = {
     shibboleth: (organizationId: any) =>
       `/api/v1/auth/shibboleth/${organizationId}`,
-    registerAccount: async (registerData: RegisterData) =>
+    registerAccount: async (registerData: AccountRegistrationParams) =>
       this.request('POST', '/api/v1/auth/register', registerData),
-    requestPasswordReset: async (passwordResetData: PasswordResetData) =>
+    requestPasswordReset: async (passwordResetData: PasswordRequestResetBody) =>
       this.request('POST', '/api/v1/auth/password/reset', passwordResetData),
     verifyEmail: async (token: string) =>
       this.request('POST', '/api/v1/auth/registration/verify', { token }),
     resetPassword: async (
       token: string,
-      confirmation: PasswordConfirmationData,
+      confirmation: PasswordRequestResetWithTokenBody,
     ) =>
       this.req(
         'POST',
@@ -709,36 +689,6 @@ export class APIClient {
       this.req('GET', `/api/v1/courses/${courseId}/question_types`),
     getAllQueueInvites: async (courseId: number): Promise<QueueInvite[]> =>
       this.req('GET', `/api/v1/courses/${courseId}/queue_invites`),
-    getIntegration: async (
-      courseId: number,
-    ): Promise<LMSCourseIntegrationPartial> =>
-      this.req('GET', `/api/v1/courses/${courseId}/lms_integration`),
-    upsertIntegration: async (
-      courseId: number,
-      props: {
-        apiPlatform: any
-        apiKey: string
-        apiKeyExpiry?: Date
-        apiKeyExpiryDeleted?: boolean
-        apiCourseId: string
-      },
-    ): Promise<string | undefined> =>
-      this.req(
-        'POST',
-        `/api/v1/courses/${courseId}/lms_integration/upsert`,
-        undefined,
-        props,
-      ),
-    removeIntegration: async (
-      courseId: number,
-      props: { apiPlatform: any },
-    ): Promise<string | undefined> =>
-      this.req(
-        'DELETE',
-        `/api/v1/courses/${courseId}/lms_integration/remove`,
-        undefined,
-        props,
-      ),
     updateTANotes: async (courseId: number, TAid: number, notes: string) =>
       this.req(
         'PATCH',
@@ -1538,14 +1488,16 @@ export class APIClient {
   lti = {
     auth: {
       shibboleth: (organizationId: any) =>
-        `/api/v1/lti/authshibboleth/${organizationId}`,
-      requestPasswordReset: async (passwordResetData: PasswordResetData) =>
+        `/api/v1/lti/auth/shibboleth/${organizationId}`,
+      requestPasswordReset: async (
+        passwordResetData: PasswordRequestResetBody,
+      ) =>
         this.request(
           'POST',
           '/api/v1/lti/auth/password/reset',
           passwordResetData,
         ),
-      registerAccount: async (registerData: RegisterData) =>
+      registerAccount: async (registerData: AccountRegistrationParams) =>
         this.request('POST', '/api/v1/lti/auth/register', registerData),
       verifyEmail: async (token: string) =>
         this.request('POST', '/api/v1/lti/auth/registration/verify', { token }),

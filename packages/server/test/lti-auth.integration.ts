@@ -203,38 +203,7 @@ describe('LTI Auth Integration', () => {
       await jwtService.signAsync({ userId: 1 });
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/lti');
-    });
-
-    it('should sign in and redirect to /course/:cid/invite when __SECURE_REDIRECT cookie is present', async () => {
-      const organization = await OrganizationFactory.create({
-        ssoEnabled: true,
-      });
-      await UserFactory.create({
-        email: 'mocked_email@ubc.ca',
-        accountType: AccountType.SHIBBOLETH,
-      });
-
-      const res = await supertest()
-        .get(`/lti/auth/shibboleth/${organization.id}`)
-        .set('Cookie', `__SECURE_REDIRECT=1,inviteCode`)
-        .set('x-trust-auth-uid', '1')
-        .set('x-trust-auth-mail', 'mocked_email@ubc.ca')
-        .set('x-trust-auth-role', 'student@ubc.ca')
-        .set('x-trust-auth-givenname', 'John')
-        .set('x-trust-auth-lastname', 'Doe');
-
-      await authService.loginWithShibboleth(
-        'mocked_email@ubc.ca',
-        'John',
-        'Doe',
-        organization.id,
-      );
-
-      await jwtService.signAsync({ userId: 1 });
-
-      expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/invite?cid=1&code=inviteCode');
+      expect(res.header['location']).toBe('/lti?force_close=true');
     });
   });
 
@@ -324,7 +293,7 @@ describe('LTI Auth Integration', () => {
       await jwtService.signAsync({ userId: 1 });
 
       expect(res.status).toBe(302);
-      expect(res.header['location']).toBe('/lti');
+      expect(res.header['location']).toBe('/lti?force_close=true');
     });
   });
 

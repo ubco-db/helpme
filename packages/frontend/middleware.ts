@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { OrganizationRole } from './app/typings/user'
-import { isProd, User, UserRole } from './middlewareType'
+import { isProd, OrganizationRole, User, UserRole } from './middlewareType'
 import * as Sentry from '@sentry/nextjs'
 import { RequestCookies } from 'next/dist/compiled/@edge-runtime/cookies'
 import Axios, { AxiosResponse } from 'axios'

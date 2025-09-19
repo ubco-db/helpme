@@ -85,7 +85,7 @@ export class LtiAuthController {
         cookieName: 'lti_auth_token',
         prefix: '/lti',
         restrictPaths,
-        redirect: '/lti',
+        redirect: '/lti?force_close=true',
         cookieOptions: LtiService.cookieOptions,
         expiresIn: 60 * 10,
       },
@@ -102,7 +102,7 @@ export class LtiAuthController {
       res,
       auth_method,
       organizationId,
-      this.getAuthRedirectUri,
+      'lti',
     );
   }
 
@@ -203,14 +203,11 @@ export class LtiAuthController {
         cookieName: 'lti_auth_token',
         prefix: '/lti',
         restrictPaths,
-        redirect: '/lti',
+        redirect: '/lti?force_close=true',
         cookieOptions: LtiService.cookieOptions,
         expiresIn: 60 * 10,
       },
+      'lti',
     );
-  }
-
-  private getAuthRedirectUri(method: string): string {
-    return `/api/v1/lti/auth/callback/${method}`;
   }
 }

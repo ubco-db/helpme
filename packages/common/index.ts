@@ -1487,6 +1487,7 @@ export class LoginParam {
   @IsString()
   recaptchaToken?: string
 }
+
 export class UBCOuserParam {
   @IsString()
   email!: string

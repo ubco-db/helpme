@@ -161,7 +161,7 @@ export default class LtiMiddleware {
           sameSite: 'none',
         },
         tokenMaxAge: 30,
-        debug: true,
+        debug: !isProd(),
         cors: true,
         prefix: this.prefix,
       },

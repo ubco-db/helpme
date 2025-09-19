@@ -67,12 +67,7 @@ export class AuthController {
     @Param('method') auth_method: string,
     @Param('oid', ParseIntPipe) organizationId: number,
   ): Promise<Response<{ redirectUri: string } | { message: string }>> {
-    return this.authService.ssoAuthInit(
-      res,
-      auth_method,
-      organizationId,
-      this.getAuthRedirectUri,
-    );
+    return this.authService.ssoAuthInit(res, auth_method, organizationId);
   }
 
   @Post('registration/verify')
@@ -260,10 +255,6 @@ export class AuthController {
         },
       },
     );
-  }
-
-  private getAuthRedirectUri(method: string): string {
-    return `/api/v1/auth/callback/${method}`;
   }
 
   private isSecure(): boolean {

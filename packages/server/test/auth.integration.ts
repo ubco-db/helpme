@@ -151,7 +151,7 @@ describe('Auth Integration', () => {
       expect(res.header['location']).toBe('/courses');
     });
 
-    it('should sign in and redirect to /course/:cid/invite when __SECURE_REDIRECT cookie is present', async () => {
+    it('should sign in and redirect to /invite when __SECURE_REDIRECT cookie is present', async () => {
       const organization = await OrganizationFactory.create({
         ssoEnabled: true,
       });

@@ -28,6 +28,14 @@ export enum UserRole {
   USER = 'user',
   ADMIN = 'admin',
 }
+
+/* Duplicate of the OrganizationRole enum in common/index.ts */
+export enum OrganizationRole {
+  MEMBER = 'member',
+  ADMIN = 'admin',
+  PROFESSOR = 'professor',
+}
+
 /* Duplicate of the User type in common/index.ts */
 export class User {
   id!: number

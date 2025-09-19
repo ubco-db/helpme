@@ -14,7 +14,6 @@ import {
 } from '@/app/components/ui/navigation-menu'
 import { usePathname, useRouter } from 'next/navigation'
 import NextLink from 'next/link'
-import { OrganizationRole } from '../typings/user'
 import { SelfAvatar } from './UserAvatar'
 import { useCourse } from '../hooks/useCourse'
 import {
@@ -22,7 +21,7 @@ import {
   cn,
   getRoleInCourse,
 } from '../utils/generalUtils'
-import { Role, User, UserRole } from '@koh/common'
+import { OrganizationRole, Role, User, UserRole } from '@koh/common'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { Drawer, DrawerContent, DrawerTrigger } from './ui/drawer'
 import {

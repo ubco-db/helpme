@@ -2,15 +2,14 @@
 
 import { Alert, Button, Card, Form, Input, message, Select } from 'antd'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { LockOutlined, UserOutlined } from '@ant-design/icons'
+import { LockOutlined, SyncOutlined, UserOutlined } from '@ant-design/icons'
 import Image from 'next/image'
 import ReCAPTCHA from 'react-google-recaptcha'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { LoginData } from '@/app/typings/user'
+import { isProd, LoginParam, OrganizationResponse } from '@koh/common'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useLoginRedirectInfoProvider } from './components/LoginRedirectInfoProvider'
-import { isProd, OrganizationResponse } from '@koh/common'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import * as Sentry from '@sentry/nextjs'
 import { API } from '@/app/api'
@@ -27,6 +26,8 @@ export default function LoginPage() {
   )
   const [hasRetrievedOrganizations, setHasRetrievedOrganizations] =
     useState(false)
+
+  const [ltiSSOInitiated, setLtiSSOInitiated] = useState(false)
 
   const recaptchaRef = React.createRef<ReCAPTCHA>()
   const router = useRouter()
@@ -145,7 +146,7 @@ export default function LoginPage() {
   }, [])
 
   async function login() {
-    let loginData: LoginData
+    let loginData: LoginParam
     if (isProd()) {
       const token = (await recaptchaRef?.current?.executeAsync()) ?? ''
       if (organization && !organization.legacyAuthEnabled) {
@@ -224,7 +225,12 @@ export default function LoginPage() {
         })
         return
       }
-      router.push(data.redirectUri)
+      if (isLti) {
+        window.open(data.redirectUri, '_blank', 'noopener,noreferrer')
+        setLtiSSOInitiated(true)
+      } else {
+        router.push(data.redirectUri)
+      }
     } else {
       const text = response.data as string
       Sentry.captureEvent({
@@ -242,6 +248,30 @@ export default function LoginPage() {
   async function onReCAPTCHAChange(captchaCode: string | null) {
     if (!captchaCode) return
     recaptchaRef?.current?.reset()
+  }
+
+  if (ltiSSOInitiated) {
+    return (
+      <main
+        className={'container mx-auto h-auto w-full max-w-lg pt-10 text-center'}
+      >
+        <title>HelpMe | Reload page</title>
+        <div className="container mx-auto h-auto w-full pt-10 text-center">
+          <Alert
+            message="Authentication with SSO Started"
+            description="Please follow the steps for authorization with the SSO option in the new window or tab, then reload this page by pressing the button below. The window should automatically close after you've successfully authorized."
+            type="info"
+          />
+          <Button
+            className={'mt-4'}
+            icon={<SyncOutlined />}
+            onClick={() => window.location.reload()}
+          >
+            Reload
+          </Button>
+        </div>
+      </main>
+    )
   }
 
   if (errorGettingOrgs) {
@@ -348,6 +378,13 @@ export default function LoginPage() {
                   href={(isLti ? API.lti : API).auth.shibboleth(
                     organization.id,
                   )}
+                  onClick={(event) => {
+                    if (isLti) {
+                      event.preventDefault()
+                      window.open(event.currentTarget.href)
+                      setLtiSSOInitiated(true)
+                    }
+                  }}
                   prefetch={false}
                 >
                   <Button className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left">

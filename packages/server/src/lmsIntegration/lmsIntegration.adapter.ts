@@ -358,7 +358,6 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
       response_type: 'code',
       state: state.state,
       scope: [
-        'url:GET|/api/v1/login/session_token',
         'url:GET|/api/v1/users/:user_id/courses',
         'url:GET|/api/v1/courses/:id',
         'url:GET|/api/v1/courses/:course_id/assignments',

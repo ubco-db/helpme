@@ -3,7 +3,7 @@
 import { Button, Card, Form, Input, message, Result, Spin } from 'antd'
 import { usePathname, useRouter } from 'next/navigation'
 import { use, useEffect, useMemo, useState } from 'react'
-import { PasswordConfirmationData } from '@/app/typings/user'
+import { PasswordRequestResetWithTokenBody } from '@koh/common'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 
@@ -41,7 +41,7 @@ const PasswordResetPage = (props: { params: Promise<{ token: string }> }) => {
       return
     }
 
-    const passwordConfirmationPayloadData: PasswordConfirmationData = {
+    const passwordConfirmationPayloadData: PasswordRequestResetWithTokenBody = {
       password: passwordField,
       confirmPassword: confirmPasswordField,
     }

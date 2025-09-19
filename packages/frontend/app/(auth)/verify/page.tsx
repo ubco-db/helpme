@@ -7,12 +7,19 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { API, fetchUserDetails } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import Link from 'next/link'
+import {
+  CheckCircleOutlined,
+  RedoOutlined,
+  SwapOutlined,
+} from '@ant-design/icons'
 
 export default function VerifyEmailPage() {
   const [form] = Form.useForm()
   const router = useRouter()
   const pathName = usePathname()
   const [profile, setProfile] = useState<User>()
+  const [success, setSuccess] = useState(false)
 
   const isLti = useMemo(() => {
     return pathName.startsWith('/lti')
@@ -52,6 +59,7 @@ export default function VerifyEmailPage() {
 
     if (response.status == 307 || response.status == 302) {
       router.push(data.redirectUri)
+      setSuccess(true)
       return
     }
 
@@ -61,8 +69,29 @@ export default function VerifyEmailPage() {
     }
 
     router.push(isLti ? '/lti' : '/courses')
+    setSuccess(true)
   }
 
+  if (success) {
+    return (
+      <StandardPageContainer>
+        <div className="mx-auto mt-40 flex items-center justify-center md:w-4/5 lg:w-2/5 2xl:w-3/5">
+          <Card>
+            <h1>Successful verification!</h1>
+            <div className="mt-4 flex flex-col items-center justify-center gap-2">
+              <p>
+                You should be automatically redirected within a few seconds.
+              </p>
+              <p>If you&#39;re not redirected, press the button below:</p>
+              <Link href={isLti ? '/lti' : '/courses'}>
+                <Button icon={<SwapOutlined />}>Manually Redirect</Button>
+              </Link>
+            </div>
+          </Card>
+        </div>
+      </StandardPageContainer>
+    )
+  }
   return profile ? (
     <StandardPageContainer>
       <div className="mx-auto mt-40 flex items-center justify-center md:w-4/5 lg:w-2/5 2xl:w-3/5">
@@ -107,6 +136,7 @@ export default function VerifyEmailPage() {
               type="primary"
               htmlType="submit"
               className="mt-3 h-auto w-full items-center justify-center border px-2 py-2"
+              icon={<CheckCircleOutlined />}
             >
               <span>Confirm Email Address</span>
             </Button>
@@ -114,6 +144,7 @@ export default function VerifyEmailPage() {
             <Button
               type="primary"
               className="mt-3 h-auto w-full items-center justify-center border px-2 py-2"
+              icon={<RedoOutlined />}
               onClick={resendVerificationCode}
             >
               <span>Re-send Confirmation Code</span>

@@ -85,7 +85,7 @@ export default function RegisterPage(props: {
       message.error('Passwords do not match.')
       return
     }
-    const studentId = sid ? parseInt(sid) : null
+    const studentId = !isNaN(parseInt(sid)) ? parseInt(sid) : undefined
 
     const token = await recaptchaRef?.current?.executeAsync()
 

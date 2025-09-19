@@ -189,7 +189,8 @@ export class LoginService {
     const queueInviteCookie = getCookie(req, 'queueInviteInfo');
     const ltiInviteCookie = getCookie(req, '__COURSE_INVITE');
 
-    if (queueInviteCookie && courseService) {
+    if (queueInviteCookie && courseService && !redirect) {
+      // Ignore queueInviteInfo if there's another redirect queued
       await courseService
         .getQueueInviteRedirectURLandInviteToCourse(queueInviteCookie, userId)
         .then((result) => {
@@ -199,7 +200,8 @@ export class LoginService {
           }
           res.clearCookie('queueInviteInfo', cookieOptions);
         });
-    } else if (secureRedirectCookie) {
+    } else if (secureRedirectCookie && !redirect) {
+      // Ignore __SECURE_REDIRECT if there's another redirect queued
       const decodedCookie = decodeURIComponent(secureRedirectCookie);
       const cookieParts = decodedCookie.split(',');
       queryParams.set('cid', cookieParts[0]);
