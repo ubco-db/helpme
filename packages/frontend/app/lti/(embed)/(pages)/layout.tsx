@@ -105,7 +105,6 @@ function IFrameWrapper({
   const offset = Math.floor((100 - factor) / 2)
   const transform = `scale(${factor}%) translate(0,-${offset}%)`
 
-  console.log(factor)
   return (
     <main
       style={{
