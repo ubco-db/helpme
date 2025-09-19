@@ -55,7 +55,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
         if (semesterA && !semesterB) return -1
         if (semesterB && !semesterA) return 1
 
-        if (semesterA && semesterB) {
+        if (semesterA && semesterB && semesterA.endDate && semesterB.endDate) {
           const diff =
             new Date(semesterB.endDate).getTime() -
             new Date(semesterA.endDate).getTime()

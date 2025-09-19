@@ -32,16 +32,20 @@ const columns: ColumnsType<UserCourse> = [
     key: 'semester',
     width: '10%',
     align: 'center',
-    render: (semester) => {
+    render: (semester: SemesterPartial) => {
       const popoverContent = semester ? (
         <div className="p-2">
           <p>
             <strong>Start Date:</strong>{' '}
-            {new Date(semester.startDate).toLocaleDateString()}
+            {semester.startDate
+              ? new Date(semester.startDate).toLocaleDateString()
+              : '—'}
           </p>
           <p>
             <strong>End Date:</strong>{' '}
-            {new Date(semester.endDate).toLocaleDateString()}
+            {semester.endDate
+              ? new Date(semester.endDate).toLocaleDateString()
+              : '—'}
           </p>
           {semester.description && (
             <p>

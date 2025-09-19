@@ -107,9 +107,15 @@ const SelectCourses: React.FC<SelectCoursesProps> = ({
             </Select.Option>
             {organizationSemesters.map((semester) => (
               <Select.Option key={semester.id} value={semester.id}>
-                {`${semester.name} (${new Date(semester.startDate).toLocaleDateString()} - ${new Date(
-                  semester.endDate,
-                ).toLocaleDateString()})`}
+                {`${semester.name} (${
+                  semester.startDate
+                    ? new Date(semester.startDate).toLocaleDateString()
+                    : '—'
+                } - ${
+                  semester.endDate
+                    ? new Date(semester.endDate).toLocaleDateString()
+                    : '—'
+                })`}
               </Select.Option>
             ))}
           </Select>
