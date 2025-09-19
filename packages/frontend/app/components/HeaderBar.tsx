@@ -14,7 +14,6 @@ import {
 } from '@/app/components/ui/navigation-menu'
 import { usePathname, useRouter } from 'next/navigation'
 import NextLink from 'next/link'
-import { OrganizationRole } from '../typings/user'
 import { SelfAvatar } from './UserAvatar'
 import { useCourse } from '../hooks/useCourse'
 import {
@@ -22,7 +21,7 @@ import {
   cn,
   getRoleInCourse,
 } from '../utils/generalUtils'
-import { Role, User } from '@koh/common'
+import { OrganizationRole, Role, User, UserRole } from '@koh/common'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { Drawer, DrawerContent, DrawerTrigger } from './ui/drawer'
 import {
@@ -347,6 +346,17 @@ const NavBar = ({
                     OrganizationRole.PROFESSOR
                       ? 'Semester Management'
                       : 'Organization Settings'}
+                  </Link>
+                </NavigationMenuItem>
+              )}
+              {userInfo.userRole == UserRole.ADMIN && (
+                <NavigationMenuItem>
+                  <Link
+                    href="/admin"
+                    className="md:pl-8"
+                    onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                  >
+                    Admin Panel
                   </Link>
                 </NavigationMenuItem>
               )}

@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { cn } from '@/app/utils/generalUtils'
 import AntdProvider from './components/AntdProvider'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
+import { Suspense } from 'react'
 
 const interFontSans = Inter({
   subsets: ['latin'],
@@ -33,7 +35,11 @@ export default function RootLayout({
           interFontSans.variable,
         )}
       >
-        <AntdProvider>{children}</AntdProvider>
+        <AntdProvider>
+          <Suspense fallback={<CenteredSpinner tip={'Loading...'} />}>
+            {children}
+          </Suspense>
+        </AntdProvider>
       </body>
     </html>
   )
