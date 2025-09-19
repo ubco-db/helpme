@@ -19,6 +19,7 @@ import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
 import { QuestionCircleOutlined } from '@ant-design/icons'
 import { useUserInfo } from '@/app/contexts/userContext'
 import MessageButton from './MessageButton'
+import { useQueue } from '@/app/hooks/useQueue'
 
 interface StaffListProps {
   queue: QueuePartial
@@ -87,7 +88,7 @@ const StaffList: React.FC<StaffListProps> = ({ queue, queueId, courseId }) => {
 
 interface StatusCardProps {
   courseId: number
-  queueId?: number
+  queueId: number
   myQuestionId?: number
   ta: StaffMember
   myRole?: Role
@@ -111,10 +112,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
   grouped,
 }) => {
   const isBusy = !!helpedAt || !!ta.extraStatus
-  const [tempTaNotes, setTempTaNotes] = useState<string | undefined>(ta.TANotes)
   const [canSave, setCanSave] = useState(false)
-  const [saveLoading, setSaveLoading] = useState(false)
-  const [saveSuccessful, setSaveSuccessful] = useState(false)
   const [popoverOpen, setPopoverOpen] = useState(false)
   const isStaff = myRole === Role.TA || myRole === Role.PROFESSOR
 
@@ -126,7 +124,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
   return (
     <Popover
       open={popoverOpen || canSave}
-      destroyTooltipOnHide={false}
+      destroyOnHidden={false}
       onOpenChange={(open) => setPopoverOpen(open)}
       trigger={shouldShowEdit ? 'click' : 'hover'}
       mouseLeaveDelay={shouldShowEdit ? 0.5 : 0.1}
@@ -140,68 +138,14 @@ const StatusCard: React.FC<StatusCardProps> = ({
                 {ta.TANotes}
               </div>
             ) : (
-              <>
-                <TextArea
-                  placeholder="Can answer questions about MATH 101, PHYS 102..."
-                  autoSize={{ minRows: 4, maxRows: 7 }}
-                  value={tempTaNotes}
-                  onChange={(e) => {
-                    setCanSave(e.target.value !== ta.TANotes)
-                    setTempTaNotes(e.target.value)
-                  }}
-                />
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center justify-start">
-                    <Button
-                      disabled={!canSave}
-                      loading={saveLoading}
-                      onClick={async () => {
-                        setSaveLoading(true)
-                        await API.course
-                          .updateTANotes(courseId, ta.id, tempTaNotes ?? '')
-                          .then(() => {
-                            setSaveSuccessful(true)
-                            setCanSave(false)
-                            // saved goes away after 1s
-                            setTimeout(() => {
-                              setSaveSuccessful(false)
-                            }, 1000)
-                          })
-                          .catch((e) => {
-                            const errorMessage = getErrorMessage(e)
-                            message.error(errorMessage)
-                          })
-                          .finally(() => {
-                            setSaveLoading(false)
-                          })
-                      }}
-                    >
-                      Save
-                    </Button>
-                    <div>
-                      {
-                        <span
-                          className={`ml-2 text-green-500 transition-opacity duration-300 ${
-                            saveSuccessful ? 'opacity-100' : 'opacity-0'
-                          }`}
-                        >
-                          Saved!
-                        </span>
-                      }
-                    </div>
-                  </div>
-                  <Button
-                    onClick={() => {
-                      setTempTaNotes(ta.TANotes)
-                      setCanSave(false)
-                      setPopoverOpen(false)
-                    }}
-                    danger={canSave}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </>
+              <UpdateTANotesForm
+                courseId={courseId}
+                queueId={queueId}
+                ta={ta}
+                canSave={canSave}
+                setCanSave={setCanSave}
+                setPopoverOpen={setPopoverOpen}
+              />
             )}
           </div>
         )
@@ -274,6 +218,97 @@ const StatusCard: React.FC<StatusCardProps> = ({
   )
 }
 
+// Had to refactor this into its own component because it needs to use mutateQueue to update the frontend variables for the queue notes
+// and I can't use the useQueue hook in the StatusCard component since the queueInvitePage also uses StatusCard and I can't conditionally use hooks
+const UpdateTANotesForm: React.FC<{
+  courseId: number
+  queueId: number
+  ta: StaffMember
+  canSave: boolean
+  setCanSave: (canSave: boolean) => void
+  setPopoverOpen: (popoverOpen: boolean) => void
+}> = ({ courseId, queueId, ta, canSave, setCanSave, setPopoverOpen }) => {
+  const [tempTaNotes, setTempTaNotes] = useState<string | undefined>(ta.TANotes)
+  const [saveLoading, setSaveLoading] = useState(false)
+  const [saveSuccessful, setSaveSuccessful] = useState(false)
+  const { queue, mutateQueue } = useQueue(queueId)
+
+  return (
+    <>
+      <TextArea
+        placeholder="Can answer questions about MATH 101, PHYS 102..."
+        autoSize={{ minRows: 4, maxRows: 7 }}
+        value={tempTaNotes}
+        onChange={(e) => {
+          setCanSave(e.target.value !== ta.TANotes)
+          setTempTaNotes(e.target.value)
+        }}
+      />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center justify-start">
+          <Button
+            disabled={!canSave}
+            loading={saveLoading}
+            onClick={async () => {
+              setSaveLoading(true)
+              await API.course
+                .updateTANotes(courseId, ta.id, tempTaNotes ?? '')
+                .then(async () => {
+                  if (queue && queue.staffList) {
+                    // update the local state variables so that the rest of the frontend also has the updated notes (and so no weird state mismatch behavior occurs)
+                    await mutateQueue({
+                      ...queue,
+                      staffList: queue.staffList.map((tempTA) =>
+                        tempTA.id === ta.id
+                          ? { ...ta, TANotes: tempTaNotes }
+                          : tempTA,
+                      ),
+                    })
+                  }
+                  setSaveSuccessful(true)
+                  setCanSave(false)
+                  // saved goes away after 1s
+                  setTimeout(() => {
+                    setSaveSuccessful(false)
+                  }, 1000)
+                })
+                .catch((e) => {
+                  const errorMessage = getErrorMessage(e)
+                  message.error(errorMessage)
+                })
+                .finally(() => {
+                  setSaveLoading(false)
+                })
+            }}
+          >
+            Save
+          </Button>
+          <div>
+            {
+              <span
+                className={`ml-2 text-green-500 transition-opacity duration-300 ${
+                  saveSuccessful ? 'opacity-100' : 'opacity-0'
+                }`}
+              >
+                Saved!
+              </span>
+            }
+          </div>
+        </div>
+        <Button
+          onClick={() => {
+            setTempTaNotes(ta.TANotes)
+            setCanSave(false)
+            setPopoverOpen(false)
+          }}
+          danger={canSave}
+        >
+          Cancel
+        </Button>
+      </div>
+    </>
+  )
+}
 interface HelpingForProps {
   studentName?: string
   extraTAStatus?: ExtraTAStatus
