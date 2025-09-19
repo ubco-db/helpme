@@ -36,7 +36,7 @@ export class MailController {
     }
 
     token.createdAt = new Date();
-    token.expiresIn = 1000 * 60 * 15;
+    token.expiresIn = 60 * 15;
     await token.save();
 
     this.mailerService

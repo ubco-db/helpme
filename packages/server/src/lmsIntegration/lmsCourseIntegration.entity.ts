@@ -72,7 +72,7 @@ export class LMSCourseIntegrationModel extends BaseEntity {
   @OneToMany(() => LMSFileModel, (file) => file.course)
   files: LMSFileModel[];
 
-  @OneToMany(() => LMSAccessTokenModel, (token) => token.courses, {
+  @ManyToOne(() => LMSAccessTokenModel, (token) => token.courses, {
     nullable: true,
     onDelete: 'SET NULL',
   })

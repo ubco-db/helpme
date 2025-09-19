@@ -26,13 +26,10 @@ export class UserTokenModel extends BaseEntity {
   @Column('text')
   token: string;
 
-  @Column({ type: 'bigint', default: 1000 * 60 * 60 * 24 })
-  expires_at: number;
-
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 
-  @Column({ type: 'bigint', default: 1000 * 60 * 60 * 24 })
+  @Column({ type: 'int', default: 60 * 60 * 24 })
   expiresIn: number;
 
   @Column({
@@ -51,6 +48,7 @@ export class UserTokenModel extends BaseEntity {
 
   @ManyToOne((type) => UserModel, (user) => user.tokens, {
     onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
   })
   user: UserModel;
 }

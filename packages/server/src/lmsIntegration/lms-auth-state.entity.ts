@@ -29,6 +29,7 @@ export class LMSAuthStateModel extends BaseEntity {
 
   @ManyToOne(() => UserModel, (user) => user.pendingAuthStates, {
     onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
   })
   @JoinColumn({ name: 'userId' })
   user: UserModel;

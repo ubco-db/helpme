@@ -99,7 +99,6 @@ export class OrganizationModel extends BaseEntity {
   superCourses: SuperCourseModel[];
 
   @Exclude()
-  @JoinColumn({ referencedColumnName: 'organizationId' })
   @OneToOne(
     () => OrganizationChatbotSettingsModel,
     (orgChatbotSettings) => orgChatbotSettings.organization,

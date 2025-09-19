@@ -22,6 +22,7 @@ export class LtiCourseInviteModel extends BaseEntity {
 
   @ManyToOne(() => CourseModel, (course) => course.ltiInvites, {
     onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
   })
   @JoinColumn({ name: 'courseId' })
   course: CourseModel;

@@ -135,6 +135,8 @@ const NavBar = ({
   const role = getRoleInCourse(userInfo, course?.id ?? -1)
   const router = useRouter()
 
+  const launchUrl = `${process.env.NEXT_PUBLIC_HOST_PROTOCOL}://${process.env.NEXT_PUBLIC_HOSTNAME}${process.env.NEXT_PUBLIC_HOSTNAME === 'localhost' && process.env.NEXT_PUBLIC_DEV_PORT ? `:${process.env.NEXT_PUBLIC_DEV_PORT}` : ''}/?launch_from_lti=true`
+
   const setNavigationSubMenuRightSide = useCallback(() => {
     const viewportElement = document.getElementById('navigation-menu-viewport')
     if (viewportElement) {
@@ -223,10 +225,7 @@ const NavBar = ({
           {/* DESKTOP ONLY PART OF NAVBAR */}
           <div className={'!ml-auto hidden items-center md:flex'}>
             <NavigationMenuItem>
-              <Link
-                href={`${process.env.NEXT_PUBLIC_HOST_PROTOCOL}://${process.env.NEXT_PUBLIC_HOSTNAME}${process.env.NEXT_PUBLIC_DEV_PORT ? `:${process.env.NEXT_PUBLIC_DEV_PORT}` : ''}/?launch_from_lti=true`}
-                target={'_blank'}
-              >
+              <Link href={launchUrl} target={'_blank'}>
                 <ExpandOutlined className={'mr-2'} /> Open HelpMe
               </Link>
             </NavigationMenuItem>
@@ -257,10 +256,7 @@ const NavBar = ({
           <div className="!mb-2 !mt-auto -mr-5 block w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
           <div className={'flex flex-col md:hidden'}>
             <NavigationMenuItem>
-              <Link
-                href={`${process.env.NEXT_PUBLIC_HOST_PROTOCOL}://${process.env.NEXT_PUBLIC_HOSTNAME}${process.env.NEXT_PUBLIC_DEV_PORT ? `:${process.env.NEXT_PUBLIC_DEV_PORT}` : ''}/?launch_from_lti=true`}
-                target={'_blank'}
-              >
+              <Link href={launchUrl} target={'_blank'}>
                 <ExpandOutlined className={'mr-2'} /> Open HelpMe
               </Link>
             </NavigationMenuItem>

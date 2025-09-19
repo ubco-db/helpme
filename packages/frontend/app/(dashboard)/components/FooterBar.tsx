@@ -3,6 +3,7 @@ import ChangeLogModal from '@/app/components/ChangeLogModal'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useState } from 'react'
+import { HELPME_VERSION } from '@/app/vars'
 
 const FooterBar: React.FC = () => {
   const [isChangelogOpen, setIsChangelogOpen] = useState(false)
@@ -48,7 +49,7 @@ const FooterBar: React.FC = () => {
             IReadTheChangelog()
           }}
         >
-          Version {process.env.NEXT_PUBLIC_HELPME_VERSION}{' '}
+          Version {HELPME_VERSION}{' '}
           {userInfo.readChangeLog === false && (
             <span className="text-green-500">(New Changes!)</span>
           )}

@@ -5,6 +5,7 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
@@ -52,6 +53,7 @@ export class LMSAccessTokenModel extends BaseEntity {
   @Exclude()
   @ManyToOne(() => UserModel, (user) => user.lmsAccessTokens, {
     onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
   })
   @JoinColumn({ name: 'userId' })
   user: UserModel;
@@ -65,7 +67,7 @@ export class LMSAccessTokenModel extends BaseEntity {
   organizationIntegration: LMSOrganizationIntegrationModel;
 
   @Exclude()
-  @ManyToOne(() => LMSCourseIntegrationModel, (course) => course.accessToken)
+  @OneToMany(() => LMSCourseIntegrationModel, (course) => course.accessToken)
   courses: LMSCourseIntegrationModel[];
 
   async encryptToken(raw: LMSPostResponseBody): Promise<LMSAccessTokenModel> {
