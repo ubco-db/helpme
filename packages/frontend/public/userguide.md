@@ -170,6 +170,21 @@ The navigation elements are as follows:
 - **Insights** (professor-only):
   - Here you can view a variety of graphs constructed out of the data collected, including statistics like how many questions were asked, what times were the most busy, or when the system is most often used.
 
+### Where is HelpMe hosted, where is data stored, and does any data leave Canada?
+
+HelpMe is hosted on UBCO servers, and no data is shared with external providers. This means your interactions stay within UBC’s infrastructure and comply with UBC’s policies on data safety and security. All course interaction data is stored securely in Canada and does not leave the country.
+
+All LLM models are hosted locally on UBCO servers using Ollama. No external API calls are made.
+
+If you're curious about certain models (e.g. Qwen 2.5, Deepseek R1), these LLMs were trained by external companies that released their weights to the public, allowing anyone to run these models on their local hardware. These companies also host their models on their own server hardware and their own websites, but these are unaffiliated with UBC and HelpMe and are subject to different data privacy laws. So, in short, it's safe to use models like Deepseek R1 on HelpMe since it's hosted on UBCO servers, but it is not data safe to go to Deepseek's website and ask questions there.
+
+### What's the difference between this Chatbot and Anytime Questions?
+
+AIs don't always provide a perfect response, and sometimes you want a way for humans to verify the AI's answer. 
+
+Professors and TAs don't really have a way to insert themselves into your Chatbot conversations, like this one. 
+
+Thus, you can ask an Anytime Question to immediately get an AI response and then have a professor or TA review the answer if you still need help. You can also continue your conversation with them in the comments of the Anytime Question.
 
 ## Student FAQ
 
@@ -212,6 +227,12 @@ For anytime questions:
 - For queue questions, no all questions are anonymous for other students. Only TAs and professors can see who asked the question
 - Likewise, for the anytime question hub, all anytime questions are also anonymous to other students. Only TAs and professors can see who asked the question. 
   - When you first create an anytime question, only you and staff can see it. Staff then have the option to post the question publicly so that other students can see the question, but don't worry! You will still appear as an anonymous student.
+ 
+### Can professors see what questions I ask the chatbot?
+
+They can see the question and AI answer text, **but not who asked it**. The reason being is that caring professors use this data to help them understand where students are struggling in order to make the course better. 
+
+For example, when students mostly ask external AI systems like ChatGPT, professors won't know if most of the class is struggling with a particular topic and will continue with the course as normal. Plus, external AI tools host their servers in private companies outside of Canada and are subject to other laws and are thus not data safe. HelpMe is hosted completely on UBCO servers.
 
 ### When is X?
 
@@ -308,13 +329,13 @@ There is currently **no** integration made between the LMS (Canvas) integration 
 
 Right now, the only things integrated with LMSs (like Canvas) are:
 - **Course Roster**: Lets you compare what students are in your HelpMe course but not your Canvas course (or vise-versa). This is useful for knowing if there is someone in your HelpMe course that shouldn't be or how many people in your Canvas course never once joined your HelpMe course. It compares by checking if the user's name matches in both courses. This information does *not* get inserted to the chatbot or anywhere else in the system, it is purely used for comparing the Canvas course with the HelpMe course.
+It synchronizes the following into the chatbot:
 - **Course Assignments**: Will automatically pull the assignment's **name**, **due date**, and **description** and insert it into the chatbot. Note that it will ***not*** insert attached documents, images, or rubrics of the assignment to the chatbot (but this is being looked into as a future feature).
 - **Course Announcements**: Will automatically pull announcements' **titles**, **date posted**, and **announcement message** and insert it into the chatbot. Note that it does *not* insert attached documents or images from the announcements into the chatbot (but this is being looked into as a future feature)
+- **Pages**
+- **Files**
+- **Quizzes** (soon)
 
-It does NOT currently synchronize:
-- Modules (though this is currently being looked into being supported)
-- Quizzes
-- File Uploads
-- Anything else
+Note that all citations to synchronized resources will link to their specific resource on Canvas directly, meaning students won't be able to access resources they lack access priveldges for on Canvas (e.g. they can't access a hidden slide deck from a future week).
 
-So right now, the LMS integration is currently somewhat rudimentary. Slide decks and assignment pdfs will still need to be manually uploaded by going to Course Settings -> Chatbot Settings -> Add Documents
+Also, you can always upload resources (e.g. slide decks) yourself by going to Course Settings -> Chatbot Settings -> Add Documents

@@ -85,7 +85,13 @@ export default function AddCoursePage(): ReactElement {
     API.semesters
       .get(userInfo.organization?.orgId || -1)
       .then((semesters) => {
-        setOrganizationSemesters(semesters)
+        setOrganizationSemesters(
+          semesters.filter(
+            (semester) =>
+              new Date(semester.endDate) > new Date(1971) &&
+              new Date(semester.endDate) > new Date(),
+          ), // filter out past semesters
+        )
       })
       .catch((_) => {
         message.error('Failed to fetch semesters for organization')
@@ -283,7 +289,7 @@ export default function AddCoursePage(): ReactElement {
                               key={semester.id}
                               value={semester.id}
                             >
-                              <span>{`${semester.name}`}</span>{' '}
+                              <span>{`${semester.name} `}</span>
                               <span className="font-normal">
                                 {formatSemesterDate(semester)}
                               </span>
