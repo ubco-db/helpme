@@ -155,35 +155,46 @@ export function formatDateAndTimeForExcel(date: Date | undefined): string {
  * @returns The formatted semester date
  */
 export function formatSemesterDate(semester: SemesterPartial): string {
-  if (!semester.startDate || !semester.endDate) {
-    return ''
-  }
-  const startDate = new Date(semester.startDate)
-  const endDate = new Date(semester.endDate)
+  const hasStart = !!semester.startDate
+  const hasEnd = !!semester.endDate
+  if (!hasStart && !hasEnd) return ''
 
-  // Adjust start month if day is > 25 (show as next month)
-  const adjustedStartDate = new Date(startDate)
-  if (startDate.getDate() > 25) {
-    adjustedStartDate.setMonth(adjustedStartDate.getMonth() + 1)
+  let startMonth = '',
+    startYear = 0,
+    endMonth = '',
+    endYear = 0
+
+  if (hasStart) {
+    const startDate = new Date(semester.startDate!)
+    const adjustedStartDate = new Date(startDate)
+    if (startDate.getDate() > 25) {
+      adjustedStartDate.setMonth(adjustedStartDate.getMonth() + 1)
+    }
+    startMonth = adjustedStartDate.toLocaleString('default', { month: 'short' })
+    startYear = adjustedStartDate.getFullYear()
+  }
+  if (hasEnd) {
+    const endDate = new Date(semester.endDate!)
+    const adjustedEndDate = new Date(endDate)
+    if (endDate.getDate() < 5) {
+      adjustedEndDate.setMonth(adjustedEndDate.getMonth() - 1)
+    }
+    endMonth = adjustedEndDate.toLocaleString('default', { month: 'short' })
+    endYear = adjustedEndDate.getFullYear()
   }
 
-  // Adjust end month if day is < 5 (show as previous month)
-  const adjustedEndDate = new Date(endDate)
-  if (endDate.getDate() < 5) {
-    adjustedEndDate.setMonth(adjustedEndDate.getMonth() - 1)
+  if (hasStart && hasEnd) {
+    if (startYear === endYear) {
+      return `(${startMonth} - ${endMonth} ${endYear})`
+    } else {
+      return `(${startMonth} ${startYear} - ${endMonth} ${endYear})`
+    }
   }
-
-  const startMonth = adjustedStartDate.toLocaleString('default', {
-    month: 'short',
-  })
-  const endMonth = adjustedEndDate.toLocaleString('default', { month: 'short' })
-  const startYear = adjustedStartDate.getFullYear()
-  const endYear = adjustedEndDate.getFullYear()
-
-  if (startYear === endYear) {
-    // if years are the same, only show year once
-    return `(${startMonth} - ${endMonth} ${endYear})`
-  } else {
-    return `(${startMonth} ${startYear} - ${endMonth} ${endYear})`
+  if (hasStart && !hasEnd) {
+    return `(started ${startMonth} ${startYear})`
   }
+  if (!hasStart && hasEnd) {
+    return `(ends ${endMonth} ${endYear})`
+  }
+  return ''
 }

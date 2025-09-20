@@ -3,6 +3,7 @@ import { Checkbox, Form, Select, Table } from 'antd'
 import { ColumnsType } from 'antd/es/table'
 import { CheckboxChangeEvent } from 'antd/lib'
 import { useState } from 'react'
+import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
 
 type SelectCoursesProps = {
   courses: CourseResponse[]
@@ -107,15 +108,7 @@ const SelectCourses: React.FC<SelectCoursesProps> = ({
             </Select.Option>
             {organizationSemesters.map((semester) => (
               <Select.Option key={semester.id} value={semester.id}>
-                {`${semester.name} (${
-                  semester.startDate
-                    ? new Date(semester.startDate).toLocaleDateString()
-                    : '—'
-                } - ${
-                  semester.endDate
-                    ? new Date(semester.endDate).toLocaleDateString()
-                    : '—'
-                })`}
+                {`${semester.name} ${formatSemesterDate(semester)}`}
               </Select.Option>
             ))}
           </Select>
