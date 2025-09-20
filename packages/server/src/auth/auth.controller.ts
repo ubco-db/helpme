@@ -400,6 +400,33 @@ export class AuthController {
         .send({ message: 'Organization not found' });
     }
 
+    // Check if organization has SSO enabled and email matches SSO patterns
+    if (organization.ssoEnabled && organization.ssoEmailPatterns) {
+      const patterns = organization.ssoEmailPatterns;
+      for (const pattern of patterns) {
+        if (pattern.startsWith('r')) {
+          // Remove the 'r' prefix and create regex
+          const regexPattern = pattern.substring(1);
+          try {
+            const regex = new RegExp(regexPattern);
+            if (regex.test(email)) {
+              return res.status(HttpStatus.BAD_REQUEST).send({
+                message:
+                  'SSO email detected! Please use "Continue with ' +
+                  organization.name +
+                  '" on the login page instead.',
+              });
+            }
+          } catch (error) {
+            // Invalid regex pattern, skip it
+            console.warn(
+              `Invalid regex pattern in ssoEmailPatterns: ${regexPattern}`,
+            );
+          }
+        }
+      }
+    }
+
     const user = await UserModel.findOne({ where: { email } });
 
     if (user) {

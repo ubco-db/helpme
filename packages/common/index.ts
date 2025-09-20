@@ -1649,6 +1649,11 @@ export class UpdateOrganizationDetailsParams {
   @IsString()
   @IsOptional()
   websiteUrl?: string
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  ssoEmailPatterns?: string[]
 }
 
 export class UpdateProfileParams {
@@ -1712,6 +1717,7 @@ export class GetOrganizationResponse {
   websiteUrl?: string
   ssoEnabled?: boolean
   ssoUrl?: string
+  ssoEmailPatterns?: string[]
 }
 
 export type UpsertLMSOrganizationParams = {

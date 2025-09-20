@@ -1096,9 +1096,10 @@ export class OrganizationController {
     })
       .then((organization) => {
         if (
-          !organizationPatch.name ||
+          organizationPatch.name &&
           organizationPatch.name.trim().length < 3
         ) {
+          console.log(organizationPatch.name);
           return res.status(HttpStatus.BAD_REQUEST).send({
             message:
               ERROR_MESSAGES.organizationController.organizationNameTooShort,
@@ -1106,7 +1107,7 @@ export class OrganizationController {
         }
 
         if (
-          !organizationPatch.description ||
+          organizationPatch.description &&
           organizationPatch.description.trim().length < 10
         ) {
           return res.status(HttpStatus.BAD_REQUEST).send({
@@ -1118,8 +1119,7 @@ export class OrganizationController {
 
         if (
           organizationPatch.websiteUrl &&
-          (!organizationPatch.websiteUrl ||
-            organizationPatch.websiteUrl.trim().length < 10 ||
+          (organizationPatch.websiteUrl.trim().length < 10 ||
             !this.isValidUrl(organizationPatch.websiteUrl))
         ) {
           return res.status(HttpStatus.BAD_REQUEST).send({
@@ -1134,6 +1134,10 @@ export class OrganizationController {
 
         if (organizationPatch.websiteUrl) {
           organization.websiteUrl = organizationPatch.websiteUrl;
+        }
+
+        if (organizationPatch.ssoEmailPatterns !== undefined) {
+          organization.ssoEmailPatterns = organizationPatch.ssoEmailPatterns;
         }
 
         organization
