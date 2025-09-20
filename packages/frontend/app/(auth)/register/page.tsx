@@ -7,9 +7,17 @@ import { LeftOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { userApi } from '@/app/api/userApi'
 
+interface Organization {
+  id: number
+  name: string
+  ssoEnabled: boolean
+  ssoEmailPatterns?: string[]
+}
+
 export default function RegisterPage(): ReactElement {
   const [organizationId, setOrganizationId] = useState(0)
   const [domLoaded, setDomLoaded] = useState(false)
+  const [organization, setOrganization] = useState<Organization | null>(null)
   const router = useRouter()
 
   const [registerForm] = Form.useForm()
@@ -20,7 +28,6 @@ export default function RegisterPage(): ReactElement {
 
     recaptchaRef?.current?.reset()
   }
-
   async function createAccount() {
     const formValues = await registerForm.validateFields()
     const { firstName, lastName, email, password, confirmPassword, sid } =
@@ -68,9 +75,79 @@ export default function RegisterPage(): ReactElement {
     return
   }
 
+  // Fetch all organizations for SSO settings
+  const [organizations, setOrganizations] = useState<Organization[]>([])
+  async function fetchOrganizations() {
+    try {
+      const response = await fetch('/api/v1/organization')
+      if (response.ok) {
+        const orgs = await response.json()
+        setOrganizations(orgs)
+      } else {
+        setOrganizations([])
+      }
+    } catch (error) {
+      console.error('Failed to fetch organizations:', error)
+      setOrganizations([])
+    }
+  }
+
+  // Select organization by ID
+  function selectOrganization(orgId: number) {
+    const org = organizations.find((o) => o.id === orgId) || null
+    setOrganization(org)
+  }
+
+  // Check if email matches SSO patterns for the current organization
+  function checkSsoEmailPatterns(email: string): string | null {
+    if (
+      !organization ||
+      !organization.ssoEnabled ||
+      !organization.ssoEmailPatterns
+    ) {
+      return null
+    }
+    const patterns = organization.ssoEmailPatterns ?? []
+    for (const pattern of patterns) {
+      if (pattern.startsWith('r')) {
+        try {
+          const regexPattern = pattern.substring(1)
+          const regex = new RegExp(regexPattern)
+          if (regex.test(email)) {
+            return `SSO email detected! Would you like to "Continue with ${organization.name}" on the login page instead?`
+          }
+        } catch (error) {
+          console.warn(`Invalid regex pattern: ${pattern}`)
+        }
+      } else {
+        if (email.includes(pattern)) {
+          return `SSO email detected! Please use "Continue with ${organization.name}" on the login page instead.`
+        }
+      }
+    }
+    return null
+  }
+
   useEffect(() => {
     setDomLoaded(true)
-    setOrganizationId(parseInt(localStorage.getItem('organizationId') ?? ''))
+    fetchOrganizations()
+    const orgId = parseInt(localStorage.getItem('organizationId') ?? '')
+    setOrganizationId(orgId)
+  }, [])
+
+  useEffect(() => {
+    if (organizationId && organizations.length > 0) {
+      selectOrganization(organizationId)
+    }
+  }, [organizationId, organizations])
+
+  useEffect(() => {
+    setDomLoaded(true)
+    const orgId = parseInt(localStorage.getItem('organizationId') ?? '')
+    setOrganizationId(orgId)
+    if (orgId) {
+      fetchOrganizations()
+    }
   }, [])
 
   return (
@@ -179,9 +256,24 @@ export default function RegisterPage(): ReactElement {
                     message: 'Email must be at most 64 characters',
                   },
                   {
-                    pattern: /^(?!.*@.*ubc).*$/i, // Only allow emails that do not contain "ubc" after @
-                    message:
-                      'UBC email detected! Please use "Continue with UBC" on the login page instead.',
+                    warningOnly: true,
+                    validator: async (_, value) => {
+                      if (!value) return Promise.resolve()
+                      if (!organization) {
+                        return Promise.resolve()
+                      }
+
+                      try {
+                        const ssoError = checkSsoEmailPatterns(value)
+                        if (ssoError) {
+                          return Promise.reject(new Error(ssoError))
+                        }
+                        return Promise.resolve()
+                      } catch (err) {
+                        console.error('Error in email validation:', err)
+                        return Promise.resolve() // fallback to not blocking user
+                      }
+                    },
                   },
                 ]}
               >

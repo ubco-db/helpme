@@ -30,7 +30,26 @@ import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
 
 export default function SettingsPage(): ReactElement {
+  // Handler to update SSO patterns
+  const updateSSO = async () => {
+    try {
+      const formValues = await formSSO.validateFields()
+      const ssoEmailPatterns = formValues.ssoEmailPatterns || []
+      await API.organizations.patch(organization?.id ?? -1, {
+        ssoEmailPatterns,
+      })
+      message.success('SSO patterns updated')
+      setTimeout(() => {
+        window.location.reload()
+      }, 1750)
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.message || 'Failed to update SSO patterns'
+      message.error(errorMessage)
+    }
+  }
   const [formGeneral] = Form.useForm()
+  const [formSSO] = Form.useForm()
 
   const [isCropperModalOpen, setIsCropperModalOpen] = useState<{
     logo: boolean
@@ -358,7 +377,21 @@ export default function SettingsPage(): ReactElement {
           </Card>
 
           <Card title="SSO" variant="outlined" className="w-full">
-            <Form layout="vertical">
+            <Form
+              form={formSSO}
+              layout="vertical"
+              initialValues={{
+                ...organization,
+                ssoEmailPatterns: Array.isArray(organization?.ssoEmailPatterns)
+                  ? organization.ssoEmailPatterns.length > 0
+                    ? organization.ssoEmailPatterns
+                    : ['']
+                  : organization?.ssoEmailPatterns
+                    ? [organization.ssoEmailPatterns]
+                    : [''],
+              }}
+              onFinish={updateSSO}
+            >
               <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
                 <Col xs={{ span: 24 }} sm={{ span: 12 }}>
                   <Form.Item
@@ -367,9 +400,9 @@ export default function SettingsPage(): ReactElement {
                     tooltip="SSO URL used by organization to authenticate user"
                   >
                     <Input
-                      allowClear={true}
+                      allowClear
                       defaultValue={organization?.ssoUrl}
-                      disabled={true}
+                      disabled
                     />
                   </Form.Item>
                 </Col>
@@ -378,14 +411,78 @@ export default function SettingsPage(): ReactElement {
                     label="SSO Authorization"
                     name="organizationSSOEnabled"
                     tooltip="Whether users use organization's authentication system"
+                    valuePropName="checked"
                   >
                     <Switch
-                      disabled={true}
+                      disabled
                       defaultChecked={organization?.ssoEnabled}
                     />
                   </Form.Item>
                 </Col>
               </Row>
+
+              {organization?.ssoEnabled && (
+                <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
+                  <Col xs={{ span: 24 }}>
+                    <Form.Item label="SSO Email Pattern(s)" colon={false}>
+                      <Form.List name="ssoEmailPatterns">
+                        {(fields, { add, remove }) => (
+                          <>
+                            {fields.map(({ key, name, ...restField }) => (
+                              <div
+                                key={key}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 8,
+                                  marginBottom: 8,
+                                }}
+                              >
+                                <Form.Item
+                                  {...restField}
+                                  name={name}
+                                  style={{ flex: 1, marginBottom: 0 }}
+                                  rules={[
+                                    {
+                                      required: true,
+                                      message: 'Enter a pattern or domain',
+                                    },
+                                  ]}
+                                >
+                                  <Input placeholder="e.g. r^.*@ubc\.ca$ or @example.com" />
+                                </Form.Item>
+                                <Button
+                                  type="link"
+                                  danger
+                                  onClick={() => remove(name)}
+                                  style={{ marginLeft: 8 }}
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            ))}
+
+                            <Button
+                              type="dashed"
+                              onClick={() => add()}
+                              block
+                              style={{ marginTop: 8 }}
+                            >
+                              Add Pattern
+                            </Button>
+                          </>
+                        )}
+                      </Form.List>
+                    </Form.Item>
+
+                    <Form.Item style={{ marginTop: 12 }}>
+                      <Button type="primary" htmlType="submit">
+                        Update SSO Patterns
+                      </Button>
+                    </Form.Item>
+                  </Col>
+                </Row>
+              )}
             </Form>
           </Card>
         </>
