@@ -607,11 +607,11 @@ export class OrganizationController {
   @Patch(':oid/update_course_access/:cid')
   @UseGuards(
     JwtAuthGuard,
-    OrganizationRolesGuard,
-    OrganizationGuard,
+    OrgOrCourseRolesGuard,
     EmailVerifiedGuard,
   )
-  @Roles(OrganizationRole.ADMIN)
+  @CourseRoles(Role.PROFESSOR)
+  @OrgRoles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async updateCourseAccess(
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
