@@ -217,8 +217,8 @@ const NavBar = ({
                         ? 'md:border-helpmeblue bg-zinc-300/80 md:border-b-2 md:bg-white'
                         : ''
                     }
-                    onFocus={setNavigationSubMenuRightSide}
-                    onClick={setNavigationSubMenuRightSide}
+                    onFocus={setNavigationSubMenuLeftSide}
+                    onClick={setNavigationSubMenuLeftSide}
                     onPointerMove={(e) => e.preventDefault()}
                     onPointerLeave={(e) => e.preventDefault()}
                   >
