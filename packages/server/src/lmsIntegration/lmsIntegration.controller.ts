@@ -357,6 +357,15 @@ export class LMSIntegrationController {
       );
     }
 
+    // Check if quiz resource is enabled
+    const selectedResources: LMSResourceType[] =
+      integration.selectedResourceTypes;
+    if (!selectedResources.includes(LMSResourceType.QUIZZES)) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.lmsController.resourceDisabled,
+      );
+    }
+
     const quiz = await LMSQuizModel.findOne({
       where: { id: quizId, courseId },
     });
@@ -396,6 +405,15 @@ export class LMSIntegrationController {
       );
     }
 
+    // Check if quiz resource is enabled
+    const selectedResources: LMSResourceType[] =
+      integration.selectedResourceTypes;
+    if (!selectedResources.includes(LMSResourceType.QUIZZES)) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.lmsController.resourceDisabled,
+      );
+    }
+
     try {
       if (body.action === 'disable') {
         // If specific quiz IDs provided, disable only those; otherwise disable all
@@ -407,7 +425,7 @@ export class LMSIntegrationController {
           where: whereCondition,
         });
 
-let failures = 0;
+        let failures = 0;
 
         for (const quiz of quizzesToDisable) {
           if (quiz.chatbotDocumentId) {
@@ -419,7 +437,7 @@ let failures = 0;
                 'Clear',
               );
             } catch (error) {
-failures++;
+              failures++;
               // Continue with other quizzes even if one fails
             }
           }
@@ -433,9 +451,15 @@ failures++;
         const count = body.quizIds
           ? body.quizIds.length
           : quizzesToDisable.length;
-const successMsg = count - failures > 0 ?  `Successfully disabled sync for ${count-failures} quiz${count-failures !== 1 ? 'es' : ''}.` : ''; 
-const failureMsg = failures > 0 ? ` Failed to disable sync for ${failures} quiz${failures !== 1 ? 'es' : ''}.` : '';
-return (successMsg + failureMsg).trim();
+        const successMsg =
+          count - failures > 0
+            ? `Successfully disabled sync for ${count - failures} quiz${count - failures !== 1 ? 'es' : ''}.`
+            : '';
+        const failureMsg =
+          failures > 0
+            ? ` Failed to disable sync for ${failures} quiz${failures !== 1 ? 'es' : ''}.`
+            : '';
+        return (successMsg + failureMsg).trim();
       } else {
         if (!body.quizIds || body.quizIds.length === 0) {
           throw new BadRequestException('Quiz IDs required for enable action');
@@ -473,6 +497,27 @@ return (successMsg + failureMsg).trim();
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
   async getQuizzes(@Param('courseId', ParseIntPipe) courseId: number) {
+    // Check if quiz resource is enabled
+    const integration = await LMSCourseIntegrationModel.findOne({
+      where: { courseId },
+      relations: { orgIntegration: true },
+    });
+
+    if (!integration) {
+      throw new HttpException(
+        LMSApiResponseStatus.InvalidConfiguration,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const selectedResources: LMSResourceType[] =
+      integration.selectedResourceTypes;
+    if (!selectedResources.includes(LMSResourceType.QUIZZES)) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.lmsController.resourceDisabled,
+      );
+    }
+
     return await this.integrationService.getItems(courseId, LMSGet.Quizzes);
   }
 
@@ -772,6 +817,15 @@ return (successMsg + failureMsg).trim();
       throw new HttpException(
         LMSApiResponseStatus.InvalidConfiguration,
         HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Check if quiz resource is enabled
+    const selectedResources: LMSResourceType[] =
+      integration.selectedResourceTypes;
+    if (!selectedResources.includes(LMSResourceType.QUIZZES)) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.lmsController.resourceDisabled,
       );
     }
 

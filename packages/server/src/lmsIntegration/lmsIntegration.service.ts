@@ -1451,7 +1451,7 @@ export class LMSIntegrationService {
     if (quiz.questions && quiz.questions.length > 0) {
       content += '\n\nQuestions:';
       quiz.questions.forEach((q: any, i: number) => {
-        content += `\n${i + 1}. ${q.question_text || q.question_name || 'Question'}`;
+        content += `\n${i + 1}. ${convert(q.question_text) || q.question_name || 'Question'}`;
 
         if (
           accessLevel ===
