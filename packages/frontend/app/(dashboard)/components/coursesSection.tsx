@@ -55,19 +55,34 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
         if (semesterA && !semesterB) return -1
         if (semesterB && !semesterA) return 1
 
-        // Treat missing endDate as -Infinity
-        const aEnd = semesterA?.endDate
-          ? new Date(semesterA.endDate).getTime()
-          : -Infinity
-        const bEnd = semesterB?.endDate
-          ? new Date(semesterB.endDate).getTime()
-          : -Infinity
-        const diff = bEnd - aEnd
-        if (diff === 0) {
-          return a.course.name.localeCompare(b.course.name)
-        } else {
-          return diff
+ /*
+         Note that this is implicitly true at this point, but to avoid TypeScript errors
+         we define the conditional statement:
+         */
+        if (semesterA && semesterB) {
+          /*
+          Try to place the semester at **some point** in time, whether it's the start or end date.
+          Default to endDate, but use startDate if endDate does not exist, if neither exist, use -Infinity
+          */
+          const aTime = semesterA.endDate
+            ? new Date(semesterA.endDate).getTime()
+            : semesterA.startDate
+              ? new Date(semesterA.startDate).getTime()
+              : -Infinity;
+          const bTime = semesterB.endDate
+            ? new Date(semesterB.endDate).getTime()
+            : semesterB.startDate
+              ? new Date(semesterB.startDate).getTime()
+              : -Infinity;
+          
+          const diff = bTime - aTime
+          if (diff === 0) {
+            return a.course.name.localeCompare(b.course.name)
+          } else {
+            return diff
+          }
         }
+        return a.course.name.localeCompare(b.course.name);
       })
   }, [userInfo.courses, semesters])
 
