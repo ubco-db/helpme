@@ -434,7 +434,7 @@ failures++;
           ? body.quizIds.length
           : quizzesToDisable.length;
 const successMsg = count - failures > 0 ?  `Successfully disabled sync for ${count-failures} quiz${count-failures !== 1 ? 'es' : ''}.` : ''; 
-const failureMsg = $failures > 0 ? ` Failed to disable sync for ${failures} quiz${failures !== 1 ? 'es' : ''}.` : '';
+const failureMsg = failures > 0 ? ` Failed to disable sync for ${failures} quiz${failures !== 1 ? 'es' : ''}.` : '';
 return (successMsg + failureMsg).trim();
       } else {
         if (!body.quizIds || body.quizIds.length === 0) {
