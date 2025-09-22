@@ -39,9 +39,9 @@ export default function SettingsPage(): ReactElement {
         ssoEmailPatterns,
       })
       message.success('SSO patterns updated')
-      setTimeout(() => {
-        window.location.reload()
-      }, 1750)
+      setOrganization((prev) =>
+        prev ? { ...prev, ssoEmailPatterns: ssoEmailPatterns } : prev,
+      )
     } catch (error: any) {
       const errorMessage =
         error?.response?.data?.message || 'Failed to update SSO patterns'
@@ -60,20 +60,13 @@ export default function SettingsPage(): ReactElement {
     banner: boolean
   }>({ logo: false, banner: false })
 
-  const { userInfo } = useUserInfo()
+  const { userInfo, setUserInfo } = useUserInfo()
   const organizationId = useMemo(
     () => Number(userInfo?.organization?.orgId) ?? -1,
     [userInfo?.organization?.orgId],
   )
 
   const [organization, setOrganization] = useState<Organization>()
-  const [organizationName, setOrganizationName] = useState(organization?.name)
-  const [organizationDescription, setOrganizationDescription] = useState(
-    organization?.description,
-  )
-  const [organizationWebsiteUrl, setOrganizationWebsiteUrl] = useState(
-    organization?.websiteUrl,
-  )
   const [organizationSemesters, setOrganizationSemesters] = useState<
     SemesterPartial[]
   >([])
@@ -82,47 +75,44 @@ export default function SettingsPage(): ReactElement {
   useEffect(() => {
     const fetchDataAsync = async () => {
       const response = await API.organizations.get(organizationId)
-
-      setOrganization(response)
-      setOrganizationName(response.name)
-      setOrganizationDescription(response.description)
-      setOrganizationWebsiteUrl(response.websiteUrl)
-      setOrganizationSemesters(
-        response.semesters.map((s: SemesterPartial) => {
-          return {
-            id: s.id,
-            name: s.name,
-            startDate: new Date(s.startDate),
-            endDate: new Date(s.endDate),
-            description: s.description,
-            color: s.color,
-          }
-        }),
-      )
+      setOrganization({
+        ...response,
+        semesters: response.semesters.map((s: SemesterPartial) => ({
+          id: s.id,
+          name: s.name,
+          startDate: new Date(s.startDate),
+          endDate: new Date(s.endDate),
+          description: s.description,
+          color: s.color,
+        })),
+      })
+      formGeneral.setFieldsValue({
+        organizationName: response.name,
+        organizationDescription: response.description,
+        organizationWebsiteUrl: response.websiteUrl,
+      })
+      formSSO.setFieldsValue({
+        ssoEmailPatterns: response.ssoEmailPatterns?.length
+          ? response.ssoEmailPatterns
+          : [''],
+      })
     }
-
-    fetchDataAsync()
-  }, [organization?.name, organizationId])
-
-  const isValidUrl = (url: string): boolean => {
-    try {
-      new URL(url)
-      return true
-    } catch (_) {
-      return false
+    if (organizationId > 0) {
+      fetchDataAsync()
     }
-  }
+  }, [organizationId, formGeneral, formSSO])
 
   const updateGeneral = async () => {
-    const formValues = await formGeneral.validateFields()
-    const organizationNameField = formValues.organizationName
-    const organizationDescriptionField = formValues.organizationDescription
-    const organizationWebsiteUrlField = formValues.organizationWebsiteUrl
+    const {
+      organizationName,
+      organizationDescription,
+      organizationWebsiteUrl,
+    } = await formGeneral.validateFields()
 
     if (
-      organizationNameField === organizationName &&
-      organizationDescriptionField === organizationDescription &&
-      organizationWebsiteUrlField === organizationWebsiteUrl
+      organizationName === organization?.name &&
+      organizationDescription === organization?.description &&
+      organizationWebsiteUrl === organization?.websiteUrl
     ) {
       message.info(
         'Organization was not updated as information has not been changed',
@@ -130,41 +120,41 @@ export default function SettingsPage(): ReactElement {
       return
     }
 
-    if (organizationNameField.length < 3) {
-      message.error('Organization name must be at least 3 characters')
-      return
-    }
-
-    if (organizationDescriptionField.length < 10) {
-      message.error('Organization description must be at least 10 characters')
-      return
-    }
-
-    if (
-      organizationWebsiteUrlField &&
-      !isValidUrl(organizationWebsiteUrlField)
-    ) {
-      message.error(
-        'Organization URL must be at least 4 characters and be a valid URL',
-      )
-      return
-    }
-
     await API.organizations
       .patch(organization?.id ?? -1, {
-        name: organizationNameField,
-        description: organizationDescriptionField,
-        websiteUrl: organizationWebsiteUrlField,
+        name: organizationName,
+        description: organizationDescription,
+        websiteUrl: organizationWebsiteUrl,
       })
       .then((_) => {
-        setOrganizationName(organizationNameField)
-        setOrganizationDescription(organizationDescriptionField)
-        setOrganizationWebsiteUrl(organizationWebsiteUrlField)
-        message.success('Organization information was updated')
-        setTimeout(() => {
-          window.location.reload()
-        }, 1750)
+        message.success('Organization updated')
+        setOrganization((prev) =>
+          prev
+            ? {
+                ...prev,
+                name: organizationName,
+                description: organizationDescription,
+                websiteUrl: organizationWebsiteUrl,
+              }
+            : prev,
+        )
+
+        setUserInfo((prev) =>
+          prev
+            ? {
+                ...prev,
+                organization: {
+                  ...prev.organization,
+                  id: prev.organization!.id,
+                  orgId: prev.organization!.orgId,
+                  organizationName: organizationName,
+                  organizationDescription: organizationDescription,
+                },
+              }
+            : prev,
+        )
       })
+
       .catch((error) => {
         const errorMessage = error.response.data.message
 
@@ -184,9 +174,9 @@ export default function SettingsPage(): ReactElement {
                   onFinish={updateGeneral}
                   layout="vertical"
                   initialValues={{
-                    organizationName: organizationName,
-                    organizationDescription: organizationDescription,
-                    organizationWebsiteUrl: organizationWebsiteUrl,
+                    organizationName: organization?.name,
+                    organizationDescription: organization?.description,
+                    organizationWebsiteUrl: organization?.websiteUrl,
                   }}
                 >
                   <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
@@ -195,12 +185,19 @@ export default function SettingsPage(): ReactElement {
                         label="Organization Name"
                         name="organizationName"
                         tooltip="Name of your organization"
+                        rules={[
+                          {
+                            required: true,
+                            message: 'Organization name is required',
+                          },
+                          {
+                            min: 3,
+                            message:
+                              'Organization name must be at least 3 characters',
+                          },
+                        ]}
                       >
-                        <Input
-                          allowClear={true}
-                          defaultValue={organizationName}
-                          placeholder="UBC"
-                        />
+                        <Input allowClear={true} placeholder="UBC" />
                       </Form.Item>
                     </Col>
 
@@ -209,11 +206,16 @@ export default function SettingsPage(): ReactElement {
                         label="Organization Website URL"
                         name="organizationWebsiteUrl"
                         tooltip="Website URL of your organization"
+                        rules={[
+                          {
+                            type: 'url',
+                            message: 'Please enter a valid URL',
+                          },
+                        ]}
                       >
                         <Input
                           allowClear={true}
                           placeholder="https://www.ubc.ca/"
-                          defaultValue={organizationWebsiteUrl}
                         />
                       </Form.Item>
                     </Col>
@@ -223,12 +225,15 @@ export default function SettingsPage(): ReactElement {
                     label="Organization Description"
                     name="organizationDescription"
                     tooltip="Description of your organization. Please keep short otherwise it takes a lot of room on mobile on /courses page"
+                    rules={[
+                      {
+                        min: 10,
+                        message:
+                          'Organization description must be at least 10 characters',
+                      },
+                    ]}
                   >
-                    <TextArea
-                      defaultValue={organizationDescription}
-                      rows={4}
-                      style={{ resize: 'none' }}
-                    />
+                    <TextArea rows={4} style={{ resize: 'none' }} />
                   </Form.Item>
 
                   <Form.Item>

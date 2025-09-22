@@ -17,7 +17,6 @@ interface Organization {
 export default function RegisterPage(): ReactElement {
   const [organizationId, setOrganizationId] = useState(0)
   const [domLoaded, setDomLoaded] = useState(false)
-  const [organization, setOrganization] = useState<Organization | null>(null)
   const router = useRouter()
 
   const [registerForm] = Form.useForm()
@@ -29,25 +28,13 @@ export default function RegisterPage(): ReactElement {
     recaptchaRef?.current?.reset()
   }
   async function createAccount() {
-    const formValues = await registerForm.validateFields()
-    const { firstName, lastName, email, password, confirmPassword, sid } =
-      formValues
-
-    if (isNaN(organizationId) || organizationId < 1) {
+    if (!organizationId) {
       message.error('Organization not found.')
       return
     }
 
-    if (sid && sid.trim().length < 1) {
-      message.error('Student number must be at least 1 character')
-      return
-    }
-
-    if (password !== confirmPassword) {
-      message.error('Passwords do not match.')
-      return
-    }
-    const studentId = sid ? parseInt(sid) : null
+    const { firstName, lastName, email, password, confirmPassword, sid } =
+      await registerForm.validateFields()
 
     const token = await recaptchaRef?.current?.executeAsync()
 
@@ -57,26 +44,24 @@ export default function RegisterPage(): ReactElement {
       email,
       password,
       confirmPassword,
-      sid: studentId,
+      sid,
       organizationId,
       recaptchaToken: token ?? '',
     })
 
     if (response.status !== 201) {
       const data = await response.json()
-
       message.error(data.message)
     } else {
       localStorage.removeItem('organizationId')
-
       router.push('/courses')
     }
-
-    return
   }
 
   // Fetch all organizations for SSO settings
   const [organizations, setOrganizations] = useState<Organization[]>([])
+  const organization =
+    organizations.find((o) => o.id === organizationId) || null
   async function fetchOrganizations() {
     try {
       const response = await fetch('/api/v1/organization')
@@ -90,12 +75,6 @@ export default function RegisterPage(): ReactElement {
       console.error('Failed to fetch organizations:', error)
       setOrganizations([])
     }
-  }
-
-  // Select organization by ID
-  function selectOrganization(orgId: number) {
-    const org = organizations.find((o) => o.id === orgId) || null
-    setOrganization(org)
   }
 
   // Check if email matches SSO patterns for the current organization
@@ -134,12 +113,6 @@ export default function RegisterPage(): ReactElement {
     const orgId = parseInt(localStorage.getItem('organizationId') ?? '')
     setOrganizationId(orgId)
   }, [])
-
-  useEffect(() => {
-    if (organizationId && organizations.length > 0) {
-      selectOrganization(organizationId)
-    }
-  }, [organizationId, organizations])
 
   useEffect(() => {
     setDomLoaded(true)
@@ -310,6 +283,14 @@ export default function RegisterPage(): ReactElement {
                 name="confirmPassword"
                 rules={[
                   { required: true, message: 'Please confirm your password' },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || getFieldValue('password') === value) {
+                        return Promise.resolve()
+                      }
+                      return Promise.reject(new Error('Passwords do not match'))
+                    },
+                  }),
                 ]}
               >
                 <Input
@@ -319,7 +300,20 @@ export default function RegisterPage(): ReactElement {
                 />
               </Form.Item>
 
-              <Form.Item label="Student Number" name="sid">
+              <Form.Item
+                label="Student Number"
+                name="sid"
+                rules={[
+                  {
+                    min: 1,
+                    message: 'Student number must be at least 1 character',
+                  },
+                  {
+                    pattern: /^\d*$/,
+                    message: 'Student number must be numeric',
+                  },
+                ]}
+              >
                 <Input allowClear={true} />
               </Form.Item>
 
