@@ -130,6 +130,7 @@ export class OrgOrCourseRolesGuard implements CanActivate {
 
     if (!orgCourseUser) {
       throw new NotFoundException(
+        'This course does not exist in your organization',
       );
     }
 
