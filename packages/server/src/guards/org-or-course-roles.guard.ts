@@ -129,7 +129,8 @@ export class OrgOrCourseRolesGuard implements CanActivate {
       }>();
 
     if (!orgCourseUser) {
-      return false;
+      throw new NotFoundException(
+      );
     }
 
     // then check if the user has the right org roles
