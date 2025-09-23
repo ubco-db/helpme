@@ -6,6 +6,7 @@ import ReCAPTCHA from 'react-google-recaptcha'
 import { LeftOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { userApi } from '@/app/api/userApi'
+import Link from 'next/link'
 
 interface Organization {
   id: number
@@ -78,7 +79,7 @@ export default function RegisterPage(): ReactElement {
   }
 
   // Check if email matches SSO patterns for the current organization
-  function checkSsoEmailPatterns(email: string): string | null {
+  function checkSsoEmailPatterns(email: string): ReactElement | null {
     if (
       !organization ||
       !organization.ssoEnabled ||
@@ -86,6 +87,18 @@ export default function RegisterPage(): ReactElement {
     ) {
       return null
     }
+    const errorMessage = (
+      <span>
+        SSO email detected! Would you like to{' '}
+        <Link
+          href={`/api/v1/auth/shibboleth/${organization.id}`}
+          prefetch={false}
+        >
+          Continue with {organization.name}
+        </Link>{' '}
+        instead?
+      </span>
+    )
     const patterns = organization.ssoEmailPatterns ?? []
     for (const pattern of patterns) {
       if (pattern.startsWith('r')) {
@@ -93,26 +106,19 @@ export default function RegisterPage(): ReactElement {
           const regexPattern = pattern.substring(1)
           const regex = new RegExp(regexPattern)
           if (regex.test(email)) {
-            return `SSO email detected! Would you like to "Continue with ${organization.name}" on the login page instead?`
+            return errorMessage
           }
-        } catch (error) {
+        } catch (_error) {
           console.warn(`Invalid regex pattern: ${pattern}`)
         }
       } else {
         if (email.includes(pattern)) {
-          return `SSO email detected! Please use "Continue with ${organization.name}" on the login page instead.`
+          return errorMessage
         }
       }
     }
     return null
   }
-
-  useEffect(() => {
-    setDomLoaded(true)
-    fetchOrganizations()
-    const orgId = parseInt(localStorage.getItem('organizationId') ?? '')
-    setOrganizationId(orgId)
-  }, [])
 
   useEffect(() => {
     setDomLoaded(true)
@@ -239,7 +245,7 @@ export default function RegisterPage(): ReactElement {
                       try {
                         const ssoError = checkSsoEmailPatterns(value)
                         if (ssoError) {
-                          return Promise.reject(new Error(ssoError))
+                          return Promise.reject(ssoError)
                         }
                         return Promise.resolve()
                       } catch (err) {
@@ -301,13 +307,9 @@ export default function RegisterPage(): ReactElement {
               </Form.Item>
 
               <Form.Item
-                label="Student Number"
+                label="Student Number (Optional)"
                 name="sid"
                 rules={[
-                  {
-                    min: 1,
-                    message: 'Student number must be at least 1 character',
-                  },
                   {
                     pattern: /^\d*$/,
                     message: 'Student number must be numeric',
