@@ -39,7 +39,12 @@ function addFilters({
   allowedFilters,
   filters,
 }: AddFiltersParams): SelectQueryBuilder<QuestionModel> {
+  const encountered: string[] = [];
   for (const filter of filters) {
+    if (encountered.includes(filter.type)) {
+      continue;
+    }
+    encountered.push(filter.type);
     if (
       allowedFilters.includes(filter.type) &&
       APPLY_FILTER_MAP[modelName] != undefined &&
@@ -65,6 +70,17 @@ const APPLY_FILTER_MAP = {
           courseId: filter.courseId,
         });
     },
+    role: ({ query, filter }: ApplyFilterParams) => {
+      query
+        .innerJoin(
+          'UserCourseModel',
+          'staffCourse',
+          '"staffCourse"."userId" = "QuestionModel"."taHelpedId" AND "staffCourse"."courseId" = (SELECT queue_model."courseId" FROM queue_model WHERE queue_model.id = "QuestionModel"."queueId")',
+        )
+        .andWhere('"staffCourse"."role" IN (:...roles)', {
+          roles: filter.roles ?? [Role.PROFESSOR, Role.TA],
+        });
+    },
     timeframe: ({ query, filter }: ApplyFilterParams) => {
       query.andWhere('QuestionModel.createdAt BETWEEN :start AND :end', {
         start: filter.start,
@@ -82,6 +98,7 @@ const APPLY_FILTER_MAP = {
       });
     },
     staff: ({ query, filter }: ApplyFilterParams) => {
+      console.log(filter);
       query.andWhere('QuestionModel.taHelpedId IN (:...staffIds)', {
         staffIds: filter.staffIds,
       });
@@ -89,7 +106,7 @@ const APPLY_FILTER_MAP = {
   },
   AsyncQuestionModel: {
     courseId: ({ query, filter }: ApplyFilterParams) => {
-      query.andWhere('"courseId" = :courseId', {
+      query.andWhere('"AsyncQuestionModel"."courseId" = :courseId', {
         courseId: filter.courseId,
       });
     },
@@ -109,11 +126,22 @@ const APPLY_FILTER_MAP = {
         staffIds: filter.staffIds,
       });
     },
+    role: ({ query, filter }: ApplyFilterParams) => {
+      query
+        .innerJoin(
+          'UserCourseModel',
+          'staffCourse',
+          '"staffCourse"."userId" = "AsyncQuestionModel"."taHelpedId" AND "staffCourse"."courseId" = "AsyncQuestionModel"."courseId"',
+        )
+        .andWhere('"staffCourse"."role" IN (:...roles)', {
+          roles: filter.roles ?? [Role.PROFESSOR, Role.TA],
+        });
+    },
   },
   InteractionModel: {
     courseId: ({ query, filter }: ApplyFilterParams) => {
-      query.andWhere('"course" = :courseId', {
-        course: filter.courseId,
+      query.andWhere('"InteractionModel"."course" = :courseId', {
+        courseId: filter.courseId,
       });
     },
     timeframe: ({ query, filter }: ApplyFilterParams) => {
@@ -575,10 +603,10 @@ export const QuestionToStudentRatio: InsightObject = {
 };
 
 type HelpSeekingDates = {
-  totalQuestions: string;
-  totalAsyncQuestions: string;
-  totalChatbotInteractions: string;
-  date: Date;
+  totalQuestions: number;
+  totalAsyncQuestions: number;
+  totalChatbotInteractions: number;
+  epoch: number;
 };
 
 export const HelpSeekingOverTime: InsightObject = {
@@ -604,10 +632,12 @@ export const HelpSeekingOverTime: InsightObject = {
     const data: StringMap<any>[] = rawData
       .map((value) => {
         return {
-          date: new Date(value.date).getTime(),
-          Questions: parseInt(value.totalQuestions),
-          Async_Questions: parseInt(value.totalAsyncQuestions),
-          Chatbot_Interactions: parseInt(value.totalChatbotInteractions),
+          date: parseInt(String(value.epoch * 1000)), // Convert from Postgres seconds epoch to millis,
+          Questions: parseInt(String(value.totalQuestions)),
+          Async_Questions: parseInt(String(value.totalAsyncQuestions)),
+          Chatbot_Interactions: parseInt(
+            String(value.totalChatbotInteractions),
+          ),
         };
       })
       .filter((value) => value.date >= startTime && value.date <= endTime);
@@ -623,20 +653,25 @@ export const HelpSeekingOverTime: InsightObject = {
     }
 
     const oneDay = 1000 * 60 * 1440;
-    const minDate = Math.min(...data.map((v) => v.date));
+    const dates = data.map((v) => v.date);
+    const minDate = Math.min(...dates);
     const gaps: { start: number; end: number }[] = [];
-    data.forEach((value, index) => {
-      const next = data[index + 1];
+    dates.forEach((value, index) => {
+      const next = dates[index + 1];
       if (next != undefined) {
-        const interval = next.date - value.date;
+        const interval = next - value;
         if (interval > oneDay) {
-          gaps.push({ start: value.date, end: next.date });
+          gaps.push({ start: value, end: next });
         }
       }
     });
 
     gaps.forEach((v) => {
       for (let i = v.start + oneDay; i < v.end; i += oneDay) {
+        if (dates.find((v0) => v0 == i)) {
+          continue;
+        }
+
         data.push({
           date: i,
           Questions: 0,
@@ -714,34 +749,61 @@ const getHelpSeekingOverTime = async (
     asyncQuestionModelDate = dateConverter('AsyncQuestionModel', 'createdAt'),
     interactionModelDate = dateConverter('InteractionModel', 'timestamp');
 
-  return await addFilters({
-    query: QuestionModel.createQueryBuilder()
-      .select('COUNT(DISTINCT(QuestionModel.id))', 'totalQuestions')
-      .addSelect(
-        'COUNT(DISTINCT(AsyncQuestionModel.id))',
-        'totalAsyncQuestions',
-      )
-      .addSelect(
-        'COUNT(DISTINCT(InteractionModel.id))',
-        'totalChatbotInteractions',
-      )
-      .addSelect(questionModelDate, 'date')
-      .leftJoin(
-        AsyncQuestionModel,
-        'AsyncQuestionModel',
-        questionModelDate + ' = ' + asyncQuestionModelDate,
-      )
-      .leftJoin(
-        InteractionModel,
-        'InteractionModel',
-        questionModelDate + ' = ' + interactionModelDate,
-      )
-      .orderBy(questionModelDate, 'ASC')
-      .groupBy(questionModelDate),
-    modelName: QuestionModel.name,
-    allowedFilters: ['courseId', 'students', 'queues'],
-    filters,
-  }).getRawMany<HelpSeekingDates>();
+  type CountsOverTime = {
+    total: number;
+    date: string;
+    epoch: number;
+  };
+
+  const getTableResult = async (
+    model: any,
+    dateColumn: string,
+  ): Promise<CountsOverTime[]> => {
+    return await addFilters({
+      query: model
+        .createQueryBuilder()
+        .select(`COUNT(DISTINCT("${model.name}".id))`, 'total')
+        .addSelect(dateColumn, 'date')
+        .addSelect(`EXTRACT(EPOCH FROM ${dateColumn})`, 'epoch')
+        .orderBy(dateColumn, 'ASC')
+        .groupBy(dateColumn),
+      modelName: model.name,
+      allowedFilters: ['courseId', 'students', 'queues'],
+      filters: filters,
+    }).getRawMany<CountsOverTime>();
+  };
+  const questions = await getTableResult(QuestionModel, questionModelDate);
+  const asyncQuestions = await getTableResult(
+    AsyncQuestionModel,
+    asyncQuestionModelDate,
+  );
+  const chatbotInteractions = await getTableResult(
+    InteractionModel,
+    interactionModelDate,
+  );
+
+  const getEpoch = (v: CountsOverTime) => v.epoch;
+  const epochKeys = [
+    ...questions.map(getEpoch),
+    ...asyncQuestions.map(getEpoch),
+    ...chatbotInteractions.map(getEpoch),
+  ].filter((v, i, a) => a.indexOf(v) == i);
+
+  return epochKeys.map(
+    (epoch) =>
+      ({
+        epoch,
+        totalQuestions: questions
+          .filter((v) => v.epoch == epoch)
+          .reduce((p, c) => p + c.total, 0),
+        totalAsyncQuestions: asyncQuestions
+          .filter((v) => v.epoch == epoch)
+          .reduce((p, c) => p + c.total, 0),
+        totalChatbotInteractions: chatbotInteractions
+          .filter((v) => v.epoch == epoch)
+          .reduce((p, c) => p + c.total, 0),
+      }) satisfies HelpSeekingDates,
+  );
 };
 
 export const HumanVsChatbot: InsightObject = {
@@ -770,7 +832,7 @@ export const HumanVsChatbot: InsightObject = {
         }),
       modelName: AsyncQuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters: insightFilters,
+      filters: [...insightFilters, { type: 'role' }],
     }).getRawMany<HumanVsChatbotData>();
 
     const aiData = await addFilters({
@@ -855,7 +917,7 @@ export const HumanVsChatbotVotes: InsightObject = {
         }),
       modelName: AsyncQuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters: insightFilters,
+      filters: [...insightFilters, { type: 'role' }],
     }).getRawMany<HumanVsChatbotData>();
 
     const aiData = await addFilters({
@@ -913,7 +975,7 @@ export const StaffWorkload: InsightObject = {
   roles: [Role.PROFESSOR],
   insightType: InsightType.MultipleGanttChart,
   insightCategory: 'Staff',
-  allowedFilters: ['courseId', 'timeframe', 'queues', 'staff'],
+  allowedFilters: ['courseId', 'timeframe', 'queues', 'staff', 'role'],
   async compute({ insightFilters }): Promise<MultipleGanttChartOutputType> {
     type HelpedQuestions = {
       quarterTime: number;
@@ -945,7 +1007,7 @@ export const StaffWorkload: InsightObject = {
         .addOrderBy('weekday', 'ASC'),
       modelName: QuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters: insightFilters,
+      filters: [...insightFilters, { type: 'role' }],
     }).getRawMany<HelpedQuestions>();
 
     const ids = taQuestions
@@ -996,7 +1058,7 @@ export const StaffEfficiency: InsightObject = {
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
   insightCategory: 'Staff',
-  allowedFilters: ['courseId', 'timeframe', 'queues', 'staff'],
+  allowedFilters: ['courseId', 'timeframe', 'queues', 'staff', 'role'],
   async compute({ insightFilters }): Promise<ChartOutputType> {
     type WaitTimesByTA = {
       avgWaitTime: number;
@@ -1010,13 +1072,14 @@ export const StaffEfficiency: InsightObject = {
         .addSelect(`AVG(QuestionModel.helpTime)`, 'avgHelpTime')
         .addSelect('QuestionModel.taHelpedId', 'staffMember')
         .where('QuestionModel.taHelpedId IS NOT NULL')
+        .andWhere('QuestionModel.createdAt IS NOT NULL')
         .andWhere('QuestionModel.status IN (:...status)', {
           status: ['Resolved'],
         })
         .groupBy('QuestionModel.taHelpedId'),
       modelName: QuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters: insightFilters,
+      filters: [...insightFilters, { type: 'role' }],
     }).getRawMany<WaitTimesByTA>();
 
     const ids = questions.map((value) => value.staffMember);
@@ -1066,33 +1129,21 @@ export const StaffTotalHelped: InsightObject = {
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
   insightCategory: 'Staff',
-  allowedFilters: ['courseId', 'timeframe', 'staff'],
+  allowedFilters: ['courseId', 'timeframe', 'staff', 'role'],
   async compute({ insightFilters }): Promise<ChartOutputType> {
     const questions = await addFilters({
       query: QuestionModel.createQueryBuilder()
         .select('COUNT(QuestionModel.id)', 'questionsHelped')
-        .leftJoin(
-          (qb: SelectQueryBuilder<any>) =>
-            qb
-              .from(AsyncQuestionModel, 'asyncModel')
-              .select('asyncModel.id', 'id')
-              .addSelect('asyncModel.taHelpedId', 'taHelpedId')
-              .where('asyncModel.status IN (:...status)', {
-                status: ['HumanAnswered'],
-              }),
-          'AsyncQuestionModel',
-          '"QuestionModel"."taHelpedId" = "AsyncQuestionModel"."taHelpedId"',
-        )
-        .addSelect('COUNT("AsyncQuestionModel"."id")', 'asyncHelped')
         .addSelect('QuestionModel.taHelpedId', 'staffMember')
         .where('QuestionModel.taHelpedId IS NOT NULL')
+        .andWhere('QuestionModel.createdAt IS NOT NULL')
         .andWhere('QuestionModel.status IN (:...status)', {
           status: ['Resolved'],
         })
         .groupBy('QuestionModel.taHelpedId'),
       modelName: QuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters: insightFilters,
+      filters: [...insightFilters, { type: 'role' }],
     }).getRawMany<{
       staffMember: number;
       questionsHelped: number;
@@ -1110,7 +1161,7 @@ export const StaffTotalHelped: InsightObject = {
         .groupBy('AsyncQuestionModel.taHelpedId'),
       modelName: AsyncQuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters: insightFilters,
+      filters: [...insightFilters, { type: 'role' }],
     }).getRawMany<{
       staffMember: number;
       questionsHelped: number;
@@ -1134,24 +1185,19 @@ export const StaffTotalHelped: InsightObject = {
       staffMember: number;
       questionsHelped: number;
       asyncQuestionsHelped: number;
-    }[] = questions.map((q) => {
-      return {
-        staffMember: q.staffMember,
-        questionsHelped: q.questionsHelped,
-        asyncQuestionsHelped: 0,
-      };
-    });
-    asyncQuestions.forEach((aq) => {
-      const match = merged.find((q) => q.staffMember == aq.staffMember);
-      if (match) {
-        match.asyncQuestionsHelped = aq.questionsHelped;
-      } else {
-        merged.push({
-          staffMember: aq.staffMember,
-          questionsHelped: 0,
-          asyncQuestionsHelped: aq.questionsHelped,
-        });
-      }
+    }[] = ids.map((v) => ({
+      staffMember: v,
+      questionsHelped: 0,
+      asyncQuestionsHelped: 0,
+    }));
+
+    merged.forEach((entry) => {
+      entry.questionsHelped = questions.filter(
+        (q) => q.staffMember == entry.staffMember,
+      ).length;
+      entry.asyncQuestionsHelped = asyncQuestions.filter(
+        (aq) => aq.staffMember == entry.staffMember,
+      ).length;
     });
 
     const staffNames: { id: number; name: string }[] =
@@ -1189,7 +1235,7 @@ export const StaffQuestionTimesByDay: InsightObject = {
   roles: [Role.PROFESSOR],
   insightType: InsightType.MultipleGanttChart,
   insightCategory: 'Staff',
-  allowedFilters: ['courseId', 'timeframe', 'queues', 'staff'],
+  allowedFilters: ['courseId', 'timeframe', 'queues', 'staff', 'role'],
   async compute({ insightFilters }): Promise<MultipleGanttChartOutputType> {
     type HelpedQuestions = {
       quarterTime: number;
@@ -1229,7 +1275,7 @@ export const StaffQuestionTimesByDay: InsightObject = {
         .addOrderBy('weekday', 'ASC'),
       modelName: QuestionModel.name,
       allowedFilters: this.allowedFilters,
-      filters: insightFilters,
+      filters: [...insightFilters, { type: 'role' }],
     }).getRawMany<HelpedQuestions>();
 
     const ids = taQuestions

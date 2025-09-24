@@ -1,39 +1,38 @@
 import { InsightsService } from './insights.service';
 import {
-  Controller,
-  UseGuards,
-  UseInterceptors,
-  ClassSerializerInterceptor,
-  Get,
-  Param,
-  Query,
   BadRequestException,
   Body,
+  ClassSerializerInterceptor,
+  Controller,
   Delete,
-  Patch,
-  ParseIntPipe,
+  Get,
+  Param,
   ParseArrayPipe,
+  ParseIntPipe,
+  Patch,
   Post,
+  Query,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import {
-  GetInsightOutputResponse,
   ERROR_MESSAGES,
+  GetInsightOutputResponse,
+  InsightDashboardPartial,
+  InsightDetail,
+  InsightObject,
+  InsightOutput,
+  InsightType,
   ListInsightsResponse,
   Role,
   TableOutputType,
-  InsightType,
-  InsightOutput,
-  InsightObject,
-  InsightDetail,
-  InsightDashboardPartial,
 } from '@koh/common';
 import { User } from '../decorators/user.decorator';
-import { INSIGHTS_MAP } from './insight-objects';
+import { Filter, INSIGHTS_MAP } from './insight-objects';
 import { UserModel } from 'profile/user.entity';
 import { Roles } from 'decorators/roles.decorator';
 import { CourseRole } from '../decorators/course-role.decorator';
-import { Filter } from './insight-objects';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { CourseModel } from '../course/course.entity';
@@ -125,10 +124,12 @@ export class InsightsController {
     @Query('end') end?: string,
     @Query('limit', ParseIntPipe) limit?: number,
     @Query('offset', ParseIntPipe) offset?: number,
-    @Query('students', new ParseArrayPipe({ optional: true }))
+    @Query('students', new ParseArrayPipe({ optional: true, separator: ',' }))
     students?: number[],
-    @Query('queues', new ParseArrayPipe({ optional: true })) queues?: number[],
-    @Query('staff', new ParseArrayPipe({ optional: true })) staff?: number[],
+    @Query('queues', new ParseArrayPipe({ optional: true, separator: ',' }))
+    queues?: number[],
+    @Query('staff', new ParseArrayPipe({ optional: true, separator: ',' }))
+    staff?: number[],
   ): Promise<GetInsightOutputResponse> {
     // Temporarily disabling insights until we finish refactoring QueueModel
     // Check that the insight name is valid
@@ -220,6 +221,7 @@ export class InsightsController {
     const courseTimezone = (
       await CourseModel.findOne({ where: { id: courseId } })
     )?.timezone;
+
     let insight = await this.insightsService.computeOutput({
       insight: targetInsight,
       filters,

@@ -4,7 +4,7 @@ import {
   EditOutlined,
   PlusCircleOutlined,
 } from '@ant-design/icons'
-import { FolderOpenIcon } from 'lucide-react'
+import { FolderOpenIcon, X } from 'lucide-react'
 import {
   Button,
   Checkbox,
@@ -30,7 +30,6 @@ import {
   GanttChartComponent,
 } from '@/app/(dashboard)/course/[cid]/(insights)/utils/types'
 import { API } from '@/app/api'
-import { X } from 'lucide-react'
 
 type DashboardPresetComponentProps = {
   selectedDashboard?: string
@@ -295,7 +294,7 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
                       }
                     }) ?? []
                   }
-                  dropdownRender={(menu) => (
+                  popupRender={(menu) => (
                     <>
                       {menu}
                       <Divider className={'my-2'} />
