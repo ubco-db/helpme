@@ -558,13 +558,6 @@ export class SeedController {
         organization: organization,
         course: course1,
       });
-
-      await this.factoryService.OrganizationCourseFactory.create({
-        organizationId: organization.id,
-        courseId: course2.id,
-        organization: organization,
-        course: course2,
-      });
     }
 
     const queue1 = await this.factoryService.QueueFactory.create({
