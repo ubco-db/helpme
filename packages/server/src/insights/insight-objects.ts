@@ -201,7 +201,7 @@ export const TotalStudents: InsightObject = {
 };
 
 export const TotalQuestionsAsked: InsightObject = {
-  displayName: 'Total Questions',
+  displayName: 'Total Queue Questions',
   description: 'How many questions have been asked in total?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Value,
@@ -220,7 +220,7 @@ export const TotalQuestionsAsked: InsightObject = {
 export const MostActiveStudents: InsightObject = {
   displayName: 'Most Active Students',
   description:
-    'Who are the students who have asked the most questions in Office Hours?',
+    'Who are the students who have asked the most questions in queues?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Table,
   insightCategory: 'Tool_Usage_Statistics',
@@ -421,7 +421,7 @@ export const MedianWaitTime: InsightObject = {
 export const AverageTimesByWeekDay: InsightObject = {
   displayName: 'Average Times By Weekday',
   description:
-    'The average time for synchronous help requests to be addressed, grouped by week day.',
+    'The average time for queue questions to be addressed, grouped by week day.',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
   insightCategory: 'Queues',
@@ -541,7 +541,7 @@ export const MostActiveTimes: InsightObject = {
 export const MedianHelpingTime: InsightObject = {
   displayName: 'Median Helping Time',
   description:
-    'What is the median duration that a TA helps a student on a call?',
+    "What is the median time it takes for a TA to resolve a student's question in the queue?",
   roles: [Role.PROFESSOR],
   insightType: InsightType.Value,
   insightCategory: 'Queues',
@@ -809,7 +809,7 @@ const getHelpSeekingOverTime = async (
 export const HumanVsChatbot: InsightObject = {
   displayName: 'Human vs. Chatbot Answers',
   description:
-    'How many questions have a verified and/or human answer, and how many only have a chatbot answer?',
+    'How many asynchronous questions have a verified and/or human answer, and how many only have a chatbot answer?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
   insightCategory: 'Chatbot',
@@ -877,7 +877,8 @@ export const HumanVsChatbot: InsightObject = {
 
 export const HumanVsChatbotVotes: InsightObject = {
   displayName: 'Human vs. Chatbot Votes',
-  description: 'How helpful are human answers, versus chatbot answers?',
+  description:
+    'How helpful are human asynchronous question answers, versus chatbot answers?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
   insightCategory: 'Chatbot',
@@ -971,7 +972,8 @@ export const HumanVsChatbotVotes: InsightObject = {
 
 export const StaffWorkload: InsightObject = {
   displayName: 'Staff Workload',
-  description: 'How many questions on average do staff members help in a day?',
+  description:
+    'How many queue questions on average do staff members help each day of the week?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.MultipleGanttChart,
   insightCategory: 'Staff',
@@ -1054,7 +1056,7 @@ export const StaffWorkload: InsightObject = {
 
 export const StaffEfficiency: InsightObject = {
   displayName: 'Staff Efficiency',
-  description: 'How efficient are staff in helping questions?',
+  description: 'How time-efficient are staff in helping queue questions?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
   insightCategory: 'Staff',
@@ -1147,7 +1149,6 @@ export const StaffTotalHelped: InsightObject = {
     }).getRawMany<{
       staffMember: number;
       questionsHelped: number;
-      asyncHelped: number;
     }>();
 
     const asyncQuestions = await addFilters({
@@ -1165,7 +1166,6 @@ export const StaffTotalHelped: InsightObject = {
     }).getRawMany<{
       staffMember: number;
       questionsHelped: number;
-      asyncHelped: number;
     }>();
 
     const ids = [...questions, ...asyncQuestions]
@@ -1192,12 +1192,12 @@ export const StaffTotalHelped: InsightObject = {
     }));
 
     merged.forEach((entry) => {
-      entry.questionsHelped = questions.filter(
-        (q) => q.staffMember == entry.staffMember,
-      ).length;
-      entry.asyncQuestionsHelped = asyncQuestions.filter(
-        (aq) => aq.staffMember == entry.staffMember,
-      ).length;
+      entry.questionsHelped += questions
+        .filter((q) => q.staffMember == entry.staffMember)
+        .reduce((p, c) => p + parseInt(String(c.questionsHelped)), 0);
+      entry.asyncQuestionsHelped += asyncQuestions
+        .filter((aq) => aq.staffMember == entry.staffMember)
+        .reduce((p, c) => p + parseInt(String(c.questionsHelped)), 0);
     });
 
     const staffNames: { id: number; name: string }[] =
@@ -1229,9 +1229,9 @@ export const StaffTotalHelped: InsightObject = {
 };
 
 export const StaffQuestionTimesByDay: InsightObject = {
-  displayName: 'Staff Question Times By Day',
+  displayName: 'Staff Queue Question Times By Day',
   description:
-    'How long do questions take, from start to finish, on different days by different staff?',
+    'How long do queue questions take, from start to finish, on different days by different staff?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.MultipleGanttChart,
   insightCategory: 'Staff',
