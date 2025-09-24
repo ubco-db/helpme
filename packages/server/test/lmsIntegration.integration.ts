@@ -1,4 +1,4 @@
-import { OrganizationRole, Role, LMSResourceType } from '@koh/common';
+import { OrganizationRole, Role } from '@koh/common';
 import {
   CourseFactory,
   lmsCourseIntFactory,
@@ -256,63 +256,5 @@ describe('Lms Integration Integrations', () => {
         );
       },
     );
-  });
-
-  describe('Quiz endpoints resource protection', () => {
-    let integration;
-
-    beforeEach(async () => {
-      const orgInt = await lmsOrgIntFactory.create();
-      integration = await lmsCourseIntFactory.create({
-        orgIntegration: orgInt,
-        course: course,
-        // Set up integration without quiz resource enabled
-        selectedResourceTypes: [
-          LMSResourceType.ASSIGNMENTS,
-          LMSResourceType.ANNOUNCEMENTS,
-          LMSResourceType.PAGES,
-        ],
-      });
-    });
-
-    describe('GET /lms/:courseId/quizzes', () => {
-      it('should return 400 when quiz resource is disabled', async () => {
-        const res = await supertest({ userId: prof.id }).get(
-          `/lms/${course.id}/quizzes`,
-        );
-        expect(res.status).toBe(400);
-        expect(res.body.message).toContain('resource type');
-      });
-    });
-
-    describe('GET /lms/:courseId/quiz/:quizId/preview/:accessLevel', () => {
-      it('should return 400 when quiz resource is disabled', async () => {
-        const res = await supertest({ userId: prof.id }).get(
-          `/lms/${course.id}/quiz/1/preview/logistics_only`,
-        );
-        expect(res.status).toBe(400);
-        expect(res.body.message).toContain('resource type');
-      });
-    });
-
-    describe('POST /lms/:courseId/quizzes/bulk-sync', () => {
-      it('should return 400 when quiz resource is disabled', async () => {
-        const res = await supertest({ userId: prof.id })
-          .post(`/lms/${course.id}/quizzes/bulk-sync`)
-          .send({ action: 'enable', quizIds: [1] });
-        expect(res.status).toBe(400);
-        expect(res.body.message).toContain('resource type');
-      });
-    });
-
-    describe('POST /lms/:courseId/quiz/:quizId/access-level', () => {
-      it('should return 400 when quiz resource is disabled', async () => {
-        const res = await supertest({ userId: prof.id })
-          .post(`/lms/${course.id}/quiz/1/access-level`)
-          .send({ accessLevel: 'logistics_only' });
-        expect(res.status).toBe(400);
-        expect(res.body.message).toContain('resource type');
-      });
-    });
   });
 });

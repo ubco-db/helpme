@@ -15,8 +15,6 @@ import {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
-  LMSQuiz,
-  LMSQuizAccessLevel,
   LMSResourceType,
   SupportedLMSFileTypes,
   LMSSyncDocumentsResult,
@@ -28,7 +26,6 @@ import { LMSAssignmentModel } from './lmsAssignment.entity';
 import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
 import { LMSPageModel } from './lmsPage.entity';
 import { LMSFileModel } from './lmsFile.entity';
-import { LMSQuizModel } from './lmsQuiz.entity';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import { UserModel } from '../profile/user.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -46,7 +43,6 @@ export enum LMSGet {
   Announcements,
   Pages,
   Files,
-  Quizzes,
 }
 
 export enum LMSUpload {
@@ -54,16 +50,9 @@ export enum LMSUpload {
   Announcements,
   Pages,
   Files,
-  Quizzes,
 }
 
-type ExtendedLMSItem = (
-  | LMSAnnouncement
-  | LMSAssignment
-  | LMSPage
-  | LMSFile
-  | LMSQuiz
-) & {
+type ExtendedLMSItem = (LMSAnnouncement | LMSAssignment | LMSPage | LMSFile) & {
   chatbotDocumentId: string;
 };
 
@@ -117,7 +106,6 @@ export class LMSIntegrationService {
     [LMSUpload.Announcements]: LMSResourceType.ANNOUNCEMENTS,
     [LMSUpload.Pages]: LMSResourceType.PAGES,
     [LMSUpload.Files]: LMSResourceType.FILES,
-    [LMSUpload.Quizzes]: LMSResourceType.QUIZZES,
   };
 
   public async upsertOrganizationLMSIntegration(
@@ -364,38 +352,6 @@ export class LMSIntegrationService {
         retrievalStatus = status;
         break;
       }
-      case LMSGet.Quizzes: {
-        const { status, quizzes } = await adapter.getQuizzes();
-        const { items } = await this.getDocumentModelAndItems(
-          courseId,
-          LMSUpload.Quizzes,
-        );
-        for (let idx = 0; idx < quizzes.length; idx++) {
-          const found = items.find(
-            (i) => i.id == quizzes[idx].id,
-          ) as unknown as LMSQuizModel;
-          if (found) {
-            quizzes[idx] = {
-              id: found.id,
-              title: found.title,
-              description: found.description,
-              due: found.due,
-              unlock: found.unlock,
-              lock: found.lock,
-              timeLimit: found.timeLimit,
-              allowedAttempts: found.allowedAttempts,
-              questions: found.questions,
-              accessLevel: found.accessLevel,
-              modified: quizzes[idx].modified ?? found.modified,
-              uploaded: found.uploaded,
-              syncEnabled: found.syncEnabled,
-            };
-          }
-        }
-        retrieved = quizzes;
-        retrievalStatus = status;
-        break;
-      }
     }
 
     if (retrievalStatus != LMSApiResponseStatus.Success) {
@@ -419,8 +375,6 @@ export class LMSIntegrationService {
           return LMSPageModel;
         case LMSUpload.Files:
           return LMSFileModel;
-        case LMSUpload.Quizzes:
-          return LMSQuizModel;
       }
     })();
 
@@ -517,7 +471,6 @@ export class LMSIntegrationService {
         announcements?: LMSAnnouncement[];
         pages?: LMSPage[];
         files?: LMSFile[];
-        quizzes?: LMSQuiz[];
       };
 
       const modelAndPersisted = await this.getDocumentModelAndItems(
@@ -543,9 +496,6 @@ export class LMSIntegrationService {
         case LMSUpload.Files:
           result = await adapter.getFiles();
           break;
-        case LMSUpload.Quizzes:
-          result = await adapter.getQuizzes();
-          break;
         default:
           result = { status: LMSApiResponseStatus.Error };
           break;
@@ -567,8 +517,6 @@ export class LMSIntegrationService {
         | LMSPageModel
         | LMSFile
         | LMSFileModel
-        | LMSQuiz
-        | LMSQuizModel
       )[];
       switch (type) {
         case LMSUpload.Assignments:
@@ -583,9 +531,6 @@ export class LMSIntegrationService {
         case LMSUpload.Files:
           items = result.files;
           break;
-        case LMSUpload.Quizzes:
-          items = result.quizzes;
-          break;
       }
 
       const persistedItems: (
@@ -593,7 +538,6 @@ export class LMSIntegrationService {
         | LMSAssignmentModel
         | LMSPageModel
         | LMSFileModel
-        | LMSQuizModel
       )[] = modelAndPersisted.items;
 
       const toRemove: (
@@ -601,7 +545,6 @@ export class LMSIntegrationService {
         | LMSAssignmentModel
         | LMSPageModel
         | LMSFileModel
-        | LMSQuizModel
       )[] = persistedItems.filter((i0) => !items.find((i1) => i1.id == i0.id));
 
       if (toRemove.length > 0) {
@@ -744,28 +687,6 @@ export class LMSIntegrationService {
                     : new Date(),
                 lmsSource: adapter.getPlatform(),
               }) as LMSFileModel;
-            case LMSUpload.Quizzes:
-              const quiz = i as LMSQuiz;
-              return (model as typeof LMSQuizModel).create({
-                id: quiz.id,
-                title: quiz.title,
-                description: quiz.description,
-                due: quiz.due,
-                unlock: quiz.unlock,
-                lock: quiz.lock,
-                timeLimit: quiz.timeLimit,
-                allowedAttempts: quiz.allowedAttempts,
-                questions: quiz.questions,
-                accessLevel: LMSQuizAccessLevel.LOGISTICS_ONLY, // Default access level
-                chatbotDocumentId: chatbotDocumentId,
-                uploaded: new Date(),
-                courseId: courseId,
-                modified:
-                  quiz.modified != undefined
-                    ? new Date(quiz.modified)
-                    : new Date(),
-                lmsSource: adapter.getPlatform(),
-              }) as LMSQuizModel;
             default:
               return undefined;
           }
@@ -774,8 +695,7 @@ export class LMSIntegrationService {
         | LMSAssignmentModel[]
         | LMSAnnouncementModel[]
         | LMSPageModel[]
-        | LMSFileModel[]
-        | LMSQuizModel[];
+        | LMSFileModel[];
 
       switch (type) {
         case LMSUpload.Announcements:
@@ -793,9 +713,6 @@ export class LMSIntegrationService {
           break;
         case LMSUpload.Files:
           await (model as typeof LMSFileModel).save(entities as LMSFileModel[]);
-          break;
-        case LMSUpload.Quizzes:
-          await (model as typeof LMSQuizModel).save(entities as LMSQuizModel[]);
           break;
       }
     }
@@ -831,14 +748,12 @@ export class LMSIntegrationService {
       | LMSAnnouncementModel
       | LMSPageModel
       | LMSFileModel
-      | LMSQuizModel
     )[],
     model:
       | typeof LMSAssignmentModel
       | typeof LMSAnnouncementModel
       | typeof LMSPageModel
-      | typeof LMSFileModel
-      | typeof LMSQuizModel,
+      | typeof LMSFileModel,
   ) {
     let numClearedDocuments = 0;
 
@@ -878,8 +793,7 @@ export class LMSIntegrationService {
       | LMSAnnouncementModel
       | LMSAssignmentModel
       | LMSPageModel
-      | LMSFileModel
-      | LMSQuizModel,
+      | LMSFileModel,
     type: LMSUpload,
     action: 'Sync' | 'Clear',
   ) {
@@ -897,8 +811,7 @@ export class LMSIntegrationService {
       | LMSAnnouncementModel
       | LMSAssignmentModel
       | LMSPageModel
-      | LMSFileModel
-      | LMSQuizModel,
+      | LMSFileModel,
     type: LMSUpload,
   ) {
     const adapter = await this.getAdapter(courseId);
@@ -947,8 +860,7 @@ export class LMSIntegrationService {
       | LMSAnnouncementModel
       | LMSAssignmentModel
       | LMSPageModel
-      | LMSFileModel
-      | LMSQuizModel,
+      | LMSFileModel,
     type: LMSUpload,
   ) {
     const model = await this.getDocumentModel(type);
@@ -987,8 +899,6 @@ export class LMSIntegrationService {
         return 'Page';
       case LMSUpload.Files:
         return 'File';
-      case LMSUpload.Quizzes:
-        return 'Quiz';
       default:
         return 'Resource';
     }
@@ -1004,9 +914,7 @@ export class LMSIntegrationService {
       | LMSPage
       | LMSPageModel
       | LMSFile
-      | LMSFileModel
-      | LMSQuiz
-      | LMSQuizModel,
+      | LMSFileModel,
     token: ChatTokenModel,
     type: LMSUpload,
     adapter: AbstractLMSAdapter,
@@ -1145,13 +1053,6 @@ export class LMSIntegrationService {
           } as LMSFileUploadResponse;
         }
       }
-      case LMSUpload.Quizzes: {
-        const q = item as LMSQuiz | LMSQuizModel;
-        prefix = `(Course Quiz)\nTitle: ${q.title}${!isNaN(new Date(q.due).valueOf()) ? `\nDue Date: ${new Date(q.due).toLocaleDateString()}` : ''}${!isNaN(new Date(q.modified).valueOf()) ? `\nModified: ${new Date(q.modified).toLocaleDateString()}` : ''}`;
-        name = `${q.title}`;
-        documentText = this.formatQuizContent(q);
-        break;
-      }
       default:
         return {
           id: item.id,
@@ -1244,8 +1145,7 @@ export class LMSIntegrationService {
       | LMSAnnouncementModel
       | LMSAssignmentModel
       | LMSPageModel
-      | LMSFileModel
-      | LMSQuizModel,
+      | LMSFileModel,
     token: ChatTokenModel,
   ) {
     // Already deleted in this case
@@ -1366,146 +1266,5 @@ export class LMSIntegrationService {
       }
     }
     return Buffer.concat(chunks);
-  }
-
-  async updateQuizAccessLevel(
-    courseId: number,
-    quizId: number,
-    accessLevel: LMSQuizAccessLevel,
-  ): Promise<boolean> {
-    try {
-      const quiz = await LMSQuizModel.findOne({
-        where: { id: quizId, courseId },
-      });
-
-      if (!quiz) {
-        throw new Error('Quiz not found');
-      }
-
-      quiz.accessLevel = accessLevel;
-      await quiz.save();
-
-      if (quiz.syncEnabled && quiz.chatbotDocumentId) {
-        console.log(
-          `Updating chatbot document for quiz ${quizId} with new access level: ${accessLevel}`,
-        );
-
-        await this.singleDocOperation(
-          courseId,
-          quiz,
-          LMSUpload.Quizzes,
-          'Clear',
-        );
-
-        await this.singleDocOperation(
-          courseId,
-          quiz,
-          LMSUpload.Quizzes,
-          'Sync',
-        );
-
-        console.log(`Successfully updated chatbot document for quiz ${quizId}`);
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Failed to update quiz access level:', error);
-      return false;
-    }
-  }
-
-  private formatQuizContent(quiz: LMSQuiz | LMSQuizModel): string {
-    let content = '';
-
-    if (quiz.description) {
-      content += `\nDescription: ${convert(quiz.description)}`;
-    }
-
-    if (quiz.unlock) {
-      content += `\nAvailable from: ${new Date(quiz.unlock).toLocaleDateString()}`;
-    }
-
-    if (quiz.lock) {
-      content += `\nAvailable until: ${new Date(quiz.lock).toLocaleDateString()}`;
-    }
-
-    if (quiz.timeLimit) {
-      content += `\nTime Limit: ${quiz.timeLimit} minutes`;
-    }
-
-    if (quiz.allowedAttempts) {
-      content += `\nAllowed Attempts: ${quiz.allowedAttempts}`;
-    }
-
-    // Get access level (default to LOGISTICS_ONLY if not specified)
-    const accessLevel =
-      'accessLevel' in quiz
-        ? quiz.accessLevel
-        : LMSQuizAccessLevel.LOGISTICS_ONLY;
-
-    if (accessLevel === LMSQuizAccessLevel.LOGISTICS_ONLY) {
-      return content;
-    }
-
-    // Add questions for LOGISTICS_AND_QUESTIONS level and higher
-    if (quiz.questions && quiz.questions.length > 0) {
-      content += '\n\nQuestions:';
-      quiz.questions.forEach((q: any, i: number) => {
-        content += `\n${i + 1}. ${convert(q.question_text) || q.question_name || 'Question'}`;
-
-        if (
-          accessLevel ===
-          LMSQuizAccessLevel.LOGISTICS_QUESTIONS_GENERAL_COMMENTS
-        ) {
-          if (q.neutral_comments_html) {
-            content += `\n   General comments: ${convert(q.neutral_comments_html)}`;
-          } else if (q.neutral_comments) {
-            content += `\n   General comments: ${q.neutral_comments}`;
-          }
-        }
-
-        if (
-          accessLevel === LMSQuizAccessLevel.FULL_ACCESS &&
-          q.answers?.length > 0
-        ) {
-          content += '\n   Answer options:';
-          q.answers.forEach((a: any) => {
-            const marker = a.weight > 0 ? ' [CORRECT]' : '';
-            content += `\n   - ${a.text}${marker}`;
-
-            if (a.comments_html) {
-              content += `\n     Answer feedback: ${convert(a.comments_html)}`;
-            } else if (a.comments) {
-              content += `\n     Answer feedback: ${a.comments}`;
-            }
-          });
-
-          if (q.correct_comments_html) {
-            content += `\n   Correct answer feedback: ${convert(q.correct_comments_html)}`;
-          } else if (q.correct_comments) {
-            content += `\n   Correct answer feedback: ${q.correct_comments}`;
-          }
-
-          if (q.incorrect_comments_html) {
-            content += `\n   Incorrect answer feedback: ${convert(q.incorrect_comments_html)}`;
-          } else if (q.incorrect_comments) {
-            content += `\n   Incorrect answer feedback: ${q.incorrect_comments}`;
-          }
-
-          if (q.neutral_comments_html) {
-            content += `\n   General comments: ${convert(q.neutral_comments_html)}`;
-          } else if (q.neutral_comments) {
-            content += `\n   General comments: ${q.neutral_comments}`;
-          }
-        }
-      });
-    }
-
-    return content;
-  }
-
-  // Public method for generating preview content
-  formatQuizContentPreview(quiz: any): string {
-    return this.formatQuizContent(quiz);
   }
 }

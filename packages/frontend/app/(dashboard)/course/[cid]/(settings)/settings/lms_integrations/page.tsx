@@ -26,8 +26,6 @@ import {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
-  LMSQuiz,
-  LMSQuizAccessLevel,
   SupportedLMSFileTypes,
 } from '@koh/common'
 import { API } from '@/app/api'
@@ -36,7 +34,6 @@ import LMSRosterTable from '@/app/(dashboard)/course/[cid]/(settings)/settings/l
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { useCourseLmsIntegration } from '@/app/hooks/useCourseLmsIntegration'
 import LMSDocumentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSDocumentList'
-import LMSQuizDocumentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSQuizDocumentList'
 import {
   DeleteOutlined,
   EditOutlined,
@@ -49,7 +46,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 export default function CourseLMSIntegrationPage(props: {
   params: Promise<{
     cid: string
-    tab: 'assignment' | 'announcement' | 'page' | 'file' | 'quiz' | undefined
+    tab: 'assignment' | 'announcement' | 'page' | 'file' | undefined
   }>
 }) {
   const params = use(props.params)
@@ -61,13 +58,7 @@ export default function CourseLMSIntegrationPage(props: {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
 
   const [currentTab, setCurrentTab] = useState<
-    | 'assignment'
-    | 'announcement'
-    | 'page'
-    | 'file'
-    | 'quiz'
-    | 'roster'
-    | undefined
+    'assignment' | 'announcement' | 'page' | 'file' | 'roster' | undefined
   >()
 
   const defaultTab = useMemo(() => {
@@ -76,7 +67,6 @@ export default function CourseLMSIntegrationPage(props: {
       case 'announcement':
       case 'page':
       case 'file':
-      case 'quiz':
         return tab
       default:
         return 'roster'
@@ -103,7 +93,6 @@ export default function CourseLMSIntegrationPage(props: {
     students,
     pages,
     files,
-    quizzes,
     isLoadingIntegration,
     isLoadingCourse,
     isLoadingStudents,
@@ -111,7 +100,6 @@ export default function CourseLMSIntegrationPage(props: {
     isLoadingAnnouncements,
     isLoadingFiles,
     isLoadingPages,
-    isLoadingQuizzes,
   } = useCourseLmsIntegration(courseId, updateFlag)
 
   const [lmsIntegrations, setLmsIntegrations] = useState<
@@ -293,7 +281,6 @@ export default function CourseLMSIntegrationPage(props: {
       )
       message.success('Resource types updated!')
       await forceSync()
-      setUpdateFlag(!updateFlag)
     } catch (err) {
       message.error(getErrorMessage(err))
     }
@@ -538,24 +525,6 @@ export default function CourseLMSIntegrationPage(props: {
             type={'File'}
             documents={files}
             loadingLMSData={isLoadingFiles}
-            lmsSynchronize={integration.lmsSynchronize}
-            onUpdateCallback={() => setUpdateFlag(!updateFlag)}
-            selectedResourceTypes={integration.selectedResourceTypes}
-          />
-        ),
-      })
-    }
-    if (quizzes.length > 0 || isLoadingQuizzes) {
-      tabItems.push({
-        key: 'quiz',
-        label: (
-          <LMSTabLabel title={'Course Quizzes'} isLoading={isLoadingQuizzes} />
-        ),
-        children: (
-          <LMSQuizDocumentList
-            courseId={courseId}
-            documents={quizzes}
-            loadingLMSData={isLoadingQuizzes}
             lmsSynchronize={integration.lmsSynchronize}
             onUpdateCallback={() => setUpdateFlag(!updateFlag)}
             selectedResourceTypes={integration.selectedResourceTypes}
@@ -832,9 +801,6 @@ export default function CourseLMSIntegrationPage(props: {
                                 </Col>
                                 <Col xs={24} sm={12} md={8}>
                                   <Checkbox value="pages">Pages</Checkbox>
-                                </Col>
-                                <Col xs={24} sm={12} md={8}>
-                                  <Checkbox value="quizzes">Quizzes</Checkbox>
                                 </Col>
                                 <Col xs={24} sm={12} md={8}>
                                   <Checkbox value="Syllabus" disabled={true}>

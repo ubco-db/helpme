@@ -1803,29 +1803,6 @@ export type LMSFile = {
   uploaded?: Date
 }
 
-export enum LMSQuizAccessLevel {
-  LOGISTICS_ONLY = 'logistics_only',
-  LOGISTICS_AND_QUESTIONS = 'logistics_and_questions',
-  LOGISTICS_QUESTIONS_GENERAL_COMMENTS = 'logistics_questions_general_comments',
-  FULL_ACCESS = 'full_access',
-}
-
-export type LMSQuiz = {
-  id: number
-  title: string
-  description?: string
-  due?: Date
-  unlock?: Date
-  lock?: Date
-  timeLimit?: number
-  allowedAttempts?: number
-  questions?: any[]
-  accessLevel?: LMSQuizAccessLevel
-  syncEnabled?: boolean
-  modified?: Date
-  uploaded?: Date
-}
-
 export enum SupportedLMSFileTypes {
   pdf = 'application/pdf', // .pdf files
   pptx = 'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx files
@@ -1875,7 +1852,6 @@ export enum LMSResourceType {
   ANNOUNCEMENTS = 'announcements',
   PAGES = 'pages',
   FILES = 'files',
-  QUIZZES = 'quizzes',
 }
 
 export interface CourseResponse {
