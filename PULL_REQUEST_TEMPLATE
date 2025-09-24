@@ -29,7 +29,7 @@ Provide instructions so we can reproduce.
 
 # Checklist:
 
-- [ ] I have performed a code review of my own code (under the "Files Changed" tab on github) to ensure nothing is committed that shouldn't be (e.g. leftover `console.log`s, leftover unused logic, or anything else that was accidentally committed)
+- [ ] I have performed a self-review of my own code
 - [ ] I have commented my code where needed 
 - [ ] I have made corresponding changes to the documentation
 - [ ] My changes generate no new warnings
