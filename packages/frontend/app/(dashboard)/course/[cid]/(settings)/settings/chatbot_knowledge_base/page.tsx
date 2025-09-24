@@ -78,17 +78,6 @@ export default function ChatbotDocuments(
       })
   }
 
-  const handleSearch = useCallback(
-    (e: { target: { value: string } }) => {
-      const searchTerm = e.target.value
-      setSearch(searchTerm)
-      const filtered = filterDocuments(documents, searchTerm)
-
-      setFilteredDocuments(filtered)
-    },
-    [documents],
-  )
-
   const fetchDocuments = useCallback(async () => {
     await API.chatbot.staffOnly
       .getAllDocumentChunks(courseId)
@@ -98,13 +87,13 @@ export default function ChatbotDocuments(
           key: doc.id,
         }))
         setDocuments(response)
-        setFilteredDocuments(filterDocuments(response, search))
+        setFilteredDocuments(response)
       })
       .catch((e) => {
         const errorMessage = getErrorMessage(e)
         message.error('Failed to load documents: ' + errorMessage)
       })
-  }, [courseId, setDocuments, setFilteredDocuments, search])
+  }, [courseId, setDocuments, setFilteredDocuments])
 
   useEffect(() => {
     if (courseId) {
@@ -228,6 +217,22 @@ export default function ChatbotDocuments(
         const errorMessage = getErrorMessage(e)
         message.error('Failed to delete document: ' + errorMessage)
       })
+  }
+
+  const handleSearch = (e: any) => {
+    setSearch(e.target.value)
+    const searchTerm = e.target.value.toLowerCase()
+    const filtered = documents.filter((doc) => {
+      const isNameMatch = doc.metadata?.name
+        ? doc.metadata.name.toLowerCase().includes(searchTerm)
+        : false
+      const isContentMatch = doc.pageContent
+        ? doc.pageContent.toLowerCase().includes(searchTerm)
+        : false
+      return isNameMatch || isContentMatch
+    })
+
+    setFilteredDocuments(filtered)
   }
 
   return (
@@ -376,16 +381,4 @@ export default function ChatbotDocuments(
       )}
     </div>
   )
-}
-
-const filterDocuments = (documents: SourceDocument[], search: string) => {
-  return documents.filter((doc) => {
-    const isNameMatch = doc.metadata?.name
-      ? doc.metadata.name.toLowerCase().includes(search.toLowerCase())
-      : false
-    const isContentMatch = doc.pageContent
-      ? doc.pageContent.toLowerCase().includes(search.toLowerCase())
-      : false
-    return isNameMatch || isContentMatch
-  })
 }

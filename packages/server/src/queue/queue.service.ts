@@ -571,9 +571,7 @@ export class QueueService {
         course: {
           organizationCourse: true,
         },
-        staffList: {
-          courses: true,
-        },
+        staffList: true,
       },
     });
 
@@ -606,9 +604,6 @@ export class QueueService {
         name: user.name,
         photoURL: user.photoURL,
         questionHelpedAt: helpedAt,
-        TANotes:
-          user.courses.find((ucm) => ucm.courseId === queue.courseId)
-            ?.TANotes ?? '',
       };
     });
 

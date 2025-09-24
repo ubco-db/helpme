@@ -402,8 +402,6 @@ export class ChatbotApiService {
 
       if (!response.ok) {
         const error = await response.json();
-        console.error('Error for url', url);
-        console.error(response);
         throw new HttpException(
           error.error || 'Failed to upload LMS file buffer',
           response.status,

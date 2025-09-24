@@ -344,7 +344,6 @@ export default function QueueInvitePage(
                     <StatusCard
                       key={ta.id}
                       courseId={queueInviteInfo.courseId}
-                      queueId={queueInviteInfo.queueId}
                       ta={ta}
                       helpedAt={ta.questionHelpedAt}
                     />
