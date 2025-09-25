@@ -3,15 +3,11 @@
 import React, { ReactElement, useEffect, useMemo, useState } from 'react'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { API } from '@/app/api'
-import {
-  CourseChatbotSettings,
-  LLMType,
-  OrganizationChatbotSettings,
-} from '@koh/common'
+import { CourseChatbotSettings, OrganizationChatbotSettings } from '@koh/common'
 import OrganizationChatbotSettingsForm from '@/app/(dashboard)/organization/ai/components/OrganizationChatbotSettingsForm'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { Divider, Input, message, Pagination, Table, Tabs, Tooltip } from 'antd'
+import { Divider, message, Tabs } from 'antd'
 import CourseSettingTable from '@/app/(dashboard)/organization/ai/components/CourseSettingTable'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -134,7 +130,6 @@ export default function OrganizationChatbotSettingsPage(): ReactElement {
                 label: 'Chatbot Settings for Courses',
                 children: (
                   <CourseSettingTable
-                    organizationId={organizationId}
                     organizationSettings={organizationSettings}
                     courseSettingsInstances={courseChatbotSettingsInstances}
                     onUpdate={(courseSettings: CourseChatbotSettings) => {
