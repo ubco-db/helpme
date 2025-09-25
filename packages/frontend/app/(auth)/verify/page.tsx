@@ -123,6 +123,7 @@ export default function VerifyEmailPage() {
                   message: 'Verification code must be at most 8 characters',
                 },
               ]}
+              normalize={(value) => (value ? value.trim() : value)}
             >
               <Input
                 type="text"

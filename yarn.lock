@@ -6029,6 +6029,15 @@ axios@^1.11.0, axios@^1.7.9:
     form-data "^4.0.4"
     proxy-from-env "^1.1.0"
 
+axios@^1.12.2:
+  version "1.12.2"
+  resolved "https://registry.yarnpkg.com/axios/-/axios-1.12.2.tgz#6c307390136cf7a2278d09cec63b136dfc6e6da7"
+  integrity sha512-vMJzPewAlRyOgxV2dU0Cuz2O8zzzx9VYtbJOaBgXFeLc4IV/Eg50n4LowmehOOR61S8ZMpc2K5Sa7g6A4jfkUw==
+  dependencies:
+    follow-redirects "^1.15.6"
+    form-data "^4.0.4"
+    proxy-from-env "^1.1.0"
+
 axobject-query@^4.1.0:
   version "4.1.0"
   resolved "https://registry.yarnpkg.com/axobject-query/-/axobject-query-4.1.0.tgz#28768c76d0e3cff21bc62a9e2d0b6ac30042a1ee"
@@ -10880,7 +10889,7 @@ lru-cache@^7.14.1:
 
 "lti-typescript@github:bhunt02/lti-typescript#release":
   version "0.1.0"
-  resolved "https://codeload.github.com/bhunt02/lti-typescript/tar.gz/fd14ee5958582cd4b2f3f90e273fb465e6946995"
+  resolved "https://codeload.github.com/bhunt02/lti-typescript/tar.gz/799c31cc78851d3657b8dd72d697d6c69f55fd28"
   dependencies:
     body-parser "^1.20.2"
     cookie-parser "^1.4.7"
