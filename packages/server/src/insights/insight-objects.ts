@@ -877,7 +877,7 @@ export const HumanVsChatbot: InsightObject = {
 export const HumanVsChatbotVotes: InsightObject = {
   displayName: 'Human vs. Chatbot Votes',
   description:
-    'How helpful are human asynchronous question answers, versus chatbot answers?',
+    'How helpful are human anytime question answers, versus chatbot answers?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
   insightCategory: 'Chatbot',
