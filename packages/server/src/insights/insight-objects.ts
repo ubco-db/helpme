@@ -808,7 +808,7 @@ const getHelpSeekingOverTime = async (
 export const HumanVsChatbot: InsightObject = {
   displayName: 'Human vs. Chatbot Answers',
   description:
-    'How many asynchronous questions have a verified and/or human answer, and how many only have a chatbot answer?',
+    'How many anytime questions have a verified and/or human answer, and how many only have a chatbot answer?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,
   insightCategory: 'Chatbot',
