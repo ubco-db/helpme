@@ -35,7 +35,6 @@ import LLMTypeDisplay from '@/app/(dashboard)/organization/ai/components/LLMType
 
 interface ChatbotSettingsModalProps {
   open: boolean
-  organizationId: number
   courseId: number
   onClose: () => void
   updateCourseSettings?: (settings: CourseChatbotSettings) => void
@@ -45,7 +44,6 @@ interface ChatbotSettingsModalProps {
 
 const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
   open,
-  organizationId,
   courseId,
   onClose,
   preLoadedProviders,
@@ -90,7 +88,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
       form.setFieldsValue({ ...sets, ...formValues })
       setFormValues({ ...sets, ...formValues })
     }
-    // eslint-disable-next-line
+     
   }, [courseSettings, form])
 
   const areParamsDefault = useMemo(() => {
@@ -401,6 +399,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
                                       isDefaultVision={
                                         provider.defaultModel?.id == model.id
                                       }
+                                      showModality={false}
                                     />
                                   </div>
                                 </Tooltip>

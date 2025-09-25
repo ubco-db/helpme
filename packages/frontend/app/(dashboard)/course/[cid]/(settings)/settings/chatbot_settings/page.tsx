@@ -31,10 +31,6 @@ export default function ChatbotSettings(
   const params = use(props.params)
   const { userInfo } = useUserInfo()
   const courseId = useMemo(() => Number(params.cid), [params.cid])
-  const organizationId = useMemo(
-    () => userInfo?.organization?.orgId ?? -1,
-    [userInfo?.organization?.orgId],
-  )
   const [chatbotParameterModalOpen, setChatbotParameterModalOpen] =
     useState(false)
   const [addDocumentModalOpen, setAddDocumentModalOpen] = useState(false)
@@ -310,7 +306,6 @@ export default function ChatbotSettings(
         ) : (
           <ChatbotSettingsModal
             open={chatbotParameterModalOpen}
-            organizationId={organizationId}
             courseId={courseId}
             onClose={() => setChatbotParameterModalOpen(false)}
           />

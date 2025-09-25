@@ -16,7 +16,6 @@ import ChatbotSettingsModal from '@/app/(dashboard)/course/[cid]/(settings)/sett
 import { cn } from '@/app/utils/generalUtils'
 
 type OrganizationChatbotSettingsFormProps = {
-  organizationId: number
   organizationSettings: OrganizationChatbotSettings
   courseSettingsInstances: CourseChatbotSettings[]
   onUpdate: (courseSettings: CourseChatbotSettings) => void
@@ -24,7 +23,6 @@ type OrganizationChatbotSettingsFormProps = {
 }
 
 const CourseSettingTable: React.FC<OrganizationChatbotSettingsFormProps> = ({
-  organizationId,
   organizationSettings,
   courseSettingsInstances,
   onUpdate,
@@ -254,7 +252,6 @@ const CourseSettingTable: React.FC<OrganizationChatbotSettingsFormProps> = ({
       {editingSettings != undefined && (
         <ChatbotSettingsModal
           courseId={(editingSettings as any).courseId}
-          organizationId={organizationId}
           onClose={cancelUpdate}
           open={!!editingSettings}
           updateCourseSettings={(sets) => onUpdate(sets)}
