@@ -510,14 +510,6 @@ export class LMSIntegrationController {
       );
     }
 
-    const selectedResources: LMSResourceType[] =
-      integration.selectedResourceTypes;
-    if (!selectedResources.includes(LMSResourceType.QUIZZES)) {
-      throw new BadRequestException(
-        ERROR_MESSAGES.lmsController.resourceDisabled,
-      );
-    }
-
     return await this.integrationService.getItems(courseId, LMSGet.Quizzes);
   }
 
