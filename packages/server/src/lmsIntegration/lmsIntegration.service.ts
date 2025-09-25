@@ -330,6 +330,7 @@ export class LMSIntegrationService {
               modified: pages[idx].modified ?? found.modified,
               uploaded: found.uploaded,
               syncEnabled: found.syncEnabled,
+              isModuleLinked: found.isModuleLinked,
             };
           }
         }
