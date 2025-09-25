@@ -127,12 +127,17 @@ export default function CourseLMSIntegrationPage(props: {
   const [delModalOpen, setDelModalOpen] = useState<boolean>(false)
   const [isTesting, setIsTesting] = useState<boolean>(false)
   const [selectedResources, setSelectedResources] = useState<string[]>([])
+  const [moduleLinkedPagesOnly, setModuleLinkedPagesOnly] =
+    useState<boolean>(false)
 
   useEffect(() => {
     if (integration?.selectedResourceTypes) {
       setSelectedResources(integration.selectedResourceTypes)
     }
-  }, [integration?.selectedResourceTypes])
+    if (integration?.moduleLinkedPagesOnly !== undefined) {
+      setModuleLinkedPagesOnly(integration.moduleLinkedPagesOnly)
+    }
+  }, [integration?.selectedResourceTypes, integration?.moduleLinkedPagesOnly])
 
   const onSelectedResourcesChange: GetProp<
     typeof Checkbox.Group,
@@ -296,6 +301,23 @@ export default function CourseLMSIntegrationPage(props: {
       setUpdateFlag(!updateFlag)
     } catch (err) {
       message.error(getErrorMessage(err))
+    }
+  }
+
+  const updateModuleLinkedPagesOnly = async () => {
+    if (!integration) return
+
+    try {
+      await API.lmsIntegration.updateModuleLinkedPagesOnly(
+        courseId,
+        moduleLinkedPagesOnly,
+      )
+      message.success('Module pages setting updated!')
+      // No need to refresh - the toggle state is already updated locally
+    } catch (error) {
+      message.error(getErrorMessage(error))
+      // Revert the toggle if the API call failed
+      setModuleLinkedPagesOnly(!moduleLinkedPagesOnly)
     }
   }
 
@@ -847,6 +869,30 @@ export default function CourseLMSIntegrationPage(props: {
                                 </Col>
                               </Row>
                             </Checkbox.Group>
+
+                            {/* Module-linked pages toggle */}
+                            {selectedResources.includes('pages') && (
+                              <div className="mt-4 w-full rounded-lg bg-gray-50 p-3">
+                                <Checkbox
+                                  checked={moduleLinkedPagesOnly}
+                                  onChange={(e) => {
+                                    setModuleLinkedPagesOnly(e.target.checked)
+                                    // Auto-update when changed
+                                    setTimeout(
+                                      () => updateModuleLinkedPagesOnly(),
+                                      100,
+                                    )
+                                  }}
+                                >
+                                  <Tooltip title="Only sync pages that are linked within course modules. When enabled, standalone pages will be excluded from the chatbot.">
+                                    <span className="text-sm font-medium">
+                                      Module-linked pages only
+                                    </span>
+                                  </Tooltip>
+                                </Checkbox>
+                              </div>
+                            )}
+
                             <Button
                               size={'large'}
                               shape={'round'}

@@ -10,7 +10,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { Get } from '@nestjs/common/decorators';
+import { Get, Put } from '@nestjs/common/decorators';
 import {
   ERROR_MESSAGES,
   LMSApiResponseStatus,
@@ -877,5 +877,26 @@ export class LMSIntegrationController {
     await LMSCourseIntegrationModel.save(integration);
 
     return `Successfully updated selected resource types for course ${courseId}.`;
+  }
+
+  @Put('course/:courseId/module-pages-only')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async updateModuleLinkedPagesOnly(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Body() body: { moduleLinkedPagesOnly: boolean },
+  ): Promise<string> {
+    const integration = await LMSCourseIntegrationModel.findOne({
+      where: { courseId },
+    });
+
+    if (!integration) {
+      throw new HttpException('Integration not found', HttpStatus.NOT_FOUND);
+    }
+
+    integration.moduleLinkedPagesOnly = body.moduleLinkedPagesOnly;
+    await LMSCourseIntegrationModel.save(integration);
+
+    return `Successfully updated module pages setting for course ${courseId}.`;
   }
 }

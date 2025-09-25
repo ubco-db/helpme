@@ -1753,6 +1753,7 @@ export class LMSCourseIntegrationPartial {
   lmsSynchronize!: boolean
   isExpired!: boolean
   selectedResourceTypes?: LMSResourceType[]
+  moduleLinkedPagesOnly?: boolean
 }
 
 export type LMSCourseAPIResponse = {
