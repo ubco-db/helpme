@@ -9,4 +9,5 @@ export interface Organization {
   legacyAuthEnabled: boolean
   googleAuthEnabled: boolean
   ssoUrl?: string
+  ssoEmailPatterns?: string[]
 }
