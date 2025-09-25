@@ -98,7 +98,6 @@ const APPLY_FILTER_MAP = {
       });
     },
     staff: ({ query, filter }: ApplyFilterParams) => {
-      console.log(filter);
       query.andWhere('QuestionModel.taHelpedId IN (:...staffIds)', {
         staffIds: filter.staffIds,
       });
