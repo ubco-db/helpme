@@ -47,6 +47,9 @@ export class LMSPageModel extends BaseEntity {
   @Column({ type: 'boolean', default: true })
   syncEnabled: boolean;
 
+  @Column({ type: 'boolean', default: false })
+  isModuleLinked: boolean;
+
   @ManyToOne(
     (type) => LMSCourseIntegrationModel,
     (integration) => integration.pages,
