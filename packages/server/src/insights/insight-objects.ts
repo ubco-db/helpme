@@ -632,8 +632,8 @@ export const HelpSeekingOverTime: InsightObject = {
       .map((value) => {
         return {
           date: parseInt(String(value.epoch * 1000)), // Convert from Postgres seconds epoch to millis,
-          Questions: parseInt(String(value.totalQuestions)),
-          Async_Questions: parseInt(String(value.totalAsyncQuestions)),
+          Queue_Questions: parseInt(String(value.totalQuestions)),
+          Anytime_Questions: parseInt(String(value.totalAsyncQuestions)),
           Chatbot_Interactions: parseInt(
             String(value.totalChatbotInteractions),
           ),
@@ -645,7 +645,7 @@ export const HelpSeekingOverTime: InsightObject = {
       return {
         data: [],
         xKey: 'date',
-        yKeys: ['Questions', 'Async_Questions', 'Chatbot_Interactions'],
+        yKeys: ['Queue_Questions', 'Anytime_Questions', 'Chatbot_Interactions'],
         label: 'date',
         xType: 'numeric',
       };
@@ -673,8 +673,8 @@ export const HelpSeekingOverTime: InsightObject = {
 
         data.push({
           date: i,
-          Questions: 0,
-          Async_Questions: 0,
+          Queue_Questions: 0,
+          Anytime_Questions: 0,
           Chatbot_Interactions: 0,
         });
       }
@@ -686,8 +686,8 @@ export const HelpSeekingOverTime: InsightObject = {
       for (let i = startTime; i < minDate; i += modifier) {
         data.push({
           date: i,
-          Questions: 0,
-          Async_Questions: 0,
+          Queue_Questions: 0,
+          Anytime_Questions: 0,
           Chatbot_Interactions: 0,
         });
       }
@@ -697,7 +697,7 @@ export const HelpSeekingOverTime: InsightObject = {
     return {
       data,
       xKey: 'date',
-      yKeys: ['Questions', 'Async_Questions', 'Chatbot_Interactions'],
+      yKeys: ['Queue_Questions', 'Anytime_Questions', 'Chatbot_Interactions'],
       label: 'date',
       xType: 'numeric',
     };
@@ -1174,7 +1174,11 @@ export const StaffTotalHelped: InsightObject = {
       return {
         data: [],
         xKey: 'staffMember',
-        yKeys: ['Questions_Helped', 'Async_Questions_Helped', 'Total_Helped'],
+        yKeys: [
+          'Queue_Questions_Helped',
+          'Anytime_Questions_Helped',
+          'Total_Helped',
+        ],
         label: 'Staff Member',
         xType: 'category',
       };
@@ -1212,15 +1216,19 @@ export const StaffTotalHelped: InsightObject = {
           staffMember:
             staffNames.find((s) => s.id == q.staffMember)?.name ??
             `ID ${q.staffMember}`,
-          Questions_Helped: q.questionsHelped,
-          Async_Questions_Helped: q.asyncQuestionsHelped,
+          Queue_Questions_Helped: q.questionsHelped,
+          Anytime_Questions_Helped: q.asyncQuestionsHelped,
           Total_Helped:
             parseInt('' + q.asyncQuestionsHelped) +
             parseInt('' + q.questionsHelped),
         };
       }),
       xKey: 'staffMember',
-      yKeys: ['Questions_Helped', 'Async_Questions_Helped', 'Total_Helped'],
+      yKeys: [
+        'Queue_Questions_Helped',
+        'Anytime_Questions_Helped',
+        'Total_Helped',
+      ],
       label: 'Staff Member',
       xType: 'category',
     };

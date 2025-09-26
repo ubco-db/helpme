@@ -473,8 +473,8 @@ describe('InsightsService', () => {
       const time = new Date(startTime.getTime() + i * 1000 * 60 * 60 * 24);
       expected.push({
         date: time.getTime(),
-        Questions: 1,
-        Async_Questions: 1,
+        Queue_Questions: 1,
+        Anytime_Questions: 1,
         Chatbot_Interactions: 1,
       });
       await QuestionFactory.create({
@@ -512,8 +512,8 @@ describe('InsightsService', () => {
     expect(res.data).toEqual(expected);
     expect(res.xKey).toEqual('date');
     expect(res.yKeys).toEqual([
-      'Questions',
-      'Async_Questions',
+      'Queue_Questions',
+      'Anytime_Questions',
       'Chatbot_Interactions',
     ]);
   }, 30000);
@@ -816,8 +816,8 @@ describe('InsightsService', () => {
     expect(res.data.length).toBeGreaterThan(0);
     expect(res.xKey).toEqual('staffMember');
     expect(res.yKeys).toEqual([
-      'Questions_Helped',
-      'Async_Questions_Helped',
+      'Queue_Questions_Helped',
+      'Anytime_Questions_Helped',
       'Total_Helped',
     ]);
   }, 10000);
