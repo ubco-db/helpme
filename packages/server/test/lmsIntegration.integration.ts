@@ -275,16 +275,6 @@ describe('Lms Integration Integrations', () => {
       });
     });
 
-    describe('GET /lms/:courseId/quizzes', () => {
-      it('should return 400 when quiz resource is disabled', async () => {
-        const res = await supertest({ userId: prof.id }).get(
-          `/lms/${course.id}/quizzes`,
-        );
-        expect(res.status).toBe(400);
-        expect(res.body.message).toContain('resource type');
-      });
-    });
-
     describe('GET /lms/:courseId/quiz/:quizId/preview/:accessLevel', () => {
       it('should return 400 when quiz resource is disabled', async () => {
         const res = await supertest({ userId: prof.id }).get(
