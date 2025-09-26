@@ -2511,6 +2511,7 @@ export const InsightFilterOptions = [
   'students',
   'queues',
   'staff',
+  'role',
 ] as const
 export type InsightFilterOption = (typeof InsightFilterOptions)[number]
 
@@ -2617,9 +2618,9 @@ export type InsightParamsType = {
   end?: string
   limit?: number
   offset?: number
-  students?: string
-  queues?: string
-  staff?: string
+  students?: number[] | string
+  queues?: number[] | string
+  staff?: number[] | string
 }
 
 export type SentEmailResponse = {

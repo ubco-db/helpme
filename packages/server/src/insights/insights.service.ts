@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { DataSource } from 'typeorm';
 import { Filter, INSIGHTS_MAP } from './insight-objects';
 import {
   InsightDashboardPartial,
@@ -28,10 +27,7 @@ type GenerateAllInsightParams = {
 
 @Injectable()
 export class InsightsService {
-  constructor(
-    private dataSource: DataSource,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {}
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
   // Compute the output data for an insight and add it to the insight response
   async computeOutput({
