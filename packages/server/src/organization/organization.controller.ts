@@ -605,13 +605,9 @@ export class OrganizationController {
 
   // For course archival
   @Patch(':oid/update_course_access/:cid')
-  @UseGuards(
-    JwtAuthGuard,
-    OrganizationRolesGuard,
-    OrganizationGuard,
-    EmailVerifiedGuard,
-  )
-  @Roles(OrganizationRole.ADMIN)
+  @UseGuards(JwtAuthGuard, OrgOrCourseRolesGuard, EmailVerifiedGuard)
+  @CourseRoles(Role.PROFESSOR)
+  @OrgRoles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async updateCourseAccess(
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
@@ -1096,9 +1092,10 @@ export class OrganizationController {
     })
       .then((organization) => {
         if (
-          !organizationPatch.name ||
+          organizationPatch.name &&
           organizationPatch.name.trim().length < 3
         ) {
+          console.log(organizationPatch.name);
           return res.status(HttpStatus.BAD_REQUEST).send({
             message:
               ERROR_MESSAGES.organizationController.organizationNameTooShort,
@@ -1106,7 +1103,7 @@ export class OrganizationController {
         }
 
         if (
-          !organizationPatch.description ||
+          organizationPatch.description &&
           organizationPatch.description.trim().length < 10
         ) {
           return res.status(HttpStatus.BAD_REQUEST).send({
@@ -1118,8 +1115,7 @@ export class OrganizationController {
 
         if (
           organizationPatch.websiteUrl &&
-          (!organizationPatch.websiteUrl ||
-            organizationPatch.websiteUrl.trim().length < 10 ||
+          (organizationPatch.websiteUrl.trim().length < 10 ||
             !this.isValidUrl(organizationPatch.websiteUrl))
         ) {
           return res.status(HttpStatus.BAD_REQUEST).send({
@@ -1134,6 +1130,10 @@ export class OrganizationController {
 
         if (organizationPatch.websiteUrl) {
           organization.websiteUrl = organizationPatch.websiteUrl;
+        }
+
+        if (organizationPatch.ssoEmailPatterns !== undefined) {
+          organization.ssoEmailPatterns = organizationPatch.ssoEmailPatterns;
         }
 
         organization

@@ -231,6 +231,8 @@ export class SeedController {
       name: 'UBCO',
       description: 'UBC Okanagan',
       legacyAuthEnabled: true,
+      ssoEnabled: true,
+      ssoEmailPatterns: ['r^.*@ubc\.ca$'],
     });
 
     const semester1 = await this.factoryService.SemesterFactory.create({
@@ -587,6 +589,13 @@ export class SeedController {
         courseId: testCourse.id,
         organization,
         course: testCourse,
+      });
+
+      await this.factoryService.OrganizationCourseFactory.create({
+        organizationId: organization.id,
+        courseId: course2.id,
+        organization: organization,
+        course: course2,
       });
     }
 

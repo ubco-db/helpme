@@ -23,12 +23,12 @@ import {
   ClosedQuestionStatus,
   GanttChartOutputType,
   MultipleGanttChartOutputType,
-  Question,
   Role,
   TableOutputType,
 } from '@koh/common';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
+import { QuestionModel } from '../question/question.entity';
 
 describe('InsightsService', () => {
   let service: InsightsService;
@@ -473,8 +473,8 @@ describe('InsightsService', () => {
       const time = new Date(startTime.getTime() + i * 1000 * 60 * 60 * 24);
       expected.push({
         date: time.getTime(),
-        Questions: 1,
-        Async_Questions: 1,
+        Queue_Questions: 1,
+        Anytime_Questions: 1,
         Chatbot_Interactions: 1,
       });
       await QuestionFactory.create({
@@ -512,8 +512,8 @@ describe('InsightsService', () => {
     expect(res.data).toEqual(expected);
     expect(res.xKey).toEqual('date');
     expect(res.yKeys).toEqual([
-      'Questions',
-      'Async_Questions',
+      'Queue_Questions',
+      'Anytime_Questions',
       'Chatbot_Interactions',
     ]);
   }, 30000);
@@ -648,21 +648,17 @@ describe('InsightsService', () => {
   });
 
   it('staffWorkload', async () => {
-    const course = await CourseFactory.create({ id: 1 });
-    const student = await UserFactory.create({ id: 0 });
-    const queue = await QueueFactory.create({ course: course });
+    const course = await CourseFactory.create();
+    const student = await UserFactory.create();
+    const queue = await QueueFactory.create({ course });
     await UserCourseFactory.create({
       course: course,
       user: student,
       role: Role.STUDENT,
     });
     const tas = [];
-    for (let i = 1; i < 5; i++) {
-      tas.push(
-        await UserFactory.create({
-          id: i,
-        }),
-      );
+    for (let i = 0; i < 5; i++) {
+      tas.push(await UserFactory.create());
       await UserCourseFactory.create({
         course: course,
         user: tas[i],
@@ -676,10 +672,10 @@ describe('InsightsService', () => {
       thursday: '2024-09-12T08:00:00Z',
       friday: '2024-09-13T08:00:00Z',
     };
-    const taQuestions: { [key: number]: Question[] } = [];
+    const taQuestions: { [key: number]: QuestionModel[] } = [];
     for (const ta of tas) {
       taQuestions[ta.id] = await QuestionFactory.createList(25, {
-        taHelpedId: ta.id,
+        taHelped: ta,
         creator: student,
         status: ClosedQuestionStatus.Resolved,
         queue,
@@ -691,6 +687,7 @@ describe('InsightsService', () => {
           question.createdAt = new Date(date.getTime() + 5 * 60 * 1000);
           question.helpedAt = new Date(date.getTime() + 10 * 60 * 1000);
           question.closedAt = new Date(date.getTime() + 15 * 60 * 1000);
+          await question.save();
         }
       }
     }
@@ -714,31 +711,27 @@ describe('InsightsService', () => {
   }, 10000);
 
   it('staffEfficiency', async () => {
-    const course = await CourseFactory.create({ id: 1 });
-    const student = await UserFactory.create({ id: 0 });
-    const queue = await QueueFactory.create({ course: course });
+    const course = await CourseFactory.create();
+    const student = await UserFactory.create();
+    const queue = await QueueFactory.create({ course });
     await UserCourseFactory.create({
       course: course,
       user: student,
       role: Role.STUDENT,
     });
     const tas = [];
-    for (let i = 1; i < 5; i++) {
-      tas.push(
-        await UserFactory.create({
-          id: i,
-        }),
-      );
+    for (let i = 0; i < 5; i++) {
+      tas.push(await UserFactory.create());
       await UserCourseFactory.create({
         course: course,
         user: tas[i],
         role: Role.TA,
       });
     }
-    const taQuestions: { [key: number]: Question } = [];
+    const taQuestions: { [key: number]: QuestionModel } = {};
     for (const ta of tas) {
       taQuestions[ta.id] = await QuestionFactory.create({
-        taHelpedId: ta.id,
+        taHelped: ta,
         creator: student,
         status: ClosedQuestionStatus.Resolved,
         queue,
@@ -749,6 +742,7 @@ describe('InsightsService', () => {
         question.createdAt = new Date(date.getTime() + 15 * 60 * 1000);
         question.helpedAt = new Date(date.getTime() + 10 * 60 * 1000);
         question.closedAt = new Date(date.getTime() + 15 * 60 * 1000);
+        await question.save();
       }
     }
 
@@ -781,19 +775,15 @@ describe('InsightsService', () => {
       role: Role.STUDENT,
     });
     const tas = [];
-    for (let i = 1; i < 5; i++) {
-      tas.push(
-        await UserFactory.create({
-          id: i,
-        }),
-      );
+    for (let i = 0; i < 5; i++) {
+      tas.push(await UserFactory.create());
       await UserCourseFactory.create({
         course: course,
         user: tas[i],
         role: Role.TA,
       });
     }
-    const taQuestions: { [key: number]: Question[] } = [];
+    const taQuestions: { [key: number]: QuestionModel[] } = {};
     for (const ta of tas) {
       taQuestions[ta.id] = await QuestionFactory.createList(25, {
         taHelpedId: ta.id,
@@ -805,9 +795,10 @@ describe('InsightsService', () => {
         for (let j = 0; j < 5; j++) {
           const question = taQuestions[ta.id][j + i * 5];
           const date = new Date(new Date());
-          question.createdAt = new Date(date.getTime() + 15 * 60 * 1000);
-          question.helpedAt = new Date(date.getTime() + 10 * 60 * 1000);
-          question.closedAt = new Date(date.getTime() + 15 * 60 * 1000);
+          question.createdAt = new Date(date.getTime() - 15 * 60 * 1000);
+          question.helpedAt = new Date(date.getTime() - 10 * 60 * 1000);
+          question.closedAt = new Date(date.getTime() - 5 * 60 * 1000);
+          await question.save();
         }
       }
     }
@@ -825,8 +816,8 @@ describe('InsightsService', () => {
     expect(res.data.length).toBeGreaterThan(0);
     expect(res.xKey).toEqual('staffMember');
     expect(res.yKeys).toEqual([
-      'Questions_Helped',
-      'Async_Questions_Helped',
+      'Queue_Questions_Helped',
+      'Anytime_Questions_Helped',
       'Total_Helped',
     ]);
   }, 10000);

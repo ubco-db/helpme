@@ -6,6 +6,14 @@ import ReCAPTCHA from 'react-google-recaptcha'
 import { LeftOutlined } from '@ant-design/icons'
 import { useRouter } from 'next/navigation'
 import { userApi } from '@/app/api/userApi'
+import Link from 'next/link'
+
+interface Organization {
+  id: number
+  name: string
+  ssoEnabled: boolean
+  ssoEmailPatterns?: string[]
+}
 
 export default function RegisterPage(): ReactElement {
   const [organizationId, setOrganizationId] = useState(0)
@@ -20,27 +28,14 @@ export default function RegisterPage(): ReactElement {
 
     recaptchaRef?.current?.reset()
   }
-
   async function createAccount() {
-    const formValues = await registerForm.validateFields()
-    const { firstName, lastName, email, password, confirmPassword, sid } =
-      formValues
-
-    if (isNaN(organizationId) || organizationId < 1) {
+    if (!organizationId) {
       message.error('Organization not found.')
       return
     }
 
-    if (sid && sid.trim().length < 1) {
-      message.error('Student number must be at least 1 character')
-      return
-    }
-
-    if (password !== confirmPassword) {
-      message.error('Passwords do not match.')
-      return
-    }
-    const studentId = sid ? parseInt(sid) : null
+    const { firstName, lastName, email, password, confirmPassword, sid } =
+      await registerForm.validateFields()
 
     const token = await recaptchaRef?.current?.executeAsync()
 
@@ -50,34 +45,95 @@ export default function RegisterPage(): ReactElement {
       email,
       password,
       confirmPassword,
-      sid: studentId,
+      sid,
       organizationId,
       recaptchaToken: token ?? '',
     })
 
     if (response.status !== 201) {
       const data = await response.json()
-
       message.error(data.message)
     } else {
       localStorage.removeItem('organizationId')
-
       router.push('/courses')
     }
+  }
 
-    return
+  // Fetch all organizations for SSO settings
+  const [organizations, setOrganizations] = useState<Organization[]>([])
+  const organization =
+    organizations.find((o) => o.id === organizationId) || null
+  async function fetchOrganizations() {
+    try {
+      const response = await fetch('/api/v1/organization')
+      if (response.ok) {
+        const orgs = await response.json()
+        setOrganizations(orgs)
+      } else {
+        setOrganizations([])
+      }
+    } catch (error) {
+      console.error('Failed to fetch organizations:', error)
+      setOrganizations([])
+    }
+  }
+
+  // Check if email matches SSO patterns for the current organization
+  function checkSsoEmailPatterns(email: string): ReactElement | null {
+    if (
+      !organization ||
+      !organization.ssoEnabled ||
+      !organization.ssoEmailPatterns
+    ) {
+      return null
+    }
+    const errorMessage = (
+      <span>
+        SSO email detected! Would you like to{' '}
+        <Link
+          href={`/api/v1/auth/shibboleth/${organization.id}`}
+          prefetch={false}
+        >
+          Continue with {organization.name}
+        </Link>{' '}
+        instead?
+      </span>
+    )
+    const patterns = organization.ssoEmailPatterns ?? []
+    for (const pattern of patterns) {
+      if (pattern.startsWith('r')) {
+        try {
+          const regexPattern = pattern.substring(1)
+          const regex = new RegExp(regexPattern)
+          if (regex.test(email)) {
+            return errorMessage
+          }
+        } catch (_error) {
+          console.warn(`Invalid regex pattern: ${pattern}`)
+        }
+      } else {
+        if (email.includes(pattern)) {
+          return errorMessage
+        }
+      }
+    }
+    return null
   }
 
   useEffect(() => {
     setDomLoaded(true)
-    setOrganizationId(parseInt(localStorage.getItem('organizationId') ?? ''))
+    const orgId = parseInt(localStorage.getItem('organizationId') ?? '')
+    setOrganizationId(orgId)
+    if (orgId) {
+      fetchOrganizations()
+    }
   }, [])
 
   return (
     <div>
       {domLoaded && (
         <div className="mx-auto h-auto pt-20 text-center lg:container lg:mx-auto">
-          <Card className="mx-auto max-w-max sm:px-2 md:px-6">
+          <Card className="mx-auto max-w-lg sm:px-2 md:px-6">
             <h2 className="my-4 flex items-center text-left">
               Create new account
             </h2>
@@ -178,6 +234,26 @@ export default function RegisterPage(): ReactElement {
                     max: 64,
                     message: 'Email must be at most 64 characters',
                   },
+                  {
+                    warningOnly: true,
+                    validator: async (_, value) => {
+                      if (!value) return Promise.resolve()
+                      if (!organization) {
+                        return Promise.resolve()
+                      }
+
+                      try {
+                        const ssoError = checkSsoEmailPatterns(value)
+                        if (ssoError) {
+                          return Promise.reject(ssoError)
+                        }
+                        return Promise.resolve()
+                      } catch (err) {
+                        console.error('Error in email validation:', err)
+                        return Promise.resolve() // fallback to not blocking user
+                      }
+                    },
+                  },
                 ]}
               >
                 <Input allowClear={true} type="email" />
@@ -213,6 +289,14 @@ export default function RegisterPage(): ReactElement {
                 name="confirmPassword"
                 rules={[
                   { required: true, message: 'Please confirm your password' },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || getFieldValue('password') === value) {
+                        return Promise.resolve()
+                      }
+                      return Promise.reject(new Error('Passwords do not match'))
+                    },
+                  }),
                 ]}
               >
                 <Input
@@ -222,7 +306,16 @@ export default function RegisterPage(): ReactElement {
                 />
               </Form.Item>
 
-              <Form.Item label="Student Number" name="sid">
+              <Form.Item
+                label="Student Number (Optional)"
+                name="sid"
+                rules={[
+                  {
+                    pattern: /^\d*$/,
+                    message: 'Student number must be numeric',
+                  },
+                ]}
+              >
                 <Input allowClear={true} />
               </Form.Item>
 

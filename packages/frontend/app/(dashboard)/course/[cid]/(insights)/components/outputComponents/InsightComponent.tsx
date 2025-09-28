@@ -134,7 +134,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
                 />
               )
             default:
-              return <></>
+              return null
           }
         }),
       )
@@ -145,6 +145,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
       ) {
         filterOptions.push(
           <DataFilter
+            key={`date-filter-${insightName}`}
             dataKeys={chartKeys}
             selectedData={selectedData}
             setSelectedData={setSelectedData}

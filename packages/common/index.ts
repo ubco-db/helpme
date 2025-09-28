@@ -1649,6 +1649,11 @@ export class UpdateOrganizationDetailsParams {
   @IsString()
   @IsOptional()
   websiteUrl?: string
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  ssoEmailPatterns?: string[]
 }
 
 export class UpdateProfileParams {
@@ -1695,11 +1700,11 @@ export class OrganizationPartial {
 export class OrganizationUserPartial {
   id!: number
   orgId!: number
-  organizationName!: string
-  organizationDescription!: string
-  organizationLogoUrl!: string
-  organizationBannerUrl!: string
-  organizationRole!: string
+  organizationName?: string
+  organizationDescription?: string
+  organizationLogoUrl?: string
+  organizationBannerUrl?: string
+  organizationRole?: string
 }
 
 export class GetOrganizationResponse {
@@ -1712,6 +1717,7 @@ export class GetOrganizationResponse {
   websiteUrl?: string
   ssoEnabled?: boolean
   ssoUrl?: string
+  ssoEmailPatterns?: string[]
 }
 
 export type UpsertLMSOrganizationParams = {
@@ -1803,6 +1809,29 @@ export type LMSFile = {
   uploaded?: Date
 }
 
+export enum LMSQuizAccessLevel {
+  LOGISTICS_ONLY = 'logistics_only',
+  LOGISTICS_AND_QUESTIONS = 'logistics_and_questions',
+  LOGISTICS_QUESTIONS_GENERAL_COMMENTS = 'logistics_questions_general_comments',
+  FULL_ACCESS = 'full_access',
+}
+
+export type LMSQuiz = {
+  id: number
+  title: string
+  description?: string
+  due?: Date
+  unlock?: Date
+  lock?: Date
+  timeLimit?: number
+  allowedAttempts?: number
+  questions?: any[]
+  accessLevel?: LMSQuizAccessLevel
+  syncEnabled?: boolean
+  modified?: Date
+  uploaded?: Date
+}
+
 export enum SupportedLMSFileTypes {
   pdf = 'application/pdf', // .pdf files
   pptx = 'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx files
@@ -1852,6 +1881,7 @@ export enum LMSResourceType {
   ANNOUNCEMENTS = 'announcements',
   PAGES = 'pages',
   FILES = 'files',
+  QUIZZES = 'quizzes',
 }
 
 export interface CourseResponse {
@@ -2481,6 +2511,7 @@ export const InsightFilterOptions = [
   'students',
   'queues',
   'staff',
+  'role',
 ] as const
 export type InsightFilterOption = (typeof InsightFilterOptions)[number]
 
@@ -2587,9 +2618,9 @@ export type InsightParamsType = {
   end?: string
   limit?: number
   offset?: number
-  students?: string
-  queues?: string
-  staff?: string
+  students?: number[] | string
+  queues?: number[] | string
+  staff?: number[] | string
 }
 
 export type SentEmailResponse = {

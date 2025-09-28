@@ -21,6 +21,8 @@ import {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
+  LMSQuiz,
+  LMSQuizAccessLevel,
   LMSResourceType,
   OrganizationRole,
   RemoveLMSOrganizationParams,
@@ -46,6 +48,8 @@ import { OrganizationRolesGuard } from '../guards/organization-roles.guard';
 import { OrganizationGuard } from '../guards/organization.guard';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
+import { LMSQuizModel } from './lmsQuiz.entity';
+import { In } from 'typeorm';
 
 @Controller('lms')
 export class LMSIntegrationController {
@@ -332,6 +336,191 @@ export class LMSIntegrationController {
     return await this.integrationService.getItems(courseId, LMSGet.Files);
   }
 
+  @Get(':courseId/quiz/:quizId/preview/:accessLevel')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async getQuizContentPreview(
+    @User() _user: UserModel,
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('quizId', ParseIntPipe) quizId: number,
+    @Param('accessLevel') accessLevel: LMSQuizAccessLevel,
+  ): Promise<{ content: string }> {
+    const integration = await LMSCourseIntegrationModel.findOne({
+      where: { courseId },
+      relations: { orgIntegration: true },
+    });
+
+    if (!integration) {
+      throw new HttpException(
+        LMSApiResponseStatus.InvalidConfiguration,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Check if quiz resource is enabled
+    const selectedResources: LMSResourceType[] =
+      integration.selectedResourceTypes;
+    if (!selectedResources.includes(LMSResourceType.QUIZZES)) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.lmsController.resourceDisabled,
+      );
+    }
+
+    const quiz = await LMSQuizModel.findOne({
+      where: { id: quizId, courseId },
+    });
+
+    if (!quiz) {
+      throw new HttpException('Quiz not found', HttpStatus.NOT_FOUND);
+    }
+
+    const previewQuiz = {
+      ...quiz,
+      accessLevel: accessLevel,
+    };
+
+    const content =
+      this.integrationService.formatQuizContentPreview(previewQuiz);
+
+    return { content };
+  }
+
+  @Post(':courseId/quizzes/bulk-sync')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async bulkUpdateQuizSync(
+    @User() _user: UserModel,
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Body() body: { action: 'enable' | 'disable'; quizIds?: number[] },
+  ): Promise<string> {
+    const integration = await LMSCourseIntegrationModel.findOne({
+      where: { courseId },
+      relations: { orgIntegration: true },
+    });
+
+    if (!integration) {
+      throw new HttpException(
+        LMSApiResponseStatus.InvalidConfiguration,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Check if quiz resource is enabled
+    const selectedResources: LMSResourceType[] =
+      integration.selectedResourceTypes;
+    if (!selectedResources.includes(LMSResourceType.QUIZZES)) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.lmsController.resourceDisabled,
+      );
+    }
+
+    try {
+      if (body.action === 'disable') {
+        // If specific quiz IDs provided, disable only those; otherwise disable all
+        const whereCondition = body.quizIds
+          ? { courseId, id: In(body.quizIds) }
+          : { courseId };
+
+        const quizzesToDisable = await LMSQuizModel.find({
+          where: whereCondition,
+        });
+
+        let failures = 0;
+
+        for (const quiz of quizzesToDisable) {
+          if (quiz.chatbotDocumentId) {
+            try {
+              const result = await this.integrationService.singleDocOperation(
+                courseId,
+                quiz,
+                LMSUpload.Quizzes,
+                'Clear',
+              );
+            } catch (error) {
+              failures++;
+              // Continue with other quizzes even if one fails
+            }
+          }
+        }
+
+        // Now disable sync for the quizzes
+        const result = await LMSQuizModel.update(whereCondition, {
+          syncEnabled: false,
+        });
+
+        const count = body.quizIds
+          ? body.quizIds.length
+          : quizzesToDisable.length;
+        const successMsg =
+          count - failures > 0
+            ? `Successfully disabled sync for ${count - failures} quiz${count - failures !== 1 ? 'es' : ''}.`
+            : '';
+        const failureMsg =
+          failures > 0
+            ? ` Failed to disable sync for ${failures} quiz${failures !== 1 ? 'es' : ''}.`
+            : '';
+        return (successMsg + failureMsg).trim();
+      } else {
+        if (!body.quizIds || body.quizIds.length === 0) {
+          throw new BadRequestException('Quiz IDs required for enable action');
+        }
+
+        await LMSQuizModel.update(
+          { courseId, id: In(body.quizIds) },
+          { syncEnabled: true },
+        );
+
+        const enabledQuizzes = await LMSQuizModel.find({
+          where: { courseId, id: In(body.quizIds) },
+        });
+
+        for (const quiz of enabledQuizzes) {
+          await this.integrationService.singleDocOperation(
+            courseId,
+            quiz,
+            LMSUpload.Quizzes,
+            'Sync',
+          );
+        }
+
+        return `Successfully enabled sync for ${body.quizIds.length} quiz${body.quizIds.length !== 1 ? 'es' : ''}`;
+      }
+    } catch (error) {
+      throw new HttpException(
+        'Failed to update quiz sync settings',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get(':courseId/quizzes')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async getQuizzes(@Param('courseId', ParseIntPipe) courseId: number) {
+    // Check if quiz resource is enabled
+    const integration = await LMSCourseIntegrationModel.findOne({
+      where: { courseId },
+      relations: { orgIntegration: true },
+    });
+
+    if (!integration) {
+      throw new HttpException(
+        LMSApiResponseStatus.InvalidConfiguration,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const selectedResources: LMSResourceType[] =
+      integration.selectedResourceTypes;
+    if (!selectedResources.includes(LMSResourceType.QUIZZES)) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.lmsController.resourceDisabled,
+      );
+    }
+
+    return await this.integrationService.getItems(courseId, LMSGet.Quizzes);
+  }
+
   @Post(':courseId/test')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR)
@@ -491,9 +680,11 @@ export class LMSIntegrationController {
   async toggleSyncDocument(
     @User() _user: UserModel,
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Param('docType') docType: 'assignment' | 'announcement' | 'page' | 'file',
+    @Param('docType')
+    docType: 'assignment' | 'announcement' | 'page' | 'file' | 'quiz',
     @Param('itemId', ParseIntPipe) itemId: number,
-    @Body() params?: LMSAssignment | LMSAnnouncement | LMSPage | LMSFile,
+    @Body()
+    params?: LMSAssignment | LMSAnnouncement | LMSPage | LMSFile | LMSQuiz,
   ): Promise<string> {
     const integration = await LMSCourseIntegrationModel.findOne({
       where: {
@@ -524,6 +715,9 @@ export class LMSIntegrationController {
         break;
       case 'file':
         uploadType = LMSUpload.Files;
+        break;
+      case 'quiz':
+        uploadType = LMSUpload.Quizzes;
         break;
       default:
         throw new BadRequestException(
@@ -603,6 +797,57 @@ export class LMSIntegrationController {
     }
 
     return `Successfully ${newState ? 'synced' : 'cleared'} document from ${integration.orgIntegration.apiPlatform ?? 'LMS'} in HelpMe.`;
+  }
+
+  @Post(':courseId/quiz/:quizId/access-level')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async updateQuizAccessLevel(
+    @User() _user: UserModel,
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('quizId', ParseIntPipe) quizId: number,
+    @Body() body: { accessLevel: LMSQuizAccessLevel },
+  ): Promise<string> {
+    const integration = await LMSCourseIntegrationModel.findOne({
+      where: { courseId },
+      relations: { orgIntegration: true },
+    });
+
+    if (!integration) {
+      throw new HttpException(
+        LMSApiResponseStatus.InvalidConfiguration,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Check if quiz resource is enabled
+    const selectedResources: LMSResourceType[] =
+      integration.selectedResourceTypes;
+    if (!selectedResources.includes(LMSResourceType.QUIZZES)) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.lmsController.resourceDisabled,
+      );
+    }
+
+    try {
+      const result = await this.integrationService.updateQuizAccessLevel(
+        courseId,
+        quizId,
+        body.accessLevel,
+      );
+
+      if (!result) {
+        throw new Error('Failed to update access level');
+      }
+    } catch (err) {
+      console.error(err);
+      throw new HttpException(
+        'Failed to update quiz access level',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return `Successfully updated quiz access level to ${body.accessLevel}`;
   }
 
   @Post('course/:courseId/resources')

@@ -1,6 +1,5 @@
 import {
   AxisChartClasses,
-  AxisChartProps,
   ChartComponentProps,
   LinearChartProps,
 } from '@/app/(dashboard)/course/[cid]/(insights)/utils/types'
@@ -29,7 +28,7 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     yType,
   } = props
 
-  const { minTickGap, angle } = props as AxisChartProps
+  // const { minTickGap, angle } = props as AxisChartProps
 
   let {
     includeLegend,
@@ -123,27 +122,25 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           {valueKeys &&
             valueFills &&
             valueKeys.map((key) => (
-              <>
-                <linearGradient
-                  key={'fill-' + key}
-                  id={'fill' + key}
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop
-                    offset={'5%'}
-                    stopColor={valueFills[key]}
-                    stopOpacity={0.8}
-                  />
-                  <stop
-                    offset={'95%'}
-                    stopColor={valueFills[key]}
-                    stopOpacity={0.0}
-                  />
-                </linearGradient>
-              </>
+              <linearGradient
+                key={'fill-' + key}
+                id={'fill' + key}
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
+                <stop
+                  offset={'5%'}
+                  stopColor={valueFills[key]}
+                  stopOpacity={0.8}
+                />
+                <stop
+                  offset={'95%'}
+                  stopColor={valueFills[key]}
+                  stopOpacity={0.0}
+                />
+              </linearGradient>
             ))}
         </defs>
         {valueKeys &&
