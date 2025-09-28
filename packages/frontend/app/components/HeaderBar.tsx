@@ -219,7 +219,8 @@ const NavBar = ({
                     }
                     onFocus={setNavigationSubMenuLeftSide}
                     onClick={setNavigationSubMenuLeftSide}
-                    onMouseEnter={setNavigationSubMenuLeftSide}
+                    onPointerMove={(e) => e.preventDefault()}
+                    onPointerLeave={(e) => e.preventDefault()}
                   >
                     <UsersRound strokeWidth={1.5} className="mr-3" />
                     Queues
@@ -358,7 +359,8 @@ const NavBar = ({
               className={`!pl-4 ${isProfilePage ? 'md:border-helpmeblue md:border-b-2' : ''}`}
               onFocus={setNavigationSubMenuRightSide}
               onClick={setNavigationSubMenuRightSide}
-              onMouseEnter={setNavigationSubMenuRightSide}
+              onPointerMove={(e) => e.preventDefault()}
+              onPointerLeave={(e) => e.preventDefault()}
             >
               <SelfAvatar size={40} className="mr-2" />
               {userInfo?.firstName}
