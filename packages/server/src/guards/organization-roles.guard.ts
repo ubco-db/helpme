@@ -36,7 +36,7 @@ export class OrganizationRolesGuard implements CanActivate {
   }
 
   async setupData(
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+     
     request: any,
   ): Promise<{ user: OrganizationUserModel }> {
     const user = await OrganizationUserModel.findOne({

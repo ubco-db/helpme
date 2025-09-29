@@ -48,6 +48,7 @@ import { SuperCourseModel } from './src/course/super-course.entity';
 import { OrganizationSettingsModel } from './src/organization/organization_settings.entity';
 import { OrganizationRoleHistory } from './src/organization/organization_role_history.entity';
 import { SentEmailModel } from './src/mail/sent-email.entity';
+import { SlackLinkCodeModel } from './src/slack/slack-link-code.entity';
 import { ChatbotProviderModel } from './src/chatbot/chatbot-infrastructure-models/chatbot-provider.entity';
 import { CourseChatbotSettingsModel } from './src/chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
 import { OrganizationChatbotSettingsModel } from './src/chatbot/chatbot-infrastructure-models/organization-chatbot-settings.entity';
@@ -127,6 +128,7 @@ const typeorm: DataSourceOptions = {
     SentEmailModel,
     OrganizationSettingsModel,
     OrganizationRoleHistory,
+    SlackLinkCodeModel,
     ChatbotProviderModel,
     CourseChatbotSettingsModel,
     OrganizationChatbotSettingsModel,
