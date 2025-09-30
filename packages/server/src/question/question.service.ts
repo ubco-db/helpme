@@ -97,8 +97,6 @@ export class QuestionService {
     // Set TA as taHelped when the TA starts helping the student
     const now = new Date();
     if (isBecomingHelped || isBecomingClosedFromWaiting) {
-      question.taHelped = await UserModel.findOne({ where: { id: userId } });
-      question.helpedAt = now;
       if (!question.lastReadyAt) {
         // failsafe in case for some reason lastReadyAt isn't set
         question.lastReadyAt = question.createdAt;
@@ -106,7 +104,10 @@ export class QuestionService {
       question.waitTime =
         question.waitTime +
         Math.round((now.getTime() - question.lastReadyAt.getTime()) / 1000);
-
+    }
+    if (isBecomingHelped) {
+      question.taHelped = await UserModel.findOne({ where: { id: userId } });
+      question.helpedAt = now;
       // Set firstHelpedAt if it hasn't already
       if (!question.firstHelpedAt) {
         question.firstHelpedAt = question.helpedAt;

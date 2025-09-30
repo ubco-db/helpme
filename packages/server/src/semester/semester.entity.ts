@@ -30,10 +30,10 @@ export class SemesterModel extends BaseEntity {
   @Column('text', { default: 'Legacy Semester' })
   name: string;
 
-  @Column('date', { default: () => 'CURRENT_DATE' })
+  @Column('date', { nullable: true })
   startDate: Date;
 
-  @Column('date', { default: () => 'CURRENT_DATE' })
+  @Column('date', { nullable: true })
   endDate: Date;
 
   @Column('text', { default: '', nullable: true })

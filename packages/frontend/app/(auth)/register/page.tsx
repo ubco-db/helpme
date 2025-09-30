@@ -16,6 +16,8 @@ import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useLocalStorage } from '@/app/hooks/useLocalStorage'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
+import Link from 'next/link'
+import { OrganizationResponse } from '@koh/common'
 
 const parseFromParam = (oid: any) => {
   return parseInt(String(oid ?? ''))
@@ -24,6 +26,11 @@ const parseFromParam = (oid: any) => {
 export default function RegisterPage(props: {
   params: Promise<{ oid?: number }>
 }): ReactElement {
+  const [domLoaded, setDomLoaded] = useState(false)
+  const router = useRouter()
+  const pathName = usePathname()
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get('redirect')
   const params = use(props.params)
 
   const [storedId, setStoredId] = useLocalStorage<number>(
@@ -44,14 +51,9 @@ export default function RegisterPage(props: {
   useEffect(() => {
     if (organizationId) {
       setStoredId(organizationId)
+      fetchOrganization(organizationId).then()
     }
   }, [organizationId])
-
-  const [domLoaded, setDomLoaded] = useState(false)
-  const router = useRouter()
-  const pathName = usePathname()
-  const searchParams = useSearchParams()
-  const redirect = searchParams.get('redirect')
 
   const isLti = useMemo(() => {
     return pathName.startsWith('/lti')
@@ -67,35 +69,16 @@ export default function RegisterPage(props: {
   }
 
   async function createAccount() {
-    const formValues = await registerForm.validateFields()
-    const { firstName, lastName, email, password, confirmPassword, sid } =
-      formValues
-
     if (!organizationId || isNaN(organizationId)) {
       message.error('Organization not found.')
       return
     }
-
-    if (sid && sid.trim().length < 1) {
-      message.error('Student number must be at least 1 character')
-      return
-    }
-
-    if (password !== confirmPassword) {
-      message.error('Passwords do not match.')
-      return
-    }
-    const studentId = !isNaN(parseInt(sid)) ? parseInt(sid) : undefined
-
     const token = await recaptchaRef?.current?.executeAsync()
 
+    const registerFormValues = await registerForm.validateFields()
+
     const registerParams = {
-      firstName,
-      lastName,
-      email,
-      password,
-      confirmPassword,
-      sid: studentId,
+      ...registerFormValues,
       organizationId,
       recaptchaToken: token ?? '',
     }
@@ -112,6 +95,64 @@ export default function RegisterPage(props: {
     if (!response) return
 
     router.push(redirect ? redirect : isLti ? '/lti' : '/courses')
+  }
+
+  // Fetch all organizations for SSO settings
+  const [organization, setOrganization] = useState<OrganizationResponse>()
+
+  async function fetchOrganization(organizationId: number) {
+    await API.organizations
+      .getOrganizations()
+      .then((res) => {
+        if (res) {
+          setOrganization(res.find((org) => org.id == organizationId))
+        }
+      })
+      .catch((err) => {
+        message.error(`Failed to fetch organization: ${getErrorMessage(err)}`)
+      })
+  }
+
+  // Check if email matches SSO patterns for the current organization
+  function checkSsoEmailPatterns(email: string): ReactElement | null {
+    if (
+      !organization ||
+      !organization.ssoEnabled ||
+      !organization.ssoEmailPatterns
+    ) {
+      return null
+    }
+    const errorMessage = (
+      <span>
+        SSO email detected! Would you like to{' '}
+        <Link
+          href={`/api/v1/auth/shibboleth/${organization.id}`}
+          prefetch={false}
+        >
+          Continue with {organization.name}
+        </Link>{' '}
+        instead?
+      </span>
+    )
+    const patterns = organization.ssoEmailPatterns ?? []
+    for (const pattern of patterns) {
+      if (pattern.startsWith('r')) {
+        try {
+          const regexPattern = pattern.substring(1)
+          const regex = new RegExp(regexPattern)
+          if (regex.test(email)) {
+            return errorMessage
+          }
+        } catch (_error) {
+          console.warn(`Invalid regex pattern: ${pattern}`)
+        }
+      } else {
+        if (email.includes(pattern)) {
+          return errorMessage
+        }
+      }
+    }
+    return null
   }
 
   useEffect(() => {
@@ -143,7 +184,7 @@ export default function RegisterPage(props: {
       <div>
         {domLoaded && (
           <div className="mx-auto h-auto pt-20 text-center lg:container lg:mx-auto">
-            <Card className="mx-auto max-w-max sm:px-2 md:px-6">
+            <Card className="mx-auto max-w-lg sm:px-2 md:px-6">
               <h2 className="my-4 flex items-center text-left">
                 Create new account
               </h2>
@@ -244,6 +285,26 @@ export default function RegisterPage(props: {
                       max: 64,
                       message: 'Email must be at most 64 characters',
                     },
+                    {
+                      warningOnly: true,
+                      validator: async (_, value) => {
+                        if (!value) return Promise.resolve()
+                        if (!organization) {
+                          return Promise.resolve()
+                        }
+
+                        try {
+                          const ssoError = checkSsoEmailPatterns(value)
+                          if (ssoError) {
+                            return Promise.reject(ssoError)
+                          }
+                          return Promise.resolve()
+                        } catch (err) {
+                          console.error('Error in email validation:', err)
+                          return Promise.resolve() // fallback to not blocking user
+                        }
+                      },
+                    },
                   ]}
                 >
                   <Input allowClear={true} type="email" />
@@ -279,6 +340,16 @@ export default function RegisterPage(props: {
                   name="confirmPassword"
                   rules={[
                     { required: true, message: 'Please confirm your password' },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (!value || getFieldValue('password') === value) {
+                          return Promise.resolve()
+                        }
+                        return Promise.reject(
+                          new Error('Passwords do not match'),
+                        )
+                      },
+                    }),
                   ]}
                 >
                   <Input
@@ -288,7 +359,16 @@ export default function RegisterPage(props: {
                   />
                 </Form.Item>
 
-                <Form.Item label="Student Number" name="sid">
+                <Form.Item
+                  label="Student Number (Optional)"
+                  name="sid"
+                  rules={[
+                    {
+                      pattern: /^\d*$/,
+                      message: 'Student number must be numeric',
+                    },
+                  ]}
+                >
                   <Input allowClear={true} />
                 </Form.Item>
 

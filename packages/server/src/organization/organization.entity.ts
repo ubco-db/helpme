@@ -50,6 +50,9 @@ export class OrganizationModel extends BaseEntity {
   @Column('text', { nullable: true })
   ssoUrl: string;
 
+  @Column('text', { array: true, nullable: true })
+  ssoEmailPatterns: string[];
+
   @Exclude()
   @OneToOne(
     () => OrganizationSettingsModel,

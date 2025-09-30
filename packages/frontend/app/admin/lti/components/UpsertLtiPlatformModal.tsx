@@ -6,8 +6,8 @@ import {
   UpdateLtiPlatform,
 } from '@koh/common'
 import {
+  Button,
   Form,
-  FormInstance,
   Input,
   message,
   Modal,
@@ -15,7 +15,7 @@ import {
   Switch,
   Tooltip,
 } from 'antd'
-import { InfoCircleOutlined } from '@ant-design/icons'
+import { InfoCircleOutlined, UndoOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
 
 type UpsertLtiPlatformModalProps = {
@@ -35,8 +35,6 @@ const UpsertLtiPlatformModal: React.FC<UpsertLtiPlatformModalProps> = ({
   onCreate,
   onUpdate,
 }) => {
-  const [isKeyDisabled, setIsKeyDisabled] = useState(false)
-
   const [isKeyModified, setIsKeyModified] = useState(false)
   const [methodValue, setMethodValue] = useState<AuthMethodEnum>(
     AuthMethodEnum.JWK_SET,
@@ -45,62 +43,37 @@ const UpsertLtiPlatformModal: React.FC<UpsertLtiPlatformModalProps> = ({
   const [createForm] = Form.useForm<CreateLtiPlatform>()
   const [updateForm] = Form.useForm<UpdateLtiPlatform>()
 
-  const watchedCreateToken = Form.useWatch('accessTokenEndpoint', createForm)
-  const watchedUpdateToken = Form.useWatch('accessTokenEndpoint', updateForm)
+  useEffect(() => {
+    if (focus != undefined) {
+      const method = focus.authToken.method as AuthMethodEnum
+      setMethodValue(method)
+      updateForm.setFieldValue(['authToken', 'method'], method)
+    }
+  }, [focus, isCreating, updateForm])
 
+  const watchedUpdateToken = Form.useWatch('accessTokenEndpoint', updateForm)
   const watchedCreateMethod = Form.useWatch('authToken', createForm)
   const watchedUpdateMethod = Form.useWatch('authToken', updateForm)
 
-  const onWatchMethodChange = (
-    watchValue: LtiAuthConfig,
-    form: FormInstance<CreateLtiPlatform> | FormInstance<UpdateLtiPlatform>,
-  ) => {
-    setIsKeyDisabled(watchValue?.method == AuthMethodEnum.JWK_SET)
+  const onWatchMethodChange = (watchValue: LtiAuthConfig) => {
     setMethodValue(watchValue?.method)
-    if (watchValue?.method == AuthMethodEnum.JWK_SET) {
-      form.setFieldsValue({
-        authToken: {
-          ...watchValue,
-          key: form.getFieldValue('accessTokenEndpoint'),
-        },
-      })
-    }
   }
 
-  const onWatchTokenChange = (
-    watchValue: string,
-    form: FormInstance<CreateLtiPlatform> | FormInstance<UpdateLtiPlatform>,
-    isUpdateForm: boolean = false,
-  ) => {
-    const authToken = form.getFieldValue('authToken')
-    if (isUpdateForm) {
-      setIsKeyModified(!!watchValue)
-    }
-    if (watchValue && authToken?.method == AuthMethodEnum.JWK_SET) {
-      form.setFieldsValue({
-        authToken: {
-          ...authToken,
-          key: watchValue,
-        },
-      })
-    }
+  const onWatchTokenChange = (watchValue: string) => {
+    setIsKeyModified(!!watchValue)
   }
 
   useEffect(() => {
-    onWatchTokenChange(watchedCreateToken, createForm)
-  }, [watchedCreateToken, createForm])
+    onWatchTokenChange(watchedUpdateToken as any)
+  }, [watchedUpdateToken])
 
   useEffect(() => {
-    onWatchTokenChange(watchedUpdateToken as any, updateForm)
-  }, [watchedUpdateToken, updateForm])
+    onWatchMethodChange(watchedCreateMethod)
+  }, [watchedCreateMethod])
 
   useEffect(() => {
-    onWatchMethodChange(watchedCreateMethod, createForm)
-  }, [watchedCreateMethod, createForm])
-
-  useEffect(() => {
-    onWatchMethodChange(watchedUpdateMethod as any, updateForm)
-  }, [watchedUpdateMethod, updateForm])
+    onWatchMethodChange(watchedUpdateMethod as any)
+  }, [watchedUpdateMethod])
 
   const cleanup = () => {
     setFocus(undefined)
@@ -142,7 +115,13 @@ const UpsertLtiPlatformModal: React.FC<UpsertLtiPlatformModalProps> = ({
     >
       {focus != undefined && (
         <Form form={updateForm} initialValues={focus}>
-          <FormFields isKeyDisabled={isKeyDisabled} methodValue={methodValue} />
+          <FormFields
+            methodValue={methodValue}
+            isKeyModified={isKeyModified}
+            resetKey={() => {
+              updateForm.resetFields([['authToken', 'key']])
+            }}
+          />
         </Form>
       )}
       {isCreating && (
@@ -155,7 +134,7 @@ const UpsertLtiPlatformModal: React.FC<UpsertLtiPlatformModalProps> = ({
             active: true,
           }}
         >
-          <FormFields isKeyDisabled={isKeyDisabled} methodValue={methodValue} />
+          <FormFields methodValue={methodValue} />
         </Form>
       )}
     </Modal>
@@ -165,9 +144,10 @@ const UpsertLtiPlatformModal: React.FC<UpsertLtiPlatformModalProps> = ({
 export default UpsertLtiPlatformModal
 
 const FormFields: React.FC<{
-  isKeyDisabled: boolean
   methodValue?: AuthMethodEnum
-}> = ({ isKeyDisabled, methodValue }) => {
+  isKeyModified?: boolean
+  resetKey?: () => void
+}> = ({ methodValue, isKeyModified, resetKey }) => {
   return (
     <>
       <Form.Item
@@ -264,10 +244,6 @@ const FormFields: React.FC<{
           {
             required: false,
           },
-          {
-            pattern: /(http|https):\/\//,
-            message: 'Please ensure the endpoint is a valid URL',
-          },
         ]}
       >
         <Input placeholder={'https://instructure.canvas.com/authorization'} />
@@ -301,48 +277,72 @@ const FormFields: React.FC<{
           ))}
         </Select>
       </Form.Item>
-      <Form.Item
-        name={['authToken', 'key']}
-        label={
-          <Tooltip
-            title={
-              'Depending on the method:\nJWK_KEY: The key used for authenticating requests.\nJWK_SET: The endpoint used for retrieving keys for authenticating requests.\nRSA_KEY: The RSA key used for authenticating requests.'
-            }
-          >
-            Authentication Key <InfoCircleOutlined />
-          </Tooltip>
-        }
-        rules={[
-          {
-            required: true,
-            message: 'Please input the authentication key source',
-          },
-          {
-            pattern: /(http|https):\/\//,
-            message: 'Please ensure the endpoint is a valid URL',
-          },
-        ]}
-      >
-        {methodValue == AuthMethodEnum.JWK_SET ? (
-          <Input disabled={isKeyDisabled} placeholder={'URL'} />
-        ) : methodValue == AuthMethodEnum.RSA_KEY ? (
-          <Input.TextArea
-            placeholder={'RSA Key'}
-            autoSize={{
-              minRows: 3,
-              maxRows: 10,
-            }}
-          />
-        ) : methodValue == AuthMethodEnum.JWK_KEY ? (
-          <Input.TextArea
-            placeholder={'JSON Web Key'}
-            autoSize={{
-              minRows: 3,
-              maxRows: 9,
-            }}
-          />
-        ) : null}
-      </Form.Item>
+      {methodValue == AuthMethodEnum.JWK_SET ? (
+        <Form.Item
+          name={['authToken', 'key']}
+          label={
+            <Tooltip
+              title={
+                'The endpoint used for retrieving keys for authenticating requests.'
+              }
+            >
+              Authentication URL <InfoCircleOutlined />
+            </Tooltip>
+          }
+          rules={[
+            {
+              required: true,
+              message: 'Please input the authentication key source',
+            },
+            {
+              pattern: /(http|https):\/\//,
+              message: 'Please ensure the endpoint is a valid URL',
+            },
+          ]}
+        >
+          <Input />
+        </Form.Item>
+      ) : (
+        <Form.Item
+          name={['authToken', 'key']}
+          label={
+            <Tooltip
+              title={
+                'Depending on the method, the JWK/RSA key used for authenticating requests.'
+              }
+            >
+              Authentication Key <InfoCircleOutlined />
+            </Tooltip>
+          }
+          rules={[
+            {
+              required: true,
+              message: 'Please input the authentication key source',
+            },
+          ]}
+        >
+          {methodValue == AuthMethodEnum.RSA_KEY ? (
+            <Input.TextArea
+              placeholder={'RSA Key'}
+              autoSize={{
+                minRows: 3,
+                maxRows: 10,
+              }}
+            />
+          ) : methodValue == AuthMethodEnum.JWK_KEY ? (
+            <Input.TextArea
+              placeholder={'JSON Web Key'}
+              autoSize={{
+                minRows: 3,
+                maxRows: 9,
+              }}
+            />
+          ) : null}
+          {isKeyModified && (
+            <Button icon={<UndoOutlined />} onClick={resetKey} />
+          )}
+        </Form.Item>
+      )}
       <Form.Item
         name={'active'}
         label={

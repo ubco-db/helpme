@@ -14,6 +14,7 @@ import { LMSAssignmentModel } from './lmsAssignment.entity';
 import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
 import { LMSPageModel } from './lmsPage.entity';
 import { LMSFileModel } from './lmsFile.entity';
+import { LMSQuizModel } from './lmsQuiz.entity';
 import { LMSResourceType } from '@koh/common';
 import { LMSAccessTokenModel } from './lms-access-token.entity';
 
@@ -71,6 +72,9 @@ export class LMSCourseIntegrationModel extends BaseEntity {
 
   @OneToMany(() => LMSFileModel, (file) => file.course)
   files: LMSFileModel[];
+
+  @OneToMany((type) => LMSQuizModel, (quiz) => quiz.course)
+  quizzes: LMSQuizModel[];
 
   @ManyToOne(() => LMSAccessTokenModel, (token) => token.courses, {
     nullable: true,

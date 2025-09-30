@@ -1,18 +1,13 @@
-import { Button, Checkbox, Collapse, Input, List, message, Tooltip } from 'antd'
+import { Checkbox, Collapse, Tooltip } from 'antd'
 import {
-  CheckOutlined,
-  CloseOutlined,
-  EditOutlined,
   EyeOutlined,
   FontSizeOutlined,
   InfoCircleOutlined,
   MessageOutlined,
-  PlusOutlined,
   StarFilled,
-  StarOutlined,
 } from '@ant-design/icons'
 import { cn } from '@/app/utils/generalUtils'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import AdditionalNotesList from '@/app/(dashboard)/organization/ai/components/AdditionalNotesList'
 
 type LLMTypeDisplayProps = {
@@ -37,6 +32,8 @@ type LLMTypeDisplayProps = {
 
   allowRecommendedEdit?: boolean
   onUpdateRecommended?: (modelName: string, isRecommended: boolean) => void
+
+  showModality?: boolean
 }
 
 const LLMTypeDisplay: React.FC<LLMTypeDisplayProps> = ({
@@ -50,6 +47,7 @@ const LLMTypeDisplay: React.FC<LLMTypeDisplayProps> = ({
   shortenButtons,
   allowRecommendedEdit,
   onUpdateRecommended,
+  showModality,
 }) => {
   const [isRecommended, setIsRecommended] = useState<boolean>(
     model.isRecommended,
@@ -90,25 +88,36 @@ const LLMTypeDisplay: React.FC<LLMTypeDisplayProps> = ({
             'flex flex-row items-center justify-center gap-1 p-2 text-lg'
           }
         >
-          {model.isText && (
+          {!showModality && isDefault && (
             <LLMModeDisplay
-              icon={<FontSizeOutlined />}
-              title={`This model can process text input.${isDefault ? ' This is the default text model for this provider.' : ''}`}
-              canSetActive={setDefault != undefined}
+              icon={<StarFilled />}
+              title={`${isDefault ? ' This is the default model for this provider.' : ''}`}
               active={isDefault}
-              toggleActive={() => setDefault && setDefault(model.modelName)}
             />
           )}
-          {model.isVision && (
-            <LLMModeDisplay
-              icon={<EyeOutlined />}
-              title={`This model can process visual inputs.${isDefaultVision ? ' This is the default vision model for this provider.' : ''}`}
-              canSetActive={setDefault != undefined}
-              active={isDefaultVision}
-              toggleActive={() =>
-                setDefault && setDefault(model.modelName, true)
-              }
-            />
+          {showModality && (
+            <>
+              {model.isText && (
+                <LLMModeDisplay
+                  icon={<FontSizeOutlined />}
+                  title={`This model can process text input.${isDefault ? ' This is the default text model for this provider.' : ''}`}
+                  canSetActive={setDefault != undefined}
+                  active={isDefault}
+                  toggleActive={() => setDefault && setDefault(model.modelName)}
+                />
+              )}
+              {model.isVision && (
+                <LLMModeDisplay
+                  icon={<EyeOutlined />}
+                  title={`This model can process visual inputs.${isDefaultVision ? ' This is the default vision model for this provider.' : ''}`}
+                  canSetActive={setDefault != undefined}
+                  active={isDefaultVision}
+                  toggleActive={() =>
+                    setDefault && setDefault(model.modelName, true)
+                  }
+                />
+              )}
+            </>
           )}
           {model.isThinking && (
             <LLMModeDisplay

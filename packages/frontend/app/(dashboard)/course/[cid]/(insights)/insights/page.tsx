@@ -86,11 +86,14 @@ export default function InsightsPage() {
       while (valueOnly.length > 0) {
         const values = [valueOnly.pop(), valueOnly.pop(), valueOnly.pop()]
         valueClusters.push(
-          <div className={'flex flex-auto flex-col gap-4'}>
+          <div
+            key={`cluster-${valueOnly.length}`}
+            className={'flex flex-auto flex-col gap-4'}
+          >
             {values.map((v, index) =>
               v != undefined ? (
                 <InsightComponent
-                  key={'v' + index}
+                  key={'v' + v.name + index}
                   courseId={courseId}
                   insightName={v.name}
                 />
@@ -104,7 +107,7 @@ export default function InsightsPage() {
         .filter((v) => v.insight.insightType != InsightType.Value)
         .map((v, index) => (
           <InsightComponent
-            key={'i-' + index}
+            key={'i-' + v.name + +index}
             courseId={courseId}
             insightName={v.name}
           />

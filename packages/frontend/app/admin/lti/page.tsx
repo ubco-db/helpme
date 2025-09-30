@@ -276,14 +276,16 @@ export default function LtiAdminPage(): ReactElement {
           </Button>
         </div>
         <Table dataSource={paginatedPlatforms} columns={columns} />
-        <UpsertLtiPlatformModal
-          focus={focus}
-          setFocus={setFocus}
-          isCreating={isCreating}
-          setIsCreating={setIsCreating}
-          onCreate={createLtiPlatform}
-          onUpdate={updateLtiPlatform}
-        />
+        {(isCreating || focus != undefined) && (
+          <UpsertLtiPlatformModal
+            focus={focus}
+            setFocus={setFocus}
+            isCreating={isCreating}
+            setIsCreating={setIsCreating}
+            onCreate={createLtiPlatform}
+            onUpdate={updateLtiPlatform}
+          />
+        )}
       </div>
     </>
   )

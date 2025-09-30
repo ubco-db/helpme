@@ -13,9 +13,9 @@ export function useInsight(
       end: params?.end ?? '',
       offset: params?.offset ?? 0,
       limit: params?.offset ?? 50,
-      students: params?.students,
-      queues: params?.queues,
-      staff: params?.staff,
+      students: (params?.students as number[])?.join(','),
+      queues: (params?.queues as number[])?.join(','),
+      staff: (params?.staff as number[])?.join(','),
     })
   }, [
     courseId,
