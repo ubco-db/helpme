@@ -21,12 +21,10 @@ const items = [
     label: 'LTI Platforms',
     icon: (
       <Image
-        src={
-          'https://www.1edtech.org/sites/default/files/resize/content/logos/Learning%20Tools%20Interoperability%20Standard%20icon-195x195.png'
-        }
+        src={'/icons/lti-icon.png'}
         width={16}
         height={16}
-        alt={'1EdTech LTI Logo'}
+        alt={'LTI'}
         preview={false}
       />
     ),
