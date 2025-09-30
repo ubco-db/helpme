@@ -124,6 +124,8 @@ const NavBar = ({
   courseId,
   isAQueuePage,
   isACourseSettingsPage,
+  isAnOrganizationSettingsPage,
+  isAnAdminPanelPage,
   setIsDrawerOpen,
   isProfilePage = false,
   orientation = 'horizontal',
@@ -132,6 +134,8 @@ const NavBar = ({
   courseId: number | null
   isAQueuePage: boolean
   isACourseSettingsPage: boolean
+  isAnOrganizationSettingsPage: boolean
+  isAnAdminPanelPage: boolean
   setIsDrawerOpen?: React.Dispatch<React.SetStateAction<boolean>>
   isProfilePage?: boolean
   orientation?: 'horizontal' | 'vertical'
@@ -339,7 +343,12 @@ const NavBar = ({
               {checkCourseCreatePermissions(userInfo, organizationSettings) && (
                 <NavigationMenuItem>
                   <Link
-                    className="md:pl-8"
+                    className={cn(
+                      '!md:pl-8',
+                      isAnOrganizationSettingsPage
+                        ? 'md:border-helpmeblue md:border-b-2'
+                        : '',
+                    )}
                     href="/organization/settings"
                     onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
                   >
@@ -354,7 +363,12 @@ const NavBar = ({
                 <NavigationMenuItem>
                   <Link
                     href="/admin"
-                    className="md:pl-8"
+                    className={cn(
+                      '!md:pl-8',
+                      isAnAdminPanelPage
+                        ? 'md:border-helpmeblue md:border-b-2'
+                        : '',
+                    )}
                     onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
                   >
                     Admin Panel
@@ -366,7 +380,10 @@ const NavBar = ({
           {/* DESKTOP ONLY PART OF NAVBAR */}
           <NavigationMenuItem className="!ml-auto hidden md:block">
             <NavigationMenuTrigger
-              className={`!pl-4 ${isProfilePage ? 'md:border-helpmeblue md:border-b-2' : ''}`}
+              className={cn(
+                '!pl-4',
+                isProfilePage ? 'md:border-helpmeblue md:border-b-2' : '',
+              )}
               onFocus={setNavigationSubMenuRightSide}
               onClick={setNavigationSubMenuRightSide}
               onPointerMove={(e) => e.preventDefault()}
@@ -457,6 +474,8 @@ const HeaderBar: React.FC = () => {
   const isAQueuePage = URLSegments[3] === 'queue'
   const isACourseSettingsPage =
     URLSegments[3] === 'settings' && !!URLSegments[4]
+  const isAnOrganizationSettingsPage = URLSegments[1] === 'organization'
+  const isAnAdminPanelPage = URLSegments[1] === 'admin'
   const isProfilePage = URLSegments[1] === 'profile'
   const { course } = useCourse(courseId)
 
@@ -471,6 +490,8 @@ const HeaderBar: React.FC = () => {
       courseId={courseId}
       isAQueuePage={isAQueuePage}
       isACourseSettingsPage={isACourseSettingsPage}
+      isAnOrganizationSettingsPage={isAnOrganizationSettingsPage}
+      isAnAdminPanelPage={isAnAdminPanelPage}
       isProfilePage={isProfilePage}
     />
   ) : (
@@ -547,6 +568,8 @@ const HeaderBar: React.FC = () => {
               courseId={courseId}
               isAQueuePage={isAQueuePage}
               isACourseSettingsPage={isACourseSettingsPage}
+              isAnOrganizationSettingsPage={isAnOrganizationSettingsPage}
+              isAnAdminPanelPage={isAnAdminPanelPage}
               orientation="vertical"
               isProfilePage={isProfilePage}
               setIsDrawerOpen={setIsDrawerOpen}

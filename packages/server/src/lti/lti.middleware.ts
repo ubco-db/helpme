@@ -146,7 +146,7 @@ export default class LtiMiddleware {
         dynReg: {
           url: `${this.configService.get<string>('DOMAIN')}`,
           name: 'HelpMe',
-          logo: `${this.configService.get<string>('DOMAIN')}/favicon.ico`,
+          logo: `${this.configService.get<string>('DOMAIN')}/helpme_logo_medium.png`,
           description:
             'External UBC-affiliated application. This tool provides access to its course-specific chatbots.',
           redirectUris: this.redirectRoutes,

@@ -29,6 +29,7 @@ const UserAccessTokens: React.FC = () => {
       .deleteAccessToken(tokenId)
       .then((result) => {
         if (result) {
+          setLMSTokens((prev) => prev.filter((t) => t.id != tokenId))
           message.success('Successfully invalidated token!')
         } else {
           message.error(

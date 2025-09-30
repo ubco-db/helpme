@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  Alert,
   Button,
   DatePicker,
   Divider,
@@ -20,14 +21,17 @@ import {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSToken,
+  OrganizationRole,
   OrganizationSettingsResponse,
   UpsertLMSCourseParams,
+  User,
 } from '@koh/common'
 import { API } from '@/app/api'
 import { BaseOptionType } from 'antd/es/select'
 import dayjs, { Dayjs } from 'dayjs'
 import { useRouter } from 'next/navigation'
 import { DeleteOutlined } from '@ant-design/icons'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 type CreateIntegrationModalProps = {
   isOpen: boolean
@@ -69,6 +73,8 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
   lti,
   onTokenGenerate,
 }) => {
+  const { userInfo } = useUserInfo()
+
   const router = useRouter()
   const [form] = Form.useForm<UpsertLMSCourseParams>()
   const [formValues, setFormValues] = useState<UpsertLMSCourseParams>({} as any)
@@ -346,13 +352,27 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
               }
             />
           </Form.Item>
-          <Form.Item
-            label={'LMS Base URL'}
-            tooltip={'The base URL of the LMS API to connect to'}
-          >
+          <Form.Item label={'LMS Base URL'}>
             <Input value={selectedIntegration.rootUrl} disabled={true} />
           </Form.Item>
           <Divider>Authorization Method</Divider>
+          {baseIntegration != undefined &&
+            baseIntegration.accessTokenId != undefined &&
+            !accessTokens.some(
+              (v) => v.id == baseIntegration.accessTokenId,
+            ) && (
+              <Alert
+                className={'my-2'}
+                type={'warning'}
+                showIcon
+                message={
+                  <span className={'font-semibold'}>
+                    Warning: Access Token Found
+                  </span>
+                }
+                description={`This integration already has an access token attached, but it does not belong to you. Be careful as updating the integration with a new token ${organizationSettings.allowLMSApiKey ? 'or a new API key' : ''} will overwrite the other user's configuration.`}
+              />
+            )}
           {organizationSettings.allowLMSApiKey ? (
             <Tabs
               destroyOnHidden={true}
@@ -367,6 +387,7 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
                       accessTokens={accessTokens}
                       handleGenerate={handleGenerate}
                       handleInvalidate={handleInvalidate}
+                      userInfo={userInfo}
                     />
                   ),
                 },
@@ -384,6 +405,7 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
               accessTokens={accessTokens}
               handleGenerate={handleGenerate}
               handleInvalidate={handleInvalidate}
+              userInfo={userInfo}
             />
           )}
           <Divider>Course Information</Divider>
@@ -502,14 +524,34 @@ const AccessTokenFormItem: React.FC<{
   accessTokens: LMSToken[]
   handleGenerate: () => void
   handleInvalidate: () => void
-}> = ({ accessTokens, handleGenerate, handleInvalidate }) => {
+  userInfo: User
+}> = ({ accessTokens, handleGenerate, handleInvalidate, userInfo }) => {
+  const hasValidRole = [
+    OrganizationRole.PROFESSOR,
+    OrganizationRole.ADMIN,
+  ].includes(
+    (userInfo.organization?.organizationRole as OrganizationRole) ??
+      OrganizationRole.MEMBER,
+  )
   if (accessTokens.length <= 0) {
     return (
-      <div className={'my-2 flex flex-col items-center'}>
+      <div className={'my-2 flex flex-col items-center gap-2'}>
         <p>You have not generated any access tokens to use with HelpMe.</p>
-        <Button className={'w-min'} onClick={handleGenerate}>
-          Generate a new Access Token
-        </Button>
+        <Tooltip
+          title={
+            !hasValidRole
+              ? 'You do not have adequate permissions to generate an access token. Contact an organization administrator for more information.'
+              : undefined
+          }
+        >
+          <Button
+            className={'w-min'}
+            onClick={handleGenerate}
+            disabled={!hasValidRole}
+          >
+            Generate a new Access Token
+          </Button>
+        </Tooltip>
       </div>
     )
   }
