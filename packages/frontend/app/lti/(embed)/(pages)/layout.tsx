@@ -12,6 +12,7 @@ import { fetchUserDetails } from '@/app/api'
 import StandardPageContainer from '@/app/components/standardPageContainer'
 import HeaderBar from '@/app/lti/(embed)/components/LtiHeaderBar'
 import { useLtiContext } from '@/app/contexts/LtiContext'
+import VerifyEmailPage from '@/app/(auth)/verify/page'
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [profile, setProfile] = useState<User>()
@@ -49,6 +50,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="p-16" />
       </Spin>
     </main>
+  ) : !profile.emailVerified ? (
+    <VerifyEmailPage />
   ) : (
     <AsyncToasterProvider>
       <UserInfoProvider profile={profile}>

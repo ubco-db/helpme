@@ -234,7 +234,8 @@ const NavBar = ({
                 className={`!pl-4`}
                 onFocus={setNavigationSubMenuRightSide}
                 onClick={setNavigationSubMenuRightSide}
-                onMouseEnter={setNavigationSubMenuRightSide}
+                onPointerMove={(e) => e.preventDefault()}
+                onPointerLeave={(e) => e.preventDefault()}
               >
                 <SelfAvatar size={40} className="mr-2" />
                 {userInfo?.firstName}
