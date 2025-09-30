@@ -186,6 +186,7 @@ export default function LMSIntegrationsPage(): ReactElement {
       .then((result) => {
         if (result) {
           message.success('Successfully invalidated token!')
+          setLMSTokens((prev) => prev.filter((t) => t.id != tokenId))
         } else {
           message.error(
             'An error occurred while invalidating token. Please try again later.',
