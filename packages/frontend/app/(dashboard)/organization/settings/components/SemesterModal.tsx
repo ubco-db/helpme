@@ -55,20 +55,10 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
         >
           <Input placeholder="2025W Term 1" />
         </Form.Item>
-        <Form.Item
-          label="Start Date"
-          name="startDate"
-          layout="horizontal"
-          rules={[{ required: true, message: 'Please select a start date' }]}
-        >
+        <Form.Item label="Start Date" name="startDate" layout="horizontal">
           <DatePicker />
         </Form.Item>
-        <Form.Item
-          label="End Date"
-          name="endDate"
-          layout="horizontal"
-          rules={[{ required: true, message: 'Please select an end date' }]}
-        >
+        <Form.Item label="End Date" name="endDate" layout="horizontal">
           <DatePicker />
         </Form.Item>
         <Form.Item

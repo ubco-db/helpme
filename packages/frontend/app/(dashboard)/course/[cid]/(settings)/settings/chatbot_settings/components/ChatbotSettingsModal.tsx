@@ -88,7 +88,6 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
       form.setFieldsValue({ ...sets, ...formValues })
       setFormValues({ ...sets, ...formValues })
     }
-     
   }, [courseSettings, form])
 
   const areParamsDefault = useMemo(() => {

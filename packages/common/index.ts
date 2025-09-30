@@ -2441,15 +2441,15 @@ export class SemesterPartial {
   @IsNotEmpty()
   name!: string
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsDate()
   @Type(() => Date)
-  startDate!: Date
+  startDate?: Date | null
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsDate()
   @Type(() => Date)
-  endDate!: Date
+  endDate?: Date | null
 
   @IsOptional()
   @IsString()

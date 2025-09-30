@@ -242,8 +242,8 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
                 <span className="font-normal">
                   {formatSemesterDate(semester)}
                 </span>
-                {new Date(semester.endDate) < new Date() &&
-                  new Date(semester.endDate) > new Date(1971) && (
+                {semester.endDate &&
+                  new Date(semester.endDate) < new Date() && (
                     <span style={{ color: 'red', marginLeft: 6 }}>(ended)</span>
                   )}
               </Select.Option>

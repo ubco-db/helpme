@@ -605,11 +605,7 @@ export class OrganizationController {
 
   // For course archival
   @Patch(':oid/update_course_access/:cid')
-  @UseGuards(
-    JwtAuthGuard,
-    OrgOrCourseRolesGuard,
-    EmailVerifiedGuard,
-  )
+  @UseGuards(JwtAuthGuard, OrgOrCourseRolesGuard, EmailVerifiedGuard)
   @CourseRoles(Role.PROFESSOR)
   @OrgRoles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async updateCourseAccess(

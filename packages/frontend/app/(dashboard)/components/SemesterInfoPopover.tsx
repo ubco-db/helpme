@@ -20,11 +20,15 @@ const SemesterInfoPopover: React.FC<SemesterInfoPopoverProps> = ({
         <div className="max-w-60">
           <p>
             <strong>Start Date:</strong>{' '}
-            {new Date(semester.startDate).toLocaleDateString()}
+            {semester.startDate
+              ? new Date(semester.startDate).toLocaleDateString()
+              : '—'}
           </p>
           <p>
             <strong>End Date:</strong>{' '}
-            {new Date(semester.endDate).toLocaleDateString()}
+            {semester.endDate
+              ? new Date(semester.endDate).toLocaleDateString()
+              : '—'}
           </p>
           {semester.description && (
             <p>

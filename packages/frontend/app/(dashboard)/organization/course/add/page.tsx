@@ -89,8 +89,7 @@ export default function AddCoursePage(): ReactElement {
         setOrganizationSemesters(
           semesters.filter(
             (semester) =>
-              new Date(semester.endDate) > new Date(1971) &&
-              new Date(semester.endDate) > new Date(),
+              semester.endDate && new Date(semester.endDate) > new Date(),
           ), // filter out past semesters
         )
       })

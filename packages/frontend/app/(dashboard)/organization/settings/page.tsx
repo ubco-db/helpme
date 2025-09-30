@@ -80,8 +80,8 @@ export default function SettingsPage(): ReactElement {
         semesters: response.semesters.map((s: SemesterPartial) => ({
           id: s.id,
           name: s.name,
-          startDate: new Date(s.startDate),
-          endDate: new Date(s.endDate),
+          startDate: s.startDate ? new Date(s.startDate) : null,
+          endDate: s.endDate ? new Date(s.endDate) : null,
           description: s.description,
           color: s.color,
         })),

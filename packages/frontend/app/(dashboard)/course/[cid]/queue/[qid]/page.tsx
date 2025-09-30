@@ -538,20 +538,24 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
                     await API.profile.patch({ desktopNotifsEnabled: true }) //link it directly to the desktop notifications API
                     const canNotify = await requestNotificationPermission()
                     if (canNotify === NotificationStates.notAllowed) {
-                      message.warning('Please allow notifications in this browser') //if the user doesn't allow notifications, show a warning
+                      message.warning(
+                        'Please allow notifications in this browser',
+                      ) //if the user doesn't allow notifications, show a warning
                       return
                     }
                     if (canNotify === NotificationStates.granted) {
-                      await registerNotificationSubscription() 
+                      await registerNotificationSubscription()
                     }
-                    setUserInfo({ //update the user info
+                    setUserInfo({
+                      //update the user info
                       ...userInfo,
                       desktopNotifsEnabled: true,
                     })
                     notifApi.success({
                       key,
                       message: 'Success!',
-                      description: 'Notifications have been enabled for this device.',
+                      description:
+                        'Notifications have been enabled for this device.',
                       placement: 'bottomRight', //show the notification at the bottom right of the screen
                       duration: 2,
                     })
@@ -560,7 +564,9 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
                     }, 3000)
                   } catch (e) {
                     const errorMessage = getErrorMessage(e)
-                    message.error(`Failed to enable notifications: ${errorMessage}`)
+                    message.error(
+                      `Failed to enable notifications: ${errorMessage}`,
+                    )
                   } finally {
                     setIsEnablingNotifications(false)
                   }
@@ -578,7 +584,12 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
         })
       }
     },
-    [isFirstQuestion, router, setIsFirstQuestion, userInfo.desktopNotifsEnabled],
+    [
+      isFirstQuestion,
+      router,
+      setIsFirstQuestion,
+      userInfo.desktopNotifsEnabled,
+    ],
   )
 
   const finishHelpingAllStudents = useCallback(async () => {

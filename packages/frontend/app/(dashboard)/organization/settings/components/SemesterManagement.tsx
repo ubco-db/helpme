@@ -58,15 +58,17 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
       return
     }
 
-    if (semesterStartDate.valueOf() >= semesterEndDate.valueOf()) {
-      message.error('Semester start date must be before end date')
-      return
+    if (semesterStartDate && semesterEndDate) {
+      if (semesterStartDate.valueOf() >= semesterEndDate.valueOf()) {
+        message.error('Semester start date must be before end date')
+        return
+      }
     }
 
     const semesterDetails: SemesterPartial = {
       name: semesterName,
-      startDate: semesterStartDate.toDate(),
-      endDate: semesterEndDate.toDate(),
+      startDate: semesterStartDate ? semesterStartDate.toDate() : null,
+      endDate: semesterEndDate ? semesterEndDate.toDate() : null,
       description: semesterDescription || '',
       color: formValues.color,
     }
@@ -135,8 +137,8 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
 
     const semesterDetails: SemesterPartial = {
       name: semesterName,
-      startDate: semesterStartDate.toDate(),
-      endDate: semesterEndDate.toDate(),
+      startDate: semesterStartDate ? semesterStartDate.toDate() : null,
+      endDate: semesterEndDate ? semesterEndDate.toDate() : null,
       description: semesterDescription || '',
       color: formValues.color,
       id: currentSemesterId,
@@ -194,7 +196,15 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
     >
       {organizationSemesters && organizationSemesters.length > 0 ? (
         organizationSemesters
-          .sort((a, b) => b.startDate.getTime() - a.startDate.getTime())
+          .sort((a, b) => {
+            const aTime = a.startDate
+              ? new Date(a.startDate).getTime()
+              : -Infinity
+            const bTime = b.startDate
+              ? new Date(b.startDate).getTime()
+              : -Infinity
+            return bTime - aTime
+          })
           .map((semester) => (
             <Card.Grid
               key={semester.id}
@@ -217,11 +227,15 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
               <h3 className="text-lg font-semibold">{semester.name}</h3>
               <p>
                 <span className="font-semibold">Start Date:</span>{' '}
-                {new Date(semester.startDate).toLocaleDateString()}
+                {semester.startDate
+                  ? new Date(semester.startDate).toLocaleDateString()
+                  : '—'}
               </p>
               <p>
                 <span className="font-semibold">End Date:</span>{' '}
-                {new Date(semester.endDate).toLocaleDateString()}
+                {semester.endDate
+                  ? new Date(semester.endDate).toLocaleDateString()
+                  : '—'}
               </p>
               {semester.description && (
                 <p>
