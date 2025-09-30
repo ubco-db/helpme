@@ -126,7 +126,11 @@ export default function RegisterPage(props: {
       <span>
         SSO email detected! Would you like to{' '}
         <Link
-          href={`/api/v1/auth/shibboleth/${organization.id}`}
+          href={
+            isLti
+              ? API.lti.auth.shibboleth(organization.id)
+              : API.auth.shibboleth(organization.id)
+          }
           prefetch={false}
         >
           Continue with {organization.name}
