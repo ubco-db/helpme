@@ -12,6 +12,7 @@ import {
   CheckCircleOutlined,
   RedoOutlined,
   SwapOutlined,
+  SyncOutlined,
 } from '@ant-design/icons'
 
 export default function VerifyEmailPage() {
@@ -73,6 +74,7 @@ export default function VerifyEmailPage() {
   }
 
   if (success) {
+    const target = isLti ? '/lti' : '/courses'
     return (
       <StandardPageContainer>
         <div className="mx-auto mt-40 flex items-center justify-center md:w-4/5 lg:w-2/5 2xl:w-3/5">
@@ -83,9 +85,18 @@ export default function VerifyEmailPage() {
                 You should be automatically redirected within a few seconds.
               </p>
               <p>If you&#39;re not redirected, press the button below:</p>
-              <Link href={isLti ? '/lti' : '/courses'}>
-                <Button icon={<SwapOutlined />}>Manually Redirect</Button>
-              </Link>
+              {isLti || pathName === target ? (
+                <Button
+                  icon={<SyncOutlined />}
+                  onClick={() => document.location.reload()}
+                >
+                  Reload
+                </Button>
+              ) : (
+                <Link href={target}>
+                  <Button icon={<SwapOutlined />}>Manually Redirect</Button>
+                </Link>
+              )}
             </div>
           </Card>
         </div>
