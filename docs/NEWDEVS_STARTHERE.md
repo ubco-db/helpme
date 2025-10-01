@@ -33,6 +33,7 @@
         - [What is mocking?](#what-is-mocking)
         - [To mock or not to mock?](#to-mock-or-not-to-mock)
       - [Event Subscribers](#event-subscribers)
+  - [Known Quirks when Developing](#known-quirks-when-developing)
 - [History](#history)
 - [TODO](#todo)
   - [For the whole project](#for-the-whole-project)
@@ -423,6 +424,18 @@ Some examples of where this is used:
 - For notifying and sending new queue question data to all users subscribed to queue Server Side Events (which happens automatically when you are viewing a queue page)
 
 See https://orkhan.gitbook.io/typeorm/docs/listeners-and-subscribers for more info
+
+
+## Known Quirks when Developing
+
+If you have any ideas on where to even start with fixing these, feel free to give them a stab!
+
+- Sometimes the HMR/hot reload/hot refresh (the thing that immediately rebuilds your running code after saving) doesn't work for the Nestjs server. Sometimes this is a result of it just taking an extra minute to rebuild. Other times it's just stuck and you will need to `ctrl`+`c` the terminal and run `yarn dev` again. 
+- Sometimes the tests will just start failing on dev (usually with database connection errors, deadlock, or some table already existing). Restarting your computer *might* help
+- There's like a 1 in 40 chance or so that the tests will fail on github actions with one of the errors listed above
+- UI randomly looking funky with no changes? This is very uncommon, but it could be antd updating their css (even though we're using a package manager so we *should* be getting the same version each time. But, I did read somewhere that yarn and other package managers will download newer minor versions of packages even though we have a smaller version in our package.json), or maybe browser caching issue (try `ctrl`+`F5`. It's usually not this but a man can dream).
+- There's more, I'm sure of it
+
 
 # History
 
