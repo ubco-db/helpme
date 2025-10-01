@@ -87,8 +87,7 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
         data: formattedQuestionData,
         filename: `all-questions-${courseNameNoSpecialChars}-${dateString}`,
         delimiter: ',',
-        // NOTE: when using csvDownload, the headers do NOT need to be the same as the keys in the data objects.
-        // The order the attributes come in the objects is what matters.
+
         headers: [
           'question_id',
           'queueId',

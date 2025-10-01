@@ -1058,18 +1058,21 @@ export class CourseController {
                 u."firstName",
                 u."lastName",
                 u.email,
-                DATE_TRUNC('week', q."createdAt") as period_start,
+                c.name as course_name,
+                TO_CHAR(DATE_TRUNC('week', q."createdAt"), 'DD-MM-YYYY') as period_date,
+                TO_CHAR(DATE_TRUNC('week', q."createdAt"), 'HH24:MI') as period_time,
                 COUNT(*) as count
             FROM "user_model" u
             JOIN "user_course_model" uc ON u.id = uc."userId"
+            JOIN "course_model" c ON c.id = uc."courseId"
             JOIN "queue_model" qu ON qu."courseId" = uc."courseId"
             JOIN "question_model" q ON q."queueId" = qu.id AND q."creatorId" = u.id
             WHERE uc."courseId" = $1 
                 AND uc.role = 'student'
                 AND q."createdAt" >= $2
                 AND q."createdAt" <= $3
-            GROUP BY u.id, u."firstName", u."lastName", u.email, DATE_TRUNC('week', q."createdAt")
-            ORDER BY u."lastName", u."firstName", period_start
+            GROUP BY u.id, u."firstName", u."lastName", u.email, c.name, DATE_TRUNC('week', q."createdAt")
+            ORDER BY u."lastName", u."firstName", period_date, period_time
           `
           : `
             SELECT 
@@ -1077,18 +1080,21 @@ export class CourseController {
                 u."firstName",
                 u."lastName",
                 u.email,
-                DATE(q."createdAt") as period_start,
+                c.name as course_name,
+                TO_CHAR(q."createdAt", 'DD-MM-YYYY') as period_date,
+                TO_CHAR(q."createdAt", 'HH24:MI') as period_time,
                 COUNT(*) as count
             FROM "user_model" u
             JOIN "user_course_model" uc ON u.id = uc."userId"
+            JOIN "course_model" c ON c.id = uc."courseId"
             JOIN "queue_model" qu ON qu."courseId" = uc."courseId"
             JOIN "question_model" q ON q."queueId" = qu.id AND q."creatorId" = u.id
             WHERE uc."courseId" = $1 
                 AND uc.role = 'student'
                 AND q."createdAt" >= $2
                 AND q."createdAt" <= $3
-            GROUP BY u.id, u."firstName", u."lastName", u.email, DATE(q."createdAt")
-            ORDER BY u."lastName", u."firstName", period_start
+            GROUP BY u.id, u."firstName", u."lastName", u.email, c.name, q."createdAt"
+            ORDER BY u."lastName", u."firstName", period_date, period_time
           `;
 
         const queueResults = await UserCourseModel.query(queueQuery, [courseId, startDateObj, endDateObj]);
@@ -1102,18 +1108,21 @@ export class CourseController {
                 u."firstName",
                 u."lastName",
                 u.email,
-                DATE_TRUNC('week', aq."createdAt") as period_start,
+                c.name as course_name,
+                TO_CHAR(DATE_TRUNC('week', aq."createdAt"), 'DD-MM-YYYY') as period_date,
+                TO_CHAR(DATE_TRUNC('week', aq."createdAt"), 'HH24:MI') as period_time,
                 COUNT(*) as count
             FROM "user_model" u
             JOIN "user_course_model" uc ON u.id = uc."userId"
+            JOIN "course_model" c ON c.id = uc."courseId"
             JOIN "async_question_model" aq ON aq."courseId" = uc."courseId" AND aq."creatorId" = u.id
             WHERE uc."courseId" = $1 
                 AND uc.role = 'student'
                 AND aq."createdAt" >= $2
                 AND aq."createdAt" <= $3
                 AND aq.status != 'StudentDeleted'
-            GROUP BY u.id, u."firstName", u."lastName", u.email, DATE_TRUNC('week', aq."createdAt")
-            ORDER BY u."lastName", u."firstName", period_start
+            GROUP BY u.id, u."firstName", u."lastName", u.email, c.name, DATE_TRUNC('week', aq."createdAt")
+            ORDER BY u."lastName", u."firstName", period_date, period_time
           `
           : `
             SELECT 
@@ -1121,18 +1130,21 @@ export class CourseController {
                 u."firstName",
                 u."lastName",
                 u.email,
-                DATE(aq."createdAt") as period_start,
+                c.name as course_name,
+                TO_CHAR(aq."createdAt", 'DD-MM-YYYY') as period_date,
+                TO_CHAR(aq."createdAt", 'HH24:MI') as period_time,
                 COUNT(*) as count
             FROM "user_model" u
             JOIN "user_course_model" uc ON u.id = uc."userId"
+            JOIN "course_model" c ON c.id = uc."courseId"
             JOIN "async_question_model" aq ON aq."courseId" = uc."courseId" AND aq."creatorId" = u.id
             WHERE uc."courseId" = $1 
                 AND uc.role = 'student'
                 AND aq."createdAt" >= $2
                 AND aq."createdAt" <= $3
                 AND aq.status != 'StudentDeleted'
-            GROUP BY u.id, u."firstName", u."lastName", u.email, DATE(aq."createdAt")
-            ORDER BY u."lastName", u."firstName", period_start
+            GROUP BY u.id, u."firstName", u."lastName", u.email, c.name, aq."createdAt"
+            ORDER BY u."lastName", u."firstName", period_date, period_time
           `;
 
         const anytimeResults = await UserCourseModel.query(anytimeQuery, [courseId, startDateObj, endDateObj]);
@@ -1146,17 +1158,20 @@ export class CourseController {
                 u."firstName",
                 u."lastName",
                 u.email,
-                DATE_TRUNC('week', ci.timestamp) as period_start,
+                c.name as course_name,
+                TO_CHAR(DATE_TRUNC('week', ci.timestamp), 'DD-MM-YYYY') as period_date,
+                TO_CHAR(DATE_TRUNC('week', ci.timestamp), 'HH24:MI') as period_time,
                 COUNT(DISTINCT ci.id) as count
             FROM "user_model" u
             JOIN "user_course_model" uc ON u.id = uc."userId"
+            JOIN "course_model" c ON c.id = uc."courseId"
             JOIN "chatbot_interactions_model" ci ON ci.course = uc."courseId" AND ci."user" = u.id
             WHERE uc."courseId" = $1 
                 AND uc.role = 'student'
                 AND ci.timestamp >= $2
                 AND ci.timestamp <= $3
-            GROUP BY u.id, u."firstName", u."lastName", u.email, DATE_TRUNC('week', ci.timestamp)
-            ORDER BY u."lastName", u."firstName", period_start
+            GROUP BY u.id, u."firstName", u."lastName", u.email, c.name, DATE_TRUNC('week', ci.timestamp)
+            ORDER BY u."lastName", u."firstName", period_date, period_time
           `
           : `
             SELECT 
@@ -1164,17 +1179,20 @@ export class CourseController {
                 u."firstName",
                 u."lastName",
                 u.email,
-                DATE(ci.timestamp) as period_start,
+                c.name as course_name,
+                TO_CHAR(ci.timestamp, 'DD-MM-YYYY') as period_date,
+                TO_CHAR(ci.timestamp, 'HH24:MI') as period_time,
                 COUNT(DISTINCT ci.id) as count
             FROM "user_model" u
             JOIN "user_course_model" uc ON u.id = uc."userId"
+            JOIN "course_model" c ON c.id = uc."courseId"
             JOIN "chatbot_interactions_model" ci ON ci.course = uc."courseId" AND ci."user" = u.id
             WHERE uc."courseId" = $1 
                 AND uc.role = 'student'
                 AND ci.timestamp >= $2
                 AND ci.timestamp <= $3
-            GROUP BY u.id, u."firstName", u."lastName", u.email, DATE(ci.timestamp)
-            ORDER BY u."lastName", u."firstName", period_start
+            GROUP BY u.id, u."firstName", u."lastName", u.email, c.name, ci.timestamp
+            ORDER BY u."lastName", u."firstName", period_date, period_time
           `;
 
         const chatbotResults = await UserCourseModel.query(chatbotQuery, [courseId, startDateObj, endDateObj]);

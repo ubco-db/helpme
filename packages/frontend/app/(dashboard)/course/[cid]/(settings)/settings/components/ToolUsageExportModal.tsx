@@ -38,23 +38,25 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
         includeChatbotInteractions,
         groupBy
       )
-
-      // Format data for CSV export (same pattern as queue questions)
+      
+      const courseName = data[0].course_name
       const formattedData = data.map((row: any) => ({
         user_id: row.user_id,
         firstName: row.firstName || '',
         lastName: row.lastName || '',
         email: row.email || '',
+        course_name: row.course_name || '',
         tool_type: row.tool_type,
-        period: row.period_start,
+        date: row.period_date,
+        time: row.period_time, 
         count: row.count
       }))
 
       const csvData = {
         data: formattedData,
-        filename: `tool-usage-export-${courseId}-${new Date().toISOString().split('T')[0]}.csv`,
+        filename: `Tool usage export data for ${courseName} -${new Date().toISOString().split('T')[0]}.csv`,
         delimiter: ',',
-        headers: ['User ID', 'First Name', 'Last Name', 'Email', 'Tool Type', 'Period', 'Count']
+        headers: ['User ID', 'First Name', 'Last Name', 'Email', 'Course Name', 'Tool Type', 'Date', 'Time', 'Count']
       }
 
       csvDownload(csvData)
