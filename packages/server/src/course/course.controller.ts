@@ -1029,6 +1029,167 @@ export class CourseController {
     return;
   }
 
+  @Get(':id/export-tool-usage')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async exportToolUsage(
+    @Param('id', ParseIntPipe) courseId: number,
+    @Query('includeQueueQuestions') includeQueueQuestions: string = 'true',
+    @Query('includeAnytimeQuestions') includeAnytimeQuestions: string = 'true',
+    @Query('includeChatbotInteractions') includeChatbotInteractions: string = 'true',
+    @Query('groupBy') groupBy: 'day' | 'week' = 'week',
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<any[]> {
+    const includeQueueQuestionsBool = includeQueueQuestions === 'true';
+    const includeAnytimeQuestionsBool = includeAnytimeQuestions === 'true';
+    const includeChatbotInteractionsBool = includeChatbotInteractions === 'true';
+    const isGroupByWeek = groupBy === 'week';
+    const endDateObj = endDate ? new Date(endDate) : new Date();
+    const startDateObj = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    try {
+      const results = [];
+      if (includeQueueQuestionsBool) {
+        const queueQuery = isGroupByWeek
+          ? `
+            SELECT 
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                DATE_TRUNC('week', q."createdAt") as period_start,
+                COUNT(*) as count
+            FROM "user_model" u
+            JOIN "user_course_model" uc ON u.id = uc."userId"
+            JOIN "queue_model" qu ON qu."courseId" = uc."courseId"
+            JOIN "question_model" q ON q."queueId" = qu.id AND q."creatorId" = u.id
+            WHERE uc."courseId" = $1 
+                AND uc.role = 'student'
+                AND q."createdAt" >= $2
+                AND q."createdAt" <= $3
+            GROUP BY u.id, u."firstName", u."lastName", u.email, DATE_TRUNC('week', q."createdAt")
+            ORDER BY u."lastName", u."firstName", period_start
+          `
+          : `
+            SELECT 
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                DATE(q."createdAt") as period_start,
+                COUNT(*) as count
+            FROM "user_model" u
+            JOIN "user_course_model" uc ON u.id = uc."userId"
+            JOIN "queue_model" qu ON qu."courseId" = uc."courseId"
+            JOIN "question_model" q ON q."queueId" = qu.id AND q."creatorId" = u.id
+            WHERE uc."courseId" = $1 
+                AND uc.role = 'student'
+                AND q."createdAt" >= $2
+                AND q."createdAt" <= $3
+            GROUP BY u.id, u."firstName", u."lastName", u.email, DATE(q."createdAt")
+            ORDER BY u."lastName", u."firstName", period_start
+          `;
+
+        const queueResults = await UserCourseModel.query(queueQuery, [courseId, startDateObj, endDateObj]);
+        results.push(...queueResults.map(row => ({ ...row, tool_type: 'queue_questions' })));
+      }
+      if (includeAnytimeQuestionsBool) {
+        const anytimeQuery = isGroupByWeek
+          ? `
+            SELECT 
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                DATE_TRUNC('week', aq."createdAt") as period_start,
+                COUNT(*) as count
+            FROM "user_model" u
+            JOIN "user_course_model" uc ON u.id = uc."userId"
+            JOIN "async_question_model" aq ON aq."courseId" = uc."courseId" AND aq."creatorId" = u.id
+            WHERE uc."courseId" = $1 
+                AND uc.role = 'student'
+                AND aq."createdAt" >= $2
+                AND aq."createdAt" <= $3
+                AND aq.status != 'StudentDeleted'
+            GROUP BY u.id, u."firstName", u."lastName", u.email, DATE_TRUNC('week', aq."createdAt")
+            ORDER BY u."lastName", u."firstName", period_start
+          `
+          : `
+            SELECT 
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                DATE(aq."createdAt") as period_start,
+                COUNT(*) as count
+            FROM "user_model" u
+            JOIN "user_course_model" uc ON u.id = uc."userId"
+            JOIN "async_question_model" aq ON aq."courseId" = uc."courseId" AND aq."creatorId" = u.id
+            WHERE uc."courseId" = $1 
+                AND uc.role = 'student'
+                AND aq."createdAt" >= $2
+                AND aq."createdAt" <= $3
+                AND aq.status != 'StudentDeleted'
+            GROUP BY u.id, u."firstName", u."lastName", u.email, DATE(aq."createdAt")
+            ORDER BY u."lastName", u."firstName", period_start
+          `;
+
+        const anytimeResults = await UserCourseModel.query(anytimeQuery, [courseId, startDateObj, endDateObj]);
+        results.push(...anytimeResults.map(row => ({ ...row, tool_type: 'anytime_questions' })));
+      }
+      if (includeChatbotInteractionsBool) {
+        const chatbotQuery = isGroupByWeek
+          ? `
+            SELECT 
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                DATE_TRUNC('week', ci.timestamp) as period_start,
+                COUNT(DISTINCT ci.id) as count
+            FROM "user_model" u
+            JOIN "user_course_model" uc ON u.id = uc."userId"
+            JOIN "chatbot_interactions_model" ci ON ci.course = uc."courseId" AND ci."user" = u.id
+            WHERE uc."courseId" = $1 
+                AND uc.role = 'student'
+                AND ci.timestamp >= $2
+                AND ci.timestamp <= $3
+            GROUP BY u.id, u."firstName", u."lastName", u.email, DATE_TRUNC('week', ci.timestamp)
+            ORDER BY u."lastName", u."firstName", period_start
+          `
+          : `
+            SELECT 
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                DATE(ci.timestamp) as period_start,
+                COUNT(DISTINCT ci.id) as count
+            FROM "user_model" u
+            JOIN "user_course_model" uc ON u.id = uc."userId"
+            JOIN "chatbot_interactions_model" ci ON ci.course = uc."courseId" AND ci."user" = u.id
+            WHERE uc."courseId" = $1 
+                AND uc.role = 'student'
+                AND ci.timestamp >= $2
+                AND ci.timestamp <= $3
+            GROUP BY u.id, u."firstName", u."lastName", u.email, DATE(ci.timestamp)
+            ORDER BY u."lastName", u."firstName", period_start
+          `;
+
+        const chatbotResults = await UserCourseModel.query(chatbotQuery, [courseId, startDateObj, endDateObj]);
+        results.push(...chatbotResults.map(row => ({ ...row, tool_type: 'chatbot_interactions' })));
+      }
+      // Return JSON data for frontend to handle CSV generation
+      return results;
+
+    } catch (error) {
+      console.error('Error exporting tool usage:', error);
+      throw new HttpException('Failed to export tool usage data', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+
   @Patch(':id/set_ta_notes/:uid')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)
