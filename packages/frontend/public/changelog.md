@@ -21,7 +21,7 @@
 
 - Improved the "Sign Up For Notifications" popup on the queue page to immediately sign you up for notifications rather than navigating you to the corresponding profile settings page
 - When registering, added a warning that asks if the user meant to login with UBC if they enter a UBC email 
-  - Organizations may also customize this
+  - Organizations with SSO enabled may also customize this
 - The "Profile" and "Queues" dropdown menus on the navbar now are "on-click" rather than "on-hover"
   - Apologies if you have gotten used to how it worked before
 - Fixed the following issues on the insights page:
