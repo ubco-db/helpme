@@ -87,10 +87,6 @@ export async function middleware(
   const isPublicPageRequested = isPublicPage(nextUrl.pathname)
 
   const isPublicFileRequested = isPublicFile(nextUrl.pathname)
-  // Case: User is simply requesting a public file that's set to be available
-  if (isPublicFileRequested) {
-    return NextResponse.next()
-  }
 
   const searchParams =
     url.indexOf('?') > 0
@@ -120,7 +116,7 @@ export async function middleware(
   const defaultPage = isInLti ? '/lti' : '/courses'
 
   // Case: User tries to access a page that requires authentication without an auth token
-  if (!hasToken && !isPublicPageRequested) {
+  if (!hasToken && !isPublicPageRequested && !isPublicFileRequested) {
     return NextResponse.redirect(
       new URL(
         `${isInLti ? '/lti' : ''}/login?redirect=${nextUrl.pathname}`,
@@ -162,7 +158,7 @@ export async function middleware(
   }
 
   // Case: User has auth token and tries to access a page that requires authentication
-  if (response && !isPublicPageRequested) {
+  if (response && !isPublicPageRequested && !isPublicFileRequested) {
     // If the auth token is invalid, redirect to /login
     if (response.status === 401) {
       // I have no clue if the session is actually expired or what exactly.
@@ -253,7 +249,8 @@ export async function middleware(
   if (
     userData &&
     userData.restrictPaths != undefined &&
-    !isPublicPageRequested
+    !isPublicPageRequested &&
+    !isPublicFileRequested
   ) {
     const pathOrPaths = userData.restrictPaths
     const requestPath = nextUrl.pathname
@@ -293,7 +290,7 @@ export async function middleware(
     }
   }
 
-  if (userData && !isPublicPageRequested) {
+  if (userData && !isPublicPageRequested && !isPublicFileRequested) {
     // Case: User has auth token and tries to access a page that requires email verification.
     //  Check:
     //  - if page is /verify and email is not verified, allow access
