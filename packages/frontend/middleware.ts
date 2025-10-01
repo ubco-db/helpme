@@ -7,6 +7,7 @@ import { fetchAuthToken } from '@/app/api/cookie-utils'
 
 // These are the public pages that do not require authentication. Adding an * will match any characters after the page (e.g. if the page has search query params).
 const publicPages = [
+  new RegExp('^/helpme_logo_(full|medium|small)[.]png$'),
   '/login',
   '/register*',
   '/failed*',
@@ -23,7 +24,8 @@ const publicPages = [
 
 const isPublicPage = (url: string) => {
   return publicPages.some((page) => {
-    const regex = new RegExp(`^${page.replace('*', '.*')}$`)
+    const regex =
+      page instanceof RegExp ? page : new RegExp(`^${page.replace('*', '.*')}$`)
     return regex.test(url)
   })
 }
