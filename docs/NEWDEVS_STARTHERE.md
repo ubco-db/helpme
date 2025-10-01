@@ -434,6 +434,9 @@ If you have any ideas on where to even start with fixing these, feel free to giv
 - Sometimes the tests will just start failing on dev (usually with database connection errors, deadlock, or some table already existing). Restarting your computer *might* help
 - There's like a 1 in 40 chance or so that the tests will fail on github actions with one of the errors listed above
 - UI randomly looking funky with no changes? This is very uncommon, but it could be antd updating their css (even though we're using a package manager so we *should* be getting the same version each time. But, I did read somewhere that yarn and other package managers will download newer minor versions of packages even though we have a smaller version in our package.json), or maybe browser caching issue (try `ctrl`+`F5`. It's usually not this but a man can dream).
+- You might run into issues when switching between branches with different migrations, which conflict in some way. There are a couple of things you can do to fix this.
+  - Before switching branches, clear all data using the `/dev` endpoint. (easier)
+  - Run either an UPDATE or DELETE SQL query to fix the data (easier if you have beekeeper studio or some other nice UI connected to the database)
 - There's more, I'm sure of it
 
 
