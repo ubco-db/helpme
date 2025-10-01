@@ -1,3 +1,47 @@
+## Version 1.7.0 - Canvas Quizzes Integration
+
+*Oct 4th, 2025*
+
+
+#### New Features
+
+- ***Faculty-only***
+  - Canvas Quizzes are now a resource that can be synchronized into the chatbot knowledge base
+    - By default, this is ***not enabled***. To enable it, you will need to select it in the resource selector on the LMS Integrations page (under Course Settings)
+      - You can then choose what quizzes you want synchronized and to what level
+    - Includes 4 levels of access-control so that professors can choose how much information from the quiz they want the chatbot to have access to, these being:
+      - Logistics Only (title, due dates, description, time limits)
+      - Logistics & Questions
+      - Logistics, Questions, and Comments (comments being the professor-set blurb that shows up if a question is correct/incorrect)
+      - Full Access (includes quiz answers)
+    - Comes with a preview of all content that would be sent to the chatbot knowledge base
+    - Any chatbot citations for these quizzes takes the student to the corresponding page on Canvas (meaning students cannot access anything restricted)
+
+#### Improvements
+
+- Improved the "Sign Up For Notifications" popup on the queue page to immediately sign you up for notifications rather than navigating you to the corresponding profile settings page
+- When registering, added a warning that asks if the user meant to login with UBC if they enter a UBC email 
+  - Organizations may also customize this
+- The "Profile" and "Queues" dropdown menus on the navbar now are "on-click" rather than "on-hover"
+  - Apologies if you have gotten used to how it worked before
+- Fixed the following issues on the insights page:
+  - Filters now work properly
+  - Usage Over Time graph now shows correct information
+  - Adjusted the names and descriptions of several graphs to use more clear terminology (e.g. questions -> queue questions. Async questions -> anytime questions, etc.) 
+- Fixed an issue where students were becoming their own helper when deleting their queue questions
+  - This fix was deployed on Sep 17th, and all data was corrected (the only thing this affected was some charts on the Insights page)
+- Removed the "this model can process visual/text input" indicators in the course chatbot settings as this doesn't actually affect anything to do with how the chatbot works or behaves at this time
+- Fixed an issue where the search on the chatbot knowledge base page was getting reset after updating or editing a chunk
+- Fixed some weird behaviour when repeatedly saving the TA Notes on the queue page
+- Added the totals of each role on the Course Roster page
+- Made semester start and end dates optional
+- Fixed an issue where organization professors were unable to archive their own courses
+- Fixed an issue where TA notes were not being shown on the "queue preview" page (this is the page shown when a student clicks/scans a Queue Invite link before logging in)
+
+
+
+***
+
 ## Version 1.6.2 - Bug Fixes
 
 *Sep 16th, 2025*
