@@ -5,9 +5,13 @@ import { RequestCookies } from 'next/dist/compiled/@edge-runtime/cookies'
 import Axios, { AxiosResponse } from 'axios'
 import { fetchAuthToken } from '@/app/api/cookie-utils'
 
-// These are the public pages that do not require authentication. Adding an * will match any characters after the page (e.g. if the page has search query params).
-const publicPages = [
+// These are files that do not require authentication. Used for displaying logos outside of HelpMe.
+const publicFiles: RegExp[] = [
   new RegExp('^/helpme_logo_(full|medium|small)[.]png$'),
+]
+
+// These are the public pages that do not require authentication. Adding an * will match any characters after the page (e.g. if the page has search query params).
+const publicPages: string[] = [
   '/login',
   '/register*',
   '/failed*',
@@ -24,10 +28,13 @@ const publicPages = [
 
 const isPublicPage = (url: string) => {
   return publicPages.some((page) => {
-    const regex =
-      page instanceof RegExp ? page : new RegExp(`^${page.replace('*', '.*')}$`)
+    const regex = new RegExp(`^${page.replace('*', '.*')}$`)
     return regex.test(url)
   })
+}
+
+const isPublicFile = (url: string) => {
+  return publicFiles.some((file) => file.test(url))
 }
 
 const isEmailVerified = (userData: User): boolean => {
@@ -78,6 +85,12 @@ export async function middleware(
   const { url, nextUrl, cookies } = request
 
   const isPublicPageRequested = isPublicPage(nextUrl.pathname)
+
+  const isPublicFileRequested = isPublicFile(nextUrl.pathname)
+  // Case: User is simply requesting a public file that's set to be available
+  if (isPublicFileRequested) {
+    return NextResponse.next()
+  }
 
   const searchParams =
     url.indexOf('?') > 0
