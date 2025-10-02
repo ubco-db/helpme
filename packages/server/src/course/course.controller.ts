@@ -1059,7 +1059,7 @@ export class CourseController {
                 u."lastName",
                 u.email,
                 c.name as course_name,
-                TO_CHAR(DATE_TRUNC('week', q."createdAt"), 'DD-MM-YYYY') as period_date,
+                'Week of ' || TO_CHAR(DATE_TRUNC('week', q."createdAt"), 'DD Mon') as period_date,
                 TO_CHAR(DATE_TRUNC('week', q."createdAt"), 'HH24:MI') as period_time,
                 COUNT(*) as count
             FROM "user_model" u
@@ -1081,7 +1081,7 @@ export class CourseController {
                 u."lastName",
                 u.email,
                 c.name as course_name,
-                TO_CHAR(q."createdAt", 'DD-MM-YYYY') as period_date,
+                TO_CHAR(q."createdAt", 'DD Mon YYYY') as period_date,
                 TO_CHAR(q."createdAt", 'HH24:MI') as period_time,
                 COUNT(*) as count
             FROM "user_model" u
@@ -1109,7 +1109,7 @@ export class CourseController {
                 u."lastName",
                 u.email,
                 c.name as course_name,
-                TO_CHAR(DATE_TRUNC('week', aq."createdAt"), 'DD-MM-YYYY') as period_date,
+                'Week of ' || TO_CHAR(DATE_TRUNC('week', aq."createdAt"), 'DD Mon') as period_date,
                 TO_CHAR(DATE_TRUNC('week', aq."createdAt"), 'HH24:MI') as period_time,
                 COUNT(*) as count
             FROM "user_model" u
@@ -1131,7 +1131,7 @@ export class CourseController {
                 u."lastName",
                 u.email,
                 c.name as course_name,
-                TO_CHAR(aq."createdAt", 'DD-MM-YYYY') as period_date,
+                TO_CHAR(aq."createdAt", 'DD Mon YYYY') as period_date,
                 TO_CHAR(aq."createdAt", 'HH24:MI') as period_time,
                 COUNT(*) as count
             FROM "user_model" u
@@ -1159,7 +1159,7 @@ export class CourseController {
                 u."lastName",
                 u.email,
                 c.name as course_name,
-                TO_CHAR(DATE_TRUNC('week', ci.timestamp), 'DD-MM-YYYY') as period_date,
+                'Week of ' || TO_CHAR(DATE_TRUNC('week', ci.timestamp), 'DD Mon') as period_date,
                 TO_CHAR(DATE_TRUNC('week', ci.timestamp), 'HH24:MI') as period_time,
                 COUNT(DISTINCT ci.id) as count
             FROM "user_model" u
@@ -1180,7 +1180,7 @@ export class CourseController {
                 u."lastName",
                 u.email,
                 c.name as course_name,
-                TO_CHAR(ci.timestamp, 'DD-MM-YYYY') as period_date,
+                TO_CHAR(ci.timestamp, 'DD Mon YYYY') as period_date,
                 TO_CHAR(ci.timestamp, 'HH24:MI') as period_time,
                 COUNT(DISTINCT ci.id) as count
             FROM "user_model" u

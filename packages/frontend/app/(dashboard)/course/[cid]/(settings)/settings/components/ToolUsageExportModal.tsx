@@ -4,6 +4,7 @@ import { Button, Checkbox, Modal, Segmented, message } from 'antd'
 import { useState } from 'react'
 import csvDownload from 'json-to-csv-export'
 import { API } from '@/app/api'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 type ToolUsageExportModalProps = {
   courseId: number
@@ -21,6 +22,12 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
   const [includeAnytimeQuestions, setIncludeAnytimeQuestions] = useState(true)
   const [includeChatbotInteractions, setIncludeChatbotInteractions] = useState(true)
   const [groupBy, setGroupBy] = useState<'day' | 'week'>('week')
+
+  const handleError = (error: any, context: string) => {
+    console.error(`${context}:`, error)
+    const errorMessage = getErrorMessage(error)
+    message.error(`${context}: ${errorMessage}`)
+  }
 
   const handleExport = async () => {
     // Check if at least one tool type is selected
@@ -40,31 +47,116 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
       )
       
       const courseName = data[0].course_name
-      const formattedData = data.map((row: any) => ({
-        user_id: row.user_id,
-        firstName: row.firstName || '',
-        lastName: row.lastName || '',
-        email: row.email || '',
-        course_name: row.course_name || '',
-        tool_type: row.tool_type,
-        date: row.period_date,
-        time: row.period_time, 
-        count: row.count
-      }))
+      
+      const toolsString = [
+        includeQueueQuestions && 'queue',
+        includeAnytimeQuestions && 'anytime questions',
+        includeChatbotInteractions && 'chatbot'
+      ].filter(Boolean).join(', ')
+      
+      const toolData = new Map()
+      
+      data.forEach((row: any) => {
+        const toolKey = row.tool_type
+        if (!toolData.has(toolKey)) {
+          toolData.set(toolKey, [])
+        }
+        toolData.get(toolKey).push(row)
+      })
+      
+      const toolTypes = Array.from(toolData.keys()).sort()
+      const allTimePeriods = new Set()
+      const allStudents = new Map()
+      
+      toolTypes.forEach(toolType => {
+        const toolRows = toolData.get(toolType)
+        toolRows.forEach((row: any) => {
+          allTimePeriods.add(row.period_date)
+          const studentKey = `${row.user_id}_${row.firstName}_${row.lastName}_${row.email}`
+          if (!allStudents.has(studentKey)) {
+            allStudents.set(studentKey, {
+              user_id: row.user_id,
+              firstName: row.firstName || '',
+              lastName: row.lastName || '',
+              email: row.email || ''
+            })
+          }
+        })
+      })
+      
+      const sortedPeriods = Array.from(allTimePeriods).sort()
+      const formattedData = []
+      
+      toolTypes.forEach(toolType => {
+        const toolRows = toolData.get(toolType)
+        
+        const studentData = new Map()
+        
+        toolRows.forEach((row: any) => {
+          const studentKey = `${row.user_id}_${row.firstName}_${row.lastName}_${row.email}`
+          const timeKey = row.period_date
+          
+          if (!studentData.has(studentKey)) {
+            studentData.set(studentKey, {
+              user_id: row.user_id,
+              firstName: row.firstName || '',
+              lastName: row.lastName || '',
+              email: row.email || '',
+              periods: new Map()
+            })
+          }
+          
+          const currentCount = studentData.get(studentKey).periods.get(timeKey) || 0
+          studentData.get(studentKey).periods.set(timeKey, currentCount + row.count)
+        })
+        
 
+        formattedData.push({
+          'User ID': `[${toolType.toUpperCase()}]`,
+          'First Name': '',
+          'Last Name': '',
+          'Email': '',
+          ...Object.fromEntries(sortedPeriods.map(period => [period, '']))
+        })
+        
+
+        Array.from(studentData.values()).forEach(student => {
+          const row: any = {
+            'User ID': student.user_id,
+            'First Name': student.firstName,
+            'Last Name': student.lastName,
+            'Email': student.email
+          }
+          
+
+          sortedPeriods.forEach(period => {
+            row[period] = student.periods.get(period) || 0
+          })
+          
+          formattedData.push(row)
+        })
+        
+        formattedData.push({
+          'User ID': '',
+          'First Name': '',
+          'Last Name': '',
+          'Email': '',
+          ...Object.fromEntries(sortedPeriods.map(period => [period, '']))
+        })
+      })
+      
       const csvData = {
         data: formattedData,
-        filename: `Tool usage export data for ${courseName} -${new Date().toISOString().split('T')[0]}.csv`,
+        filename: `Tool Usage for ${courseName} (${toolsString}) - ${new Date().toISOString().split('T')[0]}.csv`,
         delimiter: ',',
-        headers: ['User ID', 'First Name', 'Last Name', 'Email', 'Course Name', 'Tool Type', 'Date', 'Time', 'Count']
+        headers: ['User ID', 'First Name', 'Last Name', 'Email', ...sortedPeriods]
       }
 
       csvDownload(csvData)
-      message.success('Tool usage data exported successfully')
+      message.success('Tool usage data exported successfully! Single CSV file with separate sections for each tool type created.')
       onCancel()
     } catch (error) {
-      console.error('Export error:', error)
-      message.error('Failed to export tool usage data')
+      handleError(error, 'Failed to export tool usage data')
     } finally {
       setLoading(false)
     }
