@@ -168,6 +168,7 @@ export class CalendarService implements OnModuleInit {
   ) {
     const jobName = `auto-checkout-${userId}-${calendarId}`;
     const cronJobs = this.schedulerRegistry.getCronJobs();
+
     if (!cronJobs.has(jobName)) {
       if (!skipIfNotExists) {
         console.error(`Cron job with name ${jobName} does not exist`);

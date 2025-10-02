@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
 import {
+  ERROR_MESSAGES,
   LMSAnnouncement,
   LMSApiResponseStatus,
   LMSAssignment,
@@ -8,10 +9,19 @@ import {
   LMSFile,
   LMSIntegrationPlatform,
   LMSPage,
+  LMSPostAuthBody,
+  LMSPostResponseBody,
   LMSQuiz,
 } from '@koh/common';
 import { LMSUpload } from './lmsIntegration.service';
 import { Cache } from 'cache-manager';
+import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
+import { LMSAuthStateModel } from './lms-auth-state.entity';
+import { ConfigService } from '@nestjs/config';
+import express from 'express';
+import { LMSAccessToken, LMSAccessTokenModel } from './lms-access-token.entity';
+import { OrganizationSettingsModel } from '../organization/organization_settings.entity';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class LMSIntegrationAdapter {
@@ -28,11 +38,177 @@ export class LMSIntegrationAdapter {
 }
 
 export abstract class AbstractLMSAdapter {
+  protected refreshTokenUrl: string;
+
   /* eslint-disable @typescript-eslint/no-unused-vars */
   constructor(
     protected integration: LMSCourseIntegrationModel,
     protected cacheManager?: Cache,
   ) {}
+
+  static async createState(
+    organizationIntegration: LMSOrganizationIntegrationModel,
+    userId: number,
+    redirectUrl?: string,
+  ): Promise<LMSAuthStateModel> {
+    let state: string;
+    do {
+      state = encodeURIComponent(crypto.randomBytes(25).toString('hex'));
+    } while (await LMSAuthStateModel.findOne({ where: { state } }));
+
+    return await LMSAuthStateModel.save({
+      state,
+      organizationIntegration,
+      userId,
+      redirectUrl,
+    });
+  }
+
+  static async logoutAuth(accessToken: LMSAccessTokenModel): Promise<boolean> {
+    const adapter = new LMSIntegrationAdapter();
+    const lmsAdapter = await adapter.getAdapter({
+      accessTokenId: accessToken.id,
+      accessToken: accessToken,
+      orgIntegration: accessToken.organizationIntegration,
+    } as unknown as LMSCourseIntegrationModel);
+
+    return await lmsAdapter.logoutAuth();
+  }
+
+  async logoutAuth(): Promise<boolean> {
+    return null;
+  }
+
+  static async redirectAuth(
+    response: express.Response,
+    organizationIntegration: LMSOrganizationIntegrationModel,
+    userId: number,
+    configService: ConfigService,
+    redirectUrl?: string,
+  ): Promise<any> {
+    switch (organizationIntegration.apiPlatform) {
+      case 'Canvas':
+        return CanvasLMSAdapter.redirectAuth(
+          response,
+          organizationIntegration,
+          userId,
+          configService,
+          redirectUrl,
+        );
+    }
+    return null;
+  }
+
+  static async postAuth(
+    authBody: LMSPostAuthBody,
+    organizationIntegration: LMSOrganizationIntegrationModel,
+  ) {
+    switch (organizationIntegration.apiPlatform) {
+      case 'Canvas':
+        return CanvasLMSAdapter.postAuth(authBody, organizationIntegration);
+    }
+    return null;
+  }
+
+  static async getUserCourses(accessToken: LMSAccessTokenModel): Promise<{
+    status: LMSApiResponseStatus;
+    courses: LMSCourseAPIResponse[];
+  }> {
+    const adapter = new LMSIntegrationAdapter();
+    const lmsAdapter = await adapter.getAdapter({
+      accessTokenId: accessToken.id,
+      accessToken: accessToken,
+      orgIntegration: accessToken.organizationIntegration,
+    } as unknown as LMSCourseIntegrationModel);
+
+    return await lmsAdapter.getUserCourses();
+  }
+
+  async checkAccessToken(id: number): Promise<{
+    accessToken: LMSAccessTokenModel;
+    token: LMSAccessToken;
+  }> {
+    const accessToken = await LMSAccessTokenModel.findOne({
+      where: {
+        id: id,
+      },
+      relations: {
+        organizationIntegration: true,
+      },
+    });
+    if (!accessToken) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.lmsAdapter.missingAccessToken,
+      );
+    }
+    const token = await accessToken.getToken();
+
+    if (accessToken.isExpired(token)) {
+      const response = await fetch(this.refreshTokenUrl, {
+        method: 'POST',
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          client_id: accessToken.organizationIntegration.clientId,
+          client_secret: accessToken.organizationIntegration.clientSecret,
+          refresh_token: token.refresh_token,
+        } as unknown as Record<string, string>).toString(),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new HttpException(
+          `${err.error}: ${err.error_description}`,
+          response.status,
+        );
+      }
+
+      const raw = (await response.json()) as LMSPostResponseBody;
+      const updated = await accessToken.encryptToken(raw);
+
+      return {
+        accessToken: updated,
+        token: await updated.getToken(),
+      };
+    }
+
+    return {
+      accessToken,
+      token,
+    };
+  }
+
+  async getAuthorization() {
+    const orgSettings = await OrganizationSettingsModel.findOne({
+      where: {
+        organizationId: this.integration.orgIntegration.organizationId,
+      },
+    });
+    if (this.integration.apiKey != undefined && orgSettings?.allowLMSApiKey) {
+      if (
+        this.integration.apiKeyExpiry &&
+        this.integration.apiKeyExpiry.getTime() < Date.now()
+      ) {
+        throw new BadRequestException(
+          ERROR_MESSAGES.lmsController.apiKeyExpired,
+        );
+      }
+      return `Bearer ${this.integration.apiKey}`;
+    }
+
+    if (!this.integration.accessTokenId) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.lmsAdapter.missingAccessToken,
+      );
+    }
+
+    const { token } = await this.checkAccessToken(
+      this.integration.accessTokenId,
+    );
+    return `${token.token_type} ${token.access_token}`;
+  }
 
   getPlatform(): LMSIntegrationPlatform | null {
     return null;
@@ -45,6 +221,13 @@ export abstract class AbstractLMSAdapter {
   async Get(
     url: string,
   ): Promise<{ status: LMSApiResponseStatus; data?: any; nextLink?: string }> {
+    return null;
+  }
+
+  async getUserCourses(): Promise<{
+    status: LMSApiResponseStatus;
+    courses: LMSCourseAPIResponse[];
+  }> {
     return null;
   }
 
@@ -114,14 +297,129 @@ abstract class ImplementedLMSAdapter extends AbstractLMSAdapter {
 export class BaseLMSAdapter extends AbstractLMSAdapter {}
 
 class CanvasLMSAdapter extends ImplementedLMSAdapter {
+  constructor(
+    protected integration: LMSCourseIntegrationModel,
+    protected cacheManager?: Cache,
+  ) {
+    super(integration, cacheManager);
+    this.refreshTokenUrl = `${this.integration.orgIntegration.secure ? 'https' : 'http'}://${this.integration.orgIntegration.rootUrl}/login/oauth2/token`;
+  }
+
   getPlatform(): LMSIntegrationPlatform {
     return LMSIntegrationPlatform.Canvas;
+  }
+
+  async logoutAuth(): Promise<boolean> {
+    const uri = `${this.integration.orgIntegration.secure ? 'https' : 'http'}://${this.integration.orgIntegration.rootUrl}/login/oauth2/token`;
+
+    let alreadyInvalid = false;
+    await this.checkAccessToken(this.integration.accessTokenId).catch((err) => {
+      if ((err as Error).message == `invalid_grant: refresh_token not found`) {
+        alreadyInvalid = true;
+      }
+    });
+    if (alreadyInvalid) return true;
+
+    return await fetch(uri, {
+      method: 'DELETE',
+      headers: {
+        Authorization: await this.getAuthorization(),
+      },
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          if (res.status != 500) {
+            const json = await res.json();
+            throw new HttpException(`${json.error}`, res.status);
+          } else {
+            throw new HttpException('Fetch failed', 500);
+          }
+        }
+        console.log('Successfully invalidated token!');
+        return true;
+      })
+      .catch((err) => {
+        console.error(
+          `Could not invalidate token. Error: ${(err as Error).message}`,
+        );
+        return false;
+      });
+  }
+
+  static async redirectAuth(
+    response: express.Response,
+    organizationIntegration: LMSOrganizationIntegrationModel,
+    userId: number,
+    configService: ConfigService,
+    redirectUrl?: string,
+  ) {
+    const uri = `https://${organizationIntegration.rootUrl}/login/oauth2/auth`;
+
+    const state = await super.createState(
+      organizationIntegration,
+      userId,
+      redirectUrl,
+    );
+
+    const query = new URLSearchParams({
+      client_id: organizationIntegration.clientId,
+      response_type: 'code',
+      state: state.state,
+      scope: [
+        'url:GET|/api/v1/users/:user_id/courses',
+        'url:GET|/api/v1/courses/:id',
+        'url:GET|/api/v1/courses/:course_id/assignments',
+        'url:GET|/api/v1/courses/:course_id/users',
+        'url:GET|/api/v1/courses/:course_id/enrollments',
+        'url:GET|/api/v1/courses/:course_id/discussion_topics',
+        'url:GET|/api/v1/courses/:course_id/pages',
+        'url:GET|/api/v1/courses/:course_id/pages/:url_or_id',
+        'url:GET|/api/v1/courses/:course_id/files',
+        'url:GET|/api/v1/courses/:course_id/quizzes',
+        'url:GET|/api/v1/courses/:course_id/quizzes/:quiz_id/questions',
+      ].join(' '),
+      redirect_uri: `${configService.get<string>('DOMAIN')}/api/v1/lms/oauth2/response`,
+    });
+
+    const url = `${uri}?${query.toString()}`;
+    return response.redirect(url);
+  }
+
+  static async postAuth(
+    authBody: LMSPostAuthBody,
+    organizationIntegration: LMSOrganizationIntegrationModel,
+  ) {
+    const uri = `${organizationIntegration.secure ? 'https' : 'http'}://${organizationIntegration.rootUrl}/login/oauth2/token`;
+
+    return await fetch(uri, {
+      method: 'POST',
+      body: new URLSearchParams(
+        authBody as unknown as Record<string, string>,
+      ).toString(),
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    })
+      .then(async (res) => {
+        if (res.ok) return res;
+        else {
+          throw await res.json().then((json) => {
+            return new HttpException(
+              `${json.error}: ${json.error_description}`,
+              res.status,
+            );
+          });
+        }
+      })
+      .catch((err) => {
+        throw err;
+      });
   }
 
   async Get(
     path: string,
   ): Promise<{ status: LMSApiResponseStatus; data?: any; nextLink?: string }> {
-    const url = `https://${this.integration.orgIntegration.rootUrl}/api/v1/${path}`;
+    const url = `${this.integration.orgIntegration.secure ? 'https' : 'http'}://${this.integration.orgIntegration.rootUrl}/api/v1/${path}`;
     const cacheKey = url;
 
     // Check cache first
@@ -140,7 +438,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     const result = await fetch(url, {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${this.integration.apiKey}`,
+        Authorization: await this.getAuthorization(),
       },
     })
       .then((response) => {
@@ -207,6 +505,28 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     return { status: LMSApiResponseStatus.Success, data };
   }
 
+  async getUserCourses(): Promise<{
+    status: LMSApiResponseStatus;
+    courses: LMSCourseAPIResponse[];
+  }> {
+    const token = await this.integration.accessToken.getToken();
+
+    const { status, data } = await this.GetPaginated(
+      `users/${token.userId}/courses`,
+    );
+    if (status != LMSApiResponseStatus.Success) return { status, courses: [] };
+
+    return {
+      status: LMSApiResponseStatus.Success,
+      courses: data.map((course: any) => ({
+        id: course.id,
+        name: course.name,
+        code: course.course_code,
+        studentCount: 0,
+      })),
+    };
+  }
+
   async getCourse(): Promise<{
     status: LMSApiResponseStatus;
     course: LMSCourseAPIResponse;
@@ -220,6 +540,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     return {
       status: LMSApiResponseStatus.Success,
       course: {
+        id: data.id,
         name: data.name,
         code: data.course_code,
         studentCount: data.total_students,

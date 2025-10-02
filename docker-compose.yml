@@ -8,7 +8,7 @@ services:
       - ./infrastructure/dev/docker-postgresql-multiple-databases:/docker-entrypoint-initdb.d
       - pg:/var/lib/postgresql/data
     environment:
-      - POSTGRES_MULTIPLE_DATABASES=prod,dev,test,chatbot,chatbot_test
+      - POSTGRES_MULTIPLE_DATABASES=prod,dev,test,chatbot,chatbot_test,lti,lti_test
     env_file:
       - ./packages/server/postgres.env # this is where the root user credentials are set. Please make this file with postgres.env.example as a base if you haven't already
     # command: ["postgres", "-c", "log_statement=all"] # Uncomment this and re-run yarn dev:db:up to see all sql commands being ran on the container

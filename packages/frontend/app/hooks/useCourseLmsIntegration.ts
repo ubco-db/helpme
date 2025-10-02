@@ -7,6 +7,7 @@ import {
   LMSFile,
   LMSPage,
   LMSQuiz,
+  LMSResourceType,
 } from '@koh/common'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
@@ -36,8 +37,6 @@ export function useCourseLmsIntegration(
   courseId?: number,
   updateFlag?: boolean,
 ): CourseLmsIntegration {
-  const [prevIntegration, setPrevIntegration] =
-    useState<LMSCourseIntegrationPartial>()
   const [integration, setIntegration] = useState<LMSCourseIntegrationPartial>()
   const [course, setCourse] = useState<LMSCourseAPIResponse>()
   const [assignments, setAssignments] = useState<LMSAssignment[]>([])
@@ -89,7 +88,10 @@ export function useCourseLmsIntegration(
 
     const getResources = async () => {
       if (integration != undefined && courseId != undefined) {
-        if (!integration.isExpired) {
+        if (
+          (integration.hasApiKey && !integration.isExpired) ||
+          integration.accessTokenId != undefined
+        ) {
           await getResource(
             API.lmsIntegration.getCourse(courseId),
             setCourse,
@@ -99,31 +101,57 @@ export function useCourseLmsIntegration(
             API.lmsIntegration.getStudents(courseId),
             setStudents,
           )
-          await getResource(
-            API.lmsIntegration.getAssignments(courseId),
-            setAssignments,
-            setIsLoadingAssignments,
-          )
-          await getResource(
-            API.lmsIntegration.getAnnouncements(courseId),
-            setAnnouncements,
-            setIsLoadingAnnouncements,
-          )
-          await getResource(
-            API.lmsIntegration.getFiles(courseId),
-            setFiles,
-            setIsLoadingFiles,
-          )
-          await getResource(
-            API.lmsIntegration.getPages(courseId),
-            setPages,
-            setIsLoadingPages,
-          )
-          await getResource(
-            API.lmsIntegration.getQuizzes(courseId),
-            setQuizzes,
-            setIsLoadingQuizzes,
-          )
+          if (
+            integration?.selectedResourceTypes?.includes(
+              LMSResourceType.ASSIGNMENTS,
+            )
+          ) {
+            await getResource(
+              API.lmsIntegration.getAssignments(courseId),
+              setAssignments,
+              setIsLoadingAssignments,
+            )
+          }
+          if (
+            integration?.selectedResourceTypes?.includes(
+              LMSResourceType.ANNOUNCEMENTS,
+            )
+          ) {
+            await getResource(
+              API.lmsIntegration.getAnnouncements(courseId),
+              setAnnouncements,
+              setIsLoadingAnnouncements,
+            )
+          }
+          if (
+            integration?.selectedResourceTypes?.includes(LMSResourceType.FILES)
+          ) {
+            await getResource(
+              API.lmsIntegration.getFiles(courseId),
+              setFiles,
+              setIsLoadingFiles,
+            )
+          }
+          if (
+            integration?.selectedResourceTypes?.includes(LMSResourceType.PAGES)
+          ) {
+            await getResource(
+              API.lmsIntegration.getPages(courseId),
+              setPages,
+              setIsLoadingPages,
+            )
+          }
+          if (
+            integration?.selectedResourceTypes?.includes(
+              LMSResourceType.QUIZZES,
+            )
+          ) {
+            await getResource(
+              API.lmsIntegration.getQuizzes(courseId),
+              setQuizzes,
+              setIsLoadingQuizzes,
+            )
+          }
           setIsLoading(false)
         }
       } else {

@@ -1,8 +1,13 @@
-import { LLMType, OrganizationSettingsResponse, Role, User } from '@koh/common'
+import {
+  LLMType,
+  OrganizationRole,
+  OrganizationSettingsResponse,
+  Role,
+  User,
+} from '@koh/common'
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import * as Sentry from '@sentry/nextjs'
-import { OrganizationRole } from '@/app/typings/user'
 
 /**
  * A utility function to merge Tailwind CSS classes with clsx. "cn" stands for className.
@@ -84,10 +89,10 @@ export function generateRandomHexColor(): string {
  * Returns the role of the user in the course.
  */
 export function getRoleInCourse(userInfo: User, courseId: number): Role {
-  const role =
+  return (
     userInfo?.courses.find((e) => e.course.id === courseId)?.role ??
     Role.STUDENT
-  return role
+  )
 }
 
 /**

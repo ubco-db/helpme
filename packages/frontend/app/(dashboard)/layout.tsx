@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { UserInfoProvider } from '../contexts/userContext'
 import { User } from '@koh/common'
-import { userApi } from '../api/userApi'
+import { fetchUserDetails } from '@/app/api'
 import Link from 'next/link'
 import { Button, Spin } from 'antd'
 import HeaderBar from '../components/HeaderBar'
@@ -15,7 +15,7 @@ import ChatbotContextProvider from './course/[cid]/components/chatbot/ChatbotPro
 import FooterBar from './components/FooterBar'
 import { AsyncToasterProvider } from '../contexts/AsyncToasterContext'
 import { LogoutOutlined, ReloadOutlined } from '@ant-design/icons'
-import { getErrorMessage } from '../utils/generalUtils'
+import VerifyEmailPage from '@/app/(auth)/verify/page'
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [profile, setProfile] = useState<User>()
@@ -27,21 +27,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const URLSegments = pathname.split('/')
 
   useEffect(() => {
-    const fetchUserDetails = async () => {
-      await userApi
-        .getUser()
-        .then((userDetails) => {
-          setProfile(userDetails)
-        })
-        .catch((error) => {
-          if (error.status === 401) {
-            router.push(`/api/v1/logout?redirect=${pathname}`)
-          } else {
-            setErrorGettingUser(getErrorMessage(error))
-          }
-        })
-    }
-    fetchUserDetails()
+    fetchUserDetails(setProfile, setErrorGettingUser, router, pathname)
   }, [])
 
   return errorGettingUser ? (
@@ -93,6 +79,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </Link>
       </p>
     </main>
+  ) : !profile.emailVerified ? (
+    <VerifyEmailPage />
   ) : (
     <AsyncToasterProvider>
       <UserInfoProvider profile={profile}>

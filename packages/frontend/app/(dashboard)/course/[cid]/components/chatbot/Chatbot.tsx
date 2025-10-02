@@ -1,5 +1,12 @@
 'use client'
-import { Fragment, ReactElement, useEffect, useRef, useState } from 'react'
+import {
+  Fragment,
+  ReactElement,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import {
   Avatar,
   Button,
@@ -99,6 +106,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
     useState<ChatbotQuestionType | null>(null)
   const role = getRoleInCourse(userInfo, cid)
 
+  const isLti = useMemo(() => pathname.startsWith('/lti'), [pathname])
   const courseIdToUse =
     chatbotQuestionType === 'System'
       ? Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) || -1
@@ -254,7 +262,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
       <div
         className={cn(
           variant === 'small'
-            ? 'fixed bottom-0 z-50 max-h-[90vh] w-screen md:bottom-1 md:right-1 md:max-w-[400px]'
+            ? 'fixed bottom-0 z-40 max-h-[90vh] w-screen md:bottom-1 md:right-1 md:max-w-[400px]'
             : variant === 'big'
               ? 'flex h-[80vh] w-screen flex-col overflow-auto md:w-[90%]'
               : variant === 'huge'
@@ -546,7 +554,8 @@ const Chatbot: React.FC<ChatbotProps> = ({
                 />
               )}
               <div ref={messagesEndRef} />
-              {courseFeatures.asyncQueueEnabled &&
+              {!isLti &&
+                courseFeatures.asyncQueueEnabled &&
                 chatbotQuestionType === 'Course' &&
                 messages.length > 1 && (
                   <div>

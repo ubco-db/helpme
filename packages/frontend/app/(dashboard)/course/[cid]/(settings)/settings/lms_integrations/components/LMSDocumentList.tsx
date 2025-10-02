@@ -452,6 +452,12 @@ export default function LMSDocumentList<
       documents.filter((d) => {
         switch (type) {
           case 'Announcement':
+            const getPosted =
+              typeof (d as LMSAnnouncement).posted === 'string'
+                ? new Date((d as LMSAnnouncement).posted as unknown as string)
+                : (d as LMSAnnouncement) instanceof Date
+                  ? ((d as LMSAnnouncement).posted as Date)
+                  : undefined
             return (
               (d as LMSAnnouncement).title
                 .toLowerCase()
@@ -459,13 +465,11 @@ export default function LMSDocumentList<
               (d as LMSAnnouncement).message
                 .toLowerCase()
                 .includes(search.toLowerCase()) ||
-              (typeof (d as LMSAnnouncement).posted === 'string'
-                ? new Date((d as LMSAnnouncement).posted)
-                : (d as LMSAnnouncement).posted
-              )
-                .toLocaleDateString()
-                .toLowerCase()
-                .includes(search.toLowerCase())
+              (getPosted != undefined &&
+                getPosted
+                  .toLocaleDateString()
+                  .toLowerCase()
+                  .includes(search.toLowerCase()))
             )
           case 'Assignment':
             return (
