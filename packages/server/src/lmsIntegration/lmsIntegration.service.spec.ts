@@ -166,7 +166,7 @@ describe('LMSIntegrationService', () => {
         });
         course.lmsIntegration = await lmsCourseIntFactory.create({
           course: course,
-          apiCourseId: 'abc',
+          apiCourseId: 'abc' + course.id,
           apiKey: 'def',
           lmsSynchronize: course.id != 2,
           orgIntegration,

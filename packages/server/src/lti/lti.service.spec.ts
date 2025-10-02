@@ -176,7 +176,7 @@ describe('LtiService', () => {
     });
 
     it.each(['create', 'update'])(
-      'should succeed, %s identity entry & delete token and rival entries',
+      'should succeed, %s identity entry & rival entries',
       async (mode: 'create' | 'update') => {
         const tokenModel = await LtiIdentityTokenFactory.create();
         const token = jwtService.sign({
@@ -216,13 +216,6 @@ describe('LtiService', () => {
             },
           }),
         ).toHaveLength(0);
-        expect(
-          await LtiIdentityTokenModel.findOne({
-            where: {
-              code: tokenModel.code,
-            },
-          }),
-        ).toBeNull();
       },
     );
   });

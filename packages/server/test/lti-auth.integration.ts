@@ -630,10 +630,10 @@ describe('LTI Auth Integration', () => {
 
       const { userId } = await jwtService.verify(
         res
-          .get('Set-Cookie')[1]
+          .get('Set-Cookie')[0]
           .substring(
             'lti_auth_token='.length,
-            res.get('Set-Cookie')[1].indexOf(';'),
+            res.get('Set-Cookie')[0].indexOf(';'),
           ),
       );
       expect(
@@ -646,7 +646,7 @@ describe('LTI Auth Integration', () => {
       ).toBeDefined();
 
       expect(res.status).toBe(201);
-      expect(res.get('Set-Cookie')[1]).toContain('lti_auth_token');
+      expect(res.get('Set-Cookie')[0]).toContain('lti_auth_token');
     });
   });
 

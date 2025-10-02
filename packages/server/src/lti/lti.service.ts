@@ -65,6 +65,11 @@ export class LtiService {
       code = crypto.randomBytes(64).toString('hex');
     } while (await LtiIdentityTokenModel.findOne({ where: { code } }));
 
+    await LtiIdentityTokenModel.delete({
+      issuer,
+      ltiUserId,
+    });
+
     await LtiIdentityTokenModel.create({
       code,
       issuer,
@@ -131,7 +136,8 @@ export class LtiService {
       ...pick(matchingToken, ['issuer', 'ltiEmail', 'ltiUserId']),
     }).save();
 
-    await matchingToken.remove();
+    // The matching token is not removed as it may be re-used later
+    // await matchingToken.remove();
 
     return true;
   }
@@ -276,6 +282,7 @@ export class LtiService {
         email: token.userInfo.email,
       })
       .orWhere('lti_user."userId" IS NOT NULL')
+      .orderBy('lti_user."userId"', 'ASC', 'NULLS LAST')
       .getMany();
 
     let lmsCourseIntegration: LMSCourseIntegrationModel;

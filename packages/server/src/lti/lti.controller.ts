@@ -69,6 +69,22 @@ export class LtiController {
   ) {
     const qry = new URLSearchParams();
 
+    try {
+      /*
+      This is essentially a secondary 'session' cookie/token which carries
+      a key to unlock information regarding the user who launched the LTI
+      tool. Used to set auto-login when the HelpMe email of the user doesn't
+      match their Canvas email.
+      */
+      const identity = await this.ltiService.createLtiIdentityToken(
+        token.iss,
+        token.user,
+        token.userInfo.email,
+      );
+      res.cookie('__LTI_IDENTITY', identity, LtiService.cookieOptions);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_ignored) {}
+
     // If the user does not exist, but the course was found, create an invite and set it as a cookie
     if (!user && course && token.userInfo.email != undefined) {
       qry.set('redirect', `/lti/${course.id}`);
@@ -85,16 +101,6 @@ export class LtiController {
 
     // If the user does not exist, redirect to login.
     if (!user) {
-      try {
-        const identity = await this.ltiService.createLtiIdentityToken(
-          token.iss,
-          token.user,
-          token.userInfo.email,
-        );
-        res.cookie('__LTI_IDENTITY', identity, LtiService.cookieOptions);
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (_ignored) {}
-
       return res
         .clearCookie('lti_auth_token', LtiService.cookieOptions)
         .redirect(`/lti/login${qry.size > 0 ? `?${qry.toString()}` : ''}`);

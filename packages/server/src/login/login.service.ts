@@ -68,6 +68,7 @@ export class LoginService {
    * @param {String} options.redirect Override all other redirections to follow this path. Query parameters are extracted and applied after.
    * @Param {boolean} options.returnImmediate Override all redirections and cookies to return immediately with 200 OK.
    * @Param {String} options.returnImmediateMessage (Optional) Message to be sent with return immediate. Defaults to 'OK'.
+   * @Param {String} options.custom (Optional) Custom properties for the authorization token.
    * @returns {void | Response} Returns 'void' if authorization is successful. Returns 500-level error response otherwise.
    */
   async enter(
@@ -282,7 +283,8 @@ export class LoginService {
     const identityCookie = decodeURIComponent(ltiIdentityCookie);
     try {
       await ltiService.checkLtiIdentityToken(userId, identityCookie);
-      res.clearCookie('__LTI_IDENTITY', LtiService.cookieOptions);
+      // NOTE: DO NOT CLEAR LTI COOKIE. If the LTI user logs out,
+      // the cookie is used upon a new login to set their preferred account.
       // Do not throw if this fails, as it's not a critical error.
       // On the next LTI launch, the pipeline will be re-executed
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -312,11 +314,13 @@ export class LoginService {
     userId: number,
     expiresIn: number = 60 * 60 * 24 * 30, // Expires in 30 days (Default)
     restrictPaths?: (RegExp | string) | (RegExp | string)[],
+    custom?: Record<string, any>,
   ) {
     const authToken = await this.jwtService.signAsync({
       userId,
       expiresIn,
       restrictPaths,
+      custom,
     });
 
     if (authToken === null || authToken === undefined) {

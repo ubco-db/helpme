@@ -136,10 +136,10 @@ describe('LtiController', () => {
             'https://example.com' + response.headers['location'],
           );
           expect(response.headers['set-cookie']?.[0]).toEqual(
-            expect.stringContaining('__COURSE_INVITE='),
+            expect.stringContaining('__LTI_IDENTITY='),
           );
           expect(response.headers['set-cookie']?.[1]).toEqual(
-            expect.stringContaining('__LTI_IDENTITY='),
+            expect.stringContaining('__COURSE_INVITE='),
           );
           expect(location.pathname).toEqual(`/lti/login`);
           expect(location.searchParams.get('redirect')).toEqual(
