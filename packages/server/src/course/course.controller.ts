@@ -1034,12 +1034,12 @@ export class CourseController {
   @Roles(Role.PROFESSOR, Role.TA)
   async exportToolUsage(
     @Param('id', ParseIntPipe) courseId: number,
-    @Query('includeQueueQuestions') includeQueueQuestions: string = 'true',
-    @Query('includeAnytimeQuestions') includeAnytimeQuestions: string = 'true',
-    @Query('includeChatbotInteractions') includeChatbotInteractions: string = 'true',
-    @Query('groupBy') groupBy: 'day' | 'week' = 'week',
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query('includeQueueQuestions') includeQueueQuestions: string,
+    @Query('includeAnytimeQuestions') includeAnytimeQuestions: string,
+    @Query('includeChatbotInteractions') includeChatbotInteractions: string,
+    @Query('groupBy') groupBy: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
   ): Promise<any[]> {
     const includeQueueQuestionsBool = includeQueueQuestions === 'true';
     const includeAnytimeQuestionsBool = includeAnytimeQuestions === 'true';
