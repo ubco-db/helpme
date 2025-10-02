@@ -421,7 +421,7 @@ describe('LtiService', () => {
       expect(courseId).toBeUndefined();
     });
 
-    it('should return matching user if course id was parseable', async () => {
+    it('should return matching user and course if course id was parseable', async () => {
       const user = await UserFactory.create({
         email: 'testuser@example.com',
       });
@@ -447,6 +447,39 @@ describe('LtiService', () => {
       ).toBeDefined();
       expect(userId).toEqual(user.id);
       expect(courseId).toEqual(course.id);
+    });
+
+    it('should use lti identity if user with email does not exist', async () => {
+      const user = await UserFactory.create({
+        email: 'fakeemail@example.com',
+      });
+      await UserLtiIdentityFactory.create({
+        user,
+        ltiUserId: idToken.user,
+        issuer: idToken.iss,
+      });
+      const { userId } = await LtiService.findMatchingUserAndCourse(
+        idToken as unknown as IdToken,
+      );
+      expect(userId).toEqual(user.id);
+    });
+
+    it('should prefer user lti identity if present over direct email', async () => {
+      const user = await UserFactory.create({
+        email: 'fakeemail@example.com',
+      });
+      await UserFactory.create({
+        email: 'testuser@example.com',
+      });
+      await UserLtiIdentityFactory.create({
+        user,
+        ltiUserId: idToken.user,
+        issuer: idToken.iss,
+      });
+      const { userId } = await LtiService.findMatchingUserAndCourse(
+        idToken as unknown as IdToken,
+      );
+      expect(userId).toEqual(user.id);
     });
   });
 });

@@ -268,23 +268,28 @@ export class LtiService {
     let userId: number | undefined;
     let courseId: number | undefined = undefined;
 
-    const matchingUsers = await UserModel.createQueryBuilder('user_model')
-      .select()
-      .leftJoinAndSelect(
-        UserLtiIdentityModel,
-        'lti_user',
-        'lti_user."userId" = user_model.id AND lti_user.issuer = :issuer AND lti_user."ltiUserId" = :ltiUserId',
-        {
-          issuer: token.iss,
-          ltiUserId: token.user,
-        },
-      )
-      .where('email = :email', {
-        email: token.userInfo.email,
-      })
-      .orWhere('lti_user."userId" IS NOT NULL')
-      .orderBy('lti_user."userId"', 'ASC', 'NULLS LAST')
-      .getMany();
+    const matchingUserIds: number[] = (
+      await UserModel.createQueryBuilder('user_model')
+        .select('user_model.id', 'userId')
+        .leftJoin(
+          UserLtiIdentityModel,
+          'lti_user',
+          'lti_user."userId" = user_model.id AND lti_user.issuer = :issuer AND lti_user."ltiUserId" = :ltiUserId',
+          {
+            issuer: token.iss,
+            ltiUserId: token.user,
+          },
+        )
+        .addSelect('lti_user.issuer', 'ltiIssuer')
+        .addSelect('lti_user."ltiUserId"', 'ltiUserId')
+        .where('email = :email', {
+          email: token.userInfo.email,
+        })
+        .orWhere('lti_user."userId" IS NOT NULL')
+        .orderBy('lti_user."userId"', 'ASC', 'NULLS LAST')
+        .getRawMany<{ userId: number }>()
+    ).map(({ userId }) => userId);
+    userId = matchingUserIds[0];
 
     let lmsCourseIntegration: LMSCourseIntegrationModel;
 
@@ -297,9 +302,6 @@ export class LtiService {
       });
       courseId = lmsCourseIntegration?.courseId;
     }
-
-    const matchingUserIds = matchingUsers.map((u) => u.id);
-    userId = matchingUserIds[0];
 
     // We only need to narrow it down if there's > 1
     if (matchingUserIds.length > 1 && courseId != undefined) {
