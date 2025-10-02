@@ -2,9 +2,9 @@ import {
   ERROR_MESSAGES,
   LMSApiResponseStatus,
   LMSIntegrationPlatform,
+  LMSResourceType,
   OrganizationRole,
   Role,
-  LMSResourceType,
 } from '@koh/common';
 import {
   CourseFactory,
@@ -428,6 +428,39 @@ describe('Lms Integration Integrations', () => {
           expect(response.body).toHaveProperty(
             'message',
             ERROR_MESSAGES.lmsController.accessTokenMismatch,
+          );
+        });
+    });
+
+    it('should return 400 if api course ID is already in use', async () => {
+      const orgIntegration = await lmsOrgIntFactory.create({
+        organization,
+        apiPlatform: LMSIntegrationPlatform.Canvas,
+      });
+      const course2 = await CourseFactory.create();
+      await lmsCourseIntFactory.create({
+        orgIntegration,
+        course: course2,
+        apiCourseId: '1',
+      });
+      const token = await LMSAccessTokenFactory.create({
+        organizationIntegration: orgIntegration,
+        user: prof,
+      });
+      const props = {
+        apiPlatform: LMSIntegrationPlatform.Canvas,
+        apiCourseId: '1',
+        accessTokenId: token.id,
+      };
+
+      await supertest({ userId: prof.id })
+        .post(`/lms/course/${course.id}/upsert`)
+        .send(props)
+        .expect(400)
+        .then((response) => {
+          expect(response.body).toHaveProperty(
+            'message',
+            ERROR_MESSAGES.lmsController.apiCourseIdInUse,
           );
         });
     });
@@ -1146,14 +1179,13 @@ describe('Lms Integration Integrations', () => {
   describe('GET lms/oauth2/response', () => {
     let org: OrganizationModel;
     let user: UserModel;
-    let orgUser: OrganizationUserModel;
     let orgInt: LMSOrganizationIntegrationModel;
     let state: LMSAuthStateModel;
 
     beforeEach(async () => {
       org = await OrganizationFactory.create();
       user = await UserFactory.create();
-      orgUser = await OrganizationUserFactory.create({
+      await OrganizationUserFactory.create({
         organizationUser: user,
         organization: org,
         role: OrganizationRole.PROFESSOR,
@@ -1436,11 +1468,9 @@ describe('Lms Integration Integrations', () => {
   });
 
   describe('Quiz endpoints resource protection', () => {
-    let integration;
-
     beforeEach(async () => {
       const orgInt = await lmsOrgIntFactory.create();
-      integration = await lmsCourseIntFactory.create({
+      await lmsCourseIntFactory.create({
         orgIntegration: orgInt,
         course: course,
         // Set up integration without quiz resource enabled

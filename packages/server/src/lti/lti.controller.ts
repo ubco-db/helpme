@@ -79,11 +79,22 @@ export class LtiController {
           token.userInfo.email,
         );
         res.cookie('__COURSE_INVITE', invite, LtiService.cookieOptions);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (_ignored) {}
     }
 
     // If the user does not exist, redirect to login.
     if (!user) {
+      try {
+        const identity = await this.ltiService.createLtiIdentityToken(
+          token.iss,
+          token.user,
+          token.userInfo.email,
+        );
+        res.cookie('__LTI_IDENTITY', identity, LtiService.cookieOptions);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_ignored) {}
+
       return res
         .clearCookie('lti_auth_token', LtiService.cookieOptions)
         .redirect(`/lti/login${qry.size > 0 ? `?${qry.toString()}` : ''}`);

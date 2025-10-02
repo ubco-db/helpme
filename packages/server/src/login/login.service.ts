@@ -115,13 +115,24 @@ export class LoginService {
 
     if (returnImmediate) {
       const ltiInvite = getCookie(req, '__COURSE_INVITE');
-      if (ltiInvite && ltiService) {
-        res = await this.handleLTICourseInviteCookie(
-          res,
-          userId,
-          ltiInvite,
-          ltiService,
-        );
+      const ltiIdentity = getCookie(req, '__LTI_IDENTITY');
+      if (ltiService) {
+        if (ltiInvite) {
+          res = await this.handleLTICourseInviteCookie(
+            res,
+            userId,
+            ltiInvite,
+            ltiService,
+          );
+        }
+        if (ltiIdentity) {
+          res = await this.handleLTIIdentityCookie(
+            res,
+            userId,
+            ltiIdentity,
+            ltiService,
+          );
+        }
       }
       return res
         .cookie(cookieName ?? 'auth_token', authToken, cookieOptions)
@@ -188,6 +199,17 @@ export class LoginService {
     const secureRedirectCookie = getCookie(req, '__SECURE_REDIRECT');
     const queueInviteCookie = getCookie(req, 'queueInviteInfo');
     const ltiInviteCookie = getCookie(req, '__COURSE_INVITE');
+    const ltiIdentityCookie = getCookie(req, '__LTI_IDENTITY');
+
+    // Process first as there's no associated redirect
+    if (ltiIdentityCookie && ltiService) {
+      res = await this.handleLTIIdentityCookie(
+        res,
+        userId,
+        ltiIdentityCookie,
+        ltiService,
+      );
+    }
 
     if (queueInviteCookie && courseService && !redirect) {
       // Ignore queueInviteInfo if there's another redirect queued
@@ -249,6 +271,23 @@ export class LoginService {
       res,
       redirectUrl,
     };
+  }
+
+  async handleLTIIdentityCookie(
+    res: Response,
+    userId: number,
+    ltiIdentityCookie: string,
+    ltiService: LtiService,
+  ) {
+    const identityCookie = decodeURIComponent(ltiIdentityCookie);
+    try {
+      await ltiService.checkLtiIdentityToken(userId, identityCookie);
+      res.clearCookie('__LTI_IDENTITY', LtiService.cookieOptions);
+      // Do not throw if this fails, as it's not a critical error.
+      // On the next LTI launch, the pipeline will be re-executed
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_ignored) {}
+    return res;
   }
 
   async handleLTICourseInviteCookie(

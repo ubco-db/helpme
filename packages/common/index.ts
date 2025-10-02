@@ -4109,6 +4109,7 @@ export const ERROR_MESSAGES = {
   ltiService: {
     errorSigningJwt: 'Error occurred signing JWT.',
     invalidInviteJwt: 'Invite code was invalid.',
+    invalidIdentityJwt: 'Identity token code was invalid.',
     courseInviteNotFound: 'Matching course invite was not found.',
     courseInviteEmailMismatch: 'Course invite was not issued for this email.',
     courseInviteOrganizationMismatch:
@@ -4235,6 +4236,8 @@ export const ERROR_MESSAGES = {
     questionTypeNotFound: 'Question type not found',
   },
   lmsController: {
+    apiCourseIdInUse:
+      'The specified API course ID is already in use in another course.',
     apiKeyExpired: 'The API key for the integration has expired.',
     noAccessToken: 'No access token found for the given platform.',
     noLMSIntegration:
@@ -4279,6 +4282,7 @@ export const ERROR_MESSAGES = {
       'The selected access token is not valid for the specified platform.',
     missingPlatformQuery: 'Platform query parameter is required.',
     accessTokenNotFound: 'Access token with given ID was not found.',
+    failedToUpdateQuizSync: 'Failed to update quiz sync settings',
   },
   lmsAdapter: {
     missingAccessToken:

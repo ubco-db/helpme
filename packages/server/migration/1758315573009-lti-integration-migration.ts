@@ -96,6 +96,9 @@ export class LtiIntegrationMigration1758315573009
     await queryRunner.query(
       `ALTER TABLE "course_invite_model" ADD CONSTRAINT "FK_7b666e9a4e1f6c8c35615fea1f2" FOREIGN KEY ("courseId") REFERENCES "course_model"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
     );
+    await queryRunner.query(
+      `ALTER TABLE "lms_course_integration_model" ADD CONSTRAINT "UQ_3d4257edc278b52408cab4cecad" UNIQUE ("apiCourseId")`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -180,6 +183,9 @@ export class LtiIntegrationMigration1758315573009
     );
     await queryRunner.query(
       `ALTER TABLE "user_course_model" ADD CONSTRAINT "FK_80faf01af81ddc3f4c17b6b6614" FOREIGN KEY ("userId") REFERENCES "user_model"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "lms_course_integration_model" DROP CONSTRAINT "UQ_3d4257edc278b52408cab4cecad"`,
     );
   }
 }

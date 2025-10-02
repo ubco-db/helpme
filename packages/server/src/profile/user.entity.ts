@@ -29,6 +29,7 @@ import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
 import { QuestionModel } from '../question/question.entity';
 import { LMSAuthStateModel } from '../lmsIntegration/lms-auth-state.entity';
 import { LMSAccessTokenModel } from '../lmsIntegration/lms-access-token.entity';
+import { UserLtiIdentityModel } from '../lti/user_lti_identity.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {
@@ -171,4 +172,8 @@ export class UserModel extends BaseEntity {
   @Exclude()
   @OneToMany(() => LMSAccessTokenModel, (accessToken) => accessToken.user)
   lmsAccessTokens: LMSAccessTokenModel[];
+
+  @Exclude()
+  @OneToMany(() => UserLtiIdentityModel, (identity) => identity.user)
+  ltiIdentities: UserLtiIdentityModel[];
 }

@@ -2,7 +2,7 @@
 
 import React, { ReactElement, useEffect, useState } from 'react'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { Empty, message } from 'antd'
+import { Alert, Empty, message } from 'antd'
 import CoursesSection from '@/app/(dashboard)/components/coursesSection'
 import Image from 'next/image'
 import { API } from '@/app/api'
@@ -14,17 +14,33 @@ export default function LtiLandingPage(): ReactElement {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-
+  const [shouldClose, setShouldClose] = useState(false)
   const [lmsInfo, setLmsInfo] = useSessionStorage<{
     apiCourseId: string
     platform: LMSIntegrationPlatform
   }>('lms_info', null)
 
-  if (window && window.self == window.top && searchParams.get('force_close')) {
-    window.self.close()
+  function checkForceClose() {
+    if (
+      window &&
+      window.self == window.top &&
+      searchParams.get('force_close')
+    ) {
+      window.self.close()
+      setShouldClose(true)
+    }
   }
 
   useEffect(() => {
+    checkForceClose()
+  }, [window, window.self, window.top, searchParams])
+
+  useEffect(() => {
+    checkForceClose()
+  }, [])
+
+  useEffect(() => {
+    if (shouldClose) return
     const platform = searchParams.get('lms_platform')
     const apiCourseId = searchParams.get('api_course_id')
     if (platform && apiCourseId) {
@@ -49,6 +65,7 @@ export default function LtiLandingPage(): ReactElement {
   const [semesters, setSemesters] = useState<SemesterPartial[]>([])
 
   useEffect(() => {
+    if (shouldClose) return
     API.semesters
       .get(userInfo.organization?.orgId || -1)
       .then((semesters) => {
@@ -62,6 +79,23 @@ export default function LtiLandingPage(): ReactElement {
         )
       })
   }, [userInfo.organization?.orgId])
+
+  if (shouldClose) {
+    return (
+      <main
+        className={'container mx-auto h-auto w-full max-w-lg pt-10 text-center'}
+      >
+        <title>HelpMe | Reload page</title>
+        <div className="container mx-auto h-auto w-full pt-10 text-center">
+          <Alert
+            message="End Session"
+            description="This tab/window should close automatically. Please close this tab/window and return to the LTI launch on the platform."
+            type="info"
+          />
+        </div>
+      </main>
+    )
+  }
 
   return (
     <>
@@ -107,6 +141,12 @@ export default function LtiLandingPage(): ReactElement {
                         instructor to ask them to connect their HelpMe course
                         with this {lmsInfo.platform} course so you can be
                         automatically added to their course.
+                      </p>
+                      <p>
+                        If you&#39;re logged into an account which does not
+                        share the same email as your {lmsInfo.platform} account,
+                        the above options will not work. Ask your instructor for
+                        an invite link to their HelpMe course.
                       </p>
                     </>
                   )}

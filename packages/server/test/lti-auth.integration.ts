@@ -4,6 +4,7 @@ import {
   AuthStateFactory,
   CourseFactory,
   LtiCourseInviteFactory,
+  LtiIdentityTokenFactory,
   OrganizationCourseFactory,
   OrganizationFactory,
   OrganizationUserFactory,
@@ -16,6 +17,8 @@ import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { LoginTicket, OAuth2Client } from 'google-auth-library';
 import { LtiModule } from '../src/lti/lti.module';
 import { restrictPaths } from '../src/lti/lti-auth.controller';
+import { UserCourseModel } from '../src/profile/user-course.entity';
+import { UserLtiIdentityModel } from '../src/lti/user_lti_identity.entity';
 
 jest.mock('google-auth-library', () => ({
   OAuth2Client: jest.fn().mockImplementation(
@@ -543,9 +546,6 @@ describe('LTI Auth Integration', () => {
 
     it('should return cookie with auth_token and create course enrollment if cookie is present when user is registered', async () => {
       const organization = await OrganizationFactory.create();
-
-      await jwtService.signAsync({ userId: 1 });
-
       const course = await CourseFactory.create();
       await OrganizationCourseFactory.create({
         organization,
@@ -557,9 +557,15 @@ describe('LTI Auth Integration', () => {
         course: course,
       });
 
+      const token = jwtService.sign({
+        courseId: course.id,
+        email: courseInvite.email,
+        inviteCode: courseInvite.inviteCode,
+      });
+
       const res = await supertest()
         .post('/lti/auth/register')
-        .set('Cookie', `__COURSE_INVITE=${courseInvite.inviteCode}`)
+        .set('Cookie', `__COURSE_INVITE=${token}`)
         .send({
           firstName: 'John',
           lastName: 'Doe',
@@ -571,8 +577,76 @@ describe('LTI Auth Integration', () => {
           recaptchaToken: 'token',
         });
 
+      const { userId } = await jwtService.verify(
+        res
+          .get('Set-Cookie')[1]
+          .substring(
+            'lti_auth_token='.length,
+            res.get('Set-Cookie')[1].indexOf(';'),
+          ),
+      );
+      expect(
+        await UserCourseModel.findOne({
+          where: {
+            courseId: course.id,
+            userId,
+          },
+        }),
+      ).toBeDefined();
+
       expect(res.status).toBe(201);
-      expect(res.get('Set-Cookie')[0]).toContain('auth_token');
+      expect(res.get('Set-Cookie')[1]).toContain('lti_auth_token');
+    });
+
+    it('should return cookie with auth_token and create user-lti-identity if cookie is present when user is registered', async () => {
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+      await OrganizationCourseFactory.create({
+        organization,
+        course,
+      });
+
+      const identityToken = await LtiIdentityTokenFactory.create({
+        ltiUserId: '0',
+      });
+
+      const token = jwtService.sign({
+        code: identityToken.code,
+      });
+
+      const res = await supertest()
+        .post('/lti/auth/register')
+        .set('Cookie', `__LTI_IDENTITY=${token}`)
+        .send({
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'email@email.com',
+          password: 'password',
+          confirmPassword: 'password',
+          sid: 2,
+          organizationId: organization.id,
+          recaptchaToken: 'token',
+        });
+
+      const { userId } = await jwtService.verify(
+        res
+          .get('Set-Cookie')[1]
+          .substring(
+            'lti_auth_token='.length,
+            res.get('Set-Cookie')[1].indexOf(';'),
+          ),
+      );
+      expect(
+        await UserLtiIdentityModel.findOne({
+          where: {
+            userId,
+            issuer: identityToken.issuer,
+          },
+        }),
+      ).toBeDefined();
+
+      expect(res.status).toBe(201);
+      expect(res.get('Set-Cookie')[1]).toContain('lti_auth_token');
     });
   });
 

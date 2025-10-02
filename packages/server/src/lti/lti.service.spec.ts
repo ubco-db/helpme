@@ -1,4 +1,4 @@
-import { DataSource } from 'typeorm';
+import { DataSource, Not } from 'typeorm';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { FactoryModule } from '../factory/factory.module';
@@ -8,11 +8,13 @@ import {
   initFactoriesFromService,
   lmsCourseIntFactory,
   LtiCourseInviteFactory,
+  LtiIdentityTokenFactory,
   OrganizationCourseFactory,
   OrganizationFactory,
   OrganizationUserFactory,
   UserCourseFactory,
   UserFactory,
+  UserLtiIdentityFactory,
 } from '../../test/util/factories';
 import { LtiService } from './lti.service';
 import { IdToken, Provider } from 'lti-typescript';
@@ -23,6 +25,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserModel } from '../profile/user.entity';
 import { CourseModel } from '../course/course.entity';
 import { LtiCourseInviteModel } from './lti-course-invite.entity';
+import { LtiIdentityTokenModel } from './lti_identity_token.entity';
+import { UserLtiIdentityModel } from './user_lti_identity.entity';
 
 const idToken = {
   iss: 'http://canvas.docker/',
@@ -95,6 +99,132 @@ describe('LtiService', () => {
       service.provider = prov;
       expect(service.provider).toEqual(prov);
     });
+  });
+
+  describe('createLtiIdentityToken', () => {
+    it('should throw error if JWT fails to be signed', async () => {
+      const spy = jest.spyOn(JwtService.prototype, 'sign');
+
+      spy.mockReturnValue(null as any);
+
+      await expect(
+        service.createLtiIdentityToken('lms', '0', 'anemail@example.com'),
+      ).rejects.toThrow(ERROR_MESSAGES.ltiService.errorSigningJwt);
+
+      spy.mockRestore();
+    });
+
+    it('should create JWT and return the token', async () => {
+      const result = await service.createLtiIdentityToken(
+        'lms',
+        '0',
+        'anemail@example.com',
+      );
+
+      expect(result).toBeDefined();
+      expect(jwtService.verify(result)).toEqual(
+        expect.objectContaining({
+          iat: expect.anything(),
+          code: expect.anything(),
+        }),
+      );
+    });
+  });
+
+  describe('checkLtiIdentityToken', () => {
+    let user: UserModel;
+
+    beforeEach(async () => {
+      user = await UserFactory.create();
+    });
+
+    it('should throw error if token invalid or missing code', async () => {
+      let token = '';
+      await expect(
+        service.checkLtiIdentityToken(user.id, token),
+      ).rejects.toThrow(ERROR_MESSAGES.ltiService.invalidIdentityJwt);
+
+      token = jwtService.sign({});
+      await expect(
+        service.checkLtiIdentityToken(user.id, token),
+      ).rejects.toThrow(ERROR_MESSAGES.ltiService.invalidIdentityJwt);
+    });
+
+    it('should return false if matching token not found', async () => {
+      const token = jwtService.sign({ code: 'abc' });
+      await expect(
+        service.checkLtiIdentityToken(user.id, token),
+      ).resolves.toEqual(false);
+    });
+
+    it('should return false if the token is expired', async () => {
+      const tokenModel = await LtiIdentityTokenFactory.create({
+        createdAt: new Date(Date.now() - 1000),
+        expires: 0,
+      });
+      const token = jwtService.sign({
+        code: tokenModel.code,
+      });
+      await expect(
+        service.checkLtiIdentityToken(user.id, token),
+      ).resolves.toEqual(false);
+      expect(
+        await LtiIdentityTokenModel.findOne({
+          where: { code: tokenModel.code },
+        }),
+      ).toBeNull();
+    });
+
+    it.each(['create', 'update'])(
+      'should succeed, %s identity entry & delete token and rival entries',
+      async (mode: 'create' | 'update') => {
+        const tokenModel = await LtiIdentityTokenFactory.create();
+        const token = jwtService.sign({
+          code: tokenModel.code,
+        });
+
+        await UserLtiIdentityFactory.create({
+          user: user,
+          issuer: tokenModel.issuer,
+          ltiUserId: '0',
+        });
+
+        if (mode == 'update') {
+          const secondary = await UserFactory.create();
+          await UserLtiIdentityFactory.create({
+            user: secondary,
+            issuer: tokenModel.issuer,
+            ltiUserId: tokenModel.ltiUserId,
+          });
+        }
+
+        await expect(
+          service.checkLtiIdentityToken(user.id, token),
+        ).resolves.toEqual(true);
+
+        const identity = await UserLtiIdentityModel.findOne({
+          where: { userId: user.id, issuer: tokenModel.issuer },
+        });
+        expect(identity).toBeDefined();
+        expect(identity.ltiUserId).toEqual(tokenModel.ltiUserId);
+        expect(
+          await UserLtiIdentityModel.find({
+            where: {
+              userId: Not(user.id),
+              issuer: tokenModel.issuer,
+              ltiUserId: tokenModel.ltiUserId,
+            },
+          }),
+        ).toHaveLength(0);
+        expect(
+          await LtiIdentityTokenModel.findOne({
+            where: {
+              code: tokenModel.code,
+            },
+          }),
+        ).toBeNull();
+      },
+    );
   });
 
   describe('createCourseInvite', () => {
@@ -224,6 +354,7 @@ describe('LtiService', () => {
       const invite = await LtiCourseInviteFactory.create({
         course,
         email: user.email,
+        createdAt: new Date(Date.now() - 1000),
         expires: 0,
       });
       const token = jwtService.sign({
@@ -285,6 +416,14 @@ describe('LtiService', () => {
           custom: undefined,
         },
       } as unknown as IdToken);
+      expect(
+        await UserLtiIdentityModel.findOne({
+          where: {
+            userId: user.id,
+            issuer: idToken.iss,
+          },
+        }),
+      ).toBeDefined();
       expect(userId).toEqual(user.id);
       expect(courseId).toBeUndefined();
     });
@@ -305,6 +444,14 @@ describe('LtiService', () => {
       const { userId, courseId } = await LtiService.findMatchingUserAndCourse(
         idToken as unknown as IdToken,
       );
+      expect(
+        await UserLtiIdentityModel.findOne({
+          where: {
+            userId: user.id,
+            issuer: idToken.iss,
+          },
+        }),
+      ).toBeDefined();
       expect(userId).toEqual(user.id);
       expect(courseId).toEqual(course.id);
     });

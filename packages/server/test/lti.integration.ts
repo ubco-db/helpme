@@ -45,6 +45,8 @@ describe('LtiController', () => {
     next: express.NextFunction,
   ) => {
     res.locals.token = {
+      iss: 'fake-issuer',
+      user: '0',
       userInfo: { email: 'fake_email@example.com' },
       platformInfo: { product_family_code: 'canvas' },
       platformContext: { custom: { canvas_course_id: 'abcdefg' } },
@@ -117,6 +119,9 @@ describe('LtiController', () => {
           const location = new URL(
             'https://example.com' + response.headers['location'],
           );
+          expect(response.headers['set-cookie']?.[0]).toEqual(
+            expect.stringContaining('__LTI_IDENTITY='),
+          );
           expect(location.pathname).toEqual(`/lti/login`);
         });
     });
@@ -132,6 +137,9 @@ describe('LtiController', () => {
           );
           expect(response.headers['set-cookie']?.[0]).toEqual(
             expect.stringContaining('__COURSE_INVITE='),
+          );
+          expect(response.headers['set-cookie']?.[1]).toEqual(
+            expect.stringContaining('__LTI_IDENTITY='),
           );
           expect(location.pathname).toEqual(`/lti/login`);
           expect(location.searchParams.get('redirect')).toEqual(

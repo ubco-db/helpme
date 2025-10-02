@@ -12,6 +12,12 @@ import { JwtService } from '@nestjs/jwt';
 import { CookieOptions } from 'express';
 import { LtiCourseInviteModel } from './lti-course-invite.entity';
 import * as crypto from 'crypto';
+import { UserLtiIdentityModel } from './user_lti_identity.entity';
+import { LtiIdentityTokenModel } from './lti_identity_token.entity';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { LMSAuthStateModel } from '../lmsIntegration/lms-auth-state.entity';
+import { pick } from 'lodash';
+import { Not } from 'typeorm';
 
 @Injectable()
 export class LtiService {
@@ -31,6 +37,103 @@ export class LtiService {
   }
   set provider(provider: Provider) {
     this._provider = provider;
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: 'CLEAR_LTI_TOKENS' })
+  async clearLtiTokens() {
+    await LMSAuthStateModel.createQueryBuilder()
+      .delete()
+      .where(
+        `(EXTRACT(EPOCH FROM NOW()) - EXTRACT(EPOCH FROM lti_identity_token_model."createdAt")) > lti_identity_token_model."expiresIn"`,
+      )
+      .execute();
+    await LMSAuthStateModel.createQueryBuilder()
+      .delete()
+      .where(
+        `(EXTRACT(EPOCH FROM NOW()) - EXTRACT(EPOCH FROM lti_course_invite_model."createdAt")) > lti_course_invite_model."expiresIn"`,
+      )
+      .execute();
+  }
+
+  async createLtiIdentityToken(
+    issuer: string,
+    ltiUserId: string,
+    ltiEmail?: string,
+  ): Promise<string> {
+    let code: string;
+    do {
+      code = crypto.randomBytes(64).toString('hex');
+    } while (await LtiIdentityTokenModel.findOne({ where: { code } }));
+
+    await LtiIdentityTokenModel.create({
+      code,
+      issuer,
+      ltiUserId,
+      ltiEmail,
+    }).save();
+
+    const token = this.jwtService.sign({
+      code,
+    });
+
+    if (!token) {
+      throw new BadRequestException(ERROR_MESSAGES.ltiService.errorSigningJwt);
+    }
+
+    return token;
+  }
+
+  async checkLtiIdentityToken(
+    userId: number,
+    signedToken: string,
+  ): Promise<boolean> {
+    const token = this.jwtService.decode<{
+      code: string;
+    }>(signedToken);
+
+    if (!token || !token.code) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.ltiService.invalidIdentityJwt,
+      );
+    }
+
+    const { code } = token;
+
+    const matchingToken = await LtiIdentityTokenModel.findOne({
+      where: {
+        code,
+      },
+    });
+
+    if (!matchingToken) {
+      return false;
+    }
+
+    if (
+      matchingToken.expires != undefined &&
+      (Date.now() - matchingToken.createdAt.getTime()) / 1000 >
+        matchingToken.expires
+    ) {
+      await matchingToken.remove();
+      return false;
+    }
+
+    // If user has logged in with a different account prior, remove the identity entry for that account for
+    // this ISS + user ID combo
+    await UserLtiIdentityModel.delete({
+      userId: Not(userId),
+      issuer: matchingToken.issuer,
+      ltiUserId: matchingToken.ltiUserId,
+    });
+
+    await UserLtiIdentityModel.create({
+      userId,
+      ...pick(matchingToken, ['issuer', 'ltiEmail', 'ltiUserId']),
+    }).save();
+
+    await matchingToken.remove();
+
+    return true;
   }
 
   async createCourseInvite(courseId: number, email: string): Promise<string> {
@@ -159,12 +262,21 @@ export class LtiService {
     let userId: number | undefined;
     let courseId: number | undefined = undefined;
 
-    const matchingUsers = await UserModel.find({
-      where: { email: token.userInfo.email },
-      relations: {
-        organizationUser: true,
-      },
-    });
+    const matchingUsers = await UserModel.createQueryBuilder('user_model')
+      .select()
+      .leftJoinAndSelect(
+        UserLtiIdentityModel,
+        'lti_user',
+        'lti_user."userId" = user_model.id AND lti_user.issuer = :issuer',
+        {
+          issuer: token.iss,
+        },
+      )
+      .where('email = :email', {
+        email: token.userInfo.email,
+      })
+      .orWhere('lti_user."userId" IS NOT NULL')
+      .getMany();
 
     let lmsCourseIntegration: LMSCourseIntegrationModel;
 
@@ -174,9 +286,6 @@ export class LtiService {
         where: {
           apiCourseId: platformCourseId,
         },
-        relations: {
-          orgIntegration: true,
-        },
       });
       courseId = lmsCourseIntegration?.courseId;
     }
@@ -184,7 +293,8 @@ export class LtiService {
     const matchingUserIds = matchingUsers.map((u) => u.id);
     userId = matchingUserIds[0];
 
-    if (matchingUserIds.length > 0 && courseId != undefined) {
+    // We only need to narrow it down if there's > 1
+    if (matchingUserIds.length > 1 && courseId != undefined) {
       for (const matchingUserId of matchingUserIds) {
         const userCourse = await UserCourseModel.findOne({
           where: {
@@ -198,6 +308,24 @@ export class LtiService {
         userId = userCourse.userId;
         break;
       }
+    }
+
+    // Refresh identity in case it's changed and the user was found
+    if (userId != undefined) {
+      // If user has logged in with a different account prior, remove the identity entry for that account for
+      // this ISS + user ID combo
+      await UserLtiIdentityModel.delete({
+        userId: Not(userId),
+        issuer: token.iss,
+        ltiUserId: token.user,
+      });
+
+      await UserLtiIdentityModel.create({
+        userId,
+        issuer: token.iss,
+        ltiEmail: token.userInfo.email,
+        ltiUserId: token.user,
+      }).save();
     }
 
     return {

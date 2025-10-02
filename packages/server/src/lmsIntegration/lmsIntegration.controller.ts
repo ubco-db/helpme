@@ -32,10 +32,10 @@ import {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
-  LMSQuiz,
-  LMSQuizAccessLevel,
   LMSPostAuthBody,
   LMSPostResponseBody,
+  LMSQuiz,
+  LMSQuizAccessLevel,
   LMSResourceType,
   LMSSyncDocumentsResult,
   LMSToken,
@@ -68,9 +68,8 @@ import { LMSAuthStateModel } from './lms-auth-state.entity';
 import { ConfigService } from '@nestjs/config';
 import { LMSAccessTokenModel } from './lms-access-token.entity';
 import { OrganizationService } from '../organization/organization.service';
-import { FindOptionsWhere } from 'typeorm';
+import { FindOptionsWhere, In, Not } from 'typeorm';
 import { LMSQuizModel } from './lmsQuiz.entity';
-import { In } from 'typeorm';
 
 @Controller('lms')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -584,6 +583,20 @@ export class LMSIntegrationController {
       },
     });
 
+    if (props.apiCourseId != undefined) {
+      const apiCourseIdTaken = await LMSCourseIntegrationModel.findOne({
+        where: {
+          courseId: Not(courseId),
+          apiCourseId: props.apiCourseId,
+        },
+      });
+      if (apiCourseIdTaken) {
+        throw new BadRequestException(
+          ERROR_MESSAGES.lmsController.apiCourseIdInUse,
+        );
+      }
+    }
+
     const accessToken =
       props.accessTokenId != undefined
         ? await LMSAccessTokenModel.findOne({
@@ -846,13 +859,14 @@ export class LMSIntegrationController {
         for (const quiz of quizzesToDisable) {
           if (quiz.chatbotDocumentId) {
             try {
-              const result = await this.integrationService.singleDocOperation(
+              await this.integrationService.singleDocOperation(
                 courseId,
                 quiz,
                 LMSUpload.Quizzes,
                 'Clear',
               );
-            } catch (error) {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            } catch (_err) {
               failures++;
               // Continue with other quizzes even if one fails
             }
@@ -860,7 +874,7 @@ export class LMSIntegrationController {
         }
 
         // Now disable sync for the quizzes
-        const result = await LMSQuizModel.update(whereCondition, {
+        await LMSQuizModel.update(whereCondition, {
           syncEnabled: false,
         });
 
@@ -901,9 +915,10 @@ export class LMSIntegrationController {
 
         return `Successfully enabled sync for ${body.quizIds.length} quiz${body.quizIds.length !== 1 ? 'es' : ''}`;
       }
-    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_err) {
       throw new HttpException(
-        'Failed to update quiz sync settings',
+        ERROR_MESSAGES.lmsController.failedToUpdateQuizSync,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -23,7 +23,7 @@ export class LMSCourseIntegrationModel extends BaseEntity {
   @PrimaryColumn()
   courseId: number;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', unique: true })
   apiCourseId: string;
 
   @Column({ type: 'integer', nullable: true })
@@ -73,7 +73,7 @@ export class LMSCourseIntegrationModel extends BaseEntity {
   @OneToMany(() => LMSFileModel, (file) => file.course)
   files: LMSFileModel[];
 
-  @OneToMany((type) => LMSQuizModel, (quiz) => quiz.course)
+  @OneToMany(() => LMSQuizModel, (quiz) => quiz.course)
   quizzes: LMSQuizModel[];
 
   @ManyToOne(() => LMSAccessTokenModel, (token) => token.courses, {

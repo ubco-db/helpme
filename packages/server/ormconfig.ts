@@ -55,6 +55,8 @@ import { LMSAccessTokenModel } from './src/lmsIntegration/lms-access-token.entit
 import { LMSAuthStateModel } from './src/lmsIntegration/lms-auth-state.entity';
 import { LtiCourseInviteModel } from './src/lti/lti-course-invite.entity';
 import { AuthStateModel } from './src/auth/auth-state.entity';
+import { LtiIdentityTokenModel } from './src/lti/lti_identity_token.entity';
+import { UserLtiIdentityModel } from './src/lti/user_lti_identity.entity';
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
   config();
@@ -137,6 +139,8 @@ const typeorm: DataSourceOptions = {
     LMSAccessTokenModel,
     LtiCourseInviteModel,
     AuthStateModel,
+    UserLtiIdentityModel,
+    LtiIdentityTokenModel,
   ],
   logging:
     process.env.NODE_ENV !== 'production'

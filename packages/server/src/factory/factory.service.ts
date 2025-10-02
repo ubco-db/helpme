@@ -53,6 +53,8 @@ import { LMSAccessTokenModel } from '../lmsIntegration/lms-access-token.entity';
 import { LtiCourseInviteModel } from '../lti/lti-course-invite.entity';
 import { AuthStateModel } from '../auth/auth-state.entity';
 import * as crypto from 'crypto';
+import { UserLtiIdentityModel } from '../lti/user_lti_identity.entity';
+import { LtiIdentityTokenModel } from '../lti/lti_identity_token.entity';
 
 /* Has all of our factories and initializes them with the db dataSource.
   If you want to use one of these factories, import it from factories.ts instead.
@@ -107,6 +109,8 @@ export class FactoryService {
   public LMSAccessTokenFactory: Factory<LMSAccessTokenModel>;
   public LtiCourseInviteFactory: Factory<LtiCourseInviteModel>;
   public AuthStateFactory: Factory<AuthStateModel>;
+  public UserLtiIdentityFactory: Factory<UserLtiIdentityModel>;
+  public LtiIdentityTokenFactory: Factory<LtiIdentityTokenModel>;
 
   constructor(dataSource: DataSource) {
     this.UserFactory = new Factory(UserModel, dataSource)
@@ -420,5 +424,18 @@ export class FactoryService {
     this.AuthStateFactory = new Factory(AuthStateModel, dataSource)
       .assocOne('organization', this.OrganizationFactory)
       .sequence('state', () => crypto.randomBytes(32).toString('hex'));
+
+    this.UserLtiIdentityFactory = new Factory(UserLtiIdentityModel, dataSource)
+      .assocOne('user', this.UserFactory)
+      .attr('issuer', 'canvas.instructure.com')
+      .attr('ltiUserId', '1');
+
+    this.LtiIdentityTokenFactory = new Factory(
+      LtiIdentityTokenModel,
+      dataSource,
+    )
+      .attr('issuer', 'canvas.instructure.com')
+      .attr('ltiUserId', '1')
+      .sequence('code', () => crypto.randomBytes(32).toString('hex'));
   }
 }
