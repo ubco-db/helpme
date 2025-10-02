@@ -20,7 +20,7 @@ export class LtiIdentityTokenModel extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   ltiEmail?: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 
   @Column({ type: 'integer', nullable: true, default: 600 })

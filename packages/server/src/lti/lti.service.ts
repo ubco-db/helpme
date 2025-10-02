@@ -273,9 +273,10 @@ export class LtiService {
       .leftJoinAndSelect(
         UserLtiIdentityModel,
         'lti_user',
-        'lti_user."userId" = user_model.id AND lti_user.issuer = :issuer',
+        'lti_user."userId" = user_model.id AND lti_user.issuer = :issuer AND lti_user."ltiUserId" = :ltiUserId',
         {
           issuer: token.iss,
+          ltiUserId: token.user,
         },
       )
       .where('email = :email', {
