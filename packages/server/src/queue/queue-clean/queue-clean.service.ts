@@ -1,4 +1,5 @@
 import {
+  AlertDeliveryMode,
   AlertType,
   ClosedQuestionStatus,
   LimboQuestionStatus,
@@ -104,6 +105,9 @@ export class QueueCleanService {
       .andWhere("(alert.payload ->> 'queueId')::INTEGER = :queueId ", {
         queueId,
       })
+      .andWhere('alert."deliveryMode" = :deliveryMode', {
+        deliveryMode: AlertDeliveryMode.MODAL,
+      })
       .getMany();
 
     questions.forEach((q: QuestionModel) => {
@@ -201,12 +205,16 @@ export class QueueCleanService {
           .andWhere('alert.payload::jsonb @> :payload', {
             payload: JSON.stringify({ queueId }),
           })
+          .andWhere('alert."deliveryMode" = :deliveryMode', {
+            deliveryMode: AlertDeliveryMode.MODAL,
+          })
           .getOne();
         if (existingAlert) {
           return;
         }
         const alert = await AlertModel.create({
           alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
+          deliveryMode: AlertDeliveryMode.MODAL,
           sent: new Date(),
           userId: student.studentId,
           courseId: student.courseId,

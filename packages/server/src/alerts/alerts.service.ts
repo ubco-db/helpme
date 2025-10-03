@@ -1,9 +1,11 @@
 import {
   Alert,
+  AlertDeliveryMode,
   AlertPayload,
   AlertType,
   RephraseQuestionPayload,
   PromptStudentToLeaveQueuePayload,
+  DocumentProcessedPayload,
 } from '@koh/common';
 import { pick } from 'lodash';
 import { Injectable } from '@nestjs/common';
@@ -17,10 +19,8 @@ export class AlertsService {
     const nonStaleAlerts = [];
 
     for (const alert of alerts) {
-      // Might be one of the few usecases for ReasonML
-
       switch (alert.alertType) {
-        case AlertType.REPHRASE_QUESTION:
+        case AlertType.REPHRASE_QUESTION: {
           const payload = alert.payload as RephraseQuestionPayload;
           const question = await QuestionModel.findOne({
             where: { id: payload.questionId },
@@ -33,31 +33,43 @@ export class AlertsService {
             },
           });
 
-          const isQueueOpen = queue.staffList.length > 0 && !queue.isDisabled;
-          if (question.closedAt || !isQueueOpen) {
+          const isQueueOpen = queue?.staffList.length > 0 && !queue?.isDisabled;
+          if (question?.closedAt || !queue || !isQueueOpen) {
             alert.resolved = new Date();
             await alert.save();
           } else {
             nonStaleAlerts.push(
-              pick(alert, ['sent', 'alertType', 'payload', 'id']),
+              pick(alert, [
+                'sent',
+                'alertType',
+                'payload',
+                'id',
+                'deliveryMode',
+                'readAt',
+              ]),
             );
           }
           break;
+        }
         case AlertType.EVENT_ENDED_CHECKOUT_STAFF:
+        case AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE:
+        case AlertType.DOCUMENT_PROCESSED:
           nonStaleAlerts.push(
-            pick(alert, ['sent', 'alertType', 'payload', 'id']),
+            pick(alert, [
+              'sent',
+              'alertType',
+              'payload',
+              'id',
+              'deliveryMode',
+              'readAt',
+            ]),
           );
           break;
-        case AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE:
-          nonStaleAlerts.push(
-            pick(alert, ['sent', 'alertType', 'payload', 'id']),
-          );
       }
     }
 
     return nonStaleAlerts;
   }
-
   assertPayloadType(alertType: AlertType, payload: AlertPayload): boolean {
     switch (alertType) {
       case AlertType.REPHRASE_QUESTION:
@@ -79,6 +91,14 @@ export class AlertsService {
           typeof promptPayload.queueId === 'number' &&
           (promptPayload.queueQuestionId === undefined ||
             typeof promptPayload.queueQuestionId === 'number')
+        );
+
+      case AlertType.DOCUMENT_PROCESSED:
+        const docPayload = payload as DocumentProcessedPayload;
+        return (
+          typeof docPayload.documentId === 'number' &&
+          typeof docPayload.documentName === 'string' &&
+          docPayload.documentName.trim().length > 0
         );
 
       default:

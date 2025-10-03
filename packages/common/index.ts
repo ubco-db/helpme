@@ -2230,6 +2230,12 @@ export enum AlertType {
   REPHRASE_QUESTION = 'rephraseQuestion',
   EVENT_ENDED_CHECKOUT_STAFF = 'eventEndedCheckoutStaff',
   PROMPT_STUDENT_TO_LEAVE_QUEUE = 'promptStudentToLeaveQueue',
+  DOCUMENT_PROCESSED = 'documentProcessed',
+}
+
+export enum AlertDeliveryMode {
+  MODAL = 'modal',
+  FEED = 'feed',
 }
 
 export class AlertPayload {}
@@ -2238,11 +2244,18 @@ export class Alert {
   @IsEnum(AlertType)
   alertType!: AlertType
 
+  @IsEnum(AlertDeliveryMode)
+  deliveryMode!: AlertDeliveryMode
+
   @IsDate()
   sent!: Date
 
   @Type(() => AlertPayload)
   payload!: AlertPayload
+
+  @IsOptional()
+  @IsDate()
+  readAt?: Date
 
   @IsInt()
   id!: number
@@ -2264,6 +2277,14 @@ export class PromptStudentToLeaveQueuePayload extends AlertPayload {
   @IsInt()
   @IsOptional()
   queueQuestionId?: number
+}
+
+export class DocumentProcessedPayload extends AlertPayload {
+  @IsInt()
+  documentId!: number
+
+  @IsString()
+  documentName!: string
 }
 
 export class OrganizationCourseResponse {
@@ -2295,6 +2316,10 @@ export class OrganizationStatsResponse {
 export class CreateAlertParams {
   @IsEnum(AlertType)
   alertType!: AlertType
+
+  @IsOptional()
+  @IsEnum(AlertDeliveryMode)
+  deliveryMode?: AlertDeliveryMode
 
   @IsInt()
   courseId!: number

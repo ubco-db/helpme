@@ -1,4 +1,4 @@
-import { AlertPayload, AlertType } from '@koh/common';
+import { AlertDeliveryMode, AlertPayload, AlertType } from '@koh/common';
 import { Exclude } from 'class-transformer';
 import {
   BaseEntity,
@@ -19,11 +19,21 @@ export class AlertModel extends BaseEntity {
   @Column({ type: 'enum', enum: AlertType })
   alertType: AlertType;
 
+  @Column({
+    type: 'enum',
+    enum: AlertDeliveryMode,
+    default: AlertDeliveryMode.MODAL,
+  })
+  deliveryMode: AlertDeliveryMode;
+
   @Column()
   sent: Date;
 
   @Column({ nullable: true })
   resolved: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  readAt: Date;
 
   @ManyToOne((type) => UserModel, (user) => user.alerts)
   @JoinColumn({ name: 'userId' })

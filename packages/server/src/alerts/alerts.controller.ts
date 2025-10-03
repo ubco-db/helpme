@@ -1,4 +1,5 @@
 import {
+  AlertDeliveryMode,
   CreateAlertParams,
   CreateAlertResponse,
   ERROR_MESSAGES,
@@ -14,6 +15,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
@@ -33,13 +35,32 @@ export class AlertsController {
   async getAlerts(
     @Param('courseId', ParseIntPipe) courseId: number,
     @UserId() userId: number,
+    @Query('mode') mode?: string,
+    @Query('includeRead') includeRead?: string,
   ): Promise<GetAlertsResponse> {
+    const parsedMode = Object.values(AlertDeliveryMode).includes(
+      (mode as AlertDeliveryMode) ?? AlertDeliveryMode.MODAL,
+    )
+      ? (mode as AlertDeliveryMode) || AlertDeliveryMode.MODAL
+      : AlertDeliveryMode.MODAL;
+
+    const includeReadFlag = includeRead === 'true';
+
+    const where: Record<string, unknown> = {
+      courseId,
+      userId,
+      deliveryMode: parsedMode,
+    };
+
+    if (parsedMode === AlertDeliveryMode.MODAL) {
+      where.resolved = IsNull();
+    } else if (!includeReadFlag) {
+      where.readAt = IsNull();
+    }
+
     const alerts = await AlertModel.find({
-      where: {
-        courseId,
-        userId,
-        resolved: IsNull(),
-      },
+      where,
+      order: { sent: 'DESC' },
     });
     return { alerts: await this.alertsService.removeStaleAlerts(alerts) };
   }
@@ -49,7 +70,8 @@ export class AlertsController {
   async createAlert(
     @Body() body: CreateAlertParams,
   ): Promise<CreateAlertResponse> {
-    const { alertType, courseId, payload, targetUserId } = body;
+    const { alertType, courseId, payload, targetUserId, deliveryMode } = body;
+    const parsedMode = deliveryMode ?? AlertDeliveryMode.MODAL;
 
     if (!this.alertsService.assertPayloadType(alertType, payload)) {
       throw new BadRequestException(
@@ -57,23 +79,26 @@ export class AlertsController {
       );
     }
 
-    const anotherAlert = await AlertModel.findOne({
-      where: {
-        alertType,
-        userId: targetUserId,
-        resolved: IsNull(),
-      },
-    });
+    if (parsedMode === AlertDeliveryMode.MODAL) {
+      const anotherAlert = await AlertModel.findOne({
+        where: {
+          alertType,
+          deliveryMode: parsedMode,
+          userId: targetUserId,
+          resolved: IsNull(),
+        },
+      });
 
-    // If the same user already has an alert for this then don't create a new one
-    if (anotherAlert) {
-      throw new BadRequestException(
-        ERROR_MESSAGES.alertController.duplicateAlert,
-      );
+      if (anotherAlert) {
+        throw new BadRequestException(
+          ERROR_MESSAGES.alertController.duplicateAlert,
+        );
+      }
     }
 
     const alert = await AlertModel.create({
       alertType,
+      deliveryMode: parsedMode,
       sent: new Date(),
       userId: targetUserId,
       courseId,
@@ -100,7 +125,11 @@ export class AlertsController {
       );
     }
 
-    alert.resolved = new Date();
+    if (alert.deliveryMode === AlertDeliveryMode.FEED) {
+      alert.readAt = new Date();
+    } else {
+      alert.resolved = new Date();
+    }
     await alert.save();
   }
 }
