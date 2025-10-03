@@ -1045,56 +1045,151 @@ export class CourseController {
     const includeAnytimeQuestionsBool = includeAnytimeQuestions === 'true';
     const includeChatbotInteractionsBool = includeChatbotInteractions === 'true';
     const isGroupByWeek = groupBy === 'week';
-    const endDateObj = endDate ? new Date(endDate) : new Date();
-    const startDateObj = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    
+  
+    let startDateObj: Date;
+    let endDateObj: Date;
+    
+    if (startDate && endDate) {
+      startDateObj = new Date(startDate);
+      endDateObj = new Date(endDate);
+    } else {
+      const dateRangeQuery = `
+        WITH all_dates AS (
+          ${includeQueueQuestionsBool ? `
+            SELECT q."createdAt" as date FROM "question_model" q
+            JOIN "queue_model" qu ON q."queueId" = qu.id
+            WHERE qu."courseId" = $1
+          ` : ''}
+          ${includeQueueQuestionsBool && includeAnytimeQuestionsBool ? 'UNION ALL' : ''}
+          ${includeAnytimeQuestionsBool ? `
+            SELECT aq."createdAt" as date FROM "async_question_model" aq
+            WHERE aq."courseId" = $1 AND aq.status != 'StudentDeleted'
+          ` : ''}
+          ${(includeQueueQuestionsBool || includeAnytimeQuestionsBool) && includeChatbotInteractionsBool ? 'UNION ALL' : ''}
+          ${includeChatbotInteractionsBool ? `
+            SELECT ci.timestamp as date FROM "chatbot_interactions_model" ci
+            WHERE ci.course = $1
+          ` : ''}
+        )
+        SELECT 
+          MIN(date) as earliest_date,
+          MAX(date) as latest_date
+        FROM all_dates
+      `;
+      
+      const dateRangeResult = await UserCourseModel.query(dateRangeQuery, [courseId]);
+      const dateRange = dateRangeResult[0];
+      
+      if (dateRange && dateRange.earliest_date && dateRange.latest_date) {
+        startDateObj = new Date(dateRange.earliest_date);
+        endDateObj = new Date(dateRange.latest_date);
+        console.log(`Calculated date range from data: ${startDateObj.toISOString()} to ${endDateObj.toISOString()}`);
+      } else {
+        endDateObj = new Date();
+        startDateObj = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      }
+    }
 
     try {
       const results = [];
       if (includeQueueQuestionsBool) {
         const queueQuery = isGroupByWeek
           ? `
-            SELECT 
+            WITH student_weeks AS (
+              SELECT DISTINCT
                 u.id as user_id,
                 u."firstName",
                 u."lastName",
                 u.email,
                 c.name as course_name,
-                'Week of ' || TO_CHAR(DATE_TRUNC('week', q."createdAt"), 'DD Mon') as period_date,
-                TO_CHAR(DATE_TRUNC('week', q."createdAt"), 'HH24:MI') as period_time,
+                TO_CHAR(week_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(week_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                DATE_TRUNC('week', $2::timestamp),
+                DATE_TRUNC('week', $3::timestamp),
+                '1 week'::interval
+              ) AS week_start
+              WHERE uc."courseId" = $1 AND uc.role = 'student'
+            ),
+            question_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(DATE_TRUNC('week', q."createdAt"), 'YYYY/MM/DD') as period_date,
                 COUNT(*) as count
-            FROM "user_model" u
-            JOIN "user_course_model" uc ON u.id = uc."userId"
-            JOIN "course_model" c ON c.id = uc."courseId"
-            JOIN "queue_model" qu ON qu."courseId" = uc."courseId"
-            JOIN "question_model" q ON q."queueId" = qu.id AND q."creatorId" = u.id
-            WHERE uc."courseId" = $1 
-                AND uc.role = 'student'
-                AND q."createdAt" >= $2
-                AND q."createdAt" <= $3
-            GROUP BY u.id, u."firstName", u."lastName", u.email, c.name, DATE_TRUNC('week', q."createdAt")
-            ORDER BY u."lastName", u."firstName", period_date, period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "queue_model" qu ON qu."courseId" = uc."courseId"
+              JOIN "question_model" q ON q."queueId" = qu.id AND q."creatorId" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role = 'student'
+                  AND q."createdAt" >= $2
+                  AND q."createdAt" <= $3
+              GROUP BY u.id, DATE_TRUNC('week', q."createdAt")
+            )
+            SELECT 
+              sw.user_id,
+              sw."firstName",
+              sw."lastName",
+              sw.email,
+              sw.course_name,
+              sw.period_date,
+              sw.period_time,
+              COALESCE(qc.count, 0) as count
+            FROM student_weeks sw
+            LEFT JOIN question_counts qc ON sw.user_id = qc.user_id AND sw.period_date = qc.period_date
+            ORDER BY sw."lastName", sw."firstName", sw.period_date
           `
           : `
-            SELECT 
+            WITH student_days AS (
+              SELECT DISTINCT
                 u.id as user_id,
                 u."firstName",
                 u."lastName",
                 u.email,
                 c.name as course_name,
-                TO_CHAR(q."createdAt", 'DD Mon YYYY') as period_date,
-                TO_CHAR(q."createdAt", 'HH24:MI') as period_time,
+                TO_CHAR(day_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(day_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                $2::date,
+                $3::date,
+                '1 day'::interval
+              ) AS day_start
+              WHERE uc."courseId" = $1 AND uc.role = 'student'
+            ),
+            question_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(q."createdAt", 'YYYY/MM/DD') as period_date,
                 COUNT(*) as count
-            FROM "user_model" u
-            JOIN "user_course_model" uc ON u.id = uc."userId"
-            JOIN "course_model" c ON c.id = uc."courseId"
-            JOIN "queue_model" qu ON qu."courseId" = uc."courseId"
-            JOIN "question_model" q ON q."queueId" = qu.id AND q."creatorId" = u.id
-            WHERE uc."courseId" = $1 
-                AND uc.role = 'student'
-                AND q."createdAt" >= $2
-                AND q."createdAt" <= $3
-            GROUP BY u.id, u."firstName", u."lastName", u.email, c.name, q."createdAt"
-            ORDER BY u."lastName", u."firstName", period_date, period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "queue_model" qu ON qu."courseId" = uc."courseId"
+              JOIN "question_model" q ON q."queueId" = qu.id AND q."creatorId" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role = 'student'
+                  AND q."createdAt" >= $2
+                  AND q."createdAt" <= $3
+              GROUP BY u.id, q."createdAt"::date
+            )
+            SELECT 
+              sd.user_id,
+              sd."firstName",
+              sd."lastName",
+              sd.email,
+              sd.course_name,
+              sd.period_date,
+              sd.period_time,
+              COALESCE(qc.count, 0) as count
+            FROM student_days sd
+            LEFT JOIN question_counts qc ON sd.user_id = qc.user_id AND sd.period_date = qc.period_date
+            ORDER BY sd."lastName", sd."firstName", sd.period_date
           `;
 
         const queueResults = await UserCourseModel.query(queueQuery, [courseId, startDateObj, endDateObj]);
@@ -1103,48 +1198,100 @@ export class CourseController {
       if (includeAnytimeQuestionsBool) {
         const anytimeQuery = isGroupByWeek
           ? `
-            SELECT 
+            WITH student_weeks AS (
+              SELECT DISTINCT
                 u.id as user_id,
                 u."firstName",
                 u."lastName",
                 u.email,
                 c.name as course_name,
-                'Week of ' || TO_CHAR(DATE_TRUNC('week', aq."createdAt"), 'DD Mon') as period_date,
-                TO_CHAR(DATE_TRUNC('week', aq."createdAt"), 'HH24:MI') as period_time,
+                TO_CHAR(week_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(week_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                DATE_TRUNC('week', $2::timestamp),
+                DATE_TRUNC('week', $3::timestamp),
+                '1 week'::interval
+              ) AS week_start
+              WHERE uc."courseId" = $1 AND uc.role = 'student'
+            ),
+            question_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(DATE_TRUNC('week', aq."createdAt"), 'YYYY/MM/DD') as period_date,
                 COUNT(*) as count
-            FROM "user_model" u
-            JOIN "user_course_model" uc ON u.id = uc."userId"
-            JOIN "course_model" c ON c.id = uc."courseId"
-            JOIN "async_question_model" aq ON aq."courseId" = uc."courseId" AND aq."creatorId" = u.id
-            WHERE uc."courseId" = $1 
-                AND uc.role = 'student'
-                AND aq."createdAt" >= $2
-                AND aq."createdAt" <= $3
-                AND aq.status != 'StudentDeleted'
-            GROUP BY u.id, u."firstName", u."lastName", u.email, c.name, DATE_TRUNC('week', aq."createdAt")
-            ORDER BY u."lastName", u."firstName", period_date, period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "async_question_model" aq ON aq."courseId" = uc."courseId" AND aq."creatorId" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role = 'student'
+                  AND aq."createdAt" >= $2
+                  AND aq."createdAt" <= $3
+                  AND aq.status != 'StudentDeleted'
+              GROUP BY u.id, DATE_TRUNC('week', aq."createdAt")
+            )
+            SELECT 
+              sw.user_id,
+              sw."firstName",
+              sw."lastName",
+              sw.email,
+              sw.course_name,
+              sw.period_date,
+              sw.period_time,
+              COALESCE(qc.count, 0) as count
+            FROM student_weeks sw
+            LEFT JOIN question_counts qc ON sw.user_id = qc.user_id AND sw.period_date = qc.period_date
+            ORDER BY sw."lastName", sw."firstName", sw.period_date
           `
           : `
-            SELECT 
+            WITH student_days AS (
+              SELECT DISTINCT
                 u.id as user_id,
                 u."firstName",
                 u."lastName",
                 u.email,
                 c.name as course_name,
-                TO_CHAR(aq."createdAt", 'DD Mon YYYY') as period_date,
-                TO_CHAR(aq."createdAt", 'HH24:MI') as period_time,
+                TO_CHAR(day_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(day_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                $2::date,
+                $3::date,
+                '1 day'::interval
+              ) AS day_start
+              WHERE uc."courseId" = $1 AND uc.role = 'student'
+            ),
+            question_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(aq."createdAt", 'YYYY/MM/DD') as period_date,
                 COUNT(*) as count
-            FROM "user_model" u
-            JOIN "user_course_model" uc ON u.id = uc."userId"
-            JOIN "course_model" c ON c.id = uc."courseId"
-            JOIN "async_question_model" aq ON aq."courseId" = uc."courseId" AND aq."creatorId" = u.id
-            WHERE uc."courseId" = $1 
-                AND uc.role = 'student'
-                AND aq."createdAt" >= $2
-                AND aq."createdAt" <= $3
-                AND aq.status != 'StudentDeleted'
-            GROUP BY u.id, u."firstName", u."lastName", u.email, c.name, aq."createdAt"
-            ORDER BY u."lastName", u."firstName", period_date, period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "async_question_model" aq ON aq."courseId" = uc."courseId" AND aq."creatorId" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role = 'student'
+                  AND aq."createdAt" >= $2
+                  AND aq."createdAt" <= $3
+                  AND aq.status != 'StudentDeleted'
+              GROUP BY u.id, aq."createdAt"::date
+            )
+            SELECT 
+              sd.user_id,
+              sd."firstName",
+              sd."lastName",
+              sd.email,
+              sd.course_name,
+              sd.period_date,
+              sd.period_time,
+              COALESCE(qc.count, 0) as count
+            FROM student_days sd
+            LEFT JOIN question_counts qc ON sd.user_id = qc.user_id AND sd.period_date = qc.period_date
+            ORDER BY sd."lastName", sd."firstName", sd.period_date
           `;
 
         const anytimeResults = await UserCourseModel.query(anytimeQuery, [courseId, startDateObj, endDateObj]);
@@ -1153,46 +1300,98 @@ export class CourseController {
       if (includeChatbotInteractionsBool) {
         const chatbotQuery = isGroupByWeek
           ? `
-            SELECT 
+            WITH student_weeks AS (
+              SELECT DISTINCT
                 u.id as user_id,
                 u."firstName",
                 u."lastName",
                 u.email,
                 c.name as course_name,
-                'Week of ' || TO_CHAR(DATE_TRUNC('week', ci.timestamp), 'DD Mon') as period_date,
-                TO_CHAR(DATE_TRUNC('week', ci.timestamp), 'HH24:MI') as period_time,
+                TO_CHAR(week_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(week_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                DATE_TRUNC('week', $2::timestamp),
+                DATE_TRUNC('week', $3::timestamp),
+                '1 week'::interval
+              ) AS week_start
+              WHERE uc."courseId" = $1 AND uc.role = 'student'
+            ),
+            interaction_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(DATE_TRUNC('week', ci.timestamp), 'YYYY/MM/DD') as period_date,
                 COUNT(DISTINCT ci.id) as count
-            FROM "user_model" u
-            JOIN "user_course_model" uc ON u.id = uc."userId"
-            JOIN "course_model" c ON c.id = uc."courseId"
-            JOIN "chatbot_interactions_model" ci ON ci.course = uc."courseId" AND ci."user" = u.id
-            WHERE uc."courseId" = $1 
-                AND uc.role = 'student'
-                AND ci.timestamp >= $2
-                AND ci.timestamp <= $3
-            GROUP BY u.id, u."firstName", u."lastName", u.email, c.name, DATE_TRUNC('week', ci.timestamp)
-            ORDER BY u."lastName", u."firstName", period_date, period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "chatbot_interactions_model" ci ON ci.course = uc."courseId" AND ci."user" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role = 'student'
+                  AND ci.timestamp >= $2
+                  AND ci.timestamp <= $3
+              GROUP BY u.id, DATE_TRUNC('week', ci.timestamp)
+            )
+            SELECT 
+              sw.user_id,
+              sw."firstName",
+              sw."lastName",
+              sw.email,
+              sw.course_name,
+              sw.period_date,
+              sw.period_time,
+              COALESCE(ic.count, 0) as count
+            FROM student_weeks sw
+            LEFT JOIN interaction_counts ic ON sw.user_id = ic.user_id AND sw.period_date = ic.period_date
+            ORDER BY sw."lastName", sw."firstName", sw.period_date
           `
           : `
-            SELECT 
+            WITH student_days AS (
+              SELECT DISTINCT
                 u.id as user_id,
                 u."firstName",
                 u."lastName",
                 u.email,
                 c.name as course_name,
-                TO_CHAR(ci.timestamp, 'DD Mon YYYY') as period_date,
-                TO_CHAR(ci.timestamp, 'HH24:MI') as period_time,
+                TO_CHAR(day_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(day_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                $2::date,
+                $3::date,
+                '1 day'::interval
+              ) AS day_start
+              WHERE uc."courseId" = $1 AND uc.role = 'student'
+            ),
+            interaction_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(ci.timestamp, 'YYYY/MM/DD') as period_date,
                 COUNT(DISTINCT ci.id) as count
-            FROM "user_model" u
-            JOIN "user_course_model" uc ON u.id = uc."userId"
-            JOIN "course_model" c ON c.id = uc."courseId"
-            JOIN "chatbot_interactions_model" ci ON ci.course = uc."courseId" AND ci."user" = u.id
-            WHERE uc."courseId" = $1 
-                AND uc.role = 'student'
-                AND ci.timestamp >= $2
-                AND ci.timestamp <= $3
-            GROUP BY u.id, u."firstName", u."lastName", u.email, c.name, ci.timestamp
-            ORDER BY u."lastName", u."firstName", period_date, period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "chatbot_interactions_model" ci ON ci.course = uc."courseId" AND ci."user" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role = 'student'
+                  AND ci.timestamp >= $2
+                  AND ci.timestamp <= $3
+              GROUP BY u.id, ci.timestamp::date
+            )
+            SELECT 
+              sd.user_id,
+              sd."firstName",
+              sd."lastName",
+              sd.email,
+              sd.course_name,
+              sd.period_date,
+              sd.period_time,
+              COALESCE(ic.count, 0) as count
+            FROM student_days sd
+            LEFT JOIN interaction_counts ic ON sd.user_id = ic.user_id AND sd.period_date = ic.period_date
+            ORDER BY sd."lastName", sd."firstName", sd.period_date
           `;
 
         const chatbotResults = await UserCourseModel.query(chatbotQuery, [courseId, startDateObj, endDateObj]);

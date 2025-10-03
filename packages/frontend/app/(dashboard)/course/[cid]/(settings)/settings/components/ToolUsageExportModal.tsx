@@ -22,6 +22,7 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
   const [includeAnytimeQuestions, setIncludeAnytimeQuestions] = useState(true)
   const [includeChatbotInteractions, setIncludeChatbotInteractions] = useState(true)
   const [groupBy, setGroupBy] = useState<'day' | 'week'>('week')
+  const [includeBreakdown, setIncludeBreakdown] = useState(false)
 
   const handleError = (error: any, context: string) => {
     console.error(`${context}:`, error)
@@ -46,6 +47,12 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
         groupBy
       )
       
+      if (!data || data.length === 0) {
+        message.warning('No tool usage data found for the selected criteria')
+        onCancel()
+        return
+      }
+      
       const courseName = data[0].course_name
       
       const toolsString = [
@@ -55,119 +62,118 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
       ].filter(Boolean).join(', ')
       
 
-      const toolData = new Map()
-      const timePeriods = new Set()
+      const timePeriods = new Set<string>()
+      const students = new Map<string, any>()
       
       data.forEach((row: any) => {
-        const toolKey = row.tool_type
-        if (!toolData.has(toolKey)) {
-          toolData.set(toolKey, [])
-        }
-        toolData.get(toolKey).push(row)
         timePeriods.add(row.period_date)
+        
+        const studentKey = `${row.user_id}_${row.firstName}_${row.lastName}_${row.email}`
+        if (!students.has(studentKey)) {
+          students.set(studentKey, {
+            user_id: row.user_id,
+            firstName: row.firstName || '',
+            lastName: row.lastName || '',
+            email: row.email || '',
+            periods: new Map<string, number>()
+          })
+        }
       })
       
       const sortedPeriods = Array.from(timePeriods).sort()
-      const toolTypes = Array.from(toolData.keys()).sort()
-      const formattedData = []
+      const formattedData: any[] = []
       
-      // Process each tool type and collect data for aggregation
-      const allStudentData = new Map()
-      const toolSections = []
-      
-      toolTypes.forEach(toolType => {
-        const toolRows = toolData.get(toolType)
-        const studentData = new Map()
+      if (includeBreakdown) {
+
+        const toolData = new Map<string, any[]>()
         
-        toolRows.forEach((row: any) => {
+        data.forEach((row: any) => {
+          const toolKey = row.tool_type
+          if (!toolData.has(toolKey)) {
+            toolData.set(toolKey, [])
+          }
+          toolData.get(toolKey)?.push(row)
+        })
+        
+        const toolTypes = Array.from(toolData.keys()).sort()
+        
+
+        toolTypes.forEach(toolType => {
+          const toolRows = toolData.get(toolType) || []
+          const studentData = new Map<string, any>()
+          
+          toolRows.forEach((row: any) => {
+            const studentKey = `${row.user_id}_${row.firstName}_${row.lastName}_${row.email}`
+            const timeKey = row.period_date
+            
+            if (!studentData.has(studentKey)) {
+              studentData.set(studentKey, {
+                user_id: row.user_id,
+                firstName: row.firstName || '',
+                lastName: row.lastName || '',
+                email: row.email || '',
+                periods: new Map<string, number>()
+              })
+            }
+            
+            const currentCount = studentData.get(studentKey).periods.get(timeKey) || 0
+            studentData.get(studentKey).periods.set(timeKey, currentCount + Number(row.count))
+          })
+
+          formattedData.push({
+            'User ID': `[${toolType.toUpperCase()}]`,
+            'First Name': '',
+            'Last Name': '',
+            'Email': '',
+            ...Object.fromEntries(sortedPeriods.map(period => [period, '']))
+          })
+          
+
+          Array.from(studentData.values()).forEach(student => {
+            const row: any = {
+              'User ID': student.user_id,
+              'First Name': student.firstName,
+              'Last Name': student.lastName,
+              'Email': student.email
+            }
+            
+            sortedPeriods.forEach(period => {
+              row[period] = student.periods.get(period) || 0
+            })
+            
+            formattedData.push(row)
+          })
+          
+          formattedData.push({
+            'User ID': '',
+            'First Name': '',
+            'Last Name': '',
+            'Email': '',
+            ...Object.fromEntries(sortedPeriods.map(period => [period, '']))
+          })
+        })
+      } else {
+        const allStudentData = new Map<string, any>()
+        
+        data.forEach((row: any) => {
           const studentKey = `${row.user_id}_${row.firstName}_${row.lastName}_${row.email}`
           const timeKey = row.period_date
           
-          if (!studentData.has(studentKey)) {
-            studentData.set(studentKey, {
+          if (!allStudentData.has(studentKey)) {
+            allStudentData.set(studentKey, {
               user_id: row.user_id,
               firstName: row.firstName || '',
               lastName: row.lastName || '',
               email: row.email || '',
-              periods: new Map()
+              periods: new Map<string, number>()
             })
           }
           
-          const currentCount = studentData.get(studentKey).periods.get(timeKey) || 0
-          studentData.get(studentKey).periods.set(timeKey, currentCount + row.count)
+          const currentCount = allStudentData.get(studentKey).periods.get(timeKey) || 0
+          allStudentData.get(studentKey).periods.set(timeKey, currentCount + Number(row.count))
         })
         
-        // Store this tool's data for aggregation
-        toolSections.push({ toolType, studentData: Array.from(studentData.values()) })
-        
-        // Add to aggregated data
-        Array.from(studentData.values()).forEach(student => {
-          const studentKey = `${student.user_id}_${student.firstName}_${student.lastName}_${student.email}`
-          
-          if (!allStudentData.has(studentKey)) {
-            allStudentData.set(studentKey, {
-              user_id: student.user_id,
-              firstName: student.firstName,
-              lastName: student.lastName,
-              email: student.email,
-              periods: new Map()
-            })
-          }
-          
-          // Add this tool's counts to the aggregated data
-          student.periods.forEach((count, period) => {
-            const currentCount = allStudentData.get(studentKey).periods.get(period) || 0
-            allStudentData.get(studentKey).periods.set(period, currentCount + count)
-          })
-        })
-      })
-      
-      // Add aggregated section first
-      formattedData.push({
-        'User ID': '[AGGREGATED - ALL TOOLS]',
-        'First Name': '',
-        'Last Name': '',
-        'Email': '',
-        ...Object.fromEntries(sortedPeriods.map(period => [period, '']))
-      })
-      
-      Array.from(allStudentData.values()).forEach(student => {
-        const row: any = {
-          'User ID': student.user_id,
-          'First Name': student.firstName,
-          'Last Name': student.lastName,
-          'Email': student.email
-        }
-        
-        sortedPeriods.forEach(period => {
-          row[period] = student.periods.get(period) || 0
-        })
-        
-        formattedData.push(row)
-      })
-      
-      // Add empty row between sections
-      formattedData.push({
-        'User ID': '',
-        'First Name': '',
-        'Last Name': '',
-        'Email': '',
-        ...Object.fromEntries(sortedPeriods.map(period => [period, '']))
-      })
-      
-      // Add individual tool type sections
-      toolSections.forEach(({ toolType, studentData }) => {
-        // Add section header
-        formattedData.push({
-          'User ID': `[${toolType.toUpperCase()}]`,
-          'First Name': '',
-          'Last Name': '',
-          'Email': '',
-          ...Object.fromEntries(sortedPeriods.map(period => [period, '']))
-        })
-        
-        // Add data for this tool type
-        studentData.forEach(student => {
+        Array.from(allStudentData.values()).forEach(student => {
           const row: any = {
             'User ID': student.user_id,
             'First Name': student.firstName,
@@ -181,16 +187,7 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
           
           formattedData.push(row)
         })
-        
-        // Add empty row between sections
-        formattedData.push({
-          'User ID': '',
-          'First Name': '',
-          'Last Name': '',
-          'Email': '',
-          ...Object.fromEntries(sortedPeriods.map(period => [period, '']))
-        })
-      })
+      }
       
       const csvData = {
         data: formattedData,
@@ -200,7 +197,13 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
       }
 
       csvDownload(csvData)
-      message.success('Tool usage data exported successfully! Single CSV file with separate sections for each tool type created.')
+      
+      // Show the date range that was used
+      const dateRange = sortedPeriods.length > 0 
+        ? `Date range: ${sortedPeriods[0]} to ${sortedPeriods[sortedPeriods.length - 1]}`
+        : 'No data found for the selected criteria'
+      
+      message.success(`Tool usage data exported successfully! ${dateRange}`)
       onCancel()
     } catch (error) {
       handleError(error, 'Failed to export tool usage data')
@@ -266,6 +269,18 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
             value={groupBy}
             onChange={(value) => setGroupBy(value as 'day' | 'week')}
           />
+        
+        </div>
+
+        <div>
+          <div className="space-y-2">
+            <Checkbox
+              checked={includeBreakdown}
+              onChange={(e) => setIncludeBreakdown(e.target.checked)}
+            >
+              Include breakdown by tool type (separate sections for each tool)
+            </Checkbox>
+          </div>
         </div>
       </div>
     </Modal>
