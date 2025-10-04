@@ -260,7 +260,7 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
         </div>
 
         <div>
-          <h4 className="text-sm font-medium mb-3">Select the time period to export</h4>
+          <h4 className="text-sm font-medium mb-3">Tool uses by day or by week?</h4>
           <Segmented
             options={[
               { label: 'Day', value: 'day' },
