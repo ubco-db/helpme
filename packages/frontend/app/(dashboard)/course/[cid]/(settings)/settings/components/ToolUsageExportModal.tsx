@@ -1,6 +1,7 @@
 'use client'
 
-import { Button, Checkbox, Modal, Segmented, message } from 'antd'
+import { Button, Checkbox, Modal, Segmented, message, Tooltip } from 'antd'
+import { InfoCircleOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import csvDownload from 'json-to-csv-export'
 import { API } from '@/app/api'
@@ -214,7 +215,18 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
 
   return (
     <Modal
-      title="Export Tool Usage to CSV"
+      title={
+        <div className="flex items-center w-full">
+          <span className="flex-1">Export Tool Usage to CSV</span>
+          <div className="flex items-center gap-3 mr-6">
+            <Tooltip
+              title="You can export the usage data to see how much each student is using the system (e.g. for participation marks). Students are rows, and each week or day are the columns. Each cell is how many times a tool was used for that day/week by that student."
+            >
+              <InfoCircleOutlined className="text-blue-500 hover:text-blue-700 cursor-help" />
+            </Tooltip>
+          </div>
+        </div>
+      }
       open={visible}
       onCancel={onCancel}
       footer={[

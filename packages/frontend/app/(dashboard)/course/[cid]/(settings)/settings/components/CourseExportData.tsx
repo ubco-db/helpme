@@ -280,14 +280,7 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
         </div>
 
         <div className="flex items-center justify-between">
-          <span>
-            Export Tool Usage to CSV
-            <Tooltip
-              title="You can export the usage data to see how much each student is using the system (e.g. for participation marks). Students are rows, and each week or day are the columns. Each cell is how many times a tool was used for that day/week by that student."
-            >
-              <InfoCircleOutlined className="ml-2" />
-            </Tooltip>
-          </span>
+          <span>Export Tool Usage to CSV</span>
           <Button
             onClick={() => setToolUsageModalVisible(true)}
           >
