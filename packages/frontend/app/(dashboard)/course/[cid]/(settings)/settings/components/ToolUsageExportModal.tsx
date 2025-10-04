@@ -222,7 +222,10 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
             <Tooltip
               title="You can export the usage data to see how much each student is using the system (e.g. for participation marks). Students are rows, and each week or day are the columns. Each cell is how many times a tool was used for that day/week by that student."
             >
-              <InfoCircleOutlined className="text-blue-500 hover:text-blue-700 cursor-help" />
+              <div className="flex items-center gap-1 cursor-help">
+                <span className="text-gray-500 hover:text-gray-700 text-sm">Help</span>
+                <InfoCircleOutlined className="text-gray-500 hover:text-gray-700" />
+              </div>
             </Tooltip>
           </div>
         </div>
