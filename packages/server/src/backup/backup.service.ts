@@ -20,7 +20,7 @@ export const baseBackupCommand =
 export class BackupService {
   private readonly MINIMUM_FREE_SPACE_MB = 1000; // Minimum space (in MB) required for backup
 
-  // Daily Backup Task - Keeps rolling backups for 30 days
+  // Daily Backup Task - Keeps rolling backups for 14 days (TODO: change back to 30 when we get a proper place for backups)
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleDailyBackup() {
     const date = new Date().toISOString().split('T')[0];
@@ -38,7 +38,7 @@ export class BackupService {
             Sentry.captureMessage(`Backup failed: ${stderr}`);
           } else {
             console.log(`Daily backup saved: ${backupFile}`);
-            this.deleteOldBackups(backupDir, 30);
+            this.deleteOldBackups(backupDir, 14);
           }
         },
       );
