@@ -12,8 +12,8 @@
     - Includes 4 levels of access-control so that professors can choose how much information from the quiz they want the chatbot to have access to, these being:
       - Logistics Only (title, due dates, description, time limits)
       - Logistics & Questions
-      - Logistics, Questions, and Comments (comments being the professor-set blurb that shows up if a question is correct/incorrect)
-      - Full Access (includes quiz answers)
+      - Logistics, Questions, and Comments (only question comments)
+      - Full Access (includes quiz answers and their comments)
     - Comes with a preview of all content that would be sent to the chatbot knowledge base
     - Any chatbot citations for these quizzes takes the student to the corresponding page on Canvas (meaning students cannot access anything restricted)
 
