@@ -330,6 +330,7 @@ export class LMSIntegrationService {
               modified: pages[idx].modified ?? found.modified,
               uploaded: found.uploaded,
               syncEnabled: found.syncEnabled,
+              isModuleLinked: found.isModuleLinked,
             };
           }
         }
@@ -579,6 +580,11 @@ export class LMSIntegrationService {
           break;
         case LMSUpload.Pages:
           items = result.pages;
+          if (courseIntegration.moduleLinkedPagesOnly) {
+            items = (items as LMSPage[]).filter(
+              (page) => page.isModuleLinked === true,
+            );
+          }
           break;
         case LMSUpload.Files:
           items = result.files;
@@ -1315,6 +1321,7 @@ export class LMSIntegrationService {
         lmsIntegration.apiKeyExpiry != undefined &&
         new Date(lmsIntegration.apiKeyExpiry).getTime() < new Date().getTime(),
       selectedResourceTypes: lmsIntegration.selectedResourceTypes,
+      moduleLinkedPagesOnly: lmsIntegration.moduleLinkedPagesOnly,
     } satisfies LMSCourseIntegrationPartial;
   }
 

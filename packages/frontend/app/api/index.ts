@@ -1440,6 +1440,16 @@ class APIClient {
       this.req('POST', `/api/v1/lms/course/${courseId}/resources`, undefined, {
         selectedResourceTypes,
       }),
+    updateModuleLinkedPagesOnly: async (
+      courseId: number,
+      moduleLinkedPagesOnly: boolean,
+    ): Promise<string> =>
+      this.req(
+        'PUT',
+        `/api/v1/lms/course/${courseId}/module-pages-only`,
+        undefined,
+        { moduleLinkedPagesOnly },
+      ),
     testIntegration: async (
       courseId: number,
       props: TestLMSIntegrationParams,

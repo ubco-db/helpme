@@ -127,12 +127,17 @@ export default function CourseLMSIntegrationPage(props: {
   const [delModalOpen, setDelModalOpen] = useState<boolean>(false)
   const [isTesting, setIsTesting] = useState<boolean>(false)
   const [selectedResources, setSelectedResources] = useState<string[]>([])
+  const [moduleLinkedPagesOnly, setModuleLinkedPagesOnly] =
+    useState<boolean>(false)
 
   useEffect(() => {
     if (integration?.selectedResourceTypes) {
       setSelectedResources(integration.selectedResourceTypes)
     }
-  }, [integration?.selectedResourceTypes])
+    if (integration?.moduleLinkedPagesOnly !== undefined) {
+      setModuleLinkedPagesOnly(integration.moduleLinkedPagesOnly)
+    }
+  }, [integration?.selectedResourceTypes, integration?.moduleLinkedPagesOnly])
 
   const onSelectedResourcesChange: GetProp<
     typeof Checkbox.Group,
@@ -296,6 +301,23 @@ export default function CourseLMSIntegrationPage(props: {
       setUpdateFlag(!updateFlag)
     } catch (err) {
       message.error(getErrorMessage(err))
+    }
+  }
+
+  const updateModuleLinkedPagesOnly = async () => {
+    if (!integration) return
+
+    try {
+      await API.lmsIntegration.updateModuleLinkedPagesOnly(
+        courseId,
+        moduleLinkedPagesOnly,
+      )
+      message.success('Module pages setting updated!')
+      // No need to refresh - the toggle state is already updated locally
+    } catch (error) {
+      message.error(getErrorMessage(error))
+      // Revert the toggle if the API call failed
+      setModuleLinkedPagesOnly(!moduleLinkedPagesOnly)
     }
   }
 
@@ -810,43 +832,83 @@ export default function CourseLMSIntegrationPage(props: {
                         label: 'Resource Selector',
                         key: '2',
                         children: (
-                          <div className={'flex flex-col items-center gap-2'}>
+                          <div
+                            className={
+                              'flex flex-col items-center gap-4 px-4 py-2'
+                            }
+                          >
                             <Checkbox.Group
                               style={{ width: '100%' }}
                               onChange={onSelectedResourcesChange}
                               value={selectedResources}
                             >
-                              <Row gutter={[16, 16]}>
-                                <Col xs={24} sm={12} md={8}>
-                                  <Checkbox value="assignments">
-                                    Assignments
-                                  </Checkbox>
+                              <Row gutter={[24, 16]}>
+                                <Col xs={24} sm={12} lg={8}>
+                                  <div className="flex min-h-[50px] items-center p-3">
+                                    <Checkbox value="assignments">
+                                      Assignments
+                                    </Checkbox>
+                                  </div>
                                 </Col>
-                                <Col xs={24} sm={12} md={8}>
-                                  <Checkbox value="announcements">
-                                    Announcements
-                                  </Checkbox>
+                                <Col xs={24} sm={12} lg={8}>
+                                  <div className="flex min-h-[50px] items-center p-3">
+                                    <Checkbox value="announcements">
+                                      Announcements
+                                    </Checkbox>
+                                  </div>
                                 </Col>
-                                <Col xs={24} sm={12} md={8}>
-                                  <Checkbox value="files">Files</Checkbox>
+                                <Col xs={24} sm={12} lg={8}>
+                                  <div className="flex min-h-[50px] items-center p-3">
+                                    <Checkbox value="files">Files</Checkbox>
+                                  </div>
                                 </Col>
-                                <Col xs={24} sm={12} md={8}>
-                                  <Checkbox value="pages">Pages</Checkbox>
+                                <Col xs={24} sm={12} lg={8}>
+                                  <div className="flex min-h-[50px] items-center p-3">
+                                    <Checkbox value="pages">Pages</Checkbox>
+                                  </div>
                                 </Col>
-                                <Col xs={24} sm={12} md={8}>
-                                  <Checkbox value="quizzes">Quizzes</Checkbox>
+                                <Col xs={24} sm={12} lg={8}>
+                                  <div className="flex min-h-[50px] items-center p-3">
+                                    <Checkbox value="quizzes">Quizzes</Checkbox>
+                                  </div>
                                 </Col>
-                                <Col xs={24} sm={12} md={8}>
-                                  <Checkbox value="Syllabus" disabled={true}>
-                                    <Tooltip title="Coming Soon!">
-                                      <span className="text-gray-400 line-through">
-                                        Syllabus
-                                      </span>
-                                    </Tooltip>
-                                  </Checkbox>
+                                <Col xs={24} sm={12} lg={8}>
+                                  <div className="flex min-h-[50px] items-center p-3">
+                                    <Checkbox value="Syllabus" disabled={true}>
+                                      <Tooltip title="Coming Soon!">
+                                        <span className="text-gray-400 line-through">
+                                          Syllabus
+                                        </span>
+                                      </Tooltip>
+                                    </Checkbox>
+                                  </div>
                                 </Col>
                               </Row>
                             </Checkbox.Group>
+
+                            {/* Module-linked pages toggle */}
+                            {selectedResources.includes('pages') && (
+                              <div className="mt-4 w-full rounded-lg bg-gray-50 p-3">
+                                <Checkbox
+                                  checked={moduleLinkedPagesOnly}
+                                  onChange={(e) => {
+                                    setModuleLinkedPagesOnly(e.target.checked)
+                                    // Auto-update when changed
+                                    setTimeout(
+                                      () => updateModuleLinkedPagesOnly(),
+                                      100,
+                                    )
+                                  }}
+                                >
+                                  <Tooltip title="Only sync pages that are linked within course modules. When enabled, standalone pages will be excluded from the chatbot.">
+                                    <span className="text-sm font-medium">
+                                      Module-linked pages only
+                                    </span>
+                                  </Tooltip>
+                                </Checkbox>
+                              </div>
+                            )}
+
                             <Button
                               size={'large'}
                               shape={'round'}
@@ -866,7 +928,7 @@ export default function CourseLMSIntegrationPage(props: {
                               style={{ marginTop: '30px' }}
                               onClick={handleSaveAndResync}
                               loading={syncing && integration.lmsSynchronize}
-                              className="w-full sm:w-auto"
+                              className="w-full sm:w-auto md:max-w-xs lg:max-w-sm"
                             >
                               <span className="hidden sm:inline">
                                 Save and Re-Sync Documents

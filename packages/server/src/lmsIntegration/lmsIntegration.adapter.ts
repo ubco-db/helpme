@@ -7,6 +7,8 @@ import {
   LMSCourseAPIResponse,
   LMSFile,
   LMSIntegrationPlatform,
+  LMSModule,
+  LMSModuleItem,
   LMSPage,
   LMSQuiz,
 } from '@koh/common';
@@ -79,6 +81,13 @@ export abstract class AbstractLMSAdapter {
   async getPages(): Promise<{
     status: LMSApiResponseStatus;
     pages: LMSPage[];
+  }> {
+    return null;
+  }
+
+  async getModules(): Promise<{
+    status: LMSApiResponseStatus;
+    modules: LMSModule[];
   }> {
     return null;
   }
@@ -389,6 +398,10 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
 
     if (status != LMSApiResponseStatus.Success) return { status, pages: [] };
 
+    const moduleLinkedPageUrls = await this.getModuleLinkedPageUrls();
+
+    console.log(moduleLinkedPageUrls);
+
     const pages: LMSPage[] = [];
 
     // Individual page calls will now be cached by the Get() method
@@ -405,6 +418,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
           url: page.url,
           frontPage: page.front_page,
           modified: new Date(pageResult.data.updated_at),
+          isModuleLinked: moduleLinkedPageUrls.includes(page.url),
         });
       }
     }
@@ -420,6 +434,67 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     }
 
     return result;
+  }
+
+  private async getModuleLinkedPageUrls(): Promise<string[]> {
+    const modulesResult = await this.getModules();
+    if (modulesResult.status !== LMSApiResponseStatus.Success) return [];
+
+    const pageUrls: string[] = [];
+
+    for (const module of modulesResult.modules) {
+      const itemsResult = await this.getModuleItems(module.id);
+      if (itemsResult.status === LMSApiResponseStatus.Success) {
+        const modulePageUrls = itemsResult.items
+          .filter((item) => item.type === 'Page')
+          .map((item) => item.page_url)
+          .filter((url) => url);
+
+        pageUrls.push(...modulePageUrls);
+      }
+    }
+
+    return [...new Set(pageUrls)];
+  }
+
+  async getModules(): Promise<{
+    status: LMSApiResponseStatus;
+    modules: LMSModule[];
+  }> {
+    const { status, data } = await this.GetPaginated(
+      `courses/${this.integration.apiCourseId}/modules`,
+    );
+
+    if (status != LMSApiResponseStatus.Success) return { status, modules: [] };
+
+    const modules: LMSModule[] = data.map((module: any) => {
+      return {
+        id: module.id,
+        name: module.name,
+        items_url: module.items_url,
+      } as LMSModule;
+    });
+
+    return {
+      status: LMSApiResponseStatus.Success,
+      modules,
+    };
+  }
+
+  async getModuleItems(moduleId: number): Promise<{
+    status: LMSApiResponseStatus;
+    items: LMSModuleItem[];
+  }> {
+    const { status, data } = await this.GetPaginated(
+      `courses/${this.integration.apiCourseId}/modules/${moduleId}/items`,
+    );
+
+    if (status != LMSApiResponseStatus.Success) return { status, items: [] };
+
+    return {
+      status: LMSApiResponseStatus.Success,
+      items: data,
+    };
   }
 
   async getFiles(): Promise<{
