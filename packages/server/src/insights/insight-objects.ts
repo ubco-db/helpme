@@ -609,7 +609,7 @@ type HelpSeekingDates = {
 };
 
 export const HelpSeekingOverTime: InsightObject = {
-  displayName: 'Student Interactions Over Time',
+  displayName: 'Usage Over Time',
   description: 'What help services have students been utilizing over time?',
   roles: [Role.PROFESSOR],
   insightType: InsightType.Chart,

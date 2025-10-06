@@ -90,27 +90,27 @@ export default function ChatbotDocuments(
   )
 
   const fetchDocuments = useCallback(async () => {
-    await API.chatbot.staffOnly
-      .getAllDocumentChunks(courseId)
-      .then((response) => {
-        response = response.map((doc) => ({
-          ...doc,
-          key: doc.id,
-        }))
-        setDocuments(response)
-        setFilteredDocuments(filterDocuments(response, search))
-      })
-      .catch((e) => {
-        const errorMessage = getErrorMessage(e)
-        message.error('Failed to load documents: ' + errorMessage)
-      })
+    if (courseId) {
+      await API.chatbot.staffOnly
+        .getAllDocumentChunks(courseId)
+        .then((response) => {
+          response = response.map((doc) => ({
+            ...doc,
+            key: doc.id,
+          }))
+          setDocuments(response)
+          setFilteredDocuments(filterDocuments(response, search))
+        })
+        .catch((e) => {
+          const errorMessage = getErrorMessage(e)
+          message.error('Failed to load documents: ' + errorMessage)
+        })
+    }
   }, [courseId, setDocuments, setFilteredDocuments, search])
 
   useEffect(() => {
-    if (courseId) {
-      fetchDocuments()
-    }
-  }, [courseId, fetchDocuments])
+    fetchDocuments()
+  }, [fetchDocuments])
 
   const columns = [
     {
