@@ -6,11 +6,28 @@ import { useState } from 'react'
 import csvDownload from 'json-to-csv-export'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { ToolUsageExportData } from '@koh/common'
 
 type ToolUsageExportModalProps = {
   courseId: number
   visible: boolean
   onCancel: () => void
+}
+
+type StudentData = {
+  user_id: number
+  firstName: string
+  lastName: string
+  email: string
+  periods: Map<string, number>
+}
+
+type CSVRow = {
+  'User ID': string | number
+  'First Name': string
+  'Last Name': string
+  'Email': string
+  [key: string]: string | number
 }
 
 const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
@@ -25,11 +42,6 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
   const [groupBy, setGroupBy] = useState<'day' | 'week'>('week')
   const [includeBreakdown, setIncludeBreakdown] = useState(false)
 
-  const handleError = (error: any, context: string) => {
-    console.error(`${context}:`, error)
-    const errorMessage = getErrorMessage(error)
-    message.error(`${context}: ${errorMessage}`)
-  }
 
   const handleExport = async () => {
     // Check if at least one tool type is selected
@@ -64,9 +76,9 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
       
 
       const timePeriods = new Set<string>()
-      const students = new Map<string, any>()
+      const students = new Map<string, StudentData>()
       
-      data.forEach((row: any) => {
+      data.forEach((row) => {
         timePeriods.add(row.period_date)
         
         const studentKey = `${row.user_id}_${row.firstName}_${row.lastName}_${row.email}`
@@ -82,13 +94,13 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
       })
       
       const sortedPeriods = Array.from(timePeriods).sort()
-      const formattedData: any[] = []
+      const formattedData: CSVRow[] = []
       
       if (includeBreakdown) {
 
-        const toolData = new Map<string, any[]>()
+        const toolData = new Map<string, ToolUsageExportData[]>()
         
-        data.forEach((row: any) => {
+        data.forEach((row) => {
           const toolKey = row.tool_type
           if (!toolData.has(toolKey)) {
             toolData.set(toolKey, [])
@@ -101,9 +113,9 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
 
         toolTypes.forEach(toolType => {
           const toolRows = toolData.get(toolType) || []
-          const studentData = new Map<string, any>()
+          const studentData = new Map<string, StudentData>()
           
-          toolRows.forEach((row: any) => {
+          toolRows.forEach((row) => {
             const studentKey = `${row.user_id}_${row.firstName}_${row.lastName}_${row.email}`
             const timeKey = row.period_date
             
@@ -117,8 +129,11 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
               })
             }
             
-            const currentCount = studentData.get(studentKey).periods.get(timeKey) || 0
-            studentData.get(studentKey).periods.set(timeKey, currentCount + Number(row.count))
+            const student = studentData.get(studentKey)
+            if (student) {
+              const currentCount = student.periods.get(timeKey) || 0
+              student.periods.set(timeKey, currentCount + Number(row.count))
+            }
           })
 
           formattedData.push({
@@ -131,7 +146,7 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
           
 
           Array.from(studentData.values()).forEach(student => {
-            const row: any = {
+            const row: CSVRow = {
               'User ID': student.user_id,
               'First Name': student.firstName,
               'Last Name': student.lastName,
@@ -154,9 +169,9 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
           })
         })
       } else {
-        const allStudentData = new Map<string, any>()
+        const allStudentData = new Map<string, StudentData>()
         
-        data.forEach((row: any) => {
+        data.forEach((row) => {
           const studentKey = `${row.user_id}_${row.firstName}_${row.lastName}_${row.email}`
           const timeKey = row.period_date
           
@@ -170,12 +185,15 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
             })
           }
           
-          const currentCount = allStudentData.get(studentKey).periods.get(timeKey) || 0
-          allStudentData.get(studentKey).periods.set(timeKey, currentCount + Number(row.count))
+          const student = allStudentData.get(studentKey)
+          if (student) {
+            const currentCount = student.periods.get(timeKey) || 0
+            student.periods.set(timeKey, currentCount + Number(row.count))
+          }
         })
         
         Array.from(allStudentData.values()).forEach(student => {
-          const row: any = {
+          const row: CSVRow = {
             'User ID': student.user_id,
             'First Name': student.firstName,
             'Last Name': student.lastName,
@@ -207,7 +225,9 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
       message.success(`Tool usage data exported successfully! ${dateRange}`)
       onCancel()
     } catch (error) {
-      handleError(error, 'Failed to export tool usage data')
+      console.error('Failed to export tool usage data:', error)
+      const errorMessage = getErrorMessage(error)
+      message.error(`Failed to export tool usage data: ${errorMessage}`)
     } finally {
       setLoading(false)
     }
@@ -223,7 +243,7 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
               title="You can export the usage data to see how much each student is using the system (e.g. for participation marks). Students are rows, and each week or day are the columns. Each cell is how many times a tool was used for that day/week by that student."
             >
               <div className="cursor-help text-gray-500 hover:text-gray-600">
-                 Help <QuestionCircleOutlined />
+                 Help <InfoCircleOutlined />
               </div>
             </Tooltip>
           </div>

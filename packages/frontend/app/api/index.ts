@@ -99,6 +99,7 @@ import {
   TACheckoutResponse,
   TAUpdateStatusResponse,
   TestLMSIntegrationParams,
+  ToolUsageExportData,
   UBCOuserParam,
   UnreadAsyncQuestionResponse,
   UpdateAsyncQuestions,
@@ -670,7 +671,7 @@ class APIClient {
       includeAnytimeQuestions: boolean = true,
       includeChatbotInteractions: boolean = true,
       groupBy: 'day' | 'week' = 'week'
-    ): Promise<any[]> => {
+    ): Promise<ToolUsageExportData[]> => {
       const queryParams = new URLSearchParams({
         includeQueueQuestions: includeQueueQuestions.toString(),
         includeAnytimeQuestions: includeAnytimeQuestions.toString(),

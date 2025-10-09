@@ -17,6 +17,7 @@ import {
   Role,
   TACheckinTimesResponse,
   TACheckoutResponse,
+  ToolUsageExportData,
   UBCOuserParam,
   UserCourse,
   UserTiny,
@@ -1040,13 +1041,12 @@ export class CourseController {
     @Query('groupBy') groupBy: string,
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
-  ): Promise<any[]> {
+  ): Promise<ToolUsageExportData[]> {
     const includeQueueQuestionsBool = includeQueueQuestions === 'true';
     const includeAnytimeQuestionsBool = includeAnytimeQuestions === 'true';
     const includeChatbotInteractionsBool = includeChatbotInteractions === 'true';
     const isGroupByWeek = groupBy === 'week';
     
-  
     let startDateObj: Date;
     let endDateObj: Date;
     
@@ -1093,6 +1093,7 @@ export class CourseController {
 
     try {
       const results = [];
+      
       if (includeQueueQuestionsBool) {
         const queueQuery = isGroupByWeek
           ? `
@@ -1195,6 +1196,7 @@ export class CourseController {
         const queueResults = await UserCourseModel.query(queueQuery, [courseId, startDateObj, endDateObj]);
         results.push(...queueResults.map(row => ({ ...row, tool_type: 'queue_questions' })));
       }
+      
       if (includeAnytimeQuestionsBool) {
         const anytimeQuery = isGroupByWeek
           ? `
@@ -1297,6 +1299,7 @@ export class CourseController {
         const anytimeResults = await UserCourseModel.query(anytimeQuery, [courseId, startDateObj, endDateObj]);
         results.push(...anytimeResults.map(row => ({ ...row, tool_type: 'anytime_questions' })));
       }
+      
       if (includeChatbotInteractionsBool) {
         const chatbotQuery = isGroupByWeek
           ? `
@@ -1398,6 +1401,7 @@ export class CourseController {
         results.push(...chatbotResults.map(row => ({ ...row, tool_type: 'chatbot_interactions' })));
       }
       // Return JSON data for frontend to handle CSV generation
+      
       return results;
 
     } catch (error) {
