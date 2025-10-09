@@ -248,7 +248,7 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
     >
       <div className="space-y-6">
         <div>
-          <h4 className="text-sm font-medium mb-3">What constitutes as a "tool usage"?</h4>
+          <h4 className="text-sm font-medium mb-3">What constitutes as a &quot;tool usage&quot;?</h4>
           <div className="space-y-2">
             <Checkbox
               checked={includeQueueQuestions}
