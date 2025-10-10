@@ -646,6 +646,7 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
                       }
                       showNotes={true}
                       allowNoteEditing={true}
+                      showModality={true}
                       allowRecommendedEdit={true}
                       onUpdateRecommended={(
                         modelName: string,
