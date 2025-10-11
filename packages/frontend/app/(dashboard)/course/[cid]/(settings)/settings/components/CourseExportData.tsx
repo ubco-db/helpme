@@ -11,6 +11,7 @@ import {
   StudentTaskProgressWithUser,
 } from '@koh/common'
 import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
+import ToolUsageExportModal from './ToolUsageExportModal'
 
 type CourseExportDataProps = {
   courseId: number
@@ -37,6 +38,7 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
   const [loadingQuestions, setLoadingQuestions] = useState(false)
   const [loadingAssignments, setLoadingAssignments] = useState(false)
   const [course, setCourse] = useState<GetCourseResponse>()
+  const [toolUsageModalVisible, setToolUsageModalVisible] = useState(false)
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -277,6 +279,16 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
           </Button>
         </div>
 
+        <div className="flex items-center justify-between">
+          <span>Export Tool Usage to CSV</span>
+          <Button
+            onClick={() => setToolUsageModalVisible(true)}
+          >
+            <DownloadOutlined />
+            Download
+          </Button>
+        </div>
+
         <div className="flex items-center justify-between align-middle">
           <span>
             Export CSV of all students&apos; assignment progress
@@ -307,6 +319,12 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
             Download
           </Button>
         </div>
+
+        <ToolUsageExportModal
+          courseId={courseId}
+          visible={toolUsageModalVisible}
+          onCancel={() => setToolUsageModalVisible(false)}
+        />
       </div>
     )
   )
