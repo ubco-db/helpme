@@ -214,11 +214,15 @@ export class QueueCleanService {
         }
         const alert = await AlertModel.create({
           alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
-          deliveryMode: AlertDeliveryMode.MODAL,
           sent: new Date(),
           userId: student.studentId,
           courseId: student.courseId,
-          payload: { queueId, queueQuestionId: student.questionId },
+          payload: {
+            queueId,
+            ...(student.questionId !== undefined
+              ? { queueQuestionId: student.questionId }
+              : {}),
+          },
         }).save();
         // if the student does not respond in 10 minutes, resolve the alert and mark the question as LeftDueToNoStaff
         const jobName = `prompt-student-to-leave-queue-${queueId}-${student.studentId}`;
