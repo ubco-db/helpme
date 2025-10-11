@@ -73,7 +73,7 @@ export class AsyncQuestionService {
           questionId: question.id,
           subtype: 'commentOnMyPost',
           summary: `${commenterIsStaff ? commenter.name : 'Someone'} commented on your question`,
-        } as any,
+        },
       }).save();
     }
   }
@@ -149,7 +149,7 @@ export class AsyncQuestionService {
             questionId: updatedQuestion.id,
             subtype: 'commentOnOthersPost',
             summary: `${commenterIsStaff ? commenter.name : 'Someone'} commented on an Anytime Question you follow`,
-          } as any,
+          },
         }).save(),
       ),
     );
@@ -336,7 +336,7 @@ export class AsyncQuestionService {
           questionId: question.id,
           subtype: 'statusChanged',
           summary: `Your Anytime Question status changed to ${status}`,
-        } as any,
+        },
       }).save();
     }
   }
@@ -381,7 +381,7 @@ export class AsyncQuestionService {
           questionId: updatedQuestion.id,
           subtype: 'upvoted',
           summary: 'Your Anytime Question was upvoted',
-        } as any,
+        },
       }).save();
     }
   }

@@ -2239,11 +2239,7 @@ export enum AlertDeliveryMode {
   FEED = 'feed',
 }
 
-export class AlertPayload {
-  @IsOptional()
-  @IsInt()
-  courseId?: number
-}
+export class AlertPayload {}
 
 export class Alert {
   @IsEnum(AlertType)
@@ -2272,6 +2268,9 @@ export class RephraseQuestionPayload extends AlertPayload {
 
   @IsInt()
   queueId!: number
+
+  @IsInt()
+  courseId!: number
 }
 
 export class PromptStudentToLeaveQueuePayload extends AlertPayload {

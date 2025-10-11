@@ -218,7 +218,7 @@ export class QueueCleanService {
           sent: new Date(),
           userId: student.studentId,
           courseId: student.courseId,
-          payload: { queueId, queueQuestionId: student.questionId } as any,
+          payload: { queueId, queueQuestionId: student.questionId },
         }).save();
         // if the student does not respond in 10 minutes, resolve the alert and mark the question as LeftDueToNoStaff
         const jobName = `prompt-student-to-leave-queue-${queueId}-${student.studentId}`;

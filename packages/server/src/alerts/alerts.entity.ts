@@ -1,4 +1,12 @@
-import { AlertDeliveryMode, AlertPayload, AlertType } from '@koh/common';
+import {
+  AlertDeliveryMode,
+  AlertPayload,
+  AlertType,
+  RephraseQuestionPayload,
+  PromptStudentToLeaveQueuePayload,
+  DocumentProcessedPayload,
+  AsyncQuestionUpdatePayload,
+} from '@koh/common';
 import { Exclude } from 'class-transformer';
 import {
   BaseEntity,
@@ -52,5 +60,10 @@ export class AlertModel extends BaseEntity {
   courseId: number;
 
   @Column({ type: 'json' })
-  payload: AlertPayload;
+  payload:
+    | AlertPayload
+    | RephraseQuestionPayload
+    | PromptStudentToLeaveQueuePayload
+    | DocumentProcessedPayload
+    | AsyncQuestionUpdatePayload;
 }
