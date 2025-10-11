@@ -7,6 +7,7 @@ import {
   UndoOutlined,
 } from '@ant-design/icons'
 import {
+  AlertDeliveryMode,
   AlertType,
   ClosedQuestionStatus,
   ERROR_MESSAGES,
@@ -159,6 +160,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
         courseId,
         payload,
         targetUserId: question.creatorId,
+        deliveryMode: AlertDeliveryMode.FEED,
       })
       // await mutateQuestions()
       message.success('Successfully asked student to rephrase their question.')

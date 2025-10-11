@@ -2231,6 +2231,7 @@ export enum AlertType {
   EVENT_ENDED_CHECKOUT_STAFF = 'eventEndedCheckoutStaff',
   PROMPT_STUDENT_TO_LEAVE_QUEUE = 'promptStudentToLeaveQueue',
   DOCUMENT_PROCESSED = 'documentProcessed',
+  ASYNC_QUESTION_UPDATE = 'asyncQuestionUpdate',
 }
 
 export enum AlertDeliveryMode {
@@ -2238,7 +2239,11 @@ export enum AlertDeliveryMode {
   FEED = 'feed',
 }
 
-export class AlertPayload {}
+export class AlertPayload {
+  @IsOptional()
+  @IsInt()
+  courseId?: number
+}
 
 export class Alert {
   @IsEnum(AlertType)
@@ -2267,9 +2272,6 @@ export class RephraseQuestionPayload extends AlertPayload {
 
   @IsInt()
   queueId!: number
-
-  @IsInt()
-  courseId!: number
 }
 
 export class PromptStudentToLeaveQueuePayload extends AlertPayload {
@@ -2285,6 +2287,27 @@ export class DocumentProcessedPayload extends AlertPayload {
 
   @IsString()
   documentName!: string
+}
+
+export class AsyncQuestionUpdatePayload extends AlertPayload {
+  @IsInt()
+  questionId!: number
+
+  @IsInt()
+  courseId!: number
+
+  @IsString()
+  @IsOptional()
+  subtype?:
+    | 'commentOnMyPost'
+    | 'commentOnOthersPost'
+    | 'humanAnswered'
+    | 'statusChanged'
+    | 'upvoted'
+
+  @IsString()
+  @IsOptional()
+  summary?: string
 }
 
 export class OrganizationCourseResponse {

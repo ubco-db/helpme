@@ -1,4 +1,10 @@
-import { MailServiceType, parseThinkBlock, Role } from '@koh/common';
+import {
+  AlertDeliveryMode,
+  AlertType,
+  MailServiceType,
+  parseThinkBlock,
+  Role,
+} from '@koh/common';
 import { Injectable } from '@nestjs/common';
 import { MailService } from 'mail/mail.service';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
@@ -10,6 +16,7 @@ import * as Sentry from '@sentry/nestjs';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 import { CourseSettingsModel } from '../course/course_settings.entity';
 import { SentEmailModel } from '../mail/sent-email.entity';
+import { AlertModel } from '../alerts/alerts.entity';
 
 @Injectable()
 export class AsyncQuestionService {
@@ -55,6 +62,19 @@ export class AsyncQuestionService {
           );
           Sentry.captureException(err);
         });
+      await AlertModel.create({
+        alertType: AlertType.ASYNC_QUESTION_UPDATE,
+        deliveryMode: AlertDeliveryMode.FEED,
+        sent: new Date(),
+        userId: question.creator.id,
+        courseId: question.courseId,
+        payload: {
+          courseId: question.courseId,
+          questionId: question.id,
+          subtype: 'commentOnMyPost',
+          summary: `${commenterIsStaff ? commenter.name : 'Someone'} commented on your question`,
+        } as any,
+      }).save();
     }
   }
 
@@ -115,6 +135,24 @@ export class AsyncQuestionService {
         }
       });
     });
+    // FEED alerts for participants (exclude commenter and creator via the query)
+    await Promise.all(
+      subscriptions.map((sub) =>
+        AlertModel.create({
+          alertType: AlertType.ASYNC_QUESTION_UPDATE,
+          deliveryMode: AlertDeliveryMode.FEED,
+          sent: new Date(),
+          userId: sub.userId,
+          courseId: updatedQuestion.courseId,
+          payload: {
+            courseId: updatedQuestion.courseId,
+            questionId: updatedQuestion.id,
+            subtype: 'commentOnOthersPost',
+            summary: `${commenterIsStaff ? commenter.name : 'Someone'} commented on an Anytime Question you follow`,
+          } as any,
+        }).save(),
+      ),
+    );
   }
 
   async sendNeedsAttentionEmail(question: AsyncQuestionModel) {
@@ -203,6 +241,19 @@ export class AsyncQuestionService {
           console.error('Failed to send email Human Answered email: ' + err);
           Sentry.captureException(err);
         });
+      await AlertModel.create({
+        alertType: AlertType.ASYNC_QUESTION_UPDATE,
+        deliveryMode: AlertDeliveryMode.FEED,
+        sent: new Date(),
+        userId: question.creator.id,
+        courseId: question.courseId,
+        payload: {
+          courseId: question.courseId,
+          questionId: question.id,
+          subtype: 'humanAnswered',
+          summary: 'Your Anytime Question has been answered',
+        } as any,
+      }).save();
     }
   }
 
@@ -274,6 +325,19 @@ export class AsyncQuestionService {
           console.error('Failed to send email Status Changed email: ' + err);
           Sentry.captureException(err);
         });
+      await AlertModel.create({
+        alertType: AlertType.ASYNC_QUESTION_UPDATE,
+        deliveryMode: AlertDeliveryMode.FEED,
+        sent: new Date(),
+        userId: question.creator.id,
+        courseId: question.courseId,
+        payload: {
+          courseId: question.courseId,
+          questionId: question.id,
+          subtype: 'statusChanged',
+          summary: `Your Anytime Question status changed to ${status}`,
+        } as any,
+      }).save();
     }
   }
 
@@ -306,6 +370,19 @@ export class AsyncQuestionService {
           console.error('Failed to send email Vote Question email: ' + err);
           Sentry.captureException(err);
         });
+      await AlertModel.create({
+        alertType: AlertType.ASYNC_QUESTION_UPDATE,
+        deliveryMode: AlertDeliveryMode.FEED,
+        sent: new Date(),
+        userId: updatedQuestion.creator.id,
+        courseId: updatedQuestion.courseId,
+        payload: {
+          courseId: updatedQuestion.courseId,
+          questionId: updatedQuestion.id,
+          subtype: 'upvoted',
+          summary: 'Your Anytime Question was upvoted',
+        } as any,
+      }).save();
     }
   }
 

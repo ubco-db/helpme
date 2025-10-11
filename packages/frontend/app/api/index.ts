@@ -37,6 +37,7 @@ import {
   DesktopNotifPartial,
   EditCourseInfoParams,
   GetAlertsResponse,
+  AlertDeliveryMode,
   GetAvailableModelsBody,
   GetChatbotHistoryResponse,
   GetCourseResponse,
@@ -1080,6 +1081,14 @@ class APIClient {
   alerts = {
     get: async (courseId: number): Promise<GetAlertsResponse> =>
       this.req('GET', `/api/v1/alerts/${courseId}`),
+    getAll: async (
+      mode: AlertDeliveryMode = AlertDeliveryMode.FEED,
+      includeRead: boolean = false,
+    ): Promise<GetAlertsResponse> =>
+      this.req('GET', `/api/v1/alerts`, undefined, undefined, {
+        mode,
+        includeRead: includeRead ? 'true' : 'false',
+      }),
     create: async (params: CreateAlertParams): Promise<CreateAlertResponse> =>
       this.req('POST', `/api/v1/alerts`, CreateAlertResponse, params),
     close: async (alertId: number): Promise<void> =>

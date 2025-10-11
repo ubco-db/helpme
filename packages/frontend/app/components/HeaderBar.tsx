@@ -39,6 +39,7 @@ import { Popconfirm } from 'antd'
 import { sortQueues } from '../(dashboard)/course/[cid]/utils/commonCourseFunctions'
 import { useCourseFeatures } from '../hooks/useCourseFeatures'
 import CenteredSpinner from './CenteredSpinner'
+import NotificationBell from './NotificationBell'
 import Image from 'next/image'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 
@@ -355,6 +356,11 @@ const NavBar = ({
           ) : null}
           {/* DESKTOP ONLY PART OF NAVBAR */}
           <NavigationMenuItem className="!ml-auto hidden md:block">
+            <div className="px-2">
+              <NotificationBell />
+            </div>
+          </NavigationMenuItem>
+          <NavigationMenuItem className="hidden md:block">
             <NavigationMenuTrigger
               className={`!pl-4 ${isProfilePage ? 'md:border-helpmeblue md:border-b-2' : ''}`}
               onFocus={setNavigationSubMenuRightSide}
@@ -508,6 +514,9 @@ const HeaderBar: React.FC = () => {
             {queueRoom}
           </h2>
         )}
+      </div>
+      <div className="flex items-center">
+        <NotificationBell />
       </div>
       <Drawer
         direction="left"

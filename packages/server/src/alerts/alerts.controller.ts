@@ -1,5 +1,6 @@
 import {
   AlertDeliveryMode,
+  AlertType,
   CreateAlertParams,
   CreateAlertResponse,
   ERROR_MESSAGES,
@@ -30,6 +31,38 @@ import { IsNull } from 'typeorm';
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 export class AlertsController {
   constructor(private alertsService: AlertsService) {}
+
+  @Get()
+  async getAllAlerts(
+    @UserId() userId: number,
+    @Query('mode') mode?: string,
+    @Query('includeRead') includeRead?: string,
+  ): Promise<GetAlertsResponse> {
+    const parsedMode = Object.values(AlertDeliveryMode).includes(
+      (mode as AlertDeliveryMode) ?? AlertDeliveryMode.FEED,
+    )
+      ? (mode as AlertDeliveryMode) || AlertDeliveryMode.FEED
+      : AlertDeliveryMode.FEED;
+
+    const includeReadFlag = includeRead === 'true';
+
+    const where: Record<string, unknown> = {
+      userId,
+      deliveryMode: parsedMode,
+    };
+
+    if (parsedMode === AlertDeliveryMode.MODAL) {
+      where.resolved = IsNull();
+    } else if (!includeReadFlag) {
+      where.readAt = IsNull();
+    }
+
+    const alerts = await AlertModel.find({
+      where,
+      order: { sent: 'DESC' },
+    });
+    return { alerts: await this.alertsService.removeStaleAlerts(alerts) };
+  }
 
   @Get(':courseId')
   async getAlerts(
