@@ -40,14 +40,7 @@ export class AlertsService {
             await alert.save();
           } else {
             nonStaleAlerts.push(
-              pick(alert, [
-                'sent',
-                'alertType',
-                'payload',
-                'id',
-                'deliveryMode',
-                'readAt',
-              ]),
+              pick(alert, ['sent', 'alertType', 'payload', 'id']),
             );
           }
           break;
