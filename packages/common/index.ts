@@ -3523,6 +3523,21 @@ export function dropUndefined(obj: any, dropNull = false) {
   return obj
 }
 
+/**
+ * Represents a single row of tool usage data for export
+ */
+export interface ToolUsageExportData {
+  user_id: number
+  firstName: string
+  lastName: string
+  email: string
+  course_name: string
+  period_date: string
+  period_time: string
+  count: number
+  tool_type: 'queue_questions' | 'anytime_questions' | 'chatbot_interactions'
+}
+
 export const ERROR_MESSAGES = {
   common: {
     pageOutOfBounds: "Can't retrieve out of bounds page.",
