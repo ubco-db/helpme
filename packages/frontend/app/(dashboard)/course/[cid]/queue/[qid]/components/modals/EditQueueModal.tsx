@@ -1,23 +1,23 @@
 'use client'
 
-import { useRef, useEffect, useState, useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Modal from 'antd/lib/modal/Modal'
 import {
-  Input,
-  Form,
   Button,
+  Checkbox,
+  Collapse,
+  ColorPickerProps,
+  Dropdown,
+  Form,
+  GetProp,
+  Input,
   message,
   Popconfirm,
+  Segmented,
+  Select,
+  Space,
   Switch,
   Tooltip,
-  Collapse,
-  Space,
-  ColorPickerProps,
-  GetProp,
-  Dropdown,
-  Segmented,
-  Checkbox,
-  Select,
 } from 'antd'
 import {
   ConfigTasks,
@@ -42,12 +42,12 @@ import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { useQueue } from '@/app/hooks/useQueue'
 import QueueConfigHelp from '../../../../components/QueueConfigHelp'
 import {
-  DisableQueueButton,
   ClearQueueButton,
+  DisableQueueButton,
 } from '../../../../components/QueueInfoColumnButton'
 import {
-  confirmDisable,
   clearQueue,
+  confirmDisable,
 } from '../../../../utils/commonCourseFunctions'
 import {
   EditedQuestionTag,
@@ -111,7 +111,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
   const { queue, mutateQueue } = useQueue(queueId)
   const [form] = Form.useForm()
   const [saveChangesLoading, setSaveChangesLoading] = useState(false)
-  const { course, mutateCourse } = useCourse(courseId)
+  const { course } = useCourse(courseId)
   const [questionTypes, mutateQuestionTypes] = useQuestionTypes(
     courseId,
     queueId,
@@ -402,6 +402,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
 
   return (
     <Modal
+      centered
       open={open}
       title="Edit Queue Details"
       okText="Save Changes"

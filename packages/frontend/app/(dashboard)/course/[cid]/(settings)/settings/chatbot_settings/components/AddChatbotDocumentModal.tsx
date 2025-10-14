@@ -1,20 +1,11 @@
 'use client'
 
 import {
-  ExclamationCircleFilled,
   FileAddOutlined,
   GithubOutlined,
   UploadOutlined,
 } from '@ant-design/icons'
-import {
-  Form,
-  Input,
-  message,
-  Modal,
-  Popconfirm,
-  Segmented,
-  Switch,
-} from 'antd'
+import { Form, Input, message, Modal, Segmented, Switch } from 'antd'
 import Dragger from 'antd/es/upload/Dragger'
 import { useState } from 'react'
 import { RcFile } from 'antd/lib/upload'
@@ -27,14 +18,14 @@ interface AddChatbotDocumentModalProps {
   courseId: number
   open: boolean
   onClose: () => void
-  getDocuments: () => void
+  getDocumentsProxy: () => void
 }
 
 const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
   courseId,
   open,
   onClose,
-  getDocuments,
+  getDocumentsProxy,
 }) => {
   const [documentType, setDocumentType] = useState('FILE')
   const [loading, setLoading] = useState(false)
@@ -62,7 +53,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
   const handleSuccess = () => {
     setFileList([])
     form.resetFields()
-    getDocuments()
+    getDocumentsProxy()
     onClose()
   }
 
@@ -101,7 +92,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
           )
         } else {
           // success
-          getDocuments()
+          getDocumentsProxy()
           // remove the file from the list
           setFileList((prevFileList) =>
             prevFileList.filter((f) => f.uid !== file.uid),
@@ -139,7 +130,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
 
   const addUrl = async (url: string) => {
     await API.chatbot.staffOnly
-      .addDocumentFromGithub(courseId, url)
+      .addDocumentFromURL(courseId, url)
       .then(async () => {
         message.success('File successfully uploaded')
         handleSuccess()
@@ -153,6 +144,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
 
   return (
     <Modal
+      centered
       title={
         <div className="flex items-center gap-2">
           <FileAddOutlined />

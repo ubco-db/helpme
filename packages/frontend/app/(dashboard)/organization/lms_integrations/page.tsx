@@ -258,6 +258,7 @@ export default function LMSIntegrationsPage(): ReactElement {
         </div>
       </div>
       <Modal
+        centered
         open={modalOpen}
         onCancel={modalCleanup}
         onOk={() =>
@@ -302,6 +303,7 @@ export default function LMSIntegrationsPage(): ReactElement {
         </div>
       </Modal>
       <Modal
+        centered
         title={'Are you sure you want to delete this LMS integration?'}
         open={delModalOpen}
         onOk={() => deleteIntegration()}

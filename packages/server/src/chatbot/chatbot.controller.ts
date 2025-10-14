@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   HttpException,
@@ -12,6 +13,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   Req,
   Res,
   UploadedFile,
@@ -22,28 +24,29 @@ import { ChatbotService } from './chatbot.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import {
-  AddChatbotQuestionParams,
-  AddDocumentChunkParams,
-  ChatbotAskParams,
-  ChatbotAskResponse,
-  ChatbotAskSuggestedParams,
+  ChatbotAskSuggestedBody,
+  ChatbotCourseSettingsResponse,
+  ChatbotDocumentAggregateResponse,
+  ChatbotDocumentListResponse,
+  ChatbotDocumentResponse,
   ChatbotProvider,
-  ChatbotQueryParams,
-  ChatbotQuestionResponseChatbotDB,
-  ChatbotQuestionResponseHelpMeDB,
+  ChatbotQueryBody,
+  ChatbotQuestionResponse,
   ChatbotServiceProvider,
   ChatbotServiceType,
-  ChatbotSettings,
-  ChatbotSettingsUpdateParams,
   CourseChatbotSettings,
   CourseChatbotSettingsForm,
   CreateChatbotProviderBody,
+  CreateDocumentChunkBody,
   CreateLLMTypeBody,
   CreateOrganizationChatbotSettingsBody,
+  CreateQuestionBody,
   ERROR_MESSAGES,
   GetAvailableModelsBody,
-  GetChatbotHistoryResponse,
-  GetInteractionsAndQuestionsResponse,
+  HelpMeChatbotAskBody,
+  HelpMeChatbotAskResponse,
+  HelpMeChatbotQuestionResponse,
+  HelpMeChatbotQuestionTableResponse,
   InteractionResponse,
   LLMType,
   OllamaLLMType,
@@ -51,11 +54,17 @@ import {
   OrganizationChatbotSettings,
   OrganizationChatbotSettingsDefaults,
   OrganizationRole,
+  PaginatedResponse,
   Role,
+  SuggestedQuestionResponse,
+  UpdateChatbotCourseSettingsBody,
   UpdateChatbotProviderBody,
-  UpdateChatbotQuestionParams,
-  UpdateDocumentChunkParams,
+  UpdateDocumentAggregateBody,
+  UpdateDocumentChunkBody,
   UpdateLLMTypeBody,
+  UpdateQuestionBody,
+  UploadDocumentAggregateBody,
+  UploadURLDocumentAggregateBody,
   UpsertCourseChatbotSettings,
 } from '@koh/common';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
@@ -87,6 +96,7 @@ import {
   IgnoreableClassSerializerInterceptor,
   IgnoreSerializer,
 } from '../interceptors/IgnoreableClassSerializerInterceptor';
+import { plainToClass } from 'class-transformer';
 
 @Controller('chatbot')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -101,41 +111,39 @@ export class ChatbotController {
   // Endpoints for both students and staff
   //
 
-  @Post('query/:courseId')
+  @Post(':courseId/query')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async queryChatbot(
-    @Body() { query, type }: ChatbotQueryParams,
-    @User({ chat_token: true }) user: UserModel,
-  ) {
-    handleChatbotTokenCheck(user);
-
-    return await this.chatbotApiService.queryChatbot(
-      query,
-      user.chat_token.token,
-      type,
-    );
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Body() params: ChatbotQueryBody,
+  ): Promise<string> {
+    return await this.chatbotApiService.queryChatbot({
+      ...params,
+      courseId,
+    });
   }
 
-  @Post('ask/:courseId')
+  @Post(':courseId/ask')
   @UseGuards(CourseRolesBypassHelpMeCourseGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async askQuestion(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body()
-    { question, history, interactionId, onlySaveInChatbotDB }: ChatbotAskParams,
+    { question, history, interactionId, save }: HelpMeChatbotAskBody,
     @User({ chat_token: true }) user: UserModel,
-  ): Promise<ChatbotAskResponse> {
+  ): Promise<HelpMeChatbotAskResponse> {
     handleChatbotTokenCheck(user);
 
-    const ChatbotDBResponse = await this.chatbotApiService.askQuestion(
+    save ??= true;
+    const response = await this.chatbotApiService.askQuestion(
       question,
       history,
       user.chat_token.token,
       courseId,
     );
 
-    if (!onlySaveInChatbotDB) {
+    if (save) {
       // if there's no interactionId (it's the first question), create a new interaction
       if (!interactionId) {
         const interaction = await this.chatbotService.createInteraction(
@@ -144,81 +152,55 @@ export class ChatbotController {
         );
         interactionId = interaction.id;
       }
-      const HelpMeDBResponse = await this.chatbotService.createQuestion({
-        questionText: question,
-        responseText: ChatbotDBResponse.answer,
-        vectorStoreId: ChatbotDBResponse.questionId,
-        suggested: false,
-        isPreviousQuestion: ChatbotDBResponse.isPreviousQuestion ?? false,
-        interactionId: interactionId,
+      const question = await this.chatbotService.createQuestion(interactionId, {
+        vectorStoreId: response.questionId,
+        isPreviousQuestion: response.isPreviousQuestion ?? false,
       });
 
-      return {
-        chatbotRepoVersion: ChatbotDBResponse,
-        helpmeRepoVersion: {
-          ...HelpMeDBResponse,
-          interactionId: interactionId,
-        },
-      };
-    } else {
-      return {
-        chatbotRepoVersion: ChatbotDBResponse,
-        helpmeRepoVersion: null,
-      };
+      return plainToClass(HelpMeChatbotAskResponse, {
+        ...response,
+        internal: question,
+      });
     }
+
+    return plainToClass(HelpMeChatbotAskResponse, response);
   }
 
-  @Post('askSuggested/:courseId')
+  @Post(':courseId/ask/suggested')
   @UseGuards(CourseRolesBypassHelpMeCourseGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async askSuggestedQuestion(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body()
-    { question, responseText, vectorStoreId }: ChatbotAskSuggestedParams,
+    @Body() { vectorStoreId }: ChatbotAskSuggestedBody,
     @UserId() userId: number,
-  ): Promise<ChatbotQuestionResponseHelpMeDB> {
+  ): Promise<HelpMeChatbotQuestionResponse> {
     const interaction = await this.chatbotService.createInteraction(
       courseId,
       userId,
     );
 
-    const HelpMeDBResponse = await this.chatbotService.createQuestion({
-      questionText: question,
-      responseText: responseText,
+    return await this.chatbotService.createQuestion(interaction.id, {
       vectorStoreId: vectorStoreId,
-      suggested: true,
       isPreviousQuestion: true,
-      interactionId: interaction.id,
     });
-
-    return {
-      ...HelpMeDBResponse,
-      interactionId: interaction.id,
-    };
   }
 
-  @Get('question/suggested/:courseId')
+  @Get(':courseId/question/suggested')
   @UseGuards(CourseRolesBypassHelpMeCourseGuard)
   @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
   async getSuggestedQuestions(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User({ chat_token: true }) user: UserModel,
-  ) {
-    handleChatbotTokenCheck(user);
-    return await this.chatbotApiService.getSuggestedQuestions(
-      courseId,
-      user.chat_token.token,
-    );
+  ): Promise<SuggestedQuestionResponse[]> {
+    return await this.chatbotApiService.getSuggestedQuestions(courseId);
   }
 
-  @Patch('questionScore/:courseId/:questionId')
+  @Patch(':courseId/question/:questionId/score')
   @UseGuards(CourseRolesBypassHelpMeCourseGuard)
   @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
   async updateChatbotUserScore(
-    @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId') questionId: number, // helpme question id
     @Body() { userScore }: { userScore: number },
-  ) {
+  ): Promise<HelpMeChatbotQuestionResponse> {
     return await this.chatbotService.updateQuestionUserScore(
       questionId,
       userScore,
@@ -228,11 +210,8 @@ export class ChatbotController {
   @Get('history')
   async getChatbotHistory(
     @UserId() userId: number,
-  ): Promise<GetChatbotHistoryResponse> {
-    const history = await this.chatbotService.getAllInteractionsForUser(userId);
-    return {
-      history: history as unknown as InteractionResponse[],
-    };
+  ): Promise<InteractionResponse[]> {
+    return await this.chatbotService.getAllInteractionsForUser(userId);
   }
 
   //
@@ -240,254 +219,280 @@ export class ChatbotController {
   //
 
   // Settings endpoints
-  @Get('settings/:courseId')
+  @Get(':courseId/settings')
   @UseGuards(CourseRolesGuard, ChatbotLegacyEndpointGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async getChatbotSettings(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User({ chat_token: true }) user: UserModel,
-  ): Promise<ChatbotSettings> {
-    handleChatbotTokenCheck(user);
-    return await this.chatbotApiService.getChatbotSettings(
-      courseId,
-      user.chat_token.token,
-    );
+  ): Promise<ChatbotCourseSettingsResponse> {
+    return await this.chatbotApiService.getChatbotSettings(courseId);
   }
 
-  @Patch('settings/:courseId')
+  @Patch(':courseId/settings')
   @UseGuards(CourseRolesGuard, ChatbotLegacyEndpointGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async updateChatbotSettings(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() settings: ChatbotSettingsUpdateParams,
-    @User({ chat_token: true }) user: UserModel,
-  ) {
-    handleChatbotTokenCheck(user);
+    @Body() settings: UpdateChatbotCourseSettingsBody,
+  ): Promise<ChatbotCourseSettingsResponse> {
     return await this.chatbotApiService.updateChatbotSettings(
       settings,
       courseId,
-      user.chat_token.token,
     );
   }
 
-  @Patch('settings/:courseId/reset')
+  @Patch(':courseId/settings/reset')
   @UseGuards(CourseRolesGuard, ChatbotLegacyEndpointGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async resetChatbotSettings(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User({ chat_token: true }) user: UserModel,
-  ) {
-    handleChatbotTokenCheck(user);
-    return await this.chatbotApiService.resetChatbotSettings(
-      courseId,
-      user.chat_token.token,
-    );
+  ): Promise<ChatbotCourseSettingsResponse> {
+    return await this.chatbotApiService.resetChatbotSettings(courseId);
   }
 
   // Question endpoints
-  @Get('question/all/:courseId')
+  @Get(':courseId/question')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async getInteractionsAndQuestions(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User({ chat_token: true }) user: UserModel,
-  ): Promise<GetInteractionsAndQuestionsResponse> {
-    handleChatbotTokenCheck(user);
-    // Fire off both requests simultaneously.
-    const [interactions, allChatbotDBQuestions] = await Promise.all([
-      this.chatbotService.getInteractionsAndQuestions(courseId), // helpme db
-      this.chatbotApiService.getAllQuestions(courseId, user.chat_token.token), // chatbot db
-    ]);
-    return {
-      helpmeDB: interactions as unknown as InteractionResponse[], // interactions is of type InteractionModel[] which is basically the same
-      chatbotDB: allChatbotDBQuestions,
-    };
+  ): Promise<HelpMeChatbotQuestionTableResponse[]> {
+    return await this.chatbotService.getCombinedInteractionsAndQuestions(
+      courseId,
+    );
   }
 
-  @Post('question/:courseId')
+  @Post(':courseId/question')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async addChatbotQuestion(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() questionData: AddChatbotQuestionParams,
-    @User({ chat_token: true }) user: UserModel,
-  ) {
-    handleChatbotTokenCheck(user);
+    @Body() questionData: CreateQuestionBody,
+  ): Promise<ChatbotQuestionResponse> {
     // NOTE that this endpoint does NOT add the question to the helpme database
     // (since the helpme database only hold questions that were actually asked)
-    return await this.chatbotApiService.addQuestion(
-      questionData,
-      courseId,
-      user.chat_token.token,
-    );
+    return await this.chatbotApiService.addQuestion(questionData, courseId);
   }
 
-  @Patch('question/:courseId')
+  @Patch(':courseId/question/:questionId')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async updateChatbotQuestion(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() questionData: UpdateChatbotQuestionParams,
-    @User({ chat_token: true }) user: UserModel,
-  ): Promise<ChatbotQuestionResponseChatbotDB> {
-    handleChatbotTokenCheck(user);
+    @Param('questionId') questionId: string,
+    @Body() questionData: UpdateQuestionBody,
+  ): Promise<ChatbotQuestionResponse> {
     return await this.chatbotApiService.updateQuestion(
+      questionId,
       questionData,
       courseId,
-      user.chat_token.token,
     );
   }
 
-  @Delete('question/:courseId/:questionId')
+  @Delete(':courseId/question/:questionId')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async deleteChatbotQuestion(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId') questionId: string,
-    @User({ chat_token: true }) user: UserModel,
-  ) {
-    handleChatbotTokenCheck(user);
-    return await this.chatbotApiService.deleteQuestion(
-      questionId,
+  ): Promise<void> {
+    await this.chatbotService.deleteQuestionByVectorStoreId(
       courseId,
-      user.chat_token.token,
+      questionId,
     );
   }
 
-  @Get('models/:courseId')
+  @Get(':courseId/models')
   @UseGuards(CourseRolesGuard, ChatbotLegacyEndpointGuard)
   @Roles(Role.PROFESSOR, Role.TA)
-  async getModels(
-    @Param('courseId', ParseIntPipe) _courseId: number,
-    @User({ chat_token: true }) user: UserModel,
-  ): Promise<ChatbotSettings> {
-    handleChatbotTokenCheck(user);
-    return await this.chatbotApiService.getModels(user.chat_token.token);
+  async getModels(): Promise<Record<string, string>> {
+    return await this.chatbotApiService.getModels();
   }
 
-  // Unused
-  // @Delete('question/all/:courseId')
+  // // Unused
+  // @Delete(':courseId/question')
   // @UseGuards(CourseRolesGuard)
   // @Roles(Role.PROFESSOR, Role.TA)
   // async deleteAllQuestions(
-  //   @Param('courseId', ParseIntPipe) courseId: number,
-  //   @User(['chat_token']) user: UserModel,
-  // ) {
-  //   handleChatbotTokenCheck(user);
-  //   return await this.chatbotApiService.deleteAllQuestions(courseId, user.chat_token.token);
+  //   @Param('courseId', ParseIntPipe) courseId: number
+  // ): Promise<void> {
+  //   return await this.chatbotApiService.deleteAllQuestions(courseId);
   // }
-
-  // resets all chatbot data for the course. Unused
-  // @Get('resetCourse/:courseId')
+  //
+  // // resets all chatbot data for the course. Unused
+  // @Get(':courseId/reset')
   // @UseGuards(CourseRolesGuard)
   // @Roles(Role.PROFESSOR, Role.TA)
   // async resetCourse(
-  //   @Param('courseId', ParseIntPipe) courseId: number,
-  //   @User(['chat_token']) user: UserModel,
-  // ) {
-  //   handleChatbotTokenCheck(user)
-  //   return await this.chatbotApiService.resetCourse(courseId, user.chat_token.token);
+  //   @Param('courseId', ParseIntPipe) courseId: number
+  // ): Promise<void> {
+  //   return await this.chatbotApiService.resetCourse(courseId);
   // }
 
   // Document endpoints
-  @Get('aggregateDocuments/:courseId')
+  @Get(':courseId/aggregate{/:page}')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async getAllAggregateDocuments(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User({ chat_token: true }) user: UserModel,
-  ) {
-    handleChatbotTokenCheck(user);
+    @Param(
+      'page',
+      new DefaultValuePipe(-1),
+      new ParseIntPipe({ optional: true }),
+    )
+    page?: number,
+    @Query(
+      'pageSize',
+      new DefaultValuePipe(-1),
+      new ParseIntPipe({ optional: true }),
+    )
+    pageSize?: number,
+    @Query('search') search?: string,
+  ): Promise<PaginatedResponse<ChatbotDocumentAggregateResponse>> {
+    page = page == undefined || page < 1 ? undefined : page;
+    pageSize =
+      page == undefined || pageSize == undefined || pageSize < 1
+        ? undefined
+        : pageSize;
+
     // this gets the full chatbot documents (rather than just the chunks)
     return await this.chatbotApiService.getAllAggregateDocuments(
       courseId,
-      user.chat_token.token,
+      page,
+      pageSize,
+      search,
     );
   }
 
-  @Get('documentChunks/:courseId')
+  @Get(':courseId/document{/:page}')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async getAllDocumentChunks(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @User({ chat_token: true }) user: UserModel,
-  ) {
-    handleChatbotTokenCheck(user);
+    @Param(
+      'page',
+      new DefaultValuePipe(-1),
+      new ParseIntPipe({ optional: true }),
+    )
+    page?: number,
+    @Query(
+      'pageSize',
+      new DefaultValuePipe(-1),
+      new ParseIntPipe({ optional: true }),
+    )
+    pageSize?: number,
+    @Query('search') search?: string,
+  ): Promise<PaginatedResponse<ChatbotDocumentResponse>> {
+    page = page == undefined || page < 1 ? undefined : page;
+    pageSize =
+      page == undefined || pageSize == undefined || pageSize < 1
+        ? undefined
+        : pageSize;
+
     return await this.chatbotApiService.getAllDocumentChunks(
       courseId,
-      user.chat_token.token,
+      page,
+      pageSize,
+      search,
     );
   }
 
-  @Post('documentChunks/:courseId')
+  @Get(':courseId/document/list{/:page}')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async getListDocuments(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param(
+      'page',
+      new DefaultValuePipe(-1),
+      new ParseIntPipe({ optional: true }),
+    )
+    page?: number,
+    @Query(
+      'pageSize',
+      new DefaultValuePipe(-1),
+      new ParseIntPipe({ optional: true }),
+    )
+    pageSize?: number,
+    @Query('search') search?: string,
+  ): Promise<PaginatedResponse<ChatbotDocumentListResponse>> {
+    page = page == undefined || page < 1 ? undefined : page;
+    pageSize =
+      page == undefined || pageSize == undefined || pageSize < 1
+        ? undefined
+        : pageSize;
+
+    return await this.chatbotApiService.getListDocuments(
+      courseId,
+      page,
+      pageSize,
+      search,
+    );
+  }
+
+  @Post(':courseId/document')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async addDocumentChunk(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() body: AddDocumentChunkParams,
-    @User({ chat_token: true }) user: UserModel,
-  ) {
-    handleChatbotTokenCheck(user);
-    return await this.chatbotApiService.addDocumentChunk(
-      body,
-      courseId,
-      user.chat_token.token,
-    );
+    @Body() body: CreateDocumentChunkBody,
+  ): Promise<ChatbotDocumentResponse[]> {
+    return await this.chatbotApiService.addDocumentChunk(body, courseId);
   }
 
-  @Patch('documentChunks/:courseId/:docId')
+  @Patch(':courseId/document/:docId')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async updateDocumentChunk(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('docId') docId: string,
-    @Body() body: UpdateDocumentChunkParams,
-    @User({ chat_token: true }) user: UserModel,
-  ) {
-    handleChatbotTokenCheck(user);
+    @Body() body: UpdateDocumentChunkBody,
+  ): Promise<ChatbotDocumentResponse[]> {
     return await this.chatbotApiService.updateDocumentChunk(
       docId,
       body,
       courseId,
-      user.chat_token.token,
     );
   }
 
-  @Delete('documentChunks/:courseId/:docId')
+  @Delete(':courseId/document/:docId')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async deleteDocumentChunk(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('docId') docId: string,
-    @User({ chat_token: true }) user: UserModel,
-  ) {
-    handleChatbotTokenCheck(user);
-    return await this.chatbotApiService.deleteDocumentChunk(
-      docId,
-      courseId,
-      user.chat_token.token,
-    );
+  ): Promise<void> {
+    return await this.chatbotApiService.deleteDocumentChunk(docId, courseId);
   }
 
-  @Delete('document/:courseId/:docId')
+  @Patch(':courseId/aggregate/:docId')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async updateDocument(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('docId') docId: string,
+    @Body() body: UpdateDocumentAggregateBody,
+  ): Promise<ChatbotDocumentAggregateResponse> {
+    // Delete disallowed update parameters
+    delete body.documentText;
+    delete body.lmsDocumentId;
+    delete body.prefix;
+
+    return await this.chatbotApiService.updateDocument(docId, courseId, body);
+  }
+
+  @Delete(':courseId/aggregate/:docId')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async deleteDocument(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('docId') docId: string,
-    @User({ chat_token: true }) user: UserModel,
-  ) {
-    handleChatbotTokenCheck(user);
-    const chatbotDeleteResponse = await this.chatbotApiService.deleteDocument(
-      docId,
-      courseId,
-      user.chat_token.token,
-    );
+  ): Promise<void> {
+    await this.chatbotApiService.deleteDocument(docId, courseId);
     // if that succeeded (an error would have been thrown if it didn't), then delete the document from database
     await ChatbotDocPdfModel.delete({
       docIdChatbotDB: docId,
     });
-    return chatbotDeleteResponse;
   }
 
   // TODO: eventually add tests for this I guess
@@ -497,11 +502,10 @@ export class ChatbotController {
   @IgnoreSerializer()
   @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
   async getChatbotDocument(
-    @Param('courseId', ParseIntPipe) courseId: number,
     @Param('docId') docId: number,
     @Req() req: Request,
     @Res() res: Response,
-  ) {
+  ): Promise<Response | void> {
     try {
       // First check if document exists and get its metadata
       const docInfo = await ChatbotDocPdfModel.createQueryBuilder('doc')
@@ -615,7 +619,7 @@ export class ChatbotController {
   }
 
   // TODO: eventually add tests for this I guess
-  @Post('document/:courseId/upload')
+  @Post(':courseId/aggregate/file')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   @UseInterceptors(
@@ -628,10 +632,11 @@ export class ChatbotController {
   async uploadDocument(
     @Param('courseId', ParseIntPipe) courseId: number,
     @UploadedFile() file: Express.Multer.File,
-    @Body() { parseAsPng }: { parseAsPng: boolean | string },
-    @User({ chat_token: true }) user: UserModel,
-  ) {
-    handleChatbotTokenCheck(user);
+    @Body() params: Partial<UploadDocumentAggregateBody>,
+    @User() user: UserModel,
+  ): Promise<ChatbotDocumentAggregateResponse> {
+    let { parseAsPng } = params;
+
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
@@ -645,21 +650,13 @@ export class ChatbotController {
     ) {
       if (file.size > 1024 * 2048) {
         throw new BadRequestException(
-          'Text-only files (.txt, .csv, .md) must be less than 2MB (2MB of text is a lot)',
+          ERROR_MESSAGES.chatbotController.textFileTooBig,
         );
       }
     }
 
-    if (parseAsPng === 'true') {
-      parseAsPng = true;
-    } else {
-      parseAsPng = false;
-    }
-
-    // if it's an image, make parseAsPng true
-    if (file.mimetype.startsWith('image/')) {
-      parseAsPng = true;
-    }
+    parseAsPng =
+      String(parseAsPng) === 'true' || file.mimetype.startsWith('image/');
 
     // get the course name (for pdf metadata)
     const course = await CourseModel.findOne({
@@ -691,19 +688,16 @@ export class ChatbotController {
 
       // NOTE: Gotenberg's markdown converter is outdated and seems to convert markdown to pdf with weird lists and line breaks. TODO: make an issue on their github for this (use userguide and changelog as evidence)
       const markdownConverter = new MarkdownConverter();
-      const buffer = await markdownConverter.convert({
+      file.buffer = await markdownConverter.convert({
         html: htmlBuffer,
         markdown: file.buffer,
         pdfUA: true,
       });
-      file.buffer = buffer;
       // if it's a supported file type for libreoffice conversion, use LibreOfficeConverter
     } else if (
-      supportedFileExtensionsForLibreOfficeConversion.includes(
-        fileExtension as FileExtension,
-      )
+      LibreOfficeSupportedExtensions.includes(fileExtension as FileExtension)
     ) {
-      const buffer = await LibreOffice.convert({
+      file.buffer = await LibreOffice.convert({
         files: [{ data: file.buffer, ext: fileExtension as FileExtension }],
         // All config options here: https://github.com/cherfia/chromiumly
         pdfUA: true, // enables Universal Access (for improved accessibility)
@@ -721,7 +715,6 @@ export class ChatbotController {
         maxImageResolution: 150, // apparently 150dpi is good for presentations, with at least 72 being good for web usage
         flatten: true, // flatten the pdf to remove any annotations
       });
-      file.buffer = buffer;
     } else {
       // if it's not a supported file type for conversion, throw an error
       throw new BadRequestException(
@@ -747,10 +740,11 @@ export class ChatbotController {
       chatbotDocPdf.save(),
       this.chatbotApiService.uploadDocument(
         file,
-        docUrl,
-        parseAsPng,
+        {
+          source: docUrl,
+          parseAsPng,
+        },
         courseId,
-        user.chat_token.token,
       ),
     ]);
 
@@ -768,9 +762,8 @@ export class ChatbotController {
     ) {
       // If upload succeeded but DB save failed, clean up the uploaded document
       await this.chatbotApiService.deleteDocument(
-        uploadResult.value.docId,
+        uploadResult.value.id,
         courseId,
-        user.chat_token.token,
       );
       throw savedDocPdf.reason;
     } else if (
@@ -786,7 +779,7 @@ export class ChatbotController {
       uploadResult.status === 'fulfilled'
     ) {
       // if both succeed, then save the docId to the database
-      chatbotDocPdf.docIdChatbotDB = uploadResult.value.docId;
+      chatbotDocPdf.docIdChatbotDB = uploadResult.value.id;
       await chatbotDocPdf.save();
 
       const endTime2 = Date.now();
@@ -801,20 +794,14 @@ export class ChatbotController {
     }
   }
 
-  @Post('document/:courseId/github')
+  @Post(':courseId/aggregate/url')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async addDocumentFromGithub(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() { url }: { url: string },
-    @User({ chat_token: true }) user: UserModel,
-  ) {
-    handleChatbotTokenCheck(user);
-    return await this.chatbotApiService.uploadURLDocument(
-      url,
-      courseId,
-      user.chat_token.token,
-    );
+    @Body() params: UploadURLDocumentAggregateBody,
+  ): Promise<ChatbotDocumentAggregateResponse> {
+    return await this.chatbotApiService.uploadURLDocument(params, courseId);
   }
 
   @Get('organization/:oid')
@@ -896,7 +883,6 @@ export class ChatbotController {
   @Roles(OrganizationRole.ADMIN)
   async deleteOrganizationSettings(
     @Param('oid', ParseIntPipe) organizationId: number,
-    @User({ chat_token: true }) user: UserModel,
   ): Promise<void> {
     const original = await OrganizationChatbotSettingsModel.findOne({
       where: { organizationId },
@@ -906,7 +892,6 @@ export class ChatbotController {
         ERROR_MESSAGES.chatbotController.organizationSettingsNotFound,
       );
     }
-    handleChatbotTokenCheck(user);
     const applicableCourses = await CourseChatbotSettingsModel.find({
       where: {
         organizationSettings: {
@@ -944,15 +929,11 @@ export class ChatbotController {
       });
 
       // Reset to defaults
-      await this.chatbotApiService.resetChatbotSettings(
-        course.courseId,
-        user.chat_token.token,
-      );
+      await this.chatbotApiService.resetChatbotSettings(course.courseId);
       // Update with any modified values
       await this.chatbotApiService.updateChatbotSettings(
         params,
         course.courseId,
-        user.chat_token.token,
       );
     }
   }
@@ -1302,7 +1283,7 @@ function handleChatbotTokenCheck(user: UserModel) {
   }
 }
 
-const supportedFileExtensionsForLibreOfficeConversion: FileExtension[] = [
+const LibreOfficeSupportedExtensions: FileExtension[] = [
   'doc',
   'docx',
   'xls',

@@ -2,7 +2,7 @@ import { Modal } from 'antd'
 import { useEffect, useState } from 'react'
 import MarkdownCustom from './Markdown'
 import { useUserInfo } from '../contexts/userContext'
-import { OrganizationRole, Role } from '@koh/common'
+import { OrganizationRole } from '@koh/common'
 import CenteredSpinner from './CenteredSpinner'
 
 interface ChangeLogModalProps {
@@ -47,6 +47,7 @@ const ChangeLogModal: React.FC<ChangeLogModalProps> = ({
 
   return (
     <Modal
+      centered
       title={<h1>What&apos;s New?</h1>}
       open={isOpen}
       closable
@@ -66,9 +67,9 @@ const ChangeLogModal: React.FC<ChangeLogModalProps> = ({
       classNames={{
         header: 'flex items-center justify-center',
       }}
-      className="box-border flex flex-col items-center justify-center"
+      className="box-border"
     >
-      <div className="childrenMarkdownFormatted box-border h-[60vh] w-full overflow-y-auto px-4 md:h-[75vh]">
+      <div className="childrenMarkdownFormatted flex w-full flex-col justify-center px-4">
         {currentChangeLog === '' ? (
           <CenteredSpinner tip="Fetching Changelog..." />
         ) : (

@@ -14,6 +14,7 @@ const CantFindModal: React.FC<CantFindModalProps> = ({
 }) => {
   return (
     <Modal
+      centered
       open={open}
       footer={[
         <Button key="leave" danger onClick={leaveQueue}>

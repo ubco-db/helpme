@@ -41,6 +41,7 @@ const JoinZoomNowModal: React.FC<JoinZoomNowModalProps> = ({
 
   return (
     <Modal
+      centered
       open={isClosable ? localOpen : open}
       footer={[]}
       style={{ top: '30%' }}

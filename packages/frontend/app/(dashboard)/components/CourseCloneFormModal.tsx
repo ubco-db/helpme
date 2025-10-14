@@ -100,6 +100,7 @@ const CourseCloneFormModal: React.FC<CourseCloneFormModalProps> = ({
         </Button>
       </div>
       <Modal
+        centered
         title={`Clone ${courseName}`}
         open={visible}
         onOk={handleClone}
@@ -118,17 +119,12 @@ const CourseCloneFormModal: React.FC<CourseCloneFormModalProps> = ({
                   form.getFieldValue([
                     'toClone',
                     'chatbot',
-                    'manuallyCreatedChunks',
+                    'insertedDocuments',
                   ]) ||
                   form.getFieldValue([
                     'toClone',
                     'chatbot',
                     'insertedQuestions',
-                  ]) ||
-                  form.getFieldValue([
-                    'toClone',
-                    'chatbot',
-                    'insertedLMSData',
                   ])) && (
                   <p>
                     Note that you may want to review and remove any out-of-date

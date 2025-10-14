@@ -139,6 +139,7 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
     <>
       {insightsList != undefined && (
         <Modal
+          centered
           title={'Create New Dashboard Preset'}
           width={'48rem'}
           open={isCreationModalOpen}

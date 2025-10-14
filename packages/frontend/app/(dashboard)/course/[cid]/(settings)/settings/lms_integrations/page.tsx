@@ -26,8 +26,6 @@ import {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
-  LMSQuiz,
-  LMSQuizAccessLevel,
   SupportedLMSFileTypes,
 } from '@koh/common'
 import { API } from '@/app/api'
@@ -105,7 +103,6 @@ export default function CourseLMSIntegrationPage(props: {
     files,
     quizzes,
     isLoadingIntegration,
-    isLoadingCourse,
     isLoadingStudents,
     isLoadingAssignments,
     isLoadingAnnouncements,
@@ -907,6 +904,7 @@ export default function CourseLMSIntegrationPage(props: {
             onCreate={() => setUpdateFlag(!updateFlag)}
           />
           <Modal
+            centered
             title={'Are you sure you want to delete this LMS integration?'}
             open={delModalOpen}
             onOk={() => deleteIntegration()}

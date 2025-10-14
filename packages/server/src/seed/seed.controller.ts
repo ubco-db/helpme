@@ -25,7 +25,7 @@ import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { CourseSettingsModel } from '../course/course_settings.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { InteractionModel } from 'chatbot/interaction.entity';
-import { ChatbotQuestionModel } from 'chatbot/question.entity';
+import { ChatbotQuestionModel } from 'chatbot/chatbot-question.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { MailServiceModel } from 'mail/mail-services.entity';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';

@@ -11,7 +11,7 @@ import {
 import { CourseModel } from '../../course/course.entity';
 import { OrganizationChatbotSettingsModel } from './organization-chatbot-settings.entity';
 import { LLMTypeModel } from './llm-type.entity';
-import { ChatbotSettingsMetadata, dropUndefined } from '@koh/common';
+import { ChatbotCourseSettingsProperties, dropUndefined } from '@koh/common';
 import { pick } from 'lodash';
 
 @Entity('course_chatbot_settings_model')
@@ -105,7 +105,7 @@ export class CourseChatbotSettingsModel extends BaseEntity {
   })
   usingDefaultSimilarityThresholdQuestions: boolean;
 
-  getMetadata(): ChatbotSettingsMetadata {
+  getMetadata(): ChatbotCourseSettingsProperties {
     const defaults = pick(
       this.organizationSettings.transformDefaults(),
       'default_prompt',

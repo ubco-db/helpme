@@ -35,26 +35,28 @@ import MarkdownCustom from '@/app/components/Markdown'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  Message,
+  Citation,
+  HelpMeChatMessage,
   parseThinkBlock,
-  PreDeterminedQuestion,
   Role,
+  SuggestedQuestionResponse,
 } from '@koh/common'
 import { Bot } from 'lucide-react'
+import ChatbotCitation from '@/app/(dashboard)/course/[cid]/components/chatbot/ChatbotCitation'
 
 const { TextArea } = Input
 
 interface ChatbotProps {
   cid: number
   variant?: 'small' | 'big' | 'huge'
-  preDeterminedQuestions: PreDeterminedQuestion[]
-  setPreDeterminedQuestions: React.Dispatch<
-    React.SetStateAction<PreDeterminedQuestion[]>
+  suggestedQuestions: SuggestedQuestionResponse[]
+  setSuggestedQuestions: React.Dispatch<
+    React.SetStateAction<SuggestedQuestionResponse[]>
   >
   questionsLeft: number
   setQuestionsLeft: React.Dispatch<React.SetStateAction<number>>
-  messages: Message[]
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>
+  messages: HelpMeChatMessage[]
+  setMessages: React.Dispatch<React.SetStateAction<HelpMeChatMessage[]>>
   isOpen: boolean
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>
   interactionId?: number
@@ -70,8 +72,8 @@ interface ChatbotProps {
 const Chatbot: React.FC<ChatbotProps> = ({
   cid,
   variant = 'small',
-  preDeterminedQuestions,
-  setPreDeterminedQuestions,
+  suggestedQuestions,
+  setSuggestedQuestions,
   questionsLeft,
   setQuestionsLeft,
   messages,
@@ -89,7 +91,13 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const { userInfo, setUserInfo } = useUserInfo()
   const [isLoading, setIsLoading] = useState(false)
   const courseFeatures = useCourseFeatures(cid)
+  const [scrollToLastMessage, setScrollToLastMessage] = useState(false)
+  const [showScroll, setShowScroll] = useState(false)
+
+  const messagesRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const lastMessageRef = useRef<HTMLDivElement>(null)
+
   const hasAskedQuestion = useRef(false) // to track if the user has asked a question
   const pathname = usePathname()
   const currentPageTitle = convertPathnameToPageName(pathname)
@@ -105,12 +113,35 @@ const Chatbot: React.FC<ChatbotProps> = ({
       : cid
 
   useEffect(() => {
+    const messagesElement = messagesRef.current
+    if (messagesElement) {
+      const interval = setInterval(() => {
+        if (!messagesElement) return
+        const needsIndicator =
+          (messagesElement.scrollTop + messagesElement.clientHeight) /
+            messagesElement.scrollHeight <
+          0.95
+        if (showScroll == needsIndicator) return
+        setShowScroll(needsIndicator)
+      }, 1000)
+      return () => clearInterval(interval)
+    }
+  }, [showScroll])
+
+  useEffect(() => {
+    if (scrollToLastMessage) {
+      scrollToLast()
+      setScrollToLastMessage(false)
+    }
+  }, [scrollToLastMessage])
+
+  useEffect(() => {
     if (messages.length === 1) {
-      setPreDeterminedQuestions([])
+      setSuggestedQuestions([])
       API.chatbot.studentsOrStaff
         .getSuggestedQuestions(courseIdToUse)
         .then((questions) => {
-          setPreDeterminedQuestions(questions)
+          setSuggestedQuestions(questions)
         })
         .catch((err) => {
           console.error(err)
@@ -122,15 +153,36 @@ const Chatbot: React.FC<ChatbotProps> = ({
   }, [
     userInfo,
     courseIdToUse,
-    setPreDeterminedQuestions,
+    setSuggestedQuestions,
     messages.length,
     setQuestionsLeft,
   ])
 
+  const scrollToEnd = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'start',
+      })
+      setShowScroll(false)
+    }
+  }
+
+  const scrollToLast = () => {
+    if (lastMessageRef.current) {
+      lastMessageRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'start',
+      })
+    }
+  }
+
   const handleAsk = async () => {
     if (!hasAskedQuestion.current) {
       hasAskedQuestion.current = true
-      setPreDeterminedQuestions([]) // clear predetermined questions upon the first question
+      setSuggestedQuestions([]) // clear predetermined questions upon the first question
     }
 
     setIsLoading(true)
@@ -149,38 +201,37 @@ const Chatbot: React.FC<ChatbotProps> = ({
     await API.chatbot.studentsOrStaff
       .askQuestion(courseIdToUse, data)
       .then((chatbotResponse) => {
-        const answer = chatbotResponse.chatbotRepoVersion.answer
+        const answer = chatbotResponse.answer
         const { thinkText, cleanAnswer } = parseThinkBlock(answer)
-        const sourceDocuments =
-          chatbotResponse.chatbotRepoVersion.sourceDocuments ?? []
-        setMessages((prevMessages: Message[]) => [
+        const citations = chatbotResponse.citations ?? []
+        setMessages((prevMessages: HelpMeChatMessage[]) => [
           ...prevMessages,
           { type: 'userMessage', message: input },
           {
             type: 'apiMessage',
             message: thinkText ? cleanAnswer : answer,
-            verified: chatbotResponse.chatbotRepoVersion.verified,
-            sourceDocuments: sourceDocuments ? sourceDocuments : [],
-            questionId: chatbotResponse.chatbotRepoVersion.questionId,
+            verified: chatbotResponse.verified,
+            citations: citations,
+            questionId: chatbotResponse.questionId,
             thinkText: thinkText,
           },
         ])
-        setHelpmeQuestionId(chatbotResponse?.helpmeRepoVersion?.id)
-        setInteractionId(chatbotResponse?.helpmeRepoVersion?.interactionId)
+        setHelpmeQuestionId(chatbotResponse?.internal?.id)
+        setInteractionId(chatbotResponse?.internal?.interactionId)
       })
       .catch((err) => {
         console.error(err)
         const answer = "Sorry, I couldn't find the answer"
-        setMessages((prevMessages: Message[]) => [
+        setMessages((prevMessages: HelpMeChatMessage[]) => [
           ...prevMessages,
           { type: 'userMessage', message: input },
           {
             type: 'apiMessage',
             message: answer,
             verified: false,
-            sourceDocuments: [],
+            citations: [],
             questionId: undefined,
-            thinkText: null,
+            thinkText: undefined,
           },
         ])
       })
@@ -195,34 +246,33 @@ const Chatbot: React.FC<ChatbotProps> = ({
             },
           })
         }
+        setScrollToLastMessage(true)
         setIsLoading(false)
         setInput('')
       })
   }
 
   const answerPreDeterminedQuestion = async (
-    question: PreDeterminedQuestion,
+    question: SuggestedQuestionResponse,
   ) => {
-    const { thinkText, cleanAnswer } = parseThinkBlock(question.metadata.answer)
+    const { thinkText, cleanAnswer } = parseThinkBlock(question.answer)
     setMessages((prevMessages) => [
       ...prevMessages,
-      { type: 'userMessage', message: question.pageContent },
+      { type: 'userMessage', message: question.question },
       {
         type: 'apiMessage',
-        message: thinkText ? cleanAnswer : question.metadata.answer,
-        verified: question.metadata.verified,
-        sourceDocuments: question.metadata.sourceDocuments,
+        message: thinkText ? cleanAnswer : question.answer,
+        verified: question.verified,
+        citations: question.citations,
         questionId: question.id,
         thinkText: thinkText,
       },
     ])
-    setPreDeterminedQuestions([])
+    setSuggestedQuestions([])
 
     const helpmeQuestion =
       await API.chatbot.studentsOrStaff.askSuggestedQuestion(courseIdToUse, {
         vectorStoreId: question.id,
-        question: question.pageContent,
-        responseText: question.metadata.answer, // store full question (including think text) in db
       })
     setHelpmeQuestionId(helpmeQuestion.id)
     setInteractionId(helpmeQuestion.interactionId)
@@ -254,33 +304,34 @@ const Chatbot: React.FC<ChatbotProps> = ({
       <div
         className={cn(
           variant === 'small'
-            ? 'fixed bottom-0 z-50 max-h-[90vh] w-screen md:bottom-1 md:right-1 md:max-w-[400px]'
+            ? 'fixed bottom-0 z-50 max-h-[70vh] min-w-[25vw] md:bottom-1 md:right-1'
             : variant === 'big'
-              ? 'flex h-[80vh] w-screen flex-col overflow-auto md:w-[90%]'
+              ? 'flex max-h-[80vh] w-screen flex-col md:w-full'
               : variant === 'huge'
-                ? 'flex h-[90vh] w-screen flex-col overflow-auto md:w-[90%]'
+                ? 'flex max-h-[90vh] w-screen flex-col md:w-full'
                 : '',
+          'overflow-y-hidden',
         )}
         style={{ zIndex: 1050 }}
       >
         <Card
           title="Chatbot"
           classNames={{
-            header: 'pr-3',
+            header: 'pr-3 h-12',
             body: cn(
-              'px-4 pb-4',
+              'p-1',
               variant === 'big' || variant === 'huge'
                 ? 'flex flex-col flex-auto'
-                : '',
+                : 'w-full',
             ),
           }}
           className={cn(
             variant === 'big' || variant === 'huge'
-              ? 'flex w-full flex-auto flex-col overflow-y-auto'
-              : '',
+              ? 'flex w-full flex-auto flex-col'
+              : 'w-full',
           )}
           extra={
-            <>
+            <span>
               {Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) &&
               messages.length > 1 ? (
                 <Popconfirm
@@ -352,7 +403,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                   icon={<CloseOutlined />}
                 />
               )}
-            </>
+            </span>
           }
         >
           <div
@@ -363,16 +414,29 @@ const Chatbot: React.FC<ChatbotProps> = ({
             )}
           >
             <div
+              ref={messagesRef}
               className={cn(
-                'overflow-y-auto',
-                variant === 'small' ? 'max-h-[70vh]' : 'grow-1',
+                variant === 'small'
+                  ? 'flex max-h-[calc(70vh-112px)] w-full flex-col'
+                  : variant === 'big'
+                    ? 'flex max-h-[calc(80vh-112px)] w-full flex-col'
+                    : variant === 'huge'
+                      ? 'flex max-h-[calc(90vh-112px)] w-full flex-col'
+                      : '',
+                variant === 'small' ? '' : 'grow-1',
+                'w-full overflow-y-auto',
               )}
             >
               {messages &&
                 messages.map((item, index) => (
                   <Fragment key={index}>
                     {item.type === 'userMessage' ? (
-                      <div className="align-items-start m-1 mb-3 flex justify-end">
+                      <div
+                        className="align-items-start m-1 mb-3 flex justify-end"
+                        ref={
+                          index == messages.length - 1 ? lastMessageRef : null
+                        }
+                      >
                         <div
                           className={cn(
                             'childrenMarkdownFormatted mr-2 rounded-xl bg-blue-900 px-3 py-2 text-white',
@@ -392,7 +456,12 @@ const Chatbot: React.FC<ChatbotProps> = ({
                         />
                       </div>
                     ) : (
-                      <div className="group mb-3 flex flex-grow items-start">
+                      <div
+                        className="group mb-3 flex items-start"
+                        ref={
+                          index == messages.length - 1 ? lastMessageRef : null
+                        }
+                      >
                         {item.thinkText ? (
                           <Tooltip
                             title={'Chatbot thoughts: ' + item.thinkText}
@@ -418,8 +487,25 @@ const Chatbot: React.FC<ChatbotProps> = ({
                             icon={<RobotOutlined />}
                           />
                         )}
-                        <div className="ml-2 flex flex-col gap-1">
-                          <div className="flex items-start gap-2">
+                        <div
+                          className={cn(
+                            'ml-2 flex flex-col gap-1',
+                            variant === 'small'
+                              ? 'max-w-[280px]'
+                              : 'max-w-[90%]',
+                          )}
+                          ref={
+                            index == messages.length - 1 ? lastMessageRef : null
+                          }
+                        >
+                          <div
+                            className={cn(
+                              'flex items-start gap-2',
+                              variant === 'small'
+                                ? 'max-w-[280px]'
+                                : 'max-w-[90%]',
+                            )}
+                          >
                             <div
                               className={cn(
                                 'childrenMarkdownFormatted rounded-xl px-3 py-2',
@@ -445,68 +531,33 @@ const Chatbot: React.FC<ChatbotProps> = ({
                               )}
                             </div>
                           </div>
-                          <div className="flex flex-col gap-1">
-                            {item.sourceDocuments &&
+                          <div
+                            className={cn(
+                              'flex flex-row flex-wrap gap-1',
+                              variant === 'small'
+                                ? 'max-w-[280px]'
+                                : 'max-w-[90%]',
+                            )}
+                          >
+                            {item.citations &&
                             chatbotQuestionType === 'System' ? (
-                              <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
-                                <p className="truncate px-2 py-1">User Guide</p>
-                                <SourceLinkButton
-                                  docName="User Guide"
-                                  sourceLink="https://github.com/ubco-db/helpme/blob/main/packages/frontend/public/userguide.md"
-                                />
-                              </div>
+                              <ChatbotCitation
+                                citation={
+                                  {
+                                    docName: 'User Guide',
+                                    sourceLink:
+                                      'https://github.com/ubco-db/helpme/blob/main/packages/frontend/public/userguide.md',
+                                  } as Citation
+                                }
+                              />
                             ) : (
-                              item.sourceDocuments &&
-                              item.sourceDocuments.map(
-                                (sourceDocument, idx) => (
-                                  <Tooltip
-                                    title={
-                                      sourceDocument.type &&
-                                      sourceDocument.type !=
-                                        'inserted_lms_document'
-                                        ? sourceDocument.content
-                                        : ''
-                                    }
-                                    key={idx}
-                                  >
-                                    <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
-                                      <p className="truncate px-2 py-1">
-                                        {sourceDocument.docName}
-                                      </p>
-                                      {sourceDocument.type ==
-                                        'inserted_lms_document' &&
-                                        sourceDocument.sourceLink && (
-                                          <SourceLinkButton
-                                            docName={sourceDocument.docName}
-                                            sourceLink={
-                                              sourceDocument.sourceLink
-                                            }
-                                            part={0}
-                                          />
-                                        )}
-                                      {
-                                        // for some reason pageNumbers isn't always an array. This might be worth investigating.
-                                        sourceDocument.pageNumbers &&
-                                          Array.isArray(
-                                            sourceDocument.pageNumbers,
-                                          ) &&
-                                          sourceDocument.pageNumbers.map(
-                                            (part) => (
-                                              <SourceLinkButton
-                                                key={`${sourceDocument.docName}-${part}`}
-                                                docName={sourceDocument.docName}
-                                                sourceLink={
-                                                  sourceDocument.sourceLink
-                                                }
-                                                part={part}
-                                              />
-                                            ),
-                                          )
-                                      }
-                                    </div>
-                                  </Tooltip>
-                                ),
-                              )
+                              item.citations &&
+                              item.citations.map((citation) => (
+                                <ChatbotCitation
+                                  key={`citation-${citation.questionId}-${citation.documentId}`}
+                                  citation={citation}
+                                />
+                              ))
                             )}
                           </div>
                           {item.type === 'apiMessage' &&
@@ -522,18 +573,18 @@ const Chatbot: React.FC<ChatbotProps> = ({
                     )}
                   </Fragment>
                 ))}
-              {preDeterminedQuestions &&
+              {suggestedQuestions &&
                 !isLoading &&
-                preDeterminedQuestions.map((question) => (
+                suggestedQuestions.map((question) => (
                   <div
                     className="align-items-start m-1 mb-1 flex justify-end"
-                    key={question.id || question.pageContent}
+                    key={question.id}
                   >
                     <div
                       onClick={() => answerPreDeterminedQuestion(question)}
                       className="mr-2 max-w-[300px] cursor-pointer rounded-xl border-2 border-blue-900 bg-transparent px-3 py-2 text-blue-900 transition hover:bg-blue-900 hover:text-white"
                     >
-                      {question.pageContent}
+                      {question.question}
                     </div>
                   </div>
                 ))}
@@ -545,7 +596,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
                   }}
                 />
               )}
-              <div ref={messagesEndRef} />
               {courseFeatures.asyncQueueEnabled &&
                 chatbotQuestionType === 'Course' &&
                 messages.length > 1 && (
@@ -561,44 +611,65 @@ const Chatbot: React.FC<ChatbotProps> = ({
                     </Link>
                   </div>
                 )}
-            </div>
-            <div>
-              <Space.Compact block size="large">
-                <TextArea
-                  id="chatbot-input"
-                  autoSize={{ minRows: 1.22, maxRows: 20 }}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  className="rounded-r-none text-sm"
-                  placeholder="Ask something... (Shift+Enter for new line)"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      if (input.trim().length > 0 && !isLoading) {
-                        handleAsk()
-                      }
-                    }
-                  }}
-                />
-                <Button
-                  type="primary"
-                  onClick={handleAsk}
-                  disabled={input.trim().length === 0 || isLoading}
-                >
-                  Ask
-                </Button>
-              </Space.Compact>
-              {userInfo.chat_token && questionsLeft < 100 && (
-                <Card.Meta
-                  description={`You can ask the chatbot ${questionsLeft} more question${
-                    questionsLeft > 1 ? 's' : ''
-                  } today`}
-                  className="mt-3"
-                />
-              )}
+              <div ref={messagesEndRef} />
             </div>
           </div>
+          <div
+            className={
+              'sticky bottom-0 h-12 border-t-2 border-t-slate-50 bg-white p-1'
+            }
+          >
+            <Space.Compact block size="large">
+              <TextArea
+                id="chatbot-input"
+                autoSize={{ minRows: 1.22, maxRows: 20 }}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                className="rounded-r-none text-sm"
+                placeholder="Ask something... (Shift+Enter for new line)"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    if (input.trim().length > 0 && !isLoading) {
+                      handleAsk()
+                    }
+                  }
+                }}
+              />
+              <Button
+                type="primary"
+                onClick={handleAsk}
+                disabled={input.trim().length === 0 || isLoading}
+              >
+                Ask
+              </Button>
+            </Space.Compact>
+            {userInfo.chat_token && questionsLeft < 100 && (
+              <Card.Meta
+                description={`You can ask the chatbot ${questionsLeft} more question${
+                  questionsLeft > 1 ? 's' : ''
+                } today`}
+                className="mt-3"
+              />
+            )}
+          </div>
         </Card>
+        <div className={'sticky bottom-14 w-full text-center'}>
+          <div
+            className={cn(
+              'flex w-full items-center justify-center transition-opacity',
+              showScroll ? 'opacity-100' : 'opacity-0',
+            )}
+          >
+            <Button
+              className={'rounded-md bg-white text-sm shadow-md'}
+              type={'link'}
+              onClick={() => scrollToEnd()}
+            >
+              Scroll to most recent message
+            </Button>
+          </div>
+        </div>
       </div>
     ) : (
       <div
@@ -627,36 +698,3 @@ const Chatbot: React.FC<ChatbotProps> = ({
 }
 
 export default Chatbot
-
-const SourceLinkButton: React.FC<{
-  docName: string
-  sourceLink?: string
-  part?: number
-}> = ({ docName, sourceLink, part }) => {
-  if (!sourceLink) {
-    return null
-  }
-  const pageNumber = part && !isNaN(part) ? Number(part) : undefined
-
-  return (
-    <a
-      className={`flex items-center justify-center rounded-lg bg-blue-100 px-3 py-2 font-semibold transition ${
-        sourceLink && 'hover:bg-black-300 cursor-pointer hover:text-white'
-      }`}
-      key={`${docName}-${part}`}
-      href={
-        sourceLink +
-        (pageNumber && sourceLink.startsWith('/api/v1/chatbot/document/')
-          ? `#page=${pageNumber}`
-          : '')
-      }
-      rel="noopener noreferrer"
-      // open in new tab
-      target="_blank"
-    >
-      <p className="h-fit w-fit text-xs leading-4">
-        {part ? `p. ${part}` : 'Source'}
-      </p>
-    </a>
-  )
-}

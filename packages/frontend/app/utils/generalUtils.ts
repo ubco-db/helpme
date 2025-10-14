@@ -363,3 +363,32 @@ export function getModelSpeedAndQualityEstimate<T extends LLMType>(model: T) {
   }
   return { speed, quality, notes }
 }
+
+export function hexToRgb(hex: string) {
+  const r = parseInt(hex.substring(1, 3), 16)
+  const g = parseInt(hex.substring(3, 5), 16)
+  const b = parseInt(hex.substring(5, 7), 16)
+  return { r, g, b }
+}
+
+export function rgbToHex(r: number, g: number, b: number) {
+  const componentToHex = (c: number) => {
+    const hex = c.toString(16)
+    return hex.length === 1 ? '0' + hex : hex
+  }
+  return `#${componentToHex(r)}${componentToHex(g)}${componentToHex(b)}`
+}
+
+export function lerpColor(color1: string, color2: string, amount: number) {
+  // Ensure amount is between 0 and 1
+  amount = Math.max(0, Math.min(1, amount))
+
+  const rgb1 = hexToRgb(color1)
+  const rgb2 = hexToRgb(color2)
+
+  const r = Math.round(rgb1.r + (rgb2.r - rgb1.r) * amount)
+  const g = Math.round(rgb1.g + (rgb2.g - rgb1.g) * amount)
+  const b = Math.round(rgb1.b + (rgb2.b - rgb1.b) * amount)
+
+  return rgbToHex(r, g, b)
+}

@@ -1,30 +1,33 @@
 'use client'
 
-import { ReactElement, use, useCallback, useEffect, useState } from 'react'
+import { ReactElement, use, useEffect, useState } from 'react'
 import {
+  Badge,
   Button,
   Empty,
-  Form,
   Input,
-  InputNumber,
   message,
   Modal,
+  Pagination,
   Table,
 } from 'antd'
 import Link from 'next/link'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import Highlighter from 'react-highlight-words'
 import ExpandableText from '@/app/components/ExpandableText'
-import EditDocumentChunkModal from './components/EditChatbotDocumentChunkModal'
-import { AddDocumentChunkParams, SourceDocument } from '@koh/common'
+import {
+  ChatbotDocumentResponse,
+  CreateDocumentChunkBody,
+  DocumentType,
+  DocumentTypeColorMap,
+  DocumentTypeDisplayMap,
+  UpdateDocumentChunkBody,
+} from '@koh/common'
 import { API } from '@/app/api'
 import ChatbotHelpTooltip from '../components/ChatbotHelpTooltip'
-
-interface FormValues {
-  content: string
-  source: string
-  pageNumber: string
-}
+import UpsertDocumentChunkModal from './components/UpsertDocumentChunkModal'
+import { getPaginatedChatbotDocuments } from '@/app/(dashboard)/course/[cid]/(settings)/settings/util'
+import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
 
 interface ChatbotDocumentsProps {
   params: Promise<{ cid: string }>
@@ -35,33 +38,21 @@ export default function ChatbotDocuments(
 ): ReactElement {
   const params = use(props.params)
   const courseId = Number(params.cid)
-  const [documents, setDocuments] = useState<SourceDocument[]>([])
-  const [filteredDocuments, setFilteredDocuments] = useState<SourceDocument[]>(
-    [],
-  )
-  const [search, setSearch] = useState('')
-  const [editingRecord, setEditingRecord] = useState<SourceDocument | null>(
-    null,
-  )
-  const [editRecordModalOpen, setEditRecordModalOpen] = useState(false)
-  const [form] = Form.useForm()
-  const [addDocChunkPopupVisible, setAddDocChunkPopupVisible] = useState(false)
 
-  const addDocument = async (values: FormValues) => {
-    const body: AddDocumentChunkParams = {
-      documentText: values.content,
-      metadata: {
-        name: 'Manually Inserted Information',
-        type: 'inserted_document',
-        source: values.source ?? undefined,
-        loc: values.pageNumber
-          ? { pageNumber: parseInt(values.pageNumber) }
-          : undefined,
-      },
-    }
+  const [documents, setDocuments] = useState<ChatbotDocumentResponse[]>([])
+  const [total, setTotal] = useState<number>(0)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [search, setSearch] = useState('')
+
+  const [editingChunk, setEditingChunk] = useState<ChatbotDocumentResponse>()
+  const [upsertModalOpen, setUpsertModalOpen] = useState(false)
+
+  const addDocument = async (values: CreateDocumentChunkBody) => {
     await API.chatbot.staffOnly
-      .addDocumentChunk(courseId, body)
+      .addDocumentChunk(courseId, values)
       .then((addedDocs) => {
+        setUpsertModalOpen(false)
         message.success(
           `Document${addedDocs.length > 1 ? 's' : ''} added successfully.`,
         )
@@ -70,7 +61,15 @@ export default function ChatbotDocuments(
             `Document was too large to fit into one chunk. It was split into ${addedDocs.length} document chunks.`,
           )
         }
-        fetchDocuments()
+        getPaginatedChatbotDocuments(
+          API.chatbot.staffOnly.getAllDocumentChunks,
+          courseId,
+          page,
+          pageSize,
+          setTotal,
+          setDocuments,
+          search,
+        )
       })
       .catch((e) => {
         const errorMessage = getErrorMessage(e)
@@ -78,57 +77,74 @@ export default function ChatbotDocuments(
       })
   }
 
-  const handleSearch = useCallback(
-    (e: { target: { value: string } }) => {
-      const searchTerm = e.target.value
-      setSearch(searchTerm)
-      const filtered = filterDocuments(documents, searchTerm)
+  const updateDocument = async (
+    id: string,
+    values: UpdateDocumentChunkBody,
+  ) => {
+    const original = documents.find((v) => v.id == id)
+    if (!original) {
+      message.error('Could not update document chunk, original was not found.')
+      return
+    }
 
-      setFilteredDocuments(filtered)
-    },
-    [documents],
-  )
-
-  const fetchDocuments = useCallback(async () => {
+    // Strip out identical properties
+    Object.entries(original).forEach(([k, v]) => {
+      if (k in values && (values as any)[k] === v) {
+        ;(values as any)[k] = undefined
+      }
+    })
     await API.chatbot.staffOnly
-      .getAllDocumentChunks(courseId)
-      .then((response) => {
-        response = response.map((doc) => ({
-          ...doc,
-          key: doc.id,
-        }))
-        setDocuments(response)
-        setFilteredDocuments(filterDocuments(response, search))
+      .updateDocumentChunk(courseId, id, values)
+      .then((updatedDocs) => {
+        message.success(`Document updated successfully.`)
+        if (updatedDocs.length > 1) {
+          message.info(
+            `The text content was too large and it was split into ${updatedDocs.length} new document chunks.`,
+            6,
+          )
+        }
+        setEditingChunk(undefined)
+        setUpsertModalOpen(false)
+        getPaginatedChatbotDocuments(
+          API.chatbot.staffOnly.getAllDocumentChunks,
+          courseId,
+          page,
+          pageSize,
+          setTotal,
+          setDocuments,
+          search,
+        )
       })
       .catch((e) => {
         const errorMessage = getErrorMessage(e)
-        message.error('Failed to load documents: ' + errorMessage)
+        message.error('Failed to add document: ' + errorMessage)
       })
-  }, [courseId, setDocuments, setFilteredDocuments, search])
+  }
 
   useEffect(() => {
     if (courseId) {
-      fetchDocuments()
+      getPaginatedChatbotDocuments(
+        API.chatbot.staffOnly.getAllDocumentChunks,
+        courseId,
+        page,
+        pageSize,
+        setTotal,
+        setDocuments,
+        search,
+      )
     }
-  }, [courseId, fetchDocuments])
+  }, [courseId, page, pageSize])
 
   const columns = [
     {
-      title: 'Name',
-      dataIndex: ['metadata', 'name'],
-      key: 'name',
+      title: 'Title',
+      dataIndex: 'title',
+      key: 'title',
       width: 300,
-      sorter: (a: SourceDocument, b: SourceDocument) => {
-        if (a.metadata?.name && b.metadata?.name) {
-          return a.metadata.name.localeCompare(b.metadata.name)
-        } else {
-          return 0
-        }
-      },
-      render: (text: string, record: SourceDocument) => (
+      render: (text: string, record: ChatbotDocumentResponse) => (
         <ExpandableText maxRows={4}>
           <Link
-            href={record.metadata?.source ?? ''}
+            href={record.source ?? ''}
             target="_blank"
             prefetch={false}
             rel="noopener noreferrer"
@@ -151,8 +167,8 @@ export default function ChatbotDocuments(
     },
     {
       title: 'Chunk Content',
-      dataIndex: ['pageContent'],
-      key: 'pageContent',
+      dataIndex: 'content',
+      key: 'content',
       render: (text: string) => (
         <ExpandableText maxRows={4}>
           {/*
@@ -172,27 +188,47 @@ export default function ChatbotDocuments(
     },
     {
       title: 'Page #',
-      dataIndex: ['metadata', 'loc', 'pageNumber'],
+      dataIndex: 'pageNumber',
       key: 'pageNumber',
-      width: 40,
+      width: '5%',
+    },
+    {
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
+      width: '10%',
+      render: (type: DocumentType) => (
+        <Badge
+          count={DocumentTypeDisplayMap[type] ?? (DocumentType as any)[type]}
+          color={DocumentTypeColorMap[type] ?? '#7C7C7C'}
+        />
+      ),
     },
     {
       title: 'Actions',
       key: 'actions',
       width: 100,
-      render: (_: any, record: SourceDocument) => (
-        <div>
-          <Button className="m-2" onClick={() => showModal(record)}>
+      render: (_: any, record: ChatbotDocumentResponse) => (
+        <div className={'flex flex-col gap-1'}>
+          <Button
+            onClick={() => {
+              setEditingChunk(record)
+              setUpsertModalOpen(true)
+            }}
+            variant={'outlined'}
+            color={'blue'}
+            icon={<EditOutlined />}
+          >
             Edit
           </Button>
           <Button
-            className="m-2"
             danger
+            icon={<DeleteOutlined />}
             onClick={() => {
               Modal.confirm({
                 title: 'Are you sure you want to delete this document chunk?',
                 content:
-                  'Note that this will not modify the original document nor any chatbot questions that reference this chunk. \n\nThis action cannot be undone.',
+                  'Note that this will cascade to any citations which reference this chunk, and remove it from any parent question or documents. \n\nThis action cannot be undone.',
                 okText: 'Yes',
                 okType: 'danger',
                 cancelText: 'No',
@@ -212,16 +248,19 @@ export default function ChatbotDocuments(
     },
   ]
 
-  const showModal = (record: SourceDocument) => {
-    setEditingRecord(record)
-    setEditRecordModalOpen(true)
-  }
-
   const deleteDocument = async (documentId: string) => {
     await API.chatbot.staffOnly
       .deleteDocumentChunk(courseId, documentId)
       .then(() => {
-        fetchDocuments()
+        getPaginatedChatbotDocuments(
+          API.chatbot.staffOnly.getAllDocumentChunks,
+          courseId,
+          page,
+          pageSize,
+          setTotal,
+          setDocuments,
+          search,
+        )
         message.success('Document deleted successfully.')
       })
       .catch((e) => {
@@ -232,6 +271,18 @@ export default function ChatbotDocuments(
 
   return (
     <div className="m-auto my-5">
+      {upsertModalOpen && (
+        <UpsertDocumentChunkModal
+          open={upsertModalOpen}
+          editingChunk={editingChunk}
+          addDocument={addDocument}
+          updateDocument={updateDocument}
+          onCancel={() => {
+            setEditingChunk(undefined)
+            setUpsertModalOpen(false)
+          }}
+        />
+      )}
       <div className="flex w-full items-center justify-between">
         <div>
           <h3 className="m-0 p-0 text-4xl font-bold text-gray-900">
@@ -244,97 +295,57 @@ export default function ChatbotDocuments(
         <div className="flex flex-col items-center gap-2 md:flex-row">
           <ChatbotHelpTooltip forPage="chatbot_knowledge_base" />
           <Button
-            type={addDocChunkPopupVisible ? 'default' : 'primary'}
-            onClick={() => setAddDocChunkPopupVisible(!addDocChunkPopupVisible)}
+            type={'primary'}
+            onClick={() => {
+              setEditingChunk(undefined)
+              setUpsertModalOpen(true)
+            }}
           >
-            {addDocChunkPopupVisible ? 'Close Add New Chunk' : 'Add New Chunk'}
+            Add New Chunk
           </Button>
         </div>
       </div>
-      {addDocChunkPopupVisible && (
-        <div className="h-70 top-50 fixed right-1 z-50 w-[360px] bg-white p-4 shadow-lg">
-          <Form form={form} onFinish={addDocument}>
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Add New Chunk</h2>
-            </div>
-            <div className="mt-4">
-              <Form.Item
-                label="Content"
-                name="content"
-                rules={[
-                  {
-                    required: true,
-                    message: 'Please input the document content!',
-                  },
-                ]}
-              >
-                <Input.TextArea />
-              </Form.Item>
-              {/* <Form.Item label="Edited Chunk" name="editedChunk">
-              <Input.TextArea />
-            </Form.Item> */}
-              <Form.Item
-                label="Source"
-                name="source"
-                rules={[
-                  {
-                    type: 'url',
-                    message: 'Please enter a valid URL',
-                  },
-                ]}
-                tooltip="When a student clicks on the citation, they will be redirected to this link"
-              >
-                <Input />
-              </Form.Item>
-              <Form.Item
-                label="Page Number"
-                name="pageNumber"
-                rules={[
-                  {
-                    type: 'number',
-                    message: 'Please enter a valid page number',
-                    min: 0,
-                  },
-                ]}
-              >
-                <InputNumber />
-              </Form.Item>
-              <div className="mt-4 flex justify-end">
-                <Button
-                  className="m-2"
-                  key="cancel"
-                  onClick={() => {
-                    form.resetFields() // clear form
-                    setAddDocChunkPopupVisible(false)
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="m-2"
-                  key="submit"
-                  type="primary"
-                  htmlType="submit"
-                >
-                  Submit
-                </Button>
-              </div>
-            </div>
-          </Form>
-        </div>
-      )}
       <hr className="my-5 w-full"></hr>
-      <Input
-        placeholder={'Search chunk name or content...'}
-        value={search}
-        onChange={handleSearch}
-        onPressEnter={fetchDocuments}
-      />
+      <div className={'flex justify-between gap-1'}>
+        <Input
+          placeholder={'Search chunk name or content and press enter...'}
+          value={search}
+          onChange={(e) => {
+            e.preventDefault()
+            setSearch(e.target.value)
+          }}
+          onPressEnter={() => {
+            setPage(1)
+            getPaginatedChatbotDocuments(
+              API.chatbot.staffOnly.getAllDocumentChunks,
+              courseId,
+              page,
+              pageSize,
+              setTotal,
+              setDocuments,
+              search,
+            )
+          }}
+        />
+        <Pagination
+          style={{ float: 'right' }}
+          total={total}
+          pageSizeOptions={[10, 20, 30, 50]}
+          showSizeChanger
+          current={page}
+          pageSize={pageSize}
+          onChange={(page, pageSize) => {
+            setPage(page)
+            setPageSize(pageSize)
+          }}
+        />
+      </div>
       <Table
         columns={columns}
-        dataSource={filteredDocuments}
+        dataSource={documents}
         size="small"
         className="w-full"
+        pagination={false}
         locale={{
           emptyText: (
             <Empty
@@ -352,40 +363,6 @@ export default function ChatbotDocuments(
           ),
         }}
       />
-      {editingRecord && (
-        <EditDocumentChunkModal
-          open={editRecordModalOpen}
-          editingRecord={editingRecord}
-          courseId={courseId}
-          onCancel={() => {
-            setEditingRecord(null)
-            setEditRecordModalOpen(false)
-          }}
-          onSuccessfulUpdate={async (updatedDocs) => {
-            if (updatedDocs.length > 1) {
-              message.info(
-                `The text content was too large and it was split into ${updatedDocs.length} new document chunks.`,
-                6,
-              )
-            }
-            await fetchDocuments()
-            setEditingRecord(null)
-            setEditRecordModalOpen(false)
-          }}
-        />
-      )}
     </div>
   )
-}
-
-const filterDocuments = (documents: SourceDocument[], search: string) => {
-  return documents.filter((doc) => {
-    const isNameMatch = doc.metadata?.name
-      ? doc.metadata.name.toLowerCase().includes(search.toLowerCase())
-      : false
-    const isContentMatch = doc.pageContent
-      ? doc.pageContent.toLowerCase().includes(search.toLowerCase())
-      : false
-    return isNameMatch || isContentMatch
-  })
 }

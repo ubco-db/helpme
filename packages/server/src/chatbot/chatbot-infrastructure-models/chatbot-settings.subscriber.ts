@@ -328,7 +328,6 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
               await this.chatbotApiService.createChatbotSettings(
                 metadata,
                 entity.courseId,
-                '',
               );
               return;
             } catch (exception) {
@@ -338,8 +337,19 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
               ) {
                 // Chatbot server failed to connect or had an error, do what we gotta do
                 await qry.query(
-                  'INSERT INTO course_setting ("pageContent","metadata") VALUES ($1,$2)',
-                  [String(entity.courseId), JSON.stringify(metadata)],
+                  `INSERT INTO course_settings_model ("courseId","model","organizationSettings","modelName","prompt","temperature","topK","similarityThresholdDocuments","similarityThresholdQuestions") 
+                   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+                  [
+                    entity.courseId,
+                    metadata.model,
+                    metadata.organizationSettings,
+                    metadata.modelName,
+                    metadata.prompt,
+                    metadata.temperature,
+                    metadata.topK,
+                    metadata.similarityThresholdDocuments,
+                    metadata.similarityThresholdQuestions,
+                  ],
                 );
               }
             }
@@ -351,7 +361,6 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
               await this.chatbotApiService.updateChatbotSettings(
                 metadata,
                 entity.courseId,
-                '',
               );
               return;
             } catch (exception) {
@@ -361,8 +370,29 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
               ) {
                 // Chatbot server failed to connect or had an error, do what we gotta do
                 await qry.query(
-                  'UPDATE course_setting SET "metadata" = $1 WHERE "pageContent" = $2',
-                  [JSON.stringify(metadata), String(entity.courseId)],
+                  `
+                  UPDATE course_settings_model SET 
+                      "model" = $1,
+                      "organizationSettings" = $2,
+                      "modelName" = $3,
+                      "prompt" = $4,
+                      "temperature" = $5,
+                      "topK" = $6,
+                      "similarityThresholdDocuments" = $7,
+                      "similarityThresholdQuestions" = $8
+                  WHERE "courseId" = $9
+                  `,
+                  [
+                    metadata.model,
+                    metadata.organizationSettings,
+                    metadata.modelName,
+                    metadata.prompt,
+                    metadata.temperature,
+                    metadata.topK,
+                    metadata.similarityThresholdDocuments,
+                    metadata.similarityThresholdQuestions,
+                    entity.courseId,
+                  ],
                 );
               }
               return;
@@ -371,7 +401,6 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
             try {
               await this.chatbotApiService.deleteChatbotSettings(
                 entity.courseId,
-                '',
               );
               return;
             } catch (exception) {
@@ -381,8 +410,8 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
               ) {
                 // Chatbot server failed to connect or had an error, do what we gotta do
                 await qry.query(
-                  'DELETE FROM course_setting WHERE "pageContent" = $1',
-                  [String(entity.courseId)],
+                  'DELETE FROM course_settings_model WHERE "courseId" = $1',
+                  [entity.courseId],
                 );
               }
               return;
@@ -403,8 +432,8 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
     try {
       return (
         await qry.query(
-          'SELECT * FROM course_setting WHERE "pageContent" = $1',
-          [String(courseId)],
+          'SELECT * FROM course_settings_model WHERE "courseId" = $1',
+          [courseId],
         )
       )[0];
     } catch (err) {

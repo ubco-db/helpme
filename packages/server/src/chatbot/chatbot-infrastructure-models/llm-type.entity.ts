@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { CourseChatbotSettingsModel } from './course-chatbot-settings.entity';
 import { ChatbotProviderModel } from './chatbot-provider.entity';
-import { ModelMetadata } from '@koh/common';
+import { ChatbotModelResponse } from '@koh/common';
 
 @Entity('llm_type_model')
 export class LLMTypeModel extends BaseEntity {
@@ -57,7 +57,7 @@ export class LLMTypeModel extends BaseEntity {
   })
   providerNotes: string[] = [];
 
-  getMetadata(): ModelMetadata {
+  getMetadata(): ChatbotModelResponse {
     return {
       provider: this.provider.getMetadata(),
       modelName: this.modelName,

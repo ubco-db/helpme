@@ -1,6 +1,4 @@
 import {
-  AddChatbotQuestionParams,
-  AddDocumentChunkParams,
   AllStudentAssignmentProgress,
   AsyncQuestion,
   AsyncQuestionComment,
@@ -8,17 +6,17 @@ import {
   AsyncQuestionParams,
   BatchCourseCloneAttributes,
   Calendar,
-  ChatbotAskParams,
-  ChatbotAskResponse,
-  ChatbotAskSuggestedParams,
-  ChatbotQueryParams,
+  ChatbotAskBody,
+  ChatbotAskSuggestedBody,
+  ChatbotCourseSettingsResponse,
+  ChatbotDocumentAggregateResponse,
+  ChatbotDocumentListResponse,
+  ChatbotDocumentResponse,
   ChatbotProvider,
-  ChatbotQuestionResponseChatbotDB,
-  ChatbotQuestionResponseHelpMeDB,
+  ChatbotQueryBody,
+  ChatbotQuestionResponse,
   ChatbotServiceProvider,
   ChatbotServiceType,
-  ChatbotSettings,
-  ChatbotSettingsUpdateParams,
   CourseChatbotSettings,
   CourseChatbotSettingsForm,
   CourseCloneAttributes,
@@ -28,8 +26,10 @@ import {
   CreateAlertResponse,
   CreateAsyncQuestions,
   CreateChatbotProviderBody,
+  CreateDocumentChunkBody,
   CreateLLMTypeBody,
   CreateOrganizationChatbotSettingsBody,
+  CreateQuestionBody,
   CreateQuestionParams,
   CreateQuestionResponse,
   CronJob,
@@ -38,20 +38,22 @@ import {
   EditCourseInfoParams,
   GetAlertsResponse,
   GetAvailableModelsBody,
-  GetChatbotHistoryResponse,
   GetCourseResponse,
   GetCourseUserInfoResponse,
   GetInsightOutputResponse,
-  GetInteractionsAndQuestionsResponse,
   GetLimitedCourseResponse,
   GetOrganizationUserResponse,
   GetProfileResponse,
   GetQueueChatResponse,
   GetQueueChatsResponse,
   GetQueueResponse,
+  HelpMeChatbotAskResponse,
+  HelpMeChatbotQuestionResponse,
+  HelpMeChatbotQuestionTableResponse,
   InsightDashboardPartial,
   InsightDetail,
   InsightParamsType,
+  InteractionResponse,
   ListInsightsResponse,
   ListQuestionsResponse,
   LLMType,
@@ -65,8 +67,8 @@ import {
   LMSPage,
   LMSQuiz,
   LMSQuizAccessLevel,
+  LMSSyncDocumentsResult,
   MailServiceWithSubscription,
-  OllamaLLMType,
   OrganizationChatbotSettings,
   OrganizationChatbotSettingsDefaults,
   OrganizationCourseResponse,
@@ -77,7 +79,7 @@ import {
   OrganizationSettingsResponse,
   OrganizationStatsResponse,
   OrgUser,
-  PreDeterminedQuestion,
+  PaginatedResponse,
   PublicQueueInvite,
   questions,
   QuestionType,
@@ -92,9 +94,9 @@ import {
   Role,
   SemesterPartial,
   setQueueConfigResponse,
-  SourceDocument,
   StudentAssignmentProgress,
   StudentTaskProgressWithUser,
+  SuggestedQuestionResponse,
   TACheckinTimesResponse,
   TACheckoutResponse,
   TAUpdateStatusResponse,
@@ -102,14 +104,16 @@ import {
   UBCOuserParam,
   UnreadAsyncQuestionResponse,
   UpdateAsyncQuestions,
+  UpdateChatbotCourseSettingsBody,
   UpdateChatbotProviderBody,
-  UpdateChatbotQuestionParams,
-  UpdateDocumentChunkParams,
+  UpdateDocumentAggregateBody,
+  UpdateDocumentChunkBody,
   UpdateLLMTypeBody,
   UpdateOrganizationCourseDetailsParams,
   UpdateOrganizationDetailsParams,
   UpdateOrganizationUserRole,
   UpdateProfileParams,
+  UpdateQuestionBody,
   UpdateQuestionParams,
   UpdateQuestionResponse,
   UpdateQueueParams,
@@ -117,7 +121,6 @@ import {
   UpsertLMSCourseParams,
   UpsertLMSOrganizationParams,
   UserMailSubscription,
-  LMSSyncDocumentsResult,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -125,24 +128,6 @@ import { ClassType } from 'class-transformer/ClassTransformer'
 
 // Return type of array item, if T is an array
 type ItemIfArray<T> = T extends (infer I)[] ? I : T
-
-export interface ChatQuestion {
-  id: string
-  question: string
-  answer: string
-  user: string
-  sourceDocuments: {
-    name: string
-    type: string
-    parts: string[]
-  }[]
-  suggested: boolean
-}
-
-export interface ChatQuestionResponse {
-  chatQuestions: ChatQuestion[]
-  total: number
-}
 
 class APIClient {
   private axios: AxiosInstance
@@ -196,141 +181,178 @@ class APIClient {
       // these endpoints are the main endpoints that students and staff use
       queryChatbot: async (
         courseId: number,
-        body: ChatbotQueryParams,
+        body: ChatbotQueryBody,
       ): Promise<string> =>
-        this.req('POST', `/api/v1/chatbot/query/${courseId}`, undefined, body),
+        this.req('POST', `/api/v1/chatbot/${courseId}/query`, undefined, body),
       askQuestion: async (
         courseId: number,
-        body: ChatbotAskParams,
-      ): Promise<ChatbotAskResponse> =>
-        this.req('POST', `/api/v1/chatbot/ask/${courseId}`, undefined, body),
+        body: ChatbotAskBody,
+      ): Promise<HelpMeChatbotAskResponse> =>
+        this.req('POST', `/api/v1/chatbot/${courseId}/ask`, undefined, body),
       askSuggestedQuestion: async (
         courseId: number,
-        body: ChatbotAskSuggestedParams,
-      ): Promise<ChatbotQuestionResponseHelpMeDB> =>
+        body: ChatbotAskSuggestedBody,
+      ): Promise<HelpMeChatbotQuestionResponse> =>
         this.req(
           'POST',
-          `/api/v1/chatbot/askSuggested/${courseId}`,
+          `/api/v1/chatbot/${courseId}/ask/suggested`,
           undefined,
           body,
         ),
       getSuggestedQuestions: async (
         courseId: number,
-      ): Promise<PreDeterminedQuestion[]> =>
-        this.req('GET', `/api/v1/chatbot/question/suggested/${courseId}`),
+      ): Promise<SuggestedQuestionResponse[]> =>
+        this.req('GET', `/api/v1/chatbot/${courseId}/question/suggested/`),
       updateUserScore: async (
         courseId: number,
         questionId: number,
         userScore: number,
-      ): Promise<ChatbotQuestionResponseHelpMeDB> =>
+      ): Promise<HelpMeChatbotQuestionResponse> =>
         this.req(
           'PATCH',
-          `/api/v1/chatbot/questionScore/${courseId}/${questionId}`,
+          `/api/v1/chatbot/${courseId}/question/${questionId}/score`,
           undefined,
           { userScore },
         ),
-      getChatHistory: async (): Promise<GetChatbotHistoryResponse> =>
+      getChatHistory: async (): Promise<InteractionResponse[]> =>
         this.req('GET', `/api/v1/chatbot/history`),
     },
     staffOnly: {
       // these endpoints are more for management of chatbot questions
       getInteractionsAndQuestions: async (
         courseId: number,
-      ): Promise<GetInteractionsAndQuestionsResponse> =>
-        this.req('GET', `/api/v1/chatbot/question/all/${courseId}`),
+      ): Promise<HelpMeChatbotQuestionTableResponse[]> =>
+        this.req('GET', `/api/v1/chatbot/${courseId}/question`),
       addQuestion: async (
         courseId: number,
-        questionData: AddChatbotQuestionParams,
-      ): Promise<ChatbotQuestionResponseHelpMeDB> =>
+        questionData: CreateQuestionBody,
+      ): Promise<ChatbotQuestionResponse> =>
         this.req(
           'POST',
-          `/api/v1/chatbot/question/${courseId}`,
+          `/api/v1/chatbot/${courseId}/question`,
           undefined,
           questionData,
         ),
       updateQuestion: async (
         courseId: number,
-        body: UpdateChatbotQuestionParams,
-      ): Promise<ChatbotQuestionResponseChatbotDB> =>
+        questionId: string,
+        body: UpdateQuestionBody,
+      ): Promise<ChatbotQuestionResponse> =>
         this.req(
           'PATCH',
-          `/api/v1/chatbot/question/${courseId}`,
+          `/api/v1/chatbot/${courseId}/question/${questionId}`,
           undefined,
           body,
         ),
       deleteQuestion: async (
         courseId: number,
-        vectorStoreId: string,
-      ): Promise<{ success: boolean }> =>
+        questionId: string,
+      ): Promise<void> =>
         this.req(
           'DELETE',
-          `/api/v1/chatbot/question/${courseId}/${vectorStoreId}`,
+          `/api/v1/chatbot/${courseId}/question/${questionId}`,
         ),
-      // deleteAllQuestions: async (courseId: number): Promise<{ success: boolean }> =>
-      //   this.req('DELETE', `/api/v1/chatbot/question/all/${courseId}`), Unused
-      // resetCourse: async (courseId: number): Promise<{ success: boolean }> =>
-      //   this.req('DELETE', `/api/v1/chatbot/resetCourse/${courseId}`), Unused, resets all chatbot data for the course
+      // deleteAllQuestions: async (courseId: number): Promise<void> =>
+      //   this.req('DELETE', `/api/v1/chatbot/${courseId}/question`), Unused
+      // resetCourse: async (courseId: number): Promise<void> =>
+      //   this.req('DELETE', `/api/v1/chatbot/${courseId}/reset`), Unused, resets all chatbot data for the course
       getAllAggregateDocuments: async (
         courseId: number,
-      ): Promise<SourceDocument[]> =>
-        this.req('GET', `/api/v1/chatbot/aggregateDocuments/${courseId}`),
+        page: number,
+        pageSize?: number,
+        search?: string,
+      ): Promise<PaginatedResponse<ChatbotDocumentAggregateResponse>> =>
+        this.req(
+          'GET',
+          `/api/v1/chatbot/${courseId}/aggregate/${page}`,
+          undefined,
+          undefined,
+          { pageSize, search },
+        ),
       getAllDocumentChunks: async (
         courseId: number,
-      ): Promise<SourceDocument[]> =>
-        this.req('GET', `/api/v1/chatbot/documentChunks/${courseId}`),
+        page: number,
+        pageSize?: number,
+        search?: string,
+      ): Promise<PaginatedResponse<ChatbotDocumentResponse>> =>
+        this.req(
+          'GET',
+          `/api/v1/chatbot/${courseId}/document/${page}`,
+          undefined,
+          undefined,
+          { pageSize, search },
+        ),
+      getListDocuments: async (
+        courseId: number,
+        page: number,
+        pageSize?: number,
+        search?: string,
+      ): Promise<PaginatedResponse<ChatbotDocumentListResponse>> =>
+        this.req(
+          'GET',
+          `/api/v1/chatbot/${courseId}/document/list/${page}`,
+          undefined,
+          undefined,
+          { pageSize, search },
+        ),
       addDocumentChunk: async (
         courseId: number,
-        body: AddDocumentChunkParams,
-      ): Promise<SourceDocument[]> =>
+        body: CreateDocumentChunkBody,
+      ): Promise<ChatbotDocumentResponse[]> =>
         this.req(
           'POST',
-          `/api/v1/chatbot/documentChunks/${courseId}`,
+          `/api/v1/chatbot/${courseId}/document`,
           undefined,
           body,
         ),
       updateDocumentChunk: async (
         courseId: number,
         docId: string,
-        body: UpdateDocumentChunkParams,
-      ): Promise<SourceDocument[]> =>
+        body: UpdateDocumentChunkBody,
+      ): Promise<ChatbotDocumentResponse[]> =>
         this.req(
           'PATCH',
-          `/api/v1/chatbot/documentChunks/${courseId}/${docId}`,
+          `/api/v1/chatbot/${courseId}/document/${docId}`,
           undefined,
           body,
         ),
       deleteDocumentChunk: async (
         courseId: number,
         docId: string,
-      ): Promise<{ success: boolean }> =>
-        this.req(
-          'DELETE',
-          `/api/v1/chatbot/documentChunks/${courseId}/${docId}`,
-        ),
-      deleteDocument: async (
-        courseId: number,
-        docId: string,
-      ): Promise<{ success: boolean }> =>
-        this.req('DELETE', `/api/v1/chatbot/document/${courseId}/${docId}`),
+      ): Promise<void> =>
+        this.req('DELETE', `/api/v1/chatbot/${courseId}/document/${docId}`),
+      deleteDocument: async (courseId: number, docId: string): Promise<void> =>
+        this.req('DELETE', `/api/v1/chatbot/${courseId}/aggregate/${docId}`),
       uploadDocument: async (
         courseId: number,
         body: FormData,
-      ): Promise<{ success: boolean; documentId?: string }> =>
+      ): Promise<ChatbotDocumentAggregateResponse> =>
         this.req(
           'POST',
-          `/api/v1/chatbot/document/${courseId}/upload`,
+          `/api/v1/chatbot/${courseId}/aggregate/file`,
           undefined,
           body,
         ),
-      addDocumentFromGithub: async (
+      addDocumentFromURL: async (
         courseId: number,
         url: string,
-      ): Promise<{ success: boolean; documentId?: string }> =>
+      ): Promise<ChatbotDocumentAggregateResponse> =>
         this.req(
           'POST',
-          `/api/v1/chatbot/document/${courseId}/github`,
+          `/api/v1/chatbot/document/${courseId}/aggregate/url`,
           undefined,
           { url },
+        ),
+      updateDocument: async (
+        courseId: number,
+        id: string,
+        body: UpdateDocumentAggregateBody,
+      ): Promise<ChatbotDocumentAggregateResponse> =>
+        this.req(
+          'PATCH',
+          `/api/v1/chatbot/${courseId}/aggregate/${id}`,
+          undefined,
+          body,
         ),
       getCourseOrganizationProviders: async (
         courseId: number,
@@ -365,21 +387,21 @@ class APIClient {
       legacy: {
         getModels: async (courseId: number): Promise<Record<string, string>> =>
           this.req('GET', `/api/v1/chatbot/models/${courseId}`),
-        getSettings: async (courseId: number): Promise<ChatbotSettings> =>
+        getSettings: async (
+          courseId: number,
+        ): Promise<ChatbotCourseSettingsResponse> =>
           this.req('GET', `/api/v1/chatbot/settings/${courseId}`),
         updateSettings: async (
           courseId: number,
-          settings: ChatbotSettingsUpdateParams,
-        ): Promise<{ success: boolean }> =>
+          settings: UpdateChatbotCourseSettingsBody,
+        ): Promise<ChatbotCourseSettingsResponse> =>
           this.req(
             'PATCH',
             `/api/v1/chatbot/settings/${courseId}`,
             undefined,
             settings,
           ),
-        resetSettings: async (
-          courseId: number,
-        ): Promise<{ success: boolean }> =>
+        resetSettings: async (courseId: number): Promise<void> =>
           this.req('PATCH', `/api/v1/chatbot/settings/${courseId}/reset`),
       },
     },

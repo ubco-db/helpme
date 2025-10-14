@@ -18,8 +18,8 @@ import {
   LMSQuiz,
   LMSQuizAccessLevel,
   LMSResourceType,
-  SupportedLMSFileTypes,
   LMSSyncDocumentsResult,
+  SupportedLMSFileTypes,
 } from '@koh/common';
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -29,12 +29,8 @@ import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
 import { LMSPageModel } from './lmsPage.entity';
 import { LMSFileModel } from './lmsFile.entity';
 import { LMSQuizModel } from './lmsQuiz.entity';
-import { ChatTokenModel } from '../chatbot/chat-token.entity';
-import { UserModel } from '../profile/user.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { v4 } from 'uuid';
 import * as Sentry from '@sentry/browser';
-import { ConfigService } from '@nestjs/config';
 import { convert } from 'html-to-text';
 import { ChatbotApiService } from '../chatbot/chatbot-api.service';
 import { Cache } from 'cache-manager';
@@ -72,8 +68,6 @@ export class LMSIntegrationService {
   constructor(
     @Inject(LMSIntegrationAdapter)
     private integrationAdapter: LMSIntegrationAdapter,
-    @Inject(ConfigService)
-    private configService: ConfigService,
     @Inject(ChatbotApiService)
     private chatbotApiService: ChatbotApiService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
@@ -260,7 +254,7 @@ export class LMSIntegrationService {
         );
         for (let idx = 0; idx < assignments.length; idx++) {
           const found = items.find(
-            (i) => i.id == assignments[idx].id,
+            (i: LMSAssignmentModel) => i.id == assignments[idx].id,
           ) as unknown as LMSAssignmentModel;
           if (found) {
             assignments[idx] = {
@@ -286,7 +280,7 @@ export class LMSIntegrationService {
         );
         for (let idx = 0; idx < announcements.length; idx++) {
           const found = items.find(
-            (i) => i.id == announcements[idx].id,
+            (i: LMSAnnouncementModel) => i.id == announcements[idx].id,
           ) as unknown as LMSAnnouncementModel;
           if (found) {
             announcements[idx] = {
@@ -318,7 +312,7 @@ export class LMSIntegrationService {
         );
         for (let idx = 0; idx < pages.length; idx++) {
           const found = items.find(
-            (i) => i.id == pages[idx].id,
+            (i: LMSPageModel) => i.id == pages[idx].id,
           ) as unknown as LMSPageModel;
           if (found) {
             pages[idx] = {
@@ -345,7 +339,7 @@ export class LMSIntegrationService {
         );
         for (let idx = 0; idx < files.length; idx++) {
           const found = items.find(
-            (i) => i.id == files[idx].id,
+            (i: LMSFileModel) => i.id == files[idx].id,
           ) as unknown as LMSFileModel;
           if (found) {
             files[idx] = {
@@ -372,7 +366,7 @@ export class LMSIntegrationService {
         );
         for (let idx = 0; idx < quizzes.length; idx++) {
           const found = items.find(
-            (i) => i.id == quizzes[idx].id,
+            (i: LMSQuizModel) => i.id == quizzes[idx].id,
           ) as unknown as LMSQuizModel;
           if (found) {
             quizzes[idx] = {
@@ -640,21 +634,11 @@ export class LMSIntegrationService {
 
       if (items.length == 0) continue;
 
-      const tempUser = await UserModel.create({
-        email: 'tempemail@example.com',
-      }).save();
-      const token = await ChatTokenModel.create({
-        user: tempUser,
-        token: v4(),
-        max_uses: items.length,
-      }).save();
-
       const statuses: LMSFileUploadResponse[] = [];
       for (const item of items) {
         const uploadDocumentResponse = await this.uploadDocument(
           courseId,
           item,
-          token,
           type,
           adapter,
         );
@@ -663,9 +647,6 @@ export class LMSIntegrationService {
         if (uploadDocumentResponse.success) syncDocumentsResult.itemsSynced++;
         else syncDocumentsResult.errors++;
       }
-
-      await ChatTokenModel.remove(token);
-      await UserModel.remove(tempUser);
 
       const validIds = statuses.filter((u) => u.success).map((u) => u.id);
       const toSave = items.filter((u) => validIds.includes(u.id));
@@ -842,29 +823,16 @@ export class LMSIntegrationService {
   ) {
     let numClearedDocuments = 0;
 
-    const tempUser = await UserModel.create({
-      email: 'tempemail@example.com',
-    }).save();
-    const token = await ChatTokenModel.create({
-      user: tempUser,
-      token: v4(),
-      max_uses: items.length,
-    }).save();
-
     const statuses: LMSFileUploadResponse[] = [];
     for (const item of items) {
       const deleteResponse: LMSFileUploadResponse = await this.deleteDocument(
         courseId,
         item,
-        token,
       );
       statuses.push(deleteResponse);
 
       if (deleteResponse.success) numClearedDocuments++;
     }
-
-    await ChatTokenModel.remove(token);
-    await UserModel.remove(tempUser);
 
     const successfulIds = statuses.filter((s) => s.success).map((s) => s.id);
     await model.remove(items.filter((i) => successfulIds.includes(i.id)));
@@ -911,22 +879,7 @@ export class LMSIntegrationService {
 
     const model = await this.getDocumentModel(type);
 
-    const tempUser = await UserModel.create({
-      email: 'tempemail@example.com',
-    }).save();
-    const token = await ChatTokenModel.create({
-      user: tempUser,
-      token: v4(),
-      max_uses: 1,
-    }).save();
-
-    const status = await this.uploadDocument(
-      courseId,
-      item,
-      token,
-      type,
-      adapter,
-    );
+    const status = await this.uploadDocument(courseId, item, type, adapter);
 
     if (status.success) {
       item.chatbotDocumentId = item.chatbotDocumentId ?? status.documentId;
@@ -934,9 +887,6 @@ export class LMSIntegrationService {
       item.syncEnabled = true;
       await (model as any).upsert(item, ['id', 'courseId']);
     }
-
-    await ChatTokenModel.remove(token);
-    await UserModel.remove(tempUser);
 
     return status.success;
   }
@@ -953,16 +903,7 @@ export class LMSIntegrationService {
   ) {
     const model = await this.getDocumentModel(type);
 
-    const tempUser = await UserModel.create({
-      email: 'tempemail@example.com',
-    }).save();
-    const token = await ChatTokenModel.create({
-      user: tempUser,
-      token: v4(),
-      max_uses: 1,
-    }).save();
-
-    const status = await this.deleteDocument(courseId, item, token);
+    const status = await this.deleteDocument(courseId, item);
 
     if (status.success) {
       item.chatbotDocumentId = null;
@@ -970,9 +911,6 @@ export class LMSIntegrationService {
       item.syncEnabled = false;
       await (model as any).upsert(item, ['id', 'courseId']);
     }
-
-    await ChatTokenModel.remove(token);
-    await UserModel.remove(tempUser);
 
     return status.success;
   }
@@ -1007,7 +945,6 @@ export class LMSIntegrationService {
       | LMSFileModel
       | LMSQuiz
       | LMSQuizModel,
-    token: ChatTokenModel,
     type: LMSUpload,
     adapter: AbstractLMSAdapter,
   ): Promise<LMSFileUploadResponse> {
@@ -1068,24 +1005,6 @@ export class LMSIntegrationService {
               prefix += `\nURL: ${f.url}`;
             }
 
-            const isUpdate =
-              'chatbotDocumentId' in f && f.chatbotDocumentId != undefined;
-
-            if (isUpdate) {
-              try {
-                await this.chatbotApiService.deleteDocument(
-                  f.chatbotDocumentId as string,
-                  courseId,
-                  token.token,
-                );
-              } catch (error) {
-                console.warn(
-                  `Failed to delete old LMS file document ${f.chatbotDocumentId}, proceeding with new upload:`,
-                  error,
-                );
-              }
-            }
-
             const fileBuffer = await this.downloadFileAsBuffer(f.url, adapter);
 
             // mock file object
@@ -1103,29 +1022,21 @@ export class LMSIntegrationService {
             } as Express.Multer.File;
 
             const computedDocLink = adapter.getDocumentLink(item.id, type);
-            const sourceWithPrefix = `${prefix}${computedDocLink ? `\nPage Link: ${computedDocLink}` : ''}`;
 
-            const uploadResult =
-              await this.chatbotApiService.uploadLMSFileFromBuffer(
-                mockLMSFile,
-                courseId,
-                token.token,
-                {
-                  source: sourceWithPrefix,
-                  metadata: {
-                    type: 'inserted_lms_document',
-                    apiDocId: f.id,
-                    platform: adapter.getPlatform(),
-                    source: computedDocLink,
-                  },
-                  parseAsPng: false,
-                },
-              );
+            const uploadResult = await this.chatbotApiService.uploadDocument(
+              mockLMSFile,
+              {
+                source: computedDocLink,
+                lmsDocumentId: String(f.id),
+                parseAsPng: false,
+              },
+              courseId,
+            );
 
             return {
               id: item.id,
               success: true,
-              documentId: uploadResult.docId,
+              documentId: uploadResult.id,
             } as LMSFileUploadResponse;
           } catch (error) {
             console.error(
@@ -1183,19 +1094,17 @@ export class LMSIntegrationService {
     }
 
     const docName = `${adapter.getPlatform()} ${this.getTypeName(type)}${name ? `: ${name}` : ''}`;
-    const metadata: any = {
-      type: 'inserted_lms_document',
-      apiDocId: item.id,
-    };
 
     const isUpdate =
       'chatbotDocumentId' in item && item.chatbotDocumentId != undefined;
 
     if (isUpdate) {
       return await this.chatbotApiService
-        .updateDocument(item.chatbotDocumentId, courseId, token.token, {
+        .updateDocument(item.chatbotDocumentId, courseId, {
           documentText,
-          metadata,
+          title: docName,
+          source: computedDocLink,
+          lmsDocumentId: String(item.id),
           prefix,
         })
         .then((): LMSFileUploadResponse => {
@@ -1214,12 +1123,12 @@ export class LMSIntegrationService {
         });
     } else {
       return await this.chatbotApiService
-        .addDocument(courseId, token.token, {
+        .addDocument(courseId, {
           documentText,
-          metadata,
-          name: docName,
-          prefix,
+          title: docName,
           source: computedDocLink,
+          lmsDocumentId: String(item.id),
+          prefix,
         })
         .then((body): LMSFileUploadResponse => {
           return {
@@ -1246,7 +1155,6 @@ export class LMSIntegrationService {
       | LMSPageModel
       | LMSFileModel
       | LMSQuizModel,
-    token: ChatTokenModel,
   ) {
     // Already deleted in this case
     if (!item.chatbotDocumentId) {
@@ -1256,7 +1164,7 @@ export class LMSIntegrationService {
       };
     }
     return await this.chatbotApiService
-      .deleteDocument(item.chatbotDocumentId, courseId, token.token)
+      .deleteDocument(item.chatbotDocumentId, courseId)
       .then(
         (): LMSFileUploadResponse => ({
           id: item.id,

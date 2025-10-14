@@ -134,6 +134,7 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
 
   return (
     <Modal
+      centered
       title={
         baseIntegration != undefined
           ? 'Update LMS Integration'

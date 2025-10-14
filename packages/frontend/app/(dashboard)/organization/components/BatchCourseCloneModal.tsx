@@ -5,7 +5,6 @@ import {
   CourseResponse,
   defaultCourseCloneAttributes,
   GetOrganizationResponse,
-  OrganizationProfessor,
 } from '@koh/common'
 import { Button, Form, message, Modal } from 'antd'
 import React, { useEffect, useState } from 'react'
@@ -36,7 +35,6 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
   organization,
 }) => {
   const [courses, setCourses] = useState<CourseResponse[]>([])
-  const [professors, setProfessors] = useState<OrganizationProfessor[]>([])
   const [defaultCloneSettings, setDefaultCloneSettings] =
     useState<CourseCloneAttributes>({
       ...defaultCourseCloneAttributes,
@@ -51,25 +49,19 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
   const [defaultSettingsForm] = Form.useForm<CourseCloneAttributes>()
 
   useEffect(() => {
-    const fetchProfessors = async () => {
-      API.organizations.getProfessors(organization.id).then((professors) => {
-        setProfessors(professors)
-      })
-    }
     // have to fetch all courses (without pagination) since need to allow for admin to "clone all courses" if they wanted to
     const fetchCourses = async () => {
       API.organizations.getCourses(organization.id).then((courses) => {
         setCourses(courses)
       })
     }
-    fetchProfessors()
     fetchCourses()
   }, [organization.id])
 
   const handleBatchClone = async () => {
     API.organizations
       .batchCloneCourses(organization.id, customCloneSettings)
-      .then((res) => {
+      .then(() => {
         message.success('Course cloning job scheduled successfully!')
         setCurrentStep(CloneSteps.SelectCourses)
         setSelectedCourseIds([])
@@ -243,6 +235,7 @@ const BatchCourseCloneModal: React.FC<BatchCourseCloneModalProps> = ({
 
   return courses ? (
     <Modal
+      centered
       title={getModalTitle()}
       open={open}
       onCancel={onClose}

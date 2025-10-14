@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Modal, Input, Button } from 'antd'
+import React, { useEffect, useState } from 'react'
+import { Button, Input, Modal } from 'antd'
 
 interface DeleteConfirmationProps {
   isOpen: boolean
@@ -24,6 +24,7 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationProps> = ({
 
   return (
     <Modal
+      centered
       title="Confirm Delete Semester"
       className="text-center"
       open={visible}

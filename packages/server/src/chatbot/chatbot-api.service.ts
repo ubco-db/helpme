@@ -1,17 +1,48 @@
-import {
-  AddChatbotQuestionParams,
-  AddDocumentAggregateParams,
-  AddDocumentChunkParams,
-  ChatbotQuestionResponseChatbotDB,
-  ChatbotSettings,
-  ChatbotSettingsMetadata,
-  ChatbotSettingsUpdateParams,
-  UpdateChatbotQuestionParams,
-  UpdateDocumentAggregateParams,
-  UpdateDocumentChunkParams,
-} from '@koh/common';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ClassType } from 'class-transformer/ClassTransformer';
+import { plainToClass } from 'class-transformer';
+import {
+  ChatbotAskBody,
+  ChatbotAskResponse,
+  ChatbotCourseSettingsResponse,
+  ChatbotDocumentAggregateResponse,
+  ChatbotDocumentListResponse,
+  ChatbotDocumentResponse,
+  ChatbotQueryBody,
+  ChatbotQueryTypeEnum,
+  ChatbotQuestionResponse,
+  ChatMessage,
+  CloneCourseDocumentsBody,
+  CreateChatbotCourseSettingsBody,
+  CreateDocumentAggregateBody,
+  CreateDocumentChunkBody,
+  CreateQuestionBody,
+  PaginatedResponse,
+  SuggestedQuestionResponse,
+  UpdateChatbotCourseSettingsBody,
+  UpdateDocumentAggregateBody,
+  UpdateDocumentChunkBody,
+  UpdateQuestionBody,
+  UploadDocumentAggregateBody,
+  UploadURLDocumentAggregateBody,
+} from '@koh/common';
+import { isObject } from '@nestjs/common/utils/shared.utils';
+
+type ChatbotRequestInit<TBody> = {
+  userToken?: string;
+  data?: TBody;
+  params?: Record<string, any>;
+  timeoutMs?: number;
+};
+
+type PaginationProperties = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+};
+
+type ElementType<T> = T extends (infer E)[] ? E : T;
 
 @Injectable()
 /* This is a list of all endpoints from the chatbot repo.
@@ -36,20 +67,28 @@ export class ChatbotApiService {
    * Makes an authenticated request to the chatbot service
    * @param method HTTP method
    * @param endpoint Endpoint path (without leading slash)
-   * @param data Request body data
-   * @param params Query parameters
-   * @param userToken user's API token for user-specific endpoints
+   * @param request Properties for the request
+   * @param request.userToken User token to be used to access protected routes
+   * @param request.data Data to be passed in the JSON body
+   * @param request.params Data to be passed in the query parameters
+   * @param request.timeoutMs How long until the request should be considered failed by timeout
+   * @param responseClass Class to map the response to
    * @returns Response from the chatbot service
    */
-  private async request(
+  private async request<TResponse, TBody = void>(
     method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
     endpoint: string,
-    userToken: string,
-    data?: any,
-    params?: any,
-    timeoutMs?: number,
-  ) {
+    request?: ChatbotRequestInit<TBody>,
+    responseClass?: ClassType<ElementType<TResponse>>,
+  ): Promise<TResponse>;
+  private async request<TResponse, TBody = void>(
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    endpoint: string,
+    request: ChatbotRequestInit<TBody> = {},
+    responseClass?: ClassType<TResponse>,
+  ): Promise<TResponse> {
     try {
+      const { userToken, data, params, timeoutMs } = request;
       const url = new URL(`${this.chatbotApiUrl}/${endpoint}`);
 
       if (params) {
@@ -61,25 +100,44 @@ export class ChatbotApiService {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'HMS-API-KEY': this.chatbotApiKey,
-        HMS_API_TOKEN: userToken,
       };
+      if (userToken) {
+        headers['HMS_API_TOKEN'] = userToken;
+      }
+
+      let body: BodyInit;
+      if (data instanceof FormData) {
+        body = data;
+      } else if (data != undefined && isObject(data)) {
+        body = JSON.stringify(data);
+      } else {
+        body = data as any;
+      }
 
       const response = await fetch(url, {
         method,
         headers,
-        body: data ? JSON.stringify(data) : undefined,
+        body,
         signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined, // abort signal is available as of node 17
       });
 
       if (!response.ok) {
         const error = await response.json();
         throw new HttpException(
-          error.error || 'Error from chatbot service',
+          error.message ?? error.error ?? 'Error from chatbot service',
           response.status,
         );
       }
 
-      return await response.json();
+      if (
+        response.headers.has('content-length') &&
+        response.headers.get('content-length') === '0'
+      ) {
+        return;
+      }
+
+      const plain = await response.json();
+      return responseClass ? plainToClass(responseClass, plain) : plain;
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -91,188 +149,262 @@ export class ChatbotApiService {
     }
   }
 
+  private async getPaginated<TResponse = any, TBody = void>(
+    endpoint: string,
+    pagination: PaginationProperties,
+    request: ChatbotRequestInit<TBody> = {},
+    responseClass?: ClassType<TResponse>,
+  ): Promise<PaginatedResponse<TResponse>> {
+    const { page, pageSize, search } = pagination;
+
+    if (page != undefined && page >= 1) {
+      endpoint = `${endpoint}/${page}`;
+    }
+    const result = await this.request<PaginatedResponse<TResponse>>(
+      'GET',
+      endpoint,
+      {
+        ...(request as any),
+        params: { ...request.params, pageSize, search },
+      },
+    );
+    result.items = responseClass
+      ? plainToClass(responseClass, result.items)
+      : result.items;
+    return plainToClass(PaginatedResponse<TResponse>, result);
+  }
+
   // Chatbot endpoints
   async askQuestion(
     question: string,
-    history: any,
+    history: ChatMessage[],
     userToken: string,
     courseId: number,
   ) {
-    return this.request('POST', `chatbot/${courseId}/ask`, userToken, {
-      question,
-      history,
-    });
+    return this.request(
+      'POST',
+      `chatbot/${courseId}/ask`,
+      {
+        userToken,
+        data: {
+          question,
+          history,
+        } satisfies ChatbotAskBody,
+      },
+      ChatbotAskResponse,
+    );
   }
 
-  async queryChatbot(
-    query: string,
-    userToken: string, // Passing UserToken to the chatbot, but should be ignored for this endpoint.
-    type: 'default' | 'abstract' = 'default',
-  ): Promise<string> {
-    const resp: { answer: string } = await this.request(
+  async queryChatbot(params: ChatbotQueryBody): Promise<string> {
+    return await this.request<string, ChatbotQueryBody>(
       'POST',
       `chatbot/query`,
-      userToken,
       {
-        query,
-        type,
+        data: params,
+        timeoutMs:
+          params.type === ChatbotQueryTypeEnum.ABSTRACT ? 5000 : undefined, // 5s timeout for abstract queries
       },
-      undefined,
-      type === 'abstract' ? 5000 : undefined, // 5s timeout for abstract queries
     );
-    return resp.answer;
   }
 
-  async getModels(userToken: string) {
-    return this.request('GET', `chatbot/models`, userToken);
+  async getModels(): Promise<Record<string, string>> {
+    return this.request<Record<string, string>>('GET', `chatbot/models`);
   }
 
   // Question endpoints
 
+  async getQuestion(questionId: string): Promise<ChatbotQuestionResponse> {
+    return this.request('GET', `question/single/${questionId}`);
+  }
+
   async addQuestion(
-    questionData: AddChatbotQuestionParams,
+    data: CreateQuestionBody,
     courseId: number,
-    userToken: string,
-  ) {
-    return this.request(
-      'POST',
-      `question/${courseId}`,
-      userToken,
-      questionData,
-    );
+  ): Promise<ChatbotQuestionResponse> {
+    return this.request('POST', `question/${courseId}`, {
+      data,
+    });
   }
 
   async updateQuestion(
-    questionData: UpdateChatbotQuestionParams,
+    questionId: string,
+    data: UpdateQuestionBody,
     courseId: number,
-    userToken: string,
-  ): Promise<ChatbotQuestionResponseChatbotDB> {
-    return this.request(
-      'PATCH',
-      `question/${courseId}/${questionData.id}`,
-      userToken,
-      questionData,
-    );
+  ): Promise<ChatbotQuestionResponse> {
+    return this.request('PATCH', `question/${courseId}/${questionId}`, {
+      data,
+    });
   }
 
-  async deleteQuestion(id: string, courseId: number, userToken: string) {
-    return this.request('DELETE', `question/${courseId}/${id}`, userToken);
+  async deleteQuestion(id: string, courseId: number): Promise<void> {
+    return this.request('DELETE', `question/${courseId}/${id}`);
   }
 
-  async getSuggestedQuestions(courseId: number, userToken: string) {
-    return this.request('GET', `question/${courseId}/suggested`, userToken);
+  async getSuggestedQuestions(
+    courseId: number,
+  ): Promise<SuggestedQuestionResponse[]> {
+    return this.request('GET', `question/${courseId}/suggested`);
   }
 
-  async getAllQuestions(courseId: number, userToken: string) {
-    return this.request('GET', `question/${courseId}/all`, userToken);
+  async getAllQuestions(courseId: number): Promise<ChatbotQuestionResponse[]> {
+    return this.request('GET', `question/${courseId}/all`);
   }
 
-  async deleteAllQuestions(courseId: number, userToken: string) {
+  async deleteAllQuestions(courseId: number): Promise<void> {
     // Unused
-    return this.request('DELETE', `question/${courseId}/all`, userToken);
+    return this.request('DELETE', `question/${courseId}/all`);
   }
 
   // Chatbot settings endpoints
   async getChatbotSettings(
     courseId: number,
-    userToken: string,
-  ): Promise<ChatbotSettings> {
-    return this.request('GET', `course-setting/${courseId}`, userToken);
+  ): Promise<ChatbotCourseSettingsResponse> {
+    return this.request(
+      'GET',
+      `course-setting/${courseId}`,
+      undefined,
+      ChatbotCourseSettingsResponse,
+    );
   }
 
   async createChatbotSettings(
-    settings: ChatbotSettingsMetadata,
+    settings: CreateChatbotCourseSettingsBody,
     courseId: number,
-    userToken: string,
-  ) {
+  ): Promise<ChatbotCourseSettingsResponse> {
     return this.request(
       'POST',
       `course-setting/${courseId}`,
-      userToken,
-      settings,
+      {
+        data: settings,
+      },
+      ChatbotCourseSettingsResponse,
     );
   }
 
   async updateChatbotSettings(
-    settings: ChatbotSettingsUpdateParams,
+    settings: UpdateChatbotCourseSettingsBody,
     courseId: number,
-    userToken: string,
-  ) {
+  ): Promise<ChatbotCourseSettingsResponse> {
     return this.request(
       'PATCH',
       `course-setting/${courseId}`,
-      userToken,
-      settings,
+      {
+        data: settings,
+      },
+      ChatbotCourseSettingsResponse,
     );
   }
 
-  async resetChatbotSettings(courseId: number, userToken: string) {
-    return this.request('PATCH', `course-setting/${courseId}/reset`, userToken);
+  async resetChatbotSettings(
+    courseId: number,
+  ): Promise<ChatbotCourseSettingsResponse> {
+    return this.request('PATCH', `course-setting/${courseId}/reset`);
   }
 
-  async deleteChatbotSettings(courseId: number, userToken: string) {
-    return this.request('DELETE', `course-setting/${courseId}`, userToken);
+  async deleteChatbotSettings(courseId: number): Promise<void> {
+    return this.request('DELETE', `course-setting/${courseId}`);
   }
 
   // Document endpoints
 
-  async getAllDocumentChunks(courseId: number, userToken: string) {
-    return this.request('GET', `document/${courseId}`, userToken);
+  async getDocumentChunk(documentId: string): Promise<ChatbotDocumentResponse> {
+    return this.request('GET', `document/single/${documentId}`);
   }
 
-  async getAllAggregateDocuments(courseId: number, userToken: string) {
-    return this.request('GET', `document/aggregate/${courseId}`, userToken);
+  async getDocumentAggregate(
+    documentId: string,
+  ): Promise<ChatbotDocumentAggregateResponse> {
+    return this.request('GET', `document/single/aggregate/${documentId}`);
+  }
+
+  async getAllDocumentChunks(
+    courseId: number,
+    page?: number,
+    pageSize?: number,
+    search?: string,
+  ): Promise<PaginatedResponse<ChatbotDocumentResponse>> {
+    return this.getPaginated(`document/${courseId}`, {
+      page,
+      pageSize,
+      search,
+    });
+  }
+
+  async getAllAggregateDocuments(
+    courseId: number,
+    page?: number,
+    pageSize?: number,
+    search?: string,
+  ): Promise<PaginatedResponse<ChatbotDocumentAggregateResponse>> {
+    return this.getPaginated(`document/aggregate/${courseId}`, {
+      page,
+      pageSize,
+      search,
+    });
+  }
+
+  async getListDocuments(
+    courseId: number,
+    page?: number,
+    pageSize?: number,
+    search?: string,
+  ): Promise<PaginatedResponse<ChatbotDocumentListResponse>> {
+    return this.getPaginated(`document/${courseId}/list`, {
+      page,
+      pageSize,
+      search,
+    });
   }
 
   async addDocumentChunk(
-    body: AddDocumentChunkParams,
+    data: CreateDocumentChunkBody,
     courseId: number,
-    userToken: string,
-  ) {
-    return this.request('POST', `document/${courseId}`, userToken, body);
+  ): Promise<ChatbotDocumentResponse[]> {
+    return this.request<ChatbotDocumentResponse[], CreateDocumentChunkBody>(
+      'POST',
+      `document/${courseId}`,
+      {
+        data,
+      },
+      ChatbotDocumentResponse,
+    );
   }
 
   async updateDocumentChunk(
     docId: string,
-    body: UpdateDocumentChunkParams,
+    data: UpdateDocumentChunkBody,
     courseId: number,
-    userToken: string,
-  ) {
-    return this.request(
+  ): Promise<ChatbotDocumentResponse[]> {
+    return this.request<ChatbotDocumentResponse[], UpdateDocumentChunkBody>(
       'PATCH',
       `document/${courseId}/${docId}`,
-      userToken,
-      body,
+      {
+        data,
+      },
+      ChatbotDocumentResponse,
     );
   }
 
-  async deleteDocumentChunk(
-    docId: string,
-    courseId: number,
-    userToken: string,
-  ) {
-    return this.request('DELETE', `document/${courseId}/${docId}`, userToken);
+  async deleteDocumentChunk(docId: string, courseId: number): Promise<void> {
+    return this.request('DELETE', `document/${courseId}/${docId}`);
   }
 
-  async deleteDocument(docId: string, courseId: number, userToken: string) {
-    return this.request(
-      'DELETE',
-      `document/aggregate/${courseId}/${docId}`,
-      userToken,
-    );
+  async deleteDocument(docId: string, courseId: number): Promise<void> {
+    return this.request('DELETE', `document/aggregate/${courseId}/${docId}`);
   }
 
   // Creates a document aggregate from raw text - generally only used for LMS documents
   async addDocument(
     courseId: number,
-    userToken: string,
-    body: AddDocumentAggregateParams,
-  ): Promise<{ id: string }> {
+    data: CreateDocumentAggregateBody,
+  ): Promise<ChatbotDocumentAggregateResponse> {
     return this.request(
       'POST',
       `document/aggregate/${courseId}`,
-      userToken,
-      body,
+      {
+        data,
+      },
+      ChatbotDocumentAggregateResponse,
     );
   }
 
@@ -281,65 +413,54 @@ export class ChatbotApiService {
   async updateDocument(
     docId: string,
     courseId: number,
-    userToken: string,
-    body: UpdateDocumentAggregateParams,
-  ): Promise<{ message: string }> {
+    data: UpdateDocumentAggregateBody,
+  ): Promise<ChatbotDocumentAggregateResponse> {
     return this.request(
       'PATCH',
       `document/aggregate/${courseId}/${docId}`,
-      userToken,
-      body,
+      {
+        data,
+      },
+      ChatbotDocumentAggregateResponse,
     );
   }
 
   async uploadDocument(
     file: Express.Multer.File,
-    source: string,
-    parseAsPng: boolean,
+    params: UploadDocumentAggregateBody,
     courseId: number,
-    userToken: string,
-  ): Promise<{ docId: string }> {
+  ): Promise<ChatbotDocumentAggregateResponse> {
     try {
       // re-upload the file to the chatbot server while the file is still in memory here
       const formData = new FormData();
-
       // Add the main file with fieldname "file"
       formData.append(
         'file',
         new Blob([file.buffer.buffer as ArrayBuffer], {
-          type: 'application/pdf',
+          type:
+            params.lmsDocumentId != undefined
+              ? file.mimetype
+              : 'application/pdf',
         }), // it's always going to be pdf
-        file.originalname.replace(/\.[^/.]+$/, '.pdf'), // Replace original extension with .pdf
+        params.lmsDocumentId != undefined
+          ? file.originalname
+          : file.originalname.replace(/\.[^/.]+$/, '.pdf'), // Replace original extension with .pdf
       );
-
       // Add the JSON data as a separate file with fieldname "source"
-      formData.append('source', source);
-      formData.append('parseAsPng', String(parseAsPng));
-
-      // Make sure the request method handles FormData correctly
-      const url = new URL(`${this.chatbotApiUrl}/document/${courseId}/file`);
-
-      const headers: Record<string, string> = {
-        'HMS-API-KEY': this.chatbotApiKey,
-        HMS_API_TOKEN: userToken,
-      };
-
-      // does not use the this.request function because it doesn't handle FormData correctly
-      const response = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: formData,
+      Object.keys(params).forEach((k) => {
+        if (params[k] != undefined) {
+          formData.append(k, params[k]);
+        }
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new HttpException(
-          error.error || 'Error from chatbot service',
-          response.status,
-        );
-      }
-
-      return await response.json();
+      return await this.request(
+        'POST',
+        `document/${courseId}/file`,
+        {
+          data: formData,
+        },
+        ChatbotDocumentAggregateResponse,
+      );
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -351,106 +472,32 @@ export class ChatbotApiService {
     }
   }
 
-  async uploadURLDocument(url: string, courseId: number, userToken: string) {
-    return this.request('POST', `document/${courseId}/url`, userToken, {
-      url,
-    });
-  }
-
-  // Uploads an LMS file from buffer - specifically for LMS integration file uploads
-  async uploadLMSFileFromBuffer(
-    file: Express.Multer.File,
+  async uploadURLDocument(
+    params: UploadURLDocumentAggregateBody,
     courseId: number,
-    userToken: string,
-    options: {
-      source?: string;
-      metadata?: any;
-      parseAsPng?: boolean;
-    } = {},
-  ): Promise<{ docId: string }> {
-    try {
-      const formData = new FormData();
-
-      formData.append(
-        'file',
-        new Blob([file.buffer.buffer as ArrayBuffer], { type: file.mimetype }),
-        file.originalname,
-      );
-
-      formData.append('source', options.source || 'LMS Integration');
-
-      if (options.source) {
-        formData.append('prefix', options.source);
-      }
-      if (options.metadata) {
-        formData.append('metadata', JSON.stringify(options.metadata));
-      }
-      formData.append('parseAsPng', String(options.parseAsPng || false));
-
-      const url = new URL(`${this.chatbotApiUrl}/document/${courseId}/file`);
-
-      const headers: Record<string, string> = {
-        'HMS-API-KEY': this.chatbotApiKey,
-        HMS_API_TOKEN: userToken,
-      };
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('Error for url', url);
-        console.error(response);
-        throw new HttpException(
-          error.error || 'Failed to upload LMS file buffer',
-          response.status,
-        );
-      }
-
-      return await response.json();
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-      throw new HttpException(
-        'Failed to upload LMS file from buffer',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+  ): Promise<ChatbotDocumentAggregateResponse> {
+    return this.request(
+      'POST',
+      `document/${courseId}/url`,
+      {
+        data: params,
+      },
+      ChatbotDocumentAggregateResponse,
+    );
   }
 
   async cloneCourseDocuments(
     courseId: number,
-    userToken: string,
-    cloneCourseId: number,
-    includeDocuments: boolean,
-    includeInsertedQuestions: boolean,
-    includeInsertedLMSChatbotData: boolean,
-    manuallyCreatedChunks: boolean,
-    docIdMap?: Record<string, string>,
-  ): Promise<{
-    message: string;
-    newAggregateHelpmePDFIdMap?: Record<string, string>;
-  }> {
-    return this.request(
-      'POST',
-      `document/${courseId}/clone/${cloneCourseId}`,
-      userToken,
-      {
-        includeDocuments,
-        includeInsertedQuestions,
-        includeInsertedLMSChatbotData,
-        manuallyCreatedChunks,
-        docIdMap,
-      },
-    );
+    newCourseId: number,
+    params: CloneCourseDocumentsBody,
+  ): Promise<Record<string, string>> {
+    return this.request('POST', `document/${courseId}/clone/${newCourseId}`, {
+      data: params,
+    });
   }
 
-  async resetCourse(courseId: number, userToken: string) {
+  async resetCourse(courseId: number): Promise<void> {
     // apparently resets all chatbot data for the course. Unused right now
-    return this.request('PATCH', `document/${courseId}/reset`, userToken);
+    return this.request('PATCH', `document/${courseId}/reset`);
   }
 }
