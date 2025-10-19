@@ -89,11 +89,20 @@ export default function CoursesPage(): ReactElement {
       <div className="mt-5 flex items-center justify-between align-middle">
         <h1 className="mt-0">My Courses</h1>
         <div className="flex flex-col items-end justify-between gap-2 md:flex-row md:items-center">
-          {checkCourseCreatePermissions(userInfo, organizationSettings) && (
-            <Button type="primary" href={`organization/course/add`}>
-              Add New Course
+          <div className="flex gap-2">
+            <Button 
+              type="default" 
+              href={`http://localhost:3002/api/v1/weeklySummary/test-page`}
+              target="_blank"
+            >
+              📊 Weekly Summary Test
             </Button>
-          )}
+            {checkCourseCreatePermissions(userInfo, organizationSettings) && (
+              <Button type="primary" href={`organization/course/add`}>
+                Add New Course
+              </Button>
+            )}
+          </div>
           <Segmented
             options={[
               { value: false, icon: <AppstoreOutlined />, title: 'Card View' },

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Weekly Summary Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        button { padding: 10px 20px; margin: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin: 10px 0; padding: 15px; background: #f8f9fa; border-radius: 4px; white-space: pre-wrap; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Weekly Summary Test Page</h1>
+        
+        <div class="test-section">
+            <h3>Available Courses</h3>
+            <button onclick="loadCourses()">Load Available Courses</button>
+            <div id="coursesList" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test Data Generation for Specific Course</h3>
+            <p>Enter a course ID to test the weekly summary data generation:</p>
+            <input type="number" id="courseId" placeholder="Course ID (e.g., 1)" value="1">
+            <button onclick="testCourseData()">Test Course Data</button>
+            <div id="courseResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Send Weekly Summaries to All Professors</h3>
+            <p>⚠️ This will send actual emails to all professors!</p>
+            <button onclick="sendAllSummaries()">Send All Weekly Summaries</button>
+            <div id="sendResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Instructions</h3>
+            <ol>
+                <li>Make sure the server is running: <code>npm run start:dev</code></li>
+                <li>You need to be logged in to HelpMe to use these endpoints</li>
+                <li>Check the browser console for any errors</li>
+                <li>Look at the server logs for detailed information</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        async function loadCourses() {
+            const resultDiv = document.getElementById('coursesList');
+            
+            try {
+                resultDiv.textContent = 'Loading courses...';
+                
+                const response = await fetch('/weeklySummary/courses', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (data.courses && data.courses.length > 0) {
+                        let html = '<h4>Available Courses:</h4><ul>';
+                        data.courses.forEach(course => {
+                            html += `<li><strong>ID: ${course.id}</strong> - ${course.name} (Professor: ${course.professorEmail})</li>`;
+                        });
+                        html += '</ul>';
+                        resultDiv.innerHTML = html;
+                    } else {
+                        resultDiv.textContent = 'No courses found with professors assigned.';
+                    }
+                } else {
+                    resultDiv.textContent = `❌ Error: ${data.message || 'Unknown error'}`;
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Network Error: ${error.message}`;
+            }
+        }
+
+        async function testCourseData() {
+            const courseId = document.getElementById('courseId').value;
+            const resultDiv = document.getElementById('courseResult');
+            
+            if (!courseId) {
+                resultDiv.textContent = 'Please enter a course ID';
+                return;
+            }
+
+            try {
+                resultDiv.textContent = 'Testing...';
+                
+                const response = await fetch(`/weeklySummary/test/${courseId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include' // This will include cookies for authentication
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.textContent = `✅ Success!\n\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.textContent = `❌ Error: ${data.message || 'Unknown error'}`;
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Network Error: ${error.message}`;
+            }
+        }
+
+        async function sendAllSummaries() {
+            const resultDiv = document.getElementById('sendResult');
+            
+            if (!confirm('Are you sure you want to send emails to all professors? This will send actual emails!')) {
+                return;
+            }
+
+            try {
+                resultDiv.textContent = 'Sending emails...';
+                
+                const response = await fetch('/weeklySummary/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.textContent = `✅ Success!\n\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.textContent = `❌ Error: ${data.message || 'Unknown error'}`;
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Network Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

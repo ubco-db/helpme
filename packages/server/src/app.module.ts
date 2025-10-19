@@ -37,6 +37,7 @@ import { RateLimitExceptionFilter } from 'exception_filters/429-exception.filter
 import { LmsIntegrationModule } from './lmsIntegration/lmsIntegration.module';
 import { BaseExceptionFilter } from 'exception_filters/generic-exception.filter';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { WeeklySummaryModule } from './weeklySummary/weekly-summary.module';
 
 @Module({
   imports: [
@@ -106,6 +107,7 @@ import { RedisModule } from '@liaoliaots/nestjs-redis';
       },
     ]),
     LmsIntegrationModule,
+    WeeklySummaryModule,
   ],
   providers: [
     {
