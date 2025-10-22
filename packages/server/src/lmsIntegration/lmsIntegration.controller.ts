@@ -767,6 +767,20 @@ export class LMSIntegrationController {
       );
     }
 
+    if (
+      newState &&
+      uploadType === LMSUpload.Pages &&
+      integration.moduleLinkedPagesOnly
+    ) {
+      const page = item as LMSPage;
+      if (!page.isModuleLinked) {
+        throw new HttpException(
+          'Cannot sync unlinked page when "Module-linked pages only" setting is enabled',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    }
+
     try {
       const result = await this.integrationService.singleDocOperation(
         courseId,

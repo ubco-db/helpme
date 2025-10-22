@@ -150,9 +150,18 @@ export default function CourseLMSIntegrationPage(props: {
     if (!integration?.selectedResourceTypes) return false
     const currentSorted = [...selectedResources].sort()
     const dbSorted = [...integration.selectedResourceTypes].sort()
-    if (currentSorted.length !== dbSorted.length) return true
-    return currentSorted.some((item, index) => item !== dbSorted[index])
-  }, [selectedResources, integration?.selectedResourceTypes])
+    const resourcesChanged =
+      currentSorted.length !== dbSorted.length ||
+      currentSorted.some((item, index) => item !== dbSorted[index])
+    const moduleLinkedChanged =
+      moduleLinkedPagesOnly !== integration.moduleLinkedPagesOnly
+    return resourcesChanged || moduleLinkedChanged
+  }, [
+    selectedResources,
+    integration?.selectedResourceTypes,
+    moduleLinkedPagesOnly,
+    integration?.moduleLinkedPagesOnly,
+  ])
 
   const fetchOrgIntegrationsAsync = useCallback(async () => {
     await API.lmsIntegration
@@ -291,33 +300,40 @@ export default function CourseLMSIntegrationPage(props: {
   }
 
   const handleSaveAndResync = async () => {
+    const wasModuleLinkedDisabled = !integration?.moduleLinkedPagesOnly
+    const isEnablingModuleLinked =
+      wasModuleLinkedDisabled && moduleLinkedPagesOnly
+
+    if (isEnablingModuleLinked) {
+      const confirmed = window.confirm(
+        'Enabling "Module-linked pages only" will remove any standalone pages (not linked in course modules) from the chatbot. ' +
+          'Only pages that are specifically linked within course modules will remain available to the chatbot. ' +
+          'Are you sure you want to continue?',
+      )
+
+      if (!confirmed) {
+        return
+      }
+    }
+
     try {
+      // Update selected resource types
       await API.lmsIntegration.updateSelectedResourceTypes(
         courseId,
         selectedResources as string[],
       )
-      message.success('Resource types updated!')
-      await forceSync()
-      setUpdateFlag(!updateFlag)
-    } catch (err) {
-      message.error(getErrorMessage(err))
-    }
-  }
 
-  const updateModuleLinkedPagesOnly = async () => {
-    if (!integration) return
-
-    try {
+      // Update module-linked pages setting
       await API.lmsIntegration.updateModuleLinkedPagesOnly(
         courseId,
         moduleLinkedPagesOnly,
       )
-      message.success('Module pages setting updated!')
-      // No need to refresh - the toggle state is already updated locally
-    } catch (error) {
-      message.error(getErrorMessage(error))
-      // Revert the toggle if the API call failed
-      setModuleLinkedPagesOnly(!moduleLinkedPagesOnly)
+
+      message.success('Settings updated!')
+      await forceSync()
+      setUpdateFlag(!updateFlag)
+    } catch (err) {
+      message.error(getErrorMessage(err))
     }
   }
 
@@ -893,14 +909,9 @@ export default function CourseLMSIntegrationPage(props: {
                                   checked={moduleLinkedPagesOnly}
                                   onChange={(e) => {
                                     setModuleLinkedPagesOnly(e.target.checked)
-                                    // Auto-update when changed
-                                    setTimeout(
-                                      () => updateModuleLinkedPagesOnly(),
-                                      100,
-                                    )
                                   }}
                                 >
-                                  <Tooltip title="Only sync pages that are linked within course modules. When enabled, standalone pages will be excluded from the chatbot.">
+                                  <Tooltip title="Only sync pages that are linked within course modules. When enabled, standalone pages will be excluded from the chatbot. WARNING: This will remove any previously synced standalone pages from the chatbot when you save changes.">
                                     <span className="text-sm font-medium">
                                       Module-linked pages only
                                     </span>

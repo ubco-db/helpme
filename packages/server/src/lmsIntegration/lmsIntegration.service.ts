@@ -470,6 +470,11 @@ export class LMSIntegrationService {
       errors: 0,
     };
 
+    const adapterForCache = await this.getAdapter(courseId);
+    if (adapterForCache) {
+      await adapterForCache.clearPageCache();
+    }
+
     // maybe add this later to fallback to all resources if db fetch does not work
 
     //   const selectedResources: LMSResourceType[] =
@@ -581,9 +586,20 @@ export class LMSIntegrationService {
         case LMSUpload.Pages:
           items = result.pages;
           if (courseIntegration.moduleLinkedPagesOnly) {
-            items = (items as LMSPage[]).filter(
+            const allPages = items as LMSPage[];
+            const moduleLinkedPages = allPages.filter(
               (page) => page.isModuleLinked === true,
             );
+            if (moduleLinkedPages.length === 0 && allPages.length > 0) {
+              console.warn(
+                `Module-linked pages only setting is enabled for course ${courseId}, ` +
+                  `but no pages were detected as module-linked out of ${allPages.length} total pages. ` +
+                  `This might indicate that no pages are linked in course modules, or there's a ` +
+                  `configuration issue. Proceeding with filter - this will remove all page content from chatbot.`,
+              );
+            }
+
+            items = moduleLinkedPages;
           }
           break;
         case LMSUpload.Files:
@@ -602,13 +618,29 @@ export class LMSIntegrationService {
         | LMSQuizModel
       )[] = modelAndPersisted.items;
 
-      const toRemove: (
+      let toRemove: (
         | LMSAnnouncementModel
         | LMSAssignmentModel
         | LMSPageModel
         | LMSFileModel
         | LMSQuizModel
-      )[] = persistedItems.filter((i0) => !items.find((i1) => i1.id == i0.id));
+      )[] = [];
+
+      if (type === LMSUpload.Pages && courseIntegration.moduleLinkedPagesOnly) {
+        const allPagesFromLMS = result.pages as LMSPage[];
+        const persistedPages = persistedItems as LMSPageModel[];
+
+        toRemove = persistedPages.filter((persistedPage) => {
+          const currentLMSPage = allPagesFromLMS.find(
+            (p) => p.id === persistedPage.id,
+          );
+          return !currentLMSPage || !currentLMSPage.isModuleLinked;
+        });
+      } else {
+        toRemove = persistedItems.filter(
+          (i0) => !items.find((i1) => i1.id == i0.id),
+        );
+      }
 
       if (toRemove.length > 0) {
         // the code below led to inconsistent behaviour of syncDocuments when items
@@ -1393,10 +1425,6 @@ export class LMSIntegrationService {
       await quiz.save();
 
       if (quiz.syncEnabled && quiz.chatbotDocumentId) {
-        console.log(
-          `Updating chatbot document for quiz ${quizId} with new access level: ${accessLevel}`,
-        );
-
         await this.singleDocOperation(
           courseId,
           quiz,
@@ -1410,8 +1438,6 @@ export class LMSIntegrationService {
           LMSUpload.Quizzes,
           'Sync',
         );
-
-        console.log(`Successfully updated chatbot document for quiz ${quizId}`);
       }
 
       return true;

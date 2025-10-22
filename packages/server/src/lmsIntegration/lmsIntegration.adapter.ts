@@ -112,6 +112,13 @@ export abstract class AbstractLMSAdapter {
         return '';
     }
   }
+
+  async clearPageCache(): Promise<void> {
+    if (this.cacheManager) {
+      const pagesKey = `pages_basic_${this.integration.apiCourseId}`;
+      await this.cacheManager.del(pagesKey);
+    }
+  }
 }
 
 abstract class ImplementedLMSAdapter extends AbstractLMSAdapter {
@@ -182,7 +189,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
         }
       })
       .catch((error) => {
-        console.log(
+        console.error(
           `Error contacting ${this.integration.orgIntegration.rootUrl}: ${error}`,
         );
         return { status: LMSApiResponseStatus.Error };
@@ -379,38 +386,41 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     status: LMSApiResponseStatus;
     pages: LMSPage[];
   }> {
-    const pagesKey = `pages_complete_${this.integration.apiCourseId}`;
+    const pagesKey = `pages_basic_${this.integration.apiCourseId}`;
 
+    let basicPages: any[] | null = null;
     if (this.cacheManager) {
-      const cachedPages = await this.cacheManager.get(pagesKey);
-      if (cachedPages) {
-        return cachedPages as {
-          status: LMSApiResponseStatus;
-          pages: LMSPage[];
-        };
+      basicPages = await this.cacheManager.get(pagesKey);
+    }
+
+    if (!basicPages) {
+      const { status, data } = await this.GetPaginated(
+        `courses/${this.integration.apiCourseId}/pages`,
+      );
+
+      if (status != LMSApiResponseStatus.Success) return { status, pages: [] };
+
+      basicPages = data.filter((datum: any) => datum.published == true);
+
+      if (this.cacheManager) {
+        await this.cacheManager.set(pagesKey, basicPages, 600000);
       }
     }
 
-    // If not cached, fetch as normal
-    const { status, data } = await this.GetPaginated(
-      `courses/${this.integration.apiCourseId}/pages`,
-    );
-
-    if (status != LMSApiResponseStatus.Success) return { status, pages: [] };
-
+    // Always fetch module-linked status fresh (not cached)
     const moduleLinkedPageUrls = await this.getModuleLinkedPageUrls();
-
-    console.log(moduleLinkedPageUrls);
 
     const pages: LMSPage[] = [];
 
     // Individual page calls will now be cached by the Get() method
-    for (const page of data.filter((datum: any) => datum.published == true)) {
+    for (const page of basicPages) {
       const pageResult = await this.Get(
         `courses/${this.integration.apiCourseId}/pages/${page.url}`,
       );
 
       if (pageResult.status === LMSApiResponseStatus.Success) {
+        const isModuleLinked = moduleLinkedPageUrls.includes(page.url);
+
         pages.push({
           id: pageResult.data.page_id,
           title: pageResult.data.title,
@@ -418,43 +428,51 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
           url: page.url,
           frontPage: page.front_page,
           modified: new Date(pageResult.data.updated_at),
-          isModuleLinked: moduleLinkedPageUrls.includes(page.url),
+          isModuleLinked,
         });
       }
     }
 
-    const result = {
+    return {
       status: LMSApiResponseStatus.Success,
       pages,
     };
-
-    // Cache complete result for 10 minutes
-    if (this.cacheManager) {
-      await this.cacheManager.set(pagesKey, result, 600000);
-    }
-
-    return result;
   }
 
   private async getModuleLinkedPageUrls(): Promise<string[]> {
     const modulesResult = await this.getModules();
-    if (modulesResult.status !== LMSApiResponseStatus.Success) return [];
+    if (modulesResult.status !== LMSApiResponseStatus.Success) {
+      return [];
+    }
 
     const pageUrls: string[] = [];
 
     for (const module of modulesResult.modules) {
       const itemsResult = await this.getModuleItems(module.id);
       if (itemsResult.status === LMSApiResponseStatus.Success) {
-        const modulePageUrls = itemsResult.items
-          .filter((item) => item.type === 'Page')
-          .map((item) => item.page_url)
-          .filter((url) => url);
+        const pageItems = itemsResult.items.filter(
+          (item) => item.type === 'Page',
+        );
 
-        pageUrls.push(...modulePageUrls);
+        for (const item of pageItems) {
+          let pageUrl = item.page_url;
+
+          if (!pageUrl && item.html_url) {
+            const match = item.html_url.match(/\/pages\/([^\/\?]+)/);
+            if (match) {
+              pageUrl = match[1];
+            }
+          }
+
+          if (pageUrl) {
+            pageUrls.push(pageUrl);
+          }
+        }
       }
     }
 
-    return [...new Set(pageUrls)];
+    const uniqueUrls = [...new Set(pageUrls)];
+    return uniqueUrls;
   }
 
   async getModules(): Promise<{
@@ -490,7 +508,6 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     );
 
     if (status != LMSApiResponseStatus.Success) return { status, items: [] };
-
     return {
       status: LMSApiResponseStatus.Success,
       items: data,
@@ -557,9 +574,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
 
       // Placeholder questions if no questions fetched from the API
       if (questionsData.length === 0 && quizData?.question_count > 0) {
-        console.log(
-          `Quiz ${quiz.id}: No question details available (likely permissions), using question_count: ${quizData.question_count}`,
-        );
+        // No question details available (likely permissions), using question_count
         for (let i = 1; i <= quizData.question_count; i++) {
           questionsData.push({
             id: `placeholder_${quiz.id}_${i}`,
