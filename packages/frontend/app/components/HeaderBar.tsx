@@ -364,7 +364,7 @@ const NavBar = ({
                   <Link
                     href="/admin"
                     className={cn(
-                      '!md:pl-8',
+                      'md:pl-8',
                       isAnAdminPanelPage
                         ? 'md:border-helpmeblue md:border-b-2'
                         : '',
