@@ -80,6 +80,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </p>
     </main>
   ) : !profile.emailVerified ? (
+  // should never happen since middleware.ts will redirect to /verify but just in case
     <VerifyEmailPage />
   ) : (
     <AsyncToasterProvider>
