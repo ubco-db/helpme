@@ -344,7 +344,7 @@ const NavBar = ({
                 <NavigationMenuItem>
                   <Link
                     className={cn(
-                      '!md:pl-8',
+                      'md:pl-8',
                       isAnOrganizationSettingsPage
                         ? 'md:border-helpmeblue md:border-b-2'
                         : '',
