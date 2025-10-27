@@ -116,6 +116,9 @@ These are from Next.js, and allow us to define whether a component is rendered o
 `'use client'` - This component will be sent to the browser to be rendered. Any component that stores state (i.e. with `useState`), has interactability (buttons, forms, etc.), or uses *any* hooks (such as `useCourse` or `useEffect`)
 
 **Components with no 'use client' or 'use server'** - These are **server components** (er well they will need the `async` keyword beside function too maybe). These are rendered on the server and sent to the browser and in general you want as many things as possible to be server components. They have the advantage that any fetch calls within them will be made right-away on the server, before anything is rendered, which can improve performance a lot. They can also have client components within them, but not vice-versa (with the exception of layout.tsx), so try to have server components near the root and client components as far down as possible. 
+- NOTE that for our system, we generally do not use server components. For two reasons:
+  - Our system is very client-heavy with a lot of interactivity, meaning there is very little that can be pre-rendered
+  - Our system's architecture splits Next.js from our backend. Server components get more performance benefit when you *call things like the database directly*, instead of through the API (causes an extra round-trip).
 
 `'use server'` - In general, don't use this as that's for *making server actions* and *NOT for designating server components*. Server actions are "asynchronous functions" and are sorta like endpoints. We don't really use these as we are using our own endpoints. 
 
