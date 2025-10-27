@@ -40,7 +40,6 @@ type AlertMetadata = {
 
 type NotificationBellProps = {
   showText?: boolean
-  onAfterNavigate?: () => void
   className?: string
 }
 
@@ -85,7 +84,6 @@ const alertMeta: Record<AlertType, AlertMetadata> = {
 
 const NotificationBell: React.FC<NotificationBellProps> = ({
   showText = false,
-  onAfterNavigate,
   className,
 }) => {
   const router = useRouter()
@@ -173,7 +171,6 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
     (alert: Alert, url: string) => async (): Promise<void> => {
       await markAsRead(alert)
       router.push(url)
-      onAfterNavigate?.()
     }
 
   const views: NotificationView[] = useMemo(() => {
@@ -276,164 +273,160 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
   const isLoadingMore = isValidating && size > 0
   const hasMore = (pages[pages.length - 1]?.alerts?.length ?? 0) === PAGE_SIZE
 
-  const content = (
-    <div className="w-80 max-w-xs">
-      {isLoading ? (
-        <div className="py-6 text-center">
-          <Spin size="small" />
-        </div>
-      ) : views.length === 0 ? (
-        <Empty
-          description="No notifications"
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-        />
-      ) : (
-        <List
-          rowKey={(item) => item.key}
-          dataSource={views}
-          renderItem={(item) => (
-            <List.Item
-              className={`${item.isUnread ? 'bg-slate-100' : ''} transition-colors hover:bg-slate-50`}
-              style={{
-                padding: '8px 12px',
-                borderBottom: '1px solid #f0f0f0',
-              }}
-              actions={
-                item.ctaLabel
-                  ? [
-                      <Button
-                        key="cta"
-                        type="link"
-                        size="small"
-                        onClick={async (e) => {
-                          e.stopPropagation()
-                          if (item.onOpen) await item.onOpen()
-                        }}
+  return (
+    <Popover
+      content={
+        <div className="w-80 max-w-xs">
+          {isLoading ? (
+            <div className="py-6 text-center">
+              <Spin size="small" />
+            </div>
+          ) : views.length === 0 ? (
+            <Empty
+              description="No notifications"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          ) : (
+            <List
+              rowKey={(item) => item.key}
+              dataSource={views}
+              renderItem={(item) => (
+                <List.Item
+                  className={`${item.isUnread ? 'bg-slate-100' : ''} transition-colors hover:bg-slate-50`}
+                  style={{
+                    padding: '8px 12px',
+                    borderBottom: '1px solid #f0f0f0',
+                  }}
+                  actions={
+                    item.ctaLabel
+                      ? [
+                          <Button
+                            key="cta"
+                            type="link"
+                            size="small"
+                            onClick={async (e) => {
+                              e.stopPropagation()
+                              if (item.onOpen) await item.onOpen()
+                            }}
+                          >
+                            {item.ctaLabel}
+                          </Button>,
+                        ]
+                      : undefined
+                  }
+                >
+                  <List.Item.Meta
+                    style={{ margin: 0 }}
+                    title={
+                      <Space
+                        direction="vertical"
+                        size={1}
+                        style={{ width: '100%' }}
                       >
-                        {item.ctaLabel}
-                      </Button>,
-                    ]
-                  : undefined
-              }
-            >
-              <List.Item.Meta
-                style={{ margin: 0 }}
-                title={
-                  <Space
-                    direction="vertical"
-                    size={1}
-                    style={{ width: '100%' }}
-                  >
-                    <Text
-                      strong={item.isUnread}
-                      ellipsis={{ tooltip: item.title }}
-                      style={{
-                        display: 'block',
-                        maxWidth: '95%',
-                        fontSize: 14,
+                        <Text
+                          strong={item.isUnread}
+                          ellipsis={{ tooltip: item.title }}
+                          style={{
+                            display: 'block',
+                            maxWidth: '95%',
+                            fontSize: 14,
+                          }}
+                        >
+                          {item.title}
+                        </Text>
+                        {item.courseName && (
+                          <Tag
+                            color="blue"
+                            style={{
+                              fontSize: 11,
+                              padding: '0 6px',
+                              lineHeight: '18px',
+                              borderRadius: 6,
+                              width: 'fit-content',
+                            }}
+                          >
+                            {item.courseName}
+                          </Tag>
+                        )}
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {dayjs(item.sent).fromNow()}
+                        </Text>
+                      </Space>
+                    }
+                    description={
+                      item.description && (
+                        <Text
+                          type="secondary"
+                          ellipsis={{ tooltip: item.description }}
+                          style={{
+                            fontSize: 12,
+                            display: 'block',
+                            maxWidth: '95%',
+                            marginTop: 4,
+                          }}
+                        >
+                          {item.description}
+                        </Text>
+                      )
+                    }
+                  />
+                  {!item.ctaLabel && (
+                    <Button
+                      type="link"
+                      size="small"
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        if (item.onOpen) await item.onOpen()
                       }}
                     >
-                      {item.title}
-                    </Text>
+                      Mark as read
+                    </Button>
+                  )}
+                </List.Item>
+              )}
+            />
+          )}
 
-                    {item.courseName && (
-                      <Tag
-                        color="blue"
-                        style={{
-                          fontSize: 11,
-                          padding: '0 6px',
-                          lineHeight: '18px',
-                          borderRadius: 6,
-                          width: 'fit-content',
-                        }}
-                      >
-                        {item.courseName}
-                      </Tag>
-                    )}
-
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      {dayjs(item.sent).fromNow()}
-                    </Text>
-                  </Space>
-                }
-                description={
-                  item.description && (
-                    <Text
-                      type="secondary"
-                      ellipsis={{ tooltip: item.description }}
-                      style={{
-                        fontSize: 12,
-                        display: 'block',
-                        maxWidth: '95%',
-                        marginTop: 4,
-                      }}
-                    >
-                      {item.description}
-                    </Text>
-                  )
-                }
-              />
-              {!item.ctaLabel && (
+          <div className="mt-2 flex items-center justify-between gap-2">
+            {total > 0 ? (
+              <div className="flex items-center gap-1">
                 <Button
                   type="link"
                   size="small"
-                  onClick={async (e) => {
-                    e.stopPropagation()
-                    if (item.onOpen) await item.onOpen()
+                  disabled={currentPage <= 0}
+                  onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                >
+                  Prev
+                </Button>
+                <Button
+                  type="link"
+                  size="small"
+                  disabled={(currentPage + 1) * PAGE_SIZE >= total}
+                  loading={isValidating && size > 0}
+                  onClick={() => {
+                    const next = currentPage + 1
+                    const requiredSize = next + 1
+                    if (size < requiredSize) setSize(requiredSize)
+                    setCurrentPage(next)
                   }}
                 >
-                  Mark as read
+                  Next
                 </Button>
-              )}
-            </List.Item>
-          )}
-        />
-      )}
-
-      <div className="mt-2 flex items-center justify-between gap-2">
-        {total > 0 ? (
-          <div className="flex items-center gap-1">
-            <Button
-              type="link"
-              size="small"
-              disabled={currentPage <= 0}
-              onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
-            >
-              Prev
-            </Button>
-            <Button
-              type="link"
-              size="small"
-              disabled={(currentPage + 1) * PAGE_SIZE >= total}
-              loading={isValidating && size > 0}
-              onClick={() => {
-                const next = currentPage + 1
-                const requiredSize = next + 1
-                if (size < requiredSize) setSize(requiredSize)
-                setCurrentPage(next)
-              }}
-            >
-              Next
-            </Button>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {`${currentPage * PAGE_SIZE + 1}-${currentPage * PAGE_SIZE + (currentPageAlerts?.length || 0)} of ${total}`}
-            </Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {`${currentPage * PAGE_SIZE + 1}-${currentPage * PAGE_SIZE + (currentPageAlerts?.length || 0)} of ${total}`}
+                </Text>
+              </div>
+            ) : (
+              <span />
+            )}
+            {total > 0 && (
+              <Button type="link" size="small" onClick={markAllRead}>
+                Mark all as read
+              </Button>
+            )}
           </div>
-        ) : (
-          <span />
-        )}
-        {total > 0 && (
-          <Button type="link" size="small" onClick={markAllRead}>
-            Mark all as read
-          </Button>
-        )}
-      </div>
-    </div>
-  )
-
-  return (
-    <Popover
-      content={content}
+        </div>
+      }
       trigger="click"
       placement="bottomRight"
       open={open}

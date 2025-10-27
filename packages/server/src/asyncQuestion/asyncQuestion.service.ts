@@ -22,7 +22,7 @@ import { AlertModel } from '../alerts/alerts.entity';
 export class AsyncQuestionService {
   constructor(private mailService: MailService) {}
 
-  async sendNewCommentOnMyQuestionEmail(
+  async sendNewCommentOnMyQuestionEmailAndAlert(
     commenter: UserModel,
     commenterRole: Role,
     question: AsyncQuestionModel,
@@ -84,7 +84,7 @@ export class AsyncQuestionService {
   /*send emails out to all users that have posted a comment on this question.
       Note that updatedQuestion must have comments and comments.creator relations
       */
-  async sendNewCommentOnOtherQuestionEmail(
+  async sendNewCommentOnOtherQuestionEmailAndAlert(
     commenter: UserModel,
     commenterRole: Role,
     questionCreatorId: number,
@@ -138,7 +138,6 @@ export class AsyncQuestionService {
         }
       });
     });
-    // FEED alerts for participants (exclude commenter and creator via the query)
     // FEED alerts to all participants who commented (excluding current commenter and creator), regardless of email subscriptions
     const participantIds = Array.from(
       new Set(
@@ -304,7 +303,7 @@ export class AsyncQuestionService {
   }
 
   /* Not really used right now since the only status that staff can change is changing it to "Human Answered" */
-  async sendGenericStatusChangeEmail(
+  async sendGenericStatusChangeEmailAndAlert(
     question: AsyncQuestionModel,
     status: string,
   ) {
@@ -352,7 +351,7 @@ export class AsyncQuestionService {
     }
   }
 
-  async sendUpvotedEmail(updatedQuestion: AsyncQuestionModel) {
+  async sendUpvotedEmailAndAlert(updatedQuestion: AsyncQuestionModel) {
     const subscription = await UserSubscriptionModel.findOne({
       where: {
         userId: updatedQuestion.creator.id,
