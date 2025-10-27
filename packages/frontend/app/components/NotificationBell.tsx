@@ -8,6 +8,7 @@ import {
   DocumentProcessedPayload,
   GetCourseResponse,
   AsyncQuestionUpdatePayload,
+  FEED_ALERT_TYPES,
 } from '@koh/common'
 import {
   Badge,
@@ -20,8 +21,9 @@ import {
   Typography,
   Tag,
 } from 'antd'
-import { BellOutlined } from '@ant-design/icons'
+import { Bell } from 'lucide-react'
 import useSWR from 'swr'
+import useSWRInfinite from 'swr/infinite'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { API } from '@/app/api'
@@ -89,30 +91,37 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
   const router = useRouter()
   const [open, setOpen] = useState(false)
 
-  const { data, isLoading, mutate } = useSWR(
-    ['alerts-feed'],
-    async () => API.alerts.getAll(AlertDeliveryMode.FEED),
-    { revalidateOnFocus: true },
-  )
+  const PAGE_SIZE = 5
+  const { data, isLoading, isValidating, size, setSize, mutate } =
+    useSWRInfinite(
+      (index) => ['alerts-feed', index, PAGE_SIZE],
+      async ([, indexKey, pageSize]) =>
+        API.alerts.getAll(
+          AlertDeliveryMode.FEED,
+          false,
+          pageSize as number,
+          (indexKey as number) * (pageSize as number),
+        ),
+      { revalidateOnFocus: true },
+    )
 
-  const alerts: Alert[] = useMemo(() => data?.alerts ?? [], [data])
+  const pages = data ?? []
+  const [currentPage, setCurrentPage] = useState(0)
+  const currentPageAlerts: Alert[] = pages[currentPage]?.alerts ?? []
+  const total = pages[0]?.total ?? 0
 
-  const unreadCount = useMemo(
-    () => alerts.filter((alert) => !alert.readAt).length,
-    [alerts],
-  )
+  const unreadCount = useMemo(() => total, [total])
 
   const uniqueCourseIds = useMemo(() => {
     const ids = new Set<number>()
-    for (const alert of alerts) {
+    for (const alert of currentPageAlerts) {
       if ((alert.payload as any)?.courseId) {
         ids.add((alert.payload as any).courseId)
       }
     }
     return Array.from(ids)
-  }, [alerts])
+  }, [currentPageAlerts])
 
-  // fetch course names for each courseId in alerts
   const { data: courseResponses } = useSWR(
     uniqueCourseIds.length > 0 ? ['courses-for-alerts', uniqueCourseIds] : null,
     async () => {
@@ -136,17 +145,21 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
 
   const markAsRead = async (alert: Alert) => {
     if (alert.readAt) return
-    // optimistic update
     mutate(
-      (current) =>
-        current
-          ? {
-              ...current,
-              alerts: current.alerts.map((a) =>
-                a.id === alert.id ? { ...a, readAt: new Date() as any } : a,
-              ),
-            }
-          : current,
+      (currentPages) =>
+        currentPages
+          ? currentPages.map((page, idx) => ({
+              ...page,
+              alerts:
+                idx === currentPage && Array.isArray(page.alerts)
+                  ? page.alerts.filter((a: Alert) => a.id !== alert.id)
+                  : page.alerts,
+              total:
+                idx === 0 && typeof page.total === 'number'
+                  ? Math.max(0, (page.total ?? 0) - 1)
+                  : page.total,
+            }))
+          : currentPages,
       { revalidate: false },
     )
     try {
@@ -164,8 +177,12 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
     }
 
   const views: NotificationView[] = useMemo(() => {
-    return alerts
-      .filter((alert) => alert.deliveryMode === AlertDeliveryMode.FEED)
+    return currentPageAlerts
+      .filter(
+        (alert) =>
+          alert.deliveryMode === AlertDeliveryMode.FEED &&
+          FEED_ALERT_TYPES.includes(alert.alertType),
+      )
       .map((alert) => {
         const sentAt = new Date(alert.sent)
         const courseId = (alert.payload as any)?.courseId
@@ -234,30 +251,30 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
         }
       })
       .sort((a, b) => b.sent.getTime() - a.sent.getTime())
-  }, [alerts, courseNameMap])
+  }, [currentPageAlerts, courseNameMap])
 
   const markAllRead = async () => {
-    const unread = alerts.filter((a) => !a.readAt)
-    if (!unread.length) return
-    // optimistic update for all
+    // optimistic: clear all loaded alerts and set total to 0
     mutate(
-      (current) =>
-        current
-          ? {
-              ...current,
-              alerts: current.alerts.map((a) =>
-                a.readAt ? a : { ...a, readAt: new Date() as any },
-              ),
-            }
-          : current,
+      (currentPages) =>
+        currentPages
+          ? currentPages.map((p, idx) => ({
+              ...p,
+              alerts: [],
+              total: idx === 0 ? 0 : p.total,
+            }))
+          : currentPages,
       { revalidate: false },
     )
     try {
-      await Promise.all(unread.map((a) => API.alerts.close(a.id)))
+      await API.alerts.markReadAll()
     } finally {
       await mutate(undefined, { revalidate: true })
     }
   }
+
+  const isLoadingMore = isValidating && size > 0
+  const hasMore = (pages[pages.length - 1]?.alerts?.length ?? 0) === PAGE_SIZE
 
   const content = (
     <div className="w-80 max-w-xs">
@@ -373,26 +390,45 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
         />
       )}
 
-      {views.length > 0 && unreadCount > 0 && (
-        <div className="mt-2 flex justify-end">
+      <div className="mt-2 flex items-center justify-between gap-2">
+        {total > 0 ? (
+          <div className="flex items-center gap-1">
+            <Button
+              type="link"
+              size="small"
+              disabled={currentPage <= 0}
+              onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+            >
+              Prev
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              disabled={(currentPage + 1) * PAGE_SIZE >= total}
+              loading={isValidating && size > 0}
+              onClick={() => {
+                const next = currentPage + 1
+                const requiredSize = next + 1
+                if (size < requiredSize) setSize(requiredSize)
+                setCurrentPage(next)
+              }}
+            >
+              Next
+            </Button>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {`${currentPage * PAGE_SIZE + 1}-${currentPage * PAGE_SIZE + (currentPageAlerts?.length || 0)} of ${total}`}
+            </Text>
+          </div>
+        ) : (
+          <span />
+        )}
+        {total > 0 && (
           <Button type="link" size="small" onClick={markAllRead}>
             Mark all as read
           </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
-  )
-
-  const trigger = (
-    <Badge count={unreadCount} size="small">
-      <Button
-        type="text"
-        className={`flex items-center ${className ?? ''}`.trim()}
-        icon={<BellOutlined />}
-      >
-        {showText && <span className="ml-1">Notifications</span>}
-      </Button>
-    </Badge>
   )
 
   return (
@@ -404,7 +440,15 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
       onOpenChange={(visible) => setOpen(visible)}
       overlayStyle={{ padding: 0, borderRadius: 8 }}
     >
-      {trigger}
+      <Badge count={unreadCount} size="small">
+        <Button
+          type="text"
+          className={`flex items-center p-0 ${className ?? ''}`.trim()}
+        >
+          <Bell size={20} />
+          {showText && <span className="ml-1">Notifications</span>}
+        </Button>
+      </Badge>
     </Popover>
   )
 }

@@ -62,20 +62,23 @@ export class AsyncQuestionService {
           );
           Sentry.captureException(err);
         });
-      await AlertModel.create({
-        alertType: AlertType.ASYNC_QUESTION_UPDATE,
-        deliveryMode: AlertDeliveryMode.FEED,
-        sent: new Date(),
-        userId: question.creator.id,
-        courseId: question.courseId,
-        payload: {
-          courseId: question.courseId,
-          questionId: question.id,
-          subtype: 'commentOnMyPost',
-          summary: `${commenterIsStaff ? commenter.name : 'Someone'} commented on your question`,
-        },
-      }).save();
     }
+
+    const commenterIsStaff =
+      commenterRole === Role.TA || commenterRole === Role.PROFESSOR;
+    await AlertModel.create({
+      alertType: AlertType.ASYNC_QUESTION_UPDATE,
+      deliveryMode: AlertDeliveryMode.FEED,
+      sent: new Date(),
+      userId: question.creator.id,
+      courseId: question.courseId,
+      payload: {
+        courseId: question.courseId,
+        questionId: question.id,
+        subtype: 'commentOnMyPost',
+        summary: `${commenterIsStaff ? commenter.name : 'Someone'} commented on your question`,
+      },
+    }).save();
   }
 
   /*send emails out to all users that have posted a comment on this question.
@@ -136,13 +139,21 @@ export class AsyncQuestionService {
       });
     });
     // FEED alerts for participants (exclude commenter and creator via the query)
+    // FEED alerts to all participants who commented (excluding current commenter and creator), regardless of email subscriptions
+    const participantIds = Array.from(
+      new Set(
+        updatedQuestion.comments
+          .map((c) => c.creator.id)
+          .filter((id) => id !== commenter.id && id !== questionCreatorId),
+      ),
+    );
     await Promise.all(
-      subscriptions.map((sub) =>
+      participantIds.map((uid) =>
         AlertModel.create({
           alertType: AlertType.ASYNC_QUESTION_UPDATE,
           deliveryMode: AlertDeliveryMode.FEED,
           sent: new Date(),
-          userId: sub.userId,
+          userId: uid,
           courseId: updatedQuestion.courseId,
           payload: {
             courseId: updatedQuestion.courseId,

@@ -2234,6 +2234,18 @@ export enum AlertType {
   ASYNC_QUESTION_UPDATE = 'asyncQuestionUpdate',
 }
 
+// Allowed combinations to enforce front/back consistency
+export const FEED_ALERT_TYPES: AlertType[] = [
+  AlertType.DOCUMENT_PROCESSED,
+  AlertType.ASYNC_QUESTION_UPDATE,
+]
+
+export const MODAL_ALERT_TYPES: AlertType[] = [
+  AlertType.REPHRASE_QUESTION,
+  AlertType.EVENT_ENDED_CHECKOUT_STAFF,
+  AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
+]
+
 export enum AlertDeliveryMode {
   MODAL = 'modal',
   FEED = 'feed',
@@ -2358,6 +2370,9 @@ export class CreateAlertResponse extends Alert {}
 export class GetAlertsResponse {
   @Type(() => Alert)
   alerts!: Alert[]
+  @IsOptional()
+  @IsInt()
+  total?: number
 }
 
 // not used anywhere
