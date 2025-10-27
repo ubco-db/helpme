@@ -23,10 +23,10 @@ import {
 } from 'antd'
 import { Bell } from 'lucide-react'
 import useSWR from 'swr'
-import useSWRInfinite from 'swr/infinite'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { API } from '@/app/api'
+import { useAlertsContext } from '@/app/contexts/alertsContext'
 import { useRouter } from 'next/navigation'
 
 const { Text } = Typography
@@ -89,24 +89,19 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
   const router = useRouter()
   const [open, setOpen] = useState(false)
 
-  const PAGE_SIZE = 5
-  const { data, isLoading, isValidating, size, setSize, mutate } =
-    useSWRInfinite(
-      (index) => ['alerts-feed', index, PAGE_SIZE],
-      async ([, indexKey, pageSize]) =>
-        API.alerts.getAll(
-          AlertDeliveryMode.FEED,
-          false,
-          pageSize as number,
-          (indexKey as number) * (pageSize as number),
-        ),
-      { revalidateOnFocus: true },
-    )
-
-  const pages = data ?? []
-  const [currentPage, setCurrentPage] = useState(0)
-  const currentPageAlerts: Alert[] = pages[currentPage]?.alerts ?? []
-  const total = pages[0]?.total ?? 0
+  const {
+    total,
+    isLoading,
+    isValidating,
+    size,
+    setSize,
+    currentPage,
+    setCurrentPage,
+    currentPageAlerts,
+    markRead,
+    markAllRead,
+    pageSize,
+  } = useAlertsContext()
 
   const unreadCount = useMemo(() => total, [total])
 
@@ -143,28 +138,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
 
   const markAsRead = async (alert: Alert) => {
     if (alert.readAt) return
-    mutate(
-      (currentPages) =>
-        currentPages
-          ? currentPages.map((page, idx) => ({
-              ...page,
-              alerts:
-                idx === currentPage && Array.isArray(page.alerts)
-                  ? page.alerts.filter((a: Alert) => a.id !== alert.id)
-                  : page.alerts,
-              total:
-                idx === 0 && typeof page.total === 'number'
-                  ? Math.max(0, (page.total ?? 0) - 1)
-                  : page.total,
-            }))
-          : currentPages,
-      { revalidate: false },
-    )
-    try {
-      await API.alerts.close(alert.id)
-    } finally {
-      await mutate(undefined, { revalidate: true })
-    }
+    await markRead(alert.id)
   }
 
   const handleNavigate =
@@ -250,28 +224,9 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
       .sort((a, b) => b.sent.getTime() - a.sent.getTime())
   }, [currentPageAlerts, courseNameMap])
 
-  const markAllRead = async () => {
-    // optimistic: clear all loaded alerts and set total to 0
-    mutate(
-      (currentPages) =>
-        currentPages
-          ? currentPages.map((p, idx) => ({
-              ...p,
-              alerts: [],
-              total: idx === 0 ? 0 : p.total,
-            }))
-          : currentPages,
-      { revalidate: false },
-    )
-    try {
-      await API.alerts.markReadAll()
-    } finally {
-      await mutate(undefined, { revalidate: true })
-    }
+  const markAllReadLocal = async () => {
+    await markAllRead()
   }
-
-  const isLoadingMore = isValidating && size > 0
-  const hasMore = (pages[pages.length - 1]?.alerts?.length ?? 0) === PAGE_SIZE
 
   return (
     <Popover
@@ -394,14 +349,14 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
                   type="link"
                   size="small"
                   disabled={currentPage <= 0}
-                  onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                  onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
                 >
                   Prev
                 </Button>
                 <Button
                   type="link"
                   size="small"
-                  disabled={(currentPage + 1) * PAGE_SIZE >= total}
+                  disabled={(currentPage + 1) * pageSize >= total}
                   loading={isValidating && size > 0}
                   onClick={() => {
                     const next = currentPage + 1
@@ -413,14 +368,14 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
                   Next
                 </Button>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  {`${currentPage * PAGE_SIZE + 1}-${currentPage * PAGE_SIZE + (currentPageAlerts?.length || 0)} of ${total}`}
+                  {`${currentPage * pageSize + 1}-${currentPage * pageSize + (currentPageAlerts?.length || 0)} of ${total}`}
                 </Text>
               </div>
             ) : (
               <span />
             )}
             {total > 0 && (
-              <Button type="link" size="small" onClick={markAllRead}>
+              <Button type="link" size="small" onClick={markAllReadLocal}>
                 Mark all as read
               </Button>
             )}
