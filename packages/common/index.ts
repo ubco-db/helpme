@@ -3523,6 +3523,10 @@ export function dropUndefined(obj: any, dropNull = false) {
   return obj
 }
 
+/* This is just to have the error messages in one place to make it easier for testing/maintenance.
+  Instead of updating an error message string in an endpoint just to find out it broke a test,
+  we can just update it once here.
+*/
 export const ERROR_MESSAGES = {
   common: {
     pageOutOfBounds: "Can't retrieve out of bounds page.",
