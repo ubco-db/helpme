@@ -37,6 +37,7 @@ import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import * as bcrypt from 'bcrypt';
 import { getCookie } from '../common/helpers';
 import { CourseService } from 'course/course.service';
+import { ILike } from 'typeorm';
 
 interface RequestUser {
   userId: string;
@@ -272,6 +273,7 @@ export class AuthController {
     });
   }
 
+  /* Should probably be renamed to forgotPassword() */
   @Post('/password/reset')
   async resetPassword(
     @Body() body: PasswordRequestResetBody,
@@ -279,41 +281,67 @@ export class AuthController {
   ): Promise<Response<void>> {
     const { email, recaptchaToken, organizationId } = body;
 
-    if (!recaptchaToken) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'Invalid recaptcha token' });
-    }
-
     const response = await request.post(
       `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.PRIVATE_RECAPTCHA_SITE_KEY}&response=${recaptchaToken}`,
     );
 
     if (!response.body.success) {
       return res.status(HttpStatus.BAD_REQUEST).send({
-        message: 'Recaptcha token invalid',
+        message: ERROR_MESSAGES.authController.invalidRecaptchaToken,
       });
     }
 
-    const user = await UserModel.findOne({
+    const users = await UserModel.find({
       where: {
-        email,
+        email: ILike(email), // Case insensitive search (since users can mistype emails)
         organizationUser: { organizationId },
-        accountType: AccountType.LEGACY,
       },
-      relations: ['organizationUser'],
+      relations: {
+        organizationUser: {
+          organization: true,
+        },
+      },
     });
+    if (!users || users.length === 0) {
+      return res
+        .status(HttpStatus.NOT_FOUND)
+        .send({ message: ERROR_MESSAGES.authController.userNotFoundWithEmail });
+    }
 
-    if (!user) {
+    if (users.length > 1) {
+      // this SHOULDN'T happen since emails should be unique. But, /register lacked case-insensitivity so some users have multiple accounts with same email (with different case).
       return res
         .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'User not found' });
+        .send({
+          message:
+            'Multiple users found with this email (can be case-sensitivity issue). Please contact adam.fipke@ubc.ca',
+        });
+    }
+
+    const user = users[0];
+
+    if (user.accountType === AccountType.GOOGLE) {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .send({ message: ERROR_MESSAGES.authController.ssoAccountGoogle });
+    } else if (user.accountType === AccountType.SHIBBOLETH) {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .send({
+          message: ERROR_MESSAGES.authController.ssoAccountShibboleth(
+            user.organizationUser.organization.name,
+          ),
+        });
+    } else if (user.accountType !== AccountType.LEGACY) {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .send({ message: ERROR_MESSAGES.authController.incorrectAccountType });
     }
 
     if (!user.emailVerified) {
       return res
         .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'Email not verified' });
+        .send({ message: ERROR_MESSAGES.authController.emailNotVerified });
     }
 
     const resetLink = await this.authService.createPasswordResetToken(user);
