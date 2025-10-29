@@ -1818,6 +1818,7 @@ export type LMSModuleItem = {
   type: string
   content_id?: number
   html_url?: string
+  url?: string
   page_url?: string
 }
 

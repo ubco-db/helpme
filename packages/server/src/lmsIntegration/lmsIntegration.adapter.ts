@@ -485,13 +485,15 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
 
     if (status != LMSApiResponseStatus.Success) return { status, modules: [] };
 
-    const modules: LMSModule[] = data.map((module: any) => {
-      return {
-        id: module.id,
-        name: module.name,
-        items_url: module.items_url,
-      } as LMSModule;
-    });
+    const modules: LMSModule[] = data
+      .filter((module: any) => module.published == true)
+      .map((module: any) => {
+        return {
+          id: module.id,
+          name: module.name,
+          items_url: module.items_url,
+        } as LMSModule;
+      });
 
     return {
       status: LMSApiResponseStatus.Success,
