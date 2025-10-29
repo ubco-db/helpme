@@ -536,7 +536,6 @@ describe('Auth Integration', () => {
       const res = await supertest().post('/auth/password/reset').send({
         email: user.email,
         organizationId: organization.id,
-        recaptchaToken: 'token',
       });
       expect(res.status).toBe(400);
     });
