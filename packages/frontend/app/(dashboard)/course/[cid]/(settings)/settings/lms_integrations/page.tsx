@@ -304,36 +304,38 @@ export default function CourseLMSIntegrationPage(props: {
     const isEnablingModuleLinked =
       wasModuleLinkedDisabled && moduleLinkedPagesOnly
 
-    if (isEnablingModuleLinked) {
-      const confirmed = window.confirm(
-        'Enabling "Module-linked pages only" will remove any standalone pages (not linked in course modules) from the chatbot. ' +
-          'Only pages that are specifically linked within course modules will remain available to the chatbot. ' +
-          'Are you sure you want to continue?',
-      )
+    const performUpdate = async () => {
+      try {
+        await API.lmsIntegration.updateSelectedResourceTypes(
+          courseId,
+          selectedResources as string[],
+        )
 
-      if (!confirmed) {
-        return
+        await API.lmsIntegration.updateModuleLinkedPagesOnly(
+          courseId,
+          moduleLinkedPagesOnly,
+        )
+
+        message.success('Settings updated!')
+        await forceSync()
+        setUpdateFlag(!updateFlag)
+      } catch (err) {
+        message.error(getErrorMessage(err))
       }
     }
 
-    try {
-      // Update selected resource types
-      await API.lmsIntegration.updateSelectedResourceTypes(
-        courseId,
-        selectedResources as string[],
-      )
-
-      // Update module-linked pages setting
-      await API.lmsIntegration.updateModuleLinkedPagesOnly(
-        courseId,
-        moduleLinkedPagesOnly,
-      )
-
-      message.success('Settings updated!')
-      await forceSync()
-      setUpdateFlag(!updateFlag)
-    } catch (err) {
-      message.error(getErrorMessage(err))
+    if (isEnablingModuleLinked) {
+      Modal.confirm({
+        title: 'Enable Module-linked Pages Only?',
+        content:
+          'Enabling "Module-linked pages only" will remove any standalone pages (not linked in course modules) from the chatbot. ' +
+          'Only pages that are specifically linked within course modules will remain available to the chatbot.',
+        okText: 'Continue',
+        cancelText: 'Cancel',
+        onOk: performUpdate,
+      })
+    } else {
+      await performUpdate()
     }
   }
 
