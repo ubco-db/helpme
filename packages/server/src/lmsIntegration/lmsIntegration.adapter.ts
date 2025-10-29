@@ -457,8 +457,8 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
         for (const item of pageItems) {
           let pageUrl = item.page_url;
 
-          if (!pageUrl && item.html_url) {
-            const match = item.html_url.match(/\/pages\/([^\/\?]+)/);
+          if (!pageUrl && item.url) {
+            const match = item.url.match(/\/pages\/([^\/\?]+)/);
             if (match) {
               pageUrl = match[1];
             }
