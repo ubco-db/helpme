@@ -38,6 +38,7 @@ import * as bcrypt from 'bcrypt';
 import { getCookie } from '../common/helpers';
 import { CourseService } from 'course/course.service';
 import { ILike } from 'typeorm';
+import * as Sentry from '@sentry/nestjs';
 
 interface RequestUser {
   userId: string;
@@ -310,12 +311,22 @@ export class AuthController {
 
     if (users.length > 1) {
       // this SHOULDN'T happen since emails should be unique. But, /register lacked case-insensitivity so some users have multiple accounts with same email (with different case).
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({
-          message:
-            'Multiple users found with this email (can be case-sensitivity issue). Please contact adam.fipke@ubc.ca',
-        });
+      Sentry.captureMessage(
+        'Multiple users found with this email (can be case-sensitivity issue).',
+        {
+          level: 'error',
+          extra: {
+            users: users.map((user) => ({
+              id: user.id,
+              // email: user.email, // decided against logging email in sentry since then sentry would be collecting emails and UBC PIA probably won't like that
+            })),
+          },
+        },
+      );
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message:
+          'Multiple users found with this email (can be case-sensitivity issue). Please contact adam.fipke@ubc.ca',
+      });
     }
 
     const user = users[0];
@@ -325,13 +336,11 @@ export class AuthController {
         .status(HttpStatus.BAD_REQUEST)
         .send({ message: ERROR_MESSAGES.authController.ssoAccountGoogle });
     } else if (user.accountType === AccountType.SHIBBOLETH) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({
-          message: ERROR_MESSAGES.authController.ssoAccountShibboleth(
-            user.organizationUser.organization.name,
-          ),
-        });
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.authController.ssoAccountShibboleth(
+          user.organizationUser.organization.name,
+        ),
+      });
     } else if (user.accountType !== AccountType.LEGACY) {
       return res
         .status(HttpStatus.BAD_REQUEST)
