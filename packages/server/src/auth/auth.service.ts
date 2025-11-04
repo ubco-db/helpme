@@ -75,6 +75,9 @@ export class AuthService {
     const user = await UserModel.findOne({
       where: {
         email: mail,
+        organizationUser: {
+          organizationId: organizationId,
+        },
       },
       // not querying for AccountType or have any checks for it since
       // it's assumed that if they successfully logged in with shibboleth,
