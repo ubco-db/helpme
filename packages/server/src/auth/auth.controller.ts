@@ -303,16 +303,18 @@ export class AuthController {
         },
       },
     });
+    let user: UserModel;
+
     if (!users || users.length === 0) {
       return res
         .status(HttpStatus.NOT_FOUND)
         .send({ message: ERROR_MESSAGES.authController.userNotFoundWithEmail });
-    }
-
-    if (users.length > 1) {
-      // this SHOULDN'T happen since emails should be unique. But, /register lacked case-insensitivity so some users have multiple accounts with same email (with different case).
+    } else if (users.length === 1) {
+      // this is like 99.9% of users
+      user = users[0];
+    } else {
       Sentry.captureMessage(
-        'Multiple users found with this email (can be case-sensitivity issue).',
+        'Multiple users found with same email (can be case-sensitivity issue or multiple accounts with same type).',
         {
           level: 'error',
           extra: {
@@ -323,14 +325,28 @@ export class AuthController {
           },
         },
       );
-      return res.status(HttpStatus.BAD_REQUEST).send({
-        message:
-          'Multiple users found with this email (can be case-sensitivity issue). Please contact adam.fipke@ubc.ca',
-      });
+
+      const usersWithLegacyAccountType = users.filter(
+        (user) => user.accountType === AccountType.LEGACY,
+      );
+
+      // Find the legacy account and use it if it exists (Note that it shouldn't actually be possible to have multiple accounts with same email and different types)
+      if (usersWithLegacyAccountType.length === 1) {
+        user = usersWithLegacyAccountType[0];
+        // If there isn't one, use the first user.
+      } else if (usersWithLegacyAccountType.length === 0) {
+        user = users[0];
+        // If there's multiple legacy accounts, it's a case-sensitivity issue.
+      } else if (usersWithLegacyAccountType.length > 1) {
+        // this SHOULDN'T happen since emails should be unique. But, /register lacked case-insensitivity so some users have multiple accounts with same email (with different case).
+        return res.status(HttpStatus.BAD_REQUEST).send({
+          message:
+            'Multiple users found with this email (can be case-sensitivity issue). Please contact adam.fipke@ubc.ca',
+        });
+      }
     }
 
-    const user = users[0];
-
+    // now handle logic for the user
     if (user.accountType === AccountType.GOOGLE) {
       return res
         .status(HttpStatus.BAD_REQUEST)
