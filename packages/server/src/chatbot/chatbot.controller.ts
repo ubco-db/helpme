@@ -45,6 +45,7 @@ import {
   GetChatbotHistoryResponse,
   GetInteractionsAndQuestionsResponse,
   InteractionResponse,
+  MailServiceType,
   LLMType,
   OllamaLLMType,
   OpenAILLMType,
@@ -87,6 +88,8 @@ import {
   IgnoreableClassSerializerInterceptor,
   IgnoreSerializer,
 } from '../interceptors/IgnoreableClassSerializerInterceptor';
+import { MailService } from '../mail/mail.service';
+import { ChatbotQuestionModel } from './question.entity';
 
 @Controller('chatbot')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -95,6 +98,7 @@ export class ChatbotController {
   constructor(
     private readonly chatbotService: ChatbotService,
     private readonly chatbotApiService: ChatbotApiService,
+    private readonly mailService: MailService,
   ) {}
 
   //
@@ -331,8 +335,10 @@ export class ChatbotController {
     @User({ chat_token: true }) user: UserModel,
   ): Promise<ChatbotQuestionResponseChatbotDB> {
     handleChatbotTokenCheck(user);
+    // Do not forward frontend-only flags to the chatbot API
+    const { emailNotifyOnAnswerUpdate, ...sanitized } = questionData as any;
     return await this.chatbotApiService.updateQuestion(
-      questionData,
+      sanitized,
       courseId,
       user.chat_token.token,
     );
@@ -378,6 +384,103 @@ export class ChatbotController {
   // }
 
   // resets all chatbot data for the course. Unused
+
+  // Professor-only: send notification email to all students who asked this question
+  // Body must include oldAnswer and newAnswer, and can optionally include question changes for context
+  @Post('question/:courseId/:questionId/notify')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.PROFESSOR)
+  async notifyUpdatedAnswer(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('questionId') questionId: string,
+    @Body()
+    body: {
+      oldAnswer: string;
+      newAnswer: string;
+      oldQuestion?: string;
+      newQuestion?: string;
+    },
+    @User({ chat_token: true }) user: UserModel,
+  ): Promise<{ recipients: number }> {
+    handleChatbotTokenCheck(user);
+
+    const { oldAnswer, newAnswer, oldQuestion, newQuestion } = body ?? {};
+    if (oldAnswer == undefined || newAnswer == undefined) {
+      throw new BadRequestException(
+        'oldAnswer and newAnswer must be provided to send notifications.',
+      );
+    }
+    // Enforce: only allow notify when answer changed
+    if ((oldAnswer ?? '').trim() === (newAnswer ?? '').trim()) {
+      throw new BadRequestException(
+        'Cannot send notification: answer was not changed.',
+      );
+    }
+
+    // Find all interactions in this course where this question was asked
+    const asked = await ChatbotQuestionModel.find({
+      where: { vectorStoreId: questionId },
+      relations: { interaction: { user: true, course: true } },
+    });
+    const recipients = Array.from(
+      new Set(
+        asked
+          .filter((a) => a.interaction?.course?.id === courseId)
+          .map((a) => a.interaction?.user?.email)
+          .filter((e): e is string => !!e),
+      ),
+    );
+
+    if (recipients.length === 0) {
+      return { recipients: 0 };
+    }
+
+    // Building email content
+    const qChanged =
+      (oldQuestion ?? '').trim() !== (newQuestion ?? oldQuestion ?? '').trim();
+
+    const questionSection = qChanged
+      ? `<tr><td style="font-weight:bold;">Question (before)</td><td colspan="2">${
+          oldQuestion ?? ''
+        }</td></tr>
+         <tr><td style="font-weight:bold;">Question (after)</td><td colspan="2">${
+           newQuestion ?? ''
+         }</td></tr>`
+      : `<tr><td style="font-weight:bold;">Question</td><td colspan="2">${
+          oldQuestion ?? newQuestion ?? ''
+        }</td></tr>`;
+
+    const html = `
+      <div>
+        <p>The answer to a chatbot question you asked has been updated.</p>
+        <table style="border-collapse:collapse;width:100%;">
+          ${questionSection}
+          <tr>
+            <td style="font-weight:bold;">Answer (before)</td>
+            <td>${oldAnswer}</td>
+          </tr>
+          <tr>
+            <td style="font-weight:bold;">Answer (after)</td>
+            <td>${newAnswer}</td>
+          </tr>
+        </table>
+        <br/>
+        <p>You can revisit the course chatbot from your course page.</p>
+      </div>
+    `;
+
+    await this.mailService
+      .sendEmail({
+        receiverOrReceivers: recipients,
+        subject: 'Chatbot answer updated',
+        type: MailServiceType.CHATBOT_ANSWER_UPDATED,
+        content: html,
+        track: false,
+      })
+      .catch(() => {});
+
+    return { recipients: recipients.length };
+  }
   // @Get('resetCourse/:courseId')
   // @UseGuards(CourseRolesGuard)
   // @Roles(Role.PROFESSOR, Role.TA)
