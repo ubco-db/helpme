@@ -34,7 +34,6 @@ const EditCourse: React.FC<EditCourseProps> = ({
 }) => {
   const organizationSettings = useOrganizationSettings(organization.id)
   const [courseData, setCourseData] = useState<OrganizationCourseResponse>()
-  const [featuresEnabled, setFeaturesEnabled] = useState(false)
   const { userInfo, setUserInfo } = useUserInfo()
 
   const router = useRouter()
@@ -76,24 +75,12 @@ const EditCourse: React.FC<EditCourseProps> = ({
     })
   }
 
-  const checkFeaturesDisabled = async () => {
-    if (user.courses.length === 0) {
-      setFeaturesEnabled(false)
-      return
-    }
-
-    const isUserInCourse = user.courses.find(
-      (course) => course.course.id === courseId,
-    )
-
-    if (isUserInCourse) {
-      setFeaturesEnabled(true)
-    }
-  }
+  const isUserInCourse = userInfo.courses.find(
+    (course) => course.course.id === courseId,
+  )
 
   useEffect(() => {
     fetchCourseData()
-    checkFeaturesDisabled()
   }, [])
 
   return courseData ? (
@@ -109,7 +96,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
           />
         </Card>
 
-        {featuresEnabled && (
+        {isUserInCourse && (
           <>
             <Card variant="outlined" title="Course Features">
               <CourseFeaturesForm courseData={courseData} />
