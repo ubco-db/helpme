@@ -17,7 +17,13 @@ import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
 export default function CoursesPage(): ReactElement {
   const { userInfo } = useUserInfo()
   const searchParams = useSearchParams()
-  const error = searchParams.get('err')
+  const error = searchParams.get('err') // error shown when accepting course invite
+  // used to highlight newly created course
+  const highlightedCourseId =
+    searchParams.get('highlightedCourse') &&
+    !isNaN(Number(searchParams.get('highlightedCourse')))
+      ? Number(searchParams.get('highlightedCourse'))
+      : undefined
   const organizationSettings = useOrganizationSettings(
     userInfo?.organization?.orgId ?? -1,
   )
@@ -131,6 +137,7 @@ export default function CoursesPage(): ReactElement {
           <CoursesSection
             semesters={semesters}
             enabledTableView={enabledTableView}
+            highlightedCourseId={highlightedCourseId}
           />
         )}
       </div>

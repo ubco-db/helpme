@@ -11,11 +11,13 @@ import CoursesSectionTableView from './CoursesSectionTableView'
 interface CoursesSectionProps {
   semesters: SemesterPartial[]
   enabledTableView: boolean
+  highlightedCourseId?: number
 }
 
 const CoursesSection: React.FC<CoursesSectionProps> = ({
   semesters,
   enabledTableView,
+  highlightedCourseId,
 }) => {
   // For some reason, jdenticon is not working when imported as a module and needs to use require
   // eslint-disable @typescript-eslint/no-var-requires
@@ -55,7 +57,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
         if (semesterA && !semesterB) return -1
         if (semesterB && !semesterA) return 1
 
- /*
+        /*
          Note that this is implicitly true at this point, but to avoid TypeScript errors
          we define the conditional statement:
          */
@@ -68,13 +70,13 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
             ? new Date(semesterA.endDate).getTime()
             : semesterA.startDate
               ? new Date(semesterA.startDate).getTime()
-              : -Infinity;
+              : -Infinity
           const bTime = semesterB.endDate
             ? new Date(semesterB.endDate).getTime()
             : semesterB.startDate
               ? new Date(semesterB.startDate).getTime()
-              : -Infinity;
-          
+              : -Infinity
+
           const diff = bTime - aTime
           if (diff === 0) {
             return a.course.name.localeCompare(b.course.name)
@@ -82,14 +84,17 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
             return diff
           }
         }
-        return a.course.name.localeCompare(b.course.name);
+        return a.course.name.localeCompare(b.course.name)
       })
   }, [userInfo.courses, semesters])
 
   return (
     <div className="mb-8 w-full">
       {enabledTableView ? (
-        <CoursesSectionTableView semesters={semesters} />
+        <CoursesSectionTableView
+          semesters={semesters}
+          highlightedCourseId={highlightedCourseId}
+        />
       ) : (
         <div className="mt-5 flex flex-wrap gap-3">
           {sortedCoursesInCardView.map((course, index) => {
@@ -112,7 +117,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
             return (
               <Card
                 key={course.course.id}
-                className="m-2 w-full shadow md:w-[46%] lg:w-[30.5%] xl:w-[22.5%]"
+                className={`m-2 w-full shadow md:w-[46%] lg:w-[30.5%] xl:w-[22.5%] ${highlightedCourseId === course.course.id ? 'glowy' : ''}`}
                 cover={
                   <div className="relative block h-24 w-full md:h-32">
                     <div

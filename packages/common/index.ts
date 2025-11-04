@@ -1984,6 +1984,11 @@ export type OrganizationProfessor = {
   userId: number
 }
 
+export type CreateCourseResponse = {
+  message: string
+  courseId: number
+}
+
 export class UpdateOrganizationCourseDetailsParams {
   @IsString()
   @IsOptional()

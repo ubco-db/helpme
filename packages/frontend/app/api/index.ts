@@ -118,6 +118,7 @@ import {
   UpsertLMSOrganizationParams,
   UserMailSubscription,
   LMSSyncDocumentsResult,
+  CreateCourseResponse,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -1103,7 +1104,7 @@ class APIClient {
     createCourse: async (
       oid: number,
       body: UpdateOrganizationCourseDetailsParams,
-    ): Promise<void> =>
+    ): Promise<CreateCourseResponse> =>
       this.req(
         'POST',
         `/api/v1/organization/${oid}/create_course`,
