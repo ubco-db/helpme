@@ -13,7 +13,11 @@ import { OAuth2Client } from 'google-auth-library';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { UserModel } from 'profile/user.entity';
 import * as bcrypt from 'bcrypt';
-import { TokenType, UserTokenModel } from 'profile/user-token.entity';
+import {
+  TokenAction,
+  TokenType,
+  UserTokenModel,
+} from 'profile/user-token.entity';
 import { MailService } from 'mail/mail.service';
 import { MailServiceModel } from 'mail/mail-services.entity';
 import { ChatTokenModel } from 'chatbot/chat-token.entity';
@@ -72,21 +76,30 @@ export class AuthService {
       where: {
         email: mail,
       },
+      // not querying for AccountType or have any checks for it since
+      // it's assumed that if they successfully logged in with shibboleth,
+      // they are the account owner.
     });
 
-    if (user && user.password) {
-      throw new BadRequestException(
-        'A non-SSO account already exists with this email. Please login with your email and password instead.',
-      );
-    }
-
-    if (user && user.accountType !== AccountType.SHIBBOLETH) {
-      throw new BadRequestException(
-        'A non-SSO account already exists with this email. Please login with your email and password instead.',
-      );
-    }
-
     if (user) {
+      if (user.emailVerified === false) {
+        // might as well verify their email while we're at it if they need it
+        user.emailVerified = true;
+        await user.save();
+        await UserTokenModel.update(
+          {
+            user: {
+              id: user.id,
+            },
+            token_type: TokenType.EMAIL_VERIFICATION,
+            token_action: TokenAction.ACTION_PENDING,
+          },
+          {
+            token_action: TokenAction.ACTION_COMPLETE,
+          },
+        );
+      }
+
       return user.id;
     } else {
       const newUser = await UserModel.create({
@@ -148,22 +161,31 @@ export class AuthService {
           organizationId: organizationId,
         },
       },
+      // not querying for AccountType or have any checks for it since
+      // it's assumed that if they successfully logged in with google,
+      // they are the account owner.
       relations: ['organizationUser'],
     });
 
-    if (user && user.password) {
-      throw new BadRequestException(
-        'A non-SSO account already exists with this email. Please login with your email and password instead.',
-      );
-    }
-
-    if (user && user.accountType !== AccountType.GOOGLE) {
-      throw new BadRequestException(
-        'A non-google account already exists with this email on HelpMe. Please try logging in with your email and password instead (or another SSO provider)',
-      );
-    }
-
     if (user) {
+      if (user.emailVerified === false) {
+        // might as well verify their email while we're at it if they need it
+        user.emailVerified = true;
+        await user.save();
+        await UserTokenModel.update(
+          {
+            user: {
+              id: user.id,
+            },
+            token_type: TokenType.EMAIL_VERIFICATION,
+            token_action: TokenAction.ACTION_PENDING,
+          },
+          {
+            token_action: TokenAction.ACTION_COMPLETE,
+          },
+        );
+      }
+
       return user.id;
     } else {
       const newUser = await UserModel.create({
