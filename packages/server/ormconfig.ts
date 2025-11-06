@@ -52,6 +52,7 @@ import { ChatbotProviderModel } from './src/chatbot/chatbot-infrastructure-model
 import { CourseChatbotSettingsModel } from './src/chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
 import { OrganizationChatbotSettingsModel } from './src/chatbot/chatbot-infrastructure-models/organization-chatbot-settings.entity';
 import { LLMTypeModel } from './src/chatbot/chatbot-infrastructure-models/llm-type.entity';
+import { ProfInviteModel } from './src/course/prof-invite.entity';
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
   config();
@@ -131,6 +132,7 @@ const typeorm: DataSourceOptions = {
     CourseChatbotSettingsModel,
     OrganizationChatbotSettingsModel,
     LLMTypeModel,
+    ProfInviteModel,
   ],
   logging:
     process.env.NODE_ENV !== 'production'
