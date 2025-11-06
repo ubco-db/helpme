@@ -28,6 +28,7 @@ import { UnreadAsyncQuestionModel } from '../asyncQuestion/unread-async-question
 import { AsyncQuestionCommentModel } from '../asyncQuestion/asyncQuestionComment.entity';
 import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
 import { QuestionModel } from '../question/question.entity';
+import { ProfInviteModel } from 'course/prof-invite.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {
@@ -165,4 +166,8 @@ export class UserModel extends BaseEntity {
   @OneToMany((type) => AsyncQuestionCommentModel, (aqc) => aqc.creator)
   @Exclude()
   asyncQuestionComments: AsyncQuestionCommentModel[];
+
+  @OneToMany((type) => ProfInviteModel, (profInvite) => profInvite.adminUser)
+  @Exclude()
+  createdProfInvites: ProfInviteModel[];
 }

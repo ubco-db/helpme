@@ -7,6 +7,7 @@ import {
   GetCourseUserInfoResponse,
   MailServiceType,
   OrganizationRole,
+  QUERY_PARAMS,
   QueueConfig,
   QueueTypes,
   Role,
@@ -43,6 +44,7 @@ import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueModel } from 'queue/queue.entity';
 import { SuperCourseModel } from './super-course.entity';
 import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
+import { ProfInviteModel } from './prof-invite.entity';
 
 @Injectable()
 export class CourseService {
@@ -357,7 +359,7 @@ export class CourseService {
       }
     } else if (!queueInvite) {
       // if the queueInvite doesn't exist
-      return '/courses?err=inviteNotFound';
+      return `/courses?err=${QUERY_PARAMS.queueInvite.error.inviteNotFound}`;
     } else if (queueInvite.willInviteToCourse && courseInviteCode) {
       // get course
       const course = await CourseModel.findOne({
@@ -366,10 +368,10 @@ export class CourseService {
         },
       });
       if (!course) {
-        return '/courses?err=courseNotFound';
+        return `/courses?err=${QUERY_PARAMS.queueInvite.error.courseNotFound}`;
       }
       if (course.courseInviteCode !== courseInviteCode) {
-        return '/courses?err=badCourseInviteCode';
+        return `/courses?err=${QUERY_PARAMS.queueInvite.error.badCourseInviteCode}`;
       }
       await this.addStudentToCourse(course, user).catch((err) => {
         throw new BadRequestException(err.message);
@@ -381,7 +383,7 @@ export class CourseService {
         return '/courses';
       }
     } else {
-      return `/courses?err=notInCourse`;
+      return `/courses?err=${QUERY_PARAMS.queueInvite.error.notInCourse}`;
     }
   }
 
@@ -905,5 +907,106 @@ export class CourseService {
     }
 
     return createdQueue;
+  }
+
+  async createProfInvite(
+    courseId: number,
+    maxUses: number,
+    adminUserId: number,
+    expiresAt?: Date,
+  ): Promise<ProfInviteModel> {
+    return await ProfInviteModel.create({
+      courseId,
+      maxUses,
+      adminUserId,
+      // if no expiresAt is provided, set it to 7 days from now
+      expiresAt: expiresAt ?? new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+    }).save();
+  }
+
+  async acceptProfInvite(
+    profInviteId: number,
+    userId: number,
+  ): Promise<string> {
+    // must return a string since we're using this in a redirect URL
+    // extra logic todo:
+    // - send email to admin
+    const profInvite = await ProfInviteModel.findOne({
+      where: { id: profInviteId },
+    });
+    if (!profInvite) {
+      return `/courses?err=${QUERY_PARAMS.profInvite.error.notFound}&${QUERY_PARAMS.profInvite.error.profInviteId}=${profInviteId}`;
+    }
+
+    // check if already in course (if so, just redirect and don't consume invite)
+    // Note that this check happens before the invite expiry check (Meaning that as long as you are in the course, you can always use this link to navigate to the course page. Since I imagine some profs will keep using the same link to get to their course)
+    const user = await UserModel.findOne({
+      where: { id: userId },
+      relations: {
+        courses: true,
+        organizationUser: true,
+      },
+    });
+    if (!user) {
+      return `/courses?err=${QUERY_PARAMS.profInvite.error.userNotFound}`;
+    }
+    const existingUserCourse = user.courses.find(
+      (uc) => uc.courseId === profInvite.courseId,
+    );
+    if (existingUserCourse) {
+      if (existingUserCourse.role === Role.PROFESSOR) {
+        return `/course/${profInvite.courseId}`; // no notice if you're just a prof already in the course
+      } else {
+        // Weird case: The user is already in the course as a student or TA.
+        // In this case, the admin messed up and should promote them manually.
+
+        // TODO: send email
+        return `/course/${profInvite.courseId}`;
+      }
+    }
+
+    if (profInvite.expiresAt < new Date()) {
+      return `/courses?err=${QUERY_PARAMS.profInvite.error.expired}&${QUERY_PARAMS.profInvite.error.expiresAt}=${profInvite.expiresAt.toLocaleDateString()}`;
+    }
+    if (profInvite.maxUses <= profInvite.usesUsed) {
+      return `/courses?err=${QUERY_PARAMS.profInvite.error.maxUsesReached}&${QUERY_PARAMS.profInvite.error.maxUses}=${profInvite.maxUses}`;
+    }
+    // Do this check AFTER other checks since it's assumed that admins only click on a prof invite link to check if it's working
+    if (user.organizationUser.role === OrganizationRole.ADMIN) {
+      if (existingUserCourse) {
+        return `/course/${profInvite.courseId}?notice=${QUERY_PARAMS.profInvite.notice.adminAlreadyInCourse}`;
+      } else {
+        await UserCourseModel.create({
+          userId,
+          courseId: profInvite.courseId,
+          role: Role.PROFESSOR,
+        }).save();
+
+        // TODO: send email
+        return `/course/${profInvite.courseId}?notice=${QUERY_PARAMS.profInvite.notice.adminAcceptedInviteNotConsumed}`;
+      }
+    }
+
+    await UserCourseModel.create({
+      userId,
+      courseId: profInvite.courseId,
+      role: Role.PROFESSOR,
+    }).save();
+    if (
+      profInvite.makeOrgProf &&
+      user.organizationUser.role === OrganizationRole.MEMBER
+    ) {
+      await OrganizationUserModel.update(
+        {
+          userId: userId,
+          organizationId: user.organizationUser.organizationId,
+        },
+        { role: OrganizationRole.PROFESSOR },
+      );
+      // TODO: send email
+    } else {
+      // TODO: send email
+    }
+    return `/course/${profInvite.courseId}?notice=${QUERY_PARAMS.profInvite.notice.inviteAccepted}`;
   }
 }

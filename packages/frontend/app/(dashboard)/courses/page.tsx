@@ -10,7 +10,7 @@ import { useSearchParams } from 'next/navigation'
 import { AppstoreOutlined, BarsOutlined } from '@ant-design/icons'
 import ArchivedCoursesSection from '../components/ArchivedCoursesSection'
 import { API } from '@/app/api'
-import { SemesterPartial } from '@koh/common'
+import { QUERY_PARAMS, SemesterPartial } from '@koh/common'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
 
@@ -75,18 +75,53 @@ export default function CoursesPage(): ReactElement {
         <Alert
           description
           className="my-2"
-          message={
-            'Error Joining Queue: ' +
-            (error === 'notInCourse'
-              ? 'You must be a member of that course to join that queue'
-              : error === 'inviteNotFound'
-                ? 'That queue invite has been deleted or does not exist. If you believe this is an error, please contact your professor.'
-                : error === 'courseNotFound'
-                  ? 'That course has been deleted or does not exist'
-                  : error === 'badCourseInviteCode'
-                    ? 'Unable to enroll in course as the course does not have a course invite code set. If you believe this is an error, please contact your professor.'
-                    : `An unexpected error occurred: ${error}`)
-          }
+          message={(() => {
+            if (error?.startsWith('prof_invite_')) {
+              let profInviteMsg = ''
+              switch (error) {
+                case QUERY_PARAMS.profInvite.error.expired:
+                  profInviteMsg = `That prof invite has expired at ${searchParams.get(QUERY_PARAMS.profInvite.error.expiresAt)}`
+                  break
+                case QUERY_PARAMS.profInvite.error.maxUsesReached:
+                  profInviteMsg = `That prof invite has reached the maximum number of uses (${searchParams.get(QUERY_PARAMS.profInvite.error.maxUses)})`
+                  break
+                case QUERY_PARAMS.profInvite.error.notFound:
+                  profInviteMsg = `That prof invite of ID ${searchParams.get(QUERY_PARAMS.profInvite.error.profInviteId)} has been deleted or does not exist. If you believe this is an error, please contact an admin.`
+                  break
+                case QUERY_PARAMS.profInvite.error.userNotFound:
+                  profInviteMsg = `User does not exist. Please contact an admin.`
+                  break
+                default:
+                  profInviteMsg = `An unexpected error occurred: ${error}`
+              }
+              return 'Error Accepting Professor Invite: ' + profInviteMsg
+            } else if (error?.startsWith('queue_invite_')) {
+              let queueInviteMsg = ''
+              switch (error) {
+                case QUERY_PARAMS.queueInvite.error.notInCourse:
+                  queueInviteMsg =
+                    'You must be a member of that course to join that queue'
+                  break
+                case QUERY_PARAMS.queueInvite.error.inviteNotFound:
+                  queueInviteMsg =
+                    'That queue invite has been deleted or does not exist. If you believe this is an error, please contact your professor.'
+                  break
+                case QUERY_PARAMS.queueInvite.error.courseNotFound:
+                  queueInviteMsg =
+                    'That course has been deleted or does not exist'
+                  break
+                case QUERY_PARAMS.queueInvite.error.badCourseInviteCode:
+                  queueInviteMsg =
+                    'Unable to enroll in course as the course does not have a course invite code set. If you believe this is an error, please contact your professor.'
+                  break
+                default:
+                  queueInviteMsg = `An unexpected error occurred: ${error}`
+              }
+              return 'Error Joining Queue: ' + queueInviteMsg
+            } else {
+              return `An unexpected error occurred: ${error}`
+            }
+          })()}
           type="warning"
           showIcon
           closable

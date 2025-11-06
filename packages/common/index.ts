@@ -3865,3 +3865,38 @@ export const ERROR_MESSAGES = {
       `Members with role ${role} are not allowed to delete semesters`,
   },
 }
+
+/* Common Query Params
+  Does two things: 
+  - Allows us to easily modify the query params for error messages in 1 spot
+  - More importantly, it connects the backend with the frontend to make it easier to find where a particular query param is coming from
+  */
+export const QUERY_PARAMS = {
+  profInvite: {
+    // note that some uses of these query params will just check for .startsWith (e.g. .startsWith('prof_invite_'))
+    error: {
+      expired: 'prof_invite_expired',
+      expiresAt: 'expired_at',
+      maxUsesReached: 'prof_invite_max_uses_reached',
+      maxUses: 'max_uses',
+      notFound: 'prof_invite_not_found',
+      profInviteId: 'pinvite_id',
+      userNotFound: 'prof_invite_user_not_found',
+      // It's tempting to want to re-organize this better, but it can make the urls more gross to read (e.g. /courses?error=${QUERY_PARAMS.profInviteError.notFound.queryParam}&${QUERY_PARAMS.profInviteError.notFound.extraParams.profInviteId}=${profInviteId})
+    },
+    notice: {
+      adminAlreadyInCourse: 'pi_admin_already_in_course',
+      adminAcceptedInviteNotConsumed: 'pi_admin_accepted_invite_not_consumed',
+      inviteAccepted: 'pi_invite_accepted',
+    },
+  },
+  queueInvite: {
+    error: {
+      notInCourse: 'queue_invite_not_in_course',
+      inviteNotFound: 'queue_invite_not_found',
+      courseNotFound: 'queue_invite_course_not_found',
+      badCourseInviteCode: 'queue_invite_bad_course_invite_code',
+    },
+  },
+  // TODO: add the /login redirect query params here. Avoided doing so right now since that would require middleware.ts to import this file and iirc there is errors when you try to do that
+}
