@@ -7,6 +7,7 @@ import {
   GetCourseUserInfoResponse,
   MailServiceType,
   OrganizationRole,
+  OrgRoleChangeReason,
   QUERY_PARAMS,
   QueueConfig,
   QueueTypes,
@@ -45,6 +46,8 @@ import { QueueModel } from 'queue/queue.entity';
 import { SuperCourseModel } from './super-course.entity';
 import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
 import { ProfInviteModel } from './prof-invite.entity';
+import { OrganizationService } from 'organization/organization.service';
+import { randomBytes } from 'node:crypto';
 
 @Injectable()
 export class CourseService {
@@ -52,6 +55,7 @@ export class CourseService {
     private readonly mailService: MailService,
     private readonly chatbotApiService: ChatbotApiService,
     private readonly dataSource: DataSource,
+    private readonly organizationService: OrganizationService,
   ) {}
 
   async getTACheckInCheckOutTimes(
@@ -334,7 +338,7 @@ export class CourseService {
     // check if the queueInvite exists and if it will invite to course
     const queueInvite = await QueueInviteModel.findOne({
       where: {
-        queueId: parseInt(queueId),
+        queueId: Number(queueId),
       },
     });
     // get the user to see if they are in the course
@@ -364,7 +368,7 @@ export class CourseService {
       // get course
       const course = await CourseModel.findOne({
         where: {
-          id: parseInt(courseId),
+          id: Number(courseId),
         },
       });
       if (!course) {
@@ -919,20 +923,26 @@ export class CourseService {
       courseId,
       maxUses,
       adminUserId,
+      code: randomBytes(6).toString('hex'), // 12 character long string. Could go longer but the invite url will look more gross
       // if no expiresAt is provided, set it to 7 days from now
       expiresAt: expiresAt ?? new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
     }).save();
   }
 
   async acceptProfInvite(
-    profInviteId: number,
+    profInviteCookie: string,
     userId: number,
   ): Promise<string> {
     // must return a string since we're using this in a redirect URL
-    // extra logic todo:
-    // - send email to admin
+    const decodedCookie = decodeURIComponent(profInviteCookie);
+    const splitCookie = decodedCookie.split(',');
+    const profInviteId = splitCookie[0];
+    // const orgId = splitCookie[1];
+    // const courseId = splitCookie[2];
+    const profInviteCode = splitCookie[3];
+
     const profInvite = await ProfInviteModel.findOne({
-      where: { id: profInviteId },
+      where: { id: Number(profInviteId) },
     });
     if (!profInvite) {
       return `/courses?err=${QUERY_PARAMS.profInvite.error.notFound}&${QUERY_PARAMS.profInvite.error.profInviteId}=${profInviteId}`;
@@ -960,7 +970,7 @@ export class CourseService {
         // Weird case: The user is already in the course as a student or TA.
         // In this case, the admin messed up and should promote them manually.
 
-        // TODO: send email
+        // TODO: send email that says this
         return `/course/${profInvite.courseId}`;
       }
     }
@@ -968,8 +978,11 @@ export class CourseService {
     if (profInvite.expiresAt < new Date()) {
       return `/courses?err=${QUERY_PARAMS.profInvite.error.expired}&${QUERY_PARAMS.profInvite.error.expiresAt}=${profInvite.expiresAt.toLocaleDateString()}`;
     }
-    if (profInvite.maxUses <= profInvite.usesUsed) {
+    if (profInvite.usesUsed >= profInvite.maxUses) {
       return `/courses?err=${QUERY_PARAMS.profInvite.error.maxUsesReached}&${QUERY_PARAMS.profInvite.error.maxUses}=${profInvite.maxUses}`;
+    }
+    if (profInvite.code !== profInviteCode) {
+      return `/courses?err=${QUERY_PARAMS.profInvite.error.badCode}`;
     }
     // Do this check AFTER other checks since it's assumed that admins only click on a prof invite link to check if it's working
     if (user.organizationUser.role === OrganizationRole.ADMIN) {
@@ -987,11 +1000,14 @@ export class CourseService {
       }
     }
 
+    // add user to the course as a professor
     await UserCourseModel.create({
       userId,
       courseId: profInvite.courseId,
       role: Role.PROFESSOR,
     }).save();
+    profInvite.usesUsed++;
+    await profInvite.save();
     if (
       profInvite.makeOrgProf &&
       user.organizationUser.role === OrganizationRole.MEMBER
@@ -1002,6 +1018,14 @@ export class CourseService {
           organizationId: user.organizationUser.organizationId,
         },
         { role: OrganizationRole.PROFESSOR },
+      );
+      await this.organizationService.addRoleHistory(
+        user.organizationUser.organizationId,
+        OrganizationRole.MEMBER,
+        OrganizationRole.PROFESSOR,
+        profInvite.adminUserId,
+        userId,
+        OrgRoleChangeReason.acceptedProfInvite,
       );
       // TODO: send email
     } else {

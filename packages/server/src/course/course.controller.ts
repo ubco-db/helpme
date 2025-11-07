@@ -1,4 +1,5 @@
 import {
+  AcceptProfInviteParams,
   CourseCloneAttributes,
   CourseSettingsRequestBody,
   CourseSettingsResponse,
@@ -69,6 +70,7 @@ import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { CourseRoles } from 'decorators/course-roles.decorator';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { OrganizationService } from '../organization/organization.service';
+import { ProfInviteModel } from './prof-invite.entity';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -1091,5 +1093,41 @@ export class CourseController {
     );
 
     return newUserCourse;
+  }
+
+  // Allow logged-in users to accept a prof invite
+  @Get('accept_prof_invite/:piid')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  async acceptProfInvite(
+    @Param('piid', ParseIntPipe) piid: number,
+    @Body() body: AcceptProfInviteParams,
+    @UserId() userId: number,
+    @Res() res: Response,
+  ): Promise<void> {
+    const url = await this.courseService.acceptProfInvite(body.code, userId);
+    res.status(HttpStatus.FOUND).redirect(url);
+    return;
+  }
+
+  // just returns the course id and org id for given prof invite
+  @Get('prof_invite/:piid')
+  async getProfInviteDetails(
+    @Param('piid', ParseIntPipe) piid: number,
+  ): Promise<{ courseId: number; orgId: number }> {
+    const profInvite = await ProfInviteModel.findOne({
+      where: { id: piid },
+      relations: {
+        course: {
+          organizationCourse: true,
+        },
+      },
+    });
+    if (!profInvite) {
+      throw new NotFoundException('Prof invite not found');
+    }
+    return {
+      courseId: profInvite.courseId,
+      orgId: profInvite.course.organizationCourse.organizationId,
+    };
   }
 }

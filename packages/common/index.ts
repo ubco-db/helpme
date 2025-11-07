@@ -1031,6 +1031,16 @@ export class QueuePartial {
   courseId!: number
 }
 
+export class AcceptProfInviteParams {
+  @IsString()
+  code!: string
+}
+
+export type GetProfInviteDetailsResponse = {
+  courseId: number
+  orgId: number
+}
+
 /**
  * Used when editing QueueInvites
  */
@@ -2763,6 +2773,7 @@ export enum OrgRoleChangeReason {
   manualModification = 'manualModification',
   joinedOrganizationMember = 'joinedOrganizationMember',
   joinedOrganizationProfessor = 'joinedOrganizationProfessor',
+  acceptedProfInvite = 'acceptedProfInvite',
   unknown = 'unknown',
 }
 
@@ -2770,6 +2781,7 @@ export enum OrgRoleChangeReasonMap {
   manualModification = 'Role was manually modified by an organization member with sufficient permissions.',
   joinedOrganizationMember = 'User joined the organization and gained the member role.',
   joinedOrganizationProfessor = 'User joined the organization and gained the professor role.',
+  acceptedProfInvite = 'User accepted a professor invite with makeOrgProf flag set to true given by the given admin user.',
   unknown = '',
 }
 
@@ -3882,7 +3894,9 @@ export const QUERY_PARAMS = {
       notFound: 'prof_invite_not_found',
       profInviteId: 'pinvite_id',
       userNotFound: 'prof_invite_user_not_found',
+      badCode: 'prof_invite_bad_code',
       // It's tempting to want to re-organize this better, but it can make the urls more gross to read (e.g. /courses?error=${QUERY_PARAMS.profInviteError.notFound.queryParam}&${QUERY_PARAMS.profInviteError.notFound.extraParams.profInviteId}=${profInviteId})
+      // I also considered putting the full error messages here, but they're only used in one place and I think would do more harm than good for maintainability
     },
     notice: {
       adminAlreadyInCourse: 'pi_admin_already_in_course',

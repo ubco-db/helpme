@@ -54,3 +54,27 @@ export async function setQueueInviteCookie(
     console.error('Failed to set queue invite cookie: ' + error)
   }
 }
+
+export async function setProfInviteCookie(
+  profInviteId: number,
+  orgId: number,
+  courseId: number,
+  profInviteCode: string,
+): Promise<void> {
+  try {
+    const cookieStore = await cookies()
+    cookieStore.set(
+      'profInviteInfo',
+      `${profInviteId},${orgId},${courseId},${profInviteCode}`,
+      {
+        httpOnly: true,
+        secure: true,
+        maxAge: 3600, // 1 hour
+        path: '/',
+        sameSite: 'none',
+      },
+    )
+  } catch (error) {
+    console.error('Failed to set prof invite cookie: ' + error)
+  }
+}

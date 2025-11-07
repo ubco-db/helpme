@@ -80,16 +80,19 @@ export default function CoursesPage(): ReactElement {
               let profInviteMsg = ''
               switch (error) {
                 case QUERY_PARAMS.profInvite.error.expired:
-                  profInviteMsg = `That prof invite has expired at ${searchParams.get(QUERY_PARAMS.profInvite.error.expiresAt)}`
+                  profInviteMsg = `That professor invite has expired at ${searchParams.get(QUERY_PARAMS.profInvite.error.expiresAt)}`
                   break
                 case QUERY_PARAMS.profInvite.error.maxUsesReached:
-                  profInviteMsg = `That prof invite has reached the maximum number of uses (${searchParams.get(QUERY_PARAMS.profInvite.error.maxUses)})`
+                  profInviteMsg = `That professor invite has reached the maximum number of uses (${searchParams.get(QUERY_PARAMS.profInvite.error.maxUses)})`
                   break
                 case QUERY_PARAMS.profInvite.error.notFound:
-                  profInviteMsg = `That prof invite of ID ${searchParams.get(QUERY_PARAMS.profInvite.error.profInviteId)} has been deleted or does not exist. If you believe this is an error, please contact an admin.`
+                  profInviteMsg = `That professor invite of ID ${searchParams.get(QUERY_PARAMS.profInvite.error.profInviteId)} has been deleted or does not exist. If you believe this is an error, please contact an admin.`
                   break
                 case QUERY_PARAMS.profInvite.error.userNotFound:
                   profInviteMsg = `User does not exist. Please contact an admin.`
+                  break
+                case QUERY_PARAMS.profInvite.error.badCode:
+                  profInviteMsg = `The professor invite code in the link is incorrect. Please ensure the invite link is fully intact. Otherwise, please contact an admin.`
                   break
                 default:
                   profInviteMsg = `An unexpected error occurred: ${error}`

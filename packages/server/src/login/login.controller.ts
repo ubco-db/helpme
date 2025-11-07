@@ -161,8 +161,16 @@ export class LoginController {
     let redirectUrl: string;
     const cookie = getCookie(req, '__SECURE_REDIRECT');
     const queueInviteCookie = getCookie(req, 'queueInviteInfo');
+    const profInviteCookie = getCookie(req, 'profInviteInfo');
 
-    if (queueInviteCookie) {
+    if (profInviteCookie) {
+      await this.courseService
+        .acceptProfInvite(profInviteCookie, userId)
+        .then((url) => {
+          redirectUrl = url;
+          res.clearCookie('profInviteInfo');
+        });
+    } else if (queueInviteCookie) {
       await this.courseService
         .getQueueInviteRedirectURLandInviteToCourse(queueInviteCookie, userId)
         .then((url) => {

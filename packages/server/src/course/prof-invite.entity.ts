@@ -44,6 +44,9 @@ export class ProfInviteModel extends BaseEntity {
   @Column()
   expiresAt: Date;
 
+  @Column('text')
+  code: string;
+
   @Column('boolean', { default: true })
   makeOrgProf: boolean;
 

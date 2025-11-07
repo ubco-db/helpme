@@ -119,6 +119,8 @@ import {
   UserMailSubscription,
   LMSSyncDocumentsResult,
   CreateCourseResponse,
+  AcceptProfInviteParams,
+  GetProfInviteDetailsResponse,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -665,6 +667,20 @@ class APIClient {
     toggleFavourited: async (courseId: number) => {
       return this.req('PATCH', `/api/v1/courses/${courseId}/toggle_favourited`)
     },
+    acceptProfInvite: async (
+      piid: number,
+      body: AcceptProfInviteParams,
+    ): Promise<void> => // performs redirect
+      this.req(
+        'GET',
+        `/api/v1/courses/accept_prof_invite/${piid}`,
+        undefined,
+        body,
+      ),
+    getProfInviteDetails: async (
+      piid: number,
+    ): Promise<GetProfInviteDetailsResponse> =>
+      this.req('GET', `/api/v1/courses/org_id_for_prof_invite/${piid}`),
   }
   emailNotification = {
     get: async (): Promise<MailServiceWithSubscription[]> =>

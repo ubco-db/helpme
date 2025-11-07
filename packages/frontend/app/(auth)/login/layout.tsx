@@ -13,7 +13,21 @@ export default async function Layout({
 
   const cookieStore = await cookies()
   const queueInviteCookieString = cookieStore.get('queueInviteInfo')
-  if (queueInviteCookieString) {
+  const profInviteCookieString = cookieStore.get('profInviteInfo')
+  if (profInviteCookieString) {
+    const decodedCookie = decodeURIComponent(profInviteCookieString.value)
+    const cookieParts = decodedCookie.split(',')
+    const profInviteId = cookieParts[0]
+    const orgId = cookieParts[1]
+    const courseId = cookieParts[2]
+    //const profInviteCode = cookieParts[3]
+    if (Number(profInviteId)) {
+      invitedOrgId = Number(orgId)
+    }
+    if (Number(courseId)) {
+      invitedCourseId = Number(courseId)
+    }
+  } else if (queueInviteCookieString) {
     const decodedCookie = decodeURIComponent(queueInviteCookieString.value)
     const cookieParts = decodedCookie.split(',')
     const courseId = cookieParts[0]
