@@ -3,11 +3,13 @@ import {
   CourseCloneAttributes,
   CourseSettingsRequestBody,
   CourseSettingsResponse,
+  CreateProfInviteParams,
   EditCourseInfoParams,
   ERROR_MESSAGES,
   GetCourseResponse,
   GetCourseUserInfoResponse,
   GetLimitedCourseResponse,
+  GetProfInviteResponse,
   Heatmap,
   OrganizationRole,
   QuestionStatusKeys,
@@ -71,6 +73,7 @@ import { CourseRoles } from 'decorators/course-roles.decorator';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { OrganizationService } from '../organization/organization.service';
 import { ProfInviteModel } from './prof-invite.entity';
+import { OrganizationRolesGuard } from 'guards/organization-roles.guard';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -1095,6 +1098,90 @@ export class CourseController {
     return newUserCourse;
   }
 
+  @Get('all_prof_invites/:orgId')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrganizationRolesGuard)
+  @Roles(OrganizationRole.ADMIN)
+  async getAllProfInvites(
+    @Param('orgId', ParseIntPipe) orgId: number,
+    @Query('courseId', ParseIntPipe) courseId?: number,
+  ): Promise<GetProfInviteResponse[]> {
+    const profInvites = await ProfInviteModel.find({
+      where: { orgId, courseId },
+      relations: { course: true, adminUser: true },
+      select: {
+        course: {
+          id: true,
+          name: true,
+        },
+        adminUser: {
+          id: true,
+          name: true,
+          email: true,
+        },
+        id: true,
+        maxUses: true,
+        usesUsed: true,
+        createdAt: true,
+        expiresAt: true,
+        code: true,
+        makeOrgProf: true,
+      },
+    });
+    return profInvites;
+  }
+
+  @Post('prof_invite/:orgId')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrganizationRolesGuard)
+  @Roles(OrganizationRole.ADMIN)
+  async createProfInvite(
+    @Param('orgId', ParseIntPipe) orgId: number,
+    @UserId() userId: number,
+    @Body() body: CreateProfInviteParams,
+  ): Promise<GetProfInviteResponse> {
+    const newProfInvite = await this.courseService.createProfInvite(
+      orgId,
+      body.courseId,
+      userId,
+      body.maxUses,
+      body.expiresAt,
+      body.makeOrgProf,
+    );
+    const profInviteResponse = await ProfInviteModel.findOne({
+      where: { id: newProfInvite.id },
+      relations: { course: true, adminUser: true },
+      select: {
+        course: {
+          id: true,
+          name: true,
+        },
+        adminUser: {
+          id: true,
+          name: true,
+          email: true,
+        },
+        id: true,
+        maxUses: true,
+        usesUsed: true,
+        createdAt: true,
+        expiresAt: true,
+        code: true,
+        makeOrgProf: true,
+      },
+    });
+    return profInviteResponse;
+  }
+
+  // assumed that this is mostly used to correct accidentally created invites rather than have all invites deleted
+  @Delete('prof_invite/:piid')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrganizationRolesGuard)
+  @Roles(OrganizationRole.ADMIN)
+  async deleteProfInvite(
+    @Param('piid', ParseIntPipe) piid: number,
+  ): Promise<void> {
+    await ProfInviteModel.delete({ id: piid });
+    return;
+  }
+
   // Allow logged-in users to accept a prof invite
   @Get('accept_prof_invite/:piid')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -1110,7 +1197,7 @@ export class CourseController {
   }
 
   // just returns the course id and org id for given prof invite
-  @Get('prof_invite/:piid')
+  @Get('prof_invite_details/:piid')
   async getProfInviteDetails(
     @Param('piid', ParseIntPipe) piid: number,
   ): Promise<{ courseId: number; orgId: number }> {

@@ -914,18 +914,22 @@ export class CourseService {
   }
 
   async createProfInvite(
+    orgId: number,
     courseId: number,
-    maxUses: number,
     adminUserId: number,
+    maxUses?: number,
     expiresAt?: Date,
+    makeOrgProf?: boolean,
   ): Promise<ProfInviteModel> {
     return await ProfInviteModel.create({
+      orgId,
       courseId,
-      maxUses,
       adminUserId,
       code: randomBytes(6).toString('hex'), // 12 character long string. Could go longer but the invite url will look more gross
       // if no expiresAt is provided, set it to 7 days from now
       expiresAt: expiresAt ?? new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+      makeOrgProf, // defaults to true
+      maxUses, // defaults to 1
     }).save();
   }
 

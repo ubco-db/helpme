@@ -12,6 +12,7 @@ import {
 import { CourseModel } from './course.entity';
 import { UserModel } from 'profile/user.entity';
 import { Exclude } from 'class-transformer';
+import { OrganizationModel } from 'organization/organization.entity';
 
 /**
  * These are temporary invite links that will automatically promote the user to professor when accepted
@@ -22,13 +23,26 @@ export class ProfInviteModel extends BaseEntity {
   id: number;
 
   @Column()
+  orgId: number;
+
+  @ManyToOne(
+    (type) => OrganizationModel,
+    (organization) => organization.profInvites,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
+  @JoinColumn({ name: 'orgId' })
+  @Exclude()
+  organization: OrganizationModel;
+
+  @Column()
   courseId: number;
 
   @ManyToOne((type) => CourseModel, (course) => course.profInvites, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'courseId' })
-  @Exclude()
   course: CourseModel;
 
   @Column({ default: 1 })

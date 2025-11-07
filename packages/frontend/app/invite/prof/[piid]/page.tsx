@@ -18,7 +18,7 @@ export default function ProfInvitePage(
   props: ProfInvitePageProps,
 ): ReactElement {
   const searchParams = useSearchParams()
-  const profInviteCode = searchParams.get('code') || ''
+  const profInviteCode = searchParams.get('c') || ''
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const router = useRouter()
 

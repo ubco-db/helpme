@@ -121,6 +121,8 @@ import {
   CreateCourseResponse,
   AcceptProfInviteParams,
   GetProfInviteDetailsResponse,
+  CreateProfInviteParams,
+  GetProfInviteResponse,
 } from '@koh/common'
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -680,7 +682,30 @@ class APIClient {
     getProfInviteDetails: async (
       piid: number,
     ): Promise<GetProfInviteDetailsResponse> =>
-      this.req('GET', `/api/v1/courses/org_id_for_prof_invite/${piid}`),
+      this.req('GET', `/api/v1/courses/prof_invite_details/${piid}`),
+    getAllProfInvites: async (
+      orgId: number,
+      courseId?: number,
+    ): Promise<GetProfInviteResponse[]> =>
+      this.req(
+        'GET',
+        `/api/v1/courses/all_prof_invites/${orgId}`,
+        undefined,
+        undefined,
+        { courseId },
+      ),
+    createProfInvite: async (
+      orgId: number,
+      body: CreateProfInviteParams,
+    ): Promise<GetProfInviteResponse> =>
+      this.req(
+        'POST',
+        `/api/v1/courses/create_prof_invite/${orgId}`,
+        undefined,
+        body,
+      ),
+    deleteProfInvite: async (piid: number): Promise<void> =>
+      this.req('DELETE', `/api/v1/courses/delete_prof_invite/${piid}`),
   }
   emailNotification = {
     get: async (): Promise<MailServiceWithSubscription[]> =>

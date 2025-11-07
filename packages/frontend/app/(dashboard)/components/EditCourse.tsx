@@ -4,6 +4,7 @@ import { API } from '@/app/api'
 import {
   GetOrganizationResponse,
   OrganizationCourseResponse,
+  OrganizationRole,
   Role,
   User,
 } from '@koh/common'
@@ -20,6 +21,7 @@ import { QuestionCircleOutlined } from '@ant-design/icons'
 import CourseCloneFormModal from './CourseCloneFormModal'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
+import ProfInvites from './ProfInvites'
 
 type EditCourseProps = {
   courseId: number
@@ -123,6 +125,25 @@ const EditCourse: React.FC<EditCourseProps> = ({
               />
             </Card>
           </>
+        )}
+        {user.organization?.organizationRole === OrganizationRole.ADMIN && (
+          <Card
+            variant="outlined"
+            title={
+              <div className="flex items-center justify-start gap-3">
+                <div>Professor Invites (Admin Only)</div>
+                <div className="text-gray-500">
+                  <Tooltip
+                    title={`For creating temporary invite links that will automatically promote the user to professor when accepted`}
+                  >
+                    Help <QuestionCircleOutlined />
+                  </Tooltip>
+                </div>
+              </div>
+            }
+          >
+            <ProfInvites courseData={courseData} />
+          </Card>
         )}
 
         {checkCourseCreatePermissions(userInfo, organizationSettings) && (
