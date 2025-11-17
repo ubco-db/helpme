@@ -23,7 +23,7 @@ export default function LtiLandingPage(): ReactElement {
   function checkForceClose() {
     if (
       window &&
-      window.self == window.top &&
+      window.self === window.top &&
       searchParams.get('force_close')
     ) {
       window.self.close()
