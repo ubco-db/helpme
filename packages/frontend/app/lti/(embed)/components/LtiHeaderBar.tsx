@@ -261,10 +261,6 @@ const NavBar = ({
                 <ExpandOutlined className={'mr-2'} /> Open HelpMe
               </Link>
             </NavigationMenuItem>
-            <NavigationMenuItem className="md:hidden">
-              <SelfAvatar size={40} className="mr-2" />
-              {userInfo?.firstName}
-            </NavigationMenuItem>
             <NavigationMenuItem className="mb-2 md:hidden">
               <Popconfirm
                 title="Are you sure you want to log out?"
