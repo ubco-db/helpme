@@ -25,7 +25,7 @@ import { UnreadAsyncQuestionModel } from '../asyncQuestion/unread-async-question
 import { ChatbotDocPdfModel } from '../chatbot/chatbot-doc-pdf.entity';
 import { SuperCourseModel } from './super-course.entity';
 import { CourseChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
-import { ProfInviteModel } from './prof-invite.entity';
+import { ProfInviteModel } from './prof-invite/prof-invite.entity';
 
 @Entity('course_model')
 export class CourseModel extends BaseEntity {

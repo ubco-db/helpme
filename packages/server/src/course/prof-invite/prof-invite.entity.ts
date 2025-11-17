@@ -9,7 +9,7 @@ import {
   PrimaryColumn,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { CourseModel } from './course.entity';
+import { CourseModel } from '../course.entity';
 import { UserModel } from 'profile/user.entity';
 import { Exclude } from 'class-transformer';
 import { OrganizationModel } from 'organization/organization.entity';
@@ -52,10 +52,10 @@ export class ProfInviteModel extends BaseEntity {
   @Column({ default: 0 })
   usesUsed: number;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 
-  @Column()
+  @Column({ type: 'timestamp with time zone' })
   expiresAt: Date;
 
   @Column('text')

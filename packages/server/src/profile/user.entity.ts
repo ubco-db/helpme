@@ -28,7 +28,7 @@ import { UnreadAsyncQuestionModel } from '../asyncQuestion/unread-async-question
 import { AsyncQuestionCommentModel } from '../asyncQuestion/asyncQuestionComment.entity';
 import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
 import { QuestionModel } from '../question/question.entity';
-import { ProfInviteModel } from 'course/prof-invite.entity';
+import { ProfInviteModel } from 'course/prof-invite/prof-invite.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {

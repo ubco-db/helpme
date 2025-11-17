@@ -16,7 +16,7 @@ import { SuperCourseModel } from 'course/super-course.entity';
 import { OrganizationSettingsModel } from './organization_settings.entity';
 import { OrganizationRoleHistory } from './organization_role_history.entity';
 import { OrganizationChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/organization-chatbot-settings.entity';
-import { ProfInviteModel } from 'course/prof-invite.entity';
+import { ProfInviteModel } from 'course/prof-invite/prof-invite.entity';
 
 @Entity('organization_model')
 export class OrganizationModel extends BaseEntity {

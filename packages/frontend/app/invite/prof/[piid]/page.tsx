@@ -1,22 +1,23 @@
 'use client'
 
 import { Button, Result } from 'antd'
-import { ReactElement, useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { ReactElement, use, useEffect, useState } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import Link from 'next/link'
 import { setProfInviteCookie } from '@/app/api/cookieApi'
 import { API } from '@/app/api'
-import { useRouter } from 'next/router'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 
 type ProfInvitePageProps = {
-  params: { piid: string } // piid stands for Prof Invite ID
+  params: Promise<{ piid: string }> // piid stands for Prof Invite ID
 }
 
 export default function ProfInvitePage(
   props: ProfInvitePageProps,
 ): ReactElement {
+  const params = use(props.params)
+  const piid = Number(params.piid)
   const searchParams = useSearchParams()
   const profInviteCode = searchParams.get('c') || ''
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -27,17 +28,20 @@ export default function ProfInvitePage(
     API.profile
       .index()
       .then(async (userInfo) => {
-        await API.course.acceptProfInvite(Number(props.params.piid), {
+        await API.profInvites.accept(piid, {
           code: profInviteCode,
         })
       })
       .catch(async () => {
+        console.log(
+          'User not logged in, setting cookies and redirecting to /login',
+        )
         // If not logged in, set cookies and redirect to /login
-        await API.course
-          .getProfInviteDetails(Number(props.params.piid))
+        await API.profInvites
+          .getDetails(piid)
           .then(async (details) => {
             await setProfInviteCookie(
-              Number(props.params.piid),
+              piid,
               details.orgId,
               details.courseId,
               profInviteCode,

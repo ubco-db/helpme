@@ -89,52 +89,32 @@ const EditCourse: React.FC<EditCourseProps> = ({
     <>
       <title>{`HelpMe | Editing ${courseData.course?.name}`}</title>
       <div className="mb-5 space-y-5">
-        <Card variant="outlined" title="Edit Course">
-          <EditCourseForm
-            courseData={courseData}
-            organization={organization}
-            fetchCourseData={fetchCourseData}
-            user={user}
-          />
-        </Card>
+        <EditCourseForm
+          courseData={courseData}
+          organization={organization}
+          fetchCourseData={fetchCourseData}
+          user={user}
+        />
 
         {isUserInCourse && (
-          <>
-            <Card variant="outlined" title="Course Features">
-              <CourseFeaturesForm courseData={courseData} />
-            </Card>
-
-            <Card
-              variant="outlined"
-              title={
-                <div className="flex items-center justify-start gap-3">
-                  <div>Course Invite Link</div>
-                  <div className="text-gray-500">
-                    <Tooltip
-                      title={`This is the invite link for the course. You must set an invite code (of anything you'd like) before anyone can join your course. Once set, you can share the invite link with your students (e.g. on Canvas). Clearing the invite code will prevent new people from joining your course.`}
-                    >
-                      Help <QuestionCircleOutlined />
-                    </Tooltip>
-                  </div>
-                </div>
-              }
-            >
-              <CourseInviteCode
-                fetchCourseData={fetchCourseData}
-                courseData={courseData}
-              />
-            </Card>
-          </>
+          <Card variant="outlined" title="Course Features">
+            <CourseFeaturesForm courseData={courseData} />
+          </Card>
         )}
+
         {user.organization?.organizationRole === OrganizationRole.ADMIN && (
+          <ProfInvites courseData={courseData} />
+        )}
+
+        {isUserInCourse && (
           <Card
             variant="outlined"
             title={
               <div className="flex items-center justify-start gap-3">
-                <div>Professor Invites (Admin Only)</div>
+                <div>Course Invite Link</div>
                 <div className="text-gray-500">
                   <Tooltip
-                    title={`For creating temporary invite links that will automatically promote the user to professor when accepted`}
+                    title={`This is the invite link for the course. You must set an invite code (of anything you'd like) before anyone can join your course. Once set, you can share the invite link with your students (e.g. on Canvas). Clearing the invite code will prevent new people from joining your course.`}
                   >
                     Help <QuestionCircleOutlined />
                   </Tooltip>
@@ -142,7 +122,10 @@ const EditCourse: React.FC<EditCourseProps> = ({
               </div>
             }
           >
-            <ProfInvites courseData={courseData} />
+            <CourseInviteCode
+              fetchCourseData={fetchCourseData}
+              courseData={courseData}
+            />
           </Card>
         )}
 

@@ -1031,23 +1031,25 @@ export class QueuePartial {
   courseId!: number
 }
 
-export type GetProfInviteResponse = {
-  course: {
+export class GetProfInviteResponse {
+  course!: {
     id: number
     name: string
   }
-  adminUser: {
+  adminUser!: {
     id: number
     name: string
     email: string
   }
-  id: number
-  code: string
-  maxUses: number
-  usesUsed: number
-  createdAt: Date
-  expiresAt: Date
-  makeOrgProf: boolean
+  id!: number
+  code!: string
+  maxUses!: number
+  usesUsed!: number
+  @Type(() => Date)
+  createdAt!: Date
+  @Type(() => Date)
+  expiresAt!: Date
+  makeOrgProf!: boolean
 }
 export class CreateProfInviteParams {
   @IsInt()
@@ -1061,6 +1063,7 @@ export class CreateProfInviteParams {
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   expiresAt?: Date
 
   @IsOptional()
@@ -2323,10 +2326,10 @@ export class OrganizationCourseResponse {
   id?: number
 
   @IsInt()
-  organizationId?: number
+  organizationId!: number
 
   @IsInt()
-  courseId?: number
+  courseId!: number
 
   course?: GetCourseResponse
 
