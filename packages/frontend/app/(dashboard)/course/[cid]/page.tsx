@@ -33,7 +33,7 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
   const role = getRoleInCourse(userInfo, cid)
   const { course } = useCourse(cid)
   const searchParams = useSearchParams()
-  const queryParamError = searchParams.get('error')
+  const queryParamNotice = searchParams.get('notice')
   const [createQueueModalOpen, setCreateQueueModalOpen] = useState(false)
   const courseFeatures = useCourseFeatures(cid)
   const onlyChatBotEnabled = useMemo(
@@ -103,10 +103,10 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                 xs={24}
               >
                 <Row>
-                  {queryParamError && (
+                  {queryParamNotice && (
                     <Alert
                       message={(() => {
-                        switch (queryParamError) {
+                        switch (queryParamNotice) {
                           case QUERY_PARAMS.profInvite.notice
                             .adminAlreadyInCourse:
                             return 'You (admin) are already in this course. Professor invite not consumed and still working'
@@ -115,7 +115,7 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                             return `Professor invite successfully accepted! You are now a professor inside this course. Since you are an admin, the professor invite was not consumed and still working`
                           case QUERY_PARAMS.profInvite.notice.inviteAccepted: // TODO: Start the tutorial from here
                             return (
-                              <>
+                              <div className="flex flex-col items-center">
                                 <p>
                                   Professor invite successfully accepted!
                                   Welcome to your course!
@@ -123,7 +123,7 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                                 <p>
                                   You can find a list of video tutorials here:
                                 </p>
-                                <ul>
+                                <ul className="flex list-disc gap-4 gap-x-6">
                                   <li>
                                     <a
                                       href="https://www.youtube.com/watch?v=H9ywkvDdeZ0"
@@ -143,13 +143,14 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                                     </a>
                                   </li>
                                 </ul>
-                              </>
+                              </div>
                             )
                           default:
-                            return queryParamError
+                            return queryParamNotice
                         }
                       })()}
                       type="info"
+                      className="mb-1 w-full"
                       showIcon
                       closable
                     />
@@ -297,7 +298,6 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
               helpmeQuestionId={helpmeQuestionId}
               chatbotQuestionType={chatbotQuestionType}
               setChatbotQuestionType={setChatbotQuestionType}
-               
               setIsOpen={() => {}}
             />
           </div>

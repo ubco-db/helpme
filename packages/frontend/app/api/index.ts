@@ -678,8 +678,8 @@ class APIClient {
     accept: async (
       piid: number,
       body: AcceptProfInviteParams,
-    ): Promise<void> => // performs redirect
-      this.req('GET', `/api/v1/prof_invites/accept/${piid}`, undefined, body),
+    ): Promise<string> => // returns the url to redirect to
+      this.req('POST', `/api/v1/prof_invites/accept/${piid}`, undefined, body),
     getDetails: async (piid: number): Promise<GetProfInviteDetailsResponse> =>
       this.req('GET', `/api/v1/prof_invites/details/${piid}`),
     getAll: async (

@@ -10,17 +10,14 @@ import {
   Controller,
   Delete,
   Get,
-  HttpStatus,
   NotFoundException,
   Param,
   ParseIntPipe,
   Post,
   Query,
-  Res,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { Response } from 'express';
 import { Roles } from '../../decorators/roles.decorator';
 import { UserId } from '../../decorators/user.decorator';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
@@ -120,21 +117,19 @@ export class ProfInviteController {
   }
 
   // Allow logged-in users to accept a prof invite
-  @Get('accept/:piid')
+  @Post('accept/:piid')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async acceptProfInvite(
     @Param('piid', ParseIntPipe) piid: number,
     @Body() body: AcceptProfInviteParams,
     @UserId() userId: number,
-    @Res() res: Response,
-  ): Promise<void> {
+  ): Promise<string> {
     const url = await this.profInviteService.acceptProfInvite(
       userId,
       piid,
       body.code,
     );
-    res.status(HttpStatus.FOUND).redirect(url);
-    return;
+    return url;
   }
 
   // just returns the course id and org id for given prof invite (public endpoint)

@@ -27,10 +27,21 @@ export default function ProfInvitePage(
     // accept the invite right away if logged in.
     API.profile
       .index()
-      .then(async (userInfo) => {
-        await API.profInvites.accept(piid, {
-          code: profInviteCode,
-        })
+      .then(async () => {
+        // Instead of doing a GET and then giving a 302 redirect,
+        // I opted to do a POST that returns the redirect url since that way I can hide the url inside the body
+        // (plus it's a little easier to do this with our setup I think)
+        await API.profInvites
+          .accept(piid, {
+            code: profInviteCode,
+          })
+          .then((url) => {
+            router.replace(url)
+          })
+          .catch((err) => {
+            // note that "error" redirect URLS will still be a 200 success. The only errors here would be more niche ones (like the browser failing to fetch)
+            setErrorMessage(getErrorMessage(err))
+          })
       })
       .catch(async () => {
         console.log(

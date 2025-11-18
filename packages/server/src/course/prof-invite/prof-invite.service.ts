@@ -79,7 +79,11 @@ export class ProfInviteService {
     const existingUserCourse = user.courses.find(
       (uc) => uc.courseId === profInvite.courseId,
     );
-    if (existingUserCourse) {
+
+    if (
+      existingUserCourse &&
+      user.organizationUser.role !== OrganizationRole.ADMIN
+    ) {
       if (existingUserCourse.role === Role.PROFESSOR) {
         return `/course/${profInvite.courseId}`; // no notice if you're just a prof already in the course
       } else {
