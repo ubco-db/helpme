@@ -59,6 +59,11 @@ export class ProfInviteService {
 
     const profInvite = await ProfInviteModel.findOne({
       where: { id: profInviteId },
+      relations: {
+        adminUser: {
+          organizationUser: true,
+        },
+      },
     });
     if (!profInvite) {
       return `/courses?err=${QUERY_PARAMS.profInvite.error.notFound}&${QUERY_PARAMS.profInvite.error.profInviteId}=${profInviteId}`;
@@ -143,8 +148,8 @@ export class ProfInviteService {
         user.organizationUser.organizationId,
         OrganizationRole.MEMBER,
         OrganizationRole.PROFESSOR,
-        profInvite.adminUserId,
-        userId,
+        profInvite.adminUser.organizationUser.id,
+        user.organizationUser.id,
         OrgRoleChangeReason.acceptedProfInvite,
       );
       // TODO: send email
