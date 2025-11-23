@@ -1,3 +1,15 @@
+## Version 1.7.1 - Overview Video
+
+*Nov 24th, 2025*
+
+#### Improvements
+
+- Added a new "HelpMe Overview" video to the landing page, which can also be found here: [https://youtu.be/H9ywkvDdeZ0](https://youtu.be/H9ywkvDdeZ0)
+- Fixed an issue where text in queue chats could overflow
+- Fixed an issue in queue chats where both users appear with the same avatar
+
+***
+
 ## Version 1.7.0 - Canvas Quizzes Integration
 
 *Oct 4th, 2025*
