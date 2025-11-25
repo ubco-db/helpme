@@ -183,7 +183,11 @@ const StatusCard: React.FC<StatusCardProps> = ({
             <div className="font-bold text-gray-900">{ta.name}</div>
             <span>
               <Badge status={isBusy ? 'processing' : 'success'} />
-              {isBusy ? 'Busy' : 'Available'}
+              {ta.extraStatus === ExtraTAStatus.AWAY
+                ? 'Away'
+                : isBusy
+                  ? 'Busy'
+                  : 'Available'}
             </span>
           </Row>
           <div className="flex items-start justify-between">
@@ -196,6 +200,8 @@ const StatusCard: React.FC<StatusCardProps> = ({
                   helpedAt={helpedAt}
                   extraTAStatus={ta.extraStatus}
                 />
+              ) : ta.extraStatus === ExtraTAStatus.AWAY ? (
+                <span className="text-red-500">Away</span>
               ) : (
                 // this 1 dot is enough to make the button wrap onto the next row, so i'm only showing it as "..." if there's no button (it looks weird if it's still "..")
                 'Looking for my next student..' + (isStaff ? '.' : '')

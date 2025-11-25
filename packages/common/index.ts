@@ -989,6 +989,7 @@ export enum QueueTypes {
 export enum ExtraTAStatus {
   HELPING_IN_ANOTHER_QUEUE = 'Helping student in another queue',
   HELPING_IN_ANOTHER_COURSE = 'Helping student in another course',
+  AWAY = 'Away',
 }
 export interface StaffMember {
   id: number
