@@ -1,5 +1,4 @@
 import {
-  decodeBase64,
   generateTagIdFromName,
   LimboQuestionStatus,
   ListQuestionsResponse,
@@ -32,6 +31,7 @@ import { ApplicationConfigService } from '../config/application_config.service';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueInviteModel } from './queue-invite.entity';
 import { UserModel } from 'profile/user.entity';
+import * as crypto from 'crypto';
 
 type StaffHelpingInOtherQueues = {
   queueId: number;
@@ -462,7 +462,10 @@ export class QueueService {
     }
 
     try {
-      const invite = QueueInviteModel.create({ queueId });
+      const invite = QueueInviteModel.create({
+        queueId,
+        inviteCode: this.generateRandomInviteCode(),
+      });
       await invite.save();
     } catch (err) {
       console.error('Error while creating queue invite:');
@@ -517,16 +520,6 @@ export class QueueService {
     // make sure queue has a queue invite
     if (!queueInvite) {
       throw new BadRequestException('Queue does not have a queue invite');
-    }
-
-    // make sure the invite code is either empty or at least 8 characters long
-    if (
-      newQueueInvite.inviteCode !== '' &&
-      newQueueInvite.inviteCode.length < 8
-    ) {
-      throw new BadRequestException(
-        'Invite code must be at least 8 characters long',
-      );
     }
 
     try {
@@ -633,16 +626,8 @@ export class QueueService {
 
   async verifyQueueInviteCodeAndCheckIfQuestionsVisible(
     queueId: number,
-    encodedInviteCode: string,
+    inviteCode: string,
   ): Promise<boolean> {
-    let inviteCode = '';
-    try {
-      inviteCode = decodeBase64(encodedInviteCode);
-    } catch (err) {
-      console.error('Error while decoding invite code:');
-      console.error(err);
-      throw new BadRequestException('Invalid invite code');
-    }
     const queueInvite = await QueueInviteModel.findOne({
       where: {
         queueId,
@@ -655,5 +640,9 @@ export class QueueService {
     }
 
     return !!queueInvite.isQuestionsVisible;
+  }
+
+  private generateRandomInviteCode(): string {
+    return crypto.randomBytes(6).toString('hex');
   }
 }

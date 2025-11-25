@@ -19,8 +19,6 @@ import {
   use,
 } from 'react'
 import {
-  decodeBase64,
-  encodeBase64,
   LimboQuestionStatus,
   OpenQuestionStatus,
   parseTaskIdsFromQuestionText,
@@ -65,7 +63,6 @@ export default function QueueInvitePage(
   const searchParams = useSearchParams()
   const router = useRouter()
   const encodedCode = searchParams.get('c') ?? ''
-  const code = decodeBase64(encodedCode)
   const [projectorModeEnabled, setProjectorModeEnabled] = useState(false)
   const [pageLoading, setPageLoading] = useState(true)
   const [hasFetchErrorOccurred, setHasFetchErrorOccurred] = useState(false)
@@ -145,14 +142,14 @@ export default function QueueInvitePage(
       ? `${isHttps ? 'https' : 'http'}://${window.location.host}`
       : ''
   const inviteURL = queueInviteInfo
-    ? `${baseURL}/qi/${queueInviteInfo.queueId}?c=${encodeBase64(queueInviteInfo.inviteCode)}`
+    ? `${baseURL}/qi/${queueInviteInfo.queueId}?c=${encodeURIComponent(queueInviteInfo.inviteCode)}`
     : ''
 
   const fetchPublicQueueInviteInfo = useCallback(async () => {
     try {
       const queueInviteInfo = await API.queueInvites.get(qid, encodedCode)
       setQueueInviteInfo(queueInviteInfo)
-    } catch (error) {
+    } catch (_error) {
       setHasFetchErrorOccurred(true)
     } finally {
       setPageLoading(false)

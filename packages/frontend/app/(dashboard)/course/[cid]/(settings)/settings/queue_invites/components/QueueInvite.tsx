@@ -11,11 +11,7 @@ import {
   Tooltip,
   message,
 } from 'antd'
-import {
-  encodeBase64,
-  type QueueInvite,
-  type QueueInviteParams,
-} from '@koh/common'
+import { type QueueInvite, type QueueInviteParams } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
 import { CopyOutlined, DeleteOutlined, QrcodeOutlined } from '@ant-design/icons'
@@ -42,7 +38,7 @@ const QueueInviteListItem: React.FC<QueueInviteProps> = ({
   const [copyLinkText, setCopyLinkText] = useState('Copy Link')
   const [hasValuesChanged, setHasValuesChanged] = useState(false)
   const [isSaveLoading, setIsSaveLoading] = useState(false)
-  const inviteURL = `${baseURL}/qi/${queueInvite.queueId}?c=${encodeBase64(queueInvite.inviteCode)}`
+  const inviteURL = `${baseURL}/qi/${queueInvite.queueId}?c=${encodeURIComponent(queueInvite.inviteCode)}`
   const handleCopy = () => {
     navigator.clipboard.writeText(inviteURL).then(() => {
       setCopyLinkText('Copied!')
@@ -56,8 +52,7 @@ const QueueInviteListItem: React.FC<QueueInviteProps> = ({
   useEffect(() => {
     form.setFieldsValue(queueInvite)
     setHasValuesChanged(false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, queueInvite.queueId])
+  }, [form, queueInvite])
 
   const onFinish = (values: QueueInviteParams) => {
     setIsSaveLoading(true)
@@ -87,8 +82,8 @@ const QueueInviteListItem: React.FC<QueueInviteProps> = ({
           ) : (
             <div className="flex items-center gap-2">
               <Link
-                target="_blank" // open in new tab
-                href={`/qi/${queueInvite.queueId}?c=${encodeBase64(queueInvite.inviteCode)}`}
+                target="_blank"
+                href={`/qi/${queueInvite.queueId}?c=${encodeURIComponent(queueInvite.inviteCode)}`}
               >
                 {inviteURL}
               </Link>
@@ -214,7 +209,8 @@ const QueueInviteListItem: React.FC<QueueInviteProps> = ({
                         Enabling this will allow users who are <i>not</i> in
                         your course to use this link (normally they can still
                         click on the link, but they can&apos;t use it to join
-                        the course/queue unless they are already in the course).{' '}
+                        the course/queue unless they are already in the
+                        course).{' '}
                       </p>
                       <p>
                         Generally, you may want this enabled until all of your
