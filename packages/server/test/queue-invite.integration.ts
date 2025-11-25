@@ -1,4 +1,4 @@
-import { encodeBase64, QueueInviteParams } from '@koh/common';
+import { QueueInviteParams } from '@koh/common';
 import { QueueModule } from '../src/queue/queue.module';
 import {
   CourseFactory,
@@ -256,7 +256,7 @@ describe('Queue Invite Integration', () => {
       const invite = await QueueInviteFactory.create({ queue: queue });
 
       await supertest({ userId: publicUser.id })
-        .get(`/queueInvites/${queue.id}/${encodeBase64(invite.inviteCode)}`)
+        .get(`/queueInvites/${queue.id}/${invite.inviteCode}`)
         .expect(200);
     });
     it('returns 404 when the queue does not exist', async () => {
@@ -298,9 +298,7 @@ describe('Queue Invite Integration', () => {
       });
 
       await supertest({ userId: publicUser.id })
-        .get(
-          `/queueInvites/${queue.id}/${encodeBase64(invite.inviteCode)}/questions`,
-        )
+        .get(`/queueInvites/${queue.id}/${invite.inviteCode}/questions`)
         .expect(200);
     });
     it('returns 404 when the queue does not exist', async () => {
@@ -363,9 +361,7 @@ describe('Queue Invite Integration', () => {
       });
 
       await supertest({ userId: publicUser.id })
-        .get(
-          `/queueInvites/${queue.id}/${encodeBase64(invite.inviteCode)}/queue`,
-        )
+        .get(`/queueInvites/${queue.id}/${invite.inviteCode}/queue`)
         .expect(200);
     });
     it('returns 404 when the queue does not exist', async () => {
