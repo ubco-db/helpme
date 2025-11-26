@@ -287,6 +287,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       </Form.Item>
       <Form.Item
         name="answer"
+        className="mb-1"
         tooltip={{
           title: <MarkdownGuideTooltipBody />,
           classNames: {
