@@ -64,6 +64,7 @@ exports[`OrganizationService getOrganizationCourse should return organization co
     "enabled": true,
     "icalURL": "https://calendar.google.com/calendar/ical/t6lu2pic7u9otrbpkuk26sl34g%40group.calendar.google.com/public/basic.ics",
     "id": 1,
+    "isCourseInviteEnabled": true,
     "name": "CS 304",
     "questionTimer": null,
     "sectionGroupName": "001",
