@@ -29,6 +29,8 @@ import {
   transformIntoTaskTree,
   UBCOuserParam,
   User,
+  decodeBase64,
+  encodeBase64,
 } from '@koh/common'
 import { API } from '@/app/api'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -63,6 +65,7 @@ export default function QueueInvitePage(
   const searchParams = useSearchParams()
   const router = useRouter()
   const encodedCode = searchParams.get('c') ?? ''
+  const inviteCode = encodedCode ? decodeBase64(encodedCode) : ''
   const [projectorModeEnabled, setProjectorModeEnabled] = useState(false)
   const [pageLoading, setPageLoading] = useState(true)
   const [hasFetchErrorOccurred, setHasFetchErrorOccurred] = useState(false)
@@ -76,12 +79,12 @@ export default function QueueInvitePage(
   // NOTE: queueQuestions and queue are ONLY set if the queue invite code is correct and if the questions are visible
   const { queueQuestions } = useQuestionsWithQueueInvite(
     qid,
-    encodedCode,
+    inviteCode,
     queueInviteInfo?.isQuestionsVisible,
   )
   const { queue } = useQueueWithQueueInvite(
     qid,
-    encodedCode,
+    inviteCode,
     queueInviteInfo?.isQuestionsVisible,
   )
   const queueConfig = queue?.config
@@ -142,12 +145,12 @@ export default function QueueInvitePage(
       ? `${isHttps ? 'https' : 'http'}://${window.location.host}`
       : ''
   const inviteURL = queueInviteInfo
-    ? `${baseURL}/qi/${queueInviteInfo.queueId}?c=${encodeURIComponent(queueInviteInfo.inviteCode)}`
+    ? `${baseURL}/qi/${queueInviteInfo.queueId}?c=${encodeBase64(queueInviteInfo.inviteCode)}`
     : ''
 
   const fetchPublicQueueInviteInfo = useCallback(async () => {
     try {
-      const queueInviteInfo = await API.queueInvites.get(qid, encodedCode)
+      const queueInviteInfo = await API.queueInvites.get(qid, inviteCode)
       setQueueInviteInfo(queueInviteInfo)
     } catch (_error) {
       setHasFetchErrorOccurred(true)

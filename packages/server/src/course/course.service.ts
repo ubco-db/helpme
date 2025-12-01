@@ -163,8 +163,12 @@ export class CourseService {
       );
     }
 
-    // Destructure coursePatch to separate courseInviteCode from other fields
-    const { courseInviteCode: _courseInviteCode, ...otherFields } = coursePatch;
+    // Destructure coursePatch to separate invite-related fields from other fields
+    const {
+      courseInviteCode: _courseInviteCode,
+      isCourseInviteEnabled: _isCourseInviteEnabled,
+      ...otherFields
+    } = coursePatch;
     // Allow courseInviteCode to be null or empty but no other fields
     if (Object.values(otherFields).some((x) => x === null || x === '')) {
       throw new BadRequestException(
@@ -210,6 +214,17 @@ export class CourseService {
         // In case we ever allow manual override again
         course.courseInviteCode = coursePatch.courseInviteCode;
       }
+    }
+
+    if (coursePatch.isCourseInviteEnabled !== undefined) {
+      // When enabling and there is no code yet, generate one.
+      if (
+        coursePatch.isCourseInviteEnabled &&
+        (!course.courseInviteCode || course.courseInviteCode === '')
+      ) {
+        course.courseInviteCode = this.generateRandomInviteCode();
+      }
+      course.isCourseInviteEnabled = coursePatch.isCourseInviteEnabled;
     }
 
     if (coursePatch.asyncQuestionDisplayTypes) {

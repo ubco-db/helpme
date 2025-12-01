@@ -3,9 +3,9 @@
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import printQRCode from '@/app/utils/QRCodePrintUtils'
-import { CopyOutlined, QrcodeOutlined } from '@ant-design/icons'
+import { CopyOutlined, QrcodeOutlined, ReloadOutlined } from '@ant-design/icons'
 import { OrganizationCourseResponse } from '@koh/common'
-import { Button, Form, Input, message } from 'antd'
+import { Button, Form, Input, Popconfirm, message } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 
 interface FormValues {
@@ -23,50 +23,89 @@ const CourseInviteCode: React.FC<CourseInviteCodeProps> = ({
 }) => {
   const [form] = Form.useForm()
   const courseCode = courseData.course?.courseInviteCode
+  const isEnabled = courseData.course?.isCourseInviteEnabled ?? false
   const [copyLinkText, setCopyLinkText] = useState('Copy Link')
 
-  const updateCourseCode = useCallback(
-    async (inviteCode: string | null) => {
+  const updateCourseInvite = useCallback(
+    async (params: {
+      inviteCode?: string | null
+      isEnabled?: boolean
+      successMessage: string
+    }) => {
+      const body: any = {
+        courseId: courseData.course?.id,
+      }
+      if (params.inviteCode !== undefined) {
+        body.courseInviteCode = params.inviteCode
+      }
+      if (params.isEnabled !== undefined) {
+        body.isCourseInviteEnabled = params.isEnabled
+      }
+
       await API.course
-        .editCourseInfo(Number(courseData.course?.id), {
-          courseId: courseData.course?.id,
-          courseInviteCode: inviteCode,
-        })
+        .editCourseInfo(Number(courseData.course?.id), body)
         .then(() => {
           fetchCourseData()
-          message.success('Updated invite code')
+          message.success(params.successMessage)
         })
         .catch((error) => {
           const errorMessage = getErrorMessage(error)
-          message.error('Failed to update invite code:' + errorMessage)
+          message.error('Failed to update invite link: ' + errorMessage)
         })
     },
-    [courseData.course?.id, fetchCourseData, form],
+    [courseData.course?.id, fetchCourseData],
   )
 
   useEffect(() => {
     form.setFieldsValue({ courseInviteCode: courseCode ?? null })
   }, [courseCode, form])
 
-  const submit = async (values: FormValues) => {
-    // If there is no current invite code, submitting should generate a new one.
-    if (values.courseInviteCode === null) {
-      await updateCourseCode('')
+  const handleEnableDisable = async () => {
+    if (!isEnabled) {
+      // Enabling: if no existing code, generate a new one
+      if (!courseCode) {
+        await updateCourseInvite({
+          inviteCode: '',
+          isEnabled: true,
+          successMessage: 'Invite link enabled and generated',
+        })
+      } else {
+        await updateCourseInvite({
+          isEnabled: true,
+          successMessage: 'Invite link enabled',
+        })
+      }
     } else {
-      await updateCourseCode(values.courseInviteCode)
+      await updateCourseInvite({
+        isEnabled: false,
+        successMessage: 'Invite link disabled',
+      })
     }
+  }
+
+  const handleRegenerate = async () => {
+    await updateCourseInvite({
+      inviteCode: '',
+      isEnabled: true,
+      successMessage: 'Invite link regenerated',
+    })
   }
 
   const isHttps = window.location.protocol === 'https:'
   const baseURL = `${isHttps ? 'https' : 'http'}://${window.location.host}`
   const inviteURL =
-    courseCode === null || courseCode === undefined
-      ? 'No invite code set. No students can join the course'
+    !courseCode || !isEnabled
+      ? 'Invite link is disabled. No students can join the course'
       : `${baseURL}/invite?cid=${courseData.course?.id}&code=${encodeURIComponent(courseCode)}`
 
+  const statusLabel = isEnabled
+    ? 'Invite link is enabled'
+    : 'Invite link is disabled'
+  const statusColor = isEnabled ? 'bg-green-500' : 'bg-red-500'
+
   const handleCopy = () => {
-    if (courseCode === null) {
-      message.error('No invite code set')
+    if (!courseCode || !isEnabled) {
+      message.error('Invite link is disabled')
       return
     }
     navigator.clipboard.writeText(inviteURL).then(() => {
@@ -78,66 +117,76 @@ const CourseInviteCode: React.FC<CourseInviteCodeProps> = ({
   }
 
   return (
-    <div>
+    <div className="space-y-3">
       <Form
         form={form}
         layout="vertical"
         initialValues={{
           courseInviteCode: courseCode,
         }}
-        onFinish={(values) => submit(values)}
+        onFinish={() => {}}
       >
+        <div className="mb-1 flex items-center gap-2">
+          <span className={`h-2 w-2 rounded-full ${statusColor}`} />
+          <span className="text-sm text-gray-700">{statusLabel}</span>
+        </div>
         <Form.Item
           className="flex-1"
-          label="Invite Code"
+          label="Invite Code (read-only)"
           name="courseInviteCode"
-          tooltip="This invite code is automatically generated by HelpMe. You can clear it to temporarily disable new enrollments."
+          tooltip="This invite code is automatically generated by HelpMe and is only shown here for reference. Use the actions below to enable/disable or regenerate the invite link."
         >
           <Input allowClear={false} disabled />
         </Form.Item>
-        <div className="mb-4 flex items-center justify-center space-x-2">
-          <div>{inviteURL}</div>
-          <Button
-            onClick={handleCopy}
-            type="primary"
-            className=""
-            disabled={courseCode === null}
-            icon={<CopyOutlined />}
-          >
-            {copyLinkText}
-          </Button>
-          <Button
-            onClick={() =>
-              printQRCode(courseData.course?.name ?? '', inviteURL)
-            }
-            type="default"
-            disabled={courseCode === null}
-            icon={<QrcodeOutlined />}
-          >
-            Print QR Code
-          </Button>
-        </div>
-        <div className="flex w-full items-center justify-end space-x-4">
-          <Form.Item className="w-1/4">
+        <div className="mb-2 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div className="max-w-full break-all rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800">
+            {inviteURL}
+          </div>
+          <div className="flex gap-2">
             <Button
-              danger
-              onClick={async () => {
-                await updateCourseCode(null)
-              }}
-              className="h-auto w-full p-3"
-            >
-              Clear Invite Code
-            </Button>
-          </Form.Item>
-          <Form.Item className="w-3/4">
-            <Button
+              onClick={handleCopy}
               type="primary"
-              htmlType="submit"
-              className="h-auto w-full p-3"
+              size="small"
+              disabled={!courseCode || !isEnabled}
+              icon={<CopyOutlined />}
             >
-              Update Invite Code
+              {copyLinkText}
             </Button>
-          </Form.Item>
+            <Button
+              onClick={() =>
+                printQRCode(courseData.course?.name ?? '', inviteURL)
+              }
+              size="small"
+              disabled={!courseCode || !isEnabled}
+              icon={<QrcodeOutlined />}
+            >
+              Print QR Code
+            </Button>
+          </div>
+        </div>
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 pt-1">
+          <Button
+            type={isEnabled ? 'default' : 'primary'}
+            onClick={handleEnableDisable}
+            className="px-4"
+          >
+            {isEnabled ? 'Disable Invite Link' : 'Enable Invite Link'}
+          </Button>
+          <Popconfirm
+            title="Regenerate invite link?"
+            description="This will invalidate the current invite link and generate a new one. Students with the old link will no longer be able to join."
+            onConfirm={handleRegenerate}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Button
+              icon={<ReloadOutlined />}
+              className="px-4"
+              disabled={!isEnabled}
+            >
+              Regenerate Link
+            </Button>
+          </Popconfirm>
         </div>
       </Form>
     </div>

@@ -11,7 +11,11 @@ import {
   Tooltip,
   message,
 } from 'antd'
-import { type QueueInvite, type QueueInviteParams } from '@koh/common'
+import {
+  type QueueInvite,
+  type QueueInviteParams,
+  encodeBase64,
+} from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
 import { CopyOutlined, DeleteOutlined, QrcodeOutlined } from '@ant-design/icons'
@@ -38,7 +42,7 @@ const QueueInviteListItem: React.FC<QueueInviteProps> = ({
   const [copyLinkText, setCopyLinkText] = useState('Copy Link')
   const [hasValuesChanged, setHasValuesChanged] = useState(false)
   const [isSaveLoading, setIsSaveLoading] = useState(false)
-  const inviteURL = `${baseURL}/qi/${queueInvite.queueId}?c=${encodeURIComponent(queueInvite.inviteCode)}`
+  const inviteURL = `${baseURL}/qi/${queueInvite.queueId}?c=${encodeBase64(queueInvite.inviteCode)}`
   const handleCopy = () => {
     navigator.clipboard.writeText(inviteURL).then(() => {
       setCopyLinkText('Copied!')
@@ -83,7 +87,7 @@ const QueueInviteListItem: React.FC<QueueInviteProps> = ({
             <div className="flex items-center gap-2">
               <Link
                 target="_blank"
-                href={`/qi/${queueInvite.queueId}?c=${encodeURIComponent(queueInvite.inviteCode)}`}
+                href={`/qi/${queueInvite.queueId}?c=${encodeBase64(queueInvite.inviteCode)}`}
               >
                 {inviteURL}
               </Link>
