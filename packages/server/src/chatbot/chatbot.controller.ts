@@ -384,11 +384,11 @@ export class ChatbotController {
 
   // resets all chatbot data for the course. Unused
 
-  // Professor-only: send notification email to all students who asked this question
+  // staff-only: send notification email to all students who asked this question
   // Body must include oldAnswer and newAnswer, and can optionally include question changes for context
   @Post('question/:courseId/:vectorStoreId/notify')
   @UseGuards(CourseRolesGuard)
-  @Roles(Role.PROFESSOR)
+  @Roles(Role.PROFESSOR, Role.TA)
   async notifyUpdatedAnswer(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('vectorStoreId') vectorStoreId: string,
@@ -448,7 +448,7 @@ export class ChatbotController {
     const courseName = asked[0]?.interaction?.course?.name ?? 'your course';
 
     const courseRole =
-      user.courses?.find((uc: any) => uc.courseId === courseId)?.role ?? null;
+      user.courses?.find((uc) => uc.courseId === courseId)?.role ?? null;
 
     const staffDescriptor =
       courseRole === Role.PROFESSOR
@@ -479,7 +479,9 @@ export class ChatbotController {
         </p>
       </div>
     `;
-
+    // TODO: Once we get our official HelpMe email, we can remove this cap
+    //  (this was added so we don't get rate limited by gmail as easily).
+    // Note that we CANNOT just 1 email with all the recipients, since then students will be able to see each others emails (and that they asked a particular question)
     const limitedRecipients = recipients.slice(0, 5);
 
     for (const email of limitedRecipients) {
