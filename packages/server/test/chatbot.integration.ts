@@ -172,9 +172,7 @@ describe('ChatbotController Integration', () => {
           vectorStoreId,
           questionText: 'Original question text',
           responseText: 'Old answer',
-          verified: true,
           suggested: true,
-          sourceDocuments: [],
           interaction,
         }).save();
       }
@@ -222,9 +220,7 @@ describe('ChatbotController Integration', () => {
         vectorStoreId,
         questionText: 'Some question',
         responseText: 'Same answer',
-        verified: true,
         suggested: true,
-        sourceDocuments: [],
         interaction,
       }).save();
 
