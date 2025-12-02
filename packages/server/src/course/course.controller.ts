@@ -21,6 +21,7 @@ import {
   UserCourse,
   UserTiny,
   validateQueueConfigInput,
+  SetTAExtraStatusParams,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -69,8 +70,6 @@ import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { CourseRoles } from 'decorators/course-roles.decorator';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { OrganizationService } from '../organization/organization.service';
-import { QueueStaffModel } from 'queue/queue-staff.entity';
-import { ExtraTAStatus } from '@koh/common';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -596,11 +595,8 @@ export class CourseController {
     @Param('id', ParseIntPipe) courseId: number,
     @Param('qid', ParseIntPipe) queueId: number,
     @User() user: UserModel,
-    @Body()
-    body: {
-      status: ExtraTAStatus | null;
-    },
-  ): Promise<QueueModel> {
+    @Body() body: SetTAExtraStatusParams,
+  ): Promise<void> {
     const queue = await QueueModel.findOne({
       where: {
         id: queueId,
@@ -623,55 +619,15 @@ export class CourseController {
       throw new BadRequestException('You must be checked in to set status');
     }
 
-    // Only allow AWAY or null for now
-    const allowedStatuses: Array<ExtraTAStatus | null> = [
-      ExtraTAStatus.AWAY,
-      null,
-    ];
-    if (!allowedStatuses.includes(body?.status ?? null)) {
-      throw new BadRequestException('Invalid status');
-    }
-
-    // Get existing join row
-    const joinRow = await QueueStaffModel.findOne({
-      where: { queueModelId: queueId, userModelId: user.id },
-    });
-    if (!joinRow) {
-      // If the row doesn't exist, something is out of sync; bail
-      throw new BadRequestException('Unable to set status');
-    }
-    const prev = joinRow.extraTAStatus;
-    joinRow.extraTAStatus = (body?.status as ExtraTAStatus) ?? null;
-    await joinRow.save();
-
-    // Record event
-    if (
-      prev !== ExtraTAStatus.AWAY &&
-      joinRow.extraTAStatus === ExtraTAStatus.AWAY
-    ) {
-      await EventModel.create({
-        time: new Date(),
-        eventType: EventType.TA_MARKED_SELF_AWAY,
-        userId: user.id,
-        courseId,
-        queueId,
-      }).save();
-    } else if (
-      prev === ExtraTAStatus.AWAY &&
-      (joinRow.extraTAStatus === null || joinRow.extraTAStatus === undefined)
-    ) {
-      await EventModel.create({
-        time: new Date(),
-        eventType: EventType.TA_MARKED_SELF_BACK,
-        userId: user.id,
-        courseId,
-        queueId,
-      }).save();
-    }
+    await this.courseService.setTAExtraStatusForQueue(
+      queueId,
+      courseId,
+      user.id,
+      body?.status ?? null,
+    );
 
     await this.queueSSEService.updateQueue(queueId);
-    // Return queue; clients rely on SSE update for latest details
-    return queue;
+    return;
   }
 
   @Delete(':id/checkout_all')

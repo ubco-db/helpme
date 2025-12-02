@@ -598,6 +598,17 @@ export class QueueService {
 
     await queue.addQueueSize();
 
+    const staffHelpingInOtherQueues =
+      await this.getStaffHelpingInOtherQueues(queueId);
+
+    const staffStatusRows = await QueueStaffModel.find({
+      where: { queueModelId: queueId },
+    });
+    const userIdToExtraStatus = new Map<number, ExtraTAStatus | null>();
+    staffStatusRows.forEach((row) =>
+      userIdToExtraStatus.set(row.userModelId, row.extraTAStatus ?? null),
+    );
+
     // query the questions helped questions for this queue (select helpedAt and taHelpedId)
     const helpedQuestions = await QuestionModel.find({
       select: ['helpedAt', 'taHelpedId'],
@@ -616,6 +627,21 @@ export class QueueService {
         }
       });
 
+      const staffHelpingInOtherQueue = staffHelpingInOtherQueues.find(
+        (staff) => staff.userId === user.id,
+      );
+      const selfExtra = userIdToExtraStatus.get(user.id);
+      const extraStatus =
+        selfExtra === ExtraTAStatus.AWAY
+          ? ExtraTAStatus.AWAY
+          : !staffHelpingInOtherQueue
+            ? undefined
+            : staffHelpingInOtherQueue.courseId !== queue.courseId
+              ? ExtraTAStatus.HELPING_IN_ANOTHER_COURSE
+              : staffHelpingInOtherQueue.queueId !== queueId
+                ? ExtraTAStatus.HELPING_IN_ANOTHER_QUEUE
+                : undefined;
+
       return {
         id: user.id,
         name: user.name,
@@ -624,6 +650,7 @@ export class QueueService {
         TANotes:
           user.courses.find((ucm) => ucm.courseId === queue.courseId)
             ?.TANotes ?? '',
+        extraStatus,
       };
     });
 

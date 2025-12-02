@@ -10,7 +10,7 @@ import {
   UpOutlined,
   EnvironmentOutlined,
 } from '@ant-design/icons'
-import { Button, Popconfirm, Row, Switch, Tooltip } from 'antd'
+import { Button, Popconfirm, Row, Switch, Tooltip, message } from 'antd'
 import moment from 'moment'
 import React, { ReactNode, useState } from 'react'
 import { useQueue } from '@/app/hooks/useQueue'
@@ -31,6 +31,7 @@ import { getQueueTypeLabel } from '../utils/commonQueueFunctions'
 import { QueuePartial, GetQueueChatsResponse, ExtraTAStatus } from '@koh/common'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { API } from '@/app/api'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 interface QueueInfoColumnProps {
   cid: number
@@ -65,12 +66,17 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
   const me = queue?.staffList?.find((s) => s.id === userInfo?.id)
   const isAway = me?.extraStatus === ExtraTAStatus.AWAY
   const [savingAway, setSavingAway] = useState(false)
+  const awaySwitchId = `away-switch-${queueId}`
+  const awaySwitchMobileId = `away-switch-mobile-${queueId}`
   const toggleAway = async (checked: boolean) => {
-    // checked = Answering; unchecked = Away
-    const newStatus = checked ? null : ExtraTAStatus.AWAY
+    // checked = Away; unchecked = Answering
+    const newStatus = checked ? ExtraTAStatus.AWAY : null
     try {
       setSavingAway(true)
       await API.taStatus.setExtraStatus(cid, queueId, newStatus)
+    } catch (err) {
+      const errorMessage = getErrorMessage(err)
+      message.error(errorMessage)
     } finally {
       setSavingAway(false)
     }
@@ -122,12 +128,13 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
       <div className="hidden sm:block">
         <QueueUpToDateInfo queueId={queueId} />
         {isStaff && (
-          <div className="mb-2 flex items-center gap-2">
-            <span className="text-sm text-[#5f6b79]">Away</span>
+          <div className="mb-2 flex items-center justify-center gap-2">
+            <label htmlFor={awaySwitchId} className="text-sm text-[#5f6b79]">
+              Away
+            </label>
             <Switch
-              checkedChildren="Answering"
-              unCheckedChildren="Away"
-              checked={!isAway}
+              id={awaySwitchId}
+              checked={isAway}
               onChange={toggleAway}
               loading={savingAway}
             />
@@ -136,8 +143,25 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
         {buttons}
       </div>
 
-      <div className="flex md:mt-3">
+      <div className="flex items-center justify-between md:mt-3">
         <h3 className="mb-0 text-2xl font-semibold">Staff</h3>
+        {isStaff && (
+          <div className="ml-auto flex items-center gap-2 md:hidden">
+            <label
+              htmlFor={awaySwitchMobileId}
+              className="text-sm text-[#5f6b79]"
+            >
+              Away
+            </label>
+            <Switch
+              id={awaySwitchMobileId}
+              size="small"
+              checked={isAway}
+              onChange={toggleAway}
+              loading={savingAway}
+            />
+          </div>
+        )}
         {/* Button to hide staff list on mobile */}
         <Button
           className="md:hidden"

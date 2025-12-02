@@ -725,7 +725,7 @@ class APIClient {
       courseId: number,
       qid: number,
       status: ExtraTAStatus | null,
-    ): Promise<TAUpdateStatusResponse> =>
+    ): Promise<void> =>
       this.req(
         'PATCH',
         `/api/v1/courses/${courseId}/ta_status/${qid}`,

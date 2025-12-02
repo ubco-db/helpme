@@ -89,6 +89,11 @@ export class UserModel extends BaseEntity {
   @Exclude()
   subscriptions: UserSubscriptionModel[];
 
+  // NOTE: This relation uses a JoinTable and is also mapped by QueueStaffModel
+  // to store extra metadata (e.g., extra TA status) on the join row without
+  // refactoring all code that expects queues: QueueModel[]. If you need to
+  // modify attributes on the join table itself, do so via QueueStaffModel; they
+  // will not appear on this queues array.
   @Exclude()
   @ManyToMany((type) => QueueModel, (queue) => queue.staffList)
   queues: QueueModel[];
