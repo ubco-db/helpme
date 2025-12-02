@@ -199,27 +199,83 @@ export type CoursePartial = {
 /**
  * Represents a partial course data used for cloning a course.
  */
-export type CourseCloneAttributes = {
-  professorIds: number[]
+export class CourseCloneChatbotAttributes {
+  @IsOptional()
+  @IsBoolean()
+  settings?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  documents?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  manuallyCreatedChunks?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  insertedQuestions?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  insertedLMSData?: boolean
+}
+
+export class CourseCloneToCloneAttributes {
+  @IsOptional()
+  @IsBoolean()
+  coordinator_email?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  zoomLink?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  courseInviteCode?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  courseFeatureConfig?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  asyncCentreQuestionTypes?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  queues?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  queueInvites?: boolean
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CourseCloneChatbotAttributes)
+  chatbot?: CourseCloneChatbotAttributes
+}
+
+export class CourseCloneAttributes {
+  @IsArray()
+  @IsInt({ each: true })
+  professorIds!: number[]
+
+  @IsOptional()
+  @IsInt()
   newSemesterId?: number
+
+  @IsOptional()
+  @IsString()
   newSection?: string
+
+  @IsOptional()
+  @IsBoolean()
   associateWithOriginalCourse?: boolean
-  toClone: {
-    coordinator_email?: boolean
-    zoomLink?: boolean
-    courseInviteCode?: boolean
-    courseFeatureConfig?: boolean
-    asyncCentreQuestionTypes?: boolean
-    queues?: boolean
-    queueInvites?: boolean
-    chatbot?: {
-      settings?: boolean
-      documents?: boolean
-      manuallyCreatedChunks?: boolean
-      insertedQuestions?: boolean
-      insertedLMSData?: boolean
-    }
-  }
+
+  @ValidateNested()
+  @Type(() => CourseCloneToCloneAttributes)
+  toClone!: CourseCloneToCloneAttributes
 }
 
 export const defaultCourseCloneAttributes: CourseCloneAttributes = {
@@ -334,9 +390,12 @@ export enum AccountType {
 
 // chatbot questions and interactions
 
-export interface UpdateDocumentChunkParams {
-  documentText: string
-  metadata: {
+export class UpdateDocumentChunkParams {
+  @IsString()
+  documentText!: string
+
+  @IsObject()
+  metadata!: {
     name: string
     source: string
   }
@@ -427,27 +486,47 @@ export interface Message {
   thinkText?: string | null // used on frontend only
 }
 
-export interface ChatbotQueryParams {
-  query: string
-  type: 'default' | 'abstract'
+export class ChatbotQueryParams {
+  @IsString()
+  query!: string
+
+  @IsIn(['default', 'abstract'])
+  type!: 'default' | 'abstract'
 }
 
-export interface ChatbotAskParams {
-  question: string
-  history: Message[]
+export class ChatbotAskParams {
+  @IsString()
+  question!: string
+
+  @IsArray()
+  history!: Message[]
+
+  @IsOptional()
+  @IsInt()
   interactionId?: number
+
+  @IsOptional()
+  @IsBoolean()
   onlySaveInChatbotDB?: boolean
 }
 
-export interface ChatbotAskSuggestedParams {
-  question: string
-  responseText: string
-  vectorStoreId: string
+export class ChatbotAskSuggestedParams {
+  @IsString()
+  question!: string
+
+  @IsString()
+  responseText!: string
+
+  @IsString()
+  vectorStoreId!: string
 }
 
-export interface AddDocumentChunkParams {
-  documentText: string
-  metadata: {
+export class AddDocumentChunkParams {
+  @IsString()
+  documentText!: string
+
+  @IsObject()
+  metadata!: {
     name: string
     type: string
     source?: string
@@ -455,6 +534,9 @@ export interface AddDocumentChunkParams {
     id?: string
     courseId?: number
   }
+
+  @IsOptional()
+  @IsString()
   prefix?: string
 }
 
@@ -1458,13 +1540,28 @@ export class Image {
  */
 export type Season = string
 
-export type DesktopNotifBody = {
-  endpoint: string
+export class DesktopNotifKeys {
+  @IsString()
+  p256dh!: string
+
+  @IsString()
+  auth!: string
+}
+
+export class DesktopNotifBody {
+  @IsString()
+  endpoint!: string
+
+  @IsOptional()
+  @IsNumber()
   expirationTime?: number
-  keys: {
-    p256dh: string
-    auth: string
-  }
+
+  @ValidateNested()
+  @Type(() => DesktopNotifKeys)
+  keys!: DesktopNotifKeys
+
+  @IsOptional()
+  @IsString()
   name?: string
 }
 
