@@ -143,6 +143,10 @@ describe('ChatbotController Integration', () => {
   });
 
   describe('POST /chatbot/question/:courseId/:vectorStoreId/notify', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
     it('sends individual emails (capped at 5 recipients) to users who asked the question', async () => {
       const professor = await UserFactory.create();
       const course = await CourseFactory.create();
@@ -155,7 +159,11 @@ describe('ChatbotController Integration', () => {
       const vectorStoreId = 'vec-notify-123';
 
       const students = await Promise.all(
-        Array.from({ length: 6 }).map(() => UserFactory.create()),
+        Array.from({ length: 6 }).map((_, i) =>
+          UserFactory.create({
+            email: `chatbot-notify-${i}@example.com`,
+          }),
+        ),
       );
 
       for (const student of students) {
