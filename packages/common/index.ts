@@ -485,10 +485,22 @@ export interface UpdateChatbotQuestionParams {
     docId: string
     pageNumbersString: string
   }[]
-  // Frontend-only flag to request notification emails after an update.
-  // Server must validate the answer actually changed and will strip this before
-  // forwarding to the external chatbot service.
-  emailNotifyOnAnswerUpdate?: boolean
+}
+
+export class NotifyUpdatedChatbotAnswerParams {
+  @IsString()
+  oldAnswer!: string
+
+  @IsString()
+  newAnswer!: string
+
+  @IsString()
+  @IsOptional()
+  oldQuestion?: string
+
+  @IsString()
+  @IsOptional()
+  newQuestion?: string
 }
 
 // this is the response from the backend when new questions are asked

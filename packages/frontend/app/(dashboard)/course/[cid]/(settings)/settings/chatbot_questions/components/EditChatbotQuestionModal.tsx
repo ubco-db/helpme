@@ -1,4 +1,4 @@
-import { useEffect, useState, memo } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Button,
   Checkbox,
@@ -31,6 +31,7 @@ interface FormValues {
   answer: string
   verified: boolean
   suggested: boolean
+  emailNotifyOnAnswerUpdate?: boolean
   sourceDocuments: SourceDocument[]
   selectedDocuments: {
     docId: string
@@ -53,15 +54,16 @@ type AnswerUpdateCheckboxProps = {
   onChange?: (e: any) => void
 }
 
-const AnswerUpdateCheckbox = memo<AnswerUpdateCheckboxProps>(
-  ({ form, originalAnswer, checked, onChange }) => {
-    const currentAnswer = Form.useWatch('answer', form)
-    const changed = (currentAnswer ?? '') !== (originalAnswer ?? '')
-    return (
-      <Checkbox disabled={!changed} checked={checked} onChange={onChange} />
-    )
-  },
-)
+const AnswerUpdateCheckbox: React.FC<AnswerUpdateCheckboxProps> = ({
+  form,
+  originalAnswer,
+  checked,
+  onChange,
+}) => {
+  const currentAnswer = Form.useWatch('answer', form)
+  const changed = (currentAnswer ?? '') !== (originalAnswer ?? '')
+  return <Checkbox disabled={!changed} checked={checked} onChange={onChange} />
+}
 
 const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
   open,
@@ -166,8 +168,9 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       })
     }
 
+    const { emailNotifyOnAnswerUpdate, ...sanitizedValues } = values
     const valuesWithId = {
-      ...values,
+      ...sanitizedValues,
       id: editingRecord.vectorStoreId,
       sourceDocuments: values.sourceDocuments || [],
     }
@@ -176,8 +179,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       .updateQuestion(cid, valuesWithId)
       .then(async () => {
         message.success('Question updated successfully')
-        const notify = (values as any).emailNotifyOnAnswerUpdate
-        if (notify) {
+        if (emailNotifyOnAnswerUpdate) {
           try {
             const resp = await API.chatbot.staffOnly.notifyAnswerUpdate(
               cid,
@@ -190,11 +192,15 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
               },
             )
             if (resp?.recipients != undefined) {
-              message.success(
-                `Notification email sent to ${resp.recipients} student${
-                  resp.recipients === 1 ? '' : 's'
-                }`,
-              )
+              if (resp.recipients === 5) {
+                message.success('Notification email sent to 5 users (max 5).')
+              } else {
+                message.success(
+                  `Notification email sent to ${resp.recipients} user${
+                    resp.recipients === 1 ? '' : 's'
+                  }`,
+                )
+              }
             }
           } catch (e) {
             const errorMessage = getErrorMessage(e)
@@ -308,7 +314,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
           <div className="flex flex-col gap-y-2">
             <p>
               Sends an email to the student(s) who previously asked this
-              question in this course with a before/after of the answer.
+              question with a before/after of the answer.
             </p>
           </div>
         }

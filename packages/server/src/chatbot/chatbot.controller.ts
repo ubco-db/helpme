@@ -52,6 +52,7 @@ import {
   OrganizationChatbotSettings,
   OrganizationChatbotSettingsDefaults,
   OrganizationRole,
+  NotifyUpdatedChatbotAnswerParams,
   Role,
   UpdateChatbotProviderBody,
   UpdateChatbotQuestionParams,
@@ -335,10 +336,8 @@ export class ChatbotController {
     @User({ chat_token: true }) user: UserModel,
   ): Promise<ChatbotQuestionResponseChatbotDB> {
     handleChatbotTokenCheck(user);
-    // Do not forward frontend-only flags to the chatbot API
-    const { emailNotifyOnAnswerUpdate, ...sanitized } = questionData as any;
     return await this.chatbotApiService.updateQuestion(
-      sanitized,
+      questionData,
       courseId,
       user.chat_token.token,
     );
@@ -387,29 +386,17 @@ export class ChatbotController {
 
   // Professor-only: send notification email to all students who asked this question
   // Body must include oldAnswer and newAnswer, and can optionally include question changes for context
-  @Post('question/:courseId/:questionId/notify')
+  @Post('question/:courseId/:vectorStoreId/notify')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.PROFESSOR)
   async notifyUpdatedAnswer(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Param('questionId') questionId: string,
-    @Body()
-    body: {
-      oldAnswer: string;
-      newAnswer: string;
-      oldQuestion?: string;
-      newQuestion?: string;
-    },
-    @User({ chat_token: true }) user: UserModel,
+    @Param('vectorStoreId') vectorStoreId: string,
+    @Body() body: NotifyUpdatedChatbotAnswerParams,
+    @User({ courses: true }) user: UserModel,
   ): Promise<{ recipients: number }> {
-    handleChatbotTokenCheck(user);
-
     const { oldAnswer, newAnswer, oldQuestion, newQuestion } = body ?? {};
-    if (oldAnswer == undefined || newAnswer == undefined) {
-      throw new BadRequestException(
-        'oldAnswer and newAnswer must be provided to send notifications.',
-      );
-    }
+
     // Enforce: only allow notify when answer changed
     if ((oldAnswer ?? '').trim() === (newAnswer ?? '').trim()) {
       throw new BadRequestException(
@@ -419,7 +406,14 @@ export class ChatbotController {
 
     // Find all interactions in this course where this question was asked
     const asked = await ChatbotQuestionModel.find({
-      where: { vectorStoreId: questionId },
+      where: {
+        vectorStoreId: vectorStoreId,
+        interaction: {
+          course: {
+            id: courseId,
+          },
+        },
+      },
       relations: { interaction: { user: true, course: true } },
     });
     const recipients = Array.from(
@@ -432,10 +426,11 @@ export class ChatbotController {
     );
 
     if (recipients.length === 0) {
-      return { recipients: 0 };
+      throw new BadRequestException(
+        'Cannot send notification: no recipients for this question.',
+      );
     }
 
-    // Building email content
     const qChanged =
       (oldQuestion ?? '').trim() !== (newQuestion ?? oldQuestion ?? '').trim();
 
@@ -450,9 +445,21 @@ export class ChatbotController {
           oldQuestion ?? newQuestion ?? ''
         }</td></tr>`;
 
+    const courseName = asked[0]?.interaction?.course?.name ?? 'your course';
+
+    const courseRole =
+      user.courses?.find((uc: any) => uc.courseId === courseId)?.role ?? null;
+
+    const staffDescriptor =
+      courseRole === Role.PROFESSOR
+        ? 'the Instructor'
+        : courseRole === Role.TA
+          ? 'a TA'
+          : 'a staff member';
+
     const html = `
       <div>
-        <p>The answer to a chatbot question you asked has been updated.</p>
+        <p>The answer to a chatbot question you asked in ${courseName} has been updated by ${staffDescriptor}.</p>
         <table style="border-collapse:collapse;width:100%;">
           ${questionSection}
           <tr>
@@ -465,21 +472,27 @@ export class ChatbotController {
           </tr>
         </table>
         <br/>
-        <p>You can revisit the course chatbot from your course page.</p>
+        <p>
+          Want to follow up? Create an
+          <a href="${process.env.DOMAIN}/course/${courseId}/async_centre">Anytime Question</a>
+          to discuss it more!
+        </p>
       </div>
     `;
 
-    await this.mailService
-      .sendEmail({
-        receiverOrReceivers: recipients,
-        subject: 'Chatbot answer updated',
+    const limitedRecipients = recipients.slice(0, 5);
+
+    for (const email of limitedRecipients) {
+      await this.mailService.sendEmail({
+        receiverOrReceivers: email,
+        subject: `Chatbot answer updated by staff member for ${courseName}`,
         type: MailServiceType.CHATBOT_ANSWER_UPDATED,
         content: html,
         track: false,
-      })
-      .catch(() => {});
+      });
+    }
 
-    return { recipients: recipients.length };
+    return { recipients: limitedRecipients.length };
   }
   // @Get('resetCourse/:courseId')
   // @UseGuards(CourseRolesGuard)

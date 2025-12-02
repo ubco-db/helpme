@@ -314,7 +314,7 @@ class APIClient {
         this.req('DELETE', `/api/v1/chatbot/document/${courseId}/${docId}`),
       notifyAnswerUpdate: async (
         courseId: number,
-        questionId: string,
+        vectorStoreId: string,
         body: {
           oldAnswer: string
           newAnswer: string
@@ -324,7 +324,7 @@ class APIClient {
       ): Promise<{ recipients: number }> =>
         this.req(
           'POST',
-          `/api/v1/chatbot/question/${courseId}/${questionId}/notify`,
+          `/api/v1/chatbot/question/${courseId}/${vectorStoreId}/notify`,
           undefined,
           body,
         ),
