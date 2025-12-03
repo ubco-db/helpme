@@ -207,12 +207,9 @@ export class CourseService {
       if (coursePatch.courseInviteCode === null) {
         // Explicitly clear/disable invite code
         course.courseInviteCode = null;
-      } else if (coursePatch.courseInviteCode === '') {
-        // Empty string is treated as "generate a new random code"
-        course.courseInviteCode = this.generateRandomInviteCode();
       } else {
-        // In case we ever allow manual override again
-        course.courseInviteCode = coursePatch.courseInviteCode;
+        // Don't allow the user to set an invite code. Just give them a random one.
+        course.courseInviteCode = this.generateRandomInviteCode();
       }
     }
 
