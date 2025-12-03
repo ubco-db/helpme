@@ -1,4 +1,5 @@
 import {
+  decodeBase64,
   ERROR_MESSAGES,
   GetQueueResponse,
   ListQuestionsResponse,
@@ -115,10 +116,11 @@ export class QueueInviteController {
     @Param('inviteCode') inviteCode: string,
     @Res() res: Response,
   ): Promise<Response<PublicQueueInvite>> {
+    const decodedInviteCode = decodeBase64(inviteCode);
     try {
       const invite = await this.queueService.getQueueInvite(
         queueId,
-        inviteCode,
+        decodedInviteCode,
       );
       res.status(HttpStatus.OK).send(invite);
       return;

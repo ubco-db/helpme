@@ -14,6 +14,7 @@ import {
   StatusSentToCreator,
   StaffMember,
   ExtraTAStatus,
+  decodeBase64,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -522,6 +523,16 @@ export class QueueService {
       throw new BadRequestException('Queue does not have a queue invite');
     }
 
+    // make sure the invite code is either empty or at least 8 characters long
+    if (
+      newQueueInvite.inviteCode !== '' &&
+      newQueueInvite.inviteCode.length < 8
+    ) {
+      throw new BadRequestException(
+        'Invite code must be at least 8 characters long',
+      );
+    }
+
     try {
       await QueueInviteModel.update(queueId, newQueueInvite);
     } catch (err) {
@@ -626,8 +637,16 @@ export class QueueService {
 
   async verifyQueueInviteCodeAndCheckIfQuestionsVisible(
     queueId: number,
-    inviteCode: string,
+    encodedInviteCode: string,
   ): Promise<boolean> {
+    let inviteCode = '';
+    try {
+      inviteCode = decodeBase64(encodedInviteCode);
+    } catch (err) {
+      console.error('Error while decoding invite code:');
+      console.error(err);
+      throw new BadRequestException('Invalid invite code');
+    }
     const queueInvite = await QueueInviteModel.findOne({
       where: {
         queueId,
