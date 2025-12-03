@@ -65,7 +65,7 @@ export default function QueueInvitePage(
   const searchParams = useSearchParams()
   const router = useRouter()
   const encodedCode = searchParams.get('c') ?? ''
-  const inviteCode = encodedCode ? decodeBase64(encodedCode) : ''
+  const code = decodeBase64(encodedCode)
   const [projectorModeEnabled, setProjectorModeEnabled] = useState(false)
   const [pageLoading, setPageLoading] = useState(true)
   const [hasFetchErrorOccurred, setHasFetchErrorOccurred] = useState(false)
@@ -79,12 +79,12 @@ export default function QueueInvitePage(
   // NOTE: queueQuestions and queue are ONLY set if the queue invite code is correct and if the questions are visible
   const { queueQuestions } = useQuestionsWithQueueInvite(
     qid,
-    inviteCode,
+    encodedCode,
     queueInviteInfo?.isQuestionsVisible,
   )
   const { queue } = useQueueWithQueueInvite(
     qid,
-    inviteCode,
+    encodedCode,
     queueInviteInfo?.isQuestionsVisible,
   )
   const queueConfig = queue?.config
@@ -150,7 +150,7 @@ export default function QueueInvitePage(
 
   const fetchPublicQueueInviteInfo = useCallback(async () => {
     try {
-      const queueInviteInfo = await API.queueInvites.get(qid, inviteCode)
+      const queueInviteInfo = await API.queueInvites.get(qid, encodedCode)
       setQueueInviteInfo(queueInviteInfo)
     } catch (_error) {
       setHasFetchErrorOccurred(true)
