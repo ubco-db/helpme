@@ -96,6 +96,7 @@ interface StatusCardProps {
   studentName?: string
   helpedAt?: Date
   grouped?: boolean
+  isForPublic?: boolean // true for queue invite page
 }
 /**
  * View component just renders TA status
@@ -110,6 +111,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
   studentName,
   helpedAt,
   grouped,
+  isForPublic,
 }) => {
   const isBusy = !!helpedAt || !!ta.extraStatus
   const [canSave, setCanSave] = useState(false)
@@ -217,7 +219,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
               )}
             </div>
             {/* Students have a button to message their TAs */}
-            {!isStaff && queueId && (
+            {!isForPublic && !isStaff && queueId && (
               <MessageButton
                 recipientName={ta.name}
                 staffId={ta.id}
