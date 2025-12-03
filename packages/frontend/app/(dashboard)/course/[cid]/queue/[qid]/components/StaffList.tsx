@@ -111,9 +111,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
   helpedAt,
   grouped,
 }) => {
-  const isAway = ta.extraStatus === ExtraTAStatus.AWAY
   const isBusy = !!helpedAt || !!ta.extraStatus
-  const badgeStatus = isAway ? 'error' : isBusy ? 'processing' : 'success'
   const [canSave, setCanSave] = useState(false)
   const [popoverOpen, setPopoverOpen] = useState(false)
   const isStaff = myRole === Role.TA || myRole === Role.PROFESSOR
@@ -184,7 +182,16 @@ const StatusCard: React.FC<StatusCardProps> = ({
           <Row justify="space-between">
             <div className="font-bold text-gray-900">{ta.name}</div>
             <span>
-              <Badge status={badgeStatus} />
+              <Badge
+                className="mr-0.5"
+                status={
+                  ta.extraStatus === ExtraTAStatus.AWAY
+                    ? 'error'
+                    : isBusy
+                      ? 'processing'
+                      : 'success'
+                }
+              />
               {ta.extraStatus === ExtraTAStatus.AWAY
                 ? 'Away'
                 : isBusy
@@ -203,7 +210,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
                   extraTAStatus={ta.extraStatus}
                 />
               ) : ta.extraStatus === ExtraTAStatus.AWAY ? (
-                <span className="text-red-500">Away - Will be back soon</span>
+                'Will be back soon'
               ) : (
                 // this 1 dot is enough to make the button wrap onto the next row, so i'm only showing it as "..." if there's no button (it looks weird if it's still "..")
                 'Looking for my next student..' + (isStaff ? '.' : '')

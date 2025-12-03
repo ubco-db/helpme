@@ -55,8 +55,8 @@ export class QueueModel extends BaseEntity {
   // NOTE: This relation uses a JoinTable and is also mapped by QueueStaffModel
   // to store extra metadata (e.g., extra TA status) on the join row without
   // refactoring all code that expects staffList: UserModel[]. If you need to
-  // modify attributes on the join table itself, do so via QueueStaffModel; they
-  // will not appear on this staffList array.
+  // modify attributes on the join table itself, do so via QueueStaffModel; Note said attributes
+  // will not appear on this queues array and you will need to query them directly via QueueStaffModel.find(...)
   @ManyToMany((type) => UserModel, (user) => user.queues)
   @JoinTable()
   staffList: UserModel[];

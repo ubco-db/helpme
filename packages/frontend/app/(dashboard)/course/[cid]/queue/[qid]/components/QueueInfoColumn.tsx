@@ -32,6 +32,7 @@ import { QueuePartial, GetQueueChatsResponse, ExtraTAStatus } from '@koh/common'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 
 interface QueueInfoColumnProps {
   cid: number
@@ -62,12 +63,12 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
 }) => {
   const router = useRouter()
   const { userInfo } = useUserInfo()
+  const isMobile = useMediaQuery('(max-width: 768px)')
 
   const me = queue?.staffList?.find((s) => s.id === userInfo?.id)
   const isAway = me?.extraStatus === ExtraTAStatus.AWAY
   const [savingAway, setSavingAway] = useState(false)
   const awaySwitchId = `away-switch-${queueId}`
-  const awaySwitchMobileId = `away-switch-mobile-${queueId}`
   const toggleAway = async (checked: boolean) => {
     // checked = Away; unchecked = Answering
     const newStatus = checked ? ExtraTAStatus.AWAY : null
@@ -127,35 +128,20 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
       {/* buttons and queueUpToDateInfo for desktop (has different order than mobile)*/}
       <div className="hidden sm:block">
         <QueueUpToDateInfo queueId={queueId} />
-        {isStaff && (
-          <div className="mb-2 flex items-center justify-center gap-2">
-            <label htmlFor={awaySwitchId} className="text-sm text-[#5f6b79]">
-              Away
-            </label>
-            <Switch
-              id={awaySwitchId}
-              checked={isAway}
-              onChange={toggleAway}
-              loading={savingAway}
-            />
-          </div>
-        )}
         {buttons}
       </div>
 
       <div className="flex items-center justify-between md:mt-3">
         <h3 className="mb-0 text-2xl font-semibold">Staff</h3>
         {isStaff && (
-          <div className="ml-auto flex items-center gap-2 md:hidden">
-            <label
-              htmlFor={awaySwitchMobileId}
-              className="text-sm text-[#5f6b79]"
-            >
+          <div className="ml-auto flex items-center gap-2">
+            <label htmlFor={awaySwitchId} className="text-sm text-zinc-600">
               Away
             </label>
+
             <Switch
-              id={awaySwitchMobileId}
-              size="small"
+              id={awaySwitchId}
+              size={isMobile ? 'small' : undefined}
               checked={isAway}
               onChange={toggleAway}
               loading={savingAway}
