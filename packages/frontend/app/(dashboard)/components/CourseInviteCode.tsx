@@ -4,7 +4,6 @@ import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import printQRCode from '@/app/utils/QRCodePrintUtils'
 import {
-  CheckOutlined,
   CloseOutlined,
   CopyOutlined,
   QrcodeOutlined,
@@ -12,7 +11,7 @@ import {
   UsergroupAddOutlined,
 } from '@ant-design/icons'
 import { EditCourseInfoParams, OrganizationCourseResponse } from '@koh/common'
-import { Button, Form, Popconfirm, message, Divider } from 'antd'
+import { Button, Popconfirm, message, Divider } from 'antd'
 import { useCallback, useState } from 'react'
 
 type CourseInviteCodeProps = {
@@ -24,7 +23,6 @@ const CourseInviteCode: React.FC<CourseInviteCodeProps> = ({
   courseData,
   fetchCourseData,
 }) => {
-  const [form] = Form.useForm()
   const courseCode = courseData.course?.courseInviteCode
   const isEnabled = courseData.course?.isCourseInviteEnabled ?? false
   const [copyLinkText, setCopyLinkText] = useState('Copy Link')
@@ -105,63 +103,54 @@ const CourseInviteCode: React.FC<CourseInviteCodeProps> = ({
 
   return (
     <div className="space-y-3">
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={{
-          courseInviteCode: courseCode,
-        }}
-        onFinish={() => {}}
-      >
-        <div className="mb-2 flex flex-col justify-center gap-2 md:flex-row md:items-center">
-          {isEnabled ? <div>{inviteURL}</div> : <s>{inviteURL}</s>}
-          <div className="flex gap-2">
-            <Button
-              onClick={handleCopy}
-              type="primary"
-              disabled={!courseCode || !isEnabled}
-              icon={<CopyOutlined />}
-            >
-              {copyLinkText}
-            </Button>
-            <Button
-              onClick={() =>
-                printQRCode(courseData.course?.name ?? '', inviteURL)
-              }
-              disabled={!courseCode || !isEnabled}
-              icon={<QrcodeOutlined />}
-            >
-              Print QR Code
-            </Button>
-          </div>
-        </div>
-        <Divider size="middle" className="mx-auto min-w-2 max-w-40" />
-        <div className="flex w-full flex-wrap items-center justify-center gap-2 pt-1">
+      <div className="mb-2 flex flex-col justify-center gap-2 md:flex-row md:items-center">
+        {isEnabled ? <div>{inviteURL}</div> : <s>{inviteURL}</s>}
+        <div className="flex gap-2">
           <Button
-            type={isEnabled ? 'default' : 'primary'}
-            onClick={handleEnableDisable}
-            className="px-4"
-            icon={isEnabled ? <CloseOutlined /> : <UsergroupAddOutlined />}
+            onClick={handleCopy}
+            type="primary"
+            disabled={!courseCode || !isEnabled}
+            icon={<CopyOutlined />}
           >
-            {isEnabled ? 'Disable Invite Link' : 'Enable Invite Link'}
+            {copyLinkText}
           </Button>
-          <Popconfirm
-            title="Regenerate invite link?"
-            description="This will invalidate the current invite link and generate a new one. Students with the old link will no longer be able to join."
-            onConfirm={handleRegenerate}
-            okText="Yes"
-            cancelText="No"
+          <Button
+            onClick={() =>
+              printQRCode(courseData.course?.name ?? '', inviteURL)
+            }
+            disabled={!courseCode || !isEnabled}
+            icon={<QrcodeOutlined />}
           >
-            <Button
-              icon={<ReloadOutlined />}
-              className="px-4"
-              disabled={!isEnabled}
-            >
-              Regenerate Link
-            </Button>
-          </Popconfirm>
+            Print QR Code
+          </Button>
         </div>
-      </Form>
+      </div>
+      <Divider size="middle" className="mx-auto min-w-2 max-w-40" />
+      <div className="flex w-full flex-wrap items-center justify-center gap-2 pt-1">
+        <Button
+          type={isEnabled ? 'default' : 'primary'}
+          onClick={handleEnableDisable}
+          className="px-4"
+          icon={isEnabled ? <CloseOutlined /> : <UsergroupAddOutlined />}
+        >
+          {isEnabled ? 'Disable Invite Link' : 'Enable Invite Link'}
+        </Button>
+        <Popconfirm
+          title="Regenerate invite link?"
+          description="This will invalidate the current invite link and generate a new one. Students with the old link will no longer be able to join."
+          onConfirm={handleRegenerate}
+          okText="Yes"
+          cancelText="No"
+        >
+          <Button
+            icon={<ReloadOutlined />}
+            className="px-4"
+            disabled={!isEnabled}
+          >
+            Regenerate Link
+          </Button>
+        </Popconfirm>
+      </div>
     </div>
   )
 }
