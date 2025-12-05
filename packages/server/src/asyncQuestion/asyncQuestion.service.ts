@@ -1,4 +1,10 @@
-import { MailServiceType, parseThinkBlock, Role } from '@koh/common';
+import {
+  AlertDeliveryMode,
+  AlertType,
+  MailServiceType,
+  parseThinkBlock,
+  Role,
+} from '@koh/common';
 import { Injectable } from '@nestjs/common';
 import { MailService } from 'mail/mail.service';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
@@ -10,12 +16,13 @@ import * as Sentry from '@sentry/nestjs';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 import { CourseSettingsModel } from '../course/course_settings.entity';
 import { SentEmailModel } from '../mail/sent-email.entity';
+import { AlertModel } from '../alerts/alerts.entity';
 
 @Injectable()
 export class AsyncQuestionService {
   constructor(private mailService: MailService) {}
 
-  async sendNewCommentOnMyQuestionEmail(
+  async sendNewCommentOnMyQuestionEmailAndAlert(
     commenter: UserModel,
     commenterRole: Role,
     question: AsyncQuestionModel,
@@ -56,12 +63,28 @@ export class AsyncQuestionService {
           Sentry.captureException(err);
         });
     }
+
+    const commenterIsStaff =
+      commenterRole === Role.TA || commenterRole === Role.PROFESSOR;
+    await AlertModel.create({
+      alertType: AlertType.ASYNC_QUESTION_UPDATE,
+      deliveryMode: AlertDeliveryMode.FEED,
+      sent: new Date(),
+      userId: question.creator.id,
+      courseId: question.courseId,
+      payload: {
+        courseId: question.courseId,
+        questionId: question.id,
+        subtype: 'commentOnMyPost',
+        summary: `${commenterIsStaff ? commenter.name : 'Someone'} commented on your question`,
+      },
+    }).save();
   }
 
   /*send emails out to all users that have posted a comment on this question.
       Note that updatedQuestion must have comments and comments.creator relations
       */
-  async sendNewCommentOnOtherQuestionEmail(
+  async sendNewCommentOnOtherQuestionEmailAndAlert(
     commenter: UserModel,
     commenterRole: Role,
     questionCreatorId: number,
@@ -115,6 +138,31 @@ export class AsyncQuestionService {
         }
       });
     });
+    // FEED alerts to all participants who commented (excluding current commenter and creator), regardless of email subscriptions
+    const participantIds = Array.from(
+      new Set(
+        updatedQuestion.comments
+          .map((c) => c.creator.id)
+          .filter((id) => id !== commenter.id && id !== questionCreatorId),
+      ),
+    );
+    await Promise.all(
+      participantIds.map((uid) =>
+        AlertModel.create({
+          alertType: AlertType.ASYNC_QUESTION_UPDATE,
+          deliveryMode: AlertDeliveryMode.FEED,
+          sent: new Date(),
+          userId: uid,
+          courseId: updatedQuestion.courseId,
+          payload: {
+            courseId: updatedQuestion.courseId,
+            questionId: updatedQuestion.id,
+            subtype: 'commentOnOthersPost',
+            summary: `${commenterIsStaff ? commenter.name : 'Someone'} commented on an Anytime Question you follow`,
+          },
+        }).save(),
+      ),
+    );
   }
 
   async sendNeedsAttentionEmail(question: AsyncQuestionModel) {
@@ -203,6 +251,19 @@ export class AsyncQuestionService {
           console.error('Failed to send email Human Answered email: ' + err);
           Sentry.captureException(err);
         });
+      await AlertModel.create({
+        alertType: AlertType.ASYNC_QUESTION_UPDATE,
+        deliveryMode: AlertDeliveryMode.FEED,
+        sent: new Date(),
+        userId: question.creator.id,
+        courseId: question.courseId,
+        payload: {
+          courseId: question.courseId,
+          questionId: question.id,
+          subtype: 'humanAnswered',
+          summary: 'Your Anytime Question has been answered',
+        } as any,
+      }).save();
     }
   }
 
@@ -242,7 +303,7 @@ export class AsyncQuestionService {
   }
 
   /* Not really used right now since the only status that staff can change is changing it to "Human Answered" */
-  async sendGenericStatusChangeEmail(
+  async sendGenericStatusChangeEmailAndAlert(
     question: AsyncQuestionModel,
     status: string,
   ) {
@@ -274,10 +335,23 @@ export class AsyncQuestionService {
           console.error('Failed to send email Status Changed email: ' + err);
           Sentry.captureException(err);
         });
+      await AlertModel.create({
+        alertType: AlertType.ASYNC_QUESTION_UPDATE,
+        deliveryMode: AlertDeliveryMode.FEED,
+        sent: new Date(),
+        userId: question.creator.id,
+        courseId: question.courseId,
+        payload: {
+          courseId: question.courseId,
+          questionId: question.id,
+          subtype: 'statusChanged',
+          summary: `Your Anytime Question status changed to ${status}`,
+        },
+      }).save();
     }
   }
 
-  async sendUpvotedEmail(updatedQuestion: AsyncQuestionModel) {
+  async sendUpvotedEmailAndAlert(updatedQuestion: AsyncQuestionModel) {
     const subscription = await UserSubscriptionModel.findOne({
       where: {
         userId: updatedQuestion.creator.id,
@@ -306,6 +380,19 @@ export class AsyncQuestionService {
           console.error('Failed to send email Vote Question email: ' + err);
           Sentry.captureException(err);
         });
+      await AlertModel.create({
+        alertType: AlertType.ASYNC_QUESTION_UPDATE,
+        deliveryMode: AlertDeliveryMode.FEED,
+        sent: new Date(),
+        userId: updatedQuestion.creator.id,
+        courseId: updatedQuestion.courseId,
+        payload: {
+          courseId: updatedQuestion.courseId,
+          questionId: updatedQuestion.id,
+          subtype: 'upvoted',
+          summary: 'Your Anytime Question was upvoted',
+        },
+      }).save();
     }
   }
 

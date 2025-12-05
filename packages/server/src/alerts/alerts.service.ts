@@ -1,9 +1,12 @@
 import {
   Alert,
+  AlertDeliveryMode,
   AlertPayload,
   AlertType,
   RephraseQuestionPayload,
   PromptStudentToLeaveQueuePayload,
+  DocumentProcessedPayload,
+  AsyncQuestionUpdatePayload,
 } from '@koh/common';
 import { pick } from 'lodash';
 import { Injectable } from '@nestjs/common';
@@ -17,10 +20,8 @@ export class AlertsService {
     const nonStaleAlerts = [];
 
     for (const alert of alerts) {
-      // Might be one of the few usecases for ReasonML
-
       switch (alert.alertType) {
-        case AlertType.REPHRASE_QUESTION:
+        case AlertType.REPHRASE_QUESTION: {
           const payload = alert.payload as RephraseQuestionPayload;
           const question = await QuestionModel.findOne({
             where: { id: payload.questionId },
@@ -33,8 +34,8 @@ export class AlertsService {
             },
           });
 
-          const isQueueOpen = queue.staffList.length > 0 && !queue.isDisabled;
-          if (question.closedAt || !isQueueOpen) {
+          const isQueueOpen = queue?.staffList.length > 0 && !queue?.isDisabled;
+          if (question?.closedAt || !queue || !isQueueOpen) {
             alert.resolved = new Date();
             await alert.save();
           } else {
@@ -43,21 +44,27 @@ export class AlertsService {
             );
           }
           break;
+        }
         case AlertType.EVENT_ENDED_CHECKOUT_STAFF:
+        case AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE:
+        case AlertType.DOCUMENT_PROCESSED:
+        case AlertType.ASYNC_QUESTION_UPDATE:
           nonStaleAlerts.push(
-            pick(alert, ['sent', 'alertType', 'payload', 'id']),
+            pick(alert, [
+              'sent',
+              'alertType',
+              'payload',
+              'id',
+              'deliveryMode',
+              'readAt',
+            ]),
           );
           break;
-        case AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE:
-          nonStaleAlerts.push(
-            pick(alert, ['sent', 'alertType', 'payload', 'id']),
-          );
       }
     }
 
     return nonStaleAlerts;
   }
-
   assertPayloadType(alertType: AlertType, payload: AlertPayload): boolean {
     switch (alertType) {
       case AlertType.REPHRASE_QUESTION:
@@ -80,6 +87,24 @@ export class AlertsService {
           (promptPayload.queueQuestionId === undefined ||
             typeof promptPayload.queueQuestionId === 'number')
         );
+
+      case AlertType.DOCUMENT_PROCESSED:
+      case AlertType.ASYNC_QUESTION_UPDATE:
+        const docPayload = payload as DocumentProcessedPayload;
+        // For async question update, ensure course/question IDs exist; for document processed, ensure doc info exists
+        if ((alertType as AlertType) === AlertType.DOCUMENT_PROCESSED) {
+          return (
+            typeof docPayload.documentId === 'number' &&
+            typeof docPayload.documentName === 'string' &&
+            docPayload.documentName.trim().length > 0
+          );
+        } else {
+          const asyncPayload = payload as AsyncQuestionUpdatePayload;
+          return (
+            typeof (asyncPayload as any).courseId === 'number' &&
+            typeof (asyncPayload as any).questionId === 'number'
+          );
+        }
 
       default:
         return true;

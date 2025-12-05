@@ -10,7 +10,7 @@ import { EntityManager } from 'typeorm';
 import { UserModel } from '../profile/user.entity';
 import { CalendarModel } from './calendar.entity';
 import { AlertModel } from '../alerts/alerts.entity';
-import { AlertType, ERROR_MESSAGES } from '@koh/common';
+import { AlertDeliveryMode, AlertType, ERROR_MESSAGES } from '@koh/common';
 import { QueueModel } from '../queue/queue.entity';
 import { EventModel, EventType } from '../profile/event-model.entity';
 import { CronJob } from 'cron';
@@ -235,6 +235,7 @@ export class CalendarService implements OnModuleInit {
     try {
       alert = await AlertModel.create({
         alertType: AlertType.EVENT_ENDED_CHECKOUT_STAFF,
+        deliveryMode: AlertDeliveryMode.MODAL,
         sent: now,
         userId: userId,
         courseId: courseId,

@@ -3,10 +3,10 @@ import {
   PromptStudentToLeaveQueuePayload,
   RephraseQuestionPayload,
 } from '@koh/common'
-import useSWR from 'swr'
 import { useRouter } from 'next/navigation'
 import StudentRephraseModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/StudentRephraseModal'
 import { API } from '../api'
+import { useAlertsContext } from '@/app/contexts/alertsContext'
 import EventEndedCheckoutStaffModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/EventEndedCheckoutStaffModal'
 import PromptStudentToLeaveQueueModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/PromptStudentToLeaveQueueModal'
 
@@ -15,23 +15,15 @@ type AlertsContainerProps = {
 }
 const AlertsContainer: React.FC<AlertsContainerProps> = ({ courseId }) => {
   const router = useRouter()
-  const { data, mutate: mutateAlerts } = useSWR(
-    '/api/v1/alerts',
-    async () => API.alerts.get(courseId),
-    {
-      refreshInterval: 60000, // revalidate every minute
-    },
-  )
-  const alerts = data?.alerts
+  const { thisCourseAlerts, closeCourseAlert } = useAlertsContext()
+  const alerts = thisCourseAlerts
 
   const handleCloseRephrase = async (
     alertId: number,
     courseId: number,
     queueId: number,
   ) => {
-    await API.alerts.close(alertId)
-
-    await mutateAlerts()
+    await closeCourseAlert(alertId)
     router.push(`/course/${courseId}/queue/${queueId}?edit_question=true`)
   }
 
@@ -51,8 +43,7 @@ const AlertsContainer: React.FC<AlertsContainerProps> = ({ courseId }) => {
           <EventEndedCheckoutStaffModal
             courseId={courseId}
             handleClose={async () => {
-              await API.alerts.close(alert.id)
-              await mutateAlerts()
+              await closeCourseAlert(alert.id)
             }}
           />
         )
@@ -67,8 +58,7 @@ const AlertsContainer: React.FC<AlertsContainerProps> = ({ courseId }) => {
                 .queueQuestionId
             }
             handleClose={async () => {
-              await API.alerts.close(alert.id)
-              await mutateAlerts()
+              await closeCourseAlert(alert.id)
             }}
           />
         )
