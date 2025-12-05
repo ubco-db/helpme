@@ -7,6 +7,7 @@ import {
   CreateOrganizationChatbotSettingsBody,
   dropUndefined,
   ERROR_MESSAGES,
+  MailServiceType,
   OrganizationRole,
   Role,
   UpdateChatbotProviderBody,
@@ -25,7 +26,12 @@ import {
   UserCourseFactory,
   UserFactory,
 } from './util/factories';
-import { setupIntegrationTest } from './util/testUtils';
+import {
+  expectEmailNotSent,
+  expectEmailSent,
+  overrideEmailService,
+  setupIntegrationTest,
+} from './util/testUtils';
 import { ChatbotQuestionModel } from 'chatbot/question.entity';
 import { OrganizationModel } from '../src/organization/organization.entity';
 import { CourseModel } from '../src/course/course.entity';
@@ -40,7 +46,10 @@ import { UserModel } from '../src/profile/user.entity';
 import { ChatbotApiService } from '../src/chatbot/chatbot-api.service';
 
 describe('ChatbotController Integration', () => {
-  const { supertest } = setupIntegrationTest(ChatbotModule);
+  const { supertest } = setupIntegrationTest(
+    ChatbotModule,
+    overrideEmailService,
+  );
 
   describe('PATCH /chatbot/questionScore/:courseId/:questionId', () => {
     it('should allow a student to update the score of a question', async () => {
@@ -130,6 +139,110 @@ describe('ChatbotController Integration', () => {
       expect(response.body.responseText).toEqual(body.responseText);
       expect(response.body.vectorStoreId).toEqual(body.vectorStoreId);
       expect(response.body.interactionId).toBeDefined();
+    });
+  });
+
+  describe('POST /chatbot/question/:courseId/:vectorStoreId/notify', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('sends individual emails (capped at 5 recipients) to users who asked the question', async () => {
+      const professor = await UserFactory.create();
+      const course = await CourseFactory.create();
+      await UserCourseFactory.create({
+        user: professor,
+        course,
+        role: Role.PROFESSOR,
+      });
+
+      const vectorStoreId = 'vec-notify-123';
+
+      const students = await Promise.all(
+        Array.from({ length: 6 }).map((_, i) =>
+          UserFactory.create({
+            email: `chatbot-notify-${i}@example.com`,
+          }),
+        ),
+      );
+
+      for (const student of students) {
+        await UserCourseFactory.create({
+          user: student,
+          course,
+          role: Role.STUDENT,
+        });
+        const interaction = await InteractionFactory.create({
+          user: student,
+          course,
+        });
+        await ChatbotQuestionModel.create({
+          vectorStoreId,
+          questionText: 'Original question text',
+          responseText: 'Old answer',
+          suggested: true,
+          interaction,
+        }).save();
+      }
+
+      const body = {
+        oldAnswer: 'Old answer',
+        newAnswer: 'New updated answer',
+        oldQuestion: 'Old question?',
+        newQuestion: 'New updated question?',
+      };
+
+      const res = await supertest({ userId: professor.id })
+        .post(`/chatbot/question/${course.id}/${vectorStoreId}/notify`)
+        .send(body)
+        .expect(201);
+
+      expect(res.body).toEqual({ recipients: 5 });
+      expectEmailSent(
+        students.slice(0, 5).map((s) => s.email),
+        Array(5).fill(MailServiceType.CHATBOT_ANSWER_UPDATED),
+      );
+    });
+
+    it('returns 400 and does not send emails when answer did not change', async () => {
+      const professor = await UserFactory.create();
+      const course = await CourseFactory.create();
+      await UserCourseFactory.create({
+        user: professor,
+        course,
+        role: Role.PROFESSOR,
+      });
+
+      const vectorStoreId = 'vec-notify-unchanged';
+      const student = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: student,
+        course,
+        role: Role.STUDENT,
+      });
+      const interaction = await InteractionFactory.create({
+        user: student,
+        course,
+      });
+      await ChatbotQuestionModel.create({
+        vectorStoreId,
+        questionText: 'Some question',
+        responseText: 'Same answer',
+        suggested: true,
+        interaction,
+      }).save();
+
+      const body = {
+        oldAnswer: 'Same answer',
+        newAnswer: ' Same answer ',
+      };
+
+      await supertest({ userId: professor.id })
+        .post(`/chatbot/question/${course.id}/${vectorStoreId}/notify`)
+        .send(body)
+        .expect(400);
+
+      expectEmailNotSent();
     });
   });
 

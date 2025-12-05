@@ -6,11 +6,7 @@ import {
 } from './lmsIntegration.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import {
-  TestChatbotConnectionOptions,
-  TestConfigModule,
-  TestTypeOrmModule,
-} from '../../test/util/testUtils';
+import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import {
   AbstractLMSAdapter,
   LMSIntegrationAdapter,
@@ -39,7 +35,6 @@ import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
 import { LMSAssignmentModel } from './lmsAssignment.entity';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
-import { ChatbotModule } from '../chatbot/chatbot.module';
 import { ChatbotApiService } from '../chatbot/chatbot-api.service';
 
 const mockCacheManager = {
@@ -60,12 +55,7 @@ describe('LMSIntegrationService', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [
-        TestTypeOrmModule,
-        TestConfigModule,
-        FactoryModule,
-        ChatbotModule.forRoot(TestChatbotConnectionOptions),
-      ],
+      imports: [TestTypeOrmModule, TestConfigModule, FactoryModule],
       providers: [
         LMSIntegrationService,
         LMSIntegrationAdapter,
