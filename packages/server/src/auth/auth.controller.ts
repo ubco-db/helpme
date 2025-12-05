@@ -37,6 +37,7 @@ import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import * as bcrypt from 'bcrypt';
 import { getCookie } from '../common/helpers';
 import { CourseService } from 'course/course.service';
+import { ProfInviteService } from 'course/prof-invite/prof-invite.service';
 
 interface RequestUser {
   userId: string;
@@ -52,6 +53,7 @@ export class AuthController {
     private mailService: MailService,
     private authService: AuthService,
     private courseService: CourseService,
+    private profInviteService: ProfInviteService,
   ) {}
 
   @Get('shibboleth/:oid')
@@ -168,8 +170,18 @@ export class AuthController {
     await emailToken.save();
     const cookie = getCookie(req, '__SECURE_REDIRECT');
     const queueInviteCookie = getCookie(req, 'queueInviteInfo');
+    const profInviteCookie = getCookie(req, 'profInviteInfo');
 
-    if (queueInviteCookie) {
+    if (profInviteCookie) {
+      await this.profInviteService
+        .acceptProfInviteFromCookie(userId, profInviteCookie)
+        .then((url) => {
+          res.clearCookie('profInviteInfo');
+          return res.status(HttpStatus.TEMPORARY_REDIRECT).send({
+            redirectUri: url,
+          });
+        });
+    } else if (queueInviteCookie) {
       await this.courseService
         .getQueueInviteRedirectURLandInviteToCourse(queueInviteCookie, userId)
         .then((url) => {
@@ -511,8 +523,16 @@ export class AuthController {
     let redirectUrl: string;
     const cookie = getCookie(req, '__SECURE_REDIRECT');
     const queueInviteCookie = getCookie(req, 'queueInviteInfo');
+    const profInviteCookie = getCookie(req, 'profInviteInfo');
 
-    if (queueInviteCookie) {
+    if (profInviteCookie) {
+      await this.profInviteService
+        .acceptProfInviteFromCookie(userId, profInviteCookie)
+        .then((url) => {
+          redirectUrl = url;
+          res.clearCookie('profInviteInfo');
+        });
+    } else if (queueInviteCookie) {
       await this.courseService
         .getQueueInviteRedirectURLandInviteToCourse(queueInviteCookie, userId)
         .then((url) => {

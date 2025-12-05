@@ -1,12 +1,15 @@
 import {
+  AcceptProfInviteParams,
   CourseCloneAttributes,
   CourseSettingsRequestBody,
   CourseSettingsResponse,
+  CreateProfInviteParams,
   EditCourseInfoParams,
   ERROR_MESSAGES,
   GetCourseResponse,
   GetCourseUserInfoResponse,
   GetLimitedCourseResponse,
+  GetProfInviteResponse,
   Heatmap,
   OrganizationRole,
   QuestionStatusKeys,
@@ -69,6 +72,8 @@ import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { CourseRoles } from 'decorators/course-roles.decorator';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { OrganizationService } from '../organization/organization.service';
+import { ProfInviteModel } from './prof-invite/prof-invite.entity';
+import { OrganizationRolesGuard } from 'guards/organization-roles.guard';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)

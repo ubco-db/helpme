@@ -25,6 +25,7 @@ import {
   COURSE_TIMEZONES,
   CourseResponse,
   CourseSettingsRequestBody,
+  CreateCourseResponse,
   ERROR_MESSAGES,
   GetOrganizationResponse,
   GetOrganizationUserResponse,
@@ -298,7 +299,7 @@ export class OrganizationController {
     @OrgRole() orgRole: OrganizationRole,
     @Body() courseDetails: UpdateOrganizationCourseDetailsParams,
     @Res() res: Response,
-  ): Promise<Response<void>> {
+  ): Promise<Response<CreateCourseResponse>> {
     const orgSettings =
       await this.organizationService.getOrganizationSettings(oid);
     if (
@@ -344,9 +345,10 @@ export class OrganizationController {
         )}`,
       });
     }
+    let newCourse: CourseModel;
     await this.dataSource.transaction(async (manager) => {
       // Create course entity
-      const newCourse = manager.create(CourseModel, {
+      newCourse = manager.create(CourseModel, {
         name: courseDetails.name,
         coordinator_email: courseDetails.coordinator_email,
         sectionGroupName: courseDetails.sectionGroupName,
@@ -432,6 +434,7 @@ export class OrganizationController {
 
     return res.status(status).send({
       message: message,
+      courseId: newCourse.id,
     });
   }
 

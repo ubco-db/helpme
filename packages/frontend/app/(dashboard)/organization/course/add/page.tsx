@@ -143,12 +143,14 @@ export default function AddCoursePage(): ReactElement {
         profIds: profIds,
         courseSettings: courseFeatures,
       })
-      .then(async () => {
-        message.success('Course was created')
+      .then(async (createCourseResponse) => {
+        message.success(createCourseResponse.message)
         // need to update userInfo so the course shows up in /courses
         await userApi.getUser().then((userDetails) => {
           setUserInfo(userDetails)
-          router.push('/courses')
+          router.push(
+            `/courses?highlightedCourse=${createCourseResponse.courseId}`,
+          )
         })
       })
       .catch((error) => {

@@ -7,6 +7,7 @@ import {
   GetCourseUserInfoResponse,
   MailServiceType,
   OrganizationRole,
+  QUERY_PARAMS,
   QueueConfig,
   QueueTypes,
   Role,
@@ -332,7 +333,7 @@ export class CourseService {
     // check if the queueInvite exists and if it will invite to course
     const queueInvite = await QueueInviteModel.findOne({
       where: {
-        queueId: parseInt(queueId),
+        queueId: Number(queueId),
       },
     });
     // get the user to see if they are in the course
@@ -357,19 +358,19 @@ export class CourseService {
       }
     } else if (!queueInvite) {
       // if the queueInvite doesn't exist
-      return '/courses?err=inviteNotFound';
+      return `/courses?err=${QUERY_PARAMS.queueInvite.error.inviteNotFound}`;
     } else if (queueInvite.willInviteToCourse && courseInviteCode) {
       // get course
       const course = await CourseModel.findOne({
         where: {
-          id: parseInt(courseId),
+          id: Number(courseId),
         },
       });
       if (!course) {
-        return '/courses?err=courseNotFound';
+        return `/courses?err=${QUERY_PARAMS.queueInvite.error.courseNotFound}`;
       }
       if (course.courseInviteCode !== courseInviteCode) {
-        return '/courses?err=badCourseInviteCode';
+        return `/courses?err=${QUERY_PARAMS.queueInvite.error.badCourseInviteCode}`;
       }
       await this.addStudentToCourse(course, user).catch((err) => {
         throw new BadRequestException(err.message);
@@ -381,7 +382,7 @@ export class CourseService {
         return '/courses';
       }
     } else {
-      return `/courses?err=notInCourse`;
+      return `/courses?err=${QUERY_PARAMS.queueInvite.error.notInCourse}`;
     }
   }
 
