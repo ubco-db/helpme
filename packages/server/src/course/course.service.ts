@@ -14,6 +14,7 @@ import {
   TACheckinTimesResponse,
   UserCourse,
   UserPartial,
+  ExtraTAStatus,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -43,6 +44,7 @@ import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueModel } from 'queue/queue.entity';
 import { SuperCourseModel } from './super-course.entity';
 import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
+import { QueueStaffModel } from 'queue/queue-staff.entity';
 
 @Injectable()
 export class CourseService {
@@ -122,6 +124,57 @@ export class CourseService {
     }
 
     return { taCheckinTimes };
+  }
+
+  async setTAExtraStatusForQueue(
+    queueId: number,
+    courseId: number,
+    userId: number,
+    status: ExtraTAStatus | null,
+  ): Promise<void> {
+    const allowedStatuses: Array<ExtraTAStatus | null> = [
+      ExtraTAStatus.AWAY,
+      null,
+    ];
+    if (!allowedStatuses.includes(status ?? null)) {
+      throw new BadRequestException('Invalid status');
+    }
+
+    const joinRow = await QueueStaffModel.findOne({
+      where: { queueModelId: queueId, userModelId: userId },
+    });
+    if (!joinRow) {
+      // If the row doesn't exist, something is out of sync; bail
+      throw new BadRequestException('Unable to set status');
+    }
+
+    const prev = joinRow.extraTAStatus;
+    joinRow.extraTAStatus = status ?? null;
+    await joinRow.save();
+
+    if (
+      prev !== ExtraTAStatus.AWAY &&
+      joinRow.extraTAStatus === ExtraTAStatus.AWAY
+    ) {
+      await EventModel.create({
+        time: new Date(),
+        eventType: EventType.TA_MARKED_SELF_AWAY,
+        userId,
+        courseId,
+        queueId,
+      }).save();
+    } else if (
+      prev === ExtraTAStatus.AWAY &&
+      (joinRow.extraTAStatus === null || joinRow.extraTAStatus === undefined)
+    ) {
+      await EventModel.create({
+        time: new Date(),
+        eventType: EventType.TA_MARKED_SELF_BACK,
+        userId,
+        courseId,
+        queueId,
+      }).save();
+    }
   }
 
   async removeUserFromCourse(userCourse: UserCourseModel): Promise<void> {
