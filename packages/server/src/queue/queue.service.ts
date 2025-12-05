@@ -1,5 +1,4 @@
 import {
-  decodeBase64,
   generateTagIdFromName,
   LimboQuestionStatus,
   ListQuestionsResponse,
@@ -15,6 +14,7 @@ import {
   StatusSentToCreator,
   StaffMember,
   ExtraTAStatus,
+  decodeBase64,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -32,6 +32,7 @@ import { ApplicationConfigService } from '../config/application_config.service';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueInviteModel } from './queue-invite.entity';
 import { UserModel } from 'profile/user.entity';
+import * as crypto from 'crypto';
 
 type StaffHelpingInOtherQueues = {
   queueId: number;
@@ -462,7 +463,10 @@ export class QueueService {
     }
 
     try {
-      const invite = QueueInviteModel.create({ queueId });
+      const invite = QueueInviteModel.create({
+        queueId,
+        inviteCode: this.generateRandomInviteCode(),
+      });
       await invite.save();
     } catch (err) {
       console.error('Error while creating queue invite:');
@@ -655,5 +659,9 @@ export class QueueService {
     }
 
     return !!queueInvite.isQuestionsVisible;
+  }
+
+  private generateRandomInviteCode(): string {
+    return crypto.randomBytes(6).toString('hex');
   }
 }
