@@ -12327,10 +12327,10 @@ react-async-script@^1.2.0:
     hoist-non-react-statics "^3.3.0"
     prop-types "^15.5.0"
 
-react-dom@19.1.0:
-  version "19.1.0"
-  resolved "https://registry.yarnpkg.com/react-dom/-/react-dom-19.1.0.tgz#133558deca37fa1d682708df8904b25186793623"
-  integrity sha512-Xs1hdnE+DyKgeHJeJznQmYMIBG3TKIHJJT95Q58nHLSrElKlGQqDTR2HQ9fx5CN/Gk6Vh/kupBTDLU11/nDk/g==
+react-dom@19.1.2:
+  version "19.1.2"
+  resolved "https://registry.yarnpkg.com/react-dom/-/react-dom-19.1.2.tgz#18ce6b14f682f4871a69cc6b2568d42af2cd5a33"
+  integrity sha512-dEoydsCp50i7kS1xHOmPXq4zQYoGWedUsvqv9H6zdif2r7yLHygyfP9qou71TulRN0d6ng9EbRVsQhSqfUc19g==
   dependencies:
     scheduler "^0.26.0"
 
@@ -12453,10 +12453,10 @@ react-use-measure@^2.0.4:
   resolved "https://registry.yarnpkg.com/react-use-measure/-/react-use-measure-2.1.7.tgz#36b8a2e7fd2fa58109ab851b3addcb0aad66ad1d"
   integrity sha512-KrvcAo13I/60HpwGO5jpW7E9DfusKyLPLvuHlUyP5zqnmAPhNc6qTRjUQrdTADl0lpPpDVU2/Gg51UlOGHXbdg==
 
-react@19.1.0:
-  version "19.1.0"
-  resolved "https://registry.yarnpkg.com/react/-/react-19.1.0.tgz#926864b6c48da7627f004795d6cce50e90793b75"
-  integrity sha512-FS+XFBNvn3GTAWq26joslQgWNoFu08F4kl0J4CgdNKADkdSGXQyTCnKteIAJy96Br6YbpEU1LSzV5dYtjMkMDg==
+react@19.1.2:
+  version "19.1.2"
+  resolved "https://registry.yarnpkg.com/react/-/react-19.1.2.tgz#fd75c4f684b52fe45101381535c58486f4407545"
+  integrity sha512-MdWVitvLbQULD+4DP8GYjZUrepGW7d+GQkNVqJEzNxE+e9WIa4egVFE/RDfVb1u9u/Jw7dNMmPB4IqxzbFYJ0w==
 
 read-cache@^1.0.0:
   version "1.0.0"
