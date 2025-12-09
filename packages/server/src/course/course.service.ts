@@ -358,7 +358,10 @@ export class CourseService {
       }
     } else if (!queueInvite) {
       // if the queueInvite doesn't exist
-      return `/courses?err=${QUERY_PARAMS.queueInvite.error.inviteNotFound}`;
+      const params = new URLSearchParams({
+        err: QUERY_PARAMS.queueInvite.error.inviteNotFound,
+      });
+      return `/courses?${params.toString()}`;
     } else if (queueInvite.willInviteToCourse && courseInviteCode) {
       // get course
       const course = await CourseModel.findOne({
@@ -367,10 +370,16 @@ export class CourseService {
         },
       });
       if (!course) {
-        return `/courses?err=${QUERY_PARAMS.queueInvite.error.courseNotFound}`;
+        const params = new URLSearchParams({
+          err: QUERY_PARAMS.queueInvite.error.courseNotFound,
+        });
+        return `/courses?${params.toString()}`;
       }
       if (course.courseInviteCode !== courseInviteCode) {
-        return `/courses?err=${QUERY_PARAMS.queueInvite.error.badCourseInviteCode}`;
+        const params = new URLSearchParams({
+          err: QUERY_PARAMS.queueInvite.error.badCourseInviteCode,
+        });
+        return `/courses?${params.toString()}`;
       }
       await this.addStudentToCourse(course, user).catch((err) => {
         throw new BadRequestException(err.message);
@@ -382,7 +391,10 @@ export class CourseService {
         return '/courses';
       }
     } else {
-      return `/courses?err=${QUERY_PARAMS.queueInvite.error.notInCourse}`;
+      const params = new URLSearchParams({
+        err: QUERY_PARAMS.queueInvite.error.notInCourse,
+      });
+      return `/courses?${params.toString()}`;
     }
   }
 

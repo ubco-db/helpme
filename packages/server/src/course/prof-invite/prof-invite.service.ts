@@ -66,7 +66,11 @@ export class ProfInviteService {
       },
     });
     if (!profInvite) {
-      return `/courses?err=${QUERY_PARAMS.profInvite.error.notFound}&${QUERY_PARAMS.profInvite.error.profInviteId}=${profInviteId}`;
+      const params = new URLSearchParams({
+        err: QUERY_PARAMS.profInvite.error.notFound,
+        [QUERY_PARAMS.profInvite.error.profInviteId]: profInviteId.toString(),
+      });
+      return `/courses?${params.toString()}`;
     }
 
     // check if already in course (if so, just redirect and don't consume invite)
@@ -79,7 +83,10 @@ export class ProfInviteService {
       },
     });
     if (!user) {
-      return `/courses?err=${QUERY_PARAMS.profInvite.error.userNotFound}`;
+      const params = new URLSearchParams({
+        err: QUERY_PARAMS.profInvite.error.userNotFound,
+      });
+      return `/courses?${params.toString()}`;
     }
     const existingUserCourse = user.courses.find(
       (uc) => uc.courseId === profInvite.courseId,
@@ -101,18 +108,33 @@ export class ProfInviteService {
     }
 
     if (profInvite.expiresAt < new Date()) {
-      return `/courses?err=${QUERY_PARAMS.profInvite.error.expired}&${QUERY_PARAMS.profInvite.error.expiresAt}=${profInvite.expiresAt.toLocaleDateString()}`;
+      const params = new URLSearchParams({
+        err: QUERY_PARAMS.profInvite.error.expired,
+        [QUERY_PARAMS.profInvite.error.expiresAt]:
+          profInvite.expiresAt.toLocaleDateString(),
+      });
+      return `/courses?${params.toString()}`;
     }
     if (profInvite.usesUsed >= profInvite.maxUses) {
-      return `/courses?err=${QUERY_PARAMS.profInvite.error.maxUsesReached}&${QUERY_PARAMS.profInvite.error.maxUses}=${profInvite.maxUses}`;
+      const params = new URLSearchParams({
+        err: QUERY_PARAMS.profInvite.error.maxUsesReached,
+        [QUERY_PARAMS.profInvite.error.maxUses]: profInvite.maxUses.toString(),
+      });
+      return `/courses?${params.toString()}`;
     }
     if (profInvite.code !== profInviteCode) {
-      return `/courses?err=${QUERY_PARAMS.profInvite.error.badCode}`;
+      const params = new URLSearchParams({
+        err: QUERY_PARAMS.profInvite.error.badCode,
+      });
+      return `/courses?${params.toString()}`;
     }
     // Do this check AFTER other checks since it's assumed that admins only click on a prof invite link to check if it's working
     if (user.organizationUser.role === OrganizationRole.ADMIN) {
       if (existingUserCourse) {
-        return `/course/${profInvite.courseId}?notice=${QUERY_PARAMS.profInvite.notice.adminAlreadyInCourse}`;
+        const params = new URLSearchParams({
+          notice: QUERY_PARAMS.profInvite.notice.adminAlreadyInCourse,
+        });
+        return `/course/${profInvite.courseId}?${params.toString()}`;
       } else {
         await UserCourseModel.create({
           userId,
@@ -121,7 +143,10 @@ export class ProfInviteService {
         }).save();
 
         // TODO: send email
-        return `/course/${profInvite.courseId}?notice=${QUERY_PARAMS.profInvite.notice.adminAcceptedInviteNotConsumed}`;
+        const params = new URLSearchParams({
+          notice: QUERY_PARAMS.profInvite.notice.adminAcceptedInviteNotConsumed,
+        });
+        return `/course/${profInvite.courseId}?${params.toString()}`;
       }
     }
 
@@ -156,6 +181,9 @@ export class ProfInviteService {
     } else {
       // TODO: send email
     }
-    return `/course/${profInvite.courseId}?notice=${QUERY_PARAMS.profInvite.notice.inviteAccepted}`;
+    const params = new URLSearchParams({
+      notice: QUERY_PARAMS.profInvite.notice.inviteAccepted,
+    });
+    return `/course/${profInvite.courseId}?${params.toString()}`;
   }
 }
