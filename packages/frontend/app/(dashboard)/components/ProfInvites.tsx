@@ -289,9 +289,7 @@ const ProfInviteItem: React.FC<{
               <span
                 className={expiresAt.isBefore(dayjs()) ? 'text-red-700' : ''}
               >
-                {expiresAt.isAfter(dayjs())
-                  ? expiresAt.fromNow()
-                  : expiresAt.toNow()}
+                {expiresAt.fromNow()}
               </span>
             </div>
           </Tooltip>

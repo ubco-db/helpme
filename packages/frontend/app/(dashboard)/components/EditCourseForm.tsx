@@ -23,8 +23,7 @@ import {
   Tooltip,
 } from 'antd'
 import { useEffect, useState } from 'react'
-import { CrownFilled, QuestionCircleOutlined } from '@ant-design/icons'
-import ProfInvites from './ProfInvites'
+import { CrownFilled } from '@ant-design/icons'
 
 type EditCourseFormProps = {
   courseData: OrganizationCourseResponse

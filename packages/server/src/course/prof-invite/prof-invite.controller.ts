@@ -5,6 +5,7 @@ import {
   OrganizationRole,
 } from '@koh/common';
 import {
+  BadRequestException,
   Body,
   ClassSerializerInterceptor,
   Controller,
@@ -36,8 +37,18 @@ export class ProfInviteController {
   @Roles(OrganizationRole.ADMIN)
   async getAllProfInvites(
     @Param('orgId', ParseIntPipe) orgId: number,
-    @Query('courseId', ParseIntPipe) courseId?: number, // Providing courseId will get all prof invites for the course, otherwise it's all invites for the org
+    // Providing courseId will get all prof invites for the course, otherwise it's all invites for the org
+    @Query('courseId') courseIdString: string,
   ): Promise<GetProfInviteResponse[]> {
+    // ParseIntPipe seemed to make courseId param mandatory.
+    // I tried various things like using a DTO for it... didn't work.
+    // Honestly if you have a better idea LMK.
+    // I feel an "optional integer query param" is pretty common but for some reason I can't find if nestjs has a built-in way of handling it nicely
+    let courseId = parseInt(courseIdString);
+    if (!courseId || courseId <= 0) {
+      courseId = undefined;
+    }
+
     const profInvites = await ProfInviteModel.find({
       where: { orgId, courseId },
       relations: { course: true, adminUser: true },
