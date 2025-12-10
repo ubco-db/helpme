@@ -148,9 +148,19 @@ export default function AddCoursePage(): ReactElement {
         // need to update userInfo so the course shows up in /courses
         await userApi.getUser().then((userDetails) => {
           setUserInfo(userDetails)
-          router.push(
-            `/courses?highlightedCourse=${createCourseResponse.courseId}`,
-          )
+          if (
+            userDetails.organization?.organizationRole ===
+            OrganizationRole.ADMIN
+          ) {
+            // redirect admins to the edit page for courses so they can immediately go create prof invites
+            router.push(
+              `/organization/course/${createCourseResponse.courseId}/edit?show-create-prof-notice=true`,
+            )
+          } else {
+            router.push(
+              `/courses?highlightedCourse=${createCourseResponse.courseId}`,
+            )
+          }
         })
       })
       .catch((error) => {

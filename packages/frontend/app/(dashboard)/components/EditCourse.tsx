@@ -111,7 +111,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
             variant="outlined"
             title={
               <div className="flex items-center justify-start gap-3">
-                <div>Course Invite Link</div>
+                <h3>Course Invite Link</h3>
                 <div className="text-gray-500">
                   <Tooltip
                     title={`This is the invite link for the course. You must set an invite code (of anything you'd like) before anyone can join your course. Once set, you can share the invite link with your students (e.g. on Canvas). Clearing the invite code will prevent new people from joining your course.`}

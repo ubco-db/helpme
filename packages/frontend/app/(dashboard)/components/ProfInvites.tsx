@@ -15,26 +15,25 @@ import {
   OrganizationRole,
 } from '@koh/common'
 import {
+  Alert,
   Button,
   Card,
   Checkbox,
-  Col,
   DatePicker,
   Form,
   InputNumber,
   List,
   message,
-  Row,
   Tooltip,
 } from 'antd'
 import { useEffect, useState } from 'react'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 
 dayjs.extend(relativeTime)
 
 const isInviteUsable = (profInvite: GetProfInviteResponse) => {
-  console.log(profInvite)
   return (
     profInvite.expiresAt > new Date() &&
     profInvite.usesUsed < profInvite.maxUses
@@ -57,6 +56,11 @@ const ProfInvites: React.FC<ProfInvitesProps> = ({ courseData }) => {
   const [profInvites, setProfInvites] = useState<GetProfInviteResponse[]>([])
   const [showUnusableProfInvites, setShowUnusableProfInvites] = useState(false)
   const [createProfInviteLoading, setCreateProfInviteLoading] = useState(false)
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const showCreateProfNotice =
+    searchParams.get('show-create-prof-notice') === 'true'
 
   const fetchProfInvites = async () => {
     if (userInfo.organization?.organizationRole !== OrganizationRole.ADMIN) {
@@ -105,79 +109,86 @@ const ProfInvites: React.FC<ProfInvitesProps> = ({ courseData }) => {
     setCreateProfInviteLoading(false)
   }
 
-  return (
-    <Card
-      variant="outlined"
-      title={
-        <div className="flex items-center justify-start gap-3">
-          <div>Professor Invites (Admin Only)</div>
-          <div className="text-gray-500">
-            <Tooltip
-              title={`For creating temporary invite links that will automatically promote the user to professor when accepted`}
-            >
-              Help <QuestionCircleOutlined />
-            </Tooltip>
-          </div>
-        </div>
+  useEffect(() => {
+    // Putting the link as organization/course/${courseId}/edit?show-create-prof-notice=true#create-prof-invite-notice
+    // didn't seem to work since the hash/anchor would seem to resolve before the component is rendered and not scroll
+    if (showCreateProfNotice) {
+      const el = document.getElementById('create-prof-invite-notice')
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }
-    >
-      <Form
-        form={form}
-        layout="horizontal"
-        initialValues={{
-          maxUses: 1,
-          expiresAt: dayjs().add(7, 'day'),
-          makeOrgProf: true,
-        }}
-        onFinish={handleCreateProfInvite}
-      >
-        <div className="flex w-full items-center justify-center gap-2 md:gap-4">
-          <Form.Item name="maxUses" label="Max Uses">
-            <InputNumber min={1} max={99999} className="w-12" />
-          </Form.Item>
-          <Form.Item name="expiresAt" label="Expires At">
-            <DatePicker />
-          </Form.Item>
-          <Form.Item
-            name="makeOrgProf"
-            valuePropName="checked"
-            label="Make Org Prof"
-            tooltip="If checked, will also make the user an organization-level professor too."
-          >
-            <Checkbox />
-          </Form.Item>
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              className="lg:ml-6"
-              loading={createProfInviteLoading}
-              icon={<PlusOutlined />}
-            >
-              Create Prof Invite
-            </Button>
-          </Form.Item>
-        </div>
-      </Form>
-      {usableProfInvites.length > 0 && (
-        <List
-          bordered
-          dataSource={usableProfInvites}
-          renderItem={(profInvite) => (
-            <ProfInviteItem
-              key={profInvite.id}
-              profInvite={profInvite}
-              orgId={courseData.organizationId}
-              fetchProfInvites={fetchProfInvites}
-            />
-          )}
+    }
+  }, [showCreateProfNotice])
+
+  return (
+    <>
+      {showCreateProfNotice && (
+        <Alert
+          id="create-prof-invite-notice"
+          message="Course successfully created. Would you like to make a professor invite?"
+          type="success"
+          showIcon
+          className="scroll-mt-4 py-4"
         />
       )}
-      {unusableProfInvites.length > 0 &&
-        (showUnusableProfInvites ? (
+      <Card
+        variant="outlined"
+        className={showCreateProfNotice ? 'glowy' : ''}
+        title={
+          <div className="flex items-center justify-start gap-3">
+            <h3>Professor Invites (Admin Only)</h3>
+            <div className="text-gray-500">
+              <Tooltip
+                title={`For creating temporary invite links that will automatically promote the user to professor when accepted`}
+              >
+                Help <QuestionCircleOutlined />
+              </Tooltip>
+            </div>
+          </div>
+        }
+      >
+        <Form
+          form={form}
+          layout="horizontal"
+          initialValues={{
+            maxUses: 1,
+            expiresAt: dayjs().add(7, 'day'),
+            makeOrgProf: true,
+          }}
+          onFinish={handleCreateProfInvite}
+        >
+          <div className="flex w-full items-center justify-center gap-2 md:gap-4">
+            <Form.Item name="maxUses" label="Max Uses">
+              <InputNumber min={1} max={99999} className="w-12" />
+            </Form.Item>
+            <Form.Item name="expiresAt" label="Expires At">
+              <DatePicker />
+            </Form.Item>
+            <Form.Item
+              name="makeOrgProf"
+              valuePropName="checked"
+              label="Make Org Prof"
+              tooltip="If checked, will also make the user an organization-level professor too."
+            >
+              <Checkbox />
+            </Form.Item>
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                className="lg:ml-6"
+                loading={createProfInviteLoading}
+                icon={<PlusOutlined />}
+              >
+                Create Prof Invite
+              </Button>
+            </Form.Item>
+          </div>
+        </Form>
+        {usableProfInvites.length > 0 && (
           <List
             bordered
-            dataSource={unusableProfInvites}
+            dataSource={usableProfInvites}
             renderItem={(profInvite) => (
               <ProfInviteItem
                 key={profInvite.id}
@@ -187,20 +198,36 @@ const ProfInvites: React.FC<ProfInvitesProps> = ({ courseData }) => {
               />
             )}
           />
-        ) : (
-          <div className="text-center text-zinc-800">
-            {unusableProfInvites.length} expired/used invites (
-            <Button
-              className="inline-block"
-              onClick={() => setShowUnusableProfInvites(true)}
-              type="link"
-            >
-              show
-            </Button>
-            )
-          </div>
-        ))}
-    </Card>
+        )}
+        {unusableProfInvites.length > 0 &&
+          (showUnusableProfInvites ? (
+            <List
+              bordered
+              dataSource={unusableProfInvites}
+              renderItem={(profInvite) => (
+                <ProfInviteItem
+                  key={profInvite.id}
+                  profInvite={profInvite}
+                  orgId={courseData.organizationId}
+                  fetchProfInvites={fetchProfInvites}
+                />
+              )}
+            />
+          ) : (
+            <div className="text-center text-zinc-800">
+              {unusableProfInvites.length} expired/used invites (
+              <Button
+                className="inline-block"
+                onClick={() => setShowUnusableProfInvites(true)}
+                type="link"
+              >
+                show
+              </Button>
+              )
+            </div>
+          ))}
+      </Card>
+    </>
   )
 }
 
