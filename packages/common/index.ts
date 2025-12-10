@@ -2030,6 +2030,7 @@ export type OrganizationProfessor = {
   organizationUser: {
     id: number
     name: string
+    email: string
   }
   trueRole?: OrganizationRole
   userId: number

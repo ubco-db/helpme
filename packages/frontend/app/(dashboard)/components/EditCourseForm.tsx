@@ -11,19 +11,9 @@ import {
   OrganizationRole,
   User,
 } from '@koh/common'
-import {
-  Alert,
-  Button,
-  Card,
-  Form,
-  Input,
-  message,
-  Select,
-  Tag,
-  Tooltip,
-} from 'antd'
+import { Alert, Button, Card, Form, Input, message, Select } from 'antd'
 import { useEffect, useState } from 'react'
-import { CrownFilled } from '@ant-design/icons'
+import ProfessorSelector from './ProfessorSelector'
 
 type EditCourseFormProps = {
   courseData: OrganizationCourseResponse
@@ -280,76 +270,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
                 tooltip="Professors teaching the course"
                 className="flex-1"
               >
-                <Select
-                  mode="multiple"
-                  placeholder="Select professors"
-                  showSearch
-                  optionFilterProp="label"
-                  options={professors.map((prof: OrganizationProfessor) => ({
-                    key: `${prof.organizationUser.name}-${prof.organizationUser.id}`,
-                    label: (
-                      <span>
-                        {prof.organizationUser.name}
-                        {prof.trueRole == OrganizationRole.ADMIN && (
-                          <Tooltip
-                            title={
-                              'This user is an organization administrator.'
-                            }
-                          >
-                            <CrownFilled
-                              className={
-                                'ml-1 text-yellow-500 transition-all hover:text-yellow-300'
-                              }
-                            />
-                          </Tooltip>
-                        )}
-                      </span>
-                    ),
-                    value: prof.organizationUser.id,
-                  }))}
-                  filterSort={(optionA, optionB) =>
-                    (optionA?.key ?? '')
-                      .toLowerCase()
-                      .localeCompare((optionB?.key ?? '').toLowerCase())
-                  }
-                  tagRender={(props) => {
-                    const { label, value, closable, onClose } = props
-                    const onPreventMouseDown = (
-                      event: React.MouseEvent<HTMLSpanElement>,
-                    ) => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                    }
-                    // find the professor with the given id and see if they have lacksProfOrgRole
-                    const match = professors.find(
-                      (prof) => prof.organizationUser.id === value,
-                    )
-                    const lacksProfOrgRole = ![
-                      OrganizationRole.ADMIN,
-                      OrganizationRole.PROFESSOR,
-                    ].includes(match?.trueRole ?? OrganizationRole.MEMBER)
-
-                    return (
-                      <Tooltip
-                        title={
-                          lacksProfOrgRole
-                            ? 'This user lacks the Professor role in this organization, meaning they cannot create their own courses.'
-                            : ''
-                        }
-                      >
-                        <Tag
-                          color={lacksProfOrgRole ? 'orange' : 'blue'}
-                          onMouseDown={onPreventMouseDown}
-                          closable={closable}
-                          onClose={onClose}
-                          style={{ marginInlineEnd: 4 }}
-                        >
-                          {label}
-                        </Tag>
-                      </Tooltip>
-                    )
-                  }}
-                />
+                <ProfessorSelector professors={professors} />
               </Form.Item>
             ) : (
               <></>

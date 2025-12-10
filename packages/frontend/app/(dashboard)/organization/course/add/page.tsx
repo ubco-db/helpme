@@ -32,6 +32,7 @@ import {
 import { userApi } from '@/app/api/userApi'
 import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
+import ProfessorSelector from '@/app/(dashboard)/components/ProfessorSelector'
 
 interface FormValues {
   courseName: string
@@ -321,24 +322,7 @@ export default function AddCoursePage(): ReactElement {
                         name="professorsUserId"
                         tooltip="Professors teaching the course"
                       >
-                        <Select
-                          mode="multiple"
-                          placeholder="Select professors"
-                          filterSort={(optionA, optionB) =>
-                            (optionA?.label ?? '')
-                              .toLowerCase()
-                              .localeCompare(
-                                (optionB?.label ?? '').toLowerCase(),
-                              )
-                          }
-                          showSearch
-                          optionFilterProp="label"
-                          options={professors.map((prof) => ({
-                            key: prof.organizationUser.id,
-                            label: prof.organizationUser.name,
-                            value: prof.organizationUser.id,
-                          }))}
-                        />
+                        <ProfessorSelector professors={professors} />
                       </Form.Item>
                     )}
                   </Col>

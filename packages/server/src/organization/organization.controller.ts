@@ -1505,6 +1505,7 @@ export class OrganizationController {
         organizationUser: {
           id: prof.organizationUser.id,
           name: prof.organizationUser.name,
+          email: prof.organizationUser.email,
         },
         trueRole: prof.role,
         userId: prof.userId,
@@ -1513,6 +1514,7 @@ export class OrganizationController {
         organizationUser: {
           id: prof.user.id,
           name: prof.user.name,
+          email: prof.user.email,
         },
         trueRole: prof.user.organizationUser.role,
         userId: prof.userId,
