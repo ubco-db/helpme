@@ -24,12 +24,13 @@ import {
   InputNumber,
   List,
   message,
+  Popconfirm,
   Tooltip,
 } from 'antd'
 import { useEffect, useState } from 'react'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 
 dayjs.extend(relativeTime)
 
@@ -56,8 +57,6 @@ const ProfInvites: React.FC<ProfInvitesProps> = ({ courseData }) => {
   const [profInvites, setProfInvites] = useState<GetProfInviteResponse[]>([])
   const [showUnusableProfInvites, setShowUnusableProfInvites] = useState(false)
   const [createProfInviteLoading, setCreateProfInviteLoading] = useState(false)
-  const router = useRouter()
-  const pathname = usePathname()
   const searchParams = useSearchParams()
   const showCreateProfNotice =
     searchParams.get('show-create-prof-notice') === 'true'
@@ -239,6 +238,31 @@ const ProfInviteItem: React.FC<{
   const [copyLinkText, setCopyLinkText] = useState('Copy Link')
   const [isDeleteLoading, setIsDeleteLoading] = useState(false)
 
+  // used to make deletion of an invite instant only if it's < 1min since creation or < 10s after copying a link.
+  // Assumption is that the cases where you're usually going to be certain you will want to delete it is either:
+  // A: right after creating the invite (mistake, etc.)
+  // B: right before you go to share it (you realize something is wrong, etc.)
+  const [lastCopiedAt, setLastCopiedAt] = useState<Date | null>(null)
+  const [isDeletePopoverOpen, setIsDeletePopoverOpen] = useState(false)
+  const handleDeletePopoverOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      // always allow closing
+      setIsDeletePopoverOpen(newOpen)
+      return
+    }
+
+    // Instant delete if: created within 1 min OR copied within last 10s
+    const now = Date.now()
+    if (
+      now - profInvite.createdAt.getTime() < 60 * 1000 ||
+      (lastCopiedAt && now - lastCopiedAt.getTime() < 10 * 1000)
+    ) {
+      handleDelete().then(() => setIsDeletePopoverOpen(false))
+    } else {
+      setIsDeletePopoverOpen(newOpen)
+    }
+  }
+
   const isHttps = window.location.protocol === 'https:'
   const baseURL = `${isHttps ? 'https' : 'http'}://${window.location.host}`
   const inviteURL = `${baseURL}/invite/prof/${profInvite.id}?&c=${profInvite.code}`
@@ -246,10 +270,27 @@ const ProfInviteItem: React.FC<{
   const handleCopy = () => {
     navigator.clipboard.writeText(inviteURL).then(() => {
       setCopyLinkText('Copied!')
+      setLastCopiedAt(new Date())
       setTimeout(() => {
         setCopyLinkText('Copy Link')
       }, 1000)
     })
+  }
+
+  const handleDelete = async () => {
+    setIsDeleteLoading(true)
+    await API.profInvites
+      .delete(orgId, profInvite.id)
+      .then(() => {
+        message.success('Professor invite deleted')
+      })
+      .catch((error) => {
+        message.error('Error deleting ProfInvite: ' + getErrorMessage(error))
+      })
+      .finally(() => {
+        setIsDeleteLoading(false)
+        fetchProfInvites()
+      })
   }
 
   const expiresAt = dayjs(profInvite.expiresAt)
@@ -268,35 +309,27 @@ const ProfInviteItem: React.FC<{
                 <Button
                   onClick={handleCopy}
                   type="primary"
-                  className=""
                   icon={<CopyOutlined />}
                 >
                   {copyLinkText}
                 </Button>
               )}
             </div>
-            <Button
-              danger
-              loading={isDeleteLoading}
-              onClick={async () => {
-                setIsDeleteLoading(true)
-                await API.profInvites
-                  .delete(orgId, profInvite.id)
-                  .then(() => {
-                    message.success('Professor invite deleted')
-                  })
-                  .catch((error) => {
-                    message.error(
-                      'Error deleting ProfInvite: ' + getErrorMessage(error),
-                    )
-                  })
-                  .finally(() => {
-                    setIsDeleteLoading(false)
-                    fetchProfInvites()
-                  })
-              }}
-              icon={<DeleteOutlined />}
-            />
+            <Popconfirm
+              title="You sure?"
+              open={isDeletePopoverOpen}
+              onOpenChange={handleDeletePopoverOpenChange}
+              okButtonProps={{ loading: isDeleteLoading }}
+              onConfirm={handleDelete}
+              okText="Yep"
+              cancelText="No"
+            >
+              <Button
+                danger
+                loading={isDeleteLoading}
+                icon={<DeleteOutlined />}
+              />
+            </Popconfirm>
           </div>
         </div>
         <div className="flex w-full items-center justify-center gap-2 md:gap-4">
