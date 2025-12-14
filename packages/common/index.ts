@@ -2241,6 +2241,25 @@ export enum AlertType {
   REPHRASE_QUESTION = 'rephraseQuestion',
   EVENT_ENDED_CHECKOUT_STAFF = 'eventEndedCheckoutStaff',
   PROMPT_STUDENT_TO_LEAVE_QUEUE = 'promptStudentToLeaveQueue',
+  DOCUMENT_PROCESSED = 'documentProcessed',
+  ASYNC_QUESTION_UPDATE = 'asyncQuestionUpdate',
+}
+
+// Allowed combinations to enforce front/back consistency
+export const FEED_ALERT_TYPES: AlertType[] = [
+  AlertType.DOCUMENT_PROCESSED,
+  AlertType.ASYNC_QUESTION_UPDATE,
+]
+
+export const MODAL_ALERT_TYPES: AlertType[] = [
+  AlertType.REPHRASE_QUESTION,
+  AlertType.EVENT_ENDED_CHECKOUT_STAFF,
+  AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
+]
+
+export enum AlertDeliveryMode {
+  MODAL = 'modal',
+  FEED = 'feed',
 }
 
 export class AlertPayload {}
@@ -2249,11 +2268,18 @@ export class Alert {
   @IsEnum(AlertType)
   alertType!: AlertType
 
+  @IsEnum(AlertDeliveryMode)
+  deliveryMode!: AlertDeliveryMode
+
   @IsDate()
   sent!: Date
 
   @Type(() => AlertPayload)
   payload!: AlertPayload
+
+  @IsOptional()
+  @IsDate()
+  readAt?: Date
 
   @IsInt()
   id!: number
@@ -2275,6 +2301,35 @@ export class PromptStudentToLeaveQueuePayload extends AlertPayload {
   @IsInt()
   @IsOptional()
   queueQuestionId?: number
+}
+
+export class DocumentProcessedPayload extends AlertPayload {
+  @IsInt()
+  documentId!: number
+
+  @IsString()
+  documentName!: string
+}
+
+export class AsyncQuestionUpdatePayload extends AlertPayload {
+  @IsInt()
+  questionId!: number
+
+  @IsInt()
+  courseId!: number
+
+  @IsString()
+  @IsOptional()
+  subtype?:
+    | 'commentOnMyPost'
+    | 'commentOnOthersPost'
+    | 'humanAnswered'
+    | 'statusChanged'
+    | 'upvoted'
+
+  @IsString()
+  @IsOptional()
+  summary?: string
 }
 
 export class OrganizationCourseResponse {
@@ -2307,6 +2362,10 @@ export class CreateAlertParams {
   @IsEnum(AlertType)
   alertType!: AlertType
 
+  @IsOptional()
+  @IsEnum(AlertDeliveryMode)
+  deliveryMode?: AlertDeliveryMode
+
   @IsInt()
   courseId!: number
 
@@ -2322,6 +2381,9 @@ export class CreateAlertResponse extends Alert {}
 export class GetAlertsResponse {
   @Type(() => Alert)
   alerts!: Alert[]
+  @IsOptional()
+  @IsInt()
+  total?: number
 }
 
 // not used anywhere

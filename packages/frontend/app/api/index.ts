@@ -37,6 +37,7 @@ import {
   DesktopNotifPartial,
   EditCourseInfoParams,
   GetAlertsResponse,
+  AlertDeliveryMode,
   GetAvailableModelsBody,
   GetChatbotHistoryResponse,
   GetCourseResponse,
@@ -1090,12 +1091,30 @@ class APIClient {
   }
 
   alerts = {
+    markReadAll: async (): Promise<void> =>
+      this.req('PATCH', `/api/v1/alerts/mark-read-all`),
     get: async (courseId: number): Promise<GetAlertsResponse> =>
       this.req('GET', `/api/v1/alerts/${courseId}`),
+    getAll: async (
+      mode: AlertDeliveryMode = AlertDeliveryMode.FEED,
+      includeRead: boolean = true,
+      limit?: number,
+      offset?: number,
+    ): Promise<GetAlertsResponse> =>
+      this.req('GET', `/api/v1/alerts`, undefined, undefined, {
+        mode,
+        includeRead: includeRead ? 'true' : 'false',
+        ...(limit !== undefined ? { limit: String(limit) } : {}),
+        ...(offset !== undefined ? { offset: String(offset) } : {}),
+      }),
     create: async (params: CreateAlertParams): Promise<CreateAlertResponse> =>
       this.req('POST', `/api/v1/alerts`, CreateAlertResponse, params),
     close: async (alertId: number): Promise<void> =>
       this.req('PATCH', `/api/v1/alerts/${alertId}`),
+    markReadBulk: async (alertIds: number[]): Promise<void> =>
+      this.req('PATCH', `/api/v1/alerts/mark-read-bulk`, undefined, {
+        alertIds,
+      }),
   }
 
   organizations = {

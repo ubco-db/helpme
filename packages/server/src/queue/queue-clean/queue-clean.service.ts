@@ -1,4 +1,5 @@
 import {
+  AlertDeliveryMode,
   AlertType,
   ClosedQuestionStatus,
   LimboQuestionStatus,
@@ -104,6 +105,9 @@ export class QueueCleanService {
       .andWhere("(alert.payload ->> 'queueId')::INTEGER = :queueId ", {
         queueId,
       })
+      .andWhere('alert."deliveryMode" = :deliveryMode', {
+        deliveryMode: AlertDeliveryMode.MODAL,
+      })
       .getMany();
 
     questions.forEach((q: QuestionModel) => {
@@ -201,6 +205,9 @@ export class QueueCleanService {
           .andWhere('alert.payload::jsonb @> :payload', {
             payload: JSON.stringify({ queueId }),
           })
+          .andWhere('alert."deliveryMode" = :deliveryMode', {
+            deliveryMode: AlertDeliveryMode.MODAL,
+          })
           .getOne();
         if (existingAlert) {
           return;
@@ -210,7 +217,12 @@ export class QueueCleanService {
           sent: new Date(),
           userId: student.studentId,
           courseId: student.courseId,
-          payload: { queueId, queueQuestionId: student.questionId },
+          payload: {
+            queueId,
+            ...(student.questionId !== undefined
+              ? { queueQuestionId: student.questionId }
+              : {}),
+          },
         }).save();
         // if the student does not respond in 10 minutes, resolve the alert and mark the question as LeftDueToNoStaff
         const jobName = `prompt-student-to-leave-queue-${queueId}-${student.studentId}`;
