@@ -69,6 +69,9 @@ export class LMSCourseIntegrationModel extends BaseEntity {
   @OneToMany((type) => LMSPageModel, (page) => page.course)
   pages: LMSPageModel[];
 
+  @Column({ type: 'boolean', default: false })
+  moduleLinkedPagesOnly: boolean;
+
   @OneToMany((type) => LMSFileModel, (file) => file.course)
   files: LMSFileModel[];
 

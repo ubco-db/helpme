@@ -1768,6 +1768,7 @@ export class LMSCourseIntegrationPartial {
   lmsSynchronize!: boolean
   isExpired!: boolean
   selectedResourceTypes?: LMSResourceType[]
+  moduleLinkedPagesOnly?: boolean
 }
 
 export type LMSCourseAPIResponse = {
@@ -1805,6 +1806,7 @@ export type LMSPage = {
   syncEnabled?: boolean
   modified?: Date
   uploaded?: Date
+  isModuleLinked?: boolean
 }
 
 export type LMSFile = {
@@ -1816,6 +1818,23 @@ export type LMSFile = {
   syncEnabled?: boolean
   modified?: Date
   uploaded?: Date
+}
+
+export type LMSModule = {
+  id: number
+  name: string
+  items_url?: string
+  items?: LMSModuleItem[]
+}
+
+export type LMSModuleItem = {
+  id: number
+  title: string
+  type: string
+  content_id?: number
+  html_url?: string
+  url?: string
+  page_url?: string
 }
 
 export enum LMSQuizAccessLevel {
