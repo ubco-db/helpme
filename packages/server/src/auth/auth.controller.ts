@@ -37,6 +37,8 @@ import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import * as bcrypt from 'bcrypt';
 import { getCookie } from '../common/helpers';
 import { CourseService } from 'course/course.service';
+import { ILike } from 'typeorm';
+import * as Sentry from '@sentry/nestjs';
 
 interface RequestUser {
   userId: string;
@@ -272,6 +274,7 @@ export class AuthController {
     });
   }
 
+  /* Should probably be renamed to forgotPassword() */
   @Post('/password/reset')
   async resetPassword(
     @Body() body: PasswordRequestResetBody,
@@ -279,41 +282,91 @@ export class AuthController {
   ): Promise<Response<void>> {
     const { email, recaptchaToken, organizationId } = body;
 
-    if (!recaptchaToken) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'Invalid recaptcha token' });
-    }
-
     const response = await request.post(
       `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.PRIVATE_RECAPTCHA_SITE_KEY}&response=${recaptchaToken}`,
     );
 
     if (!response.body.success) {
       return res.status(HttpStatus.BAD_REQUEST).send({
-        message: 'Recaptcha token invalid',
+        message: ERROR_MESSAGES.authController.invalidRecaptchaToken,
       });
     }
 
-    const user = await UserModel.findOne({
+    const users = await UserModel.find({
       where: {
-        email,
+        email: ILike(email), // Case insensitive search (since users can mistype emails)
         organizationUser: { organizationId },
-        accountType: AccountType.LEGACY,
       },
-      relations: ['organizationUser'],
+      relations: {
+        organizationUser: {
+          organization: true,
+        },
+      },
     });
+    let user: UserModel;
 
-    if (!user) {
+    if (!users || users.length === 0) {
+      return res
+        .status(HttpStatus.NOT_FOUND)
+        .send({ message: ERROR_MESSAGES.authController.userNotFoundWithEmail });
+    } else if (users.length === 1) {
+      // this is like 99.9% of users
+      user = users[0];
+    } else {
+      Sentry.captureMessage(
+        'Multiple users found with same email (can be case-sensitivity issue or multiple accounts with same type).',
+        {
+          level: 'error',
+          extra: {
+            users: users.map((user) => ({
+              id: user.id,
+              // email: user.email, // decided against logging email in sentry since then sentry would be collecting emails and UBC PIA probably won't like that
+            })),
+          },
+        },
+      );
+
+      const usersWithLegacyAccountType = users.filter(
+        (user) => user.accountType === AccountType.LEGACY,
+      );
+
+      // Find the legacy account and use it if it exists (Note that it shouldn't actually be possible to have multiple accounts with same email and different types)
+      if (usersWithLegacyAccountType.length === 1) {
+        user = usersWithLegacyAccountType[0];
+        // If there isn't one, use the first user.
+      } else if (usersWithLegacyAccountType.length === 0) {
+        user = users[0];
+        // If there's multiple legacy accounts, it's a case-sensitivity issue.
+      } else if (usersWithLegacyAccountType.length > 1) {
+        // this SHOULDN'T happen since emails should be unique. But, /register lacked case-insensitivity so some users have multiple accounts with same email (with different case).
+        return res.status(HttpStatus.BAD_REQUEST).send({
+          message:
+            'Multiple users found with this email (can be case-sensitivity issue). Please contact adam.fipke@ubc.ca',
+        });
+      }
+    }
+
+    // now handle logic for the user
+    if (user.accountType === AccountType.GOOGLE) {
       return res
         .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'User not found' });
+        .send({ message: ERROR_MESSAGES.authController.ssoAccountGoogle });
+    } else if (user.accountType === AccountType.SHIBBOLETH) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message: ERROR_MESSAGES.authController.ssoAccountShibboleth(
+          user.organizationUser.organization.name,
+        ),
+      });
+    } else if (user.accountType !== AccountType.LEGACY) {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .send({ message: ERROR_MESSAGES.authController.incorrectAccountType });
     }
 
     if (!user.emailVerified) {
       return res
         .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'Email not verified' });
+        .send({ message: ERROR_MESSAGES.authController.emailNotVerified });
     }
 
     const resetLink = await this.authService.createPasswordResetToken(user);
