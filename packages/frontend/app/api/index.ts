@@ -123,6 +123,7 @@ import {
 import Axios, { AxiosInstance, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
 import { ClassType } from 'class-transformer/ClassTransformer'
+import { getErrorMessage } from '../utils/generalUtils'
 
 // Return type of array item, if T is an array
 type ItemIfArray<T> = T extends (infer I)[] ? I : T
@@ -146,8 +147,6 @@ export interface ChatQuestionResponse {
 }
 
 class APIClient {
-  private axios: AxiosInstance
-
   /**
    * Send HTTP and return data, optionally serialized with class-transformer (helpful for Date serialization)
    * @param method HTTP method
@@ -157,21 +156,40 @@ class APIClient {
    * @param params any query parameters to include in req URL
    */
   private async req<T>(
-    method: Method,
+    method: string,
     url: string,
     responseClass?: ClassType<ItemIfArray<T>>,
     body?: any,
     params?: any,
-  ): Promise<T>
-  private async req<T>(
-    method: Method,
-    url: string,
-    responseClass?: ClassType<T>,
-    body?: any,
-    params?: any,
   ): Promise<T> {
-    const res = (await this.axios.request({ method, url, data: body, params }))
-      .data
+    // Construct the full URL with query parameters if any
+    const queryString = params
+      ? '?' + new URLSearchParams(params).toString()
+      : ''
+    const fullUrl = url + queryString
+
+    // Set up the request options
+    const options: RequestInit = {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    }
+
+    // Make the fetch request
+    const response = await fetch(fullUrl, options)
+
+    // Parse the response data
+    const res = await response.json()
+
+    // Check if the response is OK (status code 200-299)
+    if (!response.ok) {
+      const errorMessage = getErrorMessage(res)
+      throw new Error(errorMessage)
+    }
+
+    // Optionally transform the response data
     return responseClass ? plainToClass(responseClass, res) : res
   }
 
@@ -1460,7 +1478,7 @@ class APIClient {
   }
 
   constructor(baseURL = '') {
-    this.axios = Axios.create({ baseURL: baseURL })
+    // this.axios = Axios.create({ baseURL: baseURL })
   }
 }
 
