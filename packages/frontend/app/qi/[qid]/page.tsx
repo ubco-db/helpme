@@ -347,6 +347,7 @@ export default function QueueInvitePage(
                       queueId={queueInviteInfo.queueId}
                       ta={ta}
                       helpedAt={ta.questionHelpedAt}
+                      isForPublic
                     />
                   ))}
                 </div>
