@@ -1934,6 +1934,8 @@ export class GetCourseResponse {
   organizationCourse?: OrganizationPartial
 
   courseInviteCode?: string
+
+  isCourseInviteEnabled?: boolean
 }
 
 export class GetLimitedCourseResponse {
@@ -2407,6 +2409,9 @@ export class EditCourseInfoParams {
   @IsString()
   @IsOptional()
   courseInviteCode?: string | null
+
+  @IsOptional()
+  isCourseInviteEnabled?: boolean
 }
 
 export enum antdTagColor {

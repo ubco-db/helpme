@@ -128,7 +128,11 @@ export class CourseController {
       relations: ['organizationCourse', 'organizationCourse.organization'],
     });
 
-    if (!courseWithOrganization) {
+    if (
+      !courseWithOrganization ||
+      !courseWithOrganization.courseInviteCode ||
+      courseWithOrganization.isCourseInviteEnabled === false
+    ) {
       res.status(HttpStatus.NOT_FOUND).send({
         message: ERROR_MESSAGES.courseController.courseNotFound,
       });
@@ -163,7 +167,11 @@ export class CourseController {
       relations: ['organizationCourse', 'organizationCourse.organization'],
     });
 
-    if (!courseWithOrganization) {
+    if (
+      !courseWithOrganization ||
+      !courseWithOrganization.courseInviteCode ||
+      courseWithOrganization.isCourseInviteEnabled === false
+    ) {
       res.status(HttpStatus.NOT_FOUND).send({
         message: ERROR_MESSAGES.courseController.courseNotFound,
       });
@@ -799,7 +807,8 @@ export class CourseController {
     }
 
     if (
-      course.course.courseInviteCode === null ||
+      !course.course.courseInviteCode ||
+      course.course.isCourseInviteEnabled === false ||
       course.course.courseInviteCode !== code
     ) {
       res.status(HttpStatus.BAD_REQUEST).send({

@@ -45,6 +45,7 @@ import { QueueModel } from 'queue/queue.entity';
 import { SuperCourseModel } from './super-course.entity';
 import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
 import { QueueStaffModel } from 'queue/queue-staff.entity';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class CourseService {
@@ -215,8 +216,12 @@ export class CourseService {
       );
     }
 
-    // Destructure coursePatch to separate courseInviteCode from other fields
-    const { courseInviteCode, ...otherFields } = coursePatch;
+    // Destructure coursePatch to separate invite-related fields from other fields
+    const {
+      courseInviteCode: _courseInviteCode,
+      isCourseInviteEnabled: _isCourseInviteEnabled,
+      ...otherFields
+    } = coursePatch;
     // Allow courseInviteCode to be null or empty but no other fields
     if (Object.values(otherFields).some((x) => x === null || x === '')) {
       throw new BadRequestException(
@@ -252,7 +257,24 @@ export class CourseService {
     }
 
     if (coursePatch.courseInviteCode !== undefined) {
-      course.courseInviteCode = coursePatch.courseInviteCode;
+      if (coursePatch.courseInviteCode === null) {
+        // Explicitly clear/disable invite code
+        course.courseInviteCode = null;
+      } else {
+        // Don't allow the user to set an invite code. Just give them a random one.
+        course.courseInviteCode = this.generateRandomInviteCode();
+      }
+    }
+
+    if (coursePatch.isCourseInviteEnabled !== undefined) {
+      // When enabling and there is no code yet, generate one.
+      if (
+        coursePatch.isCourseInviteEnabled &&
+        (!course.courseInviteCode || course.courseInviteCode === '')
+      ) {
+        course.courseInviteCode = this.generateRandomInviteCode();
+      }
+      course.isCourseInviteEnabled = coursePatch.isCourseInviteEnabled;
     }
 
     if (coursePatch.asyncQuestionDisplayTypes) {
@@ -498,6 +520,7 @@ export class CourseService {
       clonedCourse.enabled = true;
       clonedCourse.name = originalCourse.name;
       clonedCourse.timezone = originalCourse.timezone;
+      clonedCourse.courseInviteCode = this.generateRandomInviteCode();
 
       if (cloneData.toClone?.coordinator_email) {
         clonedCourse.coordinator_email = originalCourse.coordinator_email;
@@ -958,5 +981,9 @@ export class CourseService {
     }
 
     return createdQueue;
+  }
+
+  private generateRandomInviteCode(): string {
+    return crypto.randomBytes(6).toString('hex');
   }
 }
