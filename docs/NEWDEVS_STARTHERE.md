@@ -33,6 +33,7 @@
         - [What is mocking?](#what-is-mocking)
         - [To mock or not to mock?](#to-mock-or-not-to-mock)
       - [Event Subscribers](#event-subscribers)
+  - [Known Quirks when Developing](#known-quirks-when-developing)
 - [History](#history)
 - [TODO](#todo)
   - [For the whole project](#for-the-whole-project)
@@ -115,6 +116,9 @@ These are from Next.js, and allow us to define whether a component is rendered o
 `'use client'` - This component will be sent to the browser to be rendered. Any component that stores state (i.e. with `useState`), has interactability (buttons, forms, etc.), or uses *any* hooks (such as `useCourse` or `useEffect`)
 
 **Components with no 'use client' or 'use server'** - These are **server components** (er well they will need the `async` keyword beside function too maybe). These are rendered on the server and sent to the browser and in general you want as many things as possible to be server components. They have the advantage that any fetch calls within them will be made right-away on the server, before anything is rendered, which can improve performance a lot. They can also have client components within them, but not vice-versa (with the exception of layout.tsx), so try to have server components near the root and client components as far down as possible. 
+- NOTE that for our system, we generally do not use server components. For two reasons:
+  - Our system is very client-heavy with a lot of interactivity, meaning there is very little that can be pre-rendered
+  - Our system's architecture splits Next.js from our backend. Server components get more performance benefit when you *call things like the database directly*, instead of through the API (causes an extra round-trip).
 
 `'use server'` - In general, don't use this as that's for *making server actions* and *NOT for designating server components*. Server actions are "asynchronous functions" and are sorta like endpoints. We don't really use these as we are using our own endpoints. 
 
@@ -423,6 +427,21 @@ Some examples of where this is used:
 - For notifying and sending new queue question data to all users subscribed to queue Server Side Events (which happens automatically when you are viewing a queue page)
 
 See https://orkhan.gitbook.io/typeorm/docs/listeners-and-subscribers for more info
+
+
+## Known Quirks when Developing
+
+If you have any ideas on where to even start with fixing these, feel free to give them a stab!
+
+- Sometimes the HMR/hot reload/hot refresh (the thing that immediately rebuilds your running code after saving) doesn't work for the Nestjs server. Sometimes this is a result of it just taking an extra minute to rebuild. Other times it's just stuck and you will need to `ctrl`+`c` the terminal and run `yarn dev` again. 
+- Sometimes the tests will just start failing on dev (usually with database connection errors, deadlock, or some table already existing). Restarting your computer *might* help
+- There's like a 1 in 40 chance or so that the tests will fail on github actions with one of the errors listed above
+- UI randomly looking funky with no changes? This is very uncommon, but it could be antd updating their css (even though we're using a package manager so we *should* be getting the same version each time. But, I did read somewhere that yarn and other package managers will download newer minor versions of packages even though we have a smaller version in our package.json), or maybe browser caching issue (try `ctrl`+`F5`. It's usually not this but a man can dream).
+- You might run into issues when switching between branches with different migrations (i.e. the database has a different schema between branches) which conflict in some way (typeorm usually resolves fine, but it will error if, for example, a field gets NULL in a non-nullable column). There are a couple of things you can do to fix this.
+  - Before switching branches, clear all data using the `/dev` endpoint. (easier)
+  - Run either an UPDATE or DELETE SQL query to fix the data (easier if you have beekeeper studio or some other nice UI connected to the database)
+- There's more, I'm sure of it
+
 
 # History
 

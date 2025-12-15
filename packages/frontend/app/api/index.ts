@@ -96,6 +96,7 @@ import {
   QueueInviteParams,
   QueuePartial,
   QueueTypes,
+  ExtraTAStatus,
   RemoveLMSOrganizationParams,
   Role,
   SemesterPartial,
@@ -772,6 +773,17 @@ export class APIClient {
         return this.req('DELETE', `/api/v1/courses/${courseId}/checkout_all`)
       }
     },
+    setExtraStatus: async (
+      courseId: number,
+      qid: number,
+      status: ExtraTAStatus | null,
+    ): Promise<void> =>
+      this.req(
+        'PATCH',
+        `/api/v1/courses/${courseId}/ta_status/${qid}`,
+        undefined,
+        { status },
+      ),
   }
   asyncQuestions = {
     get: async (cid: number): Promise<AsyncQuestion[]> =>

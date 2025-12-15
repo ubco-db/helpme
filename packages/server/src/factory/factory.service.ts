@@ -152,6 +152,7 @@ export class FactoryService {
       .attr('sectionGroupName', '001')
       .attr('enabled', true)
       .attr('courseInviteCode', 'invite-code')
+      .attr('isCourseInviteEnabled', true)
       .assocOne('semester', this.SemesterFactory);
 
     this.CourseSettingsFactory = new Factory(CourseSettingsModel, dataSource)

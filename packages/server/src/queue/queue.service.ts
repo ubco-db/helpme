@@ -1,5 +1,4 @@
 import {
-  decodeBase64,
   generateTagIdFromName,
   LimboQuestionStatus,
   ListQuestionsResponse,
@@ -15,6 +14,7 @@ import {
   StatusSentToCreator,
   StaffMember,
   ExtraTAStatus,
+  decodeBase64,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -27,11 +27,13 @@ import { pick } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
 import { DataSource, In } from 'typeorm';
 import { QueueModel } from './queue.entity';
+import { QueueStaffModel } from './queue-staff.entity';
 import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueInviteModel } from './queue-invite.entity';
 import { UserModel } from 'profile/user.entity';
+import * as crypto from 'crypto';
 
 type StaffHelpingInOtherQueues = {
   queueId: number;
@@ -63,10 +65,21 @@ export class QueueService {
     const StaffHelpingInOtherQueues =
       await this.getStaffHelpingInOtherQueues(queueId);
 
+    // load any self-set extra TA statuses for staff in this queue
+    const staffStatusRows = await QueueStaffModel.find({
+      where: { queueModelId: queueId },
+    });
+    const userIdToExtraStatus = new Map<number, ExtraTAStatus | null>();
+    staffStatusRows.forEach((row) =>
+      userIdToExtraStatus.set(row.userModelId, row.extraTAStatus ?? null),
+    );
+
     queue.staffList = queue.staffList.map((user) => {
       const staffHelpingInOtherQueue = StaffHelpingInOtherQueues.find(
         (staff) => staff.userId === user.id,
       );
+      // precedence: if user marked themselves away, show that; else show helping-in-other-* status
+      const selfExtra = userIdToExtraStatus.get(user.id);
       return {
         id: user.id,
         name: user.name,
@@ -74,13 +87,16 @@ export class QueueService {
         TANotes:
           user.courses.find((ucm) => ucm.courseId === queue.courseId)
             ?.TANotes ?? '',
-        extraStatus: !staffHelpingInOtherQueue
-          ? undefined
-          : staffHelpingInOtherQueue.courseId !== queue.courseId
-            ? ExtraTAStatus.HELPING_IN_ANOTHER_COURSE
-            : staffHelpingInOtherQueue.queueId !== queueId
-              ? ExtraTAStatus.HELPING_IN_ANOTHER_QUEUE
-              : undefined,
+        extraStatus:
+          selfExtra === ExtraTAStatus.AWAY
+            ? ExtraTAStatus.AWAY
+            : !staffHelpingInOtherQueue
+              ? undefined
+              : staffHelpingInOtherQueue.courseId !== queue.courseId
+                ? ExtraTAStatus.HELPING_IN_ANOTHER_COURSE
+                : staffHelpingInOtherQueue.queueId !== queueId
+                  ? ExtraTAStatus.HELPING_IN_ANOTHER_QUEUE
+                  : undefined,
         helpingStudentInAnotherQueueSince: staffHelpingInOtherQueue?.helpedAt,
       } as StaffMember as unknown as UserModel;
     });
@@ -462,7 +478,10 @@ export class QueueService {
     }
 
     try {
-      const invite = QueueInviteModel.create({ queueId });
+      const invite = QueueInviteModel.create({
+        queueId,
+        inviteCode: this.generateRandomInviteCode(),
+      });
       await invite.save();
     } catch (err) {
       console.error('Error while creating queue invite:');
@@ -583,6 +602,17 @@ export class QueueService {
 
     await queue.addQueueSize();
 
+    const staffHelpingInOtherQueues =
+      await this.getStaffHelpingInOtherQueues(queueId);
+
+    const staffStatusRows = await QueueStaffModel.find({
+      where: { queueModelId: queueId },
+    });
+    const userIdToExtraStatus = new Map<number, ExtraTAStatus | null>();
+    staffStatusRows.forEach((row) =>
+      userIdToExtraStatus.set(row.userModelId, row.extraTAStatus ?? null),
+    );
+
     // query the questions helped questions for this queue (select helpedAt and taHelpedId)
     const helpedQuestions = await QuestionModel.find({
       select: ['helpedAt', 'taHelpedId'],
@@ -601,6 +631,21 @@ export class QueueService {
         }
       });
 
+      const staffHelpingInOtherQueue = staffHelpingInOtherQueues.find(
+        (staff) => staff.userId === user.id,
+      );
+      const selfExtra = userIdToExtraStatus.get(user.id);
+      const extraStatus =
+        selfExtra === ExtraTAStatus.AWAY
+          ? ExtraTAStatus.AWAY
+          : !staffHelpingInOtherQueue
+            ? undefined
+            : staffHelpingInOtherQueue.courseId !== queue.courseId
+              ? ExtraTAStatus.HELPING_IN_ANOTHER_COURSE
+              : staffHelpingInOtherQueue.queueId !== queueId
+                ? ExtraTAStatus.HELPING_IN_ANOTHER_QUEUE
+                : undefined;
+
       return {
         id: user.id,
         name: user.name,
@@ -609,6 +654,7 @@ export class QueueService {
         TANotes:
           user.courses.find((ucm) => ucm.courseId === queue.courseId)
             ?.TANotes ?? '',
+        extraStatus,
       };
     });
 
@@ -655,5 +701,9 @@ export class QueueService {
     }
 
     return !!queueInvite.isQuestionsVisible;
+  }
+
+  private generateRandomInviteCode(): string {
+    return crypto.randomBytes(6).toString('hex');
   }
 }

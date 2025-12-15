@@ -110,6 +110,9 @@ export class CourseModel extends BaseEntity {
   @Column('text', { nullable: true })
   courseInviteCode?: string;
 
+  @Column('boolean', { default: false })
+  isCourseInviteEnabled: boolean;
+
   @OneToOne(
     () => CourseSettingsModel,
     (courseSettings) => courseSettings.course,

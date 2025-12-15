@@ -43,7 +43,7 @@ exports[`Insights Integration GET /insights/list should return list of insights 
       "students",
     ],
     "description": "What help services have students been utilizing over time?",
-    "displayName": "Student Interactions Over Time",
+    "displayName": "Usage Over Time",
     "insightCategory": "Tool_Usage_Statistics",
     "insightType": "Chart",
   },

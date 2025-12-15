@@ -1024,7 +1024,15 @@ export enum QueueTypes {
 export enum ExtraTAStatus {
   HELPING_IN_ANOTHER_QUEUE = 'Helping student in another queue',
   HELPING_IN_ANOTHER_COURSE = 'Helping student in another course',
+  AWAY = 'Away',
 }
+
+export class SetTAExtraStatusParams {
+  @IsOptional()
+  @IsEnum(ExtraTAStatus)
+  status?: ExtraTAStatus | null
+}
+
 export interface StaffMember {
   id: number
   name: string
@@ -1122,6 +1130,7 @@ export type StaffForStaffList = {
   name: string
   photoURL?: string
   questionHelpedAt?: Date
+  extraStatus?: ExtraTAStatus
 }
 
 // Represents a list of office hours wait times of each hour of the week.
@@ -2123,6 +2132,8 @@ export class GetCourseResponse {
   organizationCourse?: OrganizationPartial
 
   courseInviteCode?: string
+
+  isCourseInviteEnabled?: boolean
 }
 
 export class GetLimitedCourseResponse {
@@ -2596,6 +2607,9 @@ export class EditCourseInfoParams {
   @IsString()
   @IsOptional()
   courseInviteCode?: string | null
+
+  @IsOptional()
+  isCourseInviteEnabled?: boolean
 }
 
 export enum antdTagColor {
@@ -3922,6 +3936,10 @@ export function dropUndefined(obj: any, dropNull = false) {
   return obj
 }
 
+/* This is just to have the error messages in one place to make it easier for testing/maintenance.
+  Instead of updating an error message string in an endpoint just to find out it broke a test,
+  we can just update it once here.
+*/
 export const ERROR_MESSAGES = {
   common: {
     pageOutOfBounds: "Can't retrieve out of bounds page.",

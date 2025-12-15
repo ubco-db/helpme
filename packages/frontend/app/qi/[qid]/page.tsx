@@ -19,8 +19,6 @@ import {
   useState,
 } from 'react'
 import {
-  decodeBase64,
-  encodeBase64,
   LimboQuestionStatus,
   OpenQuestionStatus,
   parseTaskIdsFromQuestionText,
@@ -31,6 +29,8 @@ import {
   transformIntoTaskTree,
   UBCOuserParam,
   User,
+  decodeBase64,
+  encodeBase64,
 } from '@koh/common'
 import { API, fetchUserDetails } from '@/app/api'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -143,7 +143,7 @@ export default function QueueInvitePage(
     try {
       const queueInviteInfo = await API.queueInvites.get(qid, encodedCode)
       setQueueInviteInfo(queueInviteInfo)
-    } catch (error) {
+    } catch (_error) {
       setHasFetchErrorOccurred(true)
     } finally {
       setPageLoading(false)
@@ -338,6 +338,7 @@ export default function QueueInvitePage(
                       queueId={queueInviteInfo.queueId}
                       ta={ta}
                       helpedAt={ta.questionHelpedAt}
+                      isForPublic
                     />
                   ))}
                 </div>

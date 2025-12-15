@@ -277,8 +277,8 @@ export default function LMSQuizDocumentList({
             <InfoCircleOutlined className="mt-1 text-orange-500" />
             <div className="ml-3">
               <p className="text-sm text-orange-800">
-                Quiz syncing is currently disabled. Enable &#34;Quizzes&#34; in
-                the resource selection to sync quiz content with the chatbot.
+                Quiz syncing is currently disabled. Enable &quot;Quizzes&quot;
+                in the resource selection to sync quiz content with the chatbot.
               </p>
             </div>
           </div>
