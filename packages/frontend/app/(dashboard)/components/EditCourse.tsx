@@ -114,7 +114,24 @@ const EditCourse: React.FC<EditCourseProps> = ({
                 <h3>Course Invite Link</h3>
                 <div className="text-gray-500">
                   <Tooltip
-                    title={`This is the invite link for the course. You must set an invite code (of anything you'd like) before anyone can join your course. Once set, you can share the invite link with your students (e.g. on Canvas). Clearing the invite code will prevent new people from joining your course.`}
+                    title={
+                      <div className="flex flex-col gap-y-2">
+                        <p>
+                          This is the invite link for the course. Once enabled,
+                          you can copy the link and share it with your students
+                          (e.g. Syllabus, Announcement, Lab sheet) or print the
+                          QR code.
+                        </p>
+                        <p>
+                          Later on, once all your students have joined, you can
+                          choose to disable the link.
+                        </p>
+                        <p>
+                          You may also regenerate a new link in case it was
+                          leaked.
+                        </p>
+                      </div>
+                    }
                   >
                     Help <QuestionCircleOutlined />
                   </Tooltip>

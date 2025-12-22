@@ -24,6 +24,7 @@ import {
   UserCourse,
   UserTiny,
   validateQueueConfigInput,
+  SetTAExtraStatusParams,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -132,7 +133,11 @@ export class CourseController {
       relations: ['organizationCourse', 'organizationCourse.organization'],
     });
 
-    if (!courseWithOrganization) {
+    if (
+      !courseWithOrganization ||
+      !courseWithOrganization.courseInviteCode ||
+      courseWithOrganization.isCourseInviteEnabled === false
+    ) {
       res.status(HttpStatus.NOT_FOUND).send({
         message: ERROR_MESSAGES.courseController.courseNotFound,
       });
@@ -167,7 +172,11 @@ export class CourseController {
       relations: ['organizationCourse', 'organizationCourse.organization'],
     });
 
-    if (!courseWithOrganization) {
+    if (
+      !courseWithOrganization ||
+      !courseWithOrganization.courseInviteCode ||
+      courseWithOrganization.isCourseInviteEnabled === false
+    ) {
       res.status(HttpStatus.NOT_FOUND).send({
         message: ERROR_MESSAGES.courseController.courseNotFound,
       });
@@ -589,6 +598,51 @@ export class CourseController {
     return { queueId: queue.id };
   }
 
+  /**
+   * Allows a TA to set or clear their extra status (e.g., Away) for a specific queue.
+   */
+  @Patch(':id/ta_status/:qid')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async setTAExtraStatus(
+    @Param('id', ParseIntPipe) courseId: number,
+    @Param('qid', ParseIntPipe) queueId: number,
+    @User() user: UserModel,
+    @Body() body: SetTAExtraStatusParams,
+  ): Promise<void> {
+    const queue = await QueueModel.findOne({
+      where: {
+        id: queueId,
+        isDisabled: false,
+      },
+      relations: {
+        staffList: true,
+      },
+    });
+
+    if (!queue) {
+      throw new NotFoundException(
+        ERROR_MESSAGES.courseController.queueNotFound,
+      );
+    }
+
+    // Only allow if the user is checked into this queue
+    const isInStaffList = queue.staffList.some((s) => s.id === user.id);
+    if (!isInStaffList) {
+      throw new BadRequestException('You must be checked in to set status');
+    }
+
+    await this.courseService.setTAExtraStatusForQueue(
+      queueId,
+      courseId,
+      user.id,
+      body?.status ?? null,
+    );
+
+    await this.queueSSEService.updateQueue(queueId);
+    return;
+  }
+
   @Delete(':id/checkout_all')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)
@@ -758,7 +812,8 @@ export class CourseController {
     }
 
     if (
-      course.course.courseInviteCode === null ||
+      !course.course.courseInviteCode ||
+      course.course.isCourseInviteEnabled === false ||
       course.course.courseInviteCode !== code
     ) {
       res.status(HttpStatus.BAD_REQUEST).send({
