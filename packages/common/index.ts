@@ -3814,6 +3814,7 @@ export const ERROR_MESSAGES = {
     notLoggedIn: 'Must be logged in',
     noCourseIdFound: 'No courseId found',
     notInCourse: 'Not In This Course',
+    noOrgId: 'Organization ID not given',
     notAuthorized: "You don't have permissions to perform this action",
     userNotInOrganization: 'User not in organization',
     mustBeRoleToAccess: (roles: string[]): string =>

@@ -5,6 +5,7 @@ import {
   ExecutionContext,
   UnauthorizedException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
@@ -36,13 +37,18 @@ export class OrganizationRolesGuard implements CanActivate {
   }
 
   async setupData(
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+     
     request: any,
   ): Promise<{ user: OrganizationUserModel }> {
+    const oid = request.params.oid ?? request.params.orgId ?? null;
+    if (!oid) {
+      throw new BadRequestException(ERROR_MESSAGES.roleGuard.noOrgId);
+    }
+
     const user = await OrganizationUserModel.findOne({
       where: {
         userId: request.user.userId,
-        organizationId: request.params.oid,
+        organizationId: oid,
       },
     });
 

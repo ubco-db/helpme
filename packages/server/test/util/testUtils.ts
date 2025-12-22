@@ -312,6 +312,8 @@ export const overrideEmailService: ModuleModifier = (builder) =>
 export const expectEmailSent = (
   receivers: (string | string[])[],
   types: string[],
+  subject?: string,
+  content?: string,
 ): void => {
   expect(mockEmailService.sendEmail).toHaveBeenCalledTimes(receivers.length);
   const calls = mockEmailService.sendEmail.mock.calls.map((args) => args[0]);
@@ -322,10 +324,24 @@ export const expectEmailSent = (
         expect.objectContaining({
           receiverOrReceivers: receivers[i],
           type: types[i],
+          subject: subject,
+          content: content,
         }),
       ),
     ),
   );
+  // ensure the content and subject have no "null", "undefined", "[object Object]", "{}"
+  const forbidden = ['null', 'undefined', 'object Object', '{}'];
+  calls.forEach((call) => {
+    forbidden.forEach((term) => {
+      if (call.content && typeof call.content === 'string') {
+        expect(call.content).not.toContain(term);
+      }
+      if (call.subject && typeof call.subject === 'string') {
+        expect(call.subject).not.toContain(term);
+      }
+    });
+  });
 };
 export const expectEmailNotSent = (): void =>
   expect(mockEmailService.sendEmail).not.toHaveBeenCalled();

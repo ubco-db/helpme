@@ -1,0 +1,131 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`ProfInvite Integration GET /prof_invites/all/:orgId Does NOT return invites from other organizations 1`] = `
+[
+  {
+    "adminUser": {
+      "email": "admin@a.com",
+      "id": 1,
+      "name": "User Person",
+    },
+    "code": Any<String>,
+    "course": {
+      "id": 1,
+      "name": "Course A",
+    },
+    "createdAt": Any<String>,
+    "expiresAt": Any<String>,
+    "id": 1,
+    "makeOrgProf": true,
+    "maxUses": 1,
+    "usesUsed": 0,
+  },
+]
+`;
+
+exports[`ProfInvite Integration GET /prof_invites/all/:orgId List Filtering: Filter by courseId 1`] = `
+{
+  "allInvites": [
+    {
+      "adminUser": {
+        "email": "admin@a.com",
+        "id": 1,
+        "name": "User Person",
+      },
+      "code": Any<String>,
+      "course": {
+        "id": 2,
+        "name": "Course B",
+      },
+      "createdAt": Any<String>,
+      "expiresAt": Any<String>,
+      "id": 2,
+      "makeOrgProf": true,
+      "maxUses": 1,
+      "usesUsed": 0,
+    },
+    {
+      "adminUser": {
+        "email": "admin@a.com",
+        "id": 1,
+        "name": "User Person",
+      },
+      "code": Any<String>,
+      "course": {
+        "id": 1,
+        "name": "Course A",
+      },
+      "createdAt": Any<String>,
+      "expiresAt": Any<String>,
+      "id": 1,
+      "makeOrgProf": true,
+      "maxUses": 1,
+      "usesUsed": 0,
+    },
+  ],
+  "filteredInvites": [
+    {
+      "adminUser": {
+        "email": "admin@a.com",
+        "id": 1,
+        "name": "User Person",
+      },
+      "code": Any<String>,
+      "course": {
+        "id": 2,
+        "name": "Course B",
+      },
+      "createdAt": Any<String>,
+      "expiresAt": Any<String>,
+      "id": 2,
+      "makeOrgProf": true,
+      "maxUses": 1,
+      "usesUsed": 0,
+    },
+  ],
+}
+`;
+
+exports[`ProfInvite Integration GET /prof_invites/all/:orgId Retrieves invites 1`] = `
+[
+  {
+    "adminUser": {
+      "email": "admin@a.com",
+      "id": 1,
+      "name": "User Person",
+    },
+    "code": Any<String>,
+    "course": {
+      "id": 1,
+      "name": "Course A",
+    },
+    "createdAt": Any<String>,
+    "expiresAt": Any<String>,
+    "id": 1,
+    "makeOrgProf": true,
+    "maxUses": 1,
+    "usesUsed": 0,
+  },
+]
+`;
+
+exports[`ProfInvite Integration POST /prof_invites/:orgId Creates an invite and returns it 1`] = `
+{
+  "adminUser": {
+    "email": "admin@a.com",
+    "id": 1,
+    "name": "User Person",
+  },
+  "code": Any<String>,
+  "course": {
+    "id": 1,
+    "name": "Course A",
+  },
+  "createdAt": Any<String>,
+  "expiresAt": Any<String>,
+  "id": 2,
+  "makeOrgProf": false,
+  "maxUses": 10,
+  "usesUsed": 0,
+}
+`;

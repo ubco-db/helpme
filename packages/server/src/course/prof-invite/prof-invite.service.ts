@@ -14,7 +14,6 @@ import { ProfInviteModel } from './prof-invite.entity';
 import { OrganizationService } from 'organization/organization.service';
 import { randomBytes } from 'node:crypto';
 import { MailService } from 'mail/mail.service';
-import * as Sentry from '@sentry/nestjs';
 
 @Injectable()
 export class ProfInviteService {
@@ -84,49 +83,6 @@ export class ProfInviteService {
       return `/courses?${params.toString()}`;
     }
 
-    const commonEmailBody = `
-      <div style="display: flex; flex-direction: column; gap: 4px;">
-        <p>View the course (Note that this link won't work if you're not already in the course): <a href="${process.env.DOMAIN}/course/${profInvite.courseId}">${process.env.DOMAIN}/course/${profInvite.courseId}</a></p>
-        <p>You are receiving this email because you are the admin who created the prof invite.</p>
-        <p><b>Full Prof Invite Details:</b></p>
-        <table style="border-collapse: collapse; margin-top: 8px;">
-          <tr>
-            <td style="border: 1px solid #ddd; padding: 6px;"><b>Invite ID</b></td>
-            <td style="border: 1px solid #ddd; padding: 6px;">${profInvite.id}</td>
-          </tr>
-          <tr>
-            <td style="border: 1px solid #ddd; padding: 6px;"><b>Course ID</b></td>
-            <td style="border: 1px solid #ddd; padding: 6px;">${profInvite.courseId}</td>
-          </tr>
-          <tr>
-            <td style="border: 1px solid #ddd; padding: 6px;"><b>Course Name</b></td>
-            <td style="border: 1px solid #ddd; padding: 6px;">${profInvite.course.name}</td>
-          </tr>
-          <tr>
-            <td style="border: 1px solid #ddd; padding: 6px;"><b>Created At</b></td>
-            <td style="border: 1px solid #ddd; padding: 6px;">${profInvite.createdAt instanceof Date ? profInvite.createdAt.toLocaleString() : profInvite.createdAt}</td>
-          </tr>
-          <tr>
-            <td style="border: 1px solid #ddd; padding: 6px;"><b>Expires At</b></td>
-            <td style="border: 1px solid #ddd; padding: 6px;">${profInvite.expiresAt instanceof Date ? profInvite.expiresAt.toLocaleString() : profInvite.expiresAt}</td>
-          </tr>
-          <tr>
-            <td style="border: 1px solid #ddd; padding: 6px;"><b>Uses</b></td>
-            <td style="border: 1px solid #ddd; padding: 6px;">${profInvite.usesUsed} / ${profInvite.maxUses}</td>
-          </tr>
-          <tr>
-            <td style="border: 1px solid #ddd; padding: 6px;"><b>Make Org Prof</b></td>
-            <td style="border: 1px solid #ddd; padding: 6px;">${profInvite.makeOrgProf ? 'Yes' : 'No'}</td>
-          </tr>
-          <tr>
-            <td style="border: 1px solid #ddd; padding: 6px;"><b>Invite Code</b></td>
-            <td style="border: 1px solid #ddd; padding: 6px;">${profInvite.code}</td>
-          </tr>
-        </table>
-        ${profInviteCode !== profInvite.code ? `<p>Note that the given prof invite code (${profInviteCode}) <b>does not match</b> the real prof invite code (${profInvite.code}). This probably means the request was malicious!</p>` : ''}
-      </div>
-    `;
-
     // check if already in course (if so, just redirect and don't consume invite)
     // Note that this check happens before the invite expiry check (Meaning that as long as you are in the course, you can always use this link to navigate to the course page. Since I imagine some profs will keep using the same link to get to their course)
     const user = await UserModel.findOne({
@@ -136,7 +92,7 @@ export class ProfInviteService {
         organizationUser: true,
       },
     });
-    if (!user) {
+    if (!user || !user.organizationUser) {
       const params = new URLSearchParams({
         err: QUERY_PARAMS.profInvite.error.userNotFound,
       });
@@ -145,8 +101,6 @@ export class ProfInviteService {
     const existingUserCourse = user.courses.find(
       (uc) => uc.courseId === profInvite.courseId,
     );
-
-    const commonEmailBodyUserInfo = `<p style="margin-bottom: 4px;">Acceptee User Details - ID: ${user.id}, Name: ${user.name}, Email: ${user.email}</p>`;
 
     if (
       existingUserCourse &&
@@ -158,13 +112,16 @@ export class ProfInviteService {
         // Weird case: The user is already in the course as a student or TA.
         // In this case, the admin messed up and should promote them manually.
 
+        const email = this.constructAlreadyStudentEmail(
+          user,
+          profInvite,
+          profInviteCode,
+        );
         this.mailService.sendEmail({
           receiverOrReceivers: profInvite.adminUser.email,
           type: MailServiceType.ADMIN_NOTICE,
-          subject: `HelpMe (Admin) - Prof Invite for ${profInvite.course.name} Could Not Be Accepted: Needs Manual Promotion`,
-          content: `<p style="margin-bottom: 4px;">A user attempted to accept the professor invite for ${profInvite.course.name} <b>but they are already in the course as a student or TA</b>. In this case, you must promote them manually. Or, in case this was the result of a leaked invite, you should delete the old prof invite and create a new one.</p>
-          ${commonEmailBodyUserInfo}
-          ${commonEmailBody}`,
+          subject: email.subject,
+          content: email.content,
         });
         return `/course/${profInvite.courseId}`;
       }
@@ -173,14 +130,16 @@ export class ProfInviteService {
     // check "if used", "if expired", then "if invite code is correct". Checking "if used" first simply because the email notice will be more accurate (as it's likely the prof logged in with the wrong account).
     if (profInvite.usesUsed >= profInvite.maxUses) {
       if (user.organizationUser.role !== OrganizationRole.ADMIN) {
+        const email = this.constructAlreadyUsedEmail(
+          user,
+          profInvite,
+          profInviteCode,
+        );
         this.mailService.sendEmail({
           receiverOrReceivers: profInvite.adminUser.email,
           type: MailServiceType.ADMIN_NOTICE,
-          subject: `HelpMe (Admin) - User Attempted to Accept Already-Used Prof Invite for ${profInvite.course.name}`,
-          content: `<p style="margin-bottom: 4px;">A user attempted to accept a professor invite for ${profInvite.course.name} <b>but the prof invite is already used</b>. They were notified as such but the invite was not accepted. </p>
-          <p style="margin-bottom: 4px;">In this case, you should verify the acceptee was who you were expecting and then email them a new prof invite (since the prof might've logged in with two different accounts). OR investigate if this link was leaked somewhere.</p>
-          ${commonEmailBodyUserInfo}
-          ${commonEmailBody}`,
+          subject: email.subject,
+          content: email.content,
         });
       }
       const params = new URLSearchParams({
@@ -191,14 +150,16 @@ export class ProfInviteService {
     }
     if (profInvite.expiresAt < new Date()) {
       if (user.organizationUser.role !== OrganizationRole.ADMIN) {
+        const email = this.constructExpiredEmail(
+          user,
+          profInvite,
+          profInviteCode,
+        );
         this.mailService.sendEmail({
           receiverOrReceivers: profInvite.adminUser.email,
           type: MailServiceType.ADMIN_NOTICE,
-          subject: `HelpMe (Admin) - User Attempted to Accept Expired Prof Invite for ${profInvite.course.name}`,
-          content: `<p style="margin-bottom: 4px;">A user attempted to accept a professor invite for ${profInvite.course.name} <b>but the prof invite is expired</b>. They were notified as such but the invite was not accepted. </p>
-          <p style="margin-bottom: 4px;">In this case, you should verify the acceptee was who you were expecting and then email them a new prof invite (since the prof might've forgotten). OR investigate if this link was leaked somewhere.</p>
-          ${commonEmailBodyUserInfo}
-          ${commonEmailBody}`,
+          subject: email.subject,
+          content: email.content,
         });
       }
       const params = new URLSearchParams({
@@ -210,14 +171,16 @@ export class ProfInviteService {
     }
     if (profInvite.code !== profInviteCode) {
       if (user.organizationUser.role !== OrganizationRole.ADMIN) {
+        const email = this.constructWrongCodeEmail(
+          user,
+          profInvite,
+          profInviteCode,
+        );
         this.mailService.sendEmail({
           receiverOrReceivers: profInvite.adminUser.email,
           type: MailServiceType.ADMIN_NOTICE,
-          subject: `HelpMe (Admin) - User Attempted to Accept Prof Invite for ${profInvite.course.name} With Wrong Invite Code`,
-          content: `<p style="margin-bottom: 4px;">A user attempted to accept a professor invite for ${profInvite.course.name} <b>but the invite code was incorrect</b>. They were notified as such but the invite was not accepted. </p>
-          <p style="margin-bottom: 4px;">In this case, it is either a problem with the system or someone malicious. Please verify the acceptee details to see who is trying to access this and address it accordingly.</p>
-          ${commonEmailBodyUserInfo}
-          ${commonEmailBody}`,
+          subject: email.subject,
+          content: email.content,
         });
       }
       const params = new URLSearchParams({
@@ -246,14 +209,16 @@ export class ProfInviteService {
         }).save();
 
         if (user.id !== profInvite.adminUserId) {
+          const email = this.constructAdminAcceptedEmail(
+            user,
+            profInvite,
+            profInviteCode,
+          );
           this.mailService.sendEmail({
             receiverOrReceivers: profInvite.adminUser.email,
             type: MailServiceType.ADMIN_NOTICE,
-            subject: `HelpMe (Admin) - Another Admin Accepted Your Prof Invite for ${profInvite.course.name} (Not Consumed)`,
-            content: `<p style="margin-bottom: 4px;">An admin accepted your professor invite and has been added to ${profInvite.course.name} as a professor. Because they were an admin, the invite was not consumed (they were also notified of this).</p>
-            <p style="margin-bottom: 4px;">In this case, if the user you were trying to invite to the course <i>was</i> the admin, you should not do this since it is expected the admin adds themselves to the course (you should also delete the prof invite in this case). Otherwise, you can disregard this email.</p>
-            ${commonEmailBodyUserInfo}
-            ${commonEmailBody}`,
+            subject: email.subject,
+            content: email.content,
           });
         }
         const params = new URLSearchParams({
@@ -294,19 +259,160 @@ export class ProfInviteService {
     }
 
     const remainingUses = profInvite.maxUses - profInvite.usesUsed;
+    const email = this.constructSuccessEmail(
+      user,
+      profInvite,
+      profInviteCode,
+      remainingUses,
+    );
     this.mailService.sendEmail({
       receiverOrReceivers: profInvite.adminUser.email,
       type: MailServiceType.ADMIN_NOTICE,
-      subject: `HelpMe (Admin) - ${user.name} Accepted Your Prof Invite for ${profInvite.course.name}${remainingUses > 1 ? ` (${remainingUses} Uses Remaining)` : ' (Consumed)'}`,
-      content: `<p style="margin-bottom: 4px;">${user.name} accepted your professor invite and has been added to ${profInvite.course.name} as a professor.</p>
-      <p style="margin-bottom: 4px;">Doing so has consumed the professor invite, and there are ${remainingUses} uses remaining.</p>
-      ${profInvite.makeOrgProf && user.organizationUser.role === OrganizationRole.MEMBER ? `<p style="margin-bottom: 4px;">Because makeOrgProf was true (and they were not already an org prof), the user was also made into an organization professor.</p>` : ''}
-      ${commonEmailBodyUserInfo}
-      ${commonEmailBody}`,
+      subject: email.subject,
+      content: email.content,
     });
     const params = new URLSearchParams({
       notice: QUERY_PARAMS.profInvite.notice.inviteAccepted,
     });
     return `/course/${profInvite.courseId}?${params.toString()}`;
+  }
+
+  // --- Email Construction Helpers --- Used for tests
+
+  public getCommonEmailBody(
+    profInvite: ProfInviteModel,
+    profInviteCodeAttempt?: string,
+  ): string {
+    return `
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <p>View the course (Note that this link won't work if you're not already in the course): <a href="${process.env.DOMAIN}/course/${profInvite.courseId}">${process.env.DOMAIN}/course/${profInvite.courseId}</a></p>
+        <p>You are receiving this email because you are the admin who created the prof invite.</p>
+        <p><b>Full Prof Invite Details:</b></p>
+        <table style="border-collapse: collapse; margin-top: 8px;">
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 6px;"><b>Invite ID</b></td>
+            <td style="border: 1px solid #ddd; padding: 6px;">${profInvite.id}</td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 6px;"><b>Course ID</b></td>
+            <td style="border: 1px solid #ddd; padding: 6px;">${profInvite.courseId}</td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 6px;"><b>Course Name</b></td>
+            <td style="border: 1px solid #ddd; padding: 6px;">${profInvite.course.name}</td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 6px;"><b>Created At</b></td>
+            <td style="border: 1px solid #ddd; padding: 6px;">${profInvite.createdAt instanceof Date ? profInvite.createdAt.toLocaleString() : profInvite.createdAt}</td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 6px;"><b>Expires At</b></td>
+            <td style="border: 1px solid #ddd; padding: 6px;">${profInvite.expiresAt instanceof Date ? profInvite.expiresAt.toLocaleString() : profInvite.expiresAt}</td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 6px;"><b>Uses</b></td>
+            <td style="border: 1px solid #ddd; padding: 6px;">${profInvite.usesUsed} / ${profInvite.maxUses}</td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 6px;"><b>Make Org Prof</b></td>
+            <td style="border: 1px solid #ddd; padding: 6px;">${profInvite.makeOrgProf ? 'Yes' : 'No'}</td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 6px;"><b>Invite Code</b></td>
+            <td style="border: 1px solid #ddd; padding: 6px;">${profInvite.code}</td>
+          </tr>
+        </table>
+        ${profInviteCodeAttempt && profInviteCodeAttempt !== profInvite.code ? `<p>Note that the given prof invite code (${profInviteCodeAttempt}) <b>does not match</b> the real prof invite code (${profInvite.code}). This probably means the request was malicious!</p>` : ''}
+      </div>
+    `;
+  }
+
+  public getCommonEmailBodyUserInfo(user: UserModel): string {
+    return `<p style="margin-bottom: 4px;">Acceptee User Details - ID: ${user.id}, Name: ${user.name}, Email: ${user.email}</p>`;
+  }
+
+  public constructAlreadyStudentEmail(
+    user: UserModel,
+    profInvite: ProfInviteModel,
+    profInviteCode: string,
+  ): { subject: string; content: string } {
+    return {
+      subject: `HelpMe (Admin) - Prof Invite for ${profInvite.course.name} Could Not Be Accepted: Needs Manual Promotion`,
+      content: `<p style="margin-bottom: 4px;">A user attempted to accept the professor invite for ${profInvite.course.name} <b>but they are already in the course as a student or TA</b>. In this case, you must promote them manually. Or, in case this was the result of a leaked invite, you should delete the old prof invite and create a new one.</p>
+          ${this.getCommonEmailBodyUserInfo(user)}
+          ${this.getCommonEmailBody(profInvite, profInviteCode)}`,
+    };
+  }
+
+  public constructAlreadyUsedEmail(
+    user: UserModel,
+    profInvite: ProfInviteModel,
+    profInviteCode: string,
+  ): { subject: string; content: string } {
+    return {
+      subject: `HelpMe (Admin) - User Attempted to Accept Already-Used Prof Invite for ${profInvite.course.name}`,
+      content: `<p style="margin-bottom: 4px;">A user attempted to accept a professor invite for ${profInvite.course.name} <b>but the prof invite is already used</b>. They were notified as such but the invite was not accepted. </p>
+          <p style="margin-bottom: 4px;">In this case, you should verify the acceptee was who you were expecting and then email them a new prof invite (since the prof might've logged in with two different accounts). OR investigate if this link was leaked somewhere.</p>
+          ${this.getCommonEmailBodyUserInfo(user)}
+          ${this.getCommonEmailBody(profInvite, profInviteCode)}`,
+    };
+  }
+
+  public constructExpiredEmail(
+    user: UserModel,
+    profInvite: ProfInviteModel,
+    profInviteCode: string,
+  ): { subject: string; content: string } {
+    return {
+      subject: `HelpMe (Admin) - User Attempted to Accept Expired Prof Invite for ${profInvite.course.name}`,
+      content: `<p style="margin-bottom: 4px;">A user attempted to accept a professor invite for ${profInvite.course.name} <b>but the prof invite is expired</b>. They were notified as such but the invite was not accepted. </p>
+          <p style="margin-bottom: 4px;">In this case, you should verify the acceptee was who you were expecting and then email them a new prof invite (since the prof might've forgotten). OR investigate if this link was leaked somewhere.</p>
+          ${this.getCommonEmailBodyUserInfo(user)}
+          ${this.getCommonEmailBody(profInvite, profInviteCode)}`,
+    };
+  }
+
+  public constructWrongCodeEmail(
+    user: UserModel,
+    profInvite: ProfInviteModel,
+    profInviteCode: string,
+  ): { subject: string; content: string } {
+    return {
+      subject: `HelpMe (Admin) - User Attempted to Accept Prof Invite for ${profInvite.course.name} With Wrong Invite Code`,
+      content: `<p style="margin-bottom: 4px;">A user attempted to accept a professor invite for ${profInvite.course.name} <b>but the invite code was incorrect</b>. They were notified as such but the invite was not accepted. </p>
+          <p style="margin-bottom: 4px;">In this case, it is either a problem with the system or someone malicious. Please verify the acceptee details to see who is trying to access this and address it accordingly.</p>
+          ${this.getCommonEmailBodyUserInfo(user)}
+          ${this.getCommonEmailBody(profInvite, profInviteCode)}`,
+    };
+  }
+
+  public constructAdminAcceptedEmail(
+    user: UserModel,
+    profInvite: ProfInviteModel,
+    profInviteCode: string,
+  ): { subject: string; content: string } {
+    return {
+      subject: `HelpMe (Admin) - Another Admin Accepted Your Prof Invite for ${profInvite.course.name} (Not Consumed)`,
+      content: `<p style="margin-bottom: 4px;">An admin accepted your professor invite and has been added to ${profInvite.course.name} as a professor. Because they were an admin, the invite was not consumed (they were also notified of this).</p>
+            <p style="margin-bottom: 4px;">In this case, if the user you were trying to invite to the course <i>was</i> the admin, you should not do this since it is expected the admin adds themselves to the course (you should also delete the prof invite in this case). Otherwise, you can disregard this email.</p>
+            ${this.getCommonEmailBodyUserInfo(user)}
+            ${this.getCommonEmailBody(profInvite, profInviteCode)}`,
+    };
+  }
+
+  public constructSuccessEmail(
+    user: UserModel,
+    profInvite: ProfInviteModel,
+    profInviteCode: string,
+    remainingUses: number,
+  ): { subject: string; content: string } {
+    return {
+      subject: `HelpMe (Admin) - ${user.name} Accepted Your Prof Invite for ${profInvite.course.name}${remainingUses > 0 ? ` (${remainingUses} Uses Remaining)` : ' (Consumed)'}`,
+      content: `<p style="margin-bottom: 4px;">${user.name} accepted your professor invite and has been added to ${profInvite.course.name} as a professor.</p>
+      <p style="margin-bottom: 4px;">Doing so has consumed the professor invite, and there are ${remainingUses} uses remaining.</p>
+      ${profInvite.makeOrgProf && user.organizationUser.role === OrganizationRole.MEMBER ? `<p style="margin-bottom: 4px;">Because makeOrgProf was true (and they were not already an org prof), the user was also made into an organization professor.</p>` : ''}
+      ${this.getCommonEmailBodyUserInfo(user)}
+      ${this.getCommonEmailBody(profInvite, profInviteCode)}`,
+    };
   }
 }
