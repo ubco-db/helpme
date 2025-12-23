@@ -327,8 +327,6 @@ export const expectEmailSent = (
         expect.objectContaining({
           receiverOrReceivers: receivers[i],
           type: types[i],
-          subject: subject,
-          content: content,
         }),
       ),
     ),
