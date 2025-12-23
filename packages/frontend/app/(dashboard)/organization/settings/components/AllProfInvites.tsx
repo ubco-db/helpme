@@ -41,7 +41,6 @@ export const AllProfInvites: React.FC<AllProfInvitesProps> = ({ orgId }) => {
   const columns: TableColumnsType<GetProfInviteResponse> = [
     {
       title: 'piid',
-      // hidden: true,
       dataIndex: 'id',
       key: 'id',
       width: 20,

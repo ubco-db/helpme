@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
   ForbiddenException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
@@ -36,19 +37,20 @@ export class OrganizationRolesGuard implements CanActivate {
     return this.matchRoles(roles, user);
   }
 
-  async setupData(
-     
-    request: any,
-  ): Promise<{ user: OrganizationUserModel }> {
+  async setupData(request: any): Promise<{ user: OrganizationUserModel }> {
     const oid = request.params.oid ?? request.params.orgId ?? null;
     if (!oid) {
-      throw new BadRequestException(ERROR_MESSAGES.roleGuard.noOrgId);
+      // throwing a 500 error since if this happens, it's likely the endpoint itself that's broken (that the endpoint is missing an orgId/oid param).
+      throw new InternalServerErrorException(ERROR_MESSAGES.roleGuard.noOrgId);
+    }
+    if (!Number(oid)) {
+      throw new BadRequestException(ERROR_MESSAGES.roleGuard.invalidOrgId);
     }
 
     const user = await OrganizationUserModel.findOne({
       where: {
         userId: request.user.userId,
-        organizationId: oid,
+        organizationId: Number(oid),
       },
     });
 

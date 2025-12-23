@@ -31,6 +31,7 @@ import { useEffect, useState } from 'react'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 
 dayjs.extend(relativeTime)
 
@@ -125,9 +126,14 @@ const ProfInvites: React.FC<ProfInvitesProps> = ({ courseData }) => {
         <Alert
           id="create-prof-invite-notice"
           message="Course successfully created. Would you like to make a professor invite?"
+          description={
+            <>
+              Or, go back to <Link href="/courses">My Courses</Link>
+            </>
+          }
           type="success"
           showIcon
-          className="scroll-mt-4 py-4"
+          className="scroll-mt-4"
         />
       )}
       <Card

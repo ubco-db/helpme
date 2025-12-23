@@ -48,7 +48,8 @@ export class ProfInviteModel extends BaseEntity {
   @Column({ default: 1 })
   maxUses: number;
 
-  // I thought about keeping track with a relationship with the users table but meh I don't think it'll add much benefit
+  // I thought about keeping track with a relationship with the users table (to keep track of who accepted the invite) but meh I don't think it'll add much benefit
+  // The emails already keep track of this
   @Column({ default: 0 })
   usesUsed: number;
 
