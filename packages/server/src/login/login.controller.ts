@@ -20,6 +20,7 @@ import * as request from 'superagent';
 import { getCookie } from 'common/helpers';
 import { CourseService } from 'course/course.service';
 import { minutes, Throttle } from '@nestjs/throttler';
+import { ProfInviteService } from 'course/prof-invite/prof-invite.service';
 
 // Only 7 attempts per minute
 @Throttle({ default: { limit: 7, ttl: minutes(1) } })
@@ -29,6 +30,7 @@ export class LoginController {
     private jwtService: JwtService,
     private configService: ConfigService,
     private courseService: CourseService,
+    private profInviteService: ProfInviteService,
   ) {}
 
   @Post('/ubc_login')
@@ -161,8 +163,16 @@ export class LoginController {
     let redirectUrl: string;
     const cookie = getCookie(req, '__SECURE_REDIRECT');
     const queueInviteCookie = getCookie(req, 'queueInviteInfo');
+    const profInviteCookie = getCookie(req, 'profInviteInfo');
 
-    if (queueInviteCookie) {
+    if (profInviteCookie) {
+      await this.profInviteService
+        .acceptProfInviteFromCookie(userId, profInviteCookie)
+        .then((url) => {
+          redirectUrl = url;
+          res.clearCookie('profInviteInfo');
+        });
+    } else if (queueInviteCookie) {
       await this.courseService
         .getQueueInviteRedirectURLandInviteToCourse(queueInviteCookie, userId)
         .then((url) => {

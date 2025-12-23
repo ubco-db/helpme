@@ -125,9 +125,9 @@ Unit test files should be colocated with the file they test.
 
 Integration tests are located in the `test` folder.
 
-`yarn test` at root level runs all tests, but you can also selectively run tests by running `yarn test` while inside a package.
-
 ~~End to end (E2E) testing is in it's own folder and done with Cypress. These should be used to test core user flows. To run them headlessly (without a graphics server), do `yarn cypress run`. To watch them actually run interactively, you can use `yarn cypress open`. Be aware that this is _super slow_ on local machines.~~ (note: cypress has been removed, for now)
+
+To run a specific unit test suite, you can run `yarn test:unit suite-name` e.g. `yarn test:unit course`
 
 If your tests are failing with a message about "deadlock something whatever", do `yarn test --run-in-band`. This makes the tests run sequentially.
 

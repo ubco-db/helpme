@@ -13,23 +13,37 @@ export default async function Layout({
 
   const cookieStore = await cookies()
   const queueInviteCookieString = cookieStore.get('queueInviteInfo')
-  if (queueInviteCookieString) {
+  const profInviteCookieString = cookieStore.get('profInviteInfo')
+  if (profInviteCookieString) {
+    const decodedCookie = decodeURIComponent(profInviteCookieString.value)
+    const cookieParts = decodedCookie.split(',')
+    // const profInviteId = cookieParts[0] // not used, but left here to showcase they are available
+    const orgId = Number(cookieParts[1])
+    const courseId = Number(cookieParts[2])
+    //const profInviteCode = cookieParts[3]
+    if (orgId) {
+      invitedOrgId = orgId
+    }
+    if (courseId) {
+      invitedCourseId = courseId
+    }
+  } else if (queueInviteCookieString) {
     const decodedCookie = decodeURIComponent(queueInviteCookieString.value)
     const cookieParts = decodedCookie.split(',')
-    const courseId = cookieParts[0]
-    const queueId = cookieParts[1]
-    const orgId = cookieParts[2]
+    const courseId = Number(cookieParts[0])
+    const queueId = Number(cookieParts[1])
+    const orgId = Number(cookieParts[2])
     const courseInviteCode = cookieParts[3]
       ? Buffer.from(cookieParts[3], 'base64').toString('utf-8')
       : null
-    if (Number(orgId)) {
-      invitedOrgId = Number(orgId)
+    if (orgId) {
+      invitedOrgId = orgId
     }
-    if (Number(queueId)) {
-      invitedQueueId = Number(queueId)
+    if (queueId) {
+      invitedQueueId = queueId
     }
-    if (Number(courseId)) {
-      invitedCourseId = Number(courseId)
+    if (courseId) {
+      invitedCourseId = courseId
     }
     if (courseInviteCode) {
       // note: this will only get set if the queueInvite had willInviteToCourse set to true
@@ -42,14 +56,14 @@ export default async function Layout({
       const decodedCookie = decodeURIComponent(
         redirectCookieString.value,
       ).split(',')
-      const orgId = decodedCookie[2]
-      const courseId = decodedCookie[0]
+      const orgId = Number(decodedCookie[2])
+      const courseId = Number(decodedCookie[0])
       const courseInviteCode = decodedCookie[1]
-      if (Number(orgId)) {
-        invitedOrgId = Number(orgId)
+      if (orgId) {
+        invitedOrgId = orgId
       }
-      if (Number(courseId)) {
-        invitedCourseId = Number(courseId)
+      if (courseId) {
+        invitedCourseId = courseId
       }
       if (courseInviteCode) {
         invitedCourseInviteCode = courseInviteCode
