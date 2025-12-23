@@ -308,7 +308,10 @@ export const mockEmailService = {
 
 export const overrideEmailService: ModuleModifier = (builder) =>
   builder.overrideProvider(MailService).useValue(mockEmailService);
-/* Takes an array of emails (receivers) and type of email (types)*/
+
+/* Takes an array of emails (receivers) and type of email (types).
+Also takes in subject and content (optional). If added, will check that they are correct and don't have null, undefined, etc.
+*/
 export const expectEmailSent = (
   receivers: (string | string[])[],
   types: string[],
@@ -332,17 +335,26 @@ export const expectEmailSent = (
   );
   // ensure the content and subject have no "null", "undefined", "[object Object]", "{}"
   const forbidden = ['null', 'undefined', 'object Object', '{}'];
-  calls.forEach((call) => {
-    forbidden.forEach((term) => {
-      if (call.content && typeof call.content === 'string') {
-        expect(call.content).not.toContain(term);
-      }
-      if (call.subject && typeof call.subject === 'string') {
-        expect(call.subject).not.toContain(term);
-      }
+  if (content) {
+    calls.forEach((call) => {
+      forbidden.forEach((term) => {
+        if (call.content && typeof call.content === 'string') {
+          expect(call.content).not.toContain(term);
+        }
+      });
     });
-  });
+  }
+  if (subject) {
+    calls.forEach((call) => {
+      forbidden.forEach((term) => {
+        if (call.subject && typeof call.subject === 'string') {
+          expect(call.subject).not.toContain(term);
+        }
+      });
+    });
+  }
 };
+
 export const expectEmailNotSent = (): void =>
   expect(mockEmailService.sendEmail).not.toHaveBeenCalled();
 
