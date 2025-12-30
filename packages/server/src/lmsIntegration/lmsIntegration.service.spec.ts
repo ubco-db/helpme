@@ -119,7 +119,7 @@ describe('LMSIntegrationService', () => {
       const invalidAuthState = await LMSAuthStateFactory.create({
         organizationIntegration,
         user,
-        expiresIn: 0,
+        expiresInSeconds: 0,
       });
 
       await service.clearLMSAuthStates();
@@ -133,7 +133,7 @@ describe('LMSIntegrationService', () => {
           'organizationId',
           'state',
           'createdAt',
-          'expiresIn',
+          'expiresInSeconds',
           'userId',
           'redirectUrl',
         ]),

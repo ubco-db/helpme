@@ -6,7 +6,7 @@ import { User } from '@koh/common'
 import { fetchUserDetails } from '@/app/api'
 import Link from 'next/link'
 import { Button, Spin } from 'antd'
-import HeaderBar from '../components/HeaderBar'
+import HeaderBar from '@/app/components/HeaderBar'
 import { usePathname, useRouter } from 'next/navigation'
 import { LayoutProps } from '@/app/typings/types'
 import StandardPageContainer from '../components/standardPageContainer'
@@ -28,7 +28,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   useEffect(() => {
     fetchUserDetails(setProfile, setErrorGettingUser, router, pathname)
-  }, [])
+  }, [pathname, router])
 
   return errorGettingUser ? (
     <main className="mt-20 flex content-center justify-center gap-3">

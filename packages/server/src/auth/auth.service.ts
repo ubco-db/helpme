@@ -58,7 +58,7 @@ export class AuthService {
     await AuthStateModel.createQueryBuilder()
       .delete()
       .where(
-        `(EXTRACT(EPOCH FROM NOW()) - EXTRACT(EPOCH FROM auth_state_model."createdAt")) > auth_state_model."expiresIn"`,
+        `(EXTRACT(EPOCH FROM NOW()) - EXTRACT(EPOCH FROM auth_state_model."createdAt")) > auth_state_model."expiresInSeconds"`,
       )
       .execute();
   }
@@ -248,7 +248,7 @@ export class AuthService {
 
     if (
       (Date.now() - authState.createdAt.getTime()) / 1000 >
-      authState.expiresIn
+      authState.expiresInSeconds
     ) {
       return res.redirect(`${options?.prefix ?? ''}/failed/40004`);
     }
@@ -323,7 +323,7 @@ export class AuthService {
 
     if (
       (Date.now() - emailToken.createdAt.getTime()) / 1000 >
-      emailToken.expiresIn
+      emailToken.expiresInSeconds
     ) {
       return res.status(HttpStatus.BAD_REQUEST).send({
         message: 'Verification code has expired',
@@ -547,19 +547,18 @@ export class AuthService {
       },
     });
 
-    // TODO: Remove comment
-    // if (user && user.password) {
-    //   throw new BadRequestException(
-    //     'A non-SSO account already exists with this email. Please login with your email and password instead.',
-    //   );
-    // }
-
-    // TODO: Remove comment
-    // if (user && user.accountType !== AccountType.SHIBBOLETH) {
-    //   throw new BadRequestException(
-    //     'A non-SSO account already exists with this email. Please login with your email and password instead.',
-    //   );
-    // }
+    // Remove non-SSO account password if the account was previously unverified (could have been a loose registration
+    // using their email)
+    if (user && user.password && !user.emailVerified) {
+      await UserModel.update(
+        { id: user.id },
+        {
+          password: null, // null: delete existing password as no way of knowing if user is the one who added it
+          emailVerified: true, // they have now logged in with SSO, so we know their email is valid
+          accountType: AccountType.SHIBBOLETH,
+        },
+      );
+    }
 
     if (user) {
       return user.id;
@@ -635,19 +634,18 @@ export class AuthService {
       relations: ['organizationUser'],
     });
 
-    // TODO: Remove comment
-    // if (user && user.password) {
-    //   throw new BadRequestException(
-    //     'A non-SSO account already exists with this email. Please login with your email and password instead.',
-    //   );
-    // }
-
-    // TODO: Remove comment
-    // if (user && user.accountType !== AccountType.GOOGLE) {
-    //   throw new BadRequestException(
-    //     'A non-google account already exists with this email on HelpMe. Please try logging in with your email and password instead (or another SSO provider)',
-    //   );
-    // }
+    // Remove non-SSO account password if the account was previously unverified (could have been a loose registration
+    // using their email)
+    if (user && user.password && !user.emailVerified) {
+      await UserModel.update(
+        { id: user.id },
+        {
+          password: null, // null: delete existing password as no way of knowing if user is the one who added it
+          emailVerified: true, // they have now logged in with SSO, so we know their email is valid
+          accountType: AccountType.GOOGLE,
+        },
+      );
+    }
 
     if (user) {
       return user.id;
@@ -778,7 +776,7 @@ export class AuthService {
         organizationUser: true,
       },
     });
-    return user != undefined && user.organizationUser?.organizationId == oid;
+    return !!user && user.organizationUser?.organizationId === oid;
   }
 
   async createPasswordResetToken(user: UserModel): Promise<string> {

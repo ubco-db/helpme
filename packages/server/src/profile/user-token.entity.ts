@@ -29,8 +29,8 @@ export class UserTokenModel extends BaseEntity {
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 
-  @Column({ type: 'int', default: 60 * 60 * 24 })
-  expiresIn: number;
+  @Column({ type: 'integer', default: 60 * 60 * 24 })
+  expiresInSeconds: number;
 
   @Column({
     type: 'text',

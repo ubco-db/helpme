@@ -17,9 +17,9 @@ import {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
+  LMSPostResponseBody,
   LMSQuiz,
   LMSQuizAccessLevel,
-  LMSPostResponseBody,
   LMSResourceType,
   LMSSyncDocumentsResult,
   SupportedLMSFileTypes,
@@ -89,7 +89,7 @@ export class LMSIntegrationService {
     await LMSAuthStateModel.createQueryBuilder()
       .delete()
       .where(
-        `(EXTRACT(EPOCH FROM NOW()) - EXTRACT(EPOCH FROM lms_auth_state_model."createdAt")) > lms_auth_state_model."expiresIn"`,
+        `(EXTRACT(EPOCH FROM NOW()) - EXTRACT(EPOCH FROM lms_auth_state_model."createdAt")) > lms_auth_state_model."expiresInSeconds"`,
       )
       .execute();
   }

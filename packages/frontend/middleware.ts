@@ -3,7 +3,7 @@ import { isProd, OrganizationRole, User, UserRole } from './middlewareType'
 import * as Sentry from '@sentry/nextjs'
 import { RequestCookies } from 'next/dist/compiled/@edge-runtime/cookies'
 import Axios, { AxiosResponse } from 'axios'
-import { fetchAuthToken } from '@/app/api/cookie-utils'
+import { getAuthTokenString } from '@/app/api/cookie-utils'
 
 // These are files that do not require authentication. Used for displaying logos outside of HelpMe.
 const publicFiles: RegExp[] = [
@@ -52,7 +52,7 @@ async function fetchUser(
     return undefined
   }
 
-  const authToken = await fetchAuthToken()
+  const authToken = await getAuthTokenString()
   const response = await axiosInstance.get(`/api/v1/profile`, {
     headers: { cookie: authToken },
   })

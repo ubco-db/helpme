@@ -82,7 +82,7 @@ export class LoginController {
       (isProd() && user.accountType != AccountType.LEGACY) ||
       !user.password
     ) {
-      return res.status(HttpStatus.I_AM_A_TEAPOT).send({
+      return res.status(HttpStatus.BAD_REQUEST).send({
         message:
           'Account was registered with SSO and cannot be accessed with email/password login',
       });

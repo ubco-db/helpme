@@ -14,10 +14,10 @@ import { ExtraTAStatus } from '@koh/common';
 // This allows us to store additional metadata for a TA's status within a queue without refactoring all relations.
 @Entity('queue_model_staff_list_user_model')
 export class QueueStaffModel extends BaseEntity {
-  @PrimaryColumn('int', { name: 'queueModelId' })
+  @PrimaryColumn('integer', { name: 'queueModelId' })
   queueModelId: number;
 
-  @PrimaryColumn('int', { name: 'userModelId' })
+  @PrimaryColumn('integer', { name: 'userModelId' })
   userModelId: number;
 
   @ManyToOne(() => QueueModel, { onDelete: 'CASCADE' })
@@ -29,6 +29,11 @@ export class QueueStaffModel extends BaseEntity {
   user: UserModel;
 
   // Optional extra status a TA can set for themselves (e.g., Away)
-  @Column({ type: 'enum', enum: ExtraTAStatus, nullable: true })
-  extraTAStatus: ExtraTAStatus | null;
+  @Column({
+    type: 'enum',
+    enum: ExtraTAStatus,
+    nullable: true,
+    name: 'extraTAStatus',
+  })
+  extraTAStatus?: ExtraTAStatus | null;
 }

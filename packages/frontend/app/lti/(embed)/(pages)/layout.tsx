@@ -10,7 +10,7 @@ import { AsyncToasterProvider } from '@/app/contexts/AsyncToasterContext'
 import { ReloadOutlined } from '@ant-design/icons'
 import { fetchUserDetails } from '@/app/api'
 import StandardPageContainer from '@/app/components/standardPageContainer'
-import HeaderBar from '@/app/lti/(embed)/components/LtiHeaderBar'
+import HeaderBar from '@/app/components/HeaderBar'
 import { useLtiContext } from '@/app/contexts/LtiContext'
 import VerifyEmailPage from '@/app/(auth)/verify/page'
 
@@ -87,8 +87,19 @@ function IFrameWrapper({
 
   const [frameHeight, setFrameHeight] = useState<number>(window.innerHeight)
   useEffect(() => {
+    const throttleTime = 500 // ms between setState's to prevent re-rendering too frequently
+    let currentTimer: NodeJS.Timeout | undefined = undefined
+    let canUpdate = true
+
     const onResize = () => {
-      setFrameHeight(window.innerHeight)
+      if (canUpdate) {
+        if (currentTimer !== undefined) {
+          clearTimeout(currentTimer)
+        }
+        setFrameHeight(window.innerHeight)
+        canUpdate = false
+        currentTimer = setTimeout(() => (canUpdate = true), throttleTime)
+      }
     }
 
     window.addEventListener('resize', onResize)

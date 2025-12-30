@@ -1261,7 +1261,7 @@ describe('Lms Integration Integrations', () => {
       const expiredState = await LMSAuthStateFactory.create({
         user,
         organizationIntegration: orgInt,
-        expiresIn: 0,
+        expiresInSeconds: 0,
       });
       const params = new URLSearchParams({
         state: expiredState.state,
@@ -1421,7 +1421,6 @@ describe('Lms Integration Integrations', () => {
           );
         });
 
-      console.log(await LMSAccessTokenModel.find());
       const newToken = await LMSAccessTokenModel.findOne({
         where: {
           userId: user.id,

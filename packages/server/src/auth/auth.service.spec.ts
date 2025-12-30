@@ -207,7 +207,7 @@ describe('AuthService', () => {
       const validAuthState = await AuthStateFactory.create({ organization });
       const invalidAuthState = await AuthStateFactory.create({
         organization,
-        expiresIn: 0,
+        expiresInSeconds: 0,
       });
 
       await service.clearAuthStates();
@@ -221,7 +221,7 @@ describe('AuthService', () => {
           'organizationId',
           'state',
           'createdAt',
-          'expiresIn',
+          'expiresInSeconds',
         ]),
       );
       expect(
@@ -534,7 +534,7 @@ describe('AuthService', () => {
       });
       const authState = await AuthStateFactory.create({
         organization: org,
-        expiresIn: 0,
+        expiresInSeconds: 0,
       });
       const res: any = new MockResponse() as any;
       await service.ssoAuthCallback(
@@ -703,7 +703,7 @@ describe('AuthService', () => {
       const token = await UserTokenModel.save({
         user: user,
         token: crypto.randomBytes(32).toString('hex'),
-        expiresIn: 0,
+        expiresInSeconds: 0,
       });
       const res = new MockResponse() as any;
       const result = await service.verifyRegistrationToken(res, user.id, {
@@ -1012,46 +1012,6 @@ describe('AuthService', () => {
       roleChangeSpy?.mockClear();
     });
 
-    // TODO: Remove test
-    // it('should throw an error when user already exists with password', async () => {
-    //   await UserModel.create({
-    //     email: 'mocked_email@example.com',
-    //     password: 'test_password',
-    //   }).save();
-    //
-    //   await expect(
-    //     service.loginWithShibboleth(
-    //       'mocked_email@example.com',
-    //       'John',
-    //       'Doe',
-    //       1,
-    //     ),
-    //   ).rejects.toThrow(
-    //     'A non-SSO account already exists with this email. Please login with your email and password instead.',
-    //   );
-    //   expect(roleChangeSpy).not.toHaveBeenCalled();
-    // });
-
-    // TODO: Remove test
-    // it('should throw an error when user already exists with other account type', async () => {
-    //   await UserModel.create({
-    //     email: 'mocked_email@example.com',
-    //     accountType: AccountType.GOOGLE,
-    //   }).save();
-    //
-    //   await expect(
-    //     service.loginWithShibboleth(
-    //       'mocked_email@example.com',
-    //       'John',
-    //       'Doe',
-    //       1,
-    //     ),
-    //   ).rejects.toThrow(
-    //     'A non-SSO account already exists with this email. Please login with your email and password instead.',
-    //   );
-    //   expect(roleChangeSpy).not.toHaveBeenCalled();
-    // });
-
     it('should return user id when user already exists', async () => {
       const user = await UserModel.create({
         email: 'mocked_email@example.com',
@@ -1109,46 +1069,6 @@ describe('AuthService', () => {
       );
       expect(roleChangeSpy).not.toHaveBeenCalled();
     });
-
-    // TODO: Remove test
-    // it('should throw an error when user already exists with password', async () => {
-    //   const organization = await OrganizationFactory.create();
-    //   const user = await UserModel.create({
-    //     email: 'mocked_email@example.com',
-    //     password: 'test_password',
-    //   }).save();
-    //   await OrganizationUserFactory.create({
-    //     organizationUser: user,
-    //     organization: organization,
-    //   });
-    //
-    //   await expect(
-    //     service.loginWithGoogle('valid_code', organization.id),
-    //   ).rejects.toThrow(
-    //     'A non-SSO account already exists with this email. Please login with your email and password instead.',
-    //   );
-    //   expect(roleChangeSpy).not.toHaveBeenCalled();
-    // });
-
-    // TODO: Remove test
-    // it('should throw an error when user already exists with other account type', async () => {
-    //   const organization = await OrganizationFactory.create();
-    //   const user = await UserModel.create({
-    //     email: 'mocked_email@example.com',
-    //     accountType: AccountType.SHIBBOLETH,
-    //   }).save();
-    //   await OrganizationUserFactory.create({
-    //     organizationUser: user,
-    //     organization: organization,
-    //   });
-    //
-    //   await expect(
-    //     service.loginWithGoogle('valid_code', organization.id),
-    //   ).rejects.toThrow(
-    //     'A non-google account already exists with this email on HelpMe. Please try logging in with your email and password instead (or another SSO provider)',
-    //   );
-    //   expect(roleChangeSpy).not.toHaveBeenCalled();
-    // });
 
     it('should return user id when user already exists', async () => {
       const organization = await OrganizationFactory.create();

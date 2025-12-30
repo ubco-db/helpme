@@ -223,7 +223,7 @@ describe('Auth Integration', () => {
       });
       const authState = await AuthStateFactory.create({
         organization,
-        expiresIn: 0,
+        expiresInSeconds: 0,
       });
 
       const res = await supertest().get(
@@ -612,7 +612,7 @@ describe('Auth Integration', () => {
         token: 'expired',
         token_type: TokenType.PASSWORD_RESET,
         token_action: TokenAction.ACTION_PENDING,
-        expiresIn: 0,
+        expiresInSeconds: 0,
       }).save();
 
       const res = await supertest()
@@ -661,7 +661,7 @@ describe('Auth Integration', () => {
         token: 'expired',
         token_type: TokenType.PASSWORD_RESET,
         token_action: TokenAction.ACTION_PENDING,
-        expiresIn: 0,
+        expiresInSeconds: 0,
       }).save();
 
       const res = await supertest().get(
@@ -711,7 +711,7 @@ describe('Auth Integration', () => {
         token: 'expired',
         token_type: TokenType.EMAIL_VERIFICATION,
         token_action: TokenAction.ACTION_PENDING,
-        expiresIn: 0,
+        expiresInSeconds: 0,
       }).save();
 
       const res = await supertest({ userId: user.id })
@@ -764,7 +764,6 @@ describe('Auth Integration', () => {
           token: userToken.token,
         });
 
-      console.log(res.body);
       expect(res.status).toBe(307);
     });
   });

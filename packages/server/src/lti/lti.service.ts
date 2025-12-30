@@ -115,9 +115,9 @@ export class LtiService {
     }
 
     if (
-      matchingToken.expires != undefined &&
+      matchingToken.expiresInSeconds != undefined &&
       (Date.now() - matchingToken.createdAt.getTime()) / 1000 >
-        matchingToken.expires
+        matchingToken.expiresInSeconds
     ) {
       await matchingToken.remove();
       return false;
@@ -228,9 +228,9 @@ export class LtiService {
     }
 
     if (
-      matchingInvite.expires != undefined &&
+      matchingInvite.expiresInSeconds != undefined &&
       (Date.now() - matchingInvite.createdAt.getTime()) / 1000 >
-        matchingInvite.expires
+        matchingInvite.expiresInSeconds
     ) {
       await matchingInvite.remove();
       throw new BadRequestException(

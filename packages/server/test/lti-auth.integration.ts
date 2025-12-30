@@ -250,7 +250,7 @@ describe('LTI Auth Integration', () => {
       });
       const authState = await AuthStateFactory.create({
         organization,
-        expiresIn: 0,
+        expiresInSeconds: 0,
       });
 
       const res = await supertest().get(

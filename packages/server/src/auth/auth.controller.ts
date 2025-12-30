@@ -125,7 +125,7 @@ export class AuthController {
 
     if (
       (Date.now() - passwordToken.createdAt.getTime()) / 1000 >
-      passwordToken.expiresIn
+      passwordToken.expiresInSeconds
     ) {
       return res.status(HttpStatus.BAD_REQUEST).send({
         message: 'Password reset token has expired',
@@ -168,7 +168,7 @@ export class AuthController {
 
     if (
       (Date.now() - passwordToken.createdAt.getTime()) / 1000 >
-      passwordToken.expiresIn
+      passwordToken.expiresInSeconds
     ) {
       return res.status(HttpStatus.BAD_REQUEST).send({
         message: 'Password reset token has expired',
@@ -176,7 +176,7 @@ export class AuthController {
     }
 
     passwordToken.token_action = TokenAction.ACTION_COMPLETE;
-    passwordToken.expiresIn = 0;
+    passwordToken.expiresInSeconds = 0;
     await passwordToken.save();
 
     const salt = await bcrypt.genSalt(10);

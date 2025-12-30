@@ -33,7 +33,7 @@ describe('Mail Integration', () => {
         token: 'token',
         token_type: TokenType.EMAIL_VERIFICATION,
         token_action: TokenAction.ACTION_PENDING,
-        expiresIn: 60 * 15,
+        expiresInSeconds: 60 * 15,
       }).save();
 
       await supertest({ userId: user.id })

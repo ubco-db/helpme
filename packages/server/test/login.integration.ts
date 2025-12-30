@@ -156,7 +156,7 @@ describe('Login Integration', () => {
           password: 'real_password',
           recaptchaToken: 'token',
         })
-        .expect(418);
+        .expect(400);
     });
   });
 

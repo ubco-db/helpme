@@ -22,10 +22,10 @@ export class LtiIntegrationMigration1758315573009
       `CREATE TABLE "lms_access_token_model" ("id" SERIAL NOT NULL, "userId" integer NOT NULL, "iv" text, "data" text, "encryptedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "organizationIntegrationOrganizationId" integer, "organizationIntegrationApiPlatform" text, CONSTRAINT "PK_85d54237f03acd8efeea453806d" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "lms_auth_state_model" ("state" text NOT NULL, "redirectUrl" text, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "expiresIn" integer NOT NULL DEFAULT '60', "userId" integer NOT NULL, "organizationIntegrationOrganizationId" integer, "organizationIntegrationApiPlatform" text, CONSTRAINT "PK_7987b1c707a75215164c3e09f87" PRIMARY KEY ("state"))`,
+      `CREATE TABLE "lms_auth_state_model" ("state" text NOT NULL, "redirectUrl" text, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "expiresInSeconds" integer NOT NULL DEFAULT '60', "userId" integer NOT NULL, "organizationIntegrationOrganizationId" integer, "organizationIntegrationApiPlatform" text, CONSTRAINT "PK_7987b1c707a75215164c3e09f87" PRIMARY KEY ("state"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "auth_state_model" ("state" text NOT NULL, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "expiresIn" integer NOT NULL DEFAULT '60', "organizationId" integer NOT NULL, CONSTRAINT "PK_df8e02b34ca91e9b1ce1ba196a8" PRIMARY KEY ("state"))`,
+      `CREATE TABLE "auth_state_model" ("state" text NOT NULL, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "expiresInSeconds" integer NOT NULL DEFAULT '60', "organizationId" integer NOT NULL, CONSTRAINT "PK_df8e02b34ca91e9b1ce1ba196a8" PRIMARY KEY ("state"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "course_invite_model" ("inviteCode" text NOT NULL, "courseId" integer NOT NULL, "email" text NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "expires" integer DEFAULT '600', CONSTRAINT "PK_21a0bd712887650899e25fd3c1a" PRIMARY KEY ("inviteCode", "courseId"))`,
@@ -35,12 +35,6 @@ export class LtiIntegrationMigration1758315573009
     );
     await queryRunner.query(
       `ALTER TABLE "organization_model" DROP COLUMN "organizationId"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "user_token_model" DROP COLUMN "expires_at"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "user_token_model" DROP COLUMN "created_at"`,
     );
     await queryRunner.query(
       `ALTER TABLE "lms_course_integration_model" ADD "accessTokenId" integer`,
@@ -61,7 +55,16 @@ export class LtiIntegrationMigration1758315573009
       `ALTER TABLE "user_token_model" ADD "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()`,
     );
     await queryRunner.query(
-      `ALTER TABLE "user_token_model" ADD "expiresIn" integer NOT NULL DEFAULT '86400'`,
+      `ALTER TABLE "user_token_model" ADD "expiresInSeconds" integer NOT NULL DEFAULT 86400`,
+    );
+    await queryRunner.query(`
+        UPDATE "user_token_model" SET "createdAt" = to_timestamp("created_at"), "expiresInSeconds" = "expires_at" - "created_at" WHERE "expires_at" IS NOT NULL AND "created_at" IS NOT NULL;
+    `);
+    await queryRunner.query(
+      `ALTER TABLE "user_token_model" DROP COLUMN "expires_at"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "user_token_model" DROP COLUMN "created_at"`,
     );
     await queryRunner.query(
       `ALTER TABLE "lms_course_integration_model" ALTER COLUMN "apiKey" DROP NOT NULL`,
@@ -136,7 +139,16 @@ export class LtiIntegrationMigration1758315573009
       `ALTER TABLE "lms_course_integration_model" ALTER COLUMN "apiKey" SET NOT NULL`,
     );
     await queryRunner.query(
-      `ALTER TABLE "user_token_model" DROP COLUMN "expiresIn"`,
+      `ALTER TABLE "user_token_model" ADD "created_at" bigint NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "user_token_model" ADD "expires_at" bigint NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW()) + 86400`,
+    );
+    await queryRunner.query(`
+        UPDATE "user_token_model" SET "created_at" = EXTRACT(EPOCH FROM "createdAt"), "expires_in" = EXTRACT(EPOCH FROM "createdAt") + "expiresInSeconds" WHERE "expiresInSeconds" IS NOT NULL AND "createdAt" IS NOT NULL;
+    `);
+    await queryRunner.query(
+      `ALTER TABLE "user_token_model" DROP COLUMN "expiresInSeconds"`,
     );
     await queryRunner.query(
       `ALTER TABLE "user_token_model" DROP COLUMN "createdAt"`,
@@ -155,12 +167,6 @@ export class LtiIntegrationMigration1758315573009
     );
     await queryRunner.query(
       `ALTER TABLE "lms_course_integration_model" DROP COLUMN "accessTokenId"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "user_token_model" ADD "created_at" bigint NOT NULL`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "user_token_model" ADD "expires_at" bigint NOT NULL`,
     );
     await queryRunner.query(
       `ALTER TABLE "organization_model" ADD "organizationId" integer`,

@@ -1,4 +1,4 @@
-import { fetchAuthToken } from './cookie-utils'
+import { getAuthTokenString } from './cookie-utils'
 
 const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? ''
 /**
@@ -8,7 +8,7 @@ const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? ''
  */
 export const organizationApi = {
   getOrganization: async (organizationId: number) => {
-    const authToken = await fetchAuthToken()
+    const authToken = await getAuthTokenString()
 
     const response = await fetch(
       `${baseUrl}/api/v1/organization/${organizationId}`,

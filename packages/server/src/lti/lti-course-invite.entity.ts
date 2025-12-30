@@ -31,5 +31,5 @@ export class LtiCourseInviteModel extends BaseEntity {
   createdAt: Date;
 
   @Column({ type: 'integer', nullable: true, default: 600 })
-  expires?: number;
+  expiresInSeconds?: number;
 }

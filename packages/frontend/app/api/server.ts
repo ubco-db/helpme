@@ -1,9 +1,9 @@
 'use server'
 
 import { APIClient } from '@/app/api/index'
-import { fetchAuthToken } from '@/app/api/cookie-utils'
+import { getAuthTokenString } from '@/app/api/cookie-utils'
 
 export default async function getAPI() {
-  const token = await fetchAuthToken()
+  const token = await getAuthTokenString()
   return new APIClient(process.env.NEXT_PUBLIC_API_BASE_URL, token)
 }
