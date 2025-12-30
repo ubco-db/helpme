@@ -7,6 +7,7 @@ import {
   BookOutlined,
   HistoryOutlined,
   KeyOutlined,
+  SettingOutlined,
   UserOutlined,
 } from '@ant-design/icons'
 import { SettingsOptions } from '@/app/typings/enum'
@@ -82,14 +83,21 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
           icon: <BookOutlined />,
         },
         {
-          key: SettingsOptions.ACCESS_TOKENS,
-          label: '3rd Party Access Tokens',
-          icon: <KeyOutlined />,
-        },
-        {
           key: SettingsOptions.CHATBOT_HISTORY,
           label: 'Chatbot History',
           icon: <HistoryOutlined />,
+        },
+        {
+          key: 'Advanced',
+          label: 'Advanced',
+          icon: <SettingOutlined />,
+          children: [
+            {
+              key: SettingsOptions.ACCESS_TOKENS,
+              label: 'Access Tokens',
+              icon: <KeyOutlined />,
+            },
+          ],
         },
       ]}
     />

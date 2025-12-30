@@ -16,8 +16,12 @@ import FooterBar from './components/FooterBar'
 import { AsyncToasterProvider } from '../contexts/AsyncToasterContext'
 import { LogoutOutlined, ReloadOutlined } from '@ant-design/icons'
 import VerifyEmailPage from '@/app/(auth)/verify/page'
+import { UserRole } from '@/middlewareType'
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
+  children,
+  adminPage,
+}) => {
   const [profile, setProfile] = useState<User>()
   const [errorGettingUser, setErrorGettingUser] = useState<string | undefined>(
     undefined,
@@ -82,6 +86,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   ) : !profile.emailVerified ? (
     // should never happen since middleware.ts will redirect to /verify but just in case
     <VerifyEmailPage />
+  ) : adminPage && profile.userRole != UserRole.ADMIN ? (
+    <main className="mt-20 flex flex-col items-center justify-center gap-2">
+      <p>You do not have permission to view this page.</p>
+      <p>
+        <Link className="text-xl text-blue-500" href={`/courses`}>
+          My Dashboard
+        </Link>
+      </p>
+      <p>
+        <Link
+          className="text-xl text-blue-500"
+          href={`/api/v1/logout?redirect=${pathname}`}
+          prefetch={false}
+        >
+          Log Out
+        </Link>
+      </p>
+    </main>
   ) : (
     <AsyncToasterProvider>
       <UserInfoProvider profile={profile}>

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isProd, OrganizationRole, User, UserRole } from './middlewareType'
 import * as Sentry from '@sentry/nextjs'
 import { RequestCookies } from 'next/dist/compiled/@edge-runtime/cookies'
-import Axios, { AxiosResponse } from 'axios'
 import { getAuthTokenString } from '@/app/api/cookie-utils'
 
 // These are files that do not require authentication. Used for displaying logos outside of HelpMe.
@@ -41,30 +40,37 @@ const isEmailVerified = (userData: User): boolean => {
   return userData.emailVerified
 }
 
-const axiosInstance = Axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-})
 async function fetchUser(
   cookies: RequestCookies,
   cookieName = 'auth_token',
-): Promise<AxiosResponse | undefined> {
+): Promise<Response | undefined> {
   if (!cookies.has(cookieName)) {
     return undefined
   }
 
   const authToken = await getAuthTokenString()
-  const response = await axiosInstance.get(`/api/v1/profile`, {
-    headers: { cookie: authToken },
-  })
+  const response: Response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/profile`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: authToken,
+        Cookie: authToken,
+      },
+      credentials: 'include',
+    },
+  ).then((res) => res)
 
-  if (response.headers?.['content-type']?.includes('application/json')) {
+  const contentType = response?.headers?.get('Content-Type')
+  if (contentType?.includes('application/json')) {
     if (response.status >= 400) {
-      const body = response.data
+      const body = response.json()
       return Promise.reject(body)
     }
     return response // Type assertion needed due to conditional return type
-  } else if (response.headers?.['content-type']?.includes('text/html')) {
-    const text = response.data as string
+  } else if (contentType?.includes('text/html')) {
+    const text = response.text()
     Sentry.captureEvent({
       message: `Unknown error in getUser ${response.status}: ${response.statusText}`,
       level: 'error',
@@ -125,7 +131,7 @@ export async function middleware(
     )
   }
 
-  let response: AxiosResponse | undefined
+  let response: Response | undefined
   let userData: User | undefined
 
   try {
@@ -135,7 +141,7 @@ export async function middleware(
       response &&
       ((response.status >= 200 && response.status < 300) ||
         response.status == 302)
-        ? (response.data as User)
+        ? ((await response.json()) as User)
         : undefined
   } catch (error) {
     return await handleRetry(request, () => {
@@ -192,8 +198,9 @@ export async function middleware(
       })
     } else if (response.status >= 400) {
       // this really is not meant to happen
-      if (response.headers['content-type']?.includes('application/json')) {
-        const userData: User = await response.data
+      const contentType = response.headers?.get('Content-Type')
+      if (contentType?.includes('application/json')) {
+        const userData: User = (await response.json()) as User
         Sentry.captureEvent({
           message: `Unknown error in middleware ${response.status}: ${response.statusText}`,
           level: 'error',
@@ -206,8 +213,8 @@ export async function middleware(
             userRole: userData.organization?.organizationRole,
           },
         })
-      } else if (response.headers['content-type']?.includes('text/html')) {
-        const text = (await response.data) as string
+      } else if (contentType?.includes('text/html')) {
+        const text = (await response.text()) as string
         Sentry.captureEvent({
           message: `Unknown error in middleware ${response.status}: ${response.statusText}`,
           level: 'error',

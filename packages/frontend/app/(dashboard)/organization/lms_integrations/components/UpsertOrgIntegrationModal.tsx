@@ -119,7 +119,13 @@ const UpsertOrgIntegrationModal: React.FC<UpsertOrgIntegrationModalProps> = ({
             rules={[
               {
                 required: true,
+                type: 'url',
                 message: 'Enter a base URL for the integration',
+              },
+              {
+                warningOnly: true,
+                pattern: /(https).*/,
+                message: 'The HTTPS protocol should be used.',
               },
             ]}
           >
