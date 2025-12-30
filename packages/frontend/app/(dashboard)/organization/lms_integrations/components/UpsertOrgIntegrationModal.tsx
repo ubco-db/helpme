@@ -89,7 +89,6 @@ const UpsertOrgIntegrationModal: React.FC<UpsertOrgIntegrationModalProps> = ({
               }),
         }}
         onValuesChange={(changedValues) => {
-          console.log(changedValues)
           if (Object.keys(changedValues).includes('clientSecret')) {
             setClientSecretEdited(true)
           }

@@ -23,7 +23,7 @@ export default function LtiLandingPage(): ReactElement {
   function checkForceClose() {
     if (
       window &&
-      window.self == window.top &&
+      window.self === window.top &&
       searchParams.get('force_close')
     ) {
       window.self.close()
@@ -143,7 +143,7 @@ export default function LtiLandingPage(): ReactElement {
                         automatically added to their course.
                       </p>
                       <p>
-                        If you&#39;re logged into an account which does not
+                        If you&#39;ve logged into HelpMe with a different email
                         share the same email as your {lmsInfo.platform} account,
                         the above options will not work. Ask your instructor for
                         an invite link to their HelpMe course.

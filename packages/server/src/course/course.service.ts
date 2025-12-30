@@ -460,7 +460,7 @@ export class CourseService {
         });
 
         if (!course) {
-          queryParams.set('err', 'inviteNotFound');
+          queryParams.set('err', 'courseNotFound');
           return;
         }
 

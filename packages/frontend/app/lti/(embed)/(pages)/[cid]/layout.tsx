@@ -25,24 +25,22 @@ export default function Layout(props: {
 
   useEffect(() => {
     const getData = async () => {
-      let succeeded = false
       await API.course
         .get(courseId)
         .then((course) => {
           setCourse(course)
-          succeeded = true
+          await API.course
+            .getCourseFeatures(courseId)
+            .then((courseFeatures) => {
+              setCourseFeatures(courseFeatures)
+            })
+            .catch((err) => {
+              setGetCourseError(getErrorMessage(err))
+            })
         })
         .catch((err) => {
           setGetCourseError(getErrorMessage(err))
         })
-      if (succeeded) {
-        await API.course
-          .getCourseFeatures(courseId)
-          .then((courseFeatures) => {
-            setCourseFeatures(courseFeatures)
-          })
-          .catch((_) => {})
-      }
     }
     getData()
   }, [courseId])
