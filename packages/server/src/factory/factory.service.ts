@@ -48,6 +48,7 @@ import { LLMTypeModel } from '../chatbot/chatbot-infrastructure-models/llm-type.
 import { ChatbotProviderModel } from '../chatbot/chatbot-infrastructure-models/chatbot-provider.entity';
 import { CourseChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
 import { SentEmailModel } from '../mail/sent-email.entity';
+import { QueueStaffModel } from 'queue/queue-staff.entity';
 
 /* Has all of our factories and initializes them with the db dataSource. 
   If you want to use one of these factories, import it from factories.ts instead.
@@ -98,6 +99,7 @@ export class FactoryService {
   public ChatbotProviderFactory: Factory<ChatbotProviderModel>;
   public LLMTypeFactory: Factory<LLMTypeModel>;
   public CourseChatbotSettingsFactory: Factory<CourseChatbotSettingsModel>;
+  public QueueStaffFactory: Factory<QueueStaffModel>;
 
   constructor(dataSource: DataSource) {
     this.UserFactory = new Factory(UserModel, dataSource)
@@ -159,10 +161,13 @@ export class FactoryService {
       .attr('room', 'Online')
       .assocOne('course', this.CourseFactory)
       .attr('allowQuestions', false)
-      .assocMany('staffList', this.UserFactory, 0)
       .attr('isProfessorQueue', false)
       .attr('isDisabled', false)
       .attr('config', {});
+
+    this.QueueStaffFactory = new Factory(QueueStaffModel, dataSource)
+      .assocOne('queue', this.QueueFactory)
+      .assocOne('user', this.UserFactory);
 
     this.QueueInviteFactory = new Factory(QueueInviteModel, dataSource)
       .assocOne('queue', this.QueueFactory)

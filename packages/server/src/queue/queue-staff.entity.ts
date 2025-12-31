@@ -10,22 +10,24 @@ import { QueueModel } from './queue.entity';
 import { UserModel } from '../profile/user.entity';
 import { ExtraTAStatus } from '@koh/common';
 
-// Map the existing join table used by the ManyToMany relation between QueueModel.staffList and UserModel.queues
-// This allows us to store additional metadata for a TA's status within a queue without refactoring all relations.
-@Entity('queue_model_staff_list_user_model')
+@Entity('queue_staff_model')
 export class QueueStaffModel extends BaseEntity {
-  @PrimaryColumn('int', { name: 'queueModelId' })
-  queueModelId: number;
+  @PrimaryColumn('int', { name: 'queueId' })
+  queueId: number;
 
-  @PrimaryColumn('int', { name: 'userModelId' })
-  userModelId: number;
+  @PrimaryColumn('int', { name: 'userId' })
+  userId: number;
 
-  @ManyToOne(() => QueueModel, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'queueModelId' })
+  @ManyToOne(() => QueueModel, (queue) => queue.queueStaff, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'queueId' })
   queue: QueueModel;
 
-  @ManyToOne(() => UserModel, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userModelId' })
+  @ManyToOne(() => UserModel, (user) => user.queueStaff, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'userId' })
   user: UserModel;
 
   // Optional extra status a TA can set for themselves (e.g., Away)

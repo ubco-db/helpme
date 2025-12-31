@@ -70,6 +70,7 @@ import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { CourseRoles } from 'decorators/course-roles.decorator';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { OrganizationService } from '../organization/organization.service';
+import { QueueStaffModel } from 'queue/queue-staff.entity';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -210,7 +211,9 @@ export class CourseController {
       },
       relations: {
         queues: {
-          staffList: true,
+          queueStaff: {
+            user: true,
+          },
         },
         organizationCourse: {
           organization: true,
@@ -230,6 +233,15 @@ export class CourseController {
       await Promise.all(
         course.queues.map((q) => {
           q.addQueueSize();
+          q.queueStaff = q.queueStaff.map((qs) => {
+            return {
+              id: qs.userId,
+              name: qs.user.name,
+              photoURL: qs.user.photoURL,
+              extraTAStatus: qs.extraTAStatus,
+            } as unknown as QueueStaffModel;
+          });
+          // TODO: clean this up. Probably add a helper method for cleaning up the queue staff objects
         }),
       );
     } catch (err) {
@@ -263,7 +275,7 @@ export class CourseController {
     }
 
     return {
-      ...course,
+      ...(course as any), // TODO: REMOVE THIS ADAM
       heatmap,
       organizationCourse: course.organizationCourse?.organization ?? null,
     };
@@ -401,6 +413,7 @@ export class CourseController {
     }
   }
 
+  // TODO: put this in transaction someday
   @Post(':id/checkin/:qid')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)
@@ -415,7 +428,7 @@ export class CourseController {
         isDisabled: false,
       },
       relations: {
-        staffList: true,
+        queueStaff: true,
       },
     });
     if (!queue) {
@@ -446,7 +459,7 @@ export class CourseController {
       );
     }
 
-    if (queue.staffList.length === 0) {
+    if (queue.queueStaff.length === 0) {
       queue.allowQuestions = true;
       this.queueCleanService.deleteAllLeaveQueueCronJobsForQueue(queue.id);
       await this.queueCleanService.resolvePromptStudentToLeaveQueueAlerts(
@@ -454,8 +467,11 @@ export class CourseController {
       );
     }
 
-    queue.staffList.push(user);
     try {
+      await QueueStaffModel.create({
+        queueId: queue.id,
+        userId: user.id,
+      }).save();
       await queue.save();
     } catch (err) {
       console.error(

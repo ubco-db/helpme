@@ -24,6 +24,7 @@ import {
   QuestionFactory,
   QueueFactory,
   QueueInviteFactory,
+  QueueStaffFactory,
   StudentCourseFactory,
   TACourseFactory,
   UserCourseFactory,
@@ -83,12 +84,12 @@ describe('Course Integration', () => {
         room: 'room 2',
         course: course,
       });
-      await QueueFactory.create({
+      const queue = await QueueFactory.create({
         isDisabled: false,
         room: 'room 3',
         course: course,
-        staffList: [taf.user],
       });
+      await QueueStaffFactory.create({ queue: queue, user: taf.user });
 
       const response = await supertest({ userId: ucf.userId })
         .get(`/courses/${course.id}`)
@@ -119,20 +120,20 @@ describe('Course Integration', () => {
         room: 'room 2',
         course: course,
       });
-      await QueueFactory.create({
+      const queue1 = await QueueFactory.create({
         isDisabled: false,
         room: 'room 3',
         course: course,
-        staffList: [taf.user],
       });
+      await QueueStaffFactory.create({ queue: queue1, user: taf.user });
 
-      await QueueFactory.create({
+      const queue2 = await QueueFactory.create({
         isDisabled: false,
         isProfessorQueue: true,
         room: 'room 4',
         course: course,
-        staffList: [taf.user],
       });
+      await QueueStaffFactory.create({ queue: queue2, user: taf.user });
 
       const response = await supertest({ userId: taf.userId })
         .get(`/courses/${course.id}`)
@@ -170,27 +171,27 @@ describe('Course Integration', () => {
         room: 'room 2',
         course: course,
       });
-      await QueueFactory.create({
+      const queue1 = await QueueFactory.create({
         isDisabled: false,
         room: 'room 3',
         course: course,
-        staffList: [taf.user],
       });
+      await QueueStaffFactory.create({ queue: queue1, user: taf.user });
 
-      await QueueFactory.create({
+      const queue2 = await QueueFactory.create({
         isDisabled: false,
         isProfessorQueue: true,
         room: 'room 4',
         course: course,
-        staffList: [taf.user],
       });
-      await QueueFactory.create({
+      await QueueStaffFactory.create({ queue: queue2, user: taf.user });
+      const queue3 = await QueueFactory.create({
         isDisabled: true,
         isProfessorQueue: true,
         room: 'room 5',
         course: course,
-        staffList: [taf.user],
       });
+      await QueueStaffFactory.create({ queue: queue3, user: taf.user });
 
       const response = await supertest({ userId: proff.userId })
         .get(`/courses/${course.id}`)
@@ -354,8 +355,8 @@ describe('Course Integration', () => {
       const ta = await UserFactory.create();
       const queue = await QueueFactory.create({
         room: 'The Alamo',
-        staffList: [ta],
       });
+      await QueueStaffFactory.create({ queue: queue, user: ta });
       const tcf = await TACourseFactory.create({
         course: queue.course,
         user: ta,
@@ -364,10 +365,10 @@ describe('Course Integration', () => {
       expect(
         (
           await QueueModel.findOne({
-            relations: { staffList: true },
+            relations: { queueStaff: true },
             where: { id: queue.id },
           })
-        ).staffList.length,
+        ).queueStaff.length,
       ).toEqual(1);
 
       await supertest({ userId: ta.id })
@@ -376,11 +377,11 @@ describe('Course Integration', () => {
 
       expect(
         await QueueModel.findOne({
-          relations: { staffList: true },
+          relations: { queueStaff: true },
           where: { id: queue.id },
         }),
       ).toMatchObject({
-        staffList: [],
+        queueStaff: [],
       });
 
       const events = await EventModel.find();
@@ -418,11 +419,11 @@ describe('Course Integration', () => {
 
       expect(
         await QueueModel.findOne({
-          relations: { staffList: true },
+          relations: { queueStaff: true },
           where: { id: queue.id },
         }),
       ).toMatchObject({
-        staffList: [],
+        queueStaff: [],
       });
 
       const events = await EventModel.find({
@@ -444,14 +445,14 @@ describe('Course Integration', () => {
       });
       const queue1 = await QueueFactory.create({
         room: 'queue1',
-        staffList: [ta],
         course: course,
       });
+      await QueueStaffFactory.create({ queue: queue1, user: ta });
       const queue2 = await QueueFactory.create({
         room: 'queue2',
-        staffList: [ta],
         course: course,
       });
+      await QueueStaffFactory.create({ queue: queue2, user: ta });
 
       await supertest({ userId: ta.id })
         .delete(`/courses/${tcf.courseId}/checkout_all`)
@@ -459,11 +460,11 @@ describe('Course Integration', () => {
 
       expect(
         await QueueModel.findOne({
-          relations: { staffList: true },
+          relations: { queueStaff: true },
           where: { id: queue1.id },
         }),
       ).toMatchObject({
-        staffList: [],
+        queueStaff: [],
       });
 
       const events = await EventModel.find();
@@ -478,8 +479,9 @@ describe('Course Integration', () => {
       const ta2 = await UserFactory.create();
       const queue1 = await QueueFactory.create({
         room: 'queue1',
-        staffList: [ta1, ta2],
       });
+      await QueueStaffFactory.create({ queue: queue1, user: ta1 });
+      await QueueStaffFactory.create({ queue: queue1, user: ta2 });
       const tcf = await TACourseFactory.create({
         course: queue1.course,
         user: ta1,
@@ -491,11 +493,11 @@ describe('Course Integration', () => {
 
       expect(
         await QueueModel.findOne({
-          relations: { staffList: true },
+          relations: { queueStaff: true },
           where: { id: queue1.id },
         }),
       ).toMatchObject({
-        staffList: [ta2],
+        queueStaff: [ta2],
       });
 
       const events = await EventModel.find();
@@ -533,11 +535,11 @@ describe('Course Integration', () => {
 
       expect(
         await QueueModel.findOne({
-          relations: { staffList: true },
+          relations: { queueStaff: true },
           where: { id: queue.id },
         }),
       ).toMatchObject({
-        staffList: [],
+        queueStaff: [],
       });
 
       const events = await EventModel.find({
@@ -566,8 +568,7 @@ describe('Course Integration', () => {
       });
 
       // add TA to staff list for this queue
-      queue.staffList = [ta];
-      await queue.save();
+      await QueueStaffFactory.create({ queue: queue, user: ta });
 
       await supertest({ userId: ta.id })
         .patch(`/courses/${queue.course.id}/ta_status/${queue.id}`)
@@ -575,7 +576,7 @@ describe('Course Integration', () => {
         .expect(200);
 
       const joinRow = await QueueStaffModel.findOne({
-        where: { queueModelId: queue.id, userModelId: ta.id },
+        where: { queueId: queue.id, userId: ta.id },
       });
       expect(joinRow).toBeTruthy();
       expect(joinRow.extraTAStatus).toBe(ExtraTAStatus.AWAY);
@@ -596,7 +597,7 @@ describe('Course Integration', () => {
         .expect(200);
 
       const joinRowCleared = await QueueStaffModel.findOne({
-        where: { queueModelId: queue.id, userModelId: ta.id },
+        where: { queueId: queue.id, userId: ta.id },
       });
       expect(joinRowCleared.extraTAStatus).toBeNull();
 
