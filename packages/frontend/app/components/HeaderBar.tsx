@@ -75,7 +75,7 @@ const Link = ({
 }) => {
   const pathname = usePathname()
   const isActive = href === pathname
-  const isLogout = href === '/api/v1/logout'
+  const isLogout = href.startsWith('/api/v1/logout')
 
   return (
     <NavigationMenuLink ref={ref} asChild active={isActive}>
@@ -456,9 +456,11 @@ const NavBar = ({
             </NavigationMenuTrigger>
             <NavigationMenuContent className="hidden md:flex">
               <ul className="grid w-max min-w-[200px] grid-cols-1 gap-1 p-2">
-                <ListItem key="profile" title="Profile" href="/profile">
-                  {userInfo?.email}
-                </ListItem>
+                {!isLti && (
+                  <ListItem key="profile" title="Profile" href="/profile">
+                    {userInfo?.email}
+                  </ListItem>
+                )}
                 <ListItem
                   key="logout"
                   title="Logout"

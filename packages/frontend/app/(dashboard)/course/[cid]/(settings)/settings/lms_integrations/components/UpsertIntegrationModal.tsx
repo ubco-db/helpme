@@ -275,6 +275,13 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
       .then((res) => {
         if (res) {
           message.success('Successfully invalidated token!')
+          // Just to make sure the warning doesn't show if unnecessary
+          if (
+            baseIntegration &&
+            baseIntegration.accessTokenId == formValues['accessTokenId']
+          ) {
+            baseIntegration.accessTokenId = undefined
+          }
         } else {
           message.error('Failed to invalidate access token.')
         }

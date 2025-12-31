@@ -27,7 +27,7 @@ export default function Layout(props: {
     const getData = async () => {
       await API.course
         .get(courseId)
-        .then((course) => {
+        .then(async (course) => {
           setCourse(course)
           await API.course
             .getCourseFeatures(courseId)
