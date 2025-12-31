@@ -269,7 +269,7 @@ export default function SettingsPage(): ReactNode {
                     }
                     settingName={'allowLMSApiKey'}
                     description={
-                      'Enables whether LMS integrations are allowed to use API keys. Otherwise, professors will need to use OAuth flow to generate an access token from the platform..'
+                      'Enables whether LMS integrations are allowed to use API keys. Otherwise, professors will need to use OAuth flow to generate an access token from the platform.'
                     }
                     title={'Allow LMS Integration API Keys'}
                     organizationId={organizationId}
