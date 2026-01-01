@@ -10,7 +10,8 @@ export function CookieWrapper({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const checkThirdPartyCookieStatus = async () => {
-      if (!(await document.hasStorageAccess())) {
+      const hasStorageAccess = document.hasStorageAccess ?? (async () => false) // assume false if not implemented
+      if (!(await hasStorageAccess())) {
         setHasCookieAccess(false)
       }
     }
