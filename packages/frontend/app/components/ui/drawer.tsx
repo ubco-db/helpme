@@ -46,7 +46,7 @@ const DrawerContent = React.forwardRef<
   const { direction } = React.useContext(DrawerContext)
   return (
     <DrawerPortal>
-      <DrawerOverlay />
+      <DrawerOverlay style={{ zIndex: 1060 }} />
       <DrawerPrimitive.Content
         ref={ref}
         title="Drawer Menu"
@@ -58,6 +58,9 @@ const DrawerContent = React.forwardRef<
             'left-0 top-0 h-full w-[60vw] max-w-80 rounded-r-[10px]',
           className,
         )}
+        style={{
+          zIndex: 1060,
+        }}
         {...props}
       >
         {(!direction || direction === 'bottom') && (

@@ -13,6 +13,7 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   Res,
   UploadedFile,
   UseGuards,
@@ -42,7 +43,10 @@ export class ProfileController {
   @SkipThrottle()
   @Get()
   @UseGuards(JwtAuthGuard)
-  async get(@UserId() userId: number): Promise<GetProfileResponse> {
+  async get(
+    @Req() request: any,
+    @UserId() userId: number,
+  ): Promise<GetProfileResponse> {
     if (userId === null || userId === undefined) {
       console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
       throw new HttpException(
@@ -82,10 +86,16 @@ export class ProfileController {
         await this.redisProfileService.setProfile(`u:${user.id}`, profile);
       }
 
-      return profile;
+      return {
+        ...profile,
+        restrictPaths: request?.user?.restrictPaths,
+      };
     } else {
       console.log('Fetching profile from Redis');
-      return redisRecord;
+      return {
+        ...redisRecord,
+        restrictPaths: request?.user?.restrictPaths,
+      };
     }
   }
 

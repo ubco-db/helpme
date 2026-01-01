@@ -1,14 +1,21 @@
 'use client'
 
-import { userApi } from '@/app/api/userApi'
 import { Button, Card, Form, Input, message, Spin } from 'antd'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import ReCAPTCHA from 'react-google-recaptcha'
+import { API } from '@/app/api'
+import { usePathname } from 'next/navigation'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 export default function ForgetPassword() {
   const [organizationId, setOrganizationId] = useState(0)
   const [form] = Form.useForm()
   const [domLoaded, setDomLoaded] = useState(false)
+  const pathName = usePathname()
+
+  const isLti = useMemo(() => {
+    return pathName.startsWith('/lti')
+  }, [pathName])
 
   useEffect(() => {
     setOrganizationId(parseInt(localStorage.getItem('organizationId') ?? ''))
@@ -42,21 +49,23 @@ export default function ForgetPassword() {
 
     const token = await recaptchaRef?.current?.executeAsync()
 
-    const response = await userApi.resetPassword({
+    const params = {
       email: emailField,
       recaptchaToken: token ?? '',
       organizationId,
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      const error = (data && data.message) || response.statusText
-      message.error(error)
-      return Promise.reject(error)
-    } else {
-      message.success('Password reset email sent.')
     }
+
+    return await (
+      isLti
+        ? API.lti.auth.requestPasswordReset(params)
+        : API.auth.requestPasswordReset(params)
+    )
+      .then(() => {
+        message.success('Password reset email sent.')
+      })
+      .catch((err) => {
+        message.error(getErrorMessage(err))
+      })
   }
 
   return domLoaded ? (
@@ -105,7 +114,7 @@ export default function ForgetPassword() {
           </Button>
         </Form>
         <div className="mt-4 text-center">
-          <a href="/login">Go Back</a>
+          <a href={isLti ? '/lti/login' : '/login'}>Go Back</a>
         </div>
       </Card>
     </div>
