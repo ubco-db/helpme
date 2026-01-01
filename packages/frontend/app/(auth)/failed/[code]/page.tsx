@@ -4,6 +4,7 @@ import { CloseCircleOutlined } from '@ant-design/icons'
 import { usePathname, useRouter } from 'next/navigation'
 import { use, useEffect, useMemo, useState } from 'react'
 import StandardPageContainer from '@/app/components/standardPageContainer'
+import ThirdPartyCookiesWarning from '@/app/lti/components/ThirdPartyCookiesWarning'
 
 const { Paragraph, Text } = Typography
 
@@ -13,6 +14,7 @@ const FAILED_CODES: { [key: number]: string } = {
   40002: "Organization doesn't support SSO",
   40003: 'Missing or invalid authentication request state parameter',
   40004: 'Authentication request state expired',
+  40005: 'LTI Third Party Cookies',
 }
 
 const AuthFailed = (props: { params: Promise<{ code: string }> }) => {
@@ -28,6 +30,10 @@ const AuthFailed = (props: { params: Promise<{ code: string }> }) => {
   useEffect(() => {
     setCode(params.code)
   }, [params.code])
+
+  if (code && Number(code) == 40005) {
+    return <ThirdPartyCookiesWarning />
+  }
 
   return code && FAILED_CODES[Number(code)] ? (
     <>

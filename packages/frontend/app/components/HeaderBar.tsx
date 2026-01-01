@@ -465,6 +465,19 @@ const NavBar = ({
                     {userInfo?.email}
                   </ListItem>
                 )}
+                {isLti && (
+                  <>
+                    <NavigationMenuItem className="hidden w-full md:block">
+                      <div className="!ml-2 flex flex-col px-2 text-xs text-gray-500">
+                        <span className={'flex items-center'}>
+                          <MailOutlined className={'mr-2'} />
+                          {userInfo?.email}
+                        </span>
+                      </div>
+                    </NavigationMenuItem>
+                    <div className="-mr-5 block h-0.5 w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
+                  </>
+                )}
                 <ListItem
                   key="logout"
                   title="Logout"
@@ -491,13 +504,23 @@ const NavBar = ({
           {isLti && (
             <>
               <NavigationMenuItem className="w-full md:hidden">
-                <div className="!ml-2 flex flex-col px-2 text-xs text-gray-500">
-                  <div className="flex">
-                    <SelfAvatar size={40} className="mr-2" />
-                    <span>{userInfo?.firstName}</span>
+                <div className="!ml-2 flex flex-col gap-2 px-2 text-xs text-gray-500">
+                  <div className="flex items-center">
+                    <SelfAvatar size={20} className="mr-2" />
+                    <span>
+                      {userInfo?.firstName}
+                      {userInfo?.lastName ? ` ${userInfo.lastName}` : ''}
+                    </span>
                   </div>
                   <span className={'flex items-center'}>
-                    <MailOutlined size={40} className={'mr-2'} />
+                    <MailOutlined
+                      style={{
+                        fontSize: '10px',
+                        paddingLeft: '5px',
+                        paddingRight: '5px',
+                      }}
+                      className={'mr-2'}
+                    />
                     {userInfo?.email}
                   </span>
                 </div>
