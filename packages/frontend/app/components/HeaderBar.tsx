@@ -3,7 +3,6 @@
 import React, {
   HTMLAttributeAnchorTarget,
   useCallback,
-  useEffect,
   useMemo,
   useState,
 } from 'react'
@@ -51,7 +50,7 @@ import { useCourseFeatures } from '../hooks/useCourseFeatures'
 import CenteredSpinner from './CenteredSpinner'
 import Image from 'next/image'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
-import { API } from '@/app/api'
+import { useCourse } from '@/app/hooks/useCourse'
 
 /**
  * This custom Link is wrapped around nextjs's Link to improve accessibility and styling. Not to be used outside of this navigation menu.
@@ -472,13 +471,8 @@ const NavBar = ({
           </NavigationMenuItem>
           {/* MOBILE ONLY PART OF NAVBAR */}
           <div className="!mb-2 !mt-auto -mr-5 block w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
-          <NavigationMenuItem className="md:hidden">
-            {isLti ? (
-              <>
-                <SelfAvatar size={40} className="mr-2" />
-                {userInfo?.firstName}
-              </>
-            ) : (
+          {!isLti && (
+            <NavigationMenuItem className="md:hidden">
               <Link
                 href="/profile"
                 className="!pl-0"
@@ -487,8 +481,8 @@ const NavBar = ({
                 <SelfAvatar size={40} className="mr-2" />
                 {userInfo?.firstName}
               </Link>
-            )}
-          </NavigationMenuItem>
+            </NavigationMenuItem>
+          )}
           <NavigationMenuItem className="mb-2 md:hidden">
             <Popconfirm
               title="Are you sure you want to log out?"
@@ -537,24 +531,16 @@ const HeaderBar: React.FC = () => {
   const URLSegments = pathname.split('/')
 
   const courseId = useMemo(() => {
+    // LTI only uses a numeric parameter in segment 2 for courses
+    if (!isLti && URLSegments[1] !== 'course') {
+      return undefined
+    }
     const temp = parseInt(URLSegments[2])
     if (!isNaN(temp)) return temp
     return undefined
-  }, [URLSegments])
+  }, [URLSegments, isLti])
 
-  const [course, setCourse] = useState<GetCourseResponse>()
-  useEffect(() => {
-    if (courseId != undefined) {
-      API.course
-        .get(courseId)
-        .then((course) => setCourse(course))
-        .catch(() => {
-          setCourse(undefined)
-        })
-    } else {
-      setCourse(undefined)
-    }
-  }, [courseId])
+  const { course } = useCourse(courseId ?? null)
 
   const queueId =
     URLSegments[3] === 'queue' && URLSegments[4] && Number(URLSegments[4])
