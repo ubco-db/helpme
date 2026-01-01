@@ -43,7 +43,12 @@ import {
   Undo2,
   UsersRound,
 } from 'lucide-react'
-import { HomeOutlined, LogoutOutlined, SyncOutlined } from '@ant-design/icons'
+import {
+  HomeOutlined,
+  LogoutOutlined,
+  MailOutlined,
+  SyncOutlined,
+} from '@ant-design/icons'
 import { Popconfirm } from 'antd'
 import { sortQueues } from '../(dashboard)/course/[cid]/utils/commonCourseFunctions'
 import { useCourseFeatures } from '../hooks/useCourseFeatures'
@@ -482,6 +487,23 @@ const NavBar = ({
                 {userInfo?.firstName}
               </Link>
             </NavigationMenuItem>
+          )}
+          {isLti && (
+            <>
+              <NavigationMenuItem className="w-full md:hidden">
+                <div className="!ml-2 flex flex-col px-2 text-xs text-gray-500">
+                  <div className="flex">
+                    <SelfAvatar size={40} className="mr-2" />
+                    <span>{userInfo?.firstName}</span>
+                  </div>
+                  <span className={'flex items-center'}>
+                    <MailOutlined size={40} className={'mr-2'} />
+                    {userInfo?.email}
+                  </span>
+                </div>
+              </NavigationMenuItem>
+              <div className="-mr-5 block h-0.5 w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
+            </>
           )}
           <NavigationMenuItem className="mb-2 md:hidden">
             <Popconfirm
