@@ -7,7 +7,6 @@ import {
   Get,
   HttpException,
   HttpStatus,
-  InternalServerErrorException,
   NotFoundException,
   Param,
   ParseIntPipe,
@@ -23,11 +22,13 @@ import {
 import { ChatbotService } from './chatbot.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
+import { io } from 'socket.io-client';
 import {
   ChatbotAskSuggestedBody,
   ChatbotCourseSettingsResponse,
   ChatbotDocumentAggregateResponse,
   ChatbotDocumentListResponse,
+  ChatbotDocumentQueryResponse,
   ChatbotDocumentResponse,
   ChatbotProvider,
   ChatbotQueryBody,
@@ -42,6 +43,7 @@ import {
   CreateOrganizationChatbotSettingsBody,
   CreateQuestionBody,
   ERROR_MESSAGES,
+  GenerateDocumentQueryBody,
   GetAvailableModelsBody,
   HelpMeChatbotAskBody,
   HelpMeChatbotAskResponse,
@@ -66,6 +68,7 @@ import {
   UploadDocumentAggregateBody,
   UploadURLDocumentAggregateBody,
   UpsertCourseChatbotSettings,
+  UpsertDocumentQueryBody,
 } from '@koh/common';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { Roles } from 'decorators/roles.decorator';
@@ -97,15 +100,26 @@ import {
   IgnoreSerializer,
 } from '../interceptors/IgnoreableClassSerializerInterceptor';
 import { plainToClass } from 'class-transformer';
+import {
+  ChatbotResultEventName,
+  ChatbotResultEvents,
+  ChatbotResultWebSocket,
+} from './intermediate-results/chatbot-result.websocket';
+import { ClientSocket } from '../websocket/clientSocket';
 
 @Controller('chatbot')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 @UseInterceptors(IgnoreableClassSerializerInterceptor)
 export class ChatbotController {
+  private socket: ClientSocket;
   constructor(
     private readonly chatbotService: ChatbotService,
     private readonly chatbotApiService: ChatbotApiService,
-  ) {}
+    private readonly chatbotResultWebSocket: ChatbotResultWebSocket,
+  ) {
+    const socket = io();
+    this.socket = new ClientSocket(socket as any);
+  }
 
   //
   // Endpoints for both students and staff
@@ -436,7 +450,7 @@ export class ChatbotController {
   async addDocumentChunk(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() body: CreateDocumentChunkBody,
-  ): Promise<ChatbotDocumentResponse[]> {
+  ): Promise<string> {
     return await this.chatbotApiService.addDocumentChunk(body, courseId);
   }
 
@@ -447,7 +461,7 @@ export class ChatbotController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('docId') docId: string,
     @Body() body: UpdateDocumentChunkBody,
-  ): Promise<ChatbotDocumentResponse[]> {
+  ): Promise<string> {
     return await this.chatbotApiService.updateDocumentChunk(
       docId,
       body,
@@ -472,7 +486,7 @@ export class ChatbotController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('docId') docId: string,
     @Body() body: UpdateDocumentAggregateBody,
-  ): Promise<ChatbotDocumentAggregateResponse> {
+  ): Promise<string> {
     // Delete disallowed update parameters
     delete body.documentText;
     delete body.lmsDocumentId;
@@ -493,6 +507,74 @@ export class ChatbotController {
     await ChatbotDocPdfModel.delete({
       docIdChatbotDB: docId,
     });
+  }
+
+  @Get(':courseId/query/:documentId')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async getDocumentChunkQueries(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('documentId') documentId: string,
+  ): Promise<ChatbotDocumentQueryResponse[]> {
+    return await this.chatbotApiService.getDocumentChunkQueries(
+      documentId,
+      courseId,
+    );
+  }
+
+  @Post(':courseId/query/:documentId')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async addDocumentQuery(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('documentId') documentId: string,
+    @Body() body: UpsertDocumentQueryBody,
+  ): Promise<ChatbotDocumentQueryResponse> {
+    return await this.chatbotApiService.addDocumentQuery(
+      documentId,
+      courseId,
+      body,
+    );
+  }
+
+  @Post(':courseId/query/:documentId/generate')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async generateDocumentQueries(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('documentId') documentId: string,
+    @Body() body: GenerateDocumentQueryBody,
+  ): Promise<string> {
+    return await this.chatbotApiService.generateDocumentQueries(
+      documentId,
+      courseId,
+      body,
+    );
+  }
+
+  @Patch(':courseId/query/:queryId')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async updateDocumentQuery(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('queryId') queryId: string,
+    @Body() body: UpsertDocumentQueryBody,
+  ): Promise<ChatbotDocumentQueryResponse> {
+    return await this.chatbotApiService.updateDocumentQuery(
+      queryId,
+      courseId,
+      body,
+    );
+  }
+
+  @Delete(':courseId/query/:queryId')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async deleteDocumentQuery(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('queryId') queryId: string,
+  ): Promise<void> {
+    await this.chatbotApiService.deleteDocumentQuery(queryId, courseId);
   }
 
   // TODO: eventually add tests for this I guess
@@ -634,7 +716,7 @@ export class ChatbotController {
     @UploadedFile() file: Express.Multer.File,
     @Body() params: Partial<UploadDocumentAggregateBody>,
     @User() user: UserModel,
-  ): Promise<ChatbotDocumentAggregateResponse> {
+  ): Promise<string> {
     let { parseAsPng } = params;
 
     if (!file) {
@@ -736,62 +818,71 @@ export class ChatbotController {
       '/api/v1/chatbot/document/' + courseId + '/' + chatbotDocPdf.idHelpMeDB;
     chatbotDocPdf.docData = file.buffer;
     // Save file to database and upload to chatbot service in parallel with error handling
-    const [savedDocPdf, uploadResult] = await Promise.allSettled([
-      chatbotDocPdf.save(),
-      this.chatbotApiService.uploadDocument(
-        file,
-        {
-          source: docUrl,
-          parseAsPng,
+    const resultId = await this.chatbotApiService.uploadDocument(
+      file,
+      {
+        source: docUrl,
+        parseAsPng,
+      },
+      courseId,
+    );
+
+    const uploadResultId = await this.chatbotResultWebSocket.getUniqueId();
+
+    this.socket.registerListener(
+      {
+        event: ChatbotResultEvents.POST_RESULT,
+        callback: async (data: ChatbotDocumentAggregateResponse) => {
+          try {
+            if (data instanceof Error) {
+              this.socket.emit(ChatbotResultEvents.POST_RESULT, {
+                uploadResultId,
+                type: ChatbotResultEventName.ADD_AGGREGATE,
+                resultBody: data,
+              });
+              return;
+            }
+
+            if (chatbotDocPdf) {
+              chatbotDocPdf.docIdChatbotDB = data.id;
+              chatbotDocPdf = await chatbotDocPdf.save();
+            }
+
+            const endTime2 = Date.now();
+            console.log(
+              `${file.originalname} (${file.mimetype}) upload chatbot service and save in db completed in ${endTime2 - endTime}ms for a total processing time of ${endTime2 - startTime}ms`,
+            );
+
+            this.socket.emit(ChatbotResultEvents.POST_RESULT, {
+              uploadResultId,
+              type: ChatbotResultEventName.ADD_AGGREGATE,
+              resultBody: data,
+            });
+          } catch (err) {
+            if (!(data instanceof Error)) {
+              await this.deleteDocument(courseId, data.id);
+            }
+            if (chatbotDocPdf && chatbotDocPdf.idHelpMeDB) {
+              await ChatbotDocPdfModel.remove(chatbotDocPdf);
+            }
+            this.socket.emit(ChatbotResultEvents.POST_RESULT, {
+              uploadResultId,
+              type: ChatbotResultEventName.ADD_AGGREGATE,
+              resultBody: err,
+            });
+          }
         },
-        courseId,
-      ),
-    ]);
+      },
+      {
+        event: ChatbotResultEvents.GET_RESULT,
+        args: {
+          resultId,
+          type: ChatbotResultEventName.ADD_AGGREGATE,
+        },
+      },
+    );
 
-    // Check if either promise rejected
-    if (
-      savedDocPdf.status === 'fulfilled' &&
-      uploadResult.status === 'rejected'
-    ) {
-      // If DB save succeeded but upload failed, clean up the DB entry
-      await ChatbotDocPdfModel.remove(savedDocPdf.value);
-      throw uploadResult.reason;
-    } else if (
-      savedDocPdf.status === 'rejected' &&
-      uploadResult.status === 'fulfilled'
-    ) {
-      // If upload succeeded but DB save failed, clean up the uploaded document
-      await this.chatbotApiService.deleteDocument(
-        uploadResult.value.id,
-        courseId,
-      );
-      throw savedDocPdf.reason;
-    } else if (
-      savedDocPdf.status === 'rejected' &&
-      uploadResult.status === 'rejected'
-    ) {
-      // Both failed, throw combined error (i'm doing a 500 level error since that's usually what would happen if both fail)
-      throw new InternalServerErrorException(
-        `Failed to save document: ${savedDocPdf.reason}.\n Failed to upload: ${uploadResult.reason}`,
-      );
-    } else if (
-      savedDocPdf.status === 'fulfilled' &&
-      uploadResult.status === 'fulfilled'
-    ) {
-      // if both succeed, then save the docId to the database
-      chatbotDocPdf.docIdChatbotDB = uploadResult.value.id;
-      await chatbotDocPdf.save();
-
-      const endTime2 = Date.now();
-      console.log(
-        `${file.originalname} (${file.mimetype}) upload chatbot service and save in db completed in ${endTime2 - endTime}ms for a total processing time of ${endTime2 - startTime}ms`,
-      );
-      return uploadResult.value;
-    } else {
-      throw new InternalServerErrorException(
-        "Unexpected error. Somehow both the upload and save didn't fulfill nor reject",
-      );
-    }
+    return uploadResultId;
   }
 
   @Post(':courseId/aggregate/url')
@@ -800,7 +891,7 @@ export class ChatbotController {
   async addDocumentFromGithub(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Body() params: UploadURLDocumentAggregateBody,
-  ): Promise<ChatbotDocumentAggregateResponse> {
+  ): Promise<string> {
     return await this.chatbotApiService.uploadURLDocument(params, courseId);
   }
 
@@ -1274,6 +1365,16 @@ export class ChatbotController {
         );
     }
   }
+
+  // This method allows the chatbot to post asynchronous results back to the HelpMe repository
+  // @Post('post/:resultType/:resultId')
+  // @UseGuards(ChatbotApiKeyGuard)
+  // async postResult(
+  //   @Param('resultType', new ParseEnumPipe()) resultType: any,
+  //   @Param('resultId', ParseIntPipe) resultId: number,
+  // ) {
+  //
+  // }
 }
 
 function handleChatbotTokenCheck(user: UserModel) {

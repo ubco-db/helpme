@@ -1,33 +1,20 @@
 'use client'
 
-import { ReactElement, use, useEffect, useState } from 'react'
-import {
-  Badge,
-  Button,
-  Empty,
-  Input,
-  message,
-  Modal,
-  Pagination,
-  Table,
-} from 'antd'
+import { ReactElement, use, useEffect, useMemo, useState } from 'react'
+import { Button, Empty, Input, message, Pagination } from 'antd'
 import Link from 'next/link'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import Highlighter from 'react-highlight-words'
-import ExpandableText from '@/app/components/ExpandableText'
 import {
+  ChatbotDocumentQueryResponse,
   ChatbotDocumentResponse,
   CreateDocumentChunkBody,
-  DocumentType,
-  DocumentTypeColorMap,
-  DocumentTypeDisplayMap,
   UpdateDocumentChunkBody,
 } from '@koh/common'
 import { API } from '@/app/api'
 import ChatbotHelpTooltip from '../components/ChatbotHelpTooltip'
 import UpsertDocumentChunkModal from './components/UpsertDocumentChunkModal'
 import { getPaginatedChatbotDocuments } from '@/app/(dashboard)/course/[cid]/(settings)/settings/util'
-import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
+import DocumentChunkRow from '@/app/(dashboard)/course/[cid]/(settings)/settings/chatbot_knowledge_base/components/DocumentChunkRow'
 
 interface ChatbotDocumentsProps {
   params: Promise<{ cid: string }>
@@ -44,8 +31,10 @@ export default function ChatbotDocuments(
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [search, setSearch] = useState('')
+  const searchTerms = useMemo(() => search?.split(/\s/) ?? [], [search])
 
   const [editingChunk, setEditingChunk] = useState<ChatbotDocumentResponse>()
+  const [operatingOn, setOperatingOn] = useState<string[]>([])
   const [upsertModalOpen, setUpsertModalOpen] = useState(false)
 
   const addDocument = async (values: CreateDocumentChunkBody) => {
@@ -134,120 +123,79 @@ export default function ChatbotDocuments(
     }
   }, [courseId, page, pageSize])
 
-  const columns = [
-    {
-      title: 'Title',
-      dataIndex: 'title',
-      key: 'title',
-      width: 300,
-      render: (text: string, record: ChatbotDocumentResponse) => (
-        <ExpandableText maxRows={4}>
-          <Link
-            href={record.source ?? ''}
-            target="_blank"
-            prefetch={false}
-            rel="noopener noreferrer"
-          >
-            {/*
-              In some environments, components which return Promises or arrays do not work.
-              This is due to some changes to react and @types/react, and the component
-              packages have not been updated to fix these issues.
-            */}
-            {/* @ts-expect-error Server Component */}
-            <Highlighter
-              highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
-              searchWords={[search]}
-              autoEscape
-              textToHighlight={text ? text.toString() : ''}
-            />
-          </Link>
-        </ExpandableText>
-      ),
-    },
-    {
-      title: 'Chunk Content',
-      dataIndex: 'content',
-      key: 'content',
-      render: (text: string) => (
-        <ExpandableText maxRows={4}>
-          {/*
-              In some environments, components which return Promises or arrays do not work.
-              This is due to some changes to react and @types/react, and the component
-              packages have not been updated to fix these issues.
-            */}
-          {/* @ts-expect-error Server Component */}
-          <Highlighter
-            highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
-            searchWords={[search]}
-            autoEscape
-            textToHighlight={text ? text.toString() : ''}
-          />
-        </ExpandableText>
-      ),
-    },
-    {
-      title: 'Page #',
-      dataIndex: 'pageNumber',
-      key: 'pageNumber',
-      width: '5%',
-    },
-    {
-      title: 'Type',
-      dataIndex: 'type',
-      key: 'type',
-      width: '10%',
-      render: (type: DocumentType) => (
-        <Badge
-          count={DocumentTypeDisplayMap[type] ?? (DocumentType as any)[type]}
-          color={DocumentTypeColorMap[type] ?? '#7C7C7C'}
-        />
-      ),
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: 100,
-      render: (_: any, record: ChatbotDocumentResponse) => (
-        <div className={'flex flex-col gap-1'}>
-          <Button
-            onClick={() => {
-              setEditingChunk(record)
-              setUpsertModalOpen(true)
-            }}
-            variant={'outlined'}
-            color={'blue'}
-            icon={<EditOutlined />}
-          >
-            Edit
-          </Button>
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => {
-              Modal.confirm({
-                title: 'Are you sure you want to delete this document chunk?',
-                content:
-                  'Note that this will cascade to any citations which reference this chunk, and remove it from any parent question or documents. \n\nThis action cannot be undone.',
-                okText: 'Yes',
-                okType: 'danger',
-                cancelText: 'No',
-                onOk() {
-                  if (!record.id) {
-                    return
-                  }
-                  deleteDocument(record.id)
-                },
-              })
-            }}
-          >
-            Delete
-          </Button>
-        </div>
-      ),
-    },
-  ]
+  const generateDocumentQueries = async (
+    documentId: string,
+    deleteOld: boolean,
+  ) => {
+    return await API.chatbot.staffOnly
+      .generateDocumentQueries(courseId, documentId, { deleteOld })
+      .then((queryResponse: ChatbotDocumentQueryResponse[]) => {
+        const doc = documents.find((d) => d.id == documentId)
+        if (doc) {
+          if (deleteOld) {
+            doc.queries = queryResponse
+          } else {
+            doc.queries = [...doc.queries, ...queryResponse]
+          }
+        }
+        message.success('Document queries generated successfully.')
+        return true
+      })
+      .catch((e) => {
+        const errorMessage = getErrorMessage(e)
+        message.error('Failed to generate document queries: ' + errorMessage)
+        return false
+      })
+  }
+
+  const createDocumentQuery = async (documentId: string, content: string) => {
+    return await API.chatbot.staffOnly
+      .addDocumentQuery(courseId, documentId, { query: content })
+      .then((queryResponse: ChatbotDocumentQueryResponse) => {
+        const doc = documents.find((d) => d.id == documentId)
+        if (doc) {
+          doc.queries.push(queryResponse)
+        }
+        message.success('Document query created successfully.')
+        return true
+      })
+      .catch((e) => {
+        const errorMessage = getErrorMessage(e)
+        message.error('Failed to create document query: ' + errorMessage)
+        return false
+      })
+  }
+
+  const editDocument = async (documentChunk: ChatbotDocumentResponse) => {
+    setEditingChunk(documentChunk)
+    setUpsertModalOpen(true)
+  }
+
+  const editDocumentQuery = async (queryId: string, content: string) => {
+    return await API.chatbot.staffOnly
+      .updateDocumentQuery(courseId, queryId, { query: content })
+      .then((queryResponse: ChatbotDocumentQueryResponse) => {
+        const doc = documents.find((d) =>
+          d.queries.some((q) => q.id == queryId),
+        )
+        if (doc) {
+          const idx = doc.queries.findIndex((q) => q.id == queryId)
+          if (idx >= 0) {
+            doc.queries[idx] = queryResponse
+          }
+        }
+        message.success('Document query updated successfully.')
+        return true
+      })
+      .catch((e) => {
+        const errorMessage = getErrorMessage(e)
+        message.error('Failed to update document query: ' + errorMessage)
+        return false
+      })
+  }
 
   const deleteDocument = async (documentId: string) => {
+    setOperatingOn((prev) => [...prev, documentId])
     await API.chatbot.staffOnly
       .deleteDocumentChunk(courseId, documentId)
       .then(() => {
@@ -265,6 +213,24 @@ export default function ChatbotDocuments(
       .catch((e) => {
         const errorMessage = getErrorMessage(e)
         message.error('Failed to delete document: ' + errorMessage)
+      })
+      .finally(() =>
+        setOperatingOn((prev) => prev.filter((d) => d != documentId)),
+      )
+  }
+
+  const deleteDocumentQuery = async (queryId: string) => {
+    return await API.chatbot.staffOnly
+      .deleteDocumentQuery(courseId, queryId)
+      .then(() => {
+        documents.forEach((d) => d.queries.filter((q) => q.id !== queryId))
+        message.success('Document query deleted successfully.')
+        return true
+      })
+      .catch((e) => {
+        const errorMessage = getErrorMessage(e)
+        message.error('Failed to delete document query: ' + errorMessage)
+        return false
       })
   }
 
@@ -339,29 +305,37 @@ export default function ChatbotDocuments(
           }}
         />
       </div>
-      <Table
-        columns={columns}
-        dataSource={documents}
-        size="small"
-        className="w-full"
-        pagination={false}
-        locale={{
-          emptyText: (
-            <Empty
-              description={
-                <div>
-                  No chunks added yet. <br /> Head to{' '}
-                  <Link href={`/course/${courseId}/settings/chatbot_settings`}>
-                    Chatbot Settings
-                  </Link>{' '}
-                  and add some course documents so your chatbot can start citing
-                  things!
-                </div>
-              }
+      {documents.length <= 0 ? (
+        <Empty
+          description={
+            <div>
+              No chunks added yet. <br /> Head to{' '}
+              <Link href={`/course/${courseId}/settings/chatbot_settings`}>
+                Chatbot Settings
+              </Link>{' '}
+              and add some course documents so your chatbot can start citing
+              things!
+            </div>
+          }
+        />
+      ) : (
+        <>
+          {documents.map((d, i) => (
+            <DocumentChunkRow
+              key={'document' + i}
+              documentChunk={d}
+              isLoading={!!operatingOn?.includes(d.id)}
+              onCreateQuery={createDocumentQuery}
+              onDeleteChunk={deleteDocument}
+              onDeleteQuery={deleteDocumentQuery}
+              onEditChunk={editDocument}
+              onEditQuery={editDocumentQuery}
+              generateQueries={generateDocumentQueries}
+              searchTerms={searchTerms}
             />
-          ),
-        }}
-      />
+          ))}
+        </>
+      )}
     </div>
   )
 }

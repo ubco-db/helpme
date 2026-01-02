@@ -712,3 +712,14 @@ export class ChatbotDocumentListResponse {
   @ValidateNested({ each: true })
   documents!: ChatbotDocumentResponse[]
 }
+
+export class GenerateDocumentQueryBody {
+  @IsBoolean()
+  @IsOptional()
+  deleteOld?: boolean
+}
+
+export class UpsertDocumentQueryBody {
+  @IsString()
+  query!: string
+}

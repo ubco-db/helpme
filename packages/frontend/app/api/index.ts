@@ -12,6 +12,7 @@ import {
   ChatbotCourseSettingsResponse,
   ChatbotDocumentAggregateResponse,
   ChatbotDocumentListResponse,
+  ChatbotDocumentQueryResponse,
   ChatbotDocumentResponse,
   ChatbotProvider,
   ChatbotQueryBody,
@@ -38,12 +39,15 @@ import {
   DesktopNotifBody,
   DesktopNotifPartial,
   EditCourseInfoParams,
+  ExtraTAStatus,
+  GenerateDocumentQueryBody,
   GetAlertsResponse,
   GetAvailableModelsBody,
   GetCourseResponse,
   GetCourseUserInfoResponse,
   GetInsightOutputResponse,
   GetLimitedCourseResponse,
+  GetOrganizationResponse,
   GetOrganizationUserResponse,
   GetProfileResponse,
   GetQueueChatResponse,
@@ -68,12 +72,12 @@ import {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
+  LMSQuiz,
+  LMSQuizAccessLevel,
   LMSSyncDocumentsResult,
   LMSToken,
   LoginParam,
   LtiPlatform,
-  LMSQuiz,
-  LMSQuizAccessLevel,
   MailServiceWithSubscription,
   OrganizationChatbotSettings,
   OrganizationChatbotSettingsDefaults,
@@ -98,7 +102,6 @@ import {
   QueueInviteParams,
   QueuePartial,
   QueueTypes,
-  ExtraTAStatus,
   RemoveLMSOrganizationParams,
   Role,
   SemesterPartial,
@@ -128,10 +131,10 @@ import {
   UpdateQuestionResponse,
   UpdateQueueParams,
   UpsertCourseChatbotSettings,
+  UpsertDocumentQueryBody,
   UpsertLMSCourseParams,
   UpsertLMSOrganizationParams,
   UserMailSubscription,
-  GetOrganizationResponse,
 } from '@koh/common'
 import Axios, { AxiosError, AxiosInstance, AxiosResponse, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -419,6 +422,53 @@ export class APIClient {
         docId: string,
       ): Promise<void> =>
         this.req('DELETE', `/api/v1/chatbot/${courseId}/document/${docId}`),
+      getDocumentQueries: async (
+        courseId: number,
+        documentId: string,
+      ): Promise<ChatbotDocumentQueryResponse[]> =>
+        this.req<ChatbotDocumentQueryResponse[]>(
+          'GET',
+          `/api/v1/chatbot/${courseId}/query/${documentId}`,
+          ChatbotDocumentQueryResponse,
+        ),
+      addDocumentQuery: async (
+        courseId: number,
+        documentId: string,
+        body: UpsertDocumentQueryBody,
+      ): Promise<ChatbotDocumentQueryResponse> =>
+        this.req(
+          'POST',
+          `/api/v1/chatbot/${courseId}/query/${documentId}`,
+          ChatbotDocumentQueryResponse,
+          body,
+        ),
+      generateDocumentQueries: async (
+        courseId: number,
+        documentId: string,
+        body: GenerateDocumentQueryBody,
+      ): Promise<ChatbotDocumentQueryResponse[]> =>
+        this.req<ChatbotDocumentQueryResponse[]>(
+          'POST',
+          `/api/v1/chatbot/${courseId}/query/${documentId}/generate`,
+          ChatbotDocumentQueryResponse,
+          body,
+        ),
+      updateDocumentQuery: async (
+        courseId: number,
+        queryId: string,
+        body: UpsertDocumentQueryBody,
+      ): Promise<ChatbotDocumentQueryResponse> =>
+        this.req(
+          'PATCH',
+          `/api/v1/chatbot/${courseId}/query/${queryId}`,
+          ChatbotDocumentQueryResponse,
+          body,
+        ),
+      deleteDocumentQuery: async (
+        courseId: number,
+        queryId: string,
+      ): Promise<void> =>
+        this.req('DELETE', `/api/v1/chatbot/${courseId}/query/${queryId}`),
       deleteDocument: async (courseId: number, docId: string): Promise<void> =>
         this.req('DELETE', `/api/v1/chatbot/${courseId}/aggregate/${docId}`),
       uploadDocument: async (

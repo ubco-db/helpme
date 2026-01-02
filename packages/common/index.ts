@@ -4201,4 +4201,13 @@ export const ERROR_MESSAGES = {
     notAllowedToDeleteSemester: (role: OrganizationRole) =>
       `Members with role ${role} are not allowed to delete semesters`,
   },
+  webSocket: {
+    jwt: {
+      userNotFound: 'User not found',
+      disallowedPattern: 'Not authorized to use this route',
+      missingAuthHeader: 'Authorization header missing',
+      malformedToken: 'Authorization token malformed',
+      invalidToken: 'Authorization token invalid',
+    },
+  },
 }

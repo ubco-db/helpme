@@ -8,6 +8,7 @@ import {
   ChatbotCourseSettingsResponse,
   ChatbotDocumentAggregateResponse,
   ChatbotDocumentListResponse,
+  ChatbotDocumentQueryResponse,
   ChatbotDocumentResponse,
   ChatbotQueryBody,
   ChatbotQueryTypeEnum,
@@ -18,6 +19,7 @@ import {
   CreateDocumentAggregateBody,
   CreateDocumentChunkBody,
   CreateQuestionBody,
+  GenerateDocumentQueryBody,
   PaginatedResponse,
   SuggestedQuestionResponse,
   UpdateChatbotCourseSettingsBody,
@@ -26,8 +28,15 @@ import {
   UpdateQuestionBody,
   UploadDocumentAggregateBody,
   UploadURLDocumentAggregateBody,
+  UpsertDocumentQueryBody,
 } from '@koh/common';
 import { isObject } from '@nestjs/common/utils/shared.utils';
+import {
+  ChatbotResultEventArgs,
+  ChatbotResultEventName,
+  ChatbotResultEvents,
+  ChatbotResultWebSocket,
+} from './intermediate-results/chatbot-result.websocket';
 
 type ChatbotRequestInit<TBody> = {
   userToken?: string;
@@ -57,7 +66,10 @@ export class ChatbotApiService {
   private readonly chatbotApiUrl: string;
   private readonly chatbotApiKey: string;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private chatbotResultWebSocket: ChatbotResultWebSocket,
+  ) {
     // this.chatbotApiUrl = this.configService.get<string>('CHATBOT_API_URL');
     this.chatbotApiUrl = 'http://localhost:3003/chat';
     this.chatbotApiKey = this.configService.get<string>('CHATBOT_API_KEY');
@@ -73,6 +85,7 @@ export class ChatbotApiService {
    * @param request.params Data to be passed in the query parameters
    * @param request.timeoutMs How long until the request should be considered failed by timeout
    * @param responseClass Class to map the response to
+   * @param webSocketEvent {ChatbotResultEventArgs} Arguments to configure a websocket for asynchronous results
    * @returns Response from the chatbot service
    */
   private async request<TResponse, TBody = void>(
@@ -80,12 +93,14 @@ export class ChatbotApiService {
     endpoint: string,
     request?: ChatbotRequestInit<TBody>,
     responseClass?: ClassType<ElementType<TResponse>>,
+    webSocketEvent?: ChatbotResultEventArgs,
   ): Promise<TResponse>;
   private async request<TResponse, TBody = void>(
     method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
     endpoint: string,
     request: ChatbotRequestInit<TBody> = {},
     responseClass?: ClassType<TResponse>,
+    webSocketEvent?: ChatbotResultEventArgs,
   ): Promise<TResponse> {
     try {
       const { userToken, data, params, timeoutMs } = request;
@@ -114,6 +129,13 @@ export class ChatbotApiService {
         body = data as any;
       }
 
+      let id: string | undefined = undefined;
+      if (webSocketEvent) {
+        id = await this.chatbotResultWebSocket.getUniqueId();
+        webSocketEvent['resultId'] = id;
+        body['ws_info'] = webSocketEvent;
+      }
+
       const response = await fetch(url, {
         method,
         headers,
@@ -137,7 +159,11 @@ export class ChatbotApiService {
       }
 
       const plain = await response.json();
-      return responseClass ? plainToClass(responseClass, plain) : plain;
+      return id !== undefined
+        ? (id as any)
+        : responseClass
+          ? plainToClass(responseClass, plain)
+          : plain;
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -160,6 +186,7 @@ export class ChatbotApiService {
     if (page != undefined && page >= 1) {
       endpoint = `${endpoint}/${page}`;
     }
+
     const result = await this.request<PaginatedResponse<TResponse>>(
       'GET',
       endpoint,
@@ -359,14 +386,18 @@ export class ChatbotApiService {
   async addDocumentChunk(
     data: CreateDocumentChunkBody,
     courseId: number,
-  ): Promise<ChatbotDocumentResponse[]> {
-    return this.request<ChatbotDocumentResponse[], CreateDocumentChunkBody>(
+  ): Promise<string> {
+    return this.request<string, CreateDocumentChunkBody>(
       'POST',
       `document/${courseId}`,
       {
         data,
       },
-      ChatbotDocumentResponse,
+      undefined,
+      {
+        returnMessage: ChatbotResultEvents.POST_RESULT,
+        type: ChatbotResultEventName.ADD_CHUNK,
+      },
     );
   }
 
@@ -374,14 +405,18 @@ export class ChatbotApiService {
     docId: string,
     data: UpdateDocumentChunkBody,
     courseId: number,
-  ): Promise<ChatbotDocumentResponse[]> {
-    return this.request<ChatbotDocumentResponse[], UpdateDocumentChunkBody>(
+  ): Promise<string> {
+    return this.request<string, UpdateDocumentChunkBody>(
       'PATCH',
       `document/${courseId}/${docId}`,
       {
         data,
       },
-      ChatbotDocumentResponse,
+      undefined,
+      {
+        returnMessage: ChatbotResultEvents.POST_RESULT,
+        type: ChatbotResultEventName.UPDATE_CHUNK,
+      },
     );
   }
 
@@ -393,18 +428,82 @@ export class ChatbotApiService {
     return this.request('DELETE', `document/aggregate/${courseId}/${docId}`);
   }
 
+  async getDocumentChunkQueries(
+    documentId: string,
+    courseId: number,
+  ): Promise<ChatbotDocumentQueryResponse[]> {
+    return this.request('GET', `document/query/${courseId}/${documentId}`);
+  }
+
+  async addDocumentQuery(
+    documentId: string,
+    courseId: number,
+    data: UpsertDocumentQueryBody,
+  ): Promise<ChatbotDocumentQueryResponse> {
+    return this.request('POST', `document/query/${courseId}/${documentId}`, {
+      data,
+    });
+  }
+
+  async generateDocumentQueries(
+    documentId: string,
+    courseId: number,
+    data: GenerateDocumentQueryBody,
+  ): Promise<string> {
+    return this.request(
+      'POST',
+      `document/query/${courseId}/${documentId}/generate`,
+      {
+        data,
+      },
+      undefined,
+      {
+        returnMessage: ChatbotResultEvents.POST_RESULT,
+        type: ChatbotResultEventName.DOCUMENT_QUERIES,
+      },
+    );
+  }
+
+  async updateDocumentQuery(
+    documentQueryId: string,
+    courseId: number,
+    data: UpsertDocumentQueryBody,
+  ): Promise<ChatbotDocumentQueryResponse> {
+    return this.request(
+      'PATCH',
+      `document/query/${courseId}/${documentQueryId}`,
+      {
+        data,
+      },
+    );
+  }
+
+  async deleteDocumentQuery(
+    documentQueryId: string,
+    courseId: number,
+  ): Promise<void> {
+    return this.request(
+      'DELETE',
+      `document/query/${courseId}/${documentQueryId}`,
+    );
+  }
+
   // Creates a document aggregate from raw text - generally only used for LMS documents
   async addDocument(
     courseId: number,
     data: CreateDocumentAggregateBody,
-  ): Promise<ChatbotDocumentAggregateResponse> {
+  ): Promise<string> {
     return this.request(
       'POST',
       `document/aggregate/${courseId}`,
       {
         data,
       },
-      ChatbotDocumentAggregateResponse,
+      undefined,
+      {
+        returnMessage: ChatbotResultEvents.POST_RESULT,
+        type: ChatbotResultEventName.ADD_AGGREGATE,
+      },
     );
   }
 
@@ -414,14 +513,18 @@ export class ChatbotApiService {
     docId: string,
     courseId: number,
     data: UpdateDocumentAggregateBody,
-  ): Promise<ChatbotDocumentAggregateResponse> {
+  ): Promise<string> {
     return this.request(
       'PATCH',
       `document/aggregate/${courseId}/${docId}`,
       {
         data,
       },
-      ChatbotDocumentAggregateResponse,
+      undefined,
+      {
+        returnMessage: ChatbotResultEvents.POST_RESULT,
+        type: ChatbotResultEventName.UPDATE_AGGREGATE,
+      },
     );
   }
 
@@ -429,7 +532,7 @@ export class ChatbotApiService {
     file: Express.Multer.File,
     params: UploadDocumentAggregateBody,
     courseId: number,
-  ): Promise<ChatbotDocumentAggregateResponse> {
+  ): Promise<string> {
     try {
       // re-upload the file to the chatbot server while the file is still in memory here
       const formData = new FormData();
@@ -459,7 +562,11 @@ export class ChatbotApiService {
         {
           data: formData,
         },
-        ChatbotDocumentAggregateResponse,
+        undefined,
+        {
+          type: ChatbotResultEventName.ADD_AGGREGATE,
+          returnMessage: ChatbotResultEvents.POST_RESULT,
+        },
       );
     } catch (error) {
       if (error instanceof HttpException) {
@@ -475,14 +582,18 @@ export class ChatbotApiService {
   async uploadURLDocument(
     params: UploadURLDocumentAggregateBody,
     courseId: number,
-  ): Promise<ChatbotDocumentAggregateResponse> {
+  ): Promise<string> {
     return this.request(
       'POST',
       `document/${courseId}/url`,
       {
         data: params,
       },
-      ChatbotDocumentAggregateResponse,
+      undefined,
+      {
+        returnMessage: ChatbotResultEvents.POST_RESULT,
+        type: ChatbotResultEventName.ADD_AGGREGATE,
+      },
     );
   }
 

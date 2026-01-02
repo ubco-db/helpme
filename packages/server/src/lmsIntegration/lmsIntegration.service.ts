@@ -4,6 +4,7 @@ import {
   LMSIntegrationAdapter,
 } from './lmsIntegration.adapter';
 import {
+  ChatbotDocumentAggregateResponse,
   CoursePartial,
   dropUndefined,
   ERROR_MESSAGES,
@@ -42,6 +43,14 @@ import { Cache } from 'cache-manager';
 import { LMSAccessTokenModel } from './lms-access-token.entity';
 import { pick } from 'lodash';
 import { LMSAuthStateModel } from './lms-auth-state.entity';
+import { UserModel } from '../profile/user.entity';
+import { io } from 'socket.io-client';
+import {
+  ChatbotResultEventName,
+  ChatbotResultEvents,
+  ChatbotResultWebSocket,
+} from '../chatbot/intermediate-results/chatbot-result.websocket';
+import { ClientSocket } from '../websocket/clientSocket';
 
 export enum LMSGet {
   Course,
@@ -73,13 +82,18 @@ type ExtendedLMSItem = (
 
 @Injectable()
 export class LMSIntegrationService {
+  private socket: ClientSocket;
   constructor(
     @Inject(LMSIntegrationAdapter)
     private integrationAdapter: LMSIntegrationAdapter,
     @Inject(ChatbotApiService)
     private chatbotApiService: ChatbotApiService,
+    private chatbotResultWebSocket: ChatbotResultWebSocket,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {}
+  ) {
+    const socket = io();
+    this.socket = new ClientSocket(socket as any);
+  }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: 'CLEAR_LMS_AUTH_STATES' })
   async clearLMSAuthStates() {
@@ -732,153 +746,18 @@ export class LMSIntegrationService {
 
       if (items.length == 0) continue;
 
-      const statuses: LMSFileUploadResponse[] = [];
       for (const item of items) {
-        const uploadDocumentResponse = await this.uploadDocument(
+        const response = await this.uploadDocument(
           courseId,
           item,
           type,
           adapter,
+          model,
         );
-        statuses.push(uploadDocumentResponse);
-
-        if (uploadDocumentResponse.success) syncDocumentsResult.itemsSynced++;
+        if (!!response) syncDocumentsResult.itemsSynced++;
         else syncDocumentsResult.errors++;
       }
-
-      const validIds = statuses.filter((u) => u.success).map((u) => u.id);
-      const toSave = items.filter((u) => validIds.includes(u.id));
-
-      const entities = toSave
-        .map((i) => {
-          const chatbotDocumentId =
-            'chatbotDocumentId' in i && i.chatbotDocumentId != undefined
-              ? i.chatbotDocumentId
-              : statuses.find((u) => u.id == i.id)?.documentId;
-
-          switch (type) {
-            case LMSUpload.Announcements:
-              const ann = i as LMSAnnouncement;
-              return (model as typeof LMSAnnouncementModel).create({
-                id: ann.id,
-                title: ann.title,
-                message: ann.message ?? '',
-                posted: ann.posted,
-                chatbotDocumentId,
-                uploaded: new Date(),
-                modified:
-                  ann.modified != undefined
-                    ? new Date(ann.modified)
-                    : new Date(),
-                courseId: courseId,
-                lmsSource: adapter.getPlatform(),
-              }) as LMSAnnouncementModel;
-            case LMSUpload.Assignments:
-              const asg = i as LMSAssignment;
-              return (model as typeof LMSAssignmentModel).create({
-                id: asg.id,
-                name: asg.name,
-                description: asg.description ?? '',
-                due: asg.due,
-                chatbotDocumentId,
-                uploaded: new Date(),
-                courseId: courseId,
-                modified:
-                  asg.modified != undefined
-                    ? new Date(asg.modified)
-                    : new Date(),
-                lmsSource: adapter.getPlatform(),
-              }) as LMSAssignmentModel;
-            case LMSUpload.Pages:
-              const page = i as LMSPage;
-              return (model as typeof LMSPageModel).create({
-                id: page.id,
-                title: page.title,
-                body: page.body,
-                url: page.url,
-                frontPage: page.frontPage,
-                chatbotDocumentId: chatbotDocumentId,
-                uploaded: new Date(),
-                courseId: courseId,
-                modified:
-                  page.modified != undefined
-                    ? new Date(page.modified)
-                    : new Date(),
-                lmsSource: adapter.getPlatform(),
-              }) as LMSPageModel;
-            case LMSUpload.Files:
-              const file = i as LMSFile;
-              return (model as typeof LMSFileModel).create({
-                id: file.id,
-                name: file.name,
-                url: file.url,
-                contentType: file.contentType,
-                size: file.size,
-                chatbotDocumentId: chatbotDocumentId,
-                uploaded: new Date(),
-                courseId: courseId,
-                modified:
-                  file.modified != undefined
-                    ? new Date(file.modified)
-                    : new Date(),
-                lmsSource: adapter.getPlatform(),
-              }) as LMSFileModel;
-            case LMSUpload.Quizzes:
-              const quiz = i as LMSQuiz;
-              return (model as typeof LMSQuizModel).create({
-                id: quiz.id,
-                title: quiz.title,
-                description: quiz.description,
-                due: quiz.due,
-                unlock: quiz.unlock,
-                lock: quiz.lock,
-                timeLimit: quiz.timeLimit,
-                allowedAttempts: quiz.allowedAttempts,
-                questions: quiz.questions,
-                accessLevel: LMSQuizAccessLevel.LOGISTICS_ONLY, // Default access level
-                chatbotDocumentId: chatbotDocumentId,
-                uploaded: new Date(),
-                courseId: courseId,
-                modified:
-                  quiz.modified != undefined
-                    ? new Date(quiz.modified)
-                    : new Date(),
-                lmsSource: adapter.getPlatform(),
-              }) as LMSQuizModel;
-            default:
-              return undefined;
-          }
-        })
-        .filter((e) => e != undefined) as
-        | LMSAssignmentModel[]
-        | LMSAnnouncementModel[]
-        | LMSPageModel[]
-        | LMSFileModel[]
-        | LMSQuizModel[];
-
-      switch (type) {
-        case LMSUpload.Announcements:
-          await (model as typeof LMSAnnouncementModel).save(
-            entities as LMSAnnouncementModel[],
-          );
-          break;
-        case LMSUpload.Assignments:
-          await (model as typeof LMSAssignmentModel).save(
-            entities as LMSAssignmentModel[],
-          );
-          break;
-        case LMSUpload.Pages:
-          await (model as typeof LMSPageModel).save(entities as LMSPageModel[]);
-          break;
-        case LMSUpload.Files:
-          await (model as typeof LMSFileModel).save(entities as LMSFileModel[]);
-          break;
-        case LMSUpload.Quizzes:
-          await (model as typeof LMSQuizModel).save(entities as LMSQuizModel[]);
-          break;
-      }
     }
-
     return syncDocumentsResult;
   }
 
@@ -976,17 +855,7 @@ export class LMSIntegrationService {
     }
 
     const model = await this.getDocumentModel(type);
-
-    const status = await this.uploadDocument(courseId, item, type, adapter);
-
-    if (status.success) {
-      item.chatbotDocumentId = item.chatbotDocumentId ?? status.documentId;
-      item.uploaded = new Date();
-      item.syncEnabled = true;
-      await (model as any).upsert(item, ['id', 'courseId']);
-    }
-
-    return status.success;
+    return await this.uploadDocument(courseId, item, type, adapter, model);
   }
 
   private async clearDocument(
@@ -1045,7 +914,8 @@ export class LMSIntegrationService {
       | LMSQuizModel,
     type: LMSUpload,
     adapter: AbstractLMSAdapter,
-  ): Promise<LMSFileUploadResponse> {
+    model: any,
+  ): Promise<string | boolean> {
     if (
       'chatbotDocumentId' in item &&
       item.chatbotDocumentId != undefined &&
@@ -1053,11 +923,7 @@ export class LMSIntegrationService {
       item.modified != undefined &&
       new Date(item.modified).getTime() <= new Date(item.uploaded).getTime()
     ) {
-      return {
-        id: item.id,
-        success: true,
-        documentId: item.chatbotDocumentId,
-      };
+      return true;
     }
 
     let documentText = '';
@@ -1121,37 +987,41 @@ export class LMSIntegrationService {
 
             const computedDocLink = adapter.getDocumentLink(item.id, type);
 
-            const uploadResult = await this.chatbotApiService.uploadDocument(
-              mockLMSFile,
-              {
-                source: computedDocLink,
-                lmsDocumentId: String(f.id),
-                parseAsPng: false,
-              },
-              courseId,
-            );
+            const result: string | false = await this.chatbotApiService
+              .uploadDocument(
+                mockLMSFile,
+                {
+                  source: computedDocLink,
+                  lmsDocumentId: String(f.id),
+                  parseAsPng: false,
+                },
+                courseId,
+              )
+              .then((body) => body)
+              .catch((_) => false);
+            if (!result) {
+              return false;
+            }
 
-            return {
-              id: item.id,
-              success: true,
-              documentId: uploadResult.id,
-            } as LMSFileUploadResponse;
+            return await this.afterUploadCallback(
+              result,
+              courseId,
+              item,
+              type,
+              model,
+              adapter,
+              ChatbotResultEventName.ADD_AGGREGATE,
+            );
           } catch (error) {
             console.error(
               `Failed to upload LMS file ${f.name} to chatbot:`,
               error,
             );
-            return {
-              id: item.id,
-              success: false,
-            } as LMSFileUploadResponse;
+            return false;
           }
         } else {
           // Skip unsupported file types for now
-          return {
-            id: item.id,
-            success: false,
-          } as LMSFileUploadResponse;
+          return false;
         }
       }
       case LMSUpload.Quizzes: {
@@ -1162,10 +1032,7 @@ export class LMSIntegrationService {
         break;
       }
       default:
-        return {
-          id: item.id,
-          success: false,
-        } as LMSFileUploadResponse;
+        return false;
     }
 
     let textIsPrefix = false;
@@ -1176,10 +1043,7 @@ export class LMSIntegrationService {
     }
 
     if (!documentText) {
-      return {
-        id: item.id,
-        success: false,
-      };
+      return false;
     }
 
     const computedDocLink = adapter.getDocumentLink(item.id, type);
@@ -1197,7 +1061,7 @@ export class LMSIntegrationService {
       'chatbotDocumentId' in item && item.chatbotDocumentId != undefined;
 
     if (isUpdate) {
-      return await this.chatbotApiService
+      const result: string | false = await this.chatbotApiService
         .updateDocument(item.chatbotDocumentId, courseId, {
           documentText,
           title: docName,
@@ -1205,22 +1069,26 @@ export class LMSIntegrationService {
           lmsDocumentId: String(item.id),
           prefix,
         })
-        .then((): LMSFileUploadResponse => {
-          return {
-            id: item.id,
-            success: true,
-            documentId: item.chatbotDocumentId,
-          };
-        })
-        .catch((error): LMSFileUploadResponse => {
+        .then((body): string => body)
+        .catch((error): false => {
           console.error(error);
-          return {
-            id: item.id,
-            success: false,
-          } as LMSFileUploadResponse;
+          return false;
         });
+      if (!result) {
+        return false;
+      }
+
+      return await this.afterUploadCallback(
+        result,
+        courseId,
+        item,
+        type,
+        model,
+        adapter,
+        ChatbotResultEventName.UPDATE_AGGREGATE,
+      );
     } else {
-      return await this.chatbotApiService
+      const result: string | false = await this.chatbotApiService
         .addDocument(courseId, {
           documentText,
           title: docName,
@@ -1228,21 +1096,92 @@ export class LMSIntegrationService {
           lmsDocumentId: String(item.id),
           prefix,
         })
-        .then((body): LMSFileUploadResponse => {
-          return {
-            id: item.id,
-            success: true,
-            documentId: body.id,
-          };
+        .then((body): string => {
+          return body;
         })
-        .catch((error): LMSFileUploadResponse => {
+        .catch((error): false => {
           console.error(error);
-          return {
-            id: item.id,
-            success: false,
-          } as LMSFileUploadResponse;
+          return false;
         });
+      return await this.afterUploadCallback(
+        result,
+        courseId,
+        item,
+        type,
+        model,
+        adapter,
+        ChatbotResultEventName.ADD_AGGREGATE,
+      );
     }
+  }
+
+  private async afterUploadCallback(
+    result: string | false,
+    courseId: number,
+    item:
+      | LMSAnnouncement
+      | LMSAssignment
+      | LMSAssignmentModel
+      | LMSAnnouncementModel
+      | LMSPage
+      | LMSPageModel
+      | LMSFile
+      | LMSFileModel
+      | LMSQuiz
+      | LMSQuizModel,
+    type: LMSUpload,
+    model: typeof LMSAnnouncementModel,
+    adapter: AbstractLMSAdapter,
+    eventType: ChatbotResultEventName,
+  ): Promise<string | false> {
+    if (!result) {
+      return false;
+    }
+
+    let uploadId = '';
+    uploadId = await this.chatbotResultWebSocket.getUniqueId();
+
+    this.socket.registerListener(
+      {
+        event: ChatbotResultEvents.POST_RESULT,
+        callback: async (data: ChatbotDocumentAggregateResponse | Error) => {
+          if (data instanceof Error) {
+            this.socket.emit(ChatbotResultEvents.POST_RESULT, {
+              uploadId,
+              type: eventType,
+              resultBody: {
+                success: false,
+                id: item?.id,
+              } as LMSFileUploadResponse,
+            });
+            return;
+          }
+          const document = await this.uploadCallback(
+            courseId,
+            item,
+            type,
+            data.id,
+            adapter,
+            model,
+          );
+          this.socket.emit(ChatbotResultEvents.POST_RESULT, {
+            uploadId,
+            type: eventType,
+            resultBody: {
+              success: !!document,
+              id: document?.id,
+              documentId: document.chatbotDocumentId,
+            } as LMSFileUploadResponse,
+          });
+        },
+      },
+      {
+        event: ChatbotResultEvents.GET_RESULT,
+        args: { result, type: eventType },
+      },
+    );
+
+    return uploadId;
   }
 
   private async deleteDocument(
@@ -1283,6 +1222,171 @@ export class LMSIntegrationService {
           success: false,
         };
       });
+  }
+
+  private createCallbacks = {
+    [LMSUpload.Announcements]: async (
+      item: LMSAnnouncement | LMSAnnouncementModel,
+      model: typeof LMSAnnouncementModel,
+      adapter: AbstractLMSAdapter,
+      courseId: number,
+      chatbotDocumentId?: string,
+    ) => {
+      const ann = item as LMSAnnouncement;
+      return (await model
+        .create({
+          id: ann.id,
+          title: ann.title,
+          message: ann.message ?? '',
+          posted: ann.posted,
+          chatbotDocumentId,
+          uploaded: new Date(),
+          syncEnabled: true,
+          modified:
+            ann.modified != undefined ? new Date(ann.modified) : new Date(),
+          courseId: courseId,
+          lmsSource: adapter.getPlatform(),
+        })
+        .save()) as LMSAnnouncementModel;
+    },
+    [LMSUpload.Assignments]: async (
+      item: LMSAssignment | LMSAssignmentModel,
+      model: typeof LMSAssignmentModel,
+      adapter: AbstractLMSAdapter,
+      courseId: number,
+      chatbotDocumentId?: string,
+    ) => {
+      const asg = item as LMSAssignment;
+      return (await model
+        .create({
+          id: asg.id,
+          name: asg.name,
+          description: asg.description ?? '',
+          due: asg.due,
+          chatbotDocumentId,
+          uploaded: new Date(),
+          courseId: courseId,
+          syncEnabled: true,
+          modified:
+            asg.modified != undefined ? new Date(asg.modified) : new Date(),
+          lmsSource: adapter.getPlatform(),
+        })
+        .save()) as LMSAssignmentModel;
+    },
+    [LMSUpload.Pages]: async (
+      item: LMSPage | LMSPageModel,
+      model: typeof LMSPageModel,
+      adapter: AbstractLMSAdapter,
+      courseId: number,
+      chatbotDocumentId?: string,
+    ) => {
+      const page = item as LMSPage;
+      return (await model
+        .create({
+          id: page.id,
+          title: page.title,
+          body: page.body,
+          url: page.url,
+          frontPage: page.frontPage,
+          chatbotDocumentId: chatbotDocumentId,
+          uploaded: new Date(),
+          courseId: courseId,
+          syncEnabled: true,
+          modified:
+            page.modified != undefined ? new Date(page.modified) : new Date(),
+          lmsSource: adapter.getPlatform(),
+        })
+        .save()) as LMSPageModel;
+    },
+    [LMSUpload.Files]: async (
+      item: LMSFile | LMSFileModel,
+      model: typeof LMSFileModel,
+      adapter: AbstractLMSAdapter,
+      courseId: number,
+      chatbotDocumentId?: string,
+    ) => {
+      const file = item as LMSFile;
+      return (await model
+        .create({
+          id: file.id,
+          name: file.name,
+          url: file.url,
+          contentType: file.contentType,
+          size: file.size,
+          chatbotDocumentId: chatbotDocumentId,
+          uploaded: new Date(),
+          courseId: courseId,
+          syncEnabled: true,
+          modified:
+            file.modified != undefined ? new Date(file.modified) : new Date(),
+          lmsSource: adapter.getPlatform(),
+        })
+        .save()) as LMSFileModel;
+    },
+    [LMSUpload.Quizzes]: async (
+      item: LMSQuiz | LMSQuizModel,
+      model: typeof LMSQuizModel,
+      adapter: AbstractLMSAdapter,
+      courseId: number,
+      chatbotDocumentId?: string,
+    ) => {
+      const quiz = item as LMSQuiz;
+      return (await model
+        .create({
+          id: quiz.id,
+          title: quiz.title,
+          description: quiz.description,
+          due: quiz.due,
+          unlock: quiz.unlock,
+          lock: quiz.lock,
+          timeLimit: quiz.timeLimit,
+          allowedAttempts: quiz.allowedAttempts,
+          questions: quiz.questions,
+          accessLevel: LMSQuizAccessLevel.LOGISTICS_ONLY, // Default access level
+          chatbotDocumentId: chatbotDocumentId,
+          uploaded: new Date(),
+          syncEnabled: true,
+          courseId: courseId,
+          modified:
+            quiz.modified != undefined ? new Date(quiz.modified) : new Date(),
+          lmsSource: adapter.getPlatform(),
+        })
+        .save()) as LMSQuizModel;
+    },
+  };
+
+  private async uploadCallback(
+    courseId: number,
+    item:
+      | LMSAnnouncement
+      | LMSAssignment
+      | LMSAssignmentModel
+      | LMSAnnouncementModel
+      | LMSPage
+      | LMSPageModel
+      | LMSFile
+      | LMSFileModel
+      | LMSQuiz
+      | LMSQuizModel,
+    type: LMSUpload,
+    chatbotDocumentId: string,
+    adapter: AbstractLMSAdapter,
+    model: any,
+  ): Promise<any> {
+    chatbotDocumentId ??=
+      'chatbotDocumentId' in item && item.chatbotDocumentId != undefined
+        ? item.chatbotDocumentId
+        : chatbotDocumentId;
+
+    if (this.createCallbacks[type]) {
+      return await this.createCallbacks[type](
+        item as any,
+        model as any,
+        adapter,
+        courseId,
+        chatbotDocumentId,
+      );
+    }
   }
 
   getPartialOrgLmsIntegration(
