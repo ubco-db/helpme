@@ -17,6 +17,7 @@ import { CronJob } from 'cron';
 import * as Sentry from '@sentry/browser';
 import { QuestionService } from '../question/question.service';
 import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
+import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
 
 @Injectable()
 export class CalendarService implements OnModuleInit {
@@ -196,17 +197,14 @@ export class CalendarService implements OnModuleInit {
     courseId: number,
   ) {
     // first check if they are checked in
-    // apparently typeORM doesn't really provide a nice way to *only* query the @JoinTable() stafflist
-    // thus, i will use a raw query
-    const query = `
-          SELECT "queueModelId" AS queueId
-          FROM queue_model_staff_list_user_model
-          WHERE "userModelId" = $1
-          `;
 
-    let myCheckedInQueues: { queueModelId: number; userModelId: number }[] = [];
+    let myCheckedInQueues: QueueStaffModel[] = [];
     try {
-      myCheckedInQueues = await QueueModel.query(query, [userId]);
+      myCheckedInQueues = await QueueStaffModel.find({
+        where: {
+          userId,
+        },
+      });
     } catch (err) {
       console.error('Error checking if user is checked in', err);
       Sentry.captureException(err);
@@ -283,14 +281,13 @@ export class CalendarService implements OnModuleInit {
     alertId: number,
   ) {
     // first check if they are checked in. If not then return
-    const query = `
-      SELECT "queueModelId" AS "queueId"
-      FROM queue_model_staff_list_user_model
-      WHERE "userModelId" = $1
-      `;
-    let myCheckedInQueues: { queueId: number }[] = [];
+    let myCheckedInQueues: QueueStaffModel[] = [];
     try {
-      myCheckedInQueues = await QueueModel.query(query, [userId]);
+      myCheckedInQueues = await QueueStaffModel.find({
+        where: {
+          userId,
+        },
+      });
     } catch (err) {
       console.error('Error checking if user is checked in in cron job', err);
       Sentry.captureException(err);
@@ -325,12 +322,11 @@ export class CalendarService implements OnModuleInit {
             return;
           }
           // check them out with a DELETE query
-          const query = `
-            DELETE FROM queue_model_staff_list_user_model
-            WHERE "queueModelId" = $1 AND "userModelId" = $2
-            `;
           try {
-            await QueueModel.query(query, [queue.queueId, userId]);
+            await QueueStaffModel.delete({
+              queueId: queue.queueId,
+              userId,
+            });
           } catch (err) {
             console.error('Error checking out user in cron job', err);
             Sentry.captureException(err);

@@ -12,9 +12,9 @@ import {
   StatusInPriorityQueue,
   StatusInQueue,
   StatusSentToCreator,
-  StaffMember,
   ExtraTAStatus,
   decodeBase64,
+  GetQueueResponse,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -27,29 +27,24 @@ import { pick } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
 import { DataSource, In } from 'typeorm';
 import { QueueModel } from './queue.entity';
-import { QueueStaffModel } from './queue-staff/queue-staff.entity';
 import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueInviteModel } from './queue-invite.entity';
+import { QueueStaffService } from './queue-staff/queue-staff.service';
 import * as crypto from 'crypto';
-
-type StaffHelpingInOtherQueues = {
-  queueId: number;
-  userId: number;
-  courseId: number;
-  helpedAt: Date;
-}[];
 
 @Injectable()
 export class QueueService {
   constructor(
     private alertsService: AlertsService,
     private readonly appConfig: ApplicationConfigService,
+    private queueStaffService: QueueStaffService,
     private dataSource: DataSource,
   ) {}
 
-  async getQueue(queueId: number): Promise<QueueModel> {
+  /* Gets the QueueModel and adds on queueSize. Don't return this to frontend directly, use getQueueFormatted for that */
+  async getQueueRaw(queueId: number): Promise<QueueModel> {
     const queue = await QueueModel.findOne({
       where: {
         id: queueId,
@@ -63,107 +58,15 @@ export class QueueService {
       },
     });
     await queue.addQueueSize();
-    const StaffHelpingInOtherQueues =
-      await this.getStaffHelpingInOtherQueues(queueId);
-
-    queue.queueStaff = queue.queueStaff.map((queueStaff) => {
-      const staffHelpingInOtherQueue = StaffHelpingInOtherQueues.find(
-        (staff) => staff.userId === queueStaff.userId,
-      );
-      // precedence: if user marked themselves away, show that; else show helping-in-other-* status
-      return {
-        id: queueStaff.userId,
-        name: queueStaff.user.name,
-        photoURL: queueStaff.user.photoURL,
-        TANotes:
-          queueStaff.user.courses.find((ucm) => ucm.courseId === queue.courseId)
-            ?.TANotes ?? '',
-        extraStatus:
-          queueStaff.extraTAStatus === ExtraTAStatus.AWAY
-            ? ExtraTAStatus.AWAY
-            : !staffHelpingInOtherQueue
-              ? undefined
-              : staffHelpingInOtherQueue.courseId !== queue.courseId
-                ? ExtraTAStatus.HELPING_IN_ANOTHER_COURSE
-                : staffHelpingInOtherQueue.queueId !== queueId
-                  ? ExtraTAStatus.HELPING_IN_ANOTHER_QUEUE
-                  : undefined,
-        helpingStudentInAnotherQueueSince: staffHelpingInOtherQueue?.helpedAt,
-        // Funky: So this method returns QueueModel.
-        // Some endpoints will return this directly, others will modify the queue object first (and possibly even try to save the queue object).
-        // This probably isn't a good idea. TODO: fix this by maybe having two methods, one returning GetQueueResponse and another returning QueueModel.
-        //  Or just make it so internal calls of getQueue just do their own QueueModel.query
-      } as StaffMember; //as unknown as QueueStaffModel;
-    });
 
     return queue;
   }
 
-  /* Takes in QueueStaff[] and formats it for frontend consumption.
-  Needs the following for getting StaffHelpingInOtherQueues (omit `courses: true` if you don't need it):
-      relations: {
-        queueStaff: {
-          user: {
-            courses: true,
-          },
-        },
-      },
-  */
-  async getFormattedStaffList(queue: QueueModel): Promise<StaffMember[]> {
-    let StaffHelpingInOtherQueues = [];
-    if (queue.queueStaff[0].user.courses) {
-      // if the first user has any courses, it's assumed courses isn't undefined and thus included in the query
-      StaffHelpingInOtherQueues = await this.getStaffHelpingInOtherQueues(
-        queue.queueStaff[0].queueId,
-      );
-    }
-    return queue.queueStaff.map((queueStaff) => {
-      const staffHelpingInOtherQueue = StaffHelpingInOtherQueues.find(
-        (staff) => staff.userId === queueStaff.userId,
-      );
-      // precedence: if user marked themselves away, show that, else show helping-in-other-* status
-      return {
-        id: queueStaff.userId,
-        name: queueStaff.user.name,
-        photoURL: queueStaff.user.photoURL,
-        TANotes:
-          queueStaff.user.courses.find((ucm) => ucm.courseId === queue.courseId)
-            ?.TANotes ?? '',
-        extraStatus:
-          queueStaff.extraTAStatus === ExtraTAStatus.AWAY
-            ? ExtraTAStatus.AWAY
-            : !staffHelpingInOtherQueue
-              ? undefined
-              : staffHelpingInOtherQueue.courseId !== queue.courseId
-                ? ExtraTAStatus.HELPING_IN_ANOTHER_COURSE
-                : staffHelpingInOtherQueue.queueId !== queue.id
-                  ? ExtraTAStatus.HELPING_IN_ANOTHER_QUEUE
-                  : undefined,
-        helpingStudentInAnotherQueueSince: staffHelpingInOtherQueue?.helpedAt,
-      };
-    });
-  }
-
-  /* Finds all staff members who are helping in other queues that ARE NOT the given queue.
-     It also returns the question's helpedAt so you can display how long they have been helped for.
-  */
-  async getStaffHelpingInOtherQueues(
-    queueId: number,
-  ): Promise<StaffHelpingInOtherQueues> {
-    // yes, this is joining the staff list table with itself. We start with the queueId of this queue and want to find which staff that are in this queue that are also checked into other queues.
-    const query = `
-    SELECT q.id AS "queueId", qstaff2."userId" AS "userId", q."courseId", question."helpedAt"
-    FROM queue_staff_model AS qstaff1
-    RIGHT JOIN queue_staff_model AS qstaff2 ON qstaff1."userId" = qstaff2."userId" AND qstaff2."queueId" != 19 
-    LEFT JOIN queue_model AS q ON qstaff2."queueId" = q.id
-    RIGHT JOIN question_model AS question ON question."queueId" = q.id AND question."taHelpedId" = qstaff2."userId" AND question.status = $1
-    WHERE qstaff1."queueId" = $2
-    `;
-    const result = (await this.dataSource.query(query, [
-      OpenQuestionStatus.Helping,
-      queueId,
-    ])) as StaffHelpingInOtherQueues;
-    return result ? result : [];
+  /* Queries for a QueueModel and formats it for the frontend */
+  async getQueueFormatted(queueId: number): Promise<GetQueueResponse> {
+    return await this.queueStaffService.formatStaffListPropertyForFrontend(
+      await this.getQueueRaw(queueId),
+    );
   }
 
   async getQuestions(queueId: number): Promise<ListQuestionsResponse> {
@@ -361,7 +264,7 @@ export class QueueService {
     newConfig: QueueConfig,
   ): Promise<string[]> {
     const questionTypeMessages: string[] = []; // this will contain messages about what question types were created, updated, or deleted
-    const queue = await this.getQueue(queueId);
+    const queue = await this.getQueueRaw(queueId);
 
     const oldConfig: QueueConfig = queue.config ?? { tags: {} };
 
@@ -644,9 +547,6 @@ export class QueueService {
 
     await queue.addQueueSize();
 
-    const staffHelpingInOtherQueues =
-      await this.getStaffHelpingInOtherQueues(queueId);
-
     // query the questions helped questions for this queue (select helpedAt and taHelpedId)
     const helpedQuestions = await QuestionModel.find({
       select: ['helpedAt', 'taHelpedId'],
@@ -657,42 +557,21 @@ export class QueueService {
     });
 
     // create a new StaffList with only the necessary fields
-    const staffList: StaffForStaffList[] = queue.queueStaff.map(
-      (queueStaff) => {
-        let helpedAt = null;
-        helpedQuestions.forEach((question) => {
-          if (question.taHelpedId === queueStaff.userId) {
-            helpedAt = question.helpedAt;
-          }
-        });
+    const staffList: StaffForStaffList[] = (
+      await this.queueStaffService.getFormattedStaffList(queue)
+    ).map((queueStaff) => {
+      let helpedAt = null;
+      helpedQuestions.forEach((question) => {
+        if (question.taHelpedId === queueStaff.id) {
+          helpedAt = question.helpedAt;
+        }
+      });
 
-        const staffHelpingInOtherQueue = staffHelpingInOtherQueues.find(
-          (staff) => staff.userId === queueStaff.userId,
-        );
-        const extraStatus =
-          queueStaff.extraTAStatus === ExtraTAStatus.AWAY
-            ? ExtraTAStatus.AWAY
-            : !staffHelpingInOtherQueue
-              ? undefined
-              : staffHelpingInOtherQueue.courseId !== queue.courseId
-                ? ExtraTAStatus.HELPING_IN_ANOTHER_COURSE
-                : staffHelpingInOtherQueue.queueId !== queueId
-                  ? ExtraTAStatus.HELPING_IN_ANOTHER_QUEUE
-                  : undefined;
-
-        return {
-          id: queueStaff.userId,
-          name: queueStaff.user.name,
-          photoURL: queueStaff.user.photoURL,
-          questionHelpedAt: helpedAt,
-          TANotes:
-            queueStaff.user.courses.find(
-              (ucm) => ucm.courseId === queue.courseId,
-            )?.TANotes ?? '',
-          extraStatus,
-        };
-      },
-    );
+      return {
+        ...queueStaff,
+        questionHelpedAt: helpedAt,
+      };
+    });
 
     // Create a new PublicQueueInvite object
     const queueInviteResponse: PublicQueueInvite = {

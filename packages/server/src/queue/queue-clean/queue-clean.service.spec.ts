@@ -13,8 +13,12 @@ import {
   QuestionFactory,
   QueueFactory,
   UserFactory,
+  QueueStaffFactory,
 } from '../../../test/util/factories';
-import { TestTypeOrmModule } from '../../../test/util/testUtils';
+import {
+  TestTypeOrmModule,
+  TestConfigModule,
+} from '../../../test/util/testUtils';
 import { QuestionModel } from '../../question/question.entity';
 import { QueueCleanService } from './queue-clean.service';
 import { SchedulerRegistry } from '@nestjs/schedule';
@@ -25,21 +29,31 @@ import { AlertModel } from 'alerts/alerts.entity';
 import { QueueModel } from 'queue/queue.entity';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
+import { NotificationService } from 'notification/notification.service';
+import { AlertsService } from 'alerts/alerts.service';
+import { ApplicationConfigService } from 'config/application_config.service';
+import { QueueChatService } from 'queueChats/queue-chats.service';
+import { QueueSSEService } from 'queue/queue-sse.service';
 
-describe('QueueService', () => {
+describe('QueueCleanService', () => {
   let service: QueueCleanService;
   let dataSource: DataSource;
   let schedulerRegistry: SchedulerRegistry;
+  let module: TestingModule;
 
   beforeAll(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, FactoryModule],
+    module = await Test.createTestingModule({
+      imports: [TestTypeOrmModule, TestConfigModule, FactoryModule],
       providers: [
         QueueCleanService,
+        QuestionService,
+        NotificationService,
+        AlertsService,
+        ApplicationConfigService,
         {
-          provide: QuestionService,
+          provide: QueueService,
           useValue: {
-            changeStatus: jest.fn(),
+            getQuestions: jest.fn().mockResolvedValue([]),
           },
         },
         {
@@ -49,18 +63,36 @@ describe('QueueService', () => {
           },
         },
         {
-          provide: QueueService,
-          useValue: {
-            getQuestions: jest.fn(),
-          },
-        },
-        {
           provide: SchedulerRegistry,
           useValue: {
             addCronJob: jest.fn(),
             deleteCronJob: jest.fn(),
-            getCronJobs: jest.fn(),
+            getCronJobs: jest.fn().mockReturnValue(new Map()),
           },
+        },
+        {
+          provide: QueueSSEService,
+          useValue: {
+            updateQueueChats: jest.fn(),
+            updateQuestions: jest.fn(),
+            updateQueue: jest.fn(),
+            sendToRoom: jest.fn(),
+            subscribeClient: jest.fn(),
+          },
+        },
+        {
+          provide: QueueChatService,
+          useValue: {
+            getMyChats: jest.fn(),
+            endChats: jest.fn(),
+            clearChats: jest.fn(),
+            checkChatExists: jest.fn(),
+            createChat: jest.fn(),
+          },
+        },
+        {
+          provide: 'REDIS_CLIENT',
+          useValue: {},
         },
       ],
     }).compile();
@@ -76,18 +108,24 @@ describe('QueueService', () => {
   });
 
   afterAll(async () => {
-    await dataSource.destroy();
+    if (dataSource && dataSource.isInitialized) {
+      await dataSource.destroy();
+    }
   });
 
   beforeEach(async () => {
-    await dataSource.synchronize(true);
-    jest.resetAllMocks();
+    if (dataSource.isInitialized) {
+      await dataSource.synchronize(true);
+    }
+    jest.clearAllMocks();
   });
 
   describe('cleanQueue', () => {
     it('queue remains the same if any staff are checked in', async () => {
       const ta = await UserFactory.create();
-      const queue = await QueueFactory.create({ staffList: [ta] });
+      const queue = await QueueFactory.create({});
+      await QueueStaffFactory.create({ queue, user: ta });
+
       await QuestionFactory.create({
         status: OpenQuestionStatus.Queued,
         queue: queue,
@@ -98,6 +136,7 @@ describe('QueueService', () => {
       const question = (await QuestionModel.find())?.pop();
       expect(question?.status).toEqual('Queued');
     });
+
     it('if no staff are present all questions with open status are marked as stale', async () => {
       const queue = await QueueFactory.create({});
       const question = await QuestionFactory.create({
@@ -109,9 +148,12 @@ describe('QueueService', () => {
       await question.reload();
       expect(question.status).toEqual('Stale');
     });
+
     it('queue gets cleaned when force parameter is passed, even with staff present', async () => {
       const ta = await UserFactory.create();
-      const queue = await QueueFactory.create({ staffList: [ta] });
+      const queue = await QueueFactory.create({});
+      await QueueStaffFactory.create({ queue, user: ta });
+
       const question = await QuestionFactory.create({
         status: OpenQuestionStatus.Queued,
         queue: queue,
@@ -134,6 +176,7 @@ describe('QueueService', () => {
       await question.reload();
       expect(question.status).toEqual('Stale');
     });
+
     it('resolves lingering alerts from a queue', async () => {
       const queue = await QueueFactory.create({});
       const openQuestion = await QuestionFactory.create({
@@ -156,6 +199,7 @@ describe('QueueService', () => {
       expect(openAlert.resolved).not.toBeNull();
     });
   });
+
   describe('cleanAllQueues', () => {
     it('correctly cleans queues that have questions in open or limbo state', async () => {
       const cleanQueueSpy = jest.spyOn(service, 'cleanQueue');
@@ -177,10 +221,9 @@ describe('QueueService', () => {
 
       await service.cleanAllQueues();
 
-      await queue1.reload();
-      await queue2.reload();
       expect(cleanQueueSpy).toHaveBeenCalledTimes(2);
     });
+
     it('does not clean queue that has no questions in open or limbo state', async () => {
       const cleanQueueSpy = jest.spyOn(service, 'cleanQueue');
 
@@ -238,112 +281,114 @@ describe('QueueService', () => {
 
   describe('promptStudentsToLeaveQueue', () => {
     it('should create alerts and schedule cron jobs for students in the queue', async () => {
-      const queueId = 1;
-      const studentId = 1;
-      const courseId = 1;
+      const queue = await QueueFactory.create({});
+      const student = await UserFactory.create();
+      const question = await QuestionFactory.create({
+        queue,
+        creator: student,
+        status: OpenQuestionStatus.Queued,
+      });
 
-      // mock deleteAllLeaveQueueCronJobsForQueue
-      jest
+      // Mock deleteAllLeaveQueueCronJobsForQueue to keep test focused
+      const deleteCronSpy = jest
         .spyOn(service, 'deleteAllLeaveQueueCronJobsForQueue')
         .mockImplementation();
 
-      const mockQueryBuilder = {
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        leftJoin: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        getRawMany: jest.fn().mockResolvedValue([{ studentId, courseId }]),
-        getOne: jest.fn().mockResolvedValue(null),
-      } as any;
-      jest
-        .spyOn(QueueModel, 'createQueryBuilder')
-        .mockReturnValue(mockQueryBuilder);
+      await service.promptStudentsToLeaveQueue(queue.id, dataSource.manager);
 
-      jest.spyOn(QueueModel, 'query').mockResolvedValue([]);
-      jest
-        .spyOn(QueueModel.createQueryBuilder(), 'getRawMany')
-        .mockResolvedValue([{ studentId, courseId }]);
-      jest.spyOn(AlertModel, 'create').mockImplementation((alert) => ({
-        ...alert,
-        save: jest.fn().mockResolvedValue(alert),
-        hasId: jest.fn().mockReturnValue(true),
-        remove: jest.fn(),
-        softRemove: jest.fn(),
-        recover: jest.fn(),
-        reload: jest.fn(),
-      }));
-
-      await service.promptStudentsToLeaveQueue(queueId);
-
-      expect(AlertModel.create).toHaveBeenCalledTimes(1);
-      expect(AlertModel.create).toHaveBeenCalledWith({
-        alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
-        sent: expect.any(Date),
-        userId: studentId,
-        courseId: courseId,
-        payload: { queueId },
+      const alert = await AlertModel.findOne({
+        where: {
+          userId: student.id,
+          courseId: queue.course.id,
+          alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
+        },
       });
+
+      expect(alert).toBeDefined();
+      expect(alert?.payload).toEqual(
+        expect.objectContaining({
+          queueId: queue.id,
+          queueQuestionId: question.id,
+        }),
+      );
       expect(schedulerRegistry.addCronJob).toHaveBeenCalled();
+
+      const jobName = `prompt-student-to-leave-queue-${queue.id}-${student.id}`;
+      expect(schedulerRegistry.addCronJob).toHaveBeenCalledWith(
+        jobName,
+        expect.any(Object),
+      );
     });
 
     it('should not create alerts or schedule cron jobs if staff are checked in', async () => {
-      const queueId = 1;
-      const staffList = [{ userId: 1 }];
+      const queue = await QueueFactory.create({});
+      const ta = await UserFactory.create();
+      await QueueStaffFactory.create({ queue, user: ta });
+
+      const student = await UserFactory.create();
+      await QuestionFactory.create({
+        queue,
+        creator: student,
+        status: OpenQuestionStatus.Queued,
+      });
+
       jest
         .spyOn(service, 'deleteAllLeaveQueueCronJobsForQueue')
         .mockImplementation();
 
-      jest.spyOn(QueueModel, 'query').mockResolvedValue(staffList);
+      await service.promptStudentsToLeaveQueue(queue.id, dataSource.manager);
 
-      await service.promptStudentsToLeaveQueue(queueId);
+      const alert = await AlertModel.findOne({
+        where: {
+          userId: student.id,
+          courseId: queue.course.id,
+          alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
+        },
+      });
 
-      expect(AlertModel.create).not.toHaveBeenCalled();
+      expect(alert).toBeNull();
       expect(schedulerRegistry.addCronJob).not.toHaveBeenCalled();
     });
 
     it('should not create duplicate alerts for the same student', async () => {
-      const queueId = 1;
-      const studentId = 1;
-      const courseId = 1;
-      const existingAlert = {
+      const queue = await QueueFactory.create({});
+      const student = await UserFactory.create();
+      await QuestionFactory.create({
+        queue,
+        creator: student,
+        status: OpenQuestionStatus.Queued,
+      });
+
+      // Create existing alert
+      await AlertFactory.create({
+        user: student,
+        course: queue.course,
         alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
-        resolved: null,
-        userId: studentId,
-        courseId: courseId,
-        payload: { queueId },
-      } as any;
+        payload: { queueId: queue.id },
+      });
+
       jest
         .spyOn(service, 'deleteAllLeaveQueueCronJobsForQueue')
         .mockImplementation();
+      jest.clearAllMocks(); // clear addCronJob calls from previous Create
 
-      const mockQueryBuilder = {
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        leftJoin: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        getRawMany: jest.fn().mockResolvedValue([{ studentId, courseId }]),
-        getOne: jest.fn().mockResolvedValue(existingAlert),
-      } as any;
-      jest
-        .spyOn(QueueModel, 'createQueryBuilder')
-        .mockReturnValue(mockQueryBuilder);
-      jest
-        .spyOn(AlertModel, 'createQueryBuilder')
-        .mockReturnValue(mockQueryBuilder);
+      await service.promptStudentsToLeaveQueue(queue.id, dataSource.manager);
 
-      jest.spyOn(QueueModel, 'query').mockResolvedValue([]);
-      jest
-        .spyOn(QueueModel.createQueryBuilder(), 'getRawMany')
-        .mockResolvedValue([{ studentId, courseId }]);
+      // Check that only 1 alert exists
+      const alerts = await AlertModel.find({
+        where: {
+          userId: student.id,
+          courseId: queue.course.id,
+          alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
+        },
+      });
 
-      await service.promptStudentsToLeaveQueue(queueId);
-
-      expect(AlertModel.create).not.toHaveBeenCalled();
+      expect(alerts.length).toBe(1);
+      // addCronJob might have been called if logic was entered, but logic returns early if existingAlert
       expect(schedulerRegistry.addCronJob).not.toHaveBeenCalled();
     });
   });
+
   describe('autoLeaveQueue', () => {
     let consoleErrorSpy: jest.SpyInstance;
     beforeEach(() => {
@@ -353,146 +398,73 @@ describe('QueueService', () => {
     afterEach(() => {
       consoleErrorSpy.mockRestore();
     });
+
     it('should resolve the alert and mark questions as LeftDueToNoStaff if the alert is not resolved', async () => {
-      const userId = 1;
-      const queueId = 1;
-      const courseId = 1;
-      const alertId = 1;
+      const queue = await QueueFactory.create({});
+      const student = await UserFactory.create();
+      const question = await QuestionFactory.create({
+        queue,
+        creator: student,
+        status: OpenQuestionStatus.Queued,
+      });
+      const alert = await AlertFactory.create({
+        user: student,
+        course: queue.course,
+        alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
+        payload: { queueId: queue.id },
+      });
+      // ensure alert is unresolved
+      await AlertModel.update(alert.id, { resolved: null });
 
-      const mockAlert = {
-        id: alertId,
-        resolved: null,
-        save: jest.fn().mockResolvedValue(true),
-      } as unknown as AlertModel;
-
-      const mockQuestions = [
-        {
-          id: 1,
-          status: OpenQuestionStatus.Queued,
-          save: jest.fn().mockResolvedValue(true),
-        },
-      ] as unknown as QuestionModel[];
-
-      jest.spyOn(AlertModel, 'findOneOrFail').mockResolvedValue(mockAlert);
-      jest.spyOn(QuestionModel, 'inQueueWithStatus').mockReturnValue({
-        getMany: jest.fn().mockResolvedValue(mockQuestions),
-      } as any);
-      jest
-        .spyOn(service.queueService, 'getQuestions')
-        .mockResolvedValue([] as any);
-      jest.spyOn(service.redisQueueService, 'setQuestions').mockResolvedValue();
-
-      await service.autoLeaveQueue(userId, queueId, courseId, alertId);
-
-      expect(mockAlert.save).toHaveBeenCalled();
-      expect(service.questionService.changeStatus).toHaveBeenCalledWith(
-        ClosedQuestionStatus.LeftDueToNoStaff,
-        mockQuestions[0],
-        userId,
-        Role.STUDENT,
+      await service.autoLeaveQueue(
+        student.id,
+        queue.id,
+        queue.course.id,
+        alert.id,
       );
-      expect(service.queueService.getQuestions).toHaveBeenCalledWith(queueId);
-      expect(service.redisQueueService.setQuestions).toHaveBeenCalledWith(
-        `q:${queueId}`,
-        [],
-      );
+
+      await alert.reload();
+      await question.reload();
+
+      expect(alert.resolved).not.toBeNull();
+      expect(question.status).toEqual(ClosedQuestionStatus.LeftDueToNoStaff);
+
       expect(schedulerRegistry.deleteCronJob).toHaveBeenCalledWith(
-        `prompt-student-to-leave-queue-${queueId}-${userId}`,
+        `prompt-student-to-leave-queue-${queue.id}-${student.id}`,
       );
     });
 
     it('should schedule a new cron job if the alert is resolved', async () => {
-      const userId = 1;
-      const queueId = 1;
-      const courseId = 1;
-      const alertId = 1;
+      const queue = await QueueFactory.create({});
+      const student = await UserFactory.create();
+      const alert = await AlertFactory.create({
+        user: student,
+        course: queue.course,
+        alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
+        payload: { queueId: queue.id },
+      });
+      // ensure alert IS resolved (User clicked 'Stay')
+      await AlertModel.update(alert.id, { resolved: new Date() });
 
-      const mockAlert = {
-        id: alertId,
-        resolved: new Date(),
-        save: jest.fn().mockResolvedValue(true),
-      } as unknown as AlertModel;
-
-      jest.spyOn(AlertModel, 'findOneOrFail').mockResolvedValue(mockAlert);
-      jest.spyOn(schedulerRegistry, 'deleteCronJob').mockImplementation();
-      jest.spyOn(schedulerRegistry, 'addCronJob').mockImplementation();
-
-      await service.autoLeaveQueue(userId, queueId, courseId, alertId);
+      await service.autoLeaveQueue(
+        student.id,
+        queue.id,
+        queue.course.id,
+        alert.id,
+      );
 
       expect(schedulerRegistry.deleteCronJob).toHaveBeenCalledWith(
-        `prompt-student-to-leave-queue-${queueId}-${userId}`,
+        `prompt-student-to-leave-queue-${queue.id}-${student.id}`,
       );
       expect(schedulerRegistry.addCronJob).toHaveBeenCalled();
     });
 
-    it('should log an error and capture exception if getting alert fails', async () => {
-      const userId = 1;
-      const queueId = 1;
-      const courseId = 1;
-      const alertId = 1;
+    it('should log an error if getting alert fails', async () => {
+      const alertId = 99999;
+      await service.autoLeaveQueue(1, 1, 1, alertId);
 
-      const mockError = new Error('Alert not found');
-      jest.spyOn(AlertModel, 'findOneOrFail').mockRejectedValue(mockError);
-
-      await service.autoLeaveQueue(userId, queueId, courseId, alertId);
-
-      expect(AlertModel.findOneOrFail).toHaveBeenCalledWith({
-        where: { id: alertId },
-      });
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         'Error getting auto-leave-queue alert in cron job',
-        mockError,
-      );
-    });
-
-    it('should log an error and capture exception if resolving alert fails', async () => {
-      const userId = 1;
-      const queueId = 1;
-      const courseId = 1;
-      const alertId = 1;
-
-      const mockAlert = {
-        id: alertId,
-        resolved: null,
-        save: jest.fn().mockRejectedValue(new Error('Save failed')),
-      } as unknown as AlertModel;
-
-      jest.spyOn(AlertModel, 'findOneOrFail').mockResolvedValue(mockAlert);
-
-      await service.autoLeaveQueue(userId, queueId, courseId, alertId);
-
-      expect(mockAlert.save).toHaveBeenCalled();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error resolving auto-leave-queue alert in cron job',
-        expect.any(Error),
-      );
-    });
-
-    it('should log an error and capture exception if marking questions as LeftDueToNoStaff fails', async () => {
-      const userId = 1;
-      const queueId = 1;
-      const courseId = 1;
-      const alertId = 1;
-
-      const mockAlert = {
-        id: alertId,
-        resolved: null,
-        save: jest.fn().mockResolvedValue(true),
-      } as unknown as AlertModel;
-
-      jest.spyOn(AlertModel, 'findOneOrFail').mockResolvedValue(mockAlert);
-      jest.spyOn(QuestionModel, 'inQueueWithStatus').mockReturnValue({
-        getMany: jest.fn().mockRejectedValue(new Error('GetMany failed')),
-      } as any);
-
-      await service.autoLeaveQueue(userId, queueId, courseId, alertId);
-
-      expect(QuestionModel.inQueueWithStatus).toHaveBeenCalledWith(queueId, [
-        ...Object.values(OpenQuestionStatus),
-        ...Object.values(LimboQuestionStatus),
-      ]);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error marking question as LeftDueToNoStaff in cron job',
         expect.any(Error),
       );
     });

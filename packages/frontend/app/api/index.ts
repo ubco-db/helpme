@@ -903,7 +903,7 @@ class APIClient {
   queues = {
     get: async (queueId: number): Promise<GetQueueResponse> =>
       this.req('GET', `/api/v1/queues/${queueId}`, GetQueueResponse),
-    update: async (queueId: number, params: UpdateQueueParams) =>
+    update: async (queueId: number, params: UpdateQueueParams): Promise<void> =>
       this.req('PATCH', `/api/v1/queues/${queueId}`, undefined, params),
     clean: async (queueId: number): Promise<void> =>
       this.req('POST', `/api/v1/queues/${queueId}/clean`),

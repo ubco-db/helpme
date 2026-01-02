@@ -42,6 +42,8 @@ import { QueueService } from './queue.service';
 import { QuestionModel } from '../question/question.entity';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
+import { QueueStaffModel } from './queue-staff/queue-staff.entity';
+import { QuestionService } from '../question/question.service';
 
 @Controller('queues')
 @UseGuards(JwtAuthGuard, QueueRolesGuard, EmailVerifiedGuard)
@@ -51,6 +53,7 @@ export class QueueController {
     private queueSSEService: QueueSSEService,
     private queueCleanService: QueueCleanService,
     private queueService: QueueService, //note: this throws errors, be sure to catch them
+    private questionService: QuestionService,
     private redisQueueService: RedisQueueService,
   ) {}
 
@@ -67,7 +70,7 @@ export class QueueController {
     @Param('queueId', ParseIntPipe) queueId: number,
   ): Promise<GetQueueResponse> {
     try {
-      return this.queueService.getQueue(queueId);
+      return this.queueService.getQueueFormatted(queueId);
     } catch (err) {
       console.error(err);
       throw new HttpException(
@@ -127,10 +130,10 @@ export class QueueController {
   async updateQueue(
     @Param('queueId', ParseIntPipe) queueId: number,
     @Body() body: UpdateQueueParams,
-  ): Promise<QueueModel> {
-    const queue = await this.queueService.getQueue(queueId);
-    if (queue === undefined) {
-      throw new NotFoundException();
+  ): Promise<void> {
+    const queue = await this.queueService.getQueueRaw(queueId);
+    if (!queue) {
+      throw new NotFoundException('Queue not found');
     }
     queue.type = body.type;
     queue.notes = body.notes;
@@ -145,7 +148,7 @@ export class QueueController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
-    return queue;
+    return;
   }
 
   @Post(':queueId/clean')
@@ -202,9 +205,9 @@ export class QueueController {
     @QueueRole() role: Role,
   ): Promise<void> {
     // disable a queue
-    const queue = await this.queueService.getQueue(queueId);
+    const queue = await this.queueService.getQueueRaw(queueId);
     if (!queue) {
-      throw new NotFoundException();
+      throw new NotFoundException('Queue not found');
     }
 
     if (queue.isProfessorQueue && role === Role.TA) {
@@ -217,21 +220,24 @@ export class QueueController {
     queue.isDisabled = true;
 
     // clear staff list
-    queue.staffList = [];
+    await QueueStaffModel.delete({ queueId });
 
     const questions = await QuestionModel.inQueueWithStatus(queueId, [
       ...Object.values(OpenQuestionStatus),
       ...Object.values(LimboQuestionStatus),
     ]).getMany();
 
-    questions.forEach((q: QuestionModel) => {
-      q.status = ClosedQuestionStatus.Stale;
-      q.closedAt = new Date();
+    questions.forEach(async (q: QuestionModel) => {
+      // all students mark their own question as "stale"
+      await this.questionService.changeStatus(
+        ClosedQuestionStatus.Stale,
+        q,
+        q.creatorId,
+        Role.STUDENT,
+      );
     });
 
     try {
-      // try to save queue (and stale questions!)
-      await QuestionModel.save(questions);
       await queue.save();
       await this.redisQueueService.deleteKey(`q:${queueId}`);
     } catch (err) {

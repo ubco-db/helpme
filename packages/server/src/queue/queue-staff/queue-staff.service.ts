@@ -1,4 +1,9 @@
-import { OpenQuestionStatus, StaffMember, ExtraTAStatus } from '@koh/common';
+import {
+  OpenQuestionStatus,
+  StaffMember,
+  ExtraTAStatus,
+  GetQueueResponse,
+} from '@koh/common';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { QueueModel } from '../queue.entity';
@@ -67,6 +72,27 @@ export class QueueStaffService {
         helpingStudentInAnotherQueueSince: staffHelpingInOtherQueue?.helpedAt,
       };
     });
+  }
+
+  /* Some pieces of backend have their own QueueModel objects and just want to add on the proper staffList before sending to frontend
+      Needs the following for getting StaffHelpingInOtherQueues (omit `courses: true` if you don't need it):
+      relations: {
+        queueStaff: {
+          user: {
+            courses: true,
+          },
+        },
+      },
+    */
+  async formatStaffListPropertyForFrontend(
+    rawQueue: QueueModel,
+  ): Promise<GetQueueResponse> {
+    const staffList = await this.getFormattedStaffList(rawQueue);
+    const { queueStaff, ...queue } = rawQueue; // remove queueStaff property from QueueModel (rename to staffList for frontend)
+    return {
+      ...queue,
+      staffList,
+    };
   }
 
   /* Finds all staff members who are helping in other queues that ARE NOT the given queue.

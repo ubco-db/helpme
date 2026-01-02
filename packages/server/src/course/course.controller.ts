@@ -235,13 +235,11 @@ export class CourseController {
     let queues: QueuePartial[] = [];
     try {
       queues = await Promise.all(
-        course.queues.map(async (queue) => {
-          await queue.addQueueSize(); // mutates queue
-          return {
-            ...queue,
-            queueStaff:
-              await this.queueStaffService.getFormattedStaffList(queue),
-          };
+        course.queues.map(async (rawQueue) => {
+          await rawQueue.addQueueSize(); // mutates queue
+          return await this.queueStaffService.formatStaffListPropertyForFrontend(
+            rawQueue,
+          );
         }),
       );
     } catch (err) {
@@ -481,10 +479,9 @@ export class CourseController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
-    return {
-      ...queue,
-      queueStaff: await this.queueStaffService.getFormattedStaffList(queue),
-    };
+    return await this.queueStaffService.formatStaffListPropertyForFrontend(
+      queue,
+    );
   }
 
   @Delete(':id/checkout/:qid')
