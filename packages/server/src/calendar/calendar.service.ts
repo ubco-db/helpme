@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CalendarStaffModel } from './calendar-staff.entity';
-import { EntityManager } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { UserModel } from '../profile/user.entity';
 import { CalendarModel } from './calendar.entity';
 import { AlertModel } from '../alerts/alerts.entity';
@@ -24,6 +24,7 @@ export class CalendarService implements OnModuleInit {
     private schedulerRegistry: SchedulerRegistry,
     public questionService: QuestionService, // needed to make public for jest testing purposes
     public queueCleanService: QueueCleanService,
+    public dataSource: DataSource,
   ) {}
 
   async onModuleInit() {
@@ -336,9 +337,13 @@ export class CalendarService implements OnModuleInit {
             return;
           }
           // prompt students with questions to leave the queue
-          await this.queueCleanService.promptStudentsToLeaveQueue(
-            queue.queueId,
-          );
+          await this.dataSource.transaction(async (manager) => {
+            // TODO: probably put the rest of this method in a transaction
+            await this.queueCleanService.promptStudentsToLeaveQueue(
+              queue.queueId,
+              manager,
+            );
+          });
           // create a TA_CHECKED_OUT_EVENT_END event
           try {
             await EventModel.create({

@@ -36,7 +36,7 @@ import { CourseSettingsModel } from 'course/course_settings.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { CourseService } from '../src/course/course.service';
 import { MailModule } from 'mail/mail.module';
-import { QueueStaffModel } from 'queue/queue-staff.entity';
+import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
 
 describe('Course Integration', () => {
   const { supertest } = setupIntegrationTest(CourseModule, undefined, [

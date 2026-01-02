@@ -33,6 +33,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  InternalServerErrorException,
   NotFoundException,
   Param,
   ParseIntPipe,
@@ -46,7 +47,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { Roles } from '../decorators/roles.decorator';
 import { User, UserId } from '../decorators/user.decorator';
@@ -70,7 +70,8 @@ import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { CourseRoles } from 'decorators/course-roles.decorator';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { OrganizationService } from '../organization/organization.service';
-import { QueueStaffModel } from 'queue/queue-staff.entity';
+import { QueueStaffService } from 'queue/queue-staff/queue-staff.service';
+import { DataSource } from 'typeorm';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -80,9 +81,11 @@ export class CourseController {
     private queueSSEService: QueueSSEService,
     private heatmapService: HeatmapService,
     private courseService: CourseService,
+    private queueStaffService: QueueStaffService,
     private queueCleanService: QueueCleanService,
     private organizationService: OrganizationService,
     private readonly appConfig: ApplicationConfigService,
+    private dataSource: DataSource,
   ) {}
 
   @Get(':oid/organization_courses')
@@ -229,31 +232,22 @@ export class CourseController {
 
     course.queues = course.queues.filter((q) => !q.isDisabled);
 
+    let queues: QueuePartial[] = [];
     try {
-      await Promise.all(
-        course.queues.map((q) => {
-          q.addQueueSize();
-          q.queueStaff = q.queueStaff.map((qs) => {
-            return {
-              id: qs.userId,
-              name: qs.user.name,
-              photoURL: qs.user.photoURL,
-              extraTAStatus: qs.extraTAStatus,
-            } as unknown as QueueStaffModel;
-          });
-          // TODO: clean this up. Probably add a helper method for cleaning up the queue staff objects
+      queues = await Promise.all(
+        course.queues.map(async (queue) => {
+          await queue.addQueueSize(); // mutates queue
+          return {
+            ...queue,
+            queueStaff:
+              await this.queueStaffService.getFormattedStaffList(queue),
+          };
         }),
       );
     } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.updatedQueueError +
-          '\n' +
-          'Error message: ' +
-          err,
-      );
-      throw new HttpException(
+      console.error(ERROR_MESSAGES.courseController.updatedQueueError, err);
+      throw new InternalServerErrorException(
         ERROR_MESSAGES.courseController.updatedQueueError,
-        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
 
@@ -262,12 +256,7 @@ export class CourseController {
       // Use raw query for performance (avoid entity instantiation and serialization)
       heatmap = await this.heatmapService.getCachedHeatmapFor(id);
     } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.courseOfficeHourError +
-          '\n' +
-          'Error message: ' +
-          err,
-      );
+      console.error(ERROR_MESSAGES.courseController.courseOfficeHourError, err);
       throw new HttpException(
         ERROR_MESSAGES.courseController.courseHeatMapError,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -275,7 +264,8 @@ export class CourseController {
     }
 
     return {
-      ...(course as any), // TODO: REMOVE THIS ADAM
+      ...course,
+      queues,
       heatmap,
       organizationCourse: course.organizationCourse?.organization ?? null,
     };
@@ -428,7 +418,9 @@ export class CourseController {
         isDisabled: false,
       },
       relations: {
-        queueStaff: true,
+        queueStaff: {
+          user: true,
+        },
       },
     });
     if (!queue) {
@@ -459,51 +451,22 @@ export class CourseController {
       );
     }
 
-    if (queue.queueStaff.length === 0) {
+    // If user was already in the queue...
+    if (queue.queueStaff.some((staff) => staff.userId === user.id)) {
+      throw new BadRequestException(`User already checked-in to ${queue.room}`);
+    }
+
+    const queueWasPreviouslyEmpty = queue.queueStaff.length === 0;
+    if (queueWasPreviouslyEmpty) {
       queue.allowQuestions = true;
+      await queue.save();
       this.queueCleanService.deleteAllLeaveQueueCronJobsForQueue(queue.id);
       await this.queueCleanService.resolvePromptStudentToLeaveQueueAlerts(
         queue.id,
       );
     }
 
-    try {
-      await QueueStaffModel.create({
-        queueId: queue.id,
-        userId: user.id,
-      }).save();
-      await queue.save();
-    } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.saveQueueError +
-          '\nError message: ' +
-          err,
-      );
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.saveQueueError,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    try {
-      await EventModel.create({
-        time: new Date(),
-        eventType: EventType.TA_CHECKED_IN,
-        user,
-        courseId,
-        queueId: queue.id,
-      }).save();
-    } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.createEventError +
-          '\nError message: ' +
-          err,
-      );
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.createEventError,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    await this.queueStaffService.checkUserIn(user.id, queue.id, courseId);
 
     try {
       await this.queueSSEService.updateQueue(queue.id);
@@ -518,7 +481,10 @@ export class CourseController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
-    return queue;
+    return {
+      ...queue,
+      queueStaff: await this.queueStaffService.getFormattedStaffList(queue),
+    };
   }
 
   @Delete(':id/checkout/:qid')
@@ -534,64 +500,23 @@ export class CourseController {
         id: qid,
         isDisabled: false,
       },
-      relations: {
-        staffList: true,
-      },
     });
 
-    if (queue === undefined || queue === null) {
+    if (!queue) {
       throw new HttpException(
         ERROR_MESSAGES.courseController.queueNotFound,
         HttpStatus.NOT_FOUND,
       );
     }
 
-    // Do nothing if user not already in stafflist
-    if (!queue.staffList.find((e) => e.id === user.id)) return;
-
-    // remove user from stafflist
-    queue.staffList = queue.staffList.filter((e) => e.id !== user.id);
-    // if no more staff in queue, disallow questions (idk what that does exactly)
-    if (queue.staffList.length === 0) {
-      queue.allowQuestions = false;
-    }
-    try {
-      await queue.save();
-    } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.saveQueueError +
-          '\nError Message: ' +
-          err,
-      );
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.saveQueueError,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-    // if no more staff in queue and prompt students to leave queue (this needs to be after the saving of the queue since this service also checks if the stafflist is empty)
-    if (queue.staffList.length === 0) {
-      await this.queueCleanService.promptStudentsToLeaveQueue(queue.id);
-    }
-
-    try {
-      await EventModel.create({
-        time: new Date(),
-        eventType: EventType.TA_CHECKED_OUT,
-        user,
+    await this.dataSource.transaction(async (manager) => {
+      await this.queueStaffService.checkUserOut(
+        user.id,
+        queue.id,
         courseId,
-        queueId: queue.id,
-      }).save();
-    } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.createEventError +
-          '\nError message: ' +
-          err,
+        manager,
       );
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.createEventError,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    });
 
     try {
       await this.queueSSEService.updateQueue(queue.id);
@@ -627,7 +552,7 @@ export class CourseController {
         isDisabled: false,
       },
       relations: {
-        staffList: true,
+        queueStaff: true,
       },
     });
 
@@ -638,12 +563,12 @@ export class CourseController {
     }
 
     // Only allow if the user is checked into this queue
-    const isInStaffList = queue.staffList.some((s) => s.id === user.id);
+    const isInStaffList = queue.queueStaff.some((s) => s.userId === user.id);
     if (!isInStaffList) {
       throw new BadRequestException('You must be checked in to set status');
     }
 
-    await this.courseService.setTAExtraStatusForQueue(
+    await this.queueStaffService.setTAExtraStatusForQueue(
       queueId,
       courseId,
       user.id,
@@ -659,71 +584,38 @@ export class CourseController {
   @Roles(Role.PROFESSOR, Role.TA)
   async checkMeOutAll(
     @Param('id', ParseIntPipe) courseId: number,
-    @User() user: UserModel,
+    @UserId() userId: number,
   ): Promise<void> {
-    const queues = await QueueModel.find({
+    const allQueuesThatUserWasIn = await QueueModel.find({
       where: {
         courseId,
         isDisabled: false,
+        queueStaff: {
+          userId,
+        },
       },
-      relations: ['staffList'],
+      relations: {
+        queueStaff: true,
+      },
     });
 
-    for (const queue of queues) {
-      // if you are in a queue
-      if (queue.staffList.find((e) => e.id === user.id)) {
-        // remove yourself from the queue
-        queue.staffList = queue.staffList.filter((e) => e.id !== user.id);
-        if (queue.staffList.length === 0) {
-          queue.allowQuestions = false;
-        }
-        try {
-          await queue.save();
-        } catch (err) {
-          console.error(
-            ERROR_MESSAGES.courseController.saveQueueError +
-              '\nError Message: ' +
-              err,
-          );
-          throw new HttpException(
-            ERROR_MESSAGES.courseController.saveQueueError,
-            HttpStatus.INTERNAL_SERVER_ERROR,
-          );
-        }
+    await this.dataSource.transaction(async (manager) => {
+      await this.queueStaffService.checkUserOutAll(userId, courseId, manager);
+    });
 
-        try {
-          await EventModel.create({
-            time: new Date(),
-            eventType: EventType.TA_CHECKED_OUT,
-            user,
-            courseId,
-            queueId: queue.id,
-          }).save();
-        } catch (err) {
-          console.error(
-            ERROR_MESSAGES.courseController.createEventError +
-              '\nError message: ' +
-              err,
-          );
-          throw new HttpException(
-            ERROR_MESSAGES.courseController.createEventError,
-            HttpStatus.INTERNAL_SERVER_ERROR,
-          );
-        }
-
-        try {
-          await this.queueSSEService.updateQueue(queue.id);
-        } catch (err) {
-          console.error(
-            ERROR_MESSAGES.courseController.createEventError +
-              '\nError message: ' +
-              err,
-          );
-          throw new HttpException(
-            ERROR_MESSAGES.courseController.updatedQueueError,
-            HttpStatus.INTERNAL_SERVER_ERROR,
-          );
-        }
+    for (const queue of allQueuesThatUserWasIn) {
+      try {
+        await this.queueSSEService.updateQueue(queue.id);
+      } catch (err) {
+        console.error(
+          ERROR_MESSAGES.courseController.createEventError +
+            '\nError message: ' +
+            err,
+        );
+        throw new HttpException(
+          ERROR_MESSAGES.courseController.updatedQueueError,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
     }
   }

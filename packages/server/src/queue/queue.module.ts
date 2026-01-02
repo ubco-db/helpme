@@ -16,6 +16,7 @@ import { QuestionModule } from '../question/question.module';
 import { QuestionService } from '../question/question.service';
 import { ApplicationConfigModule } from '../config/application_config.module';
 import { RedisQueueModule } from '../redisQueue/redis-queue.module';
+import { QueueStaffService } from './queue-staff/queue-staff.service';
 
 @Module({
   controllers: [QueueController, QueueInviteController],
@@ -28,6 +29,7 @@ import { RedisQueueModule } from '../redisQueue/redis-queue.module';
     AlertsService,
     QueueCleanService,
     QuestionService,
+    QueueStaffService,
   ],
   exports: [
     QueueSSEService,
@@ -36,6 +38,7 @@ import { RedisQueueModule } from '../redisQueue/redis-queue.module';
     QuestionService,
     QueueService,
     RedisQueueService,
+    QueueStaffService,
   ],
   imports: [
     ApplicationConfigModule,

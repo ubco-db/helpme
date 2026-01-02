@@ -21,7 +21,7 @@ import {
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { QueueInviteModel } from './queue-invite.entity';
 import { QueueChatsModel } from '../queueChats/queue-chats.entity';
-import { QueueStaffModel } from './queue-staff.entity';
+import { QueueStaffModel } from './queue-staff/queue-staff.entity';
 
 @Entity('queue_model')
 export class QueueModel extends BaseEntity {

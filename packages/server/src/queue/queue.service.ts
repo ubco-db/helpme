@@ -27,7 +27,7 @@ import { pick } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
 import { DataSource, In } from 'typeorm';
 import { QueueModel } from './queue.entity';
-import { QueueStaffModel } from './queue-staff.entity';
+import { QueueStaffModel } from './queue-staff/queue-staff.entity';
 import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
@@ -93,13 +93,56 @@ export class QueueService {
         // Some endpoints will return this directly, others will modify the queue object first (and possibly even try to save the queue object).
         // This probably isn't a good idea. TODO: fix this by maybe having two methods, one returning GetQueueResponse and another returning QueueModel.
         //  Or just make it so internal calls of getQueue just do their own QueueModel.query
-      } as StaffMember as unknown as QueueStaffModel;
+      } as StaffMember; //as unknown as QueueStaffModel;
     });
 
     return queue;
   }
 
-  /* Needs 
+  /* Takes in QueueStaff[] and formats it for frontend consumption.
+  Needs the following for getting StaffHelpingInOtherQueues (omit `courses: true` if you don't need it):
+      relations: {
+        queueStaff: {
+          user: {
+            courses: true,
+          },
+        },
+      },
+  */
+  async getFormattedStaffList(queue: QueueModel): Promise<StaffMember[]> {
+    let StaffHelpingInOtherQueues = [];
+    if (queue.queueStaff[0].user.courses) {
+      // if the first user has any courses, it's assumed courses isn't undefined and thus included in the query
+      StaffHelpingInOtherQueues = await this.getStaffHelpingInOtherQueues(
+        queue.queueStaff[0].queueId,
+      );
+    }
+    return queue.queueStaff.map((queueStaff) => {
+      const staffHelpingInOtherQueue = StaffHelpingInOtherQueues.find(
+        (staff) => staff.userId === queueStaff.userId,
+      );
+      // precedence: if user marked themselves away, show that, else show helping-in-other-* status
+      return {
+        id: queueStaff.userId,
+        name: queueStaff.user.name,
+        photoURL: queueStaff.user.photoURL,
+        TANotes:
+          queueStaff.user.courses.find((ucm) => ucm.courseId === queue.courseId)
+            ?.TANotes ?? '',
+        extraStatus:
+          queueStaff.extraTAStatus === ExtraTAStatus.AWAY
+            ? ExtraTAStatus.AWAY
+            : !staffHelpingInOtherQueue
+              ? undefined
+              : staffHelpingInOtherQueue.courseId !== queue.courseId
+                ? ExtraTAStatus.HELPING_IN_ANOTHER_COURSE
+                : staffHelpingInOtherQueue.queueId !== queue.id
+                  ? ExtraTAStatus.HELPING_IN_ANOTHER_QUEUE
+                  : undefined,
+        helpingStudentInAnotherQueueSince: staffHelpingInOtherQueue?.helpedAt,
+      };
+    });
+  }
 
   /* Finds all staff members who are helping in other queues that ARE NOT the given queue.
      It also returns the question's helpedAt so you can display how long they have been helped for.

@@ -48,7 +48,7 @@ import { LLMTypeModel } from '../chatbot/chatbot-infrastructure-models/llm-type.
 import { ChatbotProviderModel } from '../chatbot/chatbot-infrastructure-models/chatbot-provider.entity';
 import { CourseChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
 import { SentEmailModel } from '../mail/sent-email.entity';
-import { QueueStaffModel } from 'queue/queue-staff.entity';
+import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
 
 /* Has all of our factories and initializes them with the db dataSource. 
   If you want to use one of these factories, import it from factories.ts instead.

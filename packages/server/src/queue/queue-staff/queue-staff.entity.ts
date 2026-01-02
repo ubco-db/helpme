@@ -6,8 +6,8 @@ import {
   ManyToOne,
   PrimaryColumn,
 } from 'typeorm';
-import { QueueModel } from './queue.entity';
-import { UserModel } from '../profile/user.entity';
+import { QueueModel } from '../queue.entity';
+import { UserModel } from '../../profile/user.entity';
 import { ExtraTAStatus } from '@koh/common';
 
 @Entity('queue_staff_model')

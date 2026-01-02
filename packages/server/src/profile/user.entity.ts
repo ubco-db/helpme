@@ -25,7 +25,7 @@ import { UnreadAsyncQuestionModel } from '../asyncQuestion/unread-async-question
 import { AsyncQuestionCommentModel } from '../asyncQuestion/asyncQuestionComment.entity';
 import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
 import { QuestionModel } from '../question/question.entity';
-import { QueueStaffModel } from 'queue/queue-staff.entity';
+import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {

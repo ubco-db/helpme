@@ -1011,7 +1011,7 @@ export interface StaffMember {
  * A Queue partial to be shown on the course page. It's like the full Queue object but without the questions.
  * @param id - The unique id number for a Queue.
  * @param room - The full name of the building + room # that the current office hours queue is in.
- * @param staffList - The list of TA user's that are currently helping at office hours.
+ * @param queueStaff - The list of TA user's that are currently helping at office hours.
  * @param config - A JSON object that contains the configuration for the queue. Contains stuff like tags, tasks, etc.
  */
 export class QueuePartial {
@@ -1019,7 +1019,7 @@ export class QueuePartial {
   room!: string
 
   @Type(() => UserPartial)
-  staffList!: StaffMember[]
+  queueStaff!: StaffMember[]
 
   queueSize!: number
   notes?: string

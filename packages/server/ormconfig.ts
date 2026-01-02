@@ -34,7 +34,7 @@ import { ApplicationConfigModel } from './src/config/application_config.entity';
 import { InsightDashboardModel } from './src/insights/dashboard.entity';
 import { QueueInviteModel } from './src/queue/queue-invite.entity';
 import { QueueChatsModel } from './src/queueChats/queue-chats.entity';
-import { QueueStaffModel } from './src/queue/queue-staff.entity';
+import { QueueStaffModel } from './src/queue/queue-staff/queue-staff.entity';
 import { LMSOrganizationIntegrationModel } from './src/lmsIntegration/lmsOrgIntegration.entity';
 import { LMSCourseIntegrationModel } from './src/lmsIntegration/lmsCourseIntegration.entity';
 import { LMSAssignmentModel } from './src/lmsIntegration/lmsAssignment.entity';

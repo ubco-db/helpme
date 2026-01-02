@@ -16,7 +16,7 @@ import { MailModule } from 'mail/mail.module';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { CourseSubscriber } from './course.subscriber';
 import { OrganizationService } from '../organization/organization.service';
-
+import { QueueStaffService } from '../queue/queue-staff/queue-staff.service';
 @Module({
   controllers: [CourseController],
   imports: [
@@ -38,6 +38,7 @@ import { OrganizationService } from '../organization/organization.service';
     ApplicationConfigService,
     ChatbotApiService,
     OrganizationService,
+    QueueStaffService,
   ],
   exports: [CourseService, ChatbotApiService],
 })

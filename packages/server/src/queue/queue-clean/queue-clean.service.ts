@@ -18,6 +18,8 @@ import * as Sentry from '@sentry/browser';
 import { QuestionService } from 'question/question.service';
 import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { QueueService } from 'queue/queue.service';
+import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
+import { EntityManager, DataSource } from 'typeorm';
 
 /**
  * Clean the queue and mark stale
@@ -30,6 +32,7 @@ export class QueueCleanService {
     public schedulerRegistry: SchedulerRegistry,
     public queueService: QueueService,
     public redisQueueService: RedisQueueService,
+    public dataSource: DataSource,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -56,22 +59,24 @@ export class QueueCleanService {
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   public async checkoutAllStaff(): Promise<void> {
-    const queuesWithCheckedInStaff: QueueModel[] =
-      await QueueModel.getRepository().find({ relations: ['staffList'] });
+    await this.dataSource.transaction(async (manager) => {
+      const queues = await QueueModel.find({ relations: { queueStaff: true } });
 
-    queuesWithCheckedInStaff.forEach(async (queue) => {
-      await queue.staffList.forEach(async (ta) => {
-        await EventModel.create({
-          time: new Date(),
-          eventType: EventType.TA_CHECKED_OUT_FORCED,
-          userId: ta.id,
-          courseId: queue.courseId,
-          queueId: queue.id,
-        }).save();
+      queues.forEach(async (queue) => {
+        queue.queueStaff.forEach(async (queueStaff) => {
+          await EventModel.create({
+            time: new Date(),
+            eventType: EventType.TA_CHECKED_OUT_FORCED,
+            userId: queueStaff.userId,
+            courseId: queue.courseId,
+            queueId: queue.id,
+          }).save();
+        });
+        // Technically a bug that we don't have this but idk I kinda like how the behaviour is right now? (this would only add "Not accepting questions" tag to all queues, nothing else)
+        // manager.update(QueueModel, queue.id, { allowQuestions: false });
+        await manager.delete(QueueStaffModel, { queueId: queue.id });
       });
-      queue.staffList = [];
     });
-    await QueueModel.save(queuesWithCheckedInStaff);
   }
 
   // TODO: move this to a course-clean service or something. This is just here because
@@ -84,13 +89,10 @@ export class QueueCleanService {
   }
 
   public async cleanQueue(queueId: number, force?: boolean): Promise<void> {
-    const queue = await QueueModel.findOne({
-      where: { id: queueId },
-      relations: ['staffList'],
-    });
+    const queueStaff = await QueueStaffModel.find({ where: { queueId } });
 
-    if (force || queue.staffList.length === 0) {
-      await this.unsafeClean(queue.id);
+    if (force || queueStaff.length === 0) {
+      await this.unsafeClean(queueId);
     }
   }
 
@@ -130,19 +132,20 @@ export class QueueCleanService {
    * If there are still no staff checked in, the student will be prompted again with 10mins to respond (thus completing a loop).
    * This makes it so that even if they click "I'll stay" and forget, the system will clear their question.
    */
-  public async promptStudentsToLeaveQueue(queueId: number): Promise<void> {
+  public async promptStudentsToLeaveQueue(
+    queueId: number,
+    manager: EntityManager,
+  ): Promise<void> {
     // first, delete any existing cron jobs for this queue so that there's no name conflicts
     this.deleteAllLeaveQueueCronJobsForQueue(queueId);
     // firstly, make sure there are no staff checked in
-    const query = `
-    SELECT "userModelId" AS userId
-    FROM queue_model_staff_list_user_model
-    WHERE "queueModelId" = $1
-    `;
-
     let staffList: { userId: number }[] = [];
     try {
-      staffList = await QueueModel.query(query, [queueId]);
+      staffList = await manager.find(QueueStaffModel, {
+        where: {
+          queueId,
+        },
+      });
     } catch (err) {
       console.error('Error getting staffList', err);
       Sentry.captureException(err);
@@ -152,7 +155,8 @@ export class QueueCleanService {
       return;
     }
     // get all the students in the queue
-    let students = await QueueModel.createQueryBuilder()
+    let students = await manager
+      .createQueryBuilder(QueueModel, 'QueueModel')
       .select('QuestionModel.creatorId', 'studentId')
       .addSelect('QueueModel.courseId', 'courseId')
       .addSelect('QuestionModel.id', 'questionId')
@@ -189,7 +193,8 @@ export class QueueCleanService {
     for (const student of students) {
       try {
         // first, make sure they don't already have an unresolved PROMPT_STUDENT_TO_LEAVE_QUEUE alert with this courseId and queueId
-        const existingAlert = await AlertModel.createQueryBuilder('alert')
+        const existingAlert = await manager
+          .createQueryBuilder(AlertModel, 'alert')
           .where('alert.userId = :userId', { userId: student.studentId })
           .andWhere('alert.courseId = :courseId', {
             courseId: student.courseId,
@@ -205,13 +210,15 @@ export class QueueCleanService {
         if (existingAlert) {
           return;
         }
-        const alert = await AlertModel.create({
-          alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
-          sent: new Date(),
-          userId: student.studentId,
-          courseId: student.courseId,
-          payload: { queueId, queueQuestionId: student.questionId },
-        }).save();
+        const alert = await manager
+          .create(AlertModel, {
+            alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
+            sent: new Date(),
+            userId: student.studentId,
+            courseId: student.courseId,
+            payload: { queueId, queueQuestionId: student.questionId },
+          })
+          .save();
         // if the student does not respond in 10 minutes, resolve the alert and mark the question as LeftDueToNoStaff
         const jobName = `prompt-student-to-leave-queue-${queueId}-${student.studentId}`;
         const now = new Date();
@@ -312,7 +319,9 @@ export class QueueCleanService {
       const now = new Date();
       const nowPlus10Mins = new Date(now.getTime() + 10 * 60 * 1000);
       const job = new CronJob(nowPlus10Mins, async () => {
-        await this.promptStudentsToLeaveQueue(queueId);
+        await this.dataSource.transaction(async (manager) => {
+          await this.promptStudentsToLeaveQueue(queueId, manager);
+        });
       });
       this.schedulerRegistry.addCronJob(jobName, job);
       job.start();
