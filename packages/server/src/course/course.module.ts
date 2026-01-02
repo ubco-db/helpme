@@ -8,7 +8,7 @@ import { HeatmapService } from './heatmap.service';
 import { OrganizationModule } from 'organization/organization.module';
 import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { ApplicationConfigService } from '../config/application_config.service';
-import { QueueCleanService } from '../queue/queue-clean/queue-clean.service';
+
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { ApplicationConfigModule } from '../config/application_config.module';
 import { RedisQueueModule } from '../redisQueue/redis-queue.module';
@@ -16,7 +16,7 @@ import { MailModule } from 'mail/mail.module';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { CourseSubscriber } from './course.subscriber';
 import { OrganizationService } from '../organization/organization.service';
-import { QueueStaffService } from '../queue/queue-staff/queue-staff.service';
+
 @Module({
   controllers: [CourseController],
   imports: [
@@ -34,11 +34,10 @@ import { QueueStaffService } from '../queue/queue-staff/queue-staff.service';
     RedisQueueService,
     CourseSubscriber,
     RedisProfileService,
-    QueueCleanService,
+
     ApplicationConfigService,
     ChatbotApiService,
     OrganizationService,
-    QueueStaffService,
   ],
   exports: [CourseService, ChatbotApiService],
 })

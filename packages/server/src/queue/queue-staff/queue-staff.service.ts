@@ -4,7 +4,12 @@ import {
   ExtraTAStatus,
   GetQueueResponse,
 } from '@koh/common';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { QueueModel } from '../queue.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
@@ -26,6 +31,7 @@ Also moved the checkin/checkout stuff here since it's related.
 export class QueueStaffService {
   constructor(
     private dataSource: DataSource,
+    @Inject(forwardRef(() => QueueCleanService))
     private queueCleanService: QueueCleanService,
   ) {}
 

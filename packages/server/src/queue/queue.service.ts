@@ -21,6 +21,8 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { classToClass } from 'class-transformer';
 import { pick } from 'lodash';
@@ -39,6 +41,7 @@ export class QueueService {
   constructor(
     private alertsService: AlertsService,
     private readonly appConfig: ApplicationConfigService,
+    @Inject(forwardRef(() => QueueStaffService))
     private queueStaffService: QueueStaffService,
     private dataSource: DataSource,
   ) {}

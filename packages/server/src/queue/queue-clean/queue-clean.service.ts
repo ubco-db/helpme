@@ -5,7 +5,7 @@ import {
   OpenQuestionStatus,
   Role,
 } from '@koh/common';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
 import async from 'async';
 import { EventModel, EventType } from 'profile/event-model.entity';
@@ -30,6 +30,7 @@ export class QueueCleanService {
     // all made public for testing purposes
     public questionService: QuestionService,
     public schedulerRegistry: SchedulerRegistry,
+    @Inject(forwardRef(() => QueueService))
     public queueService: QueueService,
     public redisQueueService: RedisQueueService,
     public dataSource: DataSource,
