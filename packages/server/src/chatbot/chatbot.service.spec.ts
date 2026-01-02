@@ -51,12 +51,17 @@ import {
   chatbotTables,
 } from './chatbot-datasource/chatbot-datasource.service';
 import { ChatbotApiService } from './chatbot-api.service';
+import { MailService } from 'mail/mail.service';
 
 const mockCacheManager = {
   get: jest.fn(),
   set: jest.fn(),
   del: jest.fn(),
   reset: jest.fn(),
+};
+
+const mockMailService = {
+  sendEmail: jest.fn(),
 };
 
 describe('ChatbotService', () => {
@@ -90,6 +95,10 @@ describe('ChatbotService', () => {
         {
           provide: CACHE_MANAGER,
           useValue: mockCacheManager,
+        },
+        {
+          provide: MailService,
+          useValue: mockMailService,
         },
       ],
     }).compile();

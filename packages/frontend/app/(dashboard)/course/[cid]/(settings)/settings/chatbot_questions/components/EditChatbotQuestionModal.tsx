@@ -31,6 +31,7 @@ interface FormValues {
   answer: string
   verified: boolean
   suggested: boolean
+  emailNotifyOnAnswerUpdate?: boolean
   sourceDocuments: SourceDocument[]
   selectedDocuments: {
     docId: string
@@ -45,6 +46,23 @@ interface EditChatbotQuestionModalProps {
   onSuccessfulUpdate: () => void
   cid: number
   deleteQuestion: (id: string) => void
+}
+type AnswerUpdateCheckboxProps = {
+  form: any
+  originalAnswer: string
+  checked?: boolean
+  onChange?: (e: any) => void
+}
+
+const AnswerUpdateCheckbox: React.FC<AnswerUpdateCheckboxProps> = ({
+  form,
+  originalAnswer,
+  checked,
+  onChange,
+}) => {
+  const currentAnswer = Form.useWatch('answer', form)
+  const changed = (currentAnswer ?? '') !== (originalAnswer ?? '')
+  return <Checkbox disabled={!changed} checked={checked} onChange={onChange} />
 }
 
 const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
@@ -150,16 +168,45 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       })
     }
 
+    const { emailNotifyOnAnswerUpdate, ...sanitizedValues } = values
     const valuesWithId = {
-      ...values,
+      ...sanitizedValues,
       id: editingRecord.vectorStoreId,
       sourceDocuments: values.sourceDocuments || [],
     }
 
     await API.chatbot.staffOnly
       .updateQuestion(cid, valuesWithId)
-      .then(() => {
+      .then(async () => {
         message.success('Question updated successfully')
+        if (emailNotifyOnAnswerUpdate) {
+          try {
+            const resp = await API.chatbot.staffOnly.notifyAnswerUpdate(
+              cid,
+              editingRecord.vectorStoreId,
+              {
+                oldAnswer: editingRecord.answer,
+                newAnswer: values.answer,
+                oldQuestion: editingRecord.question,
+                newQuestion: values.question,
+              },
+            )
+            if (resp?.recipients != undefined) {
+              if (resp.recipients === 5) {
+                message.success('Notification email sent to 5 users (max 5).')
+              } else {
+                message.success(
+                  `Notification email sent to ${resp.recipients} user${
+                    resp.recipients === 1 ? '' : 's'
+                  }`,
+                )
+              }
+            }
+          } catch (e) {
+            const errorMessage = getErrorMessage(e)
+            message.error('Failed to send notification email: ' + errorMessage)
+          }
+        }
         onSuccessfulUpdate()
       })
       .catch((e) => {
@@ -227,6 +274,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
             question: editingRecord.question,
             verified: editingRecord.verified,
             suggested: editingRecord.suggested,
+            emailNotifyOnAnswerUpdate: false,
             sourceDocuments: editingRecord.sourceDocuments,
           }}
           clearOnDestroy
@@ -245,6 +293,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       </Form.Item>
       <Form.Item
         name="answer"
+        className="mb-1"
         tooltip={{
           title: <MarkdownGuideTooltipBody />,
           classNames: {
@@ -255,6 +304,25 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         rules={[{ required: true, message: 'Please input the answer text' }]}
       >
         <Input.TextArea autoSize={{ minRows: 1, maxRows: 8 }} />
+      </Form.Item>
+      <Form.Item
+        label="Email notify student(s) of updated answer?"
+        layout="horizontal"
+        name="emailNotifyOnAnswerUpdate"
+        valuePropName="checked"
+        tooltip={
+          <div className="flex flex-col gap-y-2">
+            <p>
+              Sends an email to the student(s) who previously asked this
+              question with a before/after of the answer.
+            </p>
+          </div>
+        }
+      >
+        <AnswerUpdateCheckbox
+          form={form}
+          originalAnswer={editingRecord.answer}
+        />
       </Form.Item>
       <Form.Item
         label="Mark Q&A as Verified by Human"
