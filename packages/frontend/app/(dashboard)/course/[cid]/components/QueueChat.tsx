@@ -171,7 +171,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
                     {message.isStaff == isStaff ? (
                       <div className="mb-2 flex flex-row items-start justify-end gap-2">
                         <div className="flex max-w-[70%] flex-col rounded-xl bg-blue-900 p-2 text-white">
-                          <span className="text-wrap text-sm">
+                          <span className="break-words text-sm">
                             {message.message}
                           </span>
                           <span className="text-xs">
@@ -190,7 +190,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
                         <UserAvatar
                           size="small"
                           username={
-                            !isStaff
+                            message.isStaff
                               ? `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
                               : `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
                           }
@@ -206,7 +206,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
                         <UserAvatar
                           size="small"
                           username={
-                            !isStaff
+                            message.isStaff
                               ? `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
                               : `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
                           }
@@ -217,7 +217,9 @@ const QueueChat: React.FC<QueueChatProps> = ({
                           }
                         />
                         <div className="flex max-w-[70%] flex-col rounded-xl bg-slate-100 p-2 text-slate-900">
-                          <span className="text-sm">{message.message}</span>
+                          <span className="break-words text-sm">
+                            {message.message}
+                          </span>
                           <span className="text-xs">
                             {new Date(message.timestamp).toLocaleTimeString(
                               undefined,

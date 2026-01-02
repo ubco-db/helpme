@@ -1,6 +1,5 @@
 import { Exclude } from 'class-transformer';
 import {
-  AfterLoad,
   BaseEntity,
   Column,
   Entity,
@@ -28,6 +27,9 @@ import { UnreadAsyncQuestionModel } from '../asyncQuestion/unread-async-question
 import { AsyncQuestionCommentModel } from '../asyncQuestion/asyncQuestionComment.entity';
 import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
 import { QuestionModel } from '../question/question.entity';
+import { LMSAuthStateModel } from '../lmsIntegration/lms-auth-state.entity';
+import { LMSAccessTokenModel } from '../lmsIntegration/lms-access-token.entity';
+import { UserLtiIdentityModel } from '../lti/user_lti_identity.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {
@@ -67,7 +69,7 @@ export class UserModel extends BaseEntity {
   @Column({ type: 'boolean', default: false })
   accountDeactivated: boolean;
 
-  @OneToMany((type) => UserCourseModel, (ucm) => ucm.user)
+  @OneToMany(() => UserCourseModel, (ucm) => ucm.user)
   @Exclude()
   courses: UserCourseModel[];
 
@@ -78,43 +80,45 @@ export class UserModel extends BaseEntity {
   @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
   userRole: UserRole;
 
-  @OneToMany((type) => DesktopNotifModel, (notif) => notif.user)
+  @OneToMany(() => DesktopNotifModel, (notif) => notif.user)
   @Exclude()
   desktopNotifs: DesktopNotifModel[];
 
-  @OneToMany(
-    (type) => UserSubscriptionModel,
-    (subscription) => subscription.user,
-  )
+  @OneToMany(() => UserSubscriptionModel, (subscription) => subscription.user)
   @Exclude()
   subscriptions: UserSubscriptionModel[];
 
+  // NOTE: This relation uses a JoinTable and is also mapped by QueueStaffModel
+  // to store extra metadata (e.g., extra TA status) on the join row without
+  // refactoring all code that expects queues: QueueModel[]. If you need to
+  // modify attributes on the join table itself, do so via QueueStaffModel. Note said attributes
+  // will not appear on this queues array and you will need to query them directly via QueueStaffModel.find(...)
   @Exclude()
-  @ManyToMany((type) => QueueModel, (queue) => queue.staffList)
+  @ManyToMany(() => QueueModel, (queue) => queue.staffList)
   queues: QueueModel[];
 
   @Exclude()
-  @OneToMany((type) => EventModel, (event) => event.user)
+  @OneToMany(() => EventModel, (event) => event.user)
   events: EventModel[];
 
-  @OneToMany((type) => AlertModel, (alert) => alert.user)
+  @OneToMany(() => AlertModel, (alert) => alert.user)
   alerts: AlertModel[];
 
   @Exclude()
   @Column({ type: 'simple-array', nullable: true })
   hideInsights: string[];
 
-  @OneToOne((type) => OrganizationUserModel, (ou) => ou.organizationUser)
+  @OneToOne(() => OrganizationUserModel, (ou) => ou.organizationUser)
   organizationUser: OrganizationUserModel;
 
-  @OneToMany((type) => InteractionModel, (interaction) => interaction.user)
+  @OneToMany(() => InteractionModel, (interaction) => interaction.user)
   @JoinColumn({ name: 'user' })
   interactions: InteractionModel[];
 
-  @OneToMany((type) => UserTokenModel, (userToken) => userToken.user)
+  @OneToMany(() => UserTokenModel, (userToken) => userToken.user)
   tokens: UserTokenModel[];
 
-  @OneToOne((type) => ChatTokenModel, (chatToken) => chatToken.user, {
+  @OneToOne(() => ChatTokenModel, (chatToken) => chatToken.user, {
     cascade: true,
   })
   chat_token: ChatTokenModel;
@@ -126,7 +130,7 @@ export class UserModel extends BaseEntity {
   name: string;
 
   @OneToMany(
-    (type) => StudentTaskProgressModel,
+    () => StudentTaskProgressModel,
     (taskProgress) => taskProgress.user,
   )
   @Exclude()
@@ -140,7 +144,7 @@ export class UserModel extends BaseEntity {
   @Exclude()
   studentChats: QueueChatsModel[];
 
-  @OneToMany((type) => CalendarStaffModel, (csm) => csm.user)
+  @OneToMany(() => CalendarStaffModel, (csm) => csm.user)
   @Exclude()
   calendarEvents: CalendarStaffModel[];
 
@@ -148,21 +152,33 @@ export class UserModel extends BaseEntity {
   readChangeLog: boolean;
 
   @OneToMany(
-    (type) => UnreadAsyncQuestionModel,
+    () => UnreadAsyncQuestionModel,
     (unreadAsyncQuestion) => unreadAsyncQuestion.user,
   )
   @Exclude()
   unreadAsyncQuestions: UnreadAsyncQuestionModel[];
 
-  @OneToMany((type) => QuestionModel, (q) => q.creator)
+  @OneToMany(() => QuestionModel, (q) => q.creator)
   @Exclude()
   questions: QuestionModel[];
 
-  @OneToMany((type) => AsyncQuestionModel, (aq) => aq.creator)
+  @OneToMany(() => AsyncQuestionModel, (aq) => aq.creator)
   @Exclude()
   asyncQuestions: AsyncQuestionModel[];
 
-  @OneToMany((type) => AsyncQuestionCommentModel, (aqc) => aqc.creator)
+  @OneToMany(() => AsyncQuestionCommentModel, (aqc) => aqc.creator)
   @Exclude()
   asyncQuestionComments: AsyncQuestionCommentModel[];
+
+  @OneToMany(() => LMSAuthStateModel, (authState) => authState.user)
+  @Exclude()
+  pendingAuthStates: LMSAuthStateModel[];
+
+  @Exclude()
+  @OneToMany(() => LMSAccessTokenModel, (accessToken) => accessToken.user)
+  lmsAccessTokens: LMSAccessTokenModel[];
+
+  @Exclude()
+  @OneToMany(() => UserLtiIdentityModel, (identity) => identity.user)
+  ltiIdentities: UserLtiIdentityModel[];
 }

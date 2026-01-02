@@ -86,7 +86,6 @@ export default function ChatbotDocuments(
       message.error('Could not update document chunk, original was not found.')
       return
     }
-
     // Strip out identical properties
     Object.entries(original).forEach(([k, v]) => {
       if (k in values && (values as any)[k] === v) {

@@ -97,12 +97,13 @@ export class User {
   desktopNotifsEnabled!: boolean
   @Type(() => DesktopNotifPartial)
   desktopNotifs!: DesktopNotifPartial[]
-  userRole!: string
+  userRole!: UserRole
   organization?: OrganizationUserPartial
   chat_token!: ChatTokenPartial
   accountType!: AccountType
   emailVerified!: boolean
   readChangeLog!: boolean
+  restrictPaths?: string | string[]
 }
 
 export class ChatTokenPartial {
@@ -113,15 +114,49 @@ export class ChatTokenPartial {
 }
 
 export class OrganizationResponse {
+  @IsInt()
   id!: number
+
+  @IsString()
   name!: string
+
+  @IsString()
+  @IsOptional()
+  description?: string
+
+  @IsString()
+  @IsOptional()
   logoUrl?: string
+
+  @IsString()
+  @IsOptional()
   bannerUrl?: string
+
+  @IsString()
+  @IsOptional()
   websiteUrl?: string
+
+  @IsBoolean()
+  @IsOptional()
   ssoEnabled?: boolean
+
+  @IsBoolean()
+  @IsOptional()
   legacyAuthEnabled?: boolean
+
+  @IsBoolean()
+  @IsOptional()
   googleAuthEnabled?: boolean
+
+  @IsString()
+  @IsOptional()
   ssoUrl?: string
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => String)
+  @IsOptional()
+  ssoEmailPatterns?: string[]
 }
 
 export class DesktopNotifPartial {
@@ -871,7 +906,15 @@ export enum QueueTypes {
 export enum ExtraTAStatus {
   HELPING_IN_ANOTHER_QUEUE = 'Helping student in another queue',
   HELPING_IN_ANOTHER_COURSE = 'Helping student in another course',
+  AWAY = 'Away',
 }
+
+export class SetTAExtraStatusParams {
+  @IsOptional()
+  @IsEnum(ExtraTAStatus)
+  status?: ExtraTAStatus | null
+}
+
 export interface StaffMember {
   id: number
   name: string
@@ -969,6 +1012,7 @@ export type StaffForStaffList = {
   name: string
   photoURL?: string
   questionHelpedAt?: Date
+  extraStatus?: ExtraTAStatus
 }
 
 // Represents a list of office hours wait times of each hour of the week.
@@ -1357,7 +1401,7 @@ export type DesktopNotifBody = {
 // Office Hours Response Types
 export class GetProfileResponse extends User {}
 
-export class UBCOloginParam {
+export class LoginParam {
   @IsString()
   email!: string
 
@@ -1368,6 +1412,7 @@ export class UBCOloginParam {
   @IsString()
   recaptchaToken?: string
 }
+
 export class UBCOuserParam {
   @IsString()
   email!: string
@@ -1589,105 +1634,267 @@ export class OrganizationUserPartial {
   organizationRole?: string
 }
 
-export class GetOrganizationResponse {
-  id!: number
-  name!: string
+export class GetOrganizationResponse extends OrganizationResponse {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SemesterPartial)
   semesters!: SemesterPartial[]
-  description?: string
-  logoUrl?: string
-  bannerUrl?: string
-  websiteUrl?: string
-  ssoEnabled?: boolean
-  ssoUrl?: string
-  ssoEmailPatterns?: string[]
 }
 
-export type UpsertLMSOrganizationParams = {
-  apiPlatform: LMSIntegrationPlatform
-  rootUrl: string
+export enum LMSIntegrationPlatform {
+  None = 'None',
+  Canvas = 'Canvas',
 }
 
-export type RemoveLMSOrganizationParams = {
-  apiPlatform: LMSIntegrationPlatform
+export class UpsertLMSOrganizationParams {
+  @IsEnum(LMSIntegrationPlatform)
+  apiPlatform!: LMSIntegrationPlatform
+
+  @IsOptional()
+  @IsString()
+  rootUrl?: string
+
+  @IsOptional()
+  @IsString()
+  clientId?: string
+
+  @IsOptional()
+  @IsString()
+  clientSecret?: string
+
+  @IsOptional()
+  @IsBoolean()
+  secure?: boolean
 }
 
-export type UpsertLMSCourseParams = {
-  apiPlatform: LMSIntegrationPlatform
-  apiKey: string
+export class RemoveLMSOrganizationParams {
+  @IsEnum(LMSIntegrationPlatform)
+  apiPlatform!: LMSIntegrationPlatform
+}
+
+export class UpsertLMSCourseParams {
+  @IsEnum(LMSIntegrationPlatform)
+  apiPlatform!: LMSIntegrationPlatform
+
+  @IsOptional()
+  @IsInt()
+  accessTokenId?: number
+
+  @IsOptional()
+  @IsString()
+  apiKey?: string
+
+  @IsOptional()
+  @Type(() => Date)
   apiKeyExpiry?: Date
+
+  @IsOptional()
+  @IsBoolean()
   apiKeyExpiryDeleted?: boolean
-  apiCourseId: string
+
+  @IsOptional()
+  apiCourseId?: string
 }
 
-export type TestLMSIntegrationParams = {
-  apiPlatform: LMSIntegrationPlatform
-  apiKey: string
-  apiCourseId: string
+export class TestLMSIntegrationParams {
+  @IsEnum(LMSIntegrationPlatform)
+  apiPlatform!: LMSIntegrationPlatform
+
+  @IsOptional()
+  @IsString()
+  apiKey?: string
+
+  @IsOptional()
+  @IsNumber()
+  accessTokenId?: number
+
+  @IsNotEmpty()
+  apiCourseId!: string
 }
 
 export class LMSOrganizationIntegrationPartial {
+  @IsNumber()
   organizationId!: number
+
+  @IsEnum(LMSIntegrationPlatform)
   apiPlatform!: LMSIntegrationPlatform
+
+  @IsString()
   rootUrl!: string
+
+  @IsOptional()
+  @IsString()
+  clientId?: string
+
+  @IsBoolean()
+  hasClientSecret!: boolean
+
+  @IsBoolean()
+  secure!: boolean
+
+  @ValidateNested({ each: true })
+  @Type(() => LMSCourseIntegrationPartial)
+  @IsArray()
   courseIntegrations!: LMSCourseIntegrationPartial[]
 }
 
 export class LMSCourseIntegrationPartial {
+  @IsNumber()
   courseId!: number
+
   course!: CoursePartial
+
+  @IsEnum(LMSIntegrationPlatform)
   apiPlatform!: LMSIntegrationPlatform
+
+  @IsOptional()
+  @IsNumber()
+  accessTokenId?: number
+
   apiCourseId!: string
-  apiKeyExpiry!: Date
+
+  @IsOptional()
+  @IsBoolean()
+  hasApiKey?: boolean
+
+  @IsOptional()
+  @Type(() => Date)
+  apiKeyExpiry?: Date
+
+  @IsBoolean()
   lmsSynchronize!: boolean
+
+  @IsBoolean()
   isExpired!: boolean
+
+  @IsArray()
   selectedResourceTypes?: LMSResourceType[]
 }
 
-export type LMSCourseAPIResponse = {
-  name: string
-  code: string
-  studentCount: number
+export class LMSCourseAPIResponse {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  name!: string
+
+  @IsString()
+  code!: string
+
+  @IsInt()
+  studentCount!: number
 }
 
-export type LMSAssignment = {
-  id: number
-  name: string
-  description: string
+export class LMSAssignment {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  name!: string
+
+  @IsString()
+  description!: string
+
+  @IsOptional()
+  @IsBoolean()
   syncEnabled?: boolean
+
+  @IsOptional()
+  @IsDate()
   due?: Date
+
+  @IsOptional()
+  @IsDate()
   modified?: Date
+
+  @IsOptional()
+  @IsDate()
   uploaded?: Date
 }
 
-export type LMSAnnouncement = {
-  id: number
-  title: string
-  message: string
-  posted: Date
+export class LMSAnnouncement {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  title!: string
+
+  @IsString()
+  message!: string
+
+  @IsOptional()
+  @IsDate()
+  posted?: Date
+
+  @IsOptional()
+  @IsBoolean()
   syncEnabled?: boolean
+
+  @IsOptional()
+  @IsDate()
   modified?: Date
+
+  @IsOptional()
+  @IsDate()
   uploaded?: Date
 }
 
-export type LMSPage = {
-  id: number
-  title: string
+export class LMSPage {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  title!: string
+
+  @IsOptional()
+  @IsString()
   body?: string
-  url: string
-  frontPage: boolean
+
+  @IsString()
+  url!: string
+
+  @IsBoolean()
+  frontPage!: boolean
+
+  @IsOptional()
+  @IsBoolean()
   syncEnabled?: boolean
+
+  @IsOptional()
+  @IsDate()
   modified?: Date
+
+  @IsOptional()
+  @IsDate()
   uploaded?: Date
 }
 
-export type LMSFile = {
-  id: number
-  name: string
-  url: string
-  contentType: string
-  size: number
+export class LMSFile {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  name!: string
+
+  @IsString()
+  url!: string
+
+  @IsString()
+  contentType!: string
+
+  @IsNumber()
+  size!: number
+
+  @IsOptional()
+  @IsBoolean()
   syncEnabled?: boolean
+
+  @IsOptional()
+  @IsDate()
   modified?: Date
+
+  @IsOptional()
+  @IsDate()
   uploaded?: Date
 }
 
@@ -1807,6 +2014,8 @@ export class GetCourseResponse {
   organizationCourse?: OrganizationPartial
 
   courseInviteCode?: string
+
+  isCourseInviteEnabled?: boolean
 }
 
 export class GetLimitedCourseResponse {
@@ -2280,6 +2489,9 @@ export class EditCourseInfoParams {
   @IsString()
   @IsOptional()
   courseInviteCode?: string | null
+
+  @IsOptional()
+  isCourseInviteEnabled?: boolean
 }
 
 export enum antdTagColor {
@@ -2609,6 +2821,9 @@ export class OrganizationSettingsResponse {
   @IsBoolean()
   allowProfCourseCreate!: boolean
 
+  @IsBoolean()
+  allowLMSApiKey!: boolean
+
   @IsOptional()
   @IsBoolean()
   settingsFound?: boolean
@@ -2618,10 +2833,14 @@ export class OrganizationSettingsResponse {
   }
 }
 
-export const validOrganizationSettings = ['allowProfCourseCreate']
+export const validOrganizationSettings = [
+  'allowProfCourseCreate',
+  'allowLMSApiKey',
+]
 
 export const OrganizationSettingsDefaults = {
   allowProfCourseCreate: true,
+  allowLMSApiKey: false,
 }
 
 export class OrganizationSettingsRequestBody {
@@ -3368,9 +3587,203 @@ export type UnreadAsyncQuestionResponse = {
   count: number
 }
 
-export enum LMSIntegrationPlatform {
-  None = 'None',
-  Canvas = 'Canvas',
+export class LMSAuthResponseQuery {
+  @IsString()
+  @IsOptional()
+  error?: string
+
+  @IsString()
+  @IsOptional()
+  error_description?: string
+
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  code?: string
+
+  @IsString()
+  @IsNotEmpty()
+  state!: string
+}
+
+export type LMSPostAuthBody = {
+  grant_type: 'authorization_code'
+  client_id: string
+  client_secret: string
+  redirect_uri: string
+  code: string
+  replace_tokens?: 1 | 0
+}
+
+export type LMSPostResponseBody = {
+  access_token: string
+  token_type: string
+  user: { id: number; name: string }
+  refresh_token: string
+  expires_in: number
+  canvas_region?: string
+}
+
+export class LMSToken {
+  @IsInt()
+  id!: number
+
+  @IsOptional()
+  @IsInt()
+  organizationId?: number
+
+  @IsOptional()
+  @IsInt()
+  userId?: number
+
+  @IsOptional()
+  @IsString()
+  userEmail?: string
+
+  @IsOptional()
+  @IsString()
+  userName?: string
+
+  @IsEnum(LMSIntegrationPlatform)
+  platform!: LMSIntegrationPlatform
+}
+
+export enum AuthMethodEnum {
+  RSA_KEY = 'RSA_KEY',
+  JWK_KEY = 'JWK_KEY',
+  JWK_SET = 'JWK_SET',
+}
+
+export class LtiAuthConfig {
+  @IsEnum(AuthMethodEnum)
+  method!: AuthMethodEnum
+
+  @IsString()
+  key!: string
+}
+
+export class UpdateLtiAuthConfig {
+  @IsEnum(AuthMethodEnum)
+  @IsOptional()
+  method?: AuthMethodEnum
+
+  @IsString()
+  @IsOptional()
+  key?: string
+}
+
+export class LtiPlatform {
+  @IsString()
+  kid!: string
+
+  @IsString()
+  platformUrl!: string
+
+  @IsString()
+  clientId!: string
+
+  @IsString()
+  name!: string
+
+  @IsString()
+  authenticationEndpoint!: string
+
+  @IsString()
+  accessTokenEndpoint!: string
+
+  @IsString()
+  @IsOptional()
+  authorizationServer?: string
+
+  @IsBoolean()
+  active!: boolean
+
+  @ValidateNested()
+  @Type(() => LtiAuthConfig)
+  authToken!: LtiAuthConfig
+
+  @IsBoolean()
+  @IsOptional()
+  dynamicallyRegistered?: boolean
+
+  @IsString()
+  @IsOptional()
+  productFamilyCode?: string
+
+  @Exclude()
+  registrationEndpoint?: string
+
+  @Exclude()
+  scopesAllowed?: string[]
+
+  @Exclude()
+  authTokenMethod?: string
+
+  @Exclude()
+  authTokenKey?: string
+}
+
+export class CreateLtiPlatform {
+  @IsString()
+  platformUrl!: string
+
+  @IsString()
+  clientId!: string
+
+  @IsString()
+  name!: string
+
+  @IsString()
+  authenticationEndpoint!: string
+
+  @IsString()
+  accessTokenEndpoint!: string
+
+  @IsString()
+  @IsOptional()
+  authorizationServer?: string
+
+  @IsBoolean()
+  active!: boolean
+
+  @ValidateNested()
+  @Type(() => LtiAuthConfig)
+  authToken!: LtiAuthConfig
+}
+
+export class UpdateLtiPlatform {
+  @IsString()
+  @IsOptional()
+  platformUrl?: string
+
+  @IsString()
+  @IsOptional()
+  clientId?: string
+
+  @IsString()
+  @IsOptional()
+  name?: string
+
+  @IsString()
+  @IsOptional()
+  authenticationEndpoint?: string
+
+  @IsString()
+  @IsOptional()
+  accessTokenEndpoint?: string
+
+  @IsString()
+  @IsOptional()
+  authorizationServer?: string
+
+  @IsBoolean()
+  @IsOptional()
+  active?: boolean
+
+  @ValidateNested()
+  @Type(() => UpdateLtiAuthConfig)
+  @IsOptional()
+  authToken?: UpdateLtiAuthConfig
 }
 
 export function parseThinkBlock(answer: string) {
@@ -3405,6 +3818,10 @@ export function dropUndefined(obj: any, dropNull = false) {
   return obj
 }
 
+/* This is just to have the error messages in one place to make it easier for testing/maintenance.
+  Instead of updating an error message string in an endpoint just to find out it broke a test,
+  we can just update it once here.
+*/
 export const ERROR_MESSAGES = {
   common: {
     pageOutOfBounds: "Can't retrieve out of bounds page.",
@@ -3587,6 +4004,23 @@ export const ERROR_MESSAGES = {
     addUserFromKhoury:
       'Error occurred while translating account from Khoury to Office Hours',
   },
+  ltiController: {
+    missingIdToken: 'LTI identification token is missing.',
+    missingUserCourseId: 'User course identifier is missing.',
+    userCourseNotFound: 'No matching user-course relation was found.',
+    missingParameters: 'Missing or invalid parameters for request',
+    ltiDataSourceUninitialized: 'LTI datasource is not initialized.',
+  },
+  ltiService: {
+    errorSigningJwt: 'Error occurred signing JWT.',
+    invalidInviteJwt: 'Invite code was invalid.',
+    invalidIdentityJwt: 'Identity token code was invalid.',
+    courseInviteNotFound: 'Matching course invite was not found.',
+    courseInviteEmailMismatch: 'Course invite was not issued for this email.',
+    courseInviteOrganizationMismatch:
+      'Course invite is for a course in another organization than account.',
+    courseInviteExpired: 'Course invite has expired.',
+  },
   chatbotEndpointGuard: {
     legacyEndpointIncompatible: (endpoint: string) =>
       `Oops! It seems the action you were trying to do uses legacy functionality while your course is set up to use the updated methods.\nPlease notify site administrators of this issue so it can be solved as soon as possible!\n(Endpoint: ${endpoint})`,
@@ -3707,6 +4141,10 @@ export const ERROR_MESSAGES = {
     questionTypeNotFound: 'Question type not found',
   },
   lmsController: {
+    apiCourseIdInUse:
+      'The specified API course ID is already in use in another course.',
+    apiKeyExpired: 'The API key for the integration has expired.',
+    noAccessToken: 'No access token found for the given platform.',
     noLMSIntegration:
       'The course has no registered LMS integration, or its registered LMS integration is invalid.',
     noAssignmentsSaved:
@@ -3733,6 +4171,27 @@ export const ERROR_MESSAGES = {
       'Cannot synchronize a document when synchronization is disabled.',
     resourceDisabled:
       "The resource type of the document you're trying to operate on is disabled.",
+    stateNotFound: 'No matching state was found.',
+    missingCodeQueryParameter: 'Missing code query parameter.',
+    stateExpired: 'State for authorization request has expired.',
+    failedToGetAccessToken: 'Failed to retrieve access token.',
+    missingClientId: 'Organization integration has no defined client ID.',
+    missingClientSecret:
+      'Organization integration has no defined client secret.',
+    missingApiKeyOrToken:
+      'Course integration requires an API key or an access token.',
+    unauthorizedForToken: 'The specified access token does not belong to you.',
+    apiKeyDisabled:
+      'Usage of API key for LMS integrations is not allowed in this organization.',
+    accessTokenMismatch:
+      'The selected access token is not valid for the specified platform.',
+    missingPlatformQuery: 'Platform query parameter is required.',
+    accessTokenNotFound: 'Access token with given ID was not found.',
+    failedToUpdateQuizSync: 'Failed to update quiz sync settings',
+  },
+  lmsAdapter: {
+    missingAccessToken:
+      'No access token found for course. Cannot authorize requests.',
   },
   semesterController: {
     notAllowedToCreateSemester: (role: OrganizationRole) =>

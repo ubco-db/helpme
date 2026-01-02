@@ -807,6 +807,7 @@ const OrganizationChatbotSettingsForm: React.FC<
                                       : asCreate.defaultVisionModelName ==
                                         asCreateLLM.modelName
                                   }
+                                  showModality={true}
                                   showNotes={
                                     (model.additionalNotes?.length ?? 0) > 0
                                   }

@@ -1,5 +1,6 @@
 import { GetCourseResponse } from '@koh/common'
-import { fetchAuthToken } from './cookieApi'
+import { getAuthTokenString } from './cookie-utils'
+
 const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
 /**
  * Course "API".
@@ -8,7 +9,7 @@ const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
  */
 export const courseApi = {
   getCourseFeatures: async (courseId: number) => {
-    const authToken = await fetchAuthToken()
+    const authToken = await getAuthTokenString()
     const response = await fetch(
       `${baseUrl}/api/v1/courses/${courseId}/features`,
       {
@@ -26,7 +27,7 @@ export const courseApi = {
   },
 
   getCourse: async (courseId: number): Promise<GetCourseResponse> => {
-    const authToken = await fetchAuthToken()
+    const authToken = await getAuthTokenString()
     const response = await fetch(`${baseUrl}/api/v1/courses/${courseId}`, {
       method: 'GET',
       headers: {

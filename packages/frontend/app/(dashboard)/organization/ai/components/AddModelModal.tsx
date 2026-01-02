@@ -203,7 +203,7 @@ const AddModelModal = <T extends LLMType>({
                           }
                         >
                           <div className={'h-fit w-full'}>
-                            <LLMTypeDisplay model={model} />
+                            <LLMTypeDisplay model={model} showModality={true} />
                           </div>
                         </Tooltip>
                         <Button

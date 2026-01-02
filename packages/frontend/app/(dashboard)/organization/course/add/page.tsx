@@ -29,7 +29,6 @@ import {
   checkCourseCreatePermissions,
   getErrorMessage,
 } from '@/app/utils/generalUtils'
-import { userApi } from '@/app/api/userApi'
 import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 
@@ -96,7 +95,7 @@ export default function AddCoursePage(): ReactElement {
       .catch((_) => {
         message.error('Failed to fetch semesters for organization')
       })
-  }, [])
+  }, [userInfo.organization?.orgId])
 
   useEffect(() => {
     if (userInfo && organizationSettings) {
@@ -146,7 +145,7 @@ export default function AddCoursePage(): ReactElement {
       .then(async () => {
         message.success('Course was created')
         // need to update userInfo so the course shows up in /courses
-        await userApi.getUser().then((userDetails) => {
+        await API.profile.getUser().then((userDetails) => {
           setUserInfo(userDetails)
           router.push('/courses')
         })
@@ -183,7 +182,7 @@ export default function AddCoursePage(): ReactElement {
                   asyncCentreAIAnswers: true,
                   scheduleOnFrontPage: false,
                 }}
-                onValuesChange={(changedValues, allValues) => {
+                onValuesChange={(changedValues) => {
                   if (changedValues.asyncQueueEnabled === false) {
                     form.setFieldsValue({ asyncCentreAIAnswers: false })
                   }

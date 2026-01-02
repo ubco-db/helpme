@@ -740,9 +740,8 @@ describe('ChatbotController Integration', () => {
         .patch(
           `/chatbot/organization/${organization.id}/provider/${provider.id}`,
         )
-        .send(params);
-      //.expect(200);
-      console.log(res.status, res.body);
+        .send(params)
+        .expect(200);
       expect(pick(res.body, props)).toEqual(pick(params, props));
       expect(res.body).toMatchSnapshot();
     });

@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`Course Integration GET /courses/:id gets all queues that are not disabled (prof) 1`] = `
 {
@@ -92,6 +92,7 @@ exports[`Course Integration GET /courses/:id gets office hours no queues, since 
   "heatmap": false,
   "icalURL": "https://calendar.google.com/calendar/ical/t6lu2pic7u9otrbpkuk26sl34g%40group.calendar.google.com/public/basic.ics",
   "id": 1,
+  "isCourseInviteEnabled": true,
   "name": "CS 304",
   "organizationCourse": null,
   "questionTimer": null,

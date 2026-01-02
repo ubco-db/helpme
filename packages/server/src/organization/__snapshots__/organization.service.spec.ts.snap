@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`OrganizationService deleteUserCourses should throw not found exception if user does not exist 1`] = `"User with id 0 not found"`;
 
@@ -64,6 +64,7 @@ exports[`OrganizationService getOrganizationCourse should return organization co
     "enabled": true,
     "icalURL": "https://calendar.google.com/calendar/ical/t6lu2pic7u9otrbpkuk26sl34g%40group.calendar.google.com/public/basic.ics",
     "id": 1,
+    "isCourseInviteEnabled": true,
     "name": "CS 304",
     "questionTimer": null,
     "sectionGroupName": "001",

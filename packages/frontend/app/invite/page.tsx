@@ -3,8 +3,7 @@
 import { message } from 'antd'
 import { ReactElement, Suspense, useEffect, useState } from 'react'
 import { GetLimitedCourseResponse, UBCOuserParam, User } from '@koh/common'
-import { API } from '@/app/api'
-import { userApi } from '../api/userApi'
+import { API, fetchUserDetails } from '@/app/api'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getErrorMessage } from '../utils/generalUtils'
 import CenteredSpinner from '../components/CenteredSpinner'
@@ -21,17 +20,7 @@ function CourseInviteContent(): ReactElement {
 
   const [profile, setProfile] = useState<User>()
   useEffect(() => {
-    const fetchUserDetails = async () => {
-      await userApi
-        .getUser()
-        .then((userDetails) => {
-          setProfile(userDetails)
-        })
-        .catch((error) => {
-          setErrorGettingUser(true)
-        })
-    }
-    fetchUserDetails()
+    fetchUserDetails(setProfile, () => setErrorGettingUser(true))
   }, [])
 
   const [course, setCourse] = useState<GetLimitedCourseResponse>()
