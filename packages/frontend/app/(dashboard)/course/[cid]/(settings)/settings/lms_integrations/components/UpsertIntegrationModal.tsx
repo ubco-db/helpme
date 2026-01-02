@@ -306,6 +306,7 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
 
   return (
     <Modal
+      centered
       title={
         lti
           ? 'LMS Integration'

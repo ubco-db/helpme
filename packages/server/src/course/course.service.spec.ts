@@ -827,9 +827,8 @@ describe('CourseService', () => {
           queueInvites: true,
           chatbot: {
             documents: true,
-            manuallyCreatedChunks: true,
+            insertedDocuments: true,
             insertedQuestions: true,
-            insertedLMSData: true,
           },
         },
       };
@@ -865,9 +864,8 @@ describe('CourseService', () => {
           queueInvites: true,
           chatbot: {
             documents: true,
-            manuallyCreatedChunks: true,
+            insertedDocuments: true,
             insertedQuestions: true,
-            insertedLMSData: true,
           },
         },
       };

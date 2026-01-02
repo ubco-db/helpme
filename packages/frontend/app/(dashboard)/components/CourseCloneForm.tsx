@@ -275,9 +275,9 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           <Checkbox />
         </Form.Item>
         <Form.Item
-          name={['toClone', 'chatbot', 'manuallyCreatedChunks']}
+          name={['toClone', 'chatbot', 'insertedDocuments']}
           valuePropName="checked"
-          label="Manually Created Chunks"
+          label="Inserted Documents"
           layout="horizontal"
           tooltip="Clone over any manually created chatbot document chunks you had created."
           className={`${formItemClassNames}`}
@@ -290,16 +290,6 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           label="Inserted Questions"
           layout="horizontal"
           tooltip="Clone over any chatbot questions that were inserted as a source into the chatbot."
-          className={`${formItemClassNames}`}
-        >
-          <Checkbox />
-        </Form.Item>
-        <Form.Item
-          name={['toClone', 'chatbot', 'insertedLMSData']}
-          valuePropName="checked"
-          label="Inserted LMS Data"
-          layout="horizontal"
-          tooltip="Clone over any LMS data (e.g. assignment descriptions, announcements) that was inserted as a source into the chatbot. Defaulted to false since announcements usually have outdated information."
           className={`${formItemClassNames}`}
         >
           <Checkbox />

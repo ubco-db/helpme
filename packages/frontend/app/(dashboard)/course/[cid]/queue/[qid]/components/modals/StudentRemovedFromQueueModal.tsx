@@ -29,6 +29,7 @@ const StudentRemovedFromQueueModal: React.FC<
   }, [question])
   return (
     <Modal
+      centered
       open={question?.status === LimboQuestionStatus.TADeleted}
       classNames={{
         footer: 'flex justify-center',

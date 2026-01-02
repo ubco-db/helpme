@@ -4,9 +4,9 @@ import { ChatbotController } from './chatbot.controller';
 import { ChatbotApiService } from './chatbot-api.service';
 import { ChatbotSettingsSubscriber } from './chatbot-infrastructure-models/chatbot-settings.subscriber';
 import { CacheModule } from '@nestjs/cache-manager';
-import { ChatbotDataSourceService } from './chatbot-datasource/chatbot-datasource.service';
 import { ChatbotDataSourceModule } from './chatbot-datasource/chatbot-datasource.module';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { ChatbotResultWebSocket } from './intermediate-results/chatbot-result.websocket';
 
 @Module({
   controllers: [ChatbotController],
@@ -21,7 +21,12 @@ export class ChatbotModule {
         CacheModule.register(),
         ChatbotDataSourceModule.forRoot(connectionOptions),
       ],
-      providers: [ChatbotService, ChatbotApiService, ChatbotSettingsSubscriber],
+      providers: [
+        ChatbotService,
+        ChatbotApiService,
+        ChatbotSettingsSubscriber,
+        ChatbotResultWebSocket,
+      ],
     };
   }
 }

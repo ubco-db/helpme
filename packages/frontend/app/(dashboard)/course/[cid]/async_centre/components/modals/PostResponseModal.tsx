@@ -108,6 +108,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
 
   return (
     <Modal
+      centered
       open={open}
       title="Post/Edit response to Student question"
       okText="Finish"

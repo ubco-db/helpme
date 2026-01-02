@@ -1,5 +1,5 @@
 'use client'
-/* eslint-disable @typescript-eslint/no-empty-function */
+
 import {
   createContext,
   ReactNode,
@@ -9,23 +9,23 @@ import {
 } from 'react'
 import Chatbot from './Chatbot'
 import {
-  chatbotStartingMessageCourse,
   ChatbotQuestionType,
+  chatbotStartingMessageCourse,
 } from '@/app/typings/chatbot'
-import { Message, PreDeterminedQuestion } from '@koh/common'
+import { HelpMeChatMessage, SuggestedQuestionResponse } from '@koh/common'
 
 interface ChatbotContextType {
   setCid: React.Dispatch<React.SetStateAction<number | null>>
   renderSmallChatbot: boolean
   setRenderSmallChatbot: React.Dispatch<React.SetStateAction<boolean>>
-  preDeterminedQuestions: PreDeterminedQuestion[]
-  setPreDeterminedQuestions: React.Dispatch<
-    React.SetStateAction<PreDeterminedQuestion[]>
+  suggestedQuestions: SuggestedQuestionResponse[]
+  setSuggestedQuestions: React.Dispatch<
+    React.SetStateAction<SuggestedQuestionResponse[]>
   >
   questionsLeft: number
   setQuestionsLeft: React.Dispatch<React.SetStateAction<number>>
-  messages: Message[]
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>
+  messages: HelpMeChatMessage[]
+  setMessages: React.Dispatch<React.SetStateAction<HelpMeChatMessage[]>>
   isOpen: boolean
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>
   interactionId: number | undefined
@@ -42,8 +42,8 @@ const chatbotContext = createContext<ChatbotContextType>({
   setCid: () => {},
   renderSmallChatbot: false,
   setRenderSmallChatbot: () => {},
-  preDeterminedQuestions: [],
-  setPreDeterminedQuestions: () => {},
+  suggestedQuestions: [],
+  setSuggestedQuestions: () => {},
   questionsLeft: 0,
   setQuestionsLeft: () => {},
   messages: [
@@ -82,11 +82,11 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
   const [renderSmallChatbot, setRenderSmallChatbot] = useState(false)
 
   // Chatbot states
-  const [preDeterminedQuestions, setPreDeterminedQuestions] = useState<
-    PreDeterminedQuestion[]
+  const [suggestedQuestions, setSuggestedQuestions] = useState<
+    SuggestedQuestionResponse[]
   >([])
   const [questionsLeft, setQuestionsLeft] = useState<number>(0)
-  const [messages, setMessages] = useState<Message[]>([
+  const [messages, setMessages] = useState<HelpMeChatMessage[]>([
     {
       type: 'apiMessage',
       message: chatbotStartingMessageCourse,
@@ -103,7 +103,7 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
     useState<ChatbotQuestionType>('Course')
   useEffect(() => {
     // reset chatbot states when course changes
-    setPreDeterminedQuestions([])
+    setSuggestedQuestions([])
     setMessages([
       {
         type: 'apiMessage',
@@ -120,8 +120,8 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
     setCid,
     renderSmallChatbot,
     setRenderSmallChatbot,
-    preDeterminedQuestions,
-    setPreDeterminedQuestions,
+    suggestedQuestions,
+    setSuggestedQuestions,
     questionsLeft,
     setQuestionsLeft,
     messages,
@@ -143,8 +143,8 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
           key={cid}
           cid={cid}
           variant="small"
-          preDeterminedQuestions={preDeterminedQuestions}
-          setPreDeterminedQuestions={setPreDeterminedQuestions}
+          suggestedQuestions={suggestedQuestions}
+          setSuggestedQuestions={setSuggestedQuestions}
           questionsLeft={questionsLeft}
           setQuestionsLeft={setQuestionsLeft}
           messages={messages}
