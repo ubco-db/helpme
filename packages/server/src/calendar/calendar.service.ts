@@ -11,20 +11,19 @@ import { UserModel } from '../profile/user.entity';
 import { CalendarModel } from './calendar.entity';
 import { AlertModel } from '../alerts/alerts.entity';
 import { AlertType, ERROR_MESSAGES } from '@koh/common';
-import { QueueModel } from '../queue/queue.entity';
 import { EventModel, EventType } from '../profile/event-model.entity';
 import { CronJob } from 'cron';
 import * as Sentry from '@sentry/browser';
 import { QuestionService } from '../question/question.service';
-import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
+import { QueueStaffService } from 'queue/queue-staff/queue-staff.service';
 
 @Injectable()
 export class CalendarService implements OnModuleInit {
   constructor(
     private schedulerRegistry: SchedulerRegistry,
     public questionService: QuestionService, // needed to make public for jest testing purposes
-    public queueCleanService: QueueCleanService,
+    public queueStaffService: QueueStaffService,
     public dataSource: DataSource,
   ) {}
 
@@ -335,7 +334,7 @@ export class CalendarService implements OnModuleInit {
           // prompt students with questions to leave the queue
           await this.dataSource.transaction(async (manager) => {
             // TODO: probably put the rest of this method in a transaction
-            await this.queueCleanService.promptStudentsToLeaveQueue(
+            await this.queueStaffService.promptStudentsToLeaveQueue(
               queue.queueId,
               manager,
             );

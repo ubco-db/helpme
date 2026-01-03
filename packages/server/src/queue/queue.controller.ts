@@ -17,9 +17,11 @@ import {
   ClassSerializerInterceptor,
   Controller,
   Delete,
+  forwardRef,
   Get,
   HttpException,
   HttpStatus,
+  Inject,
   NotFoundException,
   Param,
   ParseIntPipe,
@@ -33,7 +35,6 @@ import { Response } from 'express';
 import { UserId } from 'decorators/user.decorator';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { Roles } from '../decorators/roles.decorator';
-import { QueueCleanService } from './queue-clean/queue-clean.service';
 import { QueueRole } from '../decorators/queue-role.decorator';
 import { QueueRolesGuard } from '../guards/queue-role.guard';
 import { QueueSSEService } from './queue-sse.service';
@@ -44,6 +45,7 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QueueStaffModel } from './queue-staff/queue-staff.entity';
 import { QuestionService } from '../question/question.service';
+import { QueueStaffService } from './queue-staff/queue-staff.service';
 
 @Controller('queues')
 @UseGuards(JwtAuthGuard, QueueRolesGuard, EmailVerifiedGuard)
@@ -51,10 +53,10 @@ import { QuestionService } from '../question/question.service';
 export class QueueController {
   constructor(
     private queueSSEService: QueueSSEService,
-    private queueCleanService: QueueCleanService,
     private queueService: QueueService, //note: this throws errors, be sure to catch them
     private questionService: QuestionService,
     private redisQueueService: RedisQueueService,
+    public queueStaffService: QueueStaffService,
   ) {}
 
   /*
@@ -159,7 +161,7 @@ export class QueueController {
     // Clean up queue if necessary
     try {
       setTimeout(async () => {
-        await this.queueCleanService.cleanQueue(queueId, true);
+        await this.queueStaffService.cleanQueue(queueId, true);
         await this.redisQueueService.deleteKey(`q:${queueId}`);
         await this.queueSSEService.updateQueue(queueId);
       });

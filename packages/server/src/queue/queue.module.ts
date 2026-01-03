@@ -11,7 +11,6 @@ import { ApplicationConfigService } from '../config/application_config.service';
 import { QueueInviteController } from './queue-invite.controller';
 import { QueueChatService } from 'queueChats/queue-chats.service';
 import { QueueChatsModule } from 'queueChats/queue-chats.module';
-import { QueueCleanService } from './queue-clean/queue-clean.service';
 import { QuestionModule } from '../question/question.module';
 import { QuestionService } from '../question/question.service';
 import { ApplicationConfigModule } from '../config/application_config.module';
@@ -27,13 +26,11 @@ import { QueueStaffService } from './queue-staff/queue-staff.service';
     QueueSSEService,
     QueueSubscriber,
     AlertsService,
-    QueueCleanService,
     QuestionService,
     QueueStaffService,
   ],
   exports: [
     QueueSSEService,
-    QueueCleanService,
     AlertsService,
     QuestionService,
     QueueService,

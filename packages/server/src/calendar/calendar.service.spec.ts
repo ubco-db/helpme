@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-empty-function */
+ 
 import { Test, TestingModule } from '@nestjs/testing';
 import { CalendarService } from './calendar.service';
 import { SchedulerRegistry } from '@nestjs/schedule';
@@ -7,11 +7,11 @@ import { CronJob } from 'cron';
 import { QuestionService } from '../question/question.service';
 import { NotificationService } from '../notification/notification.service';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
-import { QueueModel } from '../queue/queue.entity';
 import { AlertModel } from '../alerts/alerts.entity';
 import { AlertType } from '@koh/common';
-import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 import { EventModel } from 'profile/event-model.entity';
+import { QueueStaffModel } from '../queue/queue-staff/queue-staff.entity';
+import { QueueStaffService } from 'queue/queue-staff/queue-staff.service';
 
 describe('CalendarService', () => {
   let service: CalendarService;
@@ -31,7 +31,7 @@ describe('CalendarService', () => {
         },
         NotificationService,
         {
-          provide: QueueCleanService,
+          provide: QueueStaffService,
           useValue: {
             promptStudentsToLeaveQueue: jest.fn(),
           },
@@ -171,14 +171,20 @@ describe('CalendarService', () => {
       const calendarId = 1;
       const courseId = 1;
 
-      const mockCheckedInQueues = [{ queueModelId: 1, userModelId: userId }];
-      jest.spyOn(QueueModel, 'query').mockResolvedValue(mockCheckedInQueues);
+      const mockCheckedInQueues = [
+        { queueId: 1, userId: userId },
+      ] as QueueStaffModel[];
+      jest
+        .spyOn(QueueStaffModel, 'find')
+        .mockResolvedValue(mockCheckedInQueues);
 
       await service.initializeAutoCheckout(userId, calendarId, courseId);
 
-      expect(QueueModel.query).toHaveBeenCalledWith(expect.any(String), [
-        userId,
-      ]);
+      expect(QueueStaffModel.find).toHaveBeenCalledWith({
+        where: {
+          userId,
+        },
+      });
       expect(sendAlertToAutoCheckout10minsFromNowSpy).toHaveBeenCalledWith(
         userId,
         calendarId,
@@ -191,14 +197,18 @@ describe('CalendarService', () => {
       const calendarId = 1;
       const courseId = 1;
 
-      const mockCheckedInQueues: any[] = [];
-      jest.spyOn(QueueModel, 'query').mockResolvedValue(mockCheckedInQueues);
+      const mockCheckedInQueues: QueueStaffModel[] = [];
+      jest
+        .spyOn(QueueStaffModel, 'find')
+        .mockResolvedValue(mockCheckedInQueues);
 
       await service.initializeAutoCheckout(userId, calendarId, courseId);
 
-      expect(QueueModel.query).toHaveBeenCalledWith(expect.any(String), [
-        userId,
-      ]);
+      expect(QueueStaffModel.find).toHaveBeenCalledWith({
+        where: {
+          userId,
+        },
+      });
       expect(sendAlertToAutoCheckout10minsFromNowSpy).not.toHaveBeenCalled();
     });
 
@@ -208,13 +218,15 @@ describe('CalendarService', () => {
       const courseId = 1;
 
       const mockError = new Error('Query failed');
-      jest.spyOn(QueueModel, 'query').mockRejectedValue(mockError);
+      jest.spyOn(QueueStaffModel, 'find').mockRejectedValue(mockError);
 
       await service.initializeAutoCheckout(userId, calendarId, courseId);
 
-      expect(QueueModel.query).toHaveBeenCalledWith(expect.any(String), [
-        userId,
-      ]);
+      expect(QueueStaffModel.find).toHaveBeenCalledWith({
+        where: {
+          userId,
+        },
+      });
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         'Error checking if user is checked in',
         mockError,
@@ -361,21 +373,14 @@ describe('CalendarService', () => {
       const courseId = 1;
       const alertId = 1;
 
-      const mockCheckedInQueues = [{ queueId: 1 }];
+      const mockCheckedInQueues = [{ queueId: 1 }] as QueueStaffModel[];
 
-      // Mock QueueModel.query for SELECT and DELETE
-      const queueQuerySpy = jest
-        .spyOn(QueueModel, 'query')
-        .mockImplementation((query, params) => {
-          if (query.trim().startsWith('SELECT')) {
-            // First call: SELECT query
-            return Promise.resolve(mockCheckedInQueues);
-          } else if (query.trim().startsWith('DELETE')) {
-            // Second call: DELETE query
-            return Promise.resolve();
-          }
-          return Promise.resolve();
-        });
+      jest
+        .spyOn(QueueStaffModel, 'find')
+        .mockResolvedValue(mockCheckedInQueues);
+      const deleteSpy = jest
+        .spyOn(QueueStaffModel, 'delete')
+        .mockResolvedValue({ raw: [], affected: 1 });
 
       // Mock AlertModel.findOneOrFail
       const mockAlert = {
@@ -390,9 +395,9 @@ describe('CalendarService', () => {
         .spyOn(service.questionService, 'resolveQuestions')
         .mockResolvedValue();
 
-      // Mock queueCleanService.promptStudentsToLeaveQueue
+      // Mock queueStaffService.promptStudentsToLeaveQueue
       jest
-        .spyOn(service.queueCleanService, 'promptStudentsToLeaveQueue')
+        .spyOn(service.queueStaffService, 'promptStudentsToLeaveQueue')
         .mockResolvedValue();
 
       // Mock EventModel.create().save()
@@ -405,15 +410,21 @@ describe('CalendarService', () => {
       await service.autoCheckout(userId, calendarId, courseId, alertId);
 
       // Assertions
-      expect(QueueModel.query).toHaveBeenCalledWith(expect.any(String), [
+      expect(QueueStaffModel.find).toHaveBeenCalledWith({
+        where: {
+          userId,
+        },
+      });
+      expect(deleteSpy).toHaveBeenCalledWith({
+        queueId: 1,
         userId,
-      ]);
+      });
       expect(AlertModel.findOneOrFail).toHaveBeenCalledWith({
         where: { id: alertId },
       });
       expect(resolveQuestionsSpy).toHaveBeenCalledWith(1, userId);
       expect(
-        service.queueCleanService.promptStudentsToLeaveQueue,
+        service.queueStaffService.promptStudentsToLeaveQueue,
       ).toHaveBeenCalledWith(1);
       expect(mockEvent.save).toHaveBeenCalled();
       expect(mockAlert.save).toHaveBeenCalled();
@@ -425,8 +436,13 @@ describe('CalendarService', () => {
       const courseId = 1;
       const alertId = 1;
 
-      const mockCheckedInQueues = [{ queueId: 1 }];
-      jest.spyOn(QueueModel, 'query').mockResolvedValue(mockCheckedInQueues);
+      const mockCheckedInQueues = [{ queueId: 1 }] as QueueStaffModel[];
+      jest
+        .spyOn(QueueStaffModel, 'find')
+        .mockResolvedValue(mockCheckedInQueues);
+      jest
+        .spyOn(QueueStaffModel, 'delete')
+        .mockResolvedValue({ raw: [], affected: 1 });
 
       const mockAlert = {
         id: alertId,
@@ -437,9 +453,11 @@ describe('CalendarService', () => {
 
       await service.autoCheckout(userId, calendarId, courseId, alertId);
 
-      expect(QueueModel.query).toHaveBeenCalledWith(expect.any(String), [
-        userId,
-      ]);
+      expect(QueueStaffModel.find).toHaveBeenCalledWith({
+        where: {
+          userId,
+        },
+      });
       expect(AlertModel.findOneOrFail).toHaveBeenCalledWith({
         where: { id: alertId },
       });
@@ -461,13 +479,15 @@ describe('CalendarService', () => {
       const alertId = 1;
 
       const mockError = new Error('Query failed');
-      jest.spyOn(QueueModel, 'query').mockRejectedValue(mockError);
+      jest.spyOn(QueueStaffModel, 'find').mockRejectedValue(mockError);
 
       await service.autoCheckout(userId, calendarId, courseId, alertId);
 
-      expect(QueueModel.query).toHaveBeenCalledWith(expect.any(String), [
-        userId,
-      ]);
+      expect(QueueStaffModel.find).toHaveBeenCalledWith({
+        where: {
+          userId,
+        },
+      });
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         'Error checking if user is checked in in cron job',
         mockError,
@@ -480,17 +500,21 @@ describe('CalendarService', () => {
       const courseId = 1;
       const alertId = 1;
 
-      const mockCheckedInQueues = [{ queueId: 1 }];
-      jest.spyOn(QueueModel, 'query').mockResolvedValue(mockCheckedInQueues);
+      const mockCheckedInQueues = [{ queueId: 1 }] as QueueStaffModel[];
+      jest
+        .spyOn(QueueStaffModel, 'find')
+        .mockResolvedValue(mockCheckedInQueues);
 
       const mockError = new Error('Alert not found');
       jest.spyOn(AlertModel, 'findOneOrFail').mockRejectedValue(mockError);
 
       await service.autoCheckout(userId, calendarId, courseId, alertId);
 
-      expect(QueueModel.query).toHaveBeenCalledWith(expect.any(String), [
-        userId,
-      ]);
+      expect(QueueStaffModel.find).toHaveBeenCalledWith({
+        where: {
+          userId,
+        },
+      });
       expect(AlertModel.findOneOrFail).toHaveBeenCalledWith({
         where: { id: alertId },
       });
@@ -506,8 +530,10 @@ describe('CalendarService', () => {
       const courseId = 1;
       const alertId = 1;
 
-      const mockCheckedInQueues = [{ queueId: 1 }];
-      jest.spyOn(QueueModel, 'query').mockResolvedValue(mockCheckedInQueues);
+      const mockCheckedInQueues = [{ queueId: 1 }] as QueueStaffModel[];
+      jest
+        .spyOn(QueueStaffModel, 'find')
+        .mockResolvedValue(mockCheckedInQueues);
 
       const mockAlert = {
         id: alertId,
@@ -523,9 +549,11 @@ describe('CalendarService', () => {
 
       await service.autoCheckout(userId, calendarId, courseId, alertId);
 
-      expect(QueueModel.query).toHaveBeenCalledWith(expect.any(String), [
-        userId,
-      ]);
+      expect(QueueStaffModel.find).toHaveBeenCalledWith({
+        where: {
+          userId,
+        },
+      });
       expect(AlertModel.findOneOrFail).toHaveBeenCalledWith({
         where: { id: alertId },
       });
@@ -545,10 +573,10 @@ describe('CalendarService', () => {
       const courseId = 1;
       const alertId = 1;
 
-      const mockCheckedInQueues = [{ queueId: 1 }];
+      const mockCheckedInQueues = [{ queueId: 1 }] as QueueStaffModel[];
       jest
-        .spyOn(QueueModel, 'query')
-        .mockResolvedValueOnce(mockCheckedInQueues);
+        .spyOn(QueueStaffModel, 'find')
+        .mockResolvedValue(mockCheckedInQueues);
 
       const mockAlert = {
         id: alertId,
@@ -562,13 +590,15 @@ describe('CalendarService', () => {
         .mockResolvedValue();
 
       const mockError = new Error('Checkout failed');
-      jest.spyOn(QueueModel, 'query').mockRejectedValueOnce(mockError);
+      jest.spyOn(QueueStaffModel, 'delete').mockRejectedValue(mockError);
 
       await service.autoCheckout(userId, calendarId, courseId, alertId);
 
-      expect(QueueModel.query).toHaveBeenCalledWith(expect.any(String), [
-        userId,
-      ]);
+      expect(QueueStaffModel.find).toHaveBeenCalledWith({
+        where: {
+          userId,
+        },
+      });
       expect(AlertModel.findOneOrFail).toHaveBeenCalledWith({
         where: { id: alertId },
       });
@@ -588,8 +618,10 @@ describe('CalendarService', () => {
       const courseId = 1;
       const alertId = 1;
 
-      const mockCheckedInQueues = [{ queueId: 1 }];
-      jest.spyOn(QueueModel, 'query').mockResolvedValue(mockCheckedInQueues);
+      const mockCheckedInQueues = [{ queueId: 1 }] as QueueStaffModel[];
+      jest
+        .spyOn(QueueStaffModel, 'find')
+        .mockResolvedValue(mockCheckedInQueues);
 
       const mockAlert = {
         id: alertId,
@@ -600,9 +632,11 @@ describe('CalendarService', () => {
 
       await service.autoCheckout(userId, calendarId, courseId, alertId);
 
-      expect(QueueModel.query).toHaveBeenCalledWith(expect.any(String), [
-        userId,
-      ]);
+      expect(QueueStaffModel.find).toHaveBeenCalledWith({
+        where: {
+          userId,
+        },
+      });
       expect(AlertModel.findOneOrFail).toHaveBeenCalledWith({
         where: { id: alertId },
       });

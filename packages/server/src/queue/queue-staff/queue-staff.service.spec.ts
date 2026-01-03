@@ -20,7 +20,7 @@ import {
   TestConfigModule,
 } from '../../../test/util/testUtils';
 import { QuestionModel } from '../../question/question.entity';
-import { QueueCleanService } from './queue-clean.service';
+import { QueueStaffService } from './queue-staff.service';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { QuestionService } from 'question/question.service';
 import { RedisQueueService } from 'redisQueue/redis-queue.service';
@@ -35,8 +35,8 @@ import { ApplicationConfigService } from 'config/application_config.service';
 import { QueueChatService } from 'queueChats/queue-chats.service';
 import { QueueSSEService } from 'queue/queue-sse.service';
 
-describe('QueueCleanService', () => {
-  let service: QueueCleanService;
+describe('QueueStaffService', () => {
+  let service: QueueStaffService;
   let dataSource: DataSource;
   let schedulerRegistry: SchedulerRegistry;
   let module: TestingModule;
@@ -45,7 +45,7 @@ describe('QueueCleanService', () => {
     module = await Test.createTestingModule({
       imports: [TestTypeOrmModule, TestConfigModule, FactoryModule],
       providers: [
-        QueueCleanService,
+        QueueStaffService,
         QuestionService,
         NotificationService,
         AlertsService,
@@ -97,7 +97,7 @@ describe('QueueCleanService', () => {
       ],
     }).compile();
 
-    service = module.get<QueueCleanService>(QueueCleanService);
+    service = module.get<QueueStaffService>(QueueStaffService);
     schedulerRegistry = module.get<SchedulerRegistry>(SchedulerRegistry);
     dataSource = module.get<DataSource>(DataSource);
 
