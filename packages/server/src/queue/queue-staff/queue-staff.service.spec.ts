@@ -101,9 +101,7 @@ describe('QueueStaffService', () => {
     schedulerRegistry = module.get<SchedulerRegistry>(SchedulerRegistry);
     dataSource = module.get<DataSource>(DataSource);
 
-    // Grab FactoriesService from Nest
     const factories = module.get<FactoryService>(FactoryService);
-    // Initialize the named exports to point to the actual factories
     initFactoriesFromService(factories);
   });
 
