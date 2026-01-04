@@ -30,7 +30,17 @@ describe('QueueService', () => {
         FactoryModule,
         ApplicationTestingConfigModule,
       ],
-      providers: [QueueService, QueueStaffService, AlertsService],
+      providers: [
+        QueueService,
+        {
+          provide: QueueStaffService,
+          useValue: {
+            formatStaffListPropertyForFrontend: jest.fn(),
+            getFormattedStaffList: jest.fn(),
+          },
+        },
+        AlertsService,
+      ],
     }).compile();
 
     service = module.get<QueueService>(QueueService);
