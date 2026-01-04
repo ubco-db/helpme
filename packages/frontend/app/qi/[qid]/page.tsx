@@ -12,11 +12,11 @@ import {
 } from 'antd'
 import {
   ReactElement,
+  use,
   useCallback,
   useEffect,
   useRef,
   useState,
-  use,
 } from 'react'
 import {
   LimboQuestionStatus,
@@ -32,14 +32,13 @@ import {
   decodeBase64,
   encodeBase64,
 } from '@koh/common'
-import { API } from '@/app/api'
+import { API, fetchUserDetails } from '@/app/api'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import Link from 'next/link'
-import { userApi } from '@/app/api/userApi'
 import StandardPageContainer from '@/app/components/standardPageContainer'
-import { setQueueInviteCookie } from '@/app/api/cookieApi'
+import { setQueueInviteCookie } from '@/app/api/cookie-utils'
 import { StatusCard } from '@/app/(dashboard)/course/[cid]/queue/[qid]/components/StaffList'
 import { useQuestionsWithQueueInvite } from '@/app/hooks/useQuestionsWithQueueInvite'
 import { useQueueWithQueueInvite } from '@/app/hooks/useQueueWithQueueInvite'
@@ -114,17 +113,9 @@ export default function QueueInvitePage(
   }, [queueConfig, configTasks, queueQuestions])
 
   useEffect(() => {
-    const fetchUserDetails = async () => {
-      await userApi
-        .getUser()
-        .then((userDetails) => {
-          setProfile(userDetails)
-        })
-        .finally(() => {
-          setHasGettingUserBeenResolved(true)
-        })
-    }
-    fetchUserDetails()
+    fetchUserDetails(setProfile, undefined, undefined, undefined, () =>
+      setHasGettingUserBeenResolved(true),
+    )
   }, [setProfile, setHasGettingUserBeenResolved])
 
   // if questions are enabled, dynamically set the queue size, otherwise set it to queueInvite.queueSize

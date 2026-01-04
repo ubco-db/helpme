@@ -10,24 +10,16 @@ import {
   Req,
   Res,
   UseGuards,
-  HttpException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import {
   AccountRegistrationParams,
-  AccountType,
-  ERROR_MESSAGES,
   PasswordRequestResetBody,
   PasswordRequestResetWithTokenBody,
   RegistrationTokenDetails,
 } from '@koh/common';
-import { JwtService } from '@nestjs/jwt';
-import { OrganizationModel } from 'organization/organization.entity';
-import { UserModel } from 'profile/user.entity';
-import * as request from 'superagent';
-import { MailService } from 'mail/mail.service';
 import {
   TokenAction,
   TokenType,
@@ -35,23 +27,17 @@ import {
 } from 'profile/user-token.entity';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import * as bcrypt from 'bcrypt';
-import { getCookie } from '../common/helpers';
 import { CourseService } from 'course/course.service';
-
-interface RequestUser {
-  userId: string;
-}
+import { LoginService } from '../login/login.service';
+import { UserId } from '../decorators/user.decorator';
 
 @Controller('auth')
 export class AuthController {
-  private GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-
   constructor(
-    private jwtService: JwtService,
     private configService: ConfigService,
-    private mailService: MailService,
     private authService: AuthService,
     private courseService: CourseService,
+    private loginService: LoginService,
   ) {}
 
   @Get('shibboleth/:oid')
@@ -60,72 +46,28 @@ export class AuthController {
     @Res() res: Response,
     @Param('oid', ParseIntPipe) organizationId: number,
   ): Promise<any> {
-    const organization = await OrganizationModel.findOne({
-      where: { id: organizationId },
-    });
-
-    if (!organization) {
-      return res.redirect(`/failed/40000`);
-    }
-    if (!organization.ssoEnabled) {
-      return res.redirect(`/failed/40002`);
-    }
-
-    // const uid = req.headers['x-trust-auth-uid'] ?? null;
-    const mail = req.headers['x-trust-auth-mail'] ?? null;
-    // const role = req.headers['x-trust-auth-role'] ?? null;
-    const givenName = req.headers['x-trust-auth-givenname'] ?? null;
-    const lastName = req.headers['x-trust-auth-lastname'] ?? null;
-
-    if (!mail || !givenName || !lastName) {
-      return res.redirect(
-        `/login?error=errorCode${HttpStatus.BAD_REQUEST}${encodeURIComponent('The login service you logged in with did not provide the required email, first name, and last name headers')}`,
-      );
-    }
-
-    try {
-      const userId = await this.authService.loginWithShibboleth(
-        String(mail),
-        String(givenName),
-        String(lastName),
-        organizationId,
-      );
-      this.enter(req, res, userId);
-    } catch (err) {
-      if (err instanceof HttpException) {
-        return res.redirect(
-          `/login?error=errorCode${err.getStatus()}${encodeURIComponent(err.message)}`,
-        );
-      }
-      return res.redirect(
-        `/login?error=errorCode${HttpStatus.INTERNAL_SERVER_ERROR}${encodeURIComponent(err.message)}`,
-      );
-    }
+    return await this.authService.shibbolethAuthCallback(
+      req,
+      res,
+      organizationId,
+      this.courseService,
+      undefined,
+      {
+        cookieOptions: {
+          httpOnly: true,
+          secure: this.isSecure(),
+        },
+      },
+    );
   }
 
   @Get('link/:method/:oid')
-  auth(
+  async auth(
     @Res() res: Response,
     @Param('method') auth_method: string,
     @Param('oid', ParseIntPipe) organizationId: number,
-  ): Response<{ redirectUri: string }> {
-    res.cookie('organization.id', organizationId, {
-      httpOnly: true,
-      secure: this.isSecure(),
-    });
-
-    switch (auth_method) {
-      case 'google':
-        return res.status(200).send({
-          redirectUri:
-            `${this.GOOGLE_AUTH_URL}?client_id=${process.env.GOOGLE_CLIENT_ID}.apps.googleusercontent.com` +
-            `&redirect_uri=${process.env.GOOGLE_REDIRECT_URI}&response_type=code&scope=openid%20profile%20email`,
-        });
-      default:
-        return res
-          .status(HttpStatus.BAD_REQUEST)
-          .send({ message: 'Invalid auth method' });
-    }
+  ): Promise<Response<{ redirectUri: string } | { message: string }>> {
+    return this.authService.ssoAuthInit(res, auth_method, organizationId);
   }
 
   @Post('registration/verify')
@@ -133,65 +75,33 @@ export class AuthController {
   async validateRegistrationToken(
     @Res() res: Response,
     @Req() req: Request,
+    @UserId() userId: number,
     @Body() registrationTokenDetails: RegistrationTokenDetails,
   ): Promise<Response<void>> {
-    const { token } = registrationTokenDetails;
-    const userId = Number((req.user as RequestUser).userId);
+    const result = await this.authService.verifyRegistrationToken(
+      res,
+      userId,
+      registrationTokenDetails,
+    );
 
-    const emailToken = await UserTokenModel.findOne({
-      where: {
-        token,
-        token_type: TokenType.EMAIL_VERIFICATION,
-        token_action: TokenAction.ACTION_PENDING,
-        user: {
-          id: userId,
+    // If non-number was returned, the verification failed
+    if (typeof result != 'number') {
+      return;
+    }
+
+    return (await this.loginService.handleCookies(
+      req,
+      res,
+      result,
+      {
+        cookieOptions: {
+          httpOnly: true,
+          secure: this.isSecure(),
         },
+        emailVerification: true,
       },
-      relations: ['user'],
-    });
-
-    if (!emailToken) {
-      return res.status(HttpStatus.BAD_REQUEST).send({
-        message: 'Verification code was not found or it is not valid',
-      });
-    }
-
-    if (emailToken.expires_at < parseInt(new Date().getTime().toString())) {
-      return res.status(HttpStatus.BAD_REQUEST).send({
-        message: 'Verification code has expired',
-      });
-    }
-
-    emailToken.token_action = TokenAction.ACTION_COMPLETE;
-    emailToken.user.emailVerified = true;
-    await emailToken.user.save();
-    await emailToken.save();
-    const cookie = getCookie(req, '__SECURE_REDIRECT');
-    const queueInviteCookie = getCookie(req, 'queueInviteInfo');
-
-    if (queueInviteCookie) {
-      await this.courseService
-        .getQueueInviteRedirectURLandInviteToCourse(queueInviteCookie, userId)
-        .then((url) => {
-          res.clearCookie('queueInviteInfo');
-          return res.status(HttpStatus.TEMPORARY_REDIRECT).send({
-            redirectUri: url,
-          });
-        });
-    } else if (cookie) {
-      const decodedCookie = decodeURIComponent(cookie);
-      res.clearCookie('__SECURE_REDIRECT', {
-        httpOnly: true,
-        secure: this.isSecure(),
-      });
-      return res.status(HttpStatus.TEMPORARY_REDIRECT).send({
-        redirectUri: `/invite?cid=${decodedCookie.split(',')[0]}&code=${encodeURIComponent(decodedCookie.split(',')[1])}`,
-      });
-    } else {
-      return res.status(HttpStatus.ACCEPTED).send({
-        message: 'Email verified',
-      });
-    }
+      this.courseService,
+    )) as Response;
   }
 
   @Get('/password/reset/validate/:token')
@@ -213,7 +123,10 @@ export class AuthController {
       });
     }
 
-    if (passwordToken.expires_at < parseInt(new Date().getTime().toString())) {
+    if (
+      (Date.now() - passwordToken.createdAt.getTime()) / 1000 >
+      passwordToken.expiresInSeconds
+    ) {
       return res.status(HttpStatus.BAD_REQUEST).send({
         message: 'Password reset token has expired',
       });
@@ -253,14 +166,17 @@ export class AuthController {
       });
     }
 
-    if (passwordToken.expires_at < parseInt(new Date().getTime().toString())) {
+    if (
+      (Date.now() - passwordToken.createdAt.getTime()) / 1000 >
+      passwordToken.expiresInSeconds
+    ) {
       return res.status(HttpStatus.BAD_REQUEST).send({
         message: 'Password reset token has expired',
       });
     }
 
     passwordToken.token_action = TokenAction.ACTION_COMPLETE;
-    passwordToken.expires_at = parseInt(new Date().getTime().toString());
+    passwordToken.expiresInSeconds = 0;
     await passwordToken.save();
 
     const salt = await bcrypt.genSalt(10);
@@ -273,182 +189,47 @@ export class AuthController {
   }
 
   @Post('/password/reset')
-  async resetPassword(
+  async requestPasswordReset(
     @Body() body: PasswordRequestResetBody,
     @Res() res: Response,
   ): Promise<Response<void>> {
-    const { email, recaptchaToken, organizationId } = body;
-
-    if (!recaptchaToken) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'Invalid recaptcha token' });
+    res = await this.authService.validateResetPasswordParams(res, body);
+    if (res.headersSent) {
+      return;
     }
 
-    const response = await request.post(
-      `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.PRIVATE_RECAPTCHA_SITE_KEY}&response=${recaptchaToken}`,
+    const { email, organizationId } = body;
+    return await this.authService.issuePasswordReset(
+      res,
+      email,
+      organizationId,
     );
-
-    if (!response.body.success) {
-      return res.status(HttpStatus.BAD_REQUEST).send({
-        message: 'Recaptcha token invalid',
-      });
-    }
-
-    const user = await UserModel.findOne({
-      where: {
-        email,
-        organizationUser: { organizationId },
-        accountType: AccountType.LEGACY,
-      },
-      relations: ['organizationUser'],
-    });
-
-    if (!user) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'User not found' });
-    }
-
-    if (!user.emailVerified) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'Email not verified' });
-    }
-
-    const resetLink = await this.authService.createPasswordResetToken(user);
-
-    this.mailService.sendPasswordResetEmail(
-      user.email,
-      `${process.env.DOMAIN}/account/password/${resetLink}`,
-    );
-
-    return res.status(HttpStatus.ACCEPTED).send({
-      message: 'Password reset email sent',
-    });
   }
 
   @Post('register')
   async register(
     @Body() body: AccountRegistrationParams,
+    @Req() req: Request,
     @Res() res: Response,
-  ): Promise<Response<void>> {
-    const {
-      firstName,
-      lastName,
-      email,
-      password,
-      confirmPassword,
-      sid,
-      organizationId,
-      recaptchaToken,
-    } = body;
-
-    if (!recaptchaToken) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'Invalid recaptcha token' });
+  ): Promise<void | Response<void>> {
+    res = await this.authService.validateRegistrationParams(res, body);
+    if (res.headersSent) {
+      return;
     }
 
-    const response = await request.post(
-      `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.PRIVATE_RECAPTCHA_SITE_KEY}&response=${recaptchaToken}`,
-    );
-
-    if (!response.body.success) {
-      return res.status(HttpStatus.BAD_REQUEST).send({
-        message: 'Recaptcha token invalid',
-      });
-    }
-
-    if (firstName.trim().length < 1 || lastName.trim().length < 1) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'First and last name must be at least 1 character' });
-    }
-
-    if (firstName.trim().length > 32 || lastName.trim().length > 32) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'First and last name must be at most 32 characters' });
-    }
-
-    if (email.trim().length < 4 || email.trim().length > 64) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'Email must be between 4 and 64 characters' });
-    }
-
-    if (password.trim().length < 6 || password.trim().length > 32) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'Password must be between 6 and 32 characters' });
-    }
-
-    if (password !== confirmPassword) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'Passwords do not match' });
-    }
-
-    const organization = await OrganizationModel.findOne({
-      where: { id: organizationId },
-    });
-
-    if (!organization) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'Organization not found' });
-    }
-
-    const user = await UserModel.findOne({ where: { email } });
-
-    if (user) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'Email already exists' });
-    }
-
-    if (sid) {
-      const result = await this.authService.studentIdExists(
-        sid,
-        organizationId,
-      );
-      if (result) {
-        return res
-          .status(HttpStatus.BAD_REQUEST)
-          .send({ message: 'Student ID already exists' });
-      }
-    }
-
-    try {
-      const userId = await this.authService.register(
-        firstName,
-        lastName,
-        email,
-        password,
-        sid ? sid : -1,
-        organizationId,
-      );
-      // create student subscriptions
-      await this.authService.createStudentSubscriptions(userId);
-
-      const authToken = await this.createAuthToken(userId);
-
-      if (authToken === null || authToken === undefined) {
-        return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
-          message: ERROR_MESSAGES.loginController.invalidTempJWTToken,
-        });
-      }
-
-      return res
-        .cookie('auth_token', authToken, {
+    return await this.authService.registerAccount(
+      req,
+      res,
+      body,
+      this.courseService,
+      undefined,
+      {
+        cookieOptions: {
           httpOnly: true,
           secure: this.isSecure(),
-        })
-        .send({ message: 'Account created' });
-    } catch (err) {
-      return res.status(HttpStatus.BAD_REQUEST).send({ message: err.message });
-    }
+        },
+      },
+    );
   }
 
   @Get('callback/:method')
@@ -456,94 +237,24 @@ export class AuthController {
     @Res() res: Response,
     @Param('method') auth_method: string,
     @Query('code') auth_code: string,
+    @Query('state') auth_state: string,
     @Req() req: Request,
-  ): Promise<Response<void>> {
-    const organizationId = getCookie(req, 'organization.id');
-
-    if (!organizationId) {
-      res.redirect(`/failed/40000`);
-    } else {
-      try {
-        let payload: number;
-
-        switch (auth_method) {
-          case 'google':
-            payload = await this.authService.loginWithGoogle(
-              auth_code,
-              Number(organizationId),
-            );
-            break;
-          default:
-            return res
-              .status(HttpStatus.BAD_REQUEST)
-              .send({ message: 'Invalid auth method' });
-        }
-
-        res.clearCookie('organization.id', {
+  ): Promise<Response<void> | void> {
+    return await this.authService.ssoAuthCallback(
+      req,
+      res,
+      auth_method,
+      auth_code,
+      auth_state,
+      this.courseService,
+      undefined,
+      {
+        cookieOptions: {
           httpOnly: true,
           secure: this.isSecure(),
-        });
-
-        this.enter(req, res, payload);
-      } catch (err) {
-        if (err instanceof HttpException) {
-          res.redirect(
-            `/login?error=errorCode${err.getStatus()}${encodeURIComponent(err.message)}`,
-          );
-        } else {
-          res.redirect(
-            `/login?error=errorCode${HttpStatus.INTERNAL_SERVER_ERROR}${encodeURIComponent(err.message)}`,
-          );
-        }
-      }
-    }
-  }
-
-  private async enter(req: Request, res: Response, userId: number) {
-    const authToken = await this.createAuthToken(userId);
-
-    if (authToken === null || authToken === undefined) {
-      return res
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .send({ message: ERROR_MESSAGES.loginController.invalidTempJWTToken });
-    }
-
-    let redirectUrl: string;
-    const cookie = getCookie(req, '__SECURE_REDIRECT');
-    const queueInviteCookie = getCookie(req, 'queueInviteInfo');
-
-    if (queueInviteCookie) {
-      await this.courseService
-        .getQueueInviteRedirectURLandInviteToCourse(queueInviteCookie, userId)
-        .then((url) => {
-          redirectUrl = url;
-          res.clearCookie('queueInviteInfo');
-        });
-    } else if (cookie) {
-      const decodedCookie = decodeURIComponent(cookie);
-      redirectUrl = `/invite?cid=${decodedCookie.split(',')[0]}&code=${encodeURIComponent(decodedCookie.split(',')[1])}`;
-      res.clearCookie('__SECURE_REDIRECT', {
-        httpOnly: true,
-        secure: this.isSecure(),
-      });
-    } else {
-      redirectUrl = '/courses';
-    }
-
-    res
-      .cookie('auth_token', authToken, {
-        httpOnly: true,
-        secure: this.isSecure(),
-      })
-      .redirect(HttpStatus.FOUND, redirectUrl);
-  }
-
-  private async createAuthToken(userId: number): Promise<string> {
-    // Expires in 30 days
-    return await this.jwtService.signAsync({
-      userId,
-      expiresIn: 60 * 60 * 24 * 30,
-    });
+        },
+      },
+    );
   }
 
   private isSecure(): boolean {

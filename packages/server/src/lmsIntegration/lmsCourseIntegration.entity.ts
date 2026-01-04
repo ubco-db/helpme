@@ -16,20 +16,24 @@ import { LMSPageModel } from './lmsPage.entity';
 import { LMSFileModel } from './lmsFile.entity';
 import { LMSQuizModel } from './lmsQuiz.entity';
 import { LMSResourceType } from '@koh/common';
+import { LMSAccessTokenModel } from './lms-access-token.entity';
 
 @Entity('lms_course_integration_model')
 export class LMSCourseIntegrationModel extends BaseEntity {
   @PrimaryColumn()
   courseId: number;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', unique: true })
   apiCourseId: string;
 
-  @Column({ type: 'text' })
-  apiKey: string;
+  @Column({ type: 'integer', nullable: true })
+  accessTokenId?: number;
+
+  @Column({ type: 'text', nullable: true })
+  apiKey?: string;
 
   @Column({ type: 'timestamp', nullable: true })
-  apiKeyExpiry: Date;
+  apiKeyExpiry?: Date;
 
   @Column({ type: 'boolean', default: false })
   lmsSynchronize: boolean;
@@ -47,31 +51,35 @@ export class LMSCourseIntegrationModel extends BaseEntity {
   selectedResourceTypes: LMSResourceType[];
 
   @ManyToOne(
-    (type) => LMSOrganizationIntegrationModel,
+    () => LMSOrganizationIntegrationModel,
     (integration) => integration.courseIntegrations,
     { onDelete: 'CASCADE' },
   )
   orgIntegration: LMSOrganizationIntegrationModel;
 
-  @OneToOne((type) => CourseModel, (course) => course.lmsIntegration)
+  @OneToOne(() => CourseModel, (course) => course.lmsIntegration)
   @JoinColumn({ name: 'courseId', referencedColumnName: 'id' })
   course: CourseModel;
 
-  @OneToMany((type) => LMSAssignmentModel, (assignment) => assignment.course)
+  @OneToMany(() => LMSAssignmentModel, (assignment) => assignment.course)
   assignments: LMSAssignmentModel[];
 
-  @OneToMany(
-    (type) => LMSAnnouncementModel,
-    (announcement) => announcement.course,
-  )
+  @OneToMany(() => LMSAnnouncementModel, (announcement) => announcement.course)
   announcements: LMSAnnouncementModel[];
 
-  @OneToMany((type) => LMSPageModel, (page) => page.course)
+  @OneToMany(() => LMSPageModel, (page) => page.course)
   pages: LMSPageModel[];
 
-  @OneToMany((type) => LMSFileModel, (file) => file.course)
+  @OneToMany(() => LMSFileModel, (file) => file.course)
   files: LMSFileModel[];
 
-  @OneToMany((type) => LMSQuizModel, (quiz) => quiz.course)
+  @OneToMany(() => LMSQuizModel, (quiz) => quiz.course)
   quizzes: LMSQuizModel[];
+
+  @ManyToOne(() => LMSAccessTokenModel, (token) => token.courses, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'accessTokenId' })
+  accessToken?: LMSAccessTokenModel;
 }

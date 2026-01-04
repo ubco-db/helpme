@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`OrganizationService deleteUserCourses should throw not found exception if user does not exist 1`] = `"User with id 0 not found"`;
 

@@ -2,7 +2,6 @@ import { config } from 'dotenv';
 import { isProd } from '@koh/common';
 import * as fs from 'fs';
 import { DataSourceOptions } from 'typeorm';
-import { AdminUserModel } from './src/admin/admin-user.entity';
 import { CourseModel } from './src/course/course.entity';
 import { SemesterModel } from './src/semester/semester.entity';
 import { DesktopNotifModel } from './src/notification/desktop-notif.entity';
@@ -53,6 +52,12 @@ import { ChatbotProviderModel } from './src/chatbot/chatbot-infrastructure-model
 import { CourseChatbotSettingsModel } from './src/chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
 import { OrganizationChatbotSettingsModel } from './src/chatbot/chatbot-infrastructure-models/organization-chatbot-settings.entity';
 import { LLMTypeModel } from './src/chatbot/chatbot-infrastructure-models/llm-type.entity';
+import { LMSAccessTokenModel } from './src/lmsIntegration/lms-access-token.entity';
+import { LMSAuthStateModel } from './src/lmsIntegration/lms-auth-state.entity';
+import { LtiCourseInviteModel } from './src/lti/lti-course-invite.entity';
+import { AuthStateModel } from './src/auth/auth-state.entity';
+import { LtiIdentityTokenModel } from './src/lti/lti_identity_token.entity';
+import { UserLtiIdentityModel } from './src/lti/user_lti_identity.entity';
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
   config();
@@ -95,7 +100,6 @@ const typeorm: DataSourceOptions = {
     QuestionTypeModel,
     QueueModel,
     DesktopNotifModel,
-    AdminUserModel,
     EventModel,
     QuestionGroupModel,
     AlertModel,
@@ -133,6 +137,12 @@ const typeorm: DataSourceOptions = {
     CourseChatbotSettingsModel,
     OrganizationChatbotSettingsModel,
     LLMTypeModel,
+    LMSAuthStateModel,
+    LMSAccessTokenModel,
+    LtiCourseInviteModel,
+    AuthStateModel,
+    UserLtiIdentityModel,
+    LtiIdentityTokenModel,
   ],
   logging:
     process.env.NODE_ENV !== 'production'

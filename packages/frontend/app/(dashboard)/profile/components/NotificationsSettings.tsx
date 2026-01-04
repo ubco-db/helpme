@@ -10,7 +10,7 @@ import { useUserInfo } from '@/app/contexts/userContext'
 
 const NotificationsSettings: React.FC = () => {
   const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
-    API.profile.index(),
+    API.profile.getUser(),
   )
   const { userInfo, setUserInfo } = useUserInfo()
 
@@ -51,7 +51,7 @@ const NotificationsSettings: React.FC = () => {
           <BellOutlined /> Browser Notifications
         </h2>
       }
-      bordered
+      variant={'outlined'}
       className="my-2"
       classNames={{ body: 'py-2' }}
     >

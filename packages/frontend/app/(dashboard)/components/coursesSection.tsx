@@ -11,11 +11,13 @@ import CoursesSectionTableView from './CoursesSectionTableView'
 interface CoursesSectionProps {
   semesters: SemesterPartial[]
   enabledTableView: boolean
+  ltiView?: boolean
 }
 
 const CoursesSection: React.FC<CoursesSectionProps> = ({
   semesters,
   enabledTableView,
+  ltiView,
 }) => {
   // For some reason, jdenticon is not working when imported as a module and needs to use require
   // eslint-disable @typescript-eslint/no-var-requires
@@ -55,7 +57,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
         if (semesterA && !semesterB) return -1
         if (semesterB && !semesterA) return 1
 
- /*
+        /*
          Note that this is implicitly true at this point, but to avoid TypeScript errors
          we define the conditional statement:
          */
@@ -68,13 +70,13 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
             ? new Date(semesterA.endDate).getTime()
             : semesterA.startDate
               ? new Date(semesterA.startDate).getTime()
-              : -Infinity;
+              : -Infinity
           const bTime = semesterB.endDate
             ? new Date(semesterB.endDate).getTime()
             : semesterB.startDate
               ? new Date(semesterB.startDate).getTime()
-              : -Infinity;
-          
+              : -Infinity
+
           const diff = bTime - aTime
           if (diff === 0) {
             return a.course.name.localeCompare(b.course.name)
@@ -82,7 +84,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
             return diff
           }
         }
-        return a.course.name.localeCompare(b.course.name);
+        return a.course.name.localeCompare(b.course.name)
       })
   }, [userInfo.courses, semesters])
 
@@ -195,25 +197,35 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
 
                 <Link
                   id={index === 0 ? 'skip-link-target' : ''}
-                  href={`course/${course.course.id}`}
+                  href={
+                    ltiView
+                      ? `lti/${course.course.id}`
+                      : `course/${course.course.id}`
+                  }
                 >
                   <Button
                     type="primary"
                     className="mt-5 rounded p-[1.1rem] font-medium"
                     block
                   >
-                    Course page
+                    {ltiView ? 'Chatbot' : 'Course page'}
                   </Button>
                 </Link>
 
                 {course.role === Role.PROFESSOR && (
-                  <Link href={`/course/${course.course.id}/settings`}>
+                  <Link
+                    href={
+                      ltiView
+                        ? `/lti/${course.course.id}/integration`
+                        : `/course/${course.course.id}/settings`
+                    }
+                  >
                     <Button
                       type="primary"
                       className="mt-4 rounded p-[1.1rem] font-medium"
                       block
                     >
-                      Edit Course
+                      {ltiView ? 'LMS Integration' : 'Edit Course'}
                     </Button>
                   </Link>
                 )}

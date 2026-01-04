@@ -12,10 +12,10 @@ import { ExtraTAStatus } from '@koh/common';
 
 @Entity('queue_staff_model')
 export class QueueStaffModel extends BaseEntity {
-  @PrimaryColumn('int', { name: 'queueId' })
+  @PrimaryColumn('integer', { name: 'queueId' })
   queueId: number;
 
-  @PrimaryColumn('int', { name: 'userId' })
+  @PrimaryColumn('integer', { name: 'userId' })
   userId: number;
 
   @ManyToOne(() => QueueModel, (queue) => queue.queueStaff, {
@@ -31,6 +31,11 @@ export class QueueStaffModel extends BaseEntity {
   user: UserModel;
 
   // Optional extra status a TA can set for themselves (e.g., Away)
-  @Column({ type: 'enum', enum: ExtraTAStatus, nullable: true })
+  @Column({
+    type: 'enum',
+    enum: ExtraTAStatus,
+    nullable: true,
+    name: 'extraTAStatus',
+  })
   extraTAStatus: ExtraTAStatus | null;
 }
