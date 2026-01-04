@@ -125,7 +125,7 @@ export class QuestionController {
     const queue = await QueueModel.findOne({
       where: { id: queueId },
       relations: {
-        staffList: true,
+        queueStaff: true,
       },
     });
 
@@ -140,7 +140,7 @@ export class QuestionController {
         ERROR_MESSAGES.questionController.createQuestion.noNewQuestions,
       );
     }
-    if (queue.staffList.length === 0 || queue.isDisabled) {
+    if (queue.queueStaff.length === 0 || queue.isDisabled) {
       throw new BadRequestException(
         ERROR_MESSAGES.questionController.createQuestion.closedQueue,
       );
@@ -229,7 +229,7 @@ export class QuestionController {
     const queue = await QueueModel.findOne({
       where: { id: queueId },
       relations: {
-        staffList: true,
+        queueStaff: true,
       },
     });
 
@@ -244,7 +244,7 @@ export class QuestionController {
         ERROR_MESSAGES.questionController.createQuestion.noNewQuestions,
       );
     }
-    if (queue.staffList.length === 0 || queue.isDisabled) {
+    if (queue.queueStaff.length === 0 || queue.isDisabled) {
       throw new BadRequestException(
         ERROR_MESSAGES.questionController.createQuestion.closedQueue,
       );

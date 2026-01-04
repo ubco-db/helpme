@@ -4,13 +4,11 @@ import {
   Column,
   Entity,
   JoinColumn,
-  ManyToMany,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { DesktopNotifModel } from '../notification/desktop-notif.entity';
-import { QueueModel } from '../queue/queue.entity';
 import { EventModel } from './event-model.entity';
 import { UserCourseModel } from './user-course.entity';
 import { AlertModel } from '../alerts/alerts.entity';
@@ -30,6 +28,7 @@ import { QuestionModel } from '../question/question.entity';
 import { LMSAuthStateModel } from '../lmsIntegration/lms-auth-state.entity';
 import { LMSAccessTokenModel } from '../lmsIntegration/lms-access-token.entity';
 import { UserLtiIdentityModel } from '../lti/user_lti_identity.entity';
+import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {
@@ -88,14 +87,8 @@ export class UserModel extends BaseEntity {
   @Exclude()
   subscriptions: UserSubscriptionModel[];
 
-  // NOTE: This relation uses a JoinTable and is also mapped by QueueStaffModel
-  // to store extra metadata (e.g., extra TA status) on the join row without
-  // refactoring all code that expects queues: QueueModel[]. If you need to
-  // modify attributes on the join table itself, do so via QueueStaffModel. Note said attributes
-  // will not appear on this queues array and you will need to query them directly via QueueStaffModel.find(...)
-  @Exclude()
-  @ManyToMany(() => QueueModel, (queue) => queue.staffList)
-  queues: QueueModel[];
+  @OneToMany((_type) => QueueStaffModel, (queueStaff) => queueStaff.user)
+  queueStaff: QueueStaffModel[];
 
   @Exclude()
   @OneToMany(() => EventModel, (event) => event.user)

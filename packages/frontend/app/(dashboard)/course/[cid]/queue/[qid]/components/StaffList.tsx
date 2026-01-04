@@ -179,7 +179,12 @@ const StatusCard: React.FC<StatusCardProps> = ({
       <div
         className={`flex rounded-md bg-white p-2 shadow-md md:mb-3 md:p-3 ${shouldShowEdit ? 'cursor-pointer' : ''}`}
       >
-        <UserAvatar size={48} username={ta.name} photoURL={ta.photoURL} />
+        <UserAvatar
+          size={48}
+          className="flex-shrink-0"
+          username={ta.name}
+          photoURL={ta.photoURL}
+        />
         <div className="ml-2 flex-grow">
           <Row justify="space-between">
             <div className="font-bold text-gray-900">{ta.name}</div>
@@ -337,6 +342,7 @@ const HelpingFor: React.FC<HelpingForProps> = ({
   extraTAStatus,
 }) => {
   // A dirty fix until we can get the serializer working properly again (i renamed `questions` in SSEQueueResponse to `queueQuestions` and renamed `queue` in ListQuestionsResponse to `questions` and stuff broke for some reason)
+  // update: just need to set up the api method inside api/index.ts so it uses a responseClass
   let tempDate = helpedAt
   if (typeof helpedAt === 'string') {
     tempDate = new Date(Date.parse(helpedAt))

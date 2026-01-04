@@ -12,8 +12,10 @@ import {
 } from '@koh/common';
 import {
   BadRequestException,
+  forwardRef,
   HttpException,
   HttpStatus,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -33,9 +35,11 @@ import { QueueSSEService } from 'queue/queue-sse.service';
 export class QuestionService {
   constructor(
     private notifService: NotificationService,
+    @Inject(forwardRef(() => QueueService))
     public queueService: QueueService,
     public redisQueueService: RedisQueueService,
     public readonly queueChatService: QueueChatService,
+    @Inject(forwardRef(() => QueueSSEService))
     private readonly queueSSEService: QueueSSEService,
   ) {}
 

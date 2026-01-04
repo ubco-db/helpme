@@ -6,6 +6,7 @@ import {
   initFactoriesFromService,
   QuestionFactory,
   QueueFactory,
+  QueueStaffFactory,
   TACourseFactory,
   UserFactory,
 } from '../../test/util/factories';
@@ -86,7 +87,10 @@ describe('Alerts service', () => {
 
       const queue = await QueueFactory.create({
         course,
-        staffList: [ta.user],
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta.user,
       });
 
       const openAlert = await createAlerts(queue);
@@ -151,7 +155,10 @@ describe('Alerts service', () => {
       });
       const queue = await QueueFactory.create({
         course,
-        staffList: [ta.user],
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta.user,
       });
       const openAlert = await createAlerts(queue);
       await service.removeStaleAlerts(
