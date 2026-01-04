@@ -492,7 +492,7 @@ describe('Course Integration', () => {
         .expect(200);
 
       const newQueueStaff = await QueueStaffModel.find({
-        where: { queue: queue1 },
+        where: { queueId: queue1.id },
       });
       expect(newQueueStaff.length).toBe(1);
       expect(newQueueStaff[0].userId).toBe(ta2.id);
