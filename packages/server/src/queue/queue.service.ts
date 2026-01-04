@@ -45,7 +45,11 @@ export class QueueService {
     private dataSource: DataSource,
   ) {}
 
-  /* Gets the QueueModel and adds on queueSize. Don't return this to frontend directly, use getQueueFormatted for that */
+  /* Gets the QueueModel and adds on queueSize. Don't return this to frontend directly, use getQueueFormatted for that.
+  Use this if you want a QueueModel to do some operations on. 
+  Before returning the queue to frontend, use formatStaffListPropertyForFrontend() or getFormattedStaffList() to make sure the staff list is the right structure.
+  (Since the stafflist our frontend uses is not the same structure as the backend)
+  */
   async getQueueRaw(queueId: number): Promise<QueueModel> {
     const queue = await QueueModel.findOne({
       where: {

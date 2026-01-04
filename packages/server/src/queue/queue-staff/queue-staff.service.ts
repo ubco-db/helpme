@@ -36,11 +36,6 @@ type StaffHelpingInOtherQueues = {
   helpedAt: Date;
 }[];
 
-/* Put this into its own service since both course.service and queue.service depend on it 
-(there would be a nestjs circular dependency otherwise EDIT: okay maybe not but eh keeping it in its own
-service still makes sense since I could see this receiving more functionality in the future) 
-Also moved the checkin/checkout stuff here since it's related.
-*/
 @Injectable()
 export class QueueStaffService {
   constructor(
@@ -349,9 +344,9 @@ export class QueueStaffService {
   }
 
   public async cleanQueue(queueId: number, force?: boolean): Promise<void> {
-    const queueStaff = await QueueStaffModel.find({ where: { queueId } });
+    const queueStaffCount = await QueueStaffModel.count({ where: { queueId } });
 
-    if (force || queueStaff.length === 0) {
+    if (force || queueStaffCount === 0) {
       await this.unsafeClean(queueId);
     }
   }
