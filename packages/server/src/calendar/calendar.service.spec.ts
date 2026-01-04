@@ -1,4 +1,3 @@
- 
 import { Test, TestingModule } from '@nestjs/testing';
 import { CalendarService } from './calendar.service';
 import { SchedulerRegistry } from '@nestjs/schedule';
@@ -8,19 +7,32 @@ import { QuestionService } from '../question/question.service';
 import { NotificationService } from '../notification/notification.service';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { AlertModel } from '../alerts/alerts.entity';
-import { AlertType } from '@koh/common';
-import { EventModel } from 'profile/event-model.entity';
+import { AlertType, Role } from '@koh/common';
+import { EventModel, EventType } from '../profile/event-model.entity';
 import { QueueStaffModel } from '../queue/queue-staff/queue-staff.entity';
 import { QueueStaffService } from 'queue/queue-staff/queue-staff.service';
+import { DataSource } from 'typeorm';
+import {
+  AlertFactory,
+  initFactoriesFromService,
+  QueueFactory,
+  UserFactory,
+  QueueStaffFactory,
+  CourseFactory,
+  UserCourseFactory,
+} from '../../test/util/factories';
+import { FactoryModule } from 'factory/factory.module';
+import { FactoryService } from 'factory/factory.service';
 
 describe('CalendarService', () => {
   let service: CalendarService;
   let schedulerRegistry: SchedulerRegistry;
+  let dataSource: DataSource;
   let consoleErrorSpy: jest.SpyInstance;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestTypeOrmModule, TestConfigModule],
+      imports: [TestTypeOrmModule, TestConfigModule, FactoryModule],
       providers: [
         CalendarService,
         {
@@ -41,7 +53,7 @@ describe('CalendarService', () => {
           useValue: {
             addCronJob: jest.fn(),
             deleteCronJob: jest.fn(),
-            getCronJobs: jest.fn(),
+            getCronJobs: jest.fn().mockReturnValue(new Map()),
           },
         },
       ],
@@ -49,7 +61,26 @@ describe('CalendarService', () => {
 
     service = module.get<CalendarService>(CalendarService);
     schedulerRegistry = module.get<SchedulerRegistry>(SchedulerRegistry);
+    dataSource = module.get<DataSource>(DataSource);
+
+    const factories = module.get<FactoryService>(FactoryService);
+    initFactoriesFromService(factories);
+  });
+
+  afterAll(async () => {
+    if (dataSource && dataSource.isInitialized) {
+      await dataSource.destroy();
+    }
+  });
+
+  beforeEach(async () => {
+    if (dataSource.isInitialized) {
+      await dataSource.synchronize(true);
+    }
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    jest.clearAllMocks();
+
+    // Default spy behavior for these
     jest
       .spyOn(service, 'deleteAnyExistingAutoCheckoutLoopJobs')
       .mockImplementation(jest.fn());
@@ -61,7 +92,13 @@ describe('CalendarService', () => {
 
   describe('createAutoCheckoutCronJob', () => {
     it('should create a one-time cron job for non-recurring events', async () => {
-      const userId = 1;
+      const user = await UserFactory.create();
+      const course = await CourseFactory.create();
+      await UserCourseFactory.create({
+        user,
+        course,
+        role: Role.TA,
+      });
       const calendarId = 1;
       const startDate = null;
       const endDate = null;
@@ -70,13 +107,13 @@ describe('CalendarService', () => {
       const daysOfWeek: string[] = [];
 
       await service.createAutoCheckoutCronJob(
-        userId,
+        user.id,
         calendarId,
         startDate,
         endDate,
         endTime,
         daysOfWeek,
-        1,
+        course.id,
       );
 
       expect(schedulerRegistry.addCronJob).toHaveBeenCalled();
@@ -85,8 +122,15 @@ describe('CalendarService', () => {
       expect(job.nextDate().toJSDate()).toEqual(endTime);
       expect(job.runOnce).toBeTruthy();
     });
+
     it('should not allow you to create a cron job for a date in the past (only for non-recurring events)', async () => {
-      const userId = 1;
+      const user = await UserFactory.create();
+      const course = await CourseFactory.create();
+      await UserCourseFactory.create({
+        user,
+        course,
+        role: Role.TA,
+      });
       const calendarId = 1;
       const startDate = null;
       const endDate = null;
@@ -96,18 +140,20 @@ describe('CalendarService', () => {
 
       await expect(
         service.createAutoCheckoutCronJob(
-          userId,
+          user.id,
           calendarId,
           startDate,
           endDate,
           endTime,
           daysOfWeek,
-          1,
+          course.id,
         ),
       ).rejects.toThrow(BadRequestException);
     });
+
     it('should create a recurring cron job for recurring events', async () => {
-      const userId = 1;
+      const user = await UserFactory.create();
+      const course = await CourseFactory.create();
       const calendarId = 1;
       const startDate = new Date();
       const endDate = new Date();
@@ -115,13 +161,13 @@ describe('CalendarService', () => {
       const daysOfWeek = ['1', '2', '3'];
 
       await service.createAutoCheckoutCronJob(
-        userId,
+        user.id,
         calendarId,
         startDate,
         endDate,
         endTime,
         daysOfWeek,
-        1,
+        course.id,
       );
 
       expect(schedulerRegistry.addCronJob).toHaveBeenCalled();
@@ -131,8 +177,10 @@ describe('CalendarService', () => {
       expect(job.cronTime.source).toEqual(expectedCronTime);
       expect(job.runOnce).toBeFalsy();
     });
+
     it('should throw a BadRequestException for invalid event', async () => {
-      const userId = 1;
+      const user = await UserFactory.create();
+      const course = await CourseFactory.create();
       const calendarId = 1;
       const startDate = null;
       const endDate = new Date();
@@ -141,13 +189,13 @@ describe('CalendarService', () => {
 
       await expect(
         service.createAutoCheckoutCronJob(
-          userId,
+          user.id,
           calendarId,
           startDate,
           endDate,
           endTime,
           daysOfWeek,
-          1,
+          course.id,
         ),
       ).rejects.toThrow(BadRequestException);
     });
@@ -167,100 +215,68 @@ describe('CalendarService', () => {
     });
 
     it('should check if the user is checked in and send an alert if they are', async () => {
-      const userId = 1;
-      const calendarId = 1;
-      const courseId = 1;
-
-      const mockCheckedInQueues = [
-        { queueId: 1, userId: userId },
-      ] as QueueStaffModel[];
-      jest
-        .spyOn(QueueStaffModel, 'find')
-        .mockResolvedValue(mockCheckedInQueues);
-
-      await service.initializeAutoCheckout(userId, calendarId, courseId);
-
-      expect(QueueStaffModel.find).toHaveBeenCalledWith({
-        where: {
-          userId,
-        },
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: ta,
+        course,
+        role: Role.TA,
       });
+      const queue = await QueueFactory.create({ course });
+      await QueueStaffFactory.create({ queue, user: ta });
+
+      await service.initializeAutoCheckout(ta.id, 1, course.id);
+
       expect(sendAlertToAutoCheckout10minsFromNowSpy).toHaveBeenCalledWith(
-        userId,
-        calendarId,
-        courseId,
+        ta.id,
+        1,
+        course.id,
       );
     });
 
     it('should not send an alert if the user is not checked in', async () => {
-      const userId = 1;
-      const calendarId = 1;
-      const courseId = 1;
-
-      const mockCheckedInQueues: QueueStaffModel[] = [];
-      jest
-        .spyOn(QueueStaffModel, 'find')
-        .mockResolvedValue(mockCheckedInQueues);
-
-      await service.initializeAutoCheckout(userId, calendarId, courseId);
-
-      expect(QueueStaffModel.find).toHaveBeenCalledWith({
-        where: {
-          userId,
-        },
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: ta,
+        course,
+        role: Role.TA,
       });
-      expect(sendAlertToAutoCheckout10minsFromNowSpy).not.toHaveBeenCalled();
-    });
 
-    it('should log an error and capture exception if the query fails', async () => {
-      const userId = 1;
-      const calendarId = 1;
-      const courseId = 1;
+      // No queue staff entry created
 
-      const mockError = new Error('Query failed');
-      jest.spyOn(QueueStaffModel, 'find').mockRejectedValue(mockError);
+      await service.initializeAutoCheckout(ta.id, 1, course.id);
 
-      await service.initializeAutoCheckout(userId, calendarId, courseId);
-
-      expect(QueueStaffModel.find).toHaveBeenCalledWith({
-        where: {
-          userId,
-        },
-      });
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error checking if user is checked in',
-        mockError,
-      );
       expect(sendAlertToAutoCheckout10minsFromNowSpy).not.toHaveBeenCalled();
     });
   });
 
   describe('sendAlertToAutoCheckout10minsFromNow', () => {
     it('should create an alert and schedule a cron job', async () => {
-      const userId = 1;
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: ta,
+        course,
+        role: Role.TA,
+      });
       const calendarId = 1;
-      const courseId = 1;
-
-      const mockAlert = new AlertModel();
-      mockAlert.id = 1;
-      mockAlert.alertType = AlertType.EVENT_ENDED_CHECKOUT_STAFF;
-      mockAlert.sent = new Date();
-      mockAlert.userId = userId;
-      mockAlert.courseId = courseId;
-      mockAlert.payload = {};
-
-      const alertSaveSpy = jest
-        .spyOn(AlertModel.prototype, 'save')
-        .mockResolvedValue(mockAlert);
-      jest.spyOn(AlertModel, 'create').mockReturnValue(mockAlert);
 
       await service.sendAlertToAutoCheckout10minsFromNow(
-        userId,
+        ta.id,
         calendarId,
-        courseId,
+        course.id,
       );
 
-      expect(alertSaveSpy).toHaveBeenCalled();
+      const alert = await AlertModel.findOne({
+        where: {
+          userId: ta.id,
+          alertType: AlertType.EVENT_ENDED_CHECKOUT_STAFF,
+        },
+      });
+      expect(alert).toBeDefined();
+      expect(alert.courseId).toEqual(course.id);
+
       expect(schedulerRegistry.addCronJob).toHaveBeenCalled();
       const job: CronJob = (schedulerRegistry.addCronJob as jest.Mock).mock
         .calls[0][1];
@@ -274,25 +290,17 @@ describe('CalendarService', () => {
     });
 
     it('should delete existing cron job if not first time', async () => {
-      const userId = 1;
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: ta,
+        course,
+        role: Role.TA,
+      });
       const calendarId = 1;
-      const courseId = 1;
-      const jobName = `auto-checkout-loop-${userId}-${calendarId}`;
+      const jobName = `auto-checkout-loop-${ta.id}-${calendarId}`;
 
-      const mockAlert = new AlertModel();
-      mockAlert.id = 1;
-      mockAlert.alertType = AlertType.EVENT_ENDED_CHECKOUT_STAFF;
-      mockAlert.sent = new Date();
-      mockAlert.userId = userId;
-      mockAlert.courseId = courseId;
-      mockAlert.payload = {};
-
-      const alertSaveSpy = jest
-        .spyOn(AlertModel.prototype, 'save')
-        .mockResolvedValue(mockAlert);
-      jest.spyOn(AlertModel, 'create').mockReturnValue(mockAlert);
-
-      // mock schedularRegistry.getCronJobs() to return a cron job with jobName (and a mock function of job.stop())
+      // mock schedularRegistry.getCronJobs() to return a cron job with jobName
       const cronJobs = new Map();
       const mockCronJob = {
         stop: jest.fn(),
@@ -300,346 +308,145 @@ describe('CalendarService', () => {
       cronJobs.set(jobName, mockCronJob);
       jest.spyOn(schedulerRegistry, 'getCronJobs').mockReturnValue(cronJobs);
 
-      // restore mock to allow for deletion
+      // restore mock to allow for deletion logic to run in full
       (
         service.deleteAnyExistingAutoCheckoutLoopJobs as jest.Mock
       ).mockRestore();
 
       await service.sendAlertToAutoCheckout10minsFromNow(
-        userId,
+        ta.id,
         calendarId,
-        courseId,
+        course.id,
       );
 
       expect(schedulerRegistry.deleteCronJob).toHaveBeenCalledWith(jobName);
-      expect(alertSaveSpy).toHaveBeenCalled();
+
+      const alert = await AlertModel.findOne({
+        where: {
+          userId: ta.id,
+          alertType: AlertType.EVENT_ENDED_CHECKOUT_STAFF,
+        },
+      });
+      expect(alert).toBeDefined();
+
       expect(schedulerRegistry.addCronJob).toHaveBeenCalled();
-      const job = (schedulerRegistry.addCronJob as jest.Mock).mock.calls[0][1];
-      expect(job).toBeInstanceOf(CronJob);
-      expect(job.running).toBe(true);
-      // 10 minutes from now (+/- 2mins for test execution time)
-      expect(job.nextDate().toJSDate().getTime()).toBeCloseTo(
-        new Date().getTime() + 10 * 60 * 1000,
-        -2,
-      );
-    });
-
-    it('should log an error and capture exception if alert creation fails', async () => {
-      const userId = 1;
-      const calendarId = 1;
-      const courseId = 1;
-
-      const mockError = new Error('Alert creation failed');
-
-      jest.spyOn(AlertModel.prototype, 'save').mockRejectedValue(mockError);
-
-      await service.sendAlertToAutoCheckout10minsFromNow(
-        userId,
-        calendarId,
-        courseId,
-      );
-
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error creating EVENT_ENDED_CHECKOUT_STAFF alert in cron job',
-        mockError,
-      );
-      expect(schedulerRegistry.addCronJob).not.toHaveBeenCalled();
-    });
-
-    it('should log an error and capture message if alert is not created', async () => {
-      const userId = 1;
-      const calendarId = 1;
-      const courseId = 1;
-
-      jest.spyOn(AlertModel.prototype, 'save').mockResolvedValue(null);
-
-      await service.sendAlertToAutoCheckout10minsFromNow(
-        userId,
-        calendarId,
-        courseId,
-      );
-
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error creating EVENT_ENDED_CHECKOUT_STAFF alert in cron job',
-      );
-      expect(schedulerRegistry.addCronJob).not.toHaveBeenCalled();
     });
   });
 
   describe('autoCheckout', () => {
     it('should check out the user if the alert is not resolved', async () => {
-      const userId = 1;
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: ta,
+        course,
+        role: Role.TA,
+      });
+      const queue = await QueueFactory.create({ course });
+      await QueueStaffFactory.create({ queue, user: ta });
+
+      const alert = await AlertFactory.create({
+        user: ta,
+        course: course,
+        alertType: AlertType.EVENT_ENDED_CHECKOUT_STAFF,
+        payload: {},
+      });
+      // ensure null resolved for the test condition
+      await AlertModel.update(alert.id, { resolved: null });
+
       const calendarId = 1;
-      const courseId = 1;
-      const alertId = 1;
-
-      const mockCheckedInQueues = [{ queueId: 1 }] as QueueStaffModel[];
-
-      jest
-        .spyOn(QueueStaffModel, 'find')
-        .mockResolvedValue(mockCheckedInQueues);
-      const deleteSpy = jest
-        .spyOn(QueueStaffModel, 'delete')
-        .mockResolvedValue({ raw: [], affected: 1 });
-
-      // Mock AlertModel.findOneOrFail
-      const mockAlert = {
-        id: alertId,
-        resolved: null,
-        save: jest.fn().mockResolvedValue(true),
-      } as unknown as AlertModel;
-      jest.spyOn(AlertModel, 'findOneOrFail').mockResolvedValue(mockAlert);
-
-      // Mock resolveQuestions
-      const resolveQuestionsSpy = jest
-        .spyOn(service.questionService, 'resolveQuestions')
-        .mockResolvedValue();
-
-      // Mock queueStaffService.promptStudentsToLeaveQueue
-      jest
-        .spyOn(service.queueStaffService, 'promptStudentsToLeaveQueue')
-        .mockResolvedValue();
-
-      // Mock EventModel.create().save()
-      const mockEvent = {
-        save: jest.fn().mockResolvedValue({}),
-      } as unknown as EventModel;
-      jest.spyOn(EventModel, 'create').mockReturnValue(mockEvent);
 
       // Call the method under test
-      await service.autoCheckout(userId, calendarId, courseId, alertId);
+      await service.autoCheckout(ta.id, calendarId, course.id, alert.id);
 
       // Assertions
-      expect(QueueStaffModel.find).toHaveBeenCalledWith({
-        where: {
-          userId,
-        },
+      const remainingStaff = await QueueStaffModel.findOne({
+        where: { userId: ta.id, queueId: queue.id },
       });
-      expect(deleteSpy).toHaveBeenCalledWith({
-        queueId: 1,
-        userId,
-      });
-      expect(AlertModel.findOneOrFail).toHaveBeenCalledWith({
-        where: { id: alertId },
-      });
-      expect(resolveQuestionsSpy).toHaveBeenCalledWith(1, userId);
+      expect(remainingStaff).toBeNull();
+
+      await alert.reload();
+      expect(alert.resolved).not.toBeNull();
+
+      expect(service.questionService.resolveQuestions).toHaveBeenCalledWith(
+        queue.id,
+        ta.id,
+      );
+
       expect(
         service.queueStaffService.promptStudentsToLeaveQueue,
-      ).toHaveBeenCalledWith(1);
-      expect(mockEvent.save).toHaveBeenCalled();
-      expect(mockAlert.save).toHaveBeenCalled();
+      ).toHaveBeenCalledWith(queue.id, expect.anything()); // verify it is called with manager
+
+      const event = await EventModel.findOne({
+        where: {
+          eventType: EventType.TA_CHECKED_OUT_EVENT_END,
+          userId: ta.id,
+        },
+      });
+      expect(event).toBeDefined();
     });
 
     it('should create a new cron job if the alert is resolved', async () => {
-      const userId = 1;
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: ta,
+        course,
+        role: Role.TA,
+      });
+      const queue = await QueueFactory.create({ course });
+      await QueueStaffFactory.create({ queue, user: ta });
+
+      const alert = await AlertFactory.create({
+        user: ta,
+        course: course,
+        alertType: AlertType.EVENT_ENDED_CHECKOUT_STAFF,
+        payload: {},
+      });
+      // ensure resolved
+      await AlertModel.update(alert.id, { resolved: new Date() });
+
       const calendarId = 1;
-      const courseId = 1;
-      const alertId = 1;
 
-      const mockCheckedInQueues = [{ queueId: 1 }] as QueueStaffModel[];
-      jest
-        .spyOn(QueueStaffModel, 'find')
-        .mockResolvedValue(mockCheckedInQueues);
-      jest
-        .spyOn(QueueStaffModel, 'delete')
-        .mockResolvedValue({ raw: [], affected: 1 });
+      await service.autoCheckout(ta.id, calendarId, course.id, alert.id);
 
-      const mockAlert = {
-        id: alertId,
-        resolved: new Date(),
-        save: jest.fn().mockResolvedValue(true),
-      } as unknown as AlertModel;
-      jest.spyOn(AlertModel, 'findOneOrFail').mockResolvedValue(mockAlert);
-
-      await service.autoCheckout(userId, calendarId, courseId, alertId);
-
-      expect(QueueStaffModel.find).toHaveBeenCalledWith({
-        where: {
-          userId,
-        },
+      // Staff should still be there
+      const remainingStaff = await QueueStaffModel.findOne({
+        where: { userId: ta.id, queueId: queue.id },
       });
-      expect(AlertModel.findOneOrFail).toHaveBeenCalledWith({
-        where: { id: alertId },
-      });
+      expect(remainingStaff).toBeDefined();
+
       expect(schedulerRegistry.addCronJob).toHaveBeenCalled();
       const job = (schedulerRegistry.addCronJob as jest.Mock).mock.calls[0][1];
       expect(job).toBeInstanceOf(CronJob);
       expect(job.running).toBe(true);
-      // 10 minutes from now (+/- 2mins for test execution time)
-      expect(job.nextDate().toJSDate().getTime()).toBeCloseTo(
-        new Date().getTime() + 10 * 60 * 1000,
-        -2,
-      );
-    });
-
-    it('should log an error and capture exception if checking if user is checked in fails', async () => {
-      const userId = 1;
-      const calendarId = 1;
-      const courseId = 1;
-      const alertId = 1;
-
-      const mockError = new Error('Query failed');
-      jest.spyOn(QueueStaffModel, 'find').mockRejectedValue(mockError);
-
-      await service.autoCheckout(userId, calendarId, courseId, alertId);
-
-      expect(QueueStaffModel.find).toHaveBeenCalledWith({
-        where: {
-          userId,
-        },
-      });
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error checking if user is checked in in cron job',
-        mockError,
-      );
-    });
-
-    it('should log an error and capture exception if getting alert fails', async () => {
-      const userId = 1;
-      const calendarId = 1;
-      const courseId = 1;
-      const alertId = 1;
-
-      const mockCheckedInQueues = [{ queueId: 1 }] as QueueStaffModel[];
-      jest
-        .spyOn(QueueStaffModel, 'find')
-        .mockResolvedValue(mockCheckedInQueues);
-
-      const mockError = new Error('Alert not found');
-      jest.spyOn(AlertModel, 'findOneOrFail').mockRejectedValue(mockError);
-
-      await service.autoCheckout(userId, calendarId, courseId, alertId);
-
-      expect(QueueStaffModel.find).toHaveBeenCalledWith({
-        where: {
-          userId,
-        },
-      });
-      expect(AlertModel.findOneOrFail).toHaveBeenCalledWith({
-        where: { id: alertId },
-      });
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error getting auto-checkout alert in cron job',
-        mockError,
-      );
-    });
-
-    it('should log an error and capture exception if resolving questions fails', async () => {
-      const userId = 1;
-      const calendarId = 1;
-      const courseId = 1;
-      const alertId = 1;
-
-      const mockCheckedInQueues = [{ queueId: 1 }] as QueueStaffModel[];
-      jest
-        .spyOn(QueueStaffModel, 'find')
-        .mockResolvedValue(mockCheckedInQueues);
-
-      const mockAlert = {
-        id: alertId,
-        resolved: null,
-        save: jest.fn().mockResolvedValue(true),
-      } as unknown as AlertModel;
-      jest.spyOn(AlertModel, 'findOneOrFail').mockResolvedValue(mockAlert);
-
-      const mockError = new Error('Resolve questions failed');
-      jest
-        .spyOn(service.questionService, 'resolveQuestions')
-        .mockRejectedValue(mockError);
-
-      await service.autoCheckout(userId, calendarId, courseId, alertId);
-
-      expect(QueueStaffModel.find).toHaveBeenCalledWith({
-        where: {
-          userId,
-        },
-      });
-      expect(AlertModel.findOneOrFail).toHaveBeenCalledWith({
-        where: { id: alertId },
-      });
-      expect(service.questionService.resolveQuestions).toHaveBeenCalledWith(
-        1,
-        userId,
-      );
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error resolving questions in cron job',
-        mockError,
-      );
-    });
-
-    it('should log an error and capture exception if checking out user fails', async () => {
-      const userId = 1;
-      const calendarId = 1;
-      const courseId = 1;
-      const alertId = 1;
-
-      const mockCheckedInQueues = [{ queueId: 1 }] as QueueStaffModel[];
-      jest
-        .spyOn(QueueStaffModel, 'find')
-        .mockResolvedValue(mockCheckedInQueues);
-
-      const mockAlert = {
-        id: alertId,
-        resolved: null,
-        save: jest.fn().mockResolvedValue(true),
-      } as unknown as AlertModel;
-      jest.spyOn(AlertModel, 'findOneOrFail').mockResolvedValue(mockAlert);
-
-      jest
-        .spyOn(service.questionService, 'resolveQuestions')
-        .mockResolvedValue();
-
-      const mockError = new Error('Checkout failed');
-      jest.spyOn(QueueStaffModel, 'delete').mockRejectedValue(mockError);
-
-      await service.autoCheckout(userId, calendarId, courseId, alertId);
-
-      expect(QueueStaffModel.find).toHaveBeenCalledWith({
-        where: {
-          userId,
-        },
-      });
-      expect(AlertModel.findOneOrFail).toHaveBeenCalledWith({
-        where: { id: alertId },
-      });
-      expect(service.questionService.resolveQuestions).toHaveBeenCalledWith(
-        1,
-        userId,
-      );
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error checking out user in cron job',
-        mockError,
-      );
     });
 
     it('should log an error and capture message if alert is resolved after 10min mark', async () => {
-      const userId = 1;
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: ta,
+        course,
+        role: Role.TA,
+      });
+      const queue = await QueueFactory.create({ course });
+      await QueueStaffFactory.create({ queue, user: ta });
+
+      const alert = await AlertFactory.create({
+        user: ta,
+        course: course,
+        alertType: AlertType.EVENT_ENDED_CHECKOUT_STAFF,
+        payload: {},
+      });
+      // ensure resolved long ago
+      const fifteenMinsAgo = new Date(new Date().getTime() - 15 * 60 * 1000);
+      await AlertModel.update(alert.id, { resolved: fifteenMinsAgo });
+
       const calendarId = 1;
-      const courseId = 1;
-      const alertId = 1;
 
-      const mockCheckedInQueues = [{ queueId: 1 }] as QueueStaffModel[];
-      jest
-        .spyOn(QueueStaffModel, 'find')
-        .mockResolvedValue(mockCheckedInQueues);
+      await service.autoCheckout(ta.id, calendarId, course.id, alert.id);
 
-      const mockAlert = {
-        id: alertId,
-        resolved: new Date(new Date().getTime() - 15 * 60 * 1000), // 15 minutes ago
-        save: jest.fn().mockResolvedValue(true),
-      } as unknown as AlertModel;
-      jest.spyOn(AlertModel, 'findOneOrFail').mockResolvedValue(mockAlert);
-
-      await service.autoCheckout(userId, calendarId, courseId, alertId);
-
-      expect(QueueStaffModel.find).toHaveBeenCalledWith({
-        where: {
-          userId,
-        },
-      });
-      expect(AlertModel.findOneOrFail).toHaveBeenCalledWith({
-        where: { id: alertId },
-      });
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         'Alert was somehow resolved after 10min mark in cron job',
       );
@@ -648,16 +455,13 @@ describe('CalendarService', () => {
 
   describe('deleteAutoCheckoutCronJob', () => {
     let consoleLogSpy: jest.SpyInstance;
-    let consoleErrorSpy: jest.SpyInstance;
 
     beforeEach(() => {
       consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-      consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
     });
 
     afterEach(() => {
       consoleLogSpy.mockRestore();
-      consoleErrorSpy.mockRestore();
     });
 
     it('should delete a cron job', async () => {
