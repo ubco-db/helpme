@@ -23,12 +23,6 @@ export class QueueStaff1767496639456 implements MigrationInterface {
       `DROP TYPE "public"."event_model_eventtype_enum_old"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "semester_model" ALTER COLUMN "startDate" DROP NOT NULL`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "semester_model" ALTER COLUMN "endDate" DROP NOT NULL`,
-    );
-    await queryRunner.query(
       `ALTER TABLE "queue_staff_model" ADD CONSTRAINT "FK_62c30a81d39c7c9c54c4270cf49" FOREIGN KEY ("queueId") REFERENCES "queue_model"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
@@ -42,12 +36,6 @@ export class QueueStaff1767496639456 implements MigrationInterface {
     );
     await queryRunner.query(
       `ALTER TABLE "queue_staff_model" DROP CONSTRAINT "FK_62c30a81d39c7c9c54c4270cf49"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "semester_model" ALTER COLUMN "endDate" SET NOT NULL`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "semester_model" ALTER COLUMN "startDate" SET NOT NULL`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."event_model_eventtype_enum_old" AS ENUM('taCheckedIn', 'taCheckedOut', 'taCheckedOutEventEnd', 'taCheckedOutForced')`,
