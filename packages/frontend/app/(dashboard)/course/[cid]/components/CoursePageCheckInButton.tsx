@@ -48,7 +48,6 @@ const CoursePageCheckInButton: React.FC<CoursePageCheckInButtonProps> = ({
           {queueCheckedIn ? (
             <TACheckinButton
               courseId={courseId}
-              queueId={queueCheckedIn.id}
               state="CheckedIn"
               className="w-fit"
             />
