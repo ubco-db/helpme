@@ -1086,16 +1086,12 @@ export type PublicQueueInvite = {
   courseInviteCode?: string // course invite code only given if willInviteToCourse is true
   queueAndQuestions?: SSEQueueResponse // only given if isQuestionsVisible is true
   queueSize: number
-  staffList: StaffForStaffList[]
+  staffList: StaffForQueueInvite[]
   courseName: string
 }
 
-export type StaffForStaffList = {
-  id: number
-  name: string
-  photoURL?: string
-  questionHelpedAt?: Date
-  extraStatus?: ExtraTAStatus
+export type StaffForQueueInvite = StaffMember & {
+  questionHelpedAt?: Date // also has the date the question was helped at
 }
 
 // Represents a list of office hours wait times of each hour of the week.

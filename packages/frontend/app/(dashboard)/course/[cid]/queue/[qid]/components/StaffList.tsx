@@ -342,6 +342,7 @@ const HelpingFor: React.FC<HelpingForProps> = ({
   extraTAStatus,
 }) => {
   // A dirty fix until we can get the serializer working properly again (i renamed `questions` in SSEQueueResponse to `queueQuestions` and renamed `queue` in ListQuestionsResponse to `questions` and stuff broke for some reason)
+  // update: just need to set up the api method inside api/index.ts so it uses a responseClass
   let tempDate = helpedAt
   if (typeof helpedAt === 'string') {
     tempDate = new Date(Date.parse(helpedAt))

@@ -64,6 +64,13 @@ export class QueueStaffService {
       },
   */
   async getFormattedStaffList(queue: QueueModel): Promise<StaffMember[]> {
+    if (
+      !queue.queueStaff ||
+      queue.queueStaff.length === 0 ||
+      !queue.queueStaff[0].user
+    ) {
+      return [];
+    }
     let StaffHelpingInOtherQueues = [];
     if (queue.queueStaff[0].user.courses) {
       // if the first user has any courses, it's assumed courses isn't undefined and thus included in the query
@@ -81,8 +88,9 @@ export class QueueStaffService {
         name: queueStaff.user.name,
         photoURL: queueStaff.user.photoURL,
         TANotes:
-          queueStaff.user.courses.find((ucm) => ucm.courseId === queue.courseId)
-            ?.TANotes ?? '',
+          queueStaff.user?.courses?.find(
+            (ucm) => ucm.courseId === queue.courseId,
+          )?.TANotes ?? '',
         extraStatus:
           queueStaff.extraTAStatus === ExtraTAStatus.AWAY
             ? ExtraTAStatus.AWAY

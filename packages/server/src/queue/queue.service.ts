@@ -8,13 +8,12 @@ import {
   QueueConfig,
   QueueInviteParams,
   Role,
-  StaffForStaffList,
   StatusInPriorityQueue,
   StatusInQueue,
   StatusSentToCreator,
-  ExtraTAStatus,
   decodeBase64,
   GetQueueResponse,
+  StaffForQueueInvite,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -560,7 +559,7 @@ export class QueueService {
     });
 
     // create a new StaffList with only the necessary fields
-    const staffList: StaffForStaffList[] = (
+    const staffList: StaffForQueueInvite[] = (
       await this.queueStaffService.getFormattedStaffList(queue)
     ).map((queueStaff) => {
       let helpedAt = null;
