@@ -71,6 +71,7 @@ import { OrgRoles } from 'decorators/org-roles.decorator';
 import { OrganizationService } from '../organization/organization.service';
 import { QueueStaffService } from 'queue/queue-staff/queue-staff.service';
 import { DataSource } from 'typeorm';
+import { QueueService } from '../queue/queue.service';
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -78,6 +79,7 @@ export class CourseController {
   constructor(
     private configService: ConfigService,
     private queueSSEService: QueueSSEService,
+    private queueService: QueueService,
     private heatmapService: HeatmapService,
     private courseService: CourseService,
     private queueStaffService: QueueStaffService,
@@ -477,9 +479,7 @@ export class CourseController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
-    return await this.queueStaffService.formatStaffListPropertyForFrontend(
-      queue,
-    );
+    return await this.queueService.getQueueFormatted(queue.id);
   }
 
   @Delete(':id/checkout/:qid')

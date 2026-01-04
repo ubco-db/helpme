@@ -491,14 +491,11 @@ describe('Course Integration', () => {
         .delete(`/courses/${tcf.courseId}/checkout_all`)
         .expect(200);
 
-      expect(
-        await QueueModel.findOne({
-          relations: { queueStaff: true },
-          where: { id: queue1.id },
-        }),
-      ).toMatchObject({
-        queueStaff: [ta2],
+      const newQueueStaff = await QueueStaffModel.find({
+        where: { queue: queue1 },
       });
+      expect(newQueueStaff.length).toBe(1);
+      expect(newQueueStaff[0].userId).toBe(ta2.id);
 
       const events = await EventModel.find();
       expect(events.length).toBe(1);
