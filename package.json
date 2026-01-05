@@ -1,8 +1,9 @@
 {
-  "name": "node-fullstack-websocket",
+  "name": "helpme-server",
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "preinstall": "yarn workspace @koh/server remove lti-typescript && yarn workspace @koh/server add github:bhunt02/lti-typescript#release",
     "postinstall": "rimraf node_modules/@types/react-native",
     "cli": "yarn workspace @koh/server cli",
     "tsc": "yarn workspaces run tsc",

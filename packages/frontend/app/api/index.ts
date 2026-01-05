@@ -137,7 +137,7 @@ import {
   UserMailSubscription,
 } from '@koh/common'
 import Axios, { AxiosError, AxiosInstance, AxiosResponse, Method } from 'axios'
-import { plainToClass } from 'class-transformer'
+import { plainToInstance } from 'class-transformer'
 import { ClassType } from 'class-transformer/ClassTransformer'
 import * as Sentry from '@sentry/nextjs'
 import { SetStateAction } from 'react'
@@ -183,7 +183,7 @@ export class APIClient {
     const res = (
       await this.axios.request({ method, url, data: body, params, headers })
     ).data
-    return responseClass ? plainToClass(responseClass, res) : res
+    return responseClass ? plainToInstance(responseClass, res) : res
   }
 
   /**
@@ -399,7 +399,7 @@ export class APIClient {
       addDocumentChunk: async (
         courseId: number,
         body: CreateDocumentChunkBody,
-      ): Promise<ChatbotDocumentResponse[]> =>
+      ): Promise<string> =>
         this.req(
           'POST',
           `/api/v1/chatbot/${courseId}/document`,
@@ -410,7 +410,7 @@ export class APIClient {
         courseId: number,
         docId: string,
         body: UpdateDocumentChunkBody,
-      ): Promise<ChatbotDocumentResponse[]> =>
+      ): Promise<string> =>
         this.req(
           'PATCH',
           `/api/v1/chatbot/${courseId}/document/${docId}`,
@@ -446,11 +446,11 @@ export class APIClient {
         courseId: number,
         documentId: string,
         body: GenerateDocumentQueryBody,
-      ): Promise<ChatbotDocumentQueryResponse[]> =>
-        this.req<ChatbotDocumentQueryResponse[]>(
+      ): Promise<string> =>
+        this.req(
           'POST',
           `/api/v1/chatbot/${courseId}/query/${documentId}/generate`,
-          ChatbotDocumentQueryResponse,
+          undefined,
           body,
         ),
       updateDocumentQuery: async (
@@ -469,12 +469,20 @@ export class APIClient {
         queryId: string,
       ): Promise<void> =>
         this.req('DELETE', `/api/v1/chatbot/${courseId}/query/${queryId}`),
+      deleteAllDocumentQueries: async (
+        courseId: number,
+        documentId: string,
+      ): Promise<void> =>
+        this.req(
+          'DELETE',
+          `/api/v1/chatbot/${courseId}/query/${documentId}/all`,
+        ),
       deleteDocument: async (courseId: number, docId: string): Promise<void> =>
         this.req('DELETE', `/api/v1/chatbot/${courseId}/aggregate/${docId}`),
       uploadDocument: async (
         courseId: number,
         body: FormData,
-      ): Promise<ChatbotDocumentAggregateResponse> =>
+      ): Promise<string> =>
         this.req(
           'POST',
           `/api/v1/chatbot/${courseId}/aggregate/file`,
@@ -484,7 +492,7 @@ export class APIClient {
       addDocumentFromURL: async (
         courseId: number,
         url: string,
-      ): Promise<ChatbotDocumentAggregateResponse> =>
+      ): Promise<string> =>
         this.req(
           'POST',
           `/api/v1/chatbot/document/${courseId}/aggregate/url`,
@@ -495,7 +503,7 @@ export class APIClient {
         courseId: number,
         id: string,
         body: UpdateDocumentAggregateBody,
-      ): Promise<ChatbotDocumentAggregateResponse> =>
+      ): Promise<string> =>
         this.req(
           'PATCH',
           `/api/v1/chatbot/${courseId}/aggregate/${id}`,

@@ -15,6 +15,7 @@
 
 # production
 /build
+public/workers
 
 # misc
 .DS_Store

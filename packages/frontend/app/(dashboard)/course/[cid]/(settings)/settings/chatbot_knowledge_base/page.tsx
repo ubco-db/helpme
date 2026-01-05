@@ -1,12 +1,21 @@
 'use client'
 
-import { ReactElement, use, useEffect, useMemo, useState } from 'react'
+import {
+  ReactElement,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import { Button, Empty, Input, message, Pagination } from 'antd'
 import Link from 'next/link'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import {
   ChatbotDocumentQueryResponse,
   ChatbotDocumentResponse,
+  ChatbotResultEventName,
+  ChatbotResultEvents,
   CreateDocumentChunkBody,
   UpdateDocumentChunkBody,
 } from '@koh/common'
@@ -15,14 +24,28 @@ import ChatbotHelpTooltip from '../components/ChatbotHelpTooltip'
 import UpsertDocumentChunkModal from './components/UpsertDocumentChunkModal'
 import { getPaginatedChatbotDocuments } from '@/app/(dashboard)/course/[cid]/(settings)/settings/util'
 import DocumentChunkRow from '@/app/(dashboard)/course/[cid]/(settings)/settings/chatbot_knowledge_base/components/DocumentChunkRow'
+import { useWebSocket } from '@/app/contexts/WebSocketContext'
 
 interface ChatbotDocumentsProps {
   params: Promise<{ cid: string }>
 }
 
+type BaseSocketExpected = {
+  params: { resultId: string; type: ChatbotResultEventName }
+}
+
+type DocumentReturn = {
+  data: ChatbotDocumentResponse[] | Error
+} & BaseSocketExpected
+type QueriesReturn = {
+  data: ChatbotDocumentQueryResponse[] | Error
+} & BaseSocketExpected
+
 export default function ChatbotDocuments(
   props: ChatbotDocumentsProps,
 ): ReactElement {
+  const webSocket = useWebSocket()
+
   const params = use(props.params)
   const courseId = Number(params.cid)
 
@@ -33,32 +56,165 @@ export default function ChatbotDocuments(
   const [search, setSearch] = useState('')
   const searchTerms = useMemo(() => search?.split(/\s/) ?? [], [search])
 
+  const [pendingQueryResults, setPendingQueryResults] = useState<
+    { resultId: string; documentId: string; deleteOld: boolean }[]
+  >([])
+  const [pendingUpdateResults, setPendingUpdateResults] = useState<
+    { resultId: string; documentId: string }[]
+  >([])
+
   const [editingChunk, setEditingChunk] = useState<ChatbotDocumentResponse>()
   const [operatingOn, setOperatingOn] = useState<string[]>([])
   const [upsertModalOpen, setUpsertModalOpen] = useState(false)
 
+  const documentQueriesListener = useCallback(
+    async (data: QueriesReturn) => {
+      if ('params' in data && 'resultId' in data.params) {
+        const { resultId } = data.params
+        const response = data.data
+
+        const match = pendingQueryResults.find((v) => v.resultId === resultId)
+        if (!match) {
+          return
+        }
+
+        if ('error' in response) {
+          // an error occurred and was transmitted down
+          message.error(
+            `Failed to generate document queries for document ${match.documentId}: ${response}`,
+          )
+        } else {
+          // success
+          const matchDoc = documents.find((d) => d.id === match.documentId)
+          setDocuments((prev) =>
+            prev.map((d) => {
+              if (d.id === match.documentId) {
+                const entry = {
+                  ...d,
+                  queries: match.deleteOld
+                    ? (response as any)
+                    : [...d.queries, ...(response as any)],
+                }
+                console.log(entry, d)
+                return entry
+              }
+              return d
+            }),
+          )
+          message.success(
+            `Successfully generated document queries for document${matchDoc ? ' ' + matchDoc.title + '.' : '.'}`,
+          )
+        }
+        setPendingQueryResults((prev) =>
+          prev.filter((v) => v.resultId !== resultId),
+        )
+      }
+    },
+    [documents, pendingQueryResults],
+  )
+
+  const chunkListener = useCallback(
+    async (data: DocumentReturn, isEdit: boolean) => {
+      if ('params' in data && 'resultId' in data.params) {
+        const { resultId } = data.params
+        const response = data.data
+
+        const match = pendingUpdateResults.find((v) => v.resultId === resultId)
+        if (!match && isEdit) {
+          return
+        }
+        const doc = documents.find((d) => d.id === match?.documentId)
+
+        if ('error' in response) {
+          // an error occurred and was transmitted down
+          message.error(
+            `Failed to ${isEdit ? 'update' : 'create'} document${doc ? ' ' + doc.title : ''}: ${response}`,
+          )
+        } else {
+          // success
+          const docs = response as ChatbotDocumentResponse[]
+          if (isEdit) {
+            message.success(
+              `Document${doc ? ' ' + doc.title : ''} updated successfully.`,
+            )
+            if (docs.length > 1) {
+              message.info(
+                `The text content was too large and it was split into ${docs.length} new document chunks.`,
+                6,
+              )
+            }
+            setEditingChunk(undefined)
+          } else {
+            message.success(
+              `Document${docs.length > 1 ? 's' : ''} added successfully.`,
+            )
+            if (docs.length > 1) {
+              message.info(
+                `Document was too large to fit into one chunk. It was split into ${docs.length} document chunks.`,
+                6,
+              )
+            }
+          }
+          setUpsertModalOpen(false)
+          await getPaginatedChatbotDocuments(
+            API.chatbot.staffOnly.getAllDocumentChunks,
+            courseId,
+            page,
+            pageSize,
+            setTotal,
+            setDocuments,
+            search,
+          )
+        }
+        setPendingUpdateResults((prev) =>
+          prev.filter((v) => v.resultId !== resultId),
+        )
+      }
+    },
+    [documents, pendingUpdateResults, courseId, page, pageSize],
+  )
+
+  const listener = useCallback(
+    async (data: BaseSocketExpected) => {
+      if (!('type' in data.params)) {
+        return
+      }
+      switch (data.params.type) {
+        case ChatbotResultEventName.ADD_CHUNK:
+          return await chunkListener(data as DocumentReturn, false)
+        case ChatbotResultEventName.UPDATE_CHUNK:
+          return await chunkListener(data as DocumentReturn, true)
+        case ChatbotResultEventName.DOCUMENT_QUERIES:
+          return await documentQueriesListener(data as QueriesReturn)
+      }
+    },
+    [chunkListener, documentQueriesListener],
+  )
+
+  useEffect(() => {
+    if (webSocket) {
+      webSocket.onMessageEvent.on(ChatbotResultEvents.POST_RESULT, listener)
+      return () => {
+        webSocket.onMessageEvent.off(ChatbotResultEvents.POST_RESULT, listener)
+      }
+    }
+  }, [listener, webSocket])
+
   const addDocument = async (values: CreateDocumentChunkBody) => {
     await API.chatbot.staffOnly
       .addDocumentChunk(courseId, values)
-      .then((addedDocs) => {
-        setUpsertModalOpen(false)
-        message.success(
-          `Document${addedDocs.length > 1 ? 's' : ''} added successfully.`,
-        )
-        if (addedDocs.length > 1) {
-          message.info(
-            `Document was too large to fit into one chunk. It was split into ${addedDocs.length} document chunks.`,
+      .then(async (resultId: string) => {
+        const res = await webSocket.subscribe(ChatbotResultEvents.GET_RESULT, {
+          type: ChatbotResultEventName.ADD_CHUNK,
+          resultId,
+        })
+        if (!res.success) {
+          message.success(
+            'Document creation successfully queued, but subscription to results failed.',
           )
+          return
         }
-        getPaginatedChatbotDocuments(
-          API.chatbot.staffOnly.getAllDocumentChunks,
-          courseId,
-          page,
-          pageSize,
-          setTotal,
-          setDocuments,
-          search,
-        )
+        message.success('Document creation successfully queued!')
       })
       .catch((e) => {
         const errorMessage = getErrorMessage(e)
@@ -83,25 +239,22 @@ export default function ChatbotDocuments(
     })
     await API.chatbot.staffOnly
       .updateDocumentChunk(courseId, id, values)
-      .then((updatedDocs) => {
-        message.success(`Document updated successfully.`)
-        if (updatedDocs.length > 1) {
-          message.info(
-            `The text content was too large and it was split into ${updatedDocs.length} new document chunks.`,
-            6,
+      .then(async (resultId: string) => {
+        const res = await webSocket.subscribe(ChatbotResultEvents.GET_RESULT, {
+          type: ChatbotResultEventName.UPDATE_CHUNK,
+          resultId,
+        })
+        if (!res.success) {
+          message.success(
+            'Document update successfully queued, but subscription to results failed.',
           )
+          return
         }
-        setEditingChunk(undefined)
-        setUpsertModalOpen(false)
-        getPaginatedChatbotDocuments(
-          API.chatbot.staffOnly.getAllDocumentChunks,
-          courseId,
-          page,
-          pageSize,
-          setTotal,
-          setDocuments,
-          search,
-        )
+        message.success('Document update successfully queued!')
+        setPendingUpdateResults((prev) => [
+          ...prev,
+          { resultId, documentId: id },
+        ])
       })
       .catch((e) => {
         const errorMessage = getErrorMessage(e)
@@ -127,24 +280,32 @@ export default function ChatbotDocuments(
     documentId: string,
     deleteOld: boolean,
   ) => {
-    return await API.chatbot.staffOnly
+    if (pendingQueryResults.some((q) => q.documentId === documentId)) {
+      message.warning('Already generating queries for this document!')
+      return
+    }
+    await API.chatbot.staffOnly
       .generateDocumentQueries(courseId, documentId, { deleteOld })
-      .then((queryResponse: ChatbotDocumentQueryResponse[]) => {
-        const doc = documents.find((d) => d.id == documentId)
-        if (doc) {
-          if (deleteOld) {
-            doc.queries = queryResponse
-          } else {
-            doc.queries = [...doc.queries, ...queryResponse]
-          }
+      .then(async (resultId: string) => {
+        const res = await webSocket.subscribe(ChatbotResultEvents.GET_RESULT, {
+          type: ChatbotResultEventName.DOCUMENT_QUERIES,
+          resultId,
+        })
+        if (!res.success) {
+          message.success(
+            'Document query generation successfully queued, but subscription to results failed.',
+          )
+          return
         }
-        message.success('Document queries generated successfully.')
-        return true
+        setPendingQueryResults((prev) => [
+          ...prev,
+          { documentId, resultId, deleteOld },
+        ])
+        message.success('Document query generation successfully queued.')
       })
       .catch((e) => {
         const errorMessage = getErrorMessage(e)
         message.error('Failed to generate document queries: ' + errorMessage)
-        return false
       })
   }
 
@@ -152,6 +313,13 @@ export default function ChatbotDocuments(
     return await API.chatbot.staffOnly
       .addDocumentQuery(courseId, documentId, { query: content })
       .then((queryResponse: ChatbotDocumentQueryResponse) => {
+        setDocuments((prev) =>
+          prev.map((d) =>
+            d.id === documentId
+              ? { ...d, queries: [...d.queries, queryResponse] }
+              : d,
+          ),
+        )
         const doc = documents.find((d) => d.id == documentId)
         if (doc) {
           doc.queries.push(queryResponse)
@@ -175,15 +343,14 @@ export default function ChatbotDocuments(
     return await API.chatbot.staffOnly
       .updateDocumentQuery(courseId, queryId, { query: content })
       .then((queryResponse: ChatbotDocumentQueryResponse) => {
-        const doc = documents.find((d) =>
-          d.queries.some((q) => q.id == queryId),
+        setDocuments((prev) =>
+          prev.map((d) => ({
+            ...d,
+            queries: d.queries.map((q) =>
+              q.id === queryId ? queryResponse : q,
+            ),
+          })),
         )
-        if (doc) {
-          const idx = doc.queries.findIndex((q) => q.id == queryId)
-          if (idx >= 0) {
-            doc.queries[idx] = queryResponse
-          }
-        }
         message.success('Document query updated successfully.')
         return true
       })
@@ -220,17 +387,35 @@ export default function ChatbotDocuments(
   }
 
   const deleteDocumentQuery = async (queryId: string) => {
-    return await API.chatbot.staffOnly
+    await API.chatbot.staffOnly
       .deleteDocumentQuery(courseId, queryId)
       .then(() => {
-        documents.forEach((d) => d.queries.filter((q) => q.id !== queryId))
+        setDocuments((prev) =>
+          prev.map((d) => ({
+            ...d,
+            queries: d.queries.filter((q) => q.id !== queryId),
+          })),
+        )
         message.success('Document query deleted successfully.')
-        return true
       })
       .catch((e) => {
         const errorMessage = getErrorMessage(e)
         message.error('Failed to delete document query: ' + errorMessage)
-        return false
+      })
+  }
+
+  const deleteAllDocumentQueries = async (documentId: string) => {
+    await API.chatbot.staffOnly
+      .deleteAllDocumentQueries(courseId, documentId)
+      .then(() => {
+        setDocuments((prev) =>
+          prev.map((d) => (d.id === documentId ? { ...d, queries: [] } : d)),
+        )
+        message.success('Document queries deleted successfully.')
+      })
+      .catch((e) => {
+        const errorMessage = getErrorMessage(e)
+        message.error('Failed to delete document queries: ' + errorMessage)
       })
   }
 
@@ -271,7 +456,7 @@ export default function ChatbotDocuments(
         </div>
       </div>
       <hr className="my-5 w-full"></hr>
-      <div className={'flex justify-between gap-1'}>
+      <div className={'flex justify-between gap-2'}>
         <Input
           placeholder={'Search chunk name or content and press enter...'}
           value={search}
@@ -292,18 +477,19 @@ export default function ChatbotDocuments(
             )
           }}
         />
-        <Pagination
-          style={{ float: 'right' }}
-          total={total}
-          pageSizeOptions={[10, 20, 30, 50]}
-          showSizeChanger
-          current={page}
-          pageSize={pageSize}
-          onChange={(page, pageSize) => {
-            setPage(page)
-            setPageSize(pageSize)
-          }}
-        />
+        <div className={'flex min-w-[25%] justify-end'}>
+          <Pagination
+            total={total}
+            showSizeChanger={false}
+            current={page}
+            pageSize={pageSize}
+            size={'small'}
+            onChange={(page, pageSize) => {
+              setPage(page)
+              setPageSize(pageSize)
+            }}
+          />
+        </div>
       </div>
       {documents.length <= 0 ? (
         <Empty
@@ -331,6 +517,7 @@ export default function ChatbotDocuments(
               onEditChunk={editDocument}
               onEditQuery={editDocumentQuery}
               generateQueries={generateDocumentQueries}
+              onDeleteAllQueries={deleteAllDocumentQueries}
               searchTerms={searchTerms}
             />
           ))}

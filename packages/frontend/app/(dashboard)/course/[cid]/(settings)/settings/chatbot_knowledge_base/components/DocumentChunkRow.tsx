@@ -6,14 +6,15 @@ import {
   DocumentTypeDisplayMap,
 } from '@koh/common'
 import {
-  Badge,
   Button,
   Checkbox,
   Col,
   Collapse,
+  Divider,
   Input,
   message,
   Modal,
+  Pagination,
   Row,
   Tooltip,
 } from 'antd'
@@ -26,10 +27,12 @@ import {
   CloseOutlined,
   DeleteOutlined,
   EditOutlined,
-  InfoCircleFilled,
+  InfoCircleOutlined,
   PlusOutlined,
+  WarningOutlined,
 } from '@ant-design/icons'
 import { SparklesIcon } from 'lucide-react'
+import { cn } from '@/app/utils/generalUtils'
 
 export type DocumentChunkRowProps = {
   documentChunk: ChatbotDocumentResponse
@@ -38,10 +41,11 @@ export type DocumentChunkRowProps = {
   onEditChunk: (record: ChatbotDocumentResponse) => void
   onDeleteChunk: (documentId: string) => void
 
-  generateQueries: (documentId: string, deleteOld: boolean) => Promise<boolean>
+  generateQueries: (documentId: string, deleteOld: boolean) => Promise<void>
   onCreateQuery: (documentId: string, content: string) => Promise<boolean>
   onEditQuery: (queryId: string, content: string) => Promise<boolean>
-  onDeleteQuery: (queryId: string) => Promise<boolean>
+  onDeleteQuery: (queryId: string) => Promise<void>
+  onDeleteAllQueries: (documentId: string) => Promise<void>
 
   isLoading: boolean
 }
@@ -57,13 +61,19 @@ const DocumentChunkRow: React.FC<DocumentChunkRowProps> = ({
   onCreateQuery,
   onEditQuery,
   onDeleteQuery,
+  onDeleteAllQueries,
 }) => {
   const [editingQueries, setEditingQueries] = useState<
     { queryId: string; editingContent: string }[]
   >([])
+  const [creatingInput, setCreatingInput] = useState<string | undefined>()
   const [creatingQuery, setCreatingQuery] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [removeOld, setRemoveOld] = useState(false)
+  const [generateConfirmModalOpen, setGenerateConfirmModalOpen] =
+    useState(false)
+
+  const [page, setPage] = useState(1)
 
   useEffect(() => {
     const ids = documentChunk.queries.map((q) => q.id)
@@ -99,29 +109,6 @@ const DocumentChunkRow: React.FC<DocumentChunkRowProps> = ({
 
   const cancelEditQuery = (record: ChatbotDocumentQueryResponse) => {
     setEditingQueries((prev) => prev.filter((p) => p.queryId != record.id))
-  }
-
-  const toggleCreateQuery = () => {
-    setCreatingQuery(true)
-  }
-
-  const cancelCreateQuery = () => {
-    setCreatingQuery(false)
-  }
-
-  const submitCreateQuery = (text: string) => {
-    if (!text) {
-      message.warning('Document query cannot be empty!')
-      return
-    }
-    setIsSaving(true)
-    onCreateQuery(documentChunk.id, text)
-      .then((success) => {
-        if (success) {
-          setCreatingQuery(false)
-        }
-      })
-      .finally(() => setIsSaving(false))
   }
 
   const submitEditQuery = (queryId: string) => {
@@ -216,14 +203,19 @@ const DocumentChunkRow: React.FC<DocumentChunkRowProps> = ({
         <Col span={1} className={gridCell}>
           <span>{documentChunk.pageNumber ?? ''}</span>
         </Col>
-        <Col span={2} className={gridCell}>
-          <Badge
-            count={
-              DocumentTypeDisplayMap[documentChunk.type] ??
-              (DocumentType as any)[documentChunk.type]
-            }
-            color={DocumentTypeColorMap[documentChunk.type] ?? '#7C7C7C'}
-          />
+        <Col span={2} className={cn(gridCell, 'p-3')}>
+          <div
+            className={cn(
+              'mx-1 flex h-fit items-center justify-center gap-1 rounded-lg px-1 py-0.5 text-center text-xs text-white',
+            )}
+            style={{
+              backgroundColor:
+                DocumentTypeColorMap[documentChunk.type] ?? '#7c7c7c',
+            }}
+          >
+            {DocumentTypeDisplayMap[documentChunk.type] ??
+              (DocumentType as any)[documentChunk.type]}
+          </div>
         </Col>
         <Col span={2} className={gridCell}>
           <div className={'flex flex-col gap-1'}>
@@ -260,6 +252,101 @@ const DocumentChunkRow: React.FC<DocumentChunkRowProps> = ({
           </div>
         </Col>
       </Row>
+      <Modal
+        title={'Create New Document Query'}
+        open={creatingQuery}
+        onCancel={() => setCreatingQuery(false)}
+        okButtonProps={{
+          loading: isSaving,
+        }}
+        onOk={() => {
+          if (!documentChunk.id) {
+            setCreatingQuery(false)
+            return
+          }
+          if (!creatingInput) {
+            message.warning('Cannot create an empty query!')
+            return
+          }
+          setIsSaving(true)
+          onCreateQuery(documentChunk.id, creatingInput)
+            .then(() => {
+              setCreatingQuery(false)
+              setCreatingInput(undefined)
+            })
+            .finally(() => setIsSaving(false))
+        }}
+        okText={'Create'}
+      >
+        <div className={'flex flex-col gap-2'}>
+          <p>
+            Document queries are used to improve the retrieval stage of the RAG
+            algorithm, by closer matching to the potential questions asked by
+            users.
+          </p>
+          <Input
+            placeholder={'A question about this document chunk?'}
+            value={creatingInput}
+            onInput={(evt) => setCreatingInput(evt.currentTarget?.value)}
+          />
+        </div>
+      </Modal>
+      <Modal
+        title={'Generate Queries'}
+        open={generateConfirmModalOpen}
+        onCancel={() => setGenerateConfirmModalOpen(false)}
+        footer={
+          <div className={'flex justify-end gap-2'}>
+            <Button onClick={() => setGenerateConfirmModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant={'solid'}
+              color={'purple'}
+              onClick={() => {
+                setGenerateConfirmModalOpen(false)
+                if (!documentChunk.id) {
+                  return
+                }
+                setIsSaving(true)
+                generateQueries(documentChunk.id, removeOld).finally(() =>
+                  setIsSaving(false),
+                )
+              }}
+            >
+              Generate Queries
+            </Button>
+          </div>
+        }
+      >
+        <div className={'flex flex-col justify-start gap-1'}>
+          <p>
+            This will generate a series of document queries that will match this
+            chunk, based on it and its surrounding chunks in the document.
+          </p>
+          <p>
+            Document queries are used to improve the retrieval stage of the RAG
+            algorithm, by closer matching to the potential questions asked by
+            users.
+          </p>
+          <p>You have the option to remove previously generated queries:</p>
+          <Checkbox
+            className={'self-center'}
+            onClick={() => setRemoveOld(!removeOld)}
+            checked={removeOld}
+          >
+            Remove Existing Queries
+          </Checkbox>
+          {removeOld && (
+            <span className={'flex gap-2 self-center text-yellow-300'}>
+              <WarningOutlined />
+              <span className={'text-yellow-500'}>
+                {documentChunk.queries.length} queries will be removed
+              </span>
+            </span>
+          )}
+        </div>
+      </Modal>
       {!documentChunk.questionId && !documentChunk.asyncQuestionId && (
         <Row wrap={false}>
           <Collapse
@@ -270,40 +357,89 @@ const DocumentChunkRow: React.FC<DocumentChunkRowProps> = ({
               {
                 key: 'document_queries',
                 label: (
-                  <Tooltip
-                    title={
-                      "Document queries are used to improve the retrieval algorithm when students ask questions in your course. These are synthetic (by default) questions, paired with the document chunk, that are checked for similarity with the student's own question."
-                    }
-                  >
-                    Document Queries <InfoCircleFilled />
-                  </Tooltip>
+                  <div className={'flex justify-between'}>
+                    <div>
+                      <Tooltip
+                        title={
+                          "Document queries are used to improve the retrieval algorithm when students ask questions in your course. These are synthetic (by default) questions, paired with the document chunk, that are checked for similarity with the student's own question."
+                        }
+                      >
+                        Document Queries{' '}
+                        {(documentChunk.queries?.length ?? []) > 0
+                          ? `(${documentChunk.queries.length})`
+                          : ''}{' '}
+                        <InfoCircleOutlined />
+                      </Tooltip>
+                    </div>
+                    <div className={'flex flex-row gap-2'}>
+                      <Button
+                        color={'purple'}
+                        variant={'solid'}
+                        icon={<SparklesIcon size={16} />}
+                        loading={isSaving}
+                        onClick={(evt) => {
+                          evt.stopPropagation()
+                          setGenerateConfirmModalOpen(true)
+                        }}
+                      >
+                        Generate
+                      </Button>
+                      <Button
+                        color={'primary'}
+                        variant={'solid'}
+                        icon={<PlusOutlined size={16} />}
+                        loading={isSaving}
+                        onClick={(evt) => {
+                          evt.stopPropagation()
+                          setCreatingQuery(true)
+                        }}
+                      >
+                        Create
+                      </Button>
+                      <Button
+                        danger={true}
+                        color={'red'}
+                        variant={'solid'}
+                        icon={<DeleteOutlined />}
+                        onClick={(evt) => {
+                          evt.stopPropagation()
+                          Modal.confirm({
+                            title:
+                              'Are you sure you want to delete all document queries for this chunk?',
+                            content: `${documentChunk.queries.length} queries will be deleted.\n\nThis action cannot be undone.`,
+                            okText: 'Yes',
+                            okType: 'danger',
+                            cancelText: 'No',
+                            onOk() {
+                              if (!documentChunk.id) {
+                                return
+                              }
+                              setIsSaving(true)
+                              onDeleteAllQueries(documentChunk.id).finally(() =>
+                                setIsSaving(false),
+                              )
+                            },
+                          })
+                        }}
+                      >
+                        Delete All
+                      </Button>
+                    </div>
+                  </div>
                 ),
                 children: (
                   <>
-                    <Row className={'justify-end text-gray-500'}>
-                      <div className={'flex items-center justify-center gap-2'}>
-                        <Button
-                          color={'purple'}
-                          variant={'solid'}
-                          icon={<SparklesIcon size={16} />}
-                          loading={isSaving}
-                          onClick={() => {
-                            setIsSaving(true)
-                            generateQueries(
-                              documentChunk.id,
-                              removeOld,
-                            ).finally(() => setIsSaving(false))
-                          }}
-                        >
-                          Generate Document Queries
-                        </Button>
-                        <Checkbox
-                          onClick={() => setRemoveOld(!removeOld)}
-                          checked={removeOld}
-                        >
-                          Remove Existing?
-                        </Checkbox>
-                      </div>
+                    <Row className={'flex justify-end'}>
+                      <Pagination
+                        style={{ float: 'right' }}
+                        total={documentChunk.queries.length}
+                        showSizeChanger={false}
+                        current={page}
+                        pageSize={10}
+                        onChange={(page) => {
+                          setPage(page)
+                        }}
+                      />
                     </Row>
                     <Row className={'text-gray-500'}>
                       <Col span={21} className="p-2">
@@ -313,33 +449,21 @@ const DocumentChunkRow: React.FC<DocumentChunkRowProps> = ({
                         Actions
                       </Col>
                     </Row>
-                    {documentChunk.queries.map((q, i) => (
-                      <DocumentQueryRow
-                        key={'query' + i}
-                        query={q}
-                        onEdit={toggleEditQuery}
-                        onDelete={submitDeleteQuery}
-                        onTextInput={onEditQueryInput}
-                        submitEdit={submitEditQuery}
-                        cancelEdit={cancelEditQuery}
-                        editingQueries={editingQueries}
-                        isSaving={isSaving}
-                        isAddRow={false}
-                        isAdding={false}
-                      />
-                    ))}
-                    <DocumentQueryRow
-                      query={{ id: '', query: '' } as any}
-                      isAddRow={true}
-                      isAdding={creatingQuery}
-                      cancelEdit={cancelCreateQuery}
-                      editingQueries={[]}
-                      isSaving={isSaving}
-                      onDelete={() => undefined}
-                      onEdit={toggleCreateQuery}
-                      onTextInput={() => undefined}
-                      submitEdit={submitCreateQuery}
-                    />
+                    {documentChunk.queries
+                      .slice((page - 1) * 10, page * 10)
+                      .map((q, i) => (
+                        <DocumentQueryRow
+                          key={'query' + i}
+                          query={q}
+                          onEdit={toggleEditQuery}
+                          onDelete={submitDeleteQuery}
+                          onTextInput={onEditQueryInput}
+                          submitEdit={submitEditQuery}
+                          cancelEdit={cancelEditQuery}
+                          editingQueries={editingQueries}
+                          isSaving={isSaving}
+                        />
+                      ))}
                   </>
                 ),
               },
@@ -363,8 +487,6 @@ export type DocumentQueryRowProps = {
   cancelEdit: (record: ChatbotDocumentQueryResponse) => void
 
   isSaving: boolean
-  isAddRow: boolean
-  isAdding: boolean
 }
 const DocumentQueryRow: React.FC<DocumentQueryRowProps> = ({
   query,
@@ -375,52 +497,43 @@ const DocumentQueryRow: React.FC<DocumentQueryRowProps> = ({
   submitEdit,
   cancelEdit,
   isSaving,
-  isAddRow,
-  isAdding,
 }) => {
-  const [input, setInput] = useState<string>()
   const editingRow = useMemo(
     () => editingQueries.find((eq) => eq.queryId == query.id),
     [query, editingQueries],
   )
 
-  useEffect(() => {
-    if (!isAdding) {
-      setInput(undefined)
-    }
-  }, [isAdding])
-
   return (
     <Row>
       <Col span={21} className="p-2">
         <div className={'flex items-center justify-center'}>
-          {editingRow || (isAddRow && isAdding) ? (
+          {editingRow ? (
             <Input
               type={'text'}
               onChange={(event) => {
                 const val = event?.currentTarget?.value ?? ''
-                isAddRow ? setInput(val) : onTextInput(query.id, val)
+                onTextInput(query.id, val)
               }}
             />
-          ) : isAddRow ? (
-            <span></span>
           ) : (
-            <span>query.query</span>
+            <span className={'flex w-full flex-col justify-center text-left'}>
+              {query.query}
+            </span>
           )}
         </div>
       </Col>
       <Col span={3} className="p-2">
         <div className={'flex flex-col gap-1'}>
-          {editingRow || (isAddRow && isAdding) ? (
+          {editingRow ? (
             <>
               <Button
-                onClick={() => submitEdit(isAddRow ? (input ?? '') : query.id)}
+                onClick={() => submitEdit(query.id)}
                 variant={'outlined'}
                 color={'blue'}
                 icon={<CheckOutlined />}
                 loading={isSaving}
               >
-                {isAddRow ? 'Submit' : 'Save Changes'}
+                {'Save Changes'}
               </Button>
               <Button
                 icon={<CloseOutlined />}
@@ -438,40 +551,39 @@ const DocumentQueryRow: React.FC<DocumentQueryRowProps> = ({
                 onClick={() => onEdit(query)}
                 variant={'outlined'}
                 color={'blue'}
-                icon={isAddRow ? <PlusOutlined /> : <EditOutlined />}
+                icon={<EditOutlined />}
                 loading={isSaving}
               >
-                {isAddRow ? 'Create' : 'Edit'}
+                {'Edit'}
               </Button>
-              {!isAddRow && (
-                <Button
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={() =>
-                    Modal.confirm({
-                      title:
-                        'Are you sure you want to delete this document query?',
-                      content: 'This action cannot be undone.',
-                      okText: 'Yes',
-                      okType: 'danger',
-                      cancelText: 'No',
-                      onOk() {
-                        if (!query.id) {
-                          return
-                        }
-                        onDelete(query.id)
-                      },
-                    })
-                  }
-                  loading={isSaving}
-                >
-                  Delete
-                </Button>
-              )}
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() =>
+                  Modal.confirm({
+                    title:
+                      'Are you sure you want to delete this document query?',
+                    content: 'This action cannot be undone.',
+                    okText: 'Yes',
+                    okType: 'danger',
+                    cancelText: 'No',
+                    onOk() {
+                      if (!query.id) {
+                        return
+                      }
+                      onDelete(query.id)
+                    },
+                  })
+                }
+                loading={isSaving}
+              >
+                Delete
+              </Button>
             </>
           )}
         </div>
       </Col>
+      <Divider />
     </Row>
   )
 }

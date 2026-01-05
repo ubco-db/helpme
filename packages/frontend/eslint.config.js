@@ -65,6 +65,7 @@ module.exports = defineConfig([
     },
     globalIgnores([
         "**/.eslintrc.js",
+        "**/webworkers/*",
         "node_modules/**/*",
         ".next/**/*",
         "dist/**/*",

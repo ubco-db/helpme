@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClassType } from 'class-transformer/ClassTransformer';
 import { plainToClass } from 'class-transformer';
@@ -13,6 +13,9 @@ import {
   ChatbotQueryBody,
   ChatbotQueryTypeEnum,
   ChatbotQuestionResponse,
+  ChatbotResultEventArgs,
+  ChatbotResultEventName,
+  ChatbotResultEvents,
   ChatMessage,
   CloneCourseDocumentsBody,
   CreateChatbotCourseSettingsBody,
@@ -31,12 +34,7 @@ import {
   UpsertDocumentQueryBody,
 } from '@koh/common';
 import { isObject } from '@nestjs/common/utils/shared.utils';
-import {
-  ChatbotResultEventArgs,
-  ChatbotResultEventName,
-  ChatbotResultEvents,
-  ChatbotResultWebSocket,
-} from './intermediate-results/chatbot-result.websocket';
+import { ChatbotResultGateway } from './intermediate-results/chatbot-result.gateway';
 
 type ChatbotRequestInit<TBody> = {
   userToken?: string;
@@ -68,7 +66,8 @@ export class ChatbotApiService {
 
   constructor(
     private configService: ConfigService,
-    private chatbotResultWebSocket: ChatbotResultWebSocket,
+    @Inject(ChatbotResultGateway)
+    private chatbotResultWebSocket: ChatbotResultGateway,
   ) {
     // this.chatbotApiUrl = this.configService.get<string>('CHATBOT_API_URL');
     this.chatbotApiUrl = 'http://localhost:3003/chat';
@@ -120,6 +119,13 @@ export class ChatbotApiService {
         headers['HMS_API_TOKEN'] = userToken;
       }
 
+      let id: string | undefined = undefined;
+      if (webSocketEvent) {
+        id = await this.chatbotResultWebSocket.getUniqueId();
+        webSocketEvent['resultId'] = id;
+        data['ws_info'] = webSocketEvent;
+      }
+
       let body: BodyInit;
       if (data instanceof FormData) {
         body = data;
@@ -127,13 +133,6 @@ export class ChatbotApiService {
         body = JSON.stringify(data);
       } else {
         body = data as any;
-      }
-
-      let id: string | undefined = undefined;
-      if (webSocketEvent) {
-        id = await this.chatbotResultWebSocket.getUniqueId();
-        webSocketEvent['resultId'] = id;
-        body['ws_info'] = webSocketEvent;
       }
 
       const response = await fetch(url, {
@@ -158,16 +157,17 @@ export class ChatbotApiService {
         return;
       }
 
+      if (response.status === 202 && webSocketEvent) {
+        return (id ?? (await response.text())) as any;
+      }
+
       const plain = await response.json();
-      return id !== undefined
-        ? (id as any)
-        : responseClass
-          ? plainToClass(responseClass, plain)
-          : plain;
+      return responseClass ? plainToClass(responseClass, plain) : plain;
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
       }
+      console.error(error);
       throw new HttpException(
         'Failed to connect to chatbot service',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -485,6 +485,16 @@ export class ChatbotApiService {
     return this.request(
       'DELETE',
       `document/query/${courseId}/${documentQueryId}`,
+    );
+  }
+
+  async deleteAllDocumentQueries(
+    documentId: string,
+    courseId: number,
+  ): Promise<void> {
+    return this.request(
+      'DELETE',
+      `document/query/${courseId}/${documentId}/all`,
     );
   }
 

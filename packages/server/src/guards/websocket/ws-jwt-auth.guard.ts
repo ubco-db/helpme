@@ -21,7 +21,12 @@ export class WsJwtAuthGuard extends WebSocketGuard {
     return super.canActivate(context);
   }
 
-  handleRequest(client: Socket, _: any, pattern: string): boolean {
+  handleRequest(
+    client: Socket,
+    _: any,
+    pattern: string,
+    skipPath?: boolean,
+  ): boolean {
     // Check if token is limited to specific endpoints
     const user = this.precheck(client);
     if (!user) {
@@ -30,7 +35,7 @@ export class WsJwtAuthGuard extends WebSocketGuard {
       );
     }
     const pathOrPaths: string | string[] = user.restrictPaths;
-    if (!pathOrPaths) {
+    if (!pathOrPaths || skipPath) {
       return user;
     }
 
@@ -71,25 +76,36 @@ export class WsJwtAuthGuard extends WebSocketGuard {
 
   precheck(client: Socket): any {
     const handshake = client.handshake;
-    const authHeader = handshake.headers.authorization;
+    const cookie = handshake.headers.cookie;
 
-    if (!authHeader) {
+    if (!cookie) {
       throw new WsUnauthorizedException(
         ERROR_MESSAGES.webSocket.jwt.missingAuthHeader,
       );
     }
 
-    // Extract the token part (remove "Bearer ")
-    const token = authHeader.split(' ')[1];
-
-    if (!token) {
+    const split = cookie.split(';');
+    const cookies = split.map((v) => {
+      const [key, value] = v.trim().split('=') as [string, string];
+      return { key, value };
+    });
+    const authCookie =
+      cookies.find((c) => c.key == 'auth_token') ??
+      cookies.find((c) => c.key == 'lti_auth_token');
+    if (!authCookie) {
+      throw new WsUnauthorizedException(
+        ERROR_MESSAGES.webSocket.jwt.missingAuthToken,
+      );
+    }
+    if (!authCookie.value) {
+      // latter half of string is empty
       throw new WsUnauthorizedException(
         ERROR_MESSAGES.webSocket.jwt.malformedToken,
       );
     }
 
     try {
-      client['user'] = this.jwtService.verify(token);
+      client['user'] = this.jwtService.verify(authCookie.value);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_err) {
       throw new WsUnauthorizedException(

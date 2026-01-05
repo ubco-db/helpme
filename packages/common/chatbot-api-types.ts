@@ -723,3 +723,29 @@ export class UpsertDocumentQueryBody {
   @IsString()
   query!: string
 }
+
+/* WEBSOCKET EVENTS */
+
+export enum ChatbotResultEvents {
+  GET_RESULT = 'chatbot/get_result',
+  POST_RESULT = 'chatbot/post_result',
+  RESULT_RECEIVED = 'chatbot/received_result',
+}
+
+export enum ChatbotResultEventName {
+  ADD_AGGREGATE = 'add_aggregate_complete',
+  UPDATE_AGGREGATE = 'update_aggregate_complete',
+  ADD_CHUNK = 'add_chunk_complete',
+  UPDATE_CHUNK = 'update_chunk_complete',
+  DOCUMENT_QUERIES = 'query_generation_complete',
+}
+
+export type ChatbotResultEventArgs = {
+  returnMessage: ChatbotResultEvents
+  type: ChatbotResultEventName
+}
+
+export type ChatbotEventParams = {
+  type: ChatbotResultEventName
+  resultId: string
+}

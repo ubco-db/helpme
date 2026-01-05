@@ -22,7 +22,6 @@ import {
 import { ChatbotService } from './chatbot.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
-import { io } from 'socket.io-client';
 import {
   ChatbotAskSuggestedBody,
   ChatbotCourseSettingsResponse,
@@ -33,6 +32,8 @@ import {
   ChatbotProvider,
   ChatbotQueryBody,
   ChatbotQuestionResponse,
+  ChatbotResultEventName,
+  ChatbotResultEvents,
   ChatbotServiceProvider,
   ChatbotServiceType,
   CourseChatbotSettings,
@@ -100,26 +101,19 @@ import {
   IgnoreSerializer,
 } from '../interceptors/IgnoreableClassSerializerInterceptor';
 import { plainToClass } from 'class-transformer';
-import {
-  ChatbotResultEventName,
-  ChatbotResultEvents,
-  ChatbotResultWebSocket,
-} from './intermediate-results/chatbot-result.websocket';
-import { ClientSocket } from '../websocket/clientSocket';
+import { ChatbotResultGateway } from './intermediate-results/chatbot-result.gateway';
+import { ClientSocketService } from 'websocket/client-socket.service';
 
 @Controller('chatbot')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 @UseInterceptors(IgnoreableClassSerializerInterceptor)
 export class ChatbotController {
-  private socket: ClientSocket;
   constructor(
     private readonly chatbotService: ChatbotService,
     private readonly chatbotApiService: ChatbotApiService,
-    private readonly chatbotResultWebSocket: ChatbotResultWebSocket,
-  ) {
-    const socket = io();
-    this.socket = new ClientSocket(socket as any);
-  }
+    private readonly chatbotResultWebSocket: ChatbotResultGateway,
+    private readonly socket: ClientSocketService,
+  ) {}
 
   //
   // Endpoints for both students and staff
@@ -575,6 +569,16 @@ export class ChatbotController {
     @Param('queryId') queryId: string,
   ): Promise<void> {
     await this.chatbotApiService.deleteDocumentQuery(queryId, courseId);
+  }
+
+  @Delete(':courseId/query/:documentId/all')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async deleteAllDocumentQueries(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('documentId') documentId: string,
+  ): Promise<void> {
+    await this.chatbotApiService.deleteAllDocumentQueries(documentId, courseId);
   }
 
   // TODO: eventually add tests for this I guess

@@ -10,7 +10,14 @@ import {
   Table,
   Tooltip,
 } from 'antd'
-import { ReactElement, use, useEffect, useMemo, useState } from 'react'
+import {
+  ReactElement,
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import Link from 'next/link'
 import { TableRowSelection } from 'antd/es/table/interface'
 import LegacyChatbotSettingsModal from './components/LegacyChatbotSettingsModal'
@@ -18,6 +25,8 @@ import Highlighter from 'react-highlight-words'
 import AddChatbotDocumentModal from './components/AddChatbotDocumentModal'
 import {
   ChatbotDocumentAggregateResponse,
+  ChatbotResultEventName,
+  ChatbotResultEvents,
   ChatbotServiceType,
   DocumentType,
   DocumentTypeColorMap,
@@ -37,14 +46,24 @@ import { getErrorMessage } from '@/app/utils/generalUtils'
 import ChatbotSettingsModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/chatbot_settings/components/ChatbotSettingsModal'
 import { getPaginatedChatbotDocuments } from '@/app/(dashboard)/course/[cid]/(settings)/settings/util'
 import EditChatbotDocumentModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/chatbot_settings/components/EditChatbotDocumentModal'
+import { useWebSocket } from '@/app/contexts/WebSocketContext'
 
 interface ChatbotPanelProps {
   params: Promise<{ cid: string }>
 }
 
+type BaseSocketExpected = {
+  params: { resultId: string; type: ChatbotResultEventName }
+}
+
+type AggregateReturn = {
+  data: ChatbotDocumentAggregateResponse | Error
+} & BaseSocketExpected
+
 export default function ChatbotSettings(
   props: ChatbotPanelProps,
 ): ReactElement {
+  const webSocket = useWebSocket()
   const params = use(props.params)
   const { userInfo } = useUserInfo()
   const courseId = useMemo(() => Number(params.cid), [params.cid])
@@ -62,10 +81,74 @@ export default function ChatbotSettings(
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
 
+  const [loading, setLoading] = useState<{ [key: string]: boolean }>({})
+  const [pendingAggregateUpdates, setPendingAggregateUpdates] = useState<
+    { resultId: string; aggregateId: string }[]
+  >([])
+
+  const socketListener = useCallback(
+    async (data: AggregateReturn) => {
+      if ('params' in data && 'resultId' in data.params) {
+        const { resultId } = data.params
+        const response = data.data
+
+        const match = pendingAggregateUpdates.find(
+          (v) => v.resultId === resultId,
+        )
+        if (!match) {
+          return
+        }
+        setPendingAggregateUpdates((prev) =>
+          prev.filter((v) => v.resultId !== resultId),
+        )
+        if ('error' in response) {
+          // an error occurred and was transmitted down
+          message.error(
+            `Failed to update aggregate ${match.aggregateId}: ${response}`,
+          )
+        } else {
+          // success
+          const matchDoc = chatbotDocuments.find(
+            (d) => d.id === match.aggregateId,
+          )
+          await getPaginatedChatbotDocuments(
+            API.chatbot.staffOnly.getAllAggregateDocuments,
+            courseId,
+            page,
+            pageSize,
+            setTotalAggregates,
+            setChatbotDocuments,
+            search,
+          )
+          message.success(
+            `Successfully updated document aggregate${matchDoc ? ' ' + matchDoc.title + '.' : '.'}`,
+          )
+        }
+      }
+    },
+    [
+      chatbotDocuments,
+      courseId,
+      page,
+      pageSize,
+      pendingAggregateUpdates,
+      search,
+    ],
+  )
+
+  useEffect(() => {
+    webSocket.onMessageEvent.on(ChatbotResultEvents.POST_RESULT, socketListener)
+    return () => {
+      webSocket.onMessageEvent.off(
+        ChatbotResultEvents.POST_RESULT,
+        socketListener,
+      )
+    }
+  }, [socketListener, webSocket])
+
   const [editingDocument, setEditingDocument] =
     useState<ChatbotDocumentAggregateResponse>()
 
-  const [loading, setLoading] = useState(false)
   const [countProcessed, setCountProcessed] = useState(0)
   const [courseServiceType, setCourseServiceType] =
     useState<ChatbotServiceType>()
@@ -95,8 +178,12 @@ export default function ChatbotSettings(
   }, [courseId])
 
   const handleDeleteSelectedDocuments = async () => {
+    const selectedKeys = [...selectedRowKeys]
     try {
-      for (const docId of selectedRowKeys) {
+      const entries: { [key: string]: boolean } = {}
+      selectedKeys.forEach((k) => (entries[k as string] = true))
+      setLoading((prev) => ({ ...prev, ...entries }))
+      for (const docId of selectedKeys) {
         await API.chatbot.staffOnly.deleteDocument(courseId, docId.toString())
         setCountProcessed(countProcessed + 1)
       }
@@ -115,7 +202,12 @@ export default function ChatbotSettings(
     } finally {
       setSelectViewEnabled(false)
       setSelectedRowKeys([])
-      setLoading(false)
+      setLoading((prev) => {
+        selectedKeys.forEach((k) => {
+          prev[k as string] = false
+        })
+        return prev
+      })
       setCountProcessed(0)
     }
   }
@@ -124,31 +216,39 @@ export default function ChatbotSettings(
     id: string,
     params: UpdateDocumentAggregateBody,
   ) => {
-    setLoading(true)
+    setLoading((prev) => ({ ...prev, [id]: true }))
+    let subscribed = false
     await API.chatbot.staffOnly
       .updateDocument(courseId, id, params)
-      .then(() => {
-        message.success('Document updated.')
-        getPaginatedChatbotDocuments(
-          API.chatbot.staffOnly.getAllAggregateDocuments,
-          courseId,
-          page,
-          pageSize,
-          setTotalAggregates,
-          setChatbotDocuments,
-          search,
+      .then(async (resultId: string) => {
+        const res = await webSocket.subscribe(ChatbotResultEvents.GET_RESULT, {
+          type: ChatbotResultEventName.UPDATE_AGGREGATE,
+          resultId,
+        })
+        setEditingDocument(undefined)
+        if (!res.success) {
+          message.warning(
+            'Document update request submitted, but failed to subscribe for its results.',
+          )
+          return
+        }
+        subscribed = true
+        setPendingAggregateUpdates((prev) => [
+          ...prev,
+          { resultId, aggregateId: id },
+        ])
+        message.success(
+          'Document update request submitted. You are subscribed for its results.',
         )
       })
       .catch(() => {
         message.error('Failed to update document.')
       })
-      .finally(() => {
-        setLoading(false)
-      })
+      .finally(() => setLoading((prev) => ({ ...prev, [id]: false })))
   }
 
   const handleDeleteDocument = async (id: string) => {
-    setLoading(true)
+    setLoading((prev) => ({ ...prev, [id]: true }))
     await API.chatbot.staffOnly
       .deleteDocument(courseId, id)
       .then(() => {
@@ -167,10 +267,11 @@ export default function ChatbotSettings(
         message.error('Failed to delete document.')
       })
       .finally(() => {
-        setLoading(false)
+        setLoading((prev) => ({ ...prev, [id]: false }))
       })
   }
 
+  const someSelectedLoading = selectedRowKeys.some((k) => loading[k as string])
   const columns = [
     {
       title: 'Name',
@@ -225,7 +326,7 @@ export default function ChatbotSettings(
       title: (
         <div className={'flex gap-1'}>
           <Button
-            disabled={loading}
+            disabled={someSelectedLoading}
             onClick={() => setSelectViewEnabled(!selectViewEnabled)}
           >
             {!selectViewEnabled ? 'Select' : 'Cancel'}
@@ -234,7 +335,7 @@ export default function ChatbotSettings(
           {hasSelected && selectViewEnabled && (
             <Button
               className="ml-2"
-              disabled={loading}
+              disabled={someSelectedLoading}
               onClick={() => handleDeleteSelectedDocuments()}
               danger
             >
@@ -264,7 +365,9 @@ export default function ChatbotSettings(
               }
             >
               <Button
-                disabled={loading || record.lmsDocumentId != undefined}
+                disabled={
+                  loading[record.id] || record.lmsDocumentId != undefined
+                }
                 icon={<EditOutlined />}
                 variant={'outlined'}
                 color={'blue'}
@@ -274,7 +377,7 @@ export default function ChatbotSettings(
               </Button>
             </Tooltip>
             <Button
-              disabled={loading}
+              disabled={loading[record.id]}
               icon={<DeleteOutlined />}
               onClick={() => handleDeleteDocument(record.id)}
               danger

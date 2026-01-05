@@ -3,10 +3,11 @@ import { WebSocketGuard } from './websocket.guard';
 import { Observable } from 'rxjs';
 import { Socket } from 'socket.io';
 import { WsUnauthorizedException } from '../../websocket/websocket.exception';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class WsChatbotApiKeyGuard extends WebSocketGuard {
-  constructor() {
+export class WsApiKeyGuard extends WebSocketGuard {
+  constructor(private configService: ConfigService) {
     super();
   }
 
@@ -18,8 +19,9 @@ export class WsChatbotApiKeyGuard extends WebSocketGuard {
 
   handleRequest(client: Socket): boolean {
     const handshake = client.handshake;
-    const apiKey = handshake.headers['hms-api-key'];
-    const validApiKey = process.env.CHATBOT_API_KEY;
+    const apiKey =
+      handshake.headers['hms-api-key'] ?? handshake.headers['HMS-API-KEY'];
+    const validApiKey = this.configService.get<string>('CHATBOT_API_KEY');
 
     if (!apiKey || apiKey !== validApiKey) {
       throw new WsUnauthorizedException('Invalid or missing API key');

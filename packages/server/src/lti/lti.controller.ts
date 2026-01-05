@@ -229,6 +229,8 @@ export class LtiController {
   ): Promise<LtiPlatform> {
     const platform = await this.ltiService.provider.getPlatformById(kid);
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
     return await this.ltiService.provider.DynamicRegistration.getRegistration(
       platform,
     );

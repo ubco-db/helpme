@@ -1,7 +1,19 @@
-import { DefaultEventsMap, Socket } from 'socket.io';
+import { io, Socket } from 'socket.io-client';
+import { ConfigService } from '@nestjs/config';
+import { Injectable } from '@nestjs/common';
 
-export class ClientSocket {
-  constructor(private socket: Socket<DefaultEventsMap, DefaultEventsMap>) {}
+@Injectable()
+export class ClientSocketService {
+  private socket: Socket;
+
+  constructor(private configService: ConfigService) {
+    this.socket = io({
+      path: '/api/v1/ws',
+      extraHeaders: {
+        'hms-api-key': this.configService.get<string>('CHATBOT_API_KEY'),
+      },
+    }) as Socket;
+  }
 
   private activeListeners: {
     [key: string]: ((data: any) => void | Promise<void>)[];

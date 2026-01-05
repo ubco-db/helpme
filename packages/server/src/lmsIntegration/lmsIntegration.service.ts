@@ -5,6 +5,8 @@ import {
 } from './lmsIntegration.adapter';
 import {
   ChatbotDocumentAggregateResponse,
+  ChatbotResultEventName,
+  ChatbotResultEvents,
   CoursePartial,
   dropUndefined,
   ERROR_MESSAGES,
@@ -44,13 +46,8 @@ import { LMSAccessTokenModel } from './lms-access-token.entity';
 import { pick } from 'lodash';
 import { LMSAuthStateModel } from './lms-auth-state.entity';
 import { UserModel } from '../profile/user.entity';
-import { io } from 'socket.io-client';
-import {
-  ChatbotResultEventName,
-  ChatbotResultEvents,
-  ChatbotResultWebSocket,
-} from '../chatbot/intermediate-results/chatbot-result.websocket';
-import { ClientSocket } from '../websocket/clientSocket';
+import { ChatbotResultGateway } from 'chatbot/intermediate-results/chatbot-result.gateway';
+import { ClientSocketService } from 'websocket/client-socket.service';
 
 export enum LMSGet {
   Course,
@@ -82,18 +79,15 @@ type ExtendedLMSItem = (
 
 @Injectable()
 export class LMSIntegrationService {
-  private socket: ClientSocket;
   constructor(
     @Inject(LMSIntegrationAdapter)
     private integrationAdapter: LMSIntegrationAdapter,
     @Inject(ChatbotApiService)
     private chatbotApiService: ChatbotApiService,
-    private chatbotResultWebSocket: ChatbotResultWebSocket,
+    private chatbotResultWebSocket: ChatbotResultGateway,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {
-    const socket = io();
-    this.socket = new ClientSocket(socket as any);
-  }
+    private socket: ClientSocketService,
+  ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: 'CLEAR_LMS_AUTH_STATES' })
   async clearLMSAuthStates() {
@@ -573,6 +567,7 @@ export class LMSIntegrationService {
       itemsSynced: 0,
       itemsRemoved: 0,
       errors: 0,
+      resultIds: [],
     };
 
     // maybe add this later to fallback to all resources if db fetch does not work
@@ -754,8 +749,14 @@ export class LMSIntegrationService {
           adapter,
           model,
         );
-        if (!!response) syncDocumentsResult.itemsSynced++;
-        else syncDocumentsResult.errors++;
+        if (!!response) {
+          if (typeof response === 'string') {
+            syncDocumentsResult.resultIds.push(response);
+          }
+          syncDocumentsResult.itemsSynced++;
+        } else {
+          syncDocumentsResult.errors++;
+        }
       }
     }
     return syncDocumentsResult;

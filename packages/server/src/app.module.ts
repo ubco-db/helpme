@@ -38,6 +38,7 @@ import { LmsIntegrationModule } from './lmsIntegration/lmsIntegration.module';
 import { BaseExceptionFilter } from 'exception_filters/generic-exception.filter';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { LtiModule } from './lti/lti.module';
+import { WebsocketModule } from './websocket/websocket.module';
 
 @Module({
   imports: [
@@ -108,6 +109,7 @@ import { LtiModule } from './lti/lti.module';
     ]),
     LmsIntegrationModule,
     LtiModule,
+    WebsocketModule,
   ],
   providers: [
     {

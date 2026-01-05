@@ -1952,6 +1952,7 @@ export type LMSFileUploadResponse = {
 export type LMSSyncDocumentsResult = {
   itemsSynced: number
   itemsRemoved: number
+  resultIds: string[]
   errors: number
 }
 
@@ -4206,6 +4207,7 @@ export const ERROR_MESSAGES = {
       userNotFound: 'User not found',
       disallowedPattern: 'Not authorized to use this route',
       missingAuthHeader: 'Authorization header missing',
+      missingAuthToken: 'Authorization token missing',
       malformedToken: 'Authorization token malformed',
       invalidToken: 'Authorization token invalid',
     },

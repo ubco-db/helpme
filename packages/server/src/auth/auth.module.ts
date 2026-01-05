@@ -7,11 +7,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MailModule } from 'mail/mail.module';
 import { CourseService } from 'course/course.service';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
-import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { OrganizationService } from '../organization/organization.service';
 import { OrganizationModule } from '../organization/organization.module';
 import { LoginModule } from '../login/login.module';
 import { LoginService } from '../login/login.service';
+import { ChatbotModule } from '../chatbot/chatbot.module';
 
 @Module({
   imports: [
@@ -25,6 +25,7 @@ import { LoginService } from '../login/login.service';
     MailModule,
     OrganizationModule,
     LoginModule,
+    ChatbotModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -32,7 +33,6 @@ import { LoginService } from '../login/login.service';
     AuthService,
     CourseService,
     RedisProfileService,
-    ChatbotApiService,
     OrganizationService,
     LoginService,
   ],

@@ -6,10 +6,37 @@ export class WebSocketSubscriber<TParams extends object = object> {
     public params: TParams,
   ) {}
 
-  checkMatch(params: Partial<TParams>): boolean {
+  checkMatch(params: Partial<TParams>, exclusive?: boolean): boolean {
     for (const k in this.params) {
-      if (!(k in params) || this.params[k] !== params[k]) {
-        return false;
+      if (!(k in params)) {
+        if (exclusive) {
+          return false;
+        }
+        continue;
+      }
+      const array = Array.isArray(this.params[k])
+        ? (this.params[k] as any[])
+        : undefined;
+      if (array) {
+        const a2 = Array.isArray(params[k]) ? (params[k] as any[]) : undefined;
+        if (a2) {
+          const shared = array.filter((v) => a2.includes(v));
+          if (shared.length !== array.length) {
+            return false;
+          }
+        } else {
+          if (!array.includes(params[k])) {
+            return false;
+          }
+        }
+      } else {
+        if (
+          Array.isArray(params[k])
+            ? !(params[k] as any[]).includes(this.params[k])
+            : this.params[k] !== params[k]
+        ) {
+          return false;
+        }
       }
     }
     return true;
@@ -32,10 +59,8 @@ export class WebSocketEvent<TParams extends object = object, TData = any> {
       this.subscribers[existsIndex].params = params;
       return;
     }
-    this.subscribers = [
-      ...this.subscribers,
-      new WebSocketSubscriber(clientId, params),
-    ];
+    const newSub = new WebSocketSubscriber(clientId, params);
+    this.subscribers = [...this.subscribers, newSub];
   }
 
   unsubscribe(clientId: string, params?: Partial<TParams>) {
@@ -47,13 +72,7 @@ export class WebSocketEvent<TParams extends object = object, TData = any> {
       if (!subscriber.params || !params || Object.keys(params).length === 0) {
         return false;
       }
-      let matchParams = true;
-      for (const k in params) {
-        if ((subscriber.params as any)[k] !== params[k]) {
-          matchParams = false;
-          break;
-        }
-      }
+      const matchParams = subscriber.checkMatch(params, false);
       return !matchParams;
     });
   }
@@ -74,9 +93,14 @@ export class WebSocketEvent<TParams extends object = object, TData = any> {
         const subscriber = this.subscribers.find(
           (s) => s.socketId === socket.id,
         );
-        const match = subscriber.checkMatch(params);
+        if (!subscriber) return;
+        const match = subscriber.checkMatch(params, true);
+
         if (!match) return;
-        socket.emit(this.postEvent, data);
+        socket.emit(this.postEvent, {
+          params: params,
+          data: data,
+        });
       });
     });
   }
