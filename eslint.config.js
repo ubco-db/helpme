@@ -60,7 +60,7 @@ module.exports = defineConfig([
             }],
         },
     },
-    globalIgnores(["**/.eslintrc.js", "./langchain-services/**/*"]),
+    globalIgnores(["**/.eslintrc.js", "./langchain-services/**/*", "packages/frontend/webworkers/*"]),
     {
         files: ["**/*.entity.ts"],
 
