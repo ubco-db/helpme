@@ -459,7 +459,9 @@ export class AuthService {
       return {
         res: res
           .status(HttpStatus.BAD_REQUEST)
-          .send({ message: 'Invalid recaptcha token' }),
+          .send({
+            message: ERROR_MESSAGES.authController.invalidRecaptchaToken,
+          }),
       };
     }
 
@@ -470,7 +472,7 @@ export class AuthService {
     if (!response.body.success) {
       return {
         res: res.status(HttpStatus.BAD_REQUEST).send({
-          message: 'Recaptcha token invalid',
+          message: ERROR_MESSAGES.authController.invalidRecaptchaToken,
         }),
       };
     }
@@ -489,11 +491,9 @@ export class AuthService {
     let user: UserModel;
     if (!users || users.length === 0) {
       return {
-        res: res
-          .status(HttpStatus.NOT_FOUND)
-          .send({
-            message: ERROR_MESSAGES.authController.userNotFoundWithEmail,
-          }),
+        res: res.status(HttpStatus.NOT_FOUND).send({
+          message: ERROR_MESSAGES.authController.userNotFoundWithEmail,
+        }),
       };
     } else if (users.length === 1) {
       // this is like 99.9% of users
@@ -551,11 +551,9 @@ export class AuthService {
       };
     } else if (user.accountType !== AccountType.LEGACY) {
       return {
-        res: res
-          .status(HttpStatus.BAD_REQUEST)
-          .send({
-            message: ERROR_MESSAGES.authController.incorrectAccountType,
-          }),
+        res: res.status(HttpStatus.BAD_REQUEST).send({
+          message: ERROR_MESSAGES.authController.incorrectAccountType,
+        }),
       };
     }
 
