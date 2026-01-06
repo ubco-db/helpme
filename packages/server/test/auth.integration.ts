@@ -18,6 +18,7 @@ import {
 import { OrganizationModel } from 'organization/organization.entity';
 
 import { LoginTicket, OAuth2Client } from 'google-auth-library';
+import { UserModel } from 'profile/user.entity';
 
 jest.mock('google-auth-library', () => ({
   OAuth2Client: jest.fn().mockImplementation(
