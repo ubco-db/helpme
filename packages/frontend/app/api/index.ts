@@ -1,4 +1,5 @@
 import {
+  AccountRegistrationParams,
   AddChatbotQuestionParams,
   AddDocumentChunkParams,
   AllStudentAssignmentProgress,
@@ -11,8 +12,8 @@ import {
   ChatbotAskParams,
   ChatbotAskResponse,
   ChatbotAskSuggestedParams,
-  ChatbotQueryParams,
   ChatbotProvider,
+  ChatbotQueryParams,
   ChatbotQuestionResponseChatbotDB,
   ChatbotQuestionResponseHelpMeDB,
   ChatbotServiceProvider,
@@ -29,6 +30,7 @@ import {
   CreateAsyncQuestions,
   CreateChatbotProviderBody,
   CreateLLMTypeBody,
+  CreateLtiPlatform,
   CreateOrganizationChatbotSettingsBody,
   CreateQuestionParams,
   CreateQuestionResponse,
@@ -61,12 +63,16 @@ import {
   LMSCourseAPIResponse,
   LMSCourseIntegrationPartial,
   LMSFile,
+  LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
+  LMSSyncDocumentsResult,
+  LMSToken,
+  LoginParam,
+  LtiPlatform,
   LMSQuiz,
   LMSQuizAccessLevel,
   MailServiceWithSubscription,
-  OllamaLLMType,
   OrganizationChatbotSettings,
   OrganizationChatbotSettingsDefaults,
   OrganizationCourseResponse,
@@ -77,6 +83,8 @@ import {
   OrganizationSettingsResponse,
   OrganizationStatsResponse,
   OrgUser,
+  PasswordRequestResetBody,
+  PasswordRequestResetWithTokenBody,
   PreDeterminedQuestion,
   PublicQueueInvite,
   questions,
@@ -88,6 +96,7 @@ import {
   QueueInviteParams,
   QueuePartial,
   QueueTypes,
+  ExtraTAStatus,
   RemoveLMSOrganizationParams,
   Role,
   SemesterPartial,
@@ -106,6 +115,7 @@ import {
   UpdateChatbotQuestionParams,
   UpdateDocumentChunkParams,
   UpdateLLMTypeBody,
+  UpdateLtiPlatform,
   UpdateOrganizationCourseDetailsParams,
   UpdateOrganizationDetailsParams,
   UpdateOrganizationUserRole,
@@ -117,35 +127,28 @@ import {
   UpsertLMSCourseParams,
   UpsertLMSOrganizationParams,
   UserMailSubscription,
-  LMSSyncDocumentsResult,
+  GetOrganizationResponse,
 } from '@koh/common'
-import Axios, { AxiosInstance, Method } from 'axios'
+import Axios, { AxiosError, AxiosInstance, AxiosResponse, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
 import { ClassType } from 'class-transformer/ClassTransformer'
+import * as Sentry from '@sentry/nextjs'
+import { SetStateAction } from 'react'
+import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 // Return type of array item, if T is an array
 type ItemIfArray<T> = T extends (infer I)[] ? I : T
 
-export interface ChatQuestion {
-  id: string
-  question: string
-  answer: string
-  user: string
-  sourceDocuments: {
-    name: string
-    type: string
-    parts: string[]
-  }[]
-  suggested: boolean
-}
-
-export interface ChatQuestionResponse {
-  chatQuestions: ChatQuestion[]
-  total: number
-}
-
-class APIClient {
+export class APIClient {
   private axios: AxiosInstance
+
+  constructor(
+    private baseURL = '',
+    private authToken: string = '',
+  ) {
+    this.axios = Axios.create({ baseURL: this.baseURL })
+  }
 
   /**
    * Send HTTP and return data, optionally serialized with class-transformer (helpful for Date serialization)
@@ -169,20 +172,96 @@ class APIClient {
     body?: any,
     params?: any,
   ): Promise<T> {
-    const res = (await this.axios.request({ method, url, data: body, params }))
-      .data
+    const headers = this.authToken ? { cookie: this.authToken } : undefined
+    const res = (
+      await this.axios.request({ method, url, data: body, params, headers })
+    ).data
     return responseClass ? plainToClass(responseClass, res) : res
   }
 
+  /**
+   * Send HTTP and return full response
+   * @param method HTTP method
+   * @param url URL to send req to
+   * @param body body to send with req
+   * @param params any query parameters to include in req URL
+   */
+  private async request(
+    method: Method,
+    url: string,
+    body?: any,
+    params?: any,
+  ): Promise<AxiosResponse> {
+    const headers = this.authToken ? { cookie: this.authToken } : undefined
+    return await this.axios.request({
+      method,
+      url,
+      data: body,
+      params,
+      headers,
+    })
+  }
+
+  login = {
+    index: (loginData: LoginParam) =>
+      this.request('POST', `/api/v1/login`, loginData),
+    entry: (params: URLSearchParams) =>
+      `/api/v1/login/entry${params.size > 0 ? '?' + params.toString() : ''}`,
+  }
+
   auth = {
-    loginWithGoogle: async (
-      organizationId: number,
-    ): Promise<{ redirectUri: string }> =>
-      this.req('GET', `/api/v1/auth/link/google/${organizationId}`, undefined),
+    shibboleth: (organizationId: any) =>
+      `/api/v1/auth/shibboleth/${organizationId}`,
+    registerAccount: async (registerData: AccountRegistrationParams) =>
+      this.request('POST', '/api/v1/auth/register', registerData),
+    requestPasswordReset: async (passwordResetData: PasswordRequestResetBody) =>
+      this.request('POST', '/api/v1/auth/password/reset', passwordResetData),
+    verifyEmail: async (token: string) =>
+      this.request('POST', '/api/v1/auth/registration/verify', { token }),
+    resetPassword: async (
+      token: string,
+      confirmation: PasswordRequestResetWithTokenBody,
+    ) =>
+      this.req(
+        'POST',
+        `/api/v1/auth/password/reset/${token}`,
+        undefined,
+        confirmation,
+      ),
+    validateResetToken: async (token: string | null) =>
+      this.req('GET', `/api/v1/auth/reset/validate/${token}`),
+    loginWithGoogle: async (organizationId: number) =>
+      this.request('GET', `/api/v1/auth/link/google/${organizationId}`),
   }
   profile = {
-    index: async (): Promise<GetProfileResponse> =>
-      this.req('GET', `/api/v1/profile`, GetProfileResponse),
+    getUser: async (): Promise<GetProfileResponse> => {
+      const response = await this.profile.fullResponse()
+      const contentType = response.headers['content-type'] ?? ''
+
+      if (contentType.includes('application/json')) {
+        if (response.status >= 400) {
+          const body = response.data
+          return Promise.reject(body)
+        }
+        return response.data as any // Type assertion needed due to conditional return type
+      } else if (contentType.includes('text/html')) {
+        const text = response.data as string
+        Sentry.captureEvent({
+          message: `Unknown error in getUser ${response.status}: ${response.statusText}`,
+          level: 'error',
+          extra: {
+            text,
+            response,
+          },
+        })
+        return Promise.reject(text)
+      } else {
+        return Promise.reject(
+          'Unknown error in getUser' + JSON.stringify(response),
+        )
+      }
+    },
+    fullResponse: async () => this.request('GET', `/api/v1/profile`),
     patch: async (body?: UpdateProfileParams): Promise<GetProfileResponse> =>
       this.req('PATCH', `/api/v1/profile`, undefined, body),
     deleteProfilePicture: async (): Promise<void> =>
@@ -614,36 +693,6 @@ class APIClient {
       this.req('GET', `/api/v1/courses/${courseId}/question_types`),
     getAllQueueInvites: async (courseId: number): Promise<QueueInvite[]> =>
       this.req('GET', `/api/v1/courses/${courseId}/queue_invites`),
-    getIntegration: async (
-      courseId: number,
-    ): Promise<LMSCourseIntegrationPartial> =>
-      this.req('GET', `/api/v1/courses/${courseId}/lms_integration`),
-    upsertIntegration: async (
-      courseId: number,
-      props: {
-        apiPlatform: any
-        apiKey: string
-        apiKeyExpiry?: Date
-        apiKeyExpiryDeleted?: boolean
-        apiCourseId: string
-      },
-    ): Promise<string | undefined> =>
-      this.req(
-        'POST',
-        `/api/v1/courses/${courseId}/lms_integration/upsert`,
-        undefined,
-        props,
-      ),
-    removeIntegration: async (
-      courseId: number,
-      props: { apiPlatform: any },
-    ): Promise<string | undefined> =>
-      this.req(
-        'DELETE',
-        `/api/v1/courses/${courseId}/lms_integration/remove`,
-        undefined,
-        props,
-      ),
     updateTANotes: async (courseId: number, TAid: number, notes: string) =>
       this.req(
         'PATCH',
@@ -664,6 +713,10 @@ class APIClient {
     toggleFavourited: async (courseId: number) => {
       return this.req('PATCH', `/api/v1/courses/${courseId}/toggle_favourited`)
     },
+  }
+  mail = {
+    resendVerificationCode: async () =>
+      this.request('POST', '/api/v1/mail/registration/resend'),
   }
   emailNotification = {
     get: async (): Promise<MailServiceWithSubscription[]> =>
@@ -720,6 +773,17 @@ class APIClient {
         return this.req('DELETE', `/api/v1/courses/${courseId}/checkout_all`)
       }
     },
+    setExtraStatus: async (
+      courseId: number,
+      qid: number,
+      status: ExtraTAStatus | null,
+    ): Promise<void> =>
+      this.req(
+        'PATCH',
+        `/api/v1/courses/${courseId}/ta_status/${qid}`,
+        undefined,
+        { status },
+      ),
   }
   asyncQuestions = {
     get: async (cid: number): Promise<AsyncQuestion[]> =>
@@ -845,7 +909,8 @@ class APIClient {
           `/api/v1/questionType/${courseId}/${queueId}`,
           undefined,
         )
-      } catch (error) {
+        /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+      } catch (_) {
         return []
       }
     },
@@ -1193,7 +1258,7 @@ class APIClient {
       organizationId: number,
     ): Promise<OrganizationStatsResponse> =>
       this.req('GET', `/api/v1/organization/${organizationId}/stats`),
-    get: async (organizationId: number): Promise<any> =>
+    get: async (organizationId: number): Promise<GetOrganizationResponse> =>
       this.req('GET', `/api/v1/organization/${organizationId}`),
     getUser: async (
       organizationId: number,
@@ -1440,6 +1505,36 @@ class APIClient {
       this.req('POST', `/api/v1/lms/course/${courseId}/resources`, undefined, {
         selectedResourceTypes,
       }),
+    getOrganizationAccessTokens: async (
+      organizationId: number,
+      platform?: LMSIntegrationPlatform,
+    ): Promise<LMSToken[]> =>
+      this.req(
+        'GET',
+        `/api/v1/lms/org/${organizationId}/token${platform != undefined ? `?platform=${platform}` : ''}`,
+      ),
+    deleteAccessToken: async (tokenId: number): Promise<boolean> =>
+      this.req('DELETE', `/api/v1/lms/oauth2/token/${tokenId}`),
+    getAccessTokens: async (
+      platform?: LMSIntegrationPlatform,
+    ): Promise<LMSToken[]> =>
+      this.req(
+        'GET',
+        `/api/v1/lms/oauth2/token${platform != undefined ? `?platform=${platform}` : ''}`,
+      ),
+    getUserCourses: async (tokenId: number): Promise<LMSCourseAPIResponse[]> =>
+      this.req('GET', `/api/v1/lms/course/list/${tokenId}`),
+    redirectAuthUrl: (
+      platform?: LMSIntegrationPlatform,
+      courseId?: number,
+      fromLti?: boolean,
+    ): string => {
+      const qry = new URLSearchParams()
+      if (platform) qry.set('platform', String(platform))
+      if (courseId) qry.set('courseId', String(courseId))
+      if (fromLti) qry.set('fromLti', String(fromLti))
+      return `/api/v1/lms/oauth2/authorize${qry.size > 0 ? '?' + qry.toString() : ''}`
+    },
     testIntegration: async (
       courseId: number,
       props: TestLMSIntegrationParams,
@@ -1447,8 +1542,46 @@ class APIClient {
       this.req('POST', `/api/v1/lms/${courseId}/test`, undefined, props),
   }
 
-  constructor(baseURL = '') {
-    this.axios = Axios.create({ baseURL: baseURL })
+  lti = {
+    auth: {
+      shibboleth: (organizationId: any) =>
+        `/api/v1/lti/auth/shibboleth/${organizationId}`,
+      requestPasswordReset: async (
+        passwordResetData: PasswordRequestResetBody,
+      ) =>
+        this.request(
+          'POST',
+          '/api/v1/lti/auth/password/reset',
+          passwordResetData,
+        ),
+      registerAccount: async (registerData: AccountRegistrationParams) =>
+        this.request('POST', '/api/v1/lti/auth/register', registerData),
+      verifyEmail: async (token: string) =>
+        this.request('POST', '/api/v1/lti/auth/registration/verify', { token }),
+      loginWithGoogle: async (organizationId: number) =>
+        this.request('GET', `/api/v1/lti/auth/link/google/${organizationId}`),
+      entry: (params: URLSearchParams) =>
+        `/api/v1/lti/auth/entry${params.size > 0 ? '?' + params.toString() : ''}`,
+    },
+    admin: {
+      getPlatforms: async (): Promise<LtiPlatform[]> =>
+        this.req('GET', '/api/v1/lti/platform'),
+      getPlatform: async (id: string): Promise<LtiPlatform> =>
+        this.req('GET', `/api/v1/lti/platform/${id}`),
+      createPlatform: async (params: CreateLtiPlatform): Promise<LtiPlatform> =>
+        this.req('POST', '/api/v1/lti/platform', undefined, params),
+      updatePlatform: async (
+        id: string,
+        params: UpdateLtiPlatform,
+      ): Promise<LtiPlatform> =>
+        this.req('PATCH', `/api/v1/lti/platform/${id}`, undefined, params),
+      deletePlatform: async (id: string): Promise<void> =>
+        this.req('DELETE', `/api/v1/lti/platform/${id}`),
+      togglePlatform: async (id: string): Promise<LtiPlatform> =>
+        this.req('PATCH', `/api/v1/lti/platform/${id}/toggle`),
+      checkRegistration: async (id: string): Promise<LtiPlatform> =>
+        this.req('GET', `/api/v1/lti/platform/${id}/registration`),
+    },
   }
 }
 
@@ -1457,3 +1590,30 @@ class APIClient {
  * TODO: Some of the ones here are old and should be removed, others are missing types, and the other Api files should be merged with this one.
  */
 export const API = new APIClient(process.env.NEXT_PUBLIC_API_URL)
+
+export async function fetchUserDetails(
+  setProfile: React.Dispatch<SetStateAction<any | undefined>>,
+  setErrorGettingUser?: React.Dispatch<SetStateAction<string | undefined>>,
+  router?: AppRouterInstance,
+  pathname?: string,
+  onFinally?: () => any,
+) {
+  await API.profile
+    .getUser()
+    .then((userDetails) => {
+      setProfile(userDetails)
+    })
+    .catch((error: AxiosError) => {
+      if (setErrorGettingUser) {
+        setErrorGettingUser(getErrorMessage(error))
+      }
+      if (error.status === 401) {
+        router?.push(`/api/v1/logout${pathname ? `?redirect=${pathname}` : ''}`)
+      }
+    })
+    .finally(() => {
+      if (onFinally) {
+        onFinally()
+      }
+    })
+}

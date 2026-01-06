@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId allows students to view their questions in their course 1`] = `
 [

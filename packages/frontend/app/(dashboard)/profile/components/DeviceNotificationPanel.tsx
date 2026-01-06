@@ -36,7 +36,7 @@ function renderDeviceInfo(
 const DeviceNotificationPanel: React.FC = () => {
   const thisEndpoint = useThisDeviceEndpoint()
   const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
-    API.profile.index(),
+    API.profile.getUser(),
   )
 
   const thisDesktopNotif = profile?.desktopNotifs?.find(

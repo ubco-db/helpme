@@ -1,21 +1,18 @@
 'use client'
 
-import { organizationApi } from '@/app/api/organizationApi'
 import { Alert, Button, Card, Form, Input, message, Select } from 'antd'
-import React, { SetStateAction, useCallback, useEffect, useState } from 'react'
-import { Organization } from '@/app/typings/organization'
-import { LockOutlined, UserOutlined } from '@ant-design/icons'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { LockOutlined, SyncOutlined, UserOutlined } from '@ant-design/icons'
 import Image from 'next/image'
 import ReCAPTCHA from 'react-google-recaptcha'
 import Link from 'next/link'
-import { userApi } from '@/app/api/userApi'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { LoginData } from '@/app/typings/user'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { isProd, LoginParam, OrganizationResponse } from '@koh/common'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useLoginRedirectInfoProvider } from './components/LoginRedirectInfoProvider'
-import { isProd } from '@koh/common'
-import { cn } from '@/app/utils/generalUtils'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import * as Sentry from '@sentry/nextjs'
+import { API } from '@/app/api'
 import { useLocalStorage } from '@/app/hooks/useLocalStorage'
 
 export default function LoginPage() {
@@ -23,14 +20,34 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [accountActiveResponse, setAccountActiveResponse] = useState(true)
 
-  const [organizations, setOrganizations] = useState<Organization[]>([])
-  const [organization, setOrganization] = useState<Organization | null>(null)
+  const [organizations, setOrganizations] = useState<OrganizationResponse[]>([])
+  const [organization, setOrganization] = useState<OrganizationResponse | null>(
+    null,
+  )
   const [hasRetrievedOrganizations, setHasRetrievedOrganizations] =
     useState(false)
+
+  const [ltiSSOInitiated, setLtiSSOInitiated] = useState(false)
 
   const recaptchaRef = React.createRef<ReCAPTCHA>()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathName = usePathname()
+
+  const isLti = useMemo(() => {
+    return pathName.startsWith('/lti')
+  }, [pathName])
+
+  useEffect(() => {
+    if (window.sessionStorage.getItem('lms_info') && !isLti) {
+      const params = new URLSearchParams(searchParams.toString())
+      const redirect = params.get('redirect')
+      if (redirect && !redirect.startsWith('/lti')) {
+        params.delete('redirect')
+      }
+      router.push(`/lti/login${params.size > 0 ? '?' + params.toString() : ''}`)
+    }
+  }, [])
 
   const error = searchParams.get('error')
   const [errorGettingOrgs, setErrorGettingOrgs] = useState(false)
@@ -39,12 +56,8 @@ export default function LoginPage() {
     number | null
   >('organizationId', null)
 
-  const {
-    invitedOrgId,
-    invitedCourseId,
-    invitedQueueId,
-    invitedCourseInviteCode,
-  } = useLoginRedirectInfoProvider()
+  const { invitedOrgId, invitedCourseId, invitedQueueId } =
+    useLoginRedirectInfoProvider()
 
   // capture error from the query params in sentry
   useEffect(() => {
@@ -61,7 +74,7 @@ export default function LoginPage() {
   }, [error])
 
   const selectOrganization = useCallback(
-    (value: number, newlyRetrievedOrganizations?: Organization[]) => {
+    (value: number, newlyRetrievedOrganizations?: OrganizationResponse[]) => {
       const organizationsToUse = newlyRetrievedOrganizations
         ? newlyRetrievedOrganizations
         : organizations
@@ -93,7 +106,7 @@ export default function LoginPage() {
   )
 
   const smartlySetOrganization = useCallback(
-    async (organizations: Organization[]) => {
+    async (organizations: OrganizationResponse[]) => {
       if (organizations.length === 1) {
         selectOrganization(organizations[0].id, organizations)
       } else if (invitedOrgId) {
@@ -119,7 +132,7 @@ export default function LoginPage() {
   useEffect(() => {
     async function getOrganizations() {
       try {
-        const organizations = await organizationApi.getOrganizations()
+        const organizations = await API.organizations.getOrganizations()
         setOrganizations(organizations)
         smartlySetOrganization(organizations)
         setHasRetrievedOrganizations(true)
@@ -133,7 +146,7 @@ export default function LoginPage() {
   }, [])
 
   async function login() {
-    let loginData: LoginData
+    let loginData: LoginParam
     if (isProd()) {
       const token = (await recaptchaRef?.current?.executeAsync()) ?? ''
       if (organization && !organization.legacyAuthEnabled) {
@@ -154,44 +167,51 @@ export default function LoginPage() {
         recaptchaToken: '',
       }
     }
-    await userApi.login(loginData).then(async (response) => {
-      const data = await response.json()
-      if (!response.ok) {
-        const error = (data && data.message) || response.statusText
-        switch (response.status) {
-          case 401:
-            message.error(data.message)
-            break
-          case 403:
-            setAccountActiveResponse(false)
-            break
-          case 404:
-            message.error('User Not Found')
-            break
-          case 429:
-            message.error('Too many requests. Please try again after 1min')
-            break
-          default:
-            message.error(error)
-            break
-        }
-        return
-      } else {
-        const params = new URLSearchParams({
-          token: data.token,
-        })
-        if (redirect) {
-          params.append('redirect', redirect)
-        }
-        router.push(`/api/v1/login/entry?${params.toString()}`)
+
+    const response = await API.login.index(loginData).catch((err: any) => {
+      switch (err.status) {
+        case 401:
+          message.error(err.message)
+          break
+        case 403:
+          setAccountActiveResponse(false)
+          break
+        case 404:
+          message.error('User Not Found')
+          break
+        case 429:
+          message.error('Too many requests. Please try again after 1min')
+          break
+        default:
+          message.error(getErrorMessage(err))
+          break
       }
     })
+    if (!response) {
+      return
+    }
+
+    const data = response.data
+    const params = new URLSearchParams({
+      token: data.token,
+    })
+    if (redirect) {
+      params.append('redirect', redirect)
+    }
+    if (!redirect && isLti) {
+      params.set('redirect', '/lti')
+    }
+    router.push(isLti ? API.lti.auth.entry(params) : API.login.entry(params))
   }
 
   async function loginWithGoogle() {
-    const response = await userApi.loginWithGoogle(organization?.id ?? -1)
-    if (response.headers.get('content-type')?.includes('application/json')) {
-      const data = await response.json()
+    const id = organization?.id ?? -1
+    const response = await (isLti
+      ? API.lti.auth.loginWithGoogle(id)
+      : API.auth.loginWithGoogle(id))
+
+    if (response.headers['content-type']?.includes('application/json')) {
+      const data = response.data
       if (response.status !== 200) {
         message.error(data.message)
         Sentry.captureEvent({
@@ -205,9 +225,14 @@ export default function LoginPage() {
         })
         return
       }
-      router.push(data.redirectUri)
+      if (isLti) {
+        window.open(data.redirectUri, '_blank', 'noopener,noreferrer')
+        setLtiSSOInitiated(true)
+      } else {
+        router.push(data.redirectUri)
+      }
     } else {
-      const text = await response.text()
+      const text = response.data as string
       Sentry.captureEvent({
         message: `Error with loginWithGoogle ${response.status}: ${response.statusText}`,
         level: 'error',
@@ -225,9 +250,35 @@ export default function LoginPage() {
     recaptchaRef?.current?.reset()
   }
 
+  if (ltiSSOInitiated) {
+    return (
+      <main
+        className={'container mx-auto h-auto w-full max-w-lg pt-10 text-center'}
+      >
+        <title>HelpMe | Reload page</title>
+        <div className="container mx-auto h-auto w-full pt-10 text-center">
+          <Alert
+            message="Authentication with SSO Started"
+            description="Please follow the steps for authorization with the SSO option in the new window or tab, then reload this page by pressing the button below. The window should automatically close after you've successfully authorized."
+            type="info"
+          />
+          <Button
+            className={'mt-4'}
+            icon={<SyncOutlined />}
+            onClick={() => window.location.reload()}
+          >
+            Reload
+          </Button>
+        </div>
+      </main>
+    )
+  }
+
   if (errorGettingOrgs) {
     return (
-      <main>
+      <main
+        className={'container mx-auto h-auto w-full max-w-lg pt-10 text-center'}
+      >
         <title>HelpMe | Error</title>
         <div className="container mx-auto h-auto w-full pt-10 text-center">
           <Alert
@@ -240,7 +291,9 @@ export default function LoginPage() {
     )
   } else if (!organizations || organizations?.length === 0) {
     return (
-      <main>
+      <main
+        className={'container mx-auto h-auto w-full max-w-lg pt-10 text-center'}
+      >
         {hasRetrievedOrganizations ? (
           <Alert
             message="No Organizations"
@@ -322,7 +375,16 @@ export default function LoginPage() {
               </div>
               {organization && organization.ssoEnabled && (
                 <Link
-                  href={`/api/v1/auth/shibboleth/${organization.id}`}
+                  href={(isLti ? API.lti : API).auth.shibboleth(
+                    organization.id,
+                  )}
+                  onClick={(event) => {
+                    if (isLti) {
+                      event.preventDefault()
+                      window.open(event.currentTarget.href)
+                      setLtiSSOInitiated(true)
+                    }
+                  }}
                   prefetch={false}
                 >
                   <Button className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left">
@@ -456,10 +518,16 @@ export default function LoginPage() {
                   </Form.Item>
 
                   <div className="d-flex flex-row space-x-8 text-center">
-                    <Link href="/password">
+                    <Link href={isLti ? '/lti/password' : '/password'}>
                       <Button type="link">Forgot password</Button>
                     </Link>
-                    <Link href="/register">
+                    <Link
+                      href={
+                        isLti
+                          ? `/lti/register/${organization.id}`
+                          : `/register/${organization.id}`
+                      }
+                    >
                       <Button type="link">Create account</Button>
                     </Link>
                   </div>

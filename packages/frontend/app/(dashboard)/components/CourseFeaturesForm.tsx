@@ -1,10 +1,10 @@
 'use client'
 
-import { courseApi } from '@/app/api/courseApi'
 import { CourseSettingsResponse, OrganizationCourseResponse } from '@koh/common'
 import { Form } from 'antd'
 import { useEffect, useState } from 'react'
 import CourseFeatureSwitch from './CourseFeatureSwitch'
+import { API } from '@/app/api'
 
 type CourseFeaturesFormProps = {
   courseData: OrganizationCourseResponse
@@ -18,10 +18,12 @@ const CourseFeaturesForm: React.FC<CourseFeaturesFormProps> = ({
 
   useEffect(() => {
     const fetchFeatures = async () => {
-      const courseFeatures = await courseApi.getCourseFeatures(
-        Number(courseData.course?.id),
-      )
-      setCourseFeatures(courseFeatures)
+      await API.course
+        .getCourseFeatures(Number(courseData.course?.id))
+        .then((features) => {
+          setCourseFeatures(features)
+        })
+        .catch(() => undefined)
     }
     fetchFeatures()
   }, [courseData.course?.id])

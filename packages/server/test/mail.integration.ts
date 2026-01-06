@@ -33,13 +33,18 @@ describe('Mail Integration', () => {
         token: 'token',
         token_type: TokenType.EMAIL_VERIFICATION,
         token_action: TokenAction.ACTION_PENDING,
-        created_at: parseInt(new Date().getTime().toString()),
-        expires_at: parseInt(new Date().getTime().toString()) + 1000 * 60 * 15,
+        expiresInSeconds: 60 * 15,
       }).save();
 
       await supertest({ userId: user.id })
         .post('/mail/registration/resend')
-        .expect(202);
+        .expect(202)
+        .then((response) => {
+          expect(response.body).toHaveProperty(
+            'message',
+            'Verification code resent',
+          );
+        });
     });
   });
 

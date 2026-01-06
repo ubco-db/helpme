@@ -96,6 +96,7 @@ interface StatusCardProps {
   studentName?: string
   helpedAt?: Date
   grouped?: boolean
+  isForPublic?: boolean // true for queue invite page
 }
 /**
  * View component just renders TA status
@@ -110,6 +111,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
   studentName,
   helpedAt,
   grouped,
+  isForPublic,
 }) => {
   const isBusy = !!helpedAt || !!ta.extraStatus
   const [canSave, setCanSave] = useState(false)
@@ -182,8 +184,21 @@ const StatusCard: React.FC<StatusCardProps> = ({
           <Row justify="space-between">
             <div className="font-bold text-gray-900">{ta.name}</div>
             <span>
-              <Badge status={isBusy ? 'processing' : 'success'} />
-              {isBusy ? 'Busy' : 'Available'}
+              <Badge
+                className="mr-0.5"
+                status={
+                  ta.extraStatus === ExtraTAStatus.AWAY
+                    ? 'error'
+                    : isBusy
+                      ? 'processing'
+                      : 'success'
+                }
+              />
+              {ta.extraStatus === ExtraTAStatus.AWAY
+                ? 'Away'
+                : isBusy
+                  ? 'Busy'
+                  : 'Available'}
             </span>
           </Row>
           <div className="flex items-start justify-between">
@@ -196,13 +211,15 @@ const StatusCard: React.FC<StatusCardProps> = ({
                   helpedAt={helpedAt}
                   extraTAStatus={ta.extraStatus}
                 />
+              ) : ta.extraStatus === ExtraTAStatus.AWAY ? (
+                'Will be back soon'
               ) : (
                 // this 1 dot is enough to make the button wrap onto the next row, so i'm only showing it as "..." if there's no button (it looks weird if it's still "..")
                 'Looking for my next student..' + (isStaff ? '.' : '')
               )}
             </div>
             {/* Students have a button to message their TAs */}
-            {!isStaff && queueId && (
+            {!isForPublic && !isStaff && queueId && (
               <MessageButton
                 recipientName={ta.name}
                 staffId={ta.id}
