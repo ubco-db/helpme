@@ -74,7 +74,7 @@ const StaffList: React.FC<StaffListProps> = ({ queue, queueId, courseId }) => {
                 ? `${taToQuestions[ta.id].length} students`
                 : taToQuestions[ta.id]?.[0]?.creator?.name
             }
-            helpedAt={
+            busySince={
               taToQuestions[ta.id]?.[0]?.helpedAt ??
               ta.helpingStudentInAnotherQueueSince
             }
@@ -94,7 +94,7 @@ interface StatusCardProps {
   myRole?: Role
   myId?: number
   studentName?: string
-  helpedAt?: Date
+  busySince?: Date
   grouped?: boolean
   isForPublic?: boolean // true for queue invite page
 }
@@ -109,11 +109,11 @@ const StatusCard: React.FC<StatusCardProps> = ({
   myRole,
   myId,
   studentName,
-  helpedAt,
+  busySince,
   grouped,
   isForPublic,
 }) => {
-  const isBusy = !!helpedAt || !!ta.extraStatus
+  const isBusy = !!busySince || !!ta.extraStatus
   const [canSave, setCanSave] = useState(false)
   const [popoverOpen, setPopoverOpen] = useState(false)
   const isStaff = myRole === Role.TA || myRole === Role.PROFESSOR
@@ -210,10 +210,10 @@ const StatusCard: React.FC<StatusCardProps> = ({
             <div className="mt-1 italic">
               {grouped ? (
                 'Helping a group'
-              ) : isBusy && helpedAt ? (
+              ) : isBusy && busySince ? (
                 <HelpingFor
                   studentName={studentName}
-                  helpedAt={helpedAt}
+                  busySince={busySince}
                   extraTAStatus={ta.extraStatus}
                 />
               ) : ta.extraStatus === ExtraTAStatus.AWAY ? (
@@ -334,18 +334,18 @@ const UpdateTANotesForm: React.FC<{
 interface HelpingForProps {
   studentName?: string
   extraTAStatus?: ExtraTAStatus
-  helpedAt: Date
+  busySince: Date
 }
 const HelpingFor: React.FC<HelpingForProps> = ({
   studentName,
-  helpedAt,
+  busySince,
   extraTAStatus,
 }) => {
   // A dirty fix until we can get the serializer working properly again (i renamed `questions` in SSEQueueResponse to `queueQuestions` and renamed `queue` in ListQuestionsResponse to `questions` and stuff broke for some reason)
-  // update: just need to set up the api method inside api/index.ts so it uses a responseClass
-  let tempDate = helpedAt
-  if (typeof helpedAt === 'string') {
-    tempDate = new Date(Date.parse(helpedAt))
+  // TODO: update: just need to set up the api method inside api/index.ts so it uses a responseClass
+  let tempDate = busySince
+  if (typeof busySince === 'string') {
+    tempDate = new Date(Date.parse(busySince))
   }
   return (
     <RenderEvery
