@@ -20,6 +20,7 @@ const idToRoom = (queueId: number) => `q-${queueId}`;
 @Injectable()
 export class QueueSSEService {
   constructor(
+    @Inject(forwardRef(() => QueueService))
     private queueService: QueueService,
     private sseService: SSEService<QueueClientMetadata>,
     @Inject(forwardRef(() => QueueChatService))
@@ -50,7 +51,7 @@ export class QueueSSEService {
   });
 
   updateQueue = this.throttleUpdate(async (queueId) => {
-    const queue = await this.queueService.getQueue(queueId);
+    const queue = await this.queueService.getQueueFormatted(queueId);
     if (queue) {
       await this.sendToRoom(queueId, async () => ({ queue }));
     }

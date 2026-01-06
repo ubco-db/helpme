@@ -16,6 +16,7 @@ import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationTestingConfigModule } from 'config/application_config.module';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
+import { QueueStaffService } from './queue-staff/queue-staff.service';
 
 describe('QueueService', () => {
   let service: QueueService;
@@ -29,7 +30,17 @@ describe('QueueService', () => {
         FactoryModule,
         ApplicationTestingConfigModule,
       ],
-      providers: [QueueService, AlertsService],
+      providers: [
+        QueueService,
+        {
+          provide: QueueStaffService,
+          useValue: {
+            formatStaffListPropertyForFrontend: jest.fn(),
+            getFormattedStaffList: jest.fn(),
+          },
+        },
+        AlertsService,
+      ],
     }).compile();
 
     service = module.get<QueueService>(QueueService);
