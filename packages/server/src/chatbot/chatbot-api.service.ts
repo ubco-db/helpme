@@ -112,7 +112,6 @@ export class ChatbotApiService {
       }
 
       const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
         'HMS-API-KEY': this.chatbotApiKey,
       };
       if (userToken) {
@@ -123,11 +122,18 @@ export class ChatbotApiService {
       if (webSocketEvent) {
         id = await this.chatbotResultWebSocket.getUniqueId();
         webSocketEvent['resultId'] = id;
-        data['ws_info'] = webSocketEvent;
+        if (data instanceof FormData) {
+          const asJson = JSON.parse(data.get('body') as string);
+          asJson['ws_info'] = webSocketEvent as any;
+          data.set('body', JSON.stringify(asJson));
+        } else {
+          data['ws_info'] = webSocketEvent;
+        }
       }
 
       let body: BodyInit;
       if (data instanceof FormData) {
+        delete headers['Content-Type'];
         body = data;
       } else if (data != undefined && isObject(data)) {
         body = JSON.stringify(data);
@@ -546,6 +552,7 @@ export class ChatbotApiService {
     try {
       // re-upload the file to the chatbot server while the file is still in memory here
       const formData = new FormData();
+      const body = {};
       // Add the main file with fieldname "file"
       formData.append(
         'file',
@@ -562,9 +569,10 @@ export class ChatbotApiService {
       // Add the JSON data as a separate file with fieldname "source"
       Object.keys(params).forEach((k) => {
         if (params[k] != undefined) {
-          formData.append(k, params[k]);
+          body[k] = params[k];
         }
       });
+      formData.append('body', JSON.stringify(body));
 
       return await this.request(
         'POST',

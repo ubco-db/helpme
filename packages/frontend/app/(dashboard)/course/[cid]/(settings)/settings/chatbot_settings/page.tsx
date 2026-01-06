@@ -217,7 +217,6 @@ export default function ChatbotSettings(
     params: UpdateDocumentAggregateBody,
   ) => {
     setLoading((prev) => ({ ...prev, [id]: true }))
-    let subscribed = false
     await API.chatbot.staffOnly
       .updateDocument(courseId, id, params)
       .then(async (resultId: string) => {
@@ -232,7 +231,6 @@ export default function ChatbotSettings(
           )
           return
         }
-        subscribed = true
         setPendingAggregateUpdates((prev) => [
           ...prev,
           { resultId, aggregateId: id },
@@ -343,7 +341,7 @@ export default function ChatbotSettings(
             </Button>
           )}
 
-          {loading && (
+          {Object.keys(loading).some((k) => loading[k]) && (
             <Progress
               percent={Math.round(
                 (countProcessed / selectedRowKeys.length) * 100,

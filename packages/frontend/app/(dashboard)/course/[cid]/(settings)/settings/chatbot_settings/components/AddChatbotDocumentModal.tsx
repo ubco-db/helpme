@@ -1,23 +1,30 @@
 'use client'
 
 import {
+  CheckOutlined,
+  DeleteOutlined,
   FileAddOutlined,
   GithubOutlined,
+  LoadingOutlined,
+  RedoOutlined,
   UploadOutlined,
+  WarningOutlined,
 } from '@ant-design/icons'
 import {
   Form,
   Input,
+  List,
   message,
   Modal,
   Segmented,
   Switch,
+  Tooltip,
   UploadFile,
 } from 'antd'
 import Dragger from 'antd/es/upload/Dragger'
 import { useCallback, useEffect, useState } from 'react'
 import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { useAsyncToaster } from '@/app/contexts/AsyncToasterContext'
 import ChatbotHelpTooltip from '../../components/ChatbotHelpTooltip'
 import { useWebSocket } from '@/app/contexts/WebSocketContext'
@@ -41,6 +48,18 @@ type SocketExpectedReturn = {
   data: ChatbotDocumentAggregateResponse | Error
 }
 
+type UploadedStatus =
+  | 'error'
+  | 'done'
+  | 'uploading'
+  | 'removed'
+  | 'queued'
+  | 'uploaded'
+type UploadedFile = Omit<UploadFile, 'status'> & {
+  status?: UploadedStatus
+  resultId?: string
+}
+
 const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
   courseId,
   open,
@@ -54,7 +73,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
   const [form] = Form.useForm()
   const [isSlideDeck, setIsSlideDeck] = useState(false)
   const [fileList, setFileList] = useState<
-    (UploadFile & { resultId?: string })[]
+    (UploadedFile & { resultId?: string })[]
   >([])
   const [selectedFiles, setSelectedFiles] = useState<UploadFile[]>([])
   const [urlUpload, setUrlUpload] = useState<
@@ -77,137 +96,137 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
     }
   }
 
-  const uploadNextFile = useCallback(async () => {
-    const i = fileList.findIndex(
-      (v) => v.status !== 'uploading' && v.status !== 'done',
-    )
-    if (i < 0) {
-      // no more pending documents = all done!
-      message.info('All file uploads have finished processing.')
-    }
-    const file = fileList[i]
-    // if the file is already uploading or done, skip it and inform the user
-    if (fileList.find((f) => f.uid === file.uid)?.status === 'uploading') {
-      message.info(`${file.name} is still being processed.`)
-      return
-    } else if (fileList.find((f) => f.uid === file.uid)?.status === 'done') {
-      message.info(`${file.name} is already done being processed.`)
-      return
-    }
+  const uploadNextFile = useCallback(
+    async (callback: () => Promise<void>) => {
+      const i = fileList.findIndex((v) => v.status === 'queued')
+      if (i < 0) {
+        // no more pending documents = all done!
+        message.info('All file uploads have finished processing.')
+      }
+      const file = fileList[i]
 
-    const formData = new FormData()
-    formData.append('file', file.originFileObj!)
-    formData.append('parseAsPng', isSlideDeck.toString())
+      const formData = new FormData()
+      formData.append('file', file.originFileObj!)
+      formData.append('parseAsPng', isSlideDeck.toString())
 
-    setFileList((prevFileList) =>
-      prevFileList.map((f) =>
-        f.uid === file.uid ? { ...f, status: 'uploading' } : f,
-      ),
-    )
+      setFileList((prev) =>
+        prev.map((f) =>
+          f.uid === file.uid ? { ...f, status: 'uploading' } : f,
+        ),
+      )
 
-    runAsyncToast(
-      () => API.chatbot.staffOnly.uploadDocument(courseId, formData),
-      (result: string, error) => {
-        // handle the success/error
-        if (error) {
-          setFileList((prevFileList) =>
-            prevFileList.map((f) =>
-              f.uid === file.uid
-                ? { ...f, status: 'error', response: getErrorMessage(error) }
-                : f,
-            ),
-          )
-        } else {
-          webSocket
-            .subscribe(ChatbotResultEvents.GET_RESULT, {
-              type: ChatbotResultEventName.ADD_AGGREGATE,
-              resultId: result,
-            })
-            .then((res) => {
-              if (!res.success) {
-                toast.info(
-                  `Queued processing for but failed to subscribe for ${file.name}'s results. Queueing next upload.`,
-                )
-                setFileList((prev) => prev.filter((f) => f.uid !== file.uid))
-                const hasRemainingFile = fileList.some(
-                  (v) => v.status !== 'uploading' && v.status !== 'done',
-                )
-                if (hasRemainingFile) {
-                  // arbitrarily prioritize files
-                  uploadNextFile().then()
+      runAsyncToast(
+        () => API.chatbot.staffOnly.uploadDocument(courseId, formData),
+        (result: string, error) => {
+          // handle the success/error
+          if (error) {
+            setFileList((prevFileList) =>
+              prevFileList.map((f) =>
+                f.uid === file.uid
+                  ? { ...f, status: 'error', response: getErrorMessage(error) }
+                  : f,
+              ),
+            )
+          } else {
+            webSocket
+              .subscribe(ChatbotResultEvents.GET_RESULT, {
+                type: ChatbotResultEventName.ADD_AGGREGATE,
+                resultId: result,
+              })
+              .then((res) => {
+                if (!res.success) {
+                  toast.info(
+                    `Queued processing for but failed to subscribe for ${file.name}'s results. Queueing next upload.`,
+                  )
+                  setFileList((prev) =>
+                    prev.map((f) =>
+                      f.uid === file.uid
+                        ? {
+                            ...f,
+                            status: 'uploaded',
+                            response: getErrorMessage(error),
+                          }
+                        : f,
+                    ),
+                  )
+                  callback()
+                  return
                 }
-                return
-              }
-              setFileList((prev) =>
-                prev.map((f) =>
-                  f.uid === file.uid ? { ...f, resultId: result } : f,
-                ),
-              )
-            })
-        }
-      },
-      {
-        successMsg: `${file.name} uploaded and queued for processing!`,
-        errorMsg: `Failed to upload and/or queue processing for ${file.name}`,
-        appendApiError: true,
-        successDuration: 3500,
-      },
-    )
-  }, [courseId, fileList, isSlideDeck, runAsyncToast, webSocket])
-
-  const uploadNextUrl = useCallback(async () => {
-    const next = urlUpload.find((v) => v.status === 'queued')
-    if (!next) {
-      message.info('All URL uploads have finished processing.')
-      return
-    }
-
-    runAsyncToast(
-      () => API.chatbot.staffOnly.addDocumentFromURL(courseId, next.url),
-      (result: string, error) => {
-        // handle the success/error
-        if (error) {
-          setUrlUpload((prev) => prev.filter((v) => v.url != next.url))
-        } else {
-          webSocket
-            .subscribe(ChatbotResultEvents.GET_RESULT, {
-              type: ChatbotResultEventName.ADD_AGGREGATE,
-              resultId: result,
-            })
-            .then((res) => {
-              if (!res.success) {
-                toast.info(
-                  `Queued processing for but failed to subscribe for results of URL "${next.url}".`,
+                setFileList((prev) =>
+                  prev.map((f) =>
+                    f.uid === file.uid ? { ...f, resultId: result } : f,
+                  ),
                 )
-                setUrlUpload((prev) => prev.filter((v) => v.url !== next.url))
+              })
+          }
+        },
+        {
+          successMsg: `${file.name} uploaded and queued for processing!`,
+          errorMsg: `Failed to upload and/or queue processing for ${file.name}`,
+          appendApiError: true,
+          successDuration: 3500,
+        },
+      )
+    },
+    [courseId, fileList, isSlideDeck, runAsyncToast, webSocket],
+  )
 
-                const hasRemainingUrl = urlUpload.some(
-                  (v) => v.status !== 'uploading',
-                )
+  const uploadNextUrl = useCallback(
+    async (callback: () => Promise<void>) => {
+      const next = urlUpload.find((v) => v.status === 'queued')
+      if (!next) {
+        message.info('All URL uploads have finished processing.')
+        return
+      }
 
-                if (hasRemainingUrl) {
-                  uploadNextUrl().then()
+      runAsyncToast(
+        () => API.chatbot.staffOnly.addDocumentFromURL(courseId, next.url),
+        (result: string, error) => {
+          // handle the success/error
+          if (error) {
+            setUrlUpload((prev) => prev.filter((v) => v.url != next.url))
+          } else {
+            webSocket
+              .subscribe(ChatbotResultEvents.GET_RESULT, {
+                type: ChatbotResultEventName.ADD_AGGREGATE,
+                resultId: result,
+              })
+              .then((res) => {
+                if (!res.success) {
+                  toast.info(
+                    `Queued processing for but failed to subscribe for results of URL "${next.url}".`,
+                  )
+                  setUrlUpload((prev) => prev.filter((v) => v.url !== next.url))
+
+                  const hasRemainingUrl = urlUpload.some(
+                    (v) => v.status !== 'uploading',
+                  )
+
+                  if (hasRemainingUrl) {
+                    callback()
+                  }
+                  return
                 }
-                return
-              }
-              setUrlUpload((prev) =>
-                prev.map((v) =>
-                  v.url === next.url
-                    ? { ...v, status: 'uploading', resultId: result }
-                    : v,
-                ),
-              )
-            })
-        }
-      },
-      {
-        successMsg: `File at URL "${next.url}" queued for processing. You will be notified of completion.`,
-        errorMsg: `Failed to queue processing for URL "${next.url}". Please check the file type of the document at this URL.`,
-        appendApiError: true,
-        successDuration: 3500,
-      },
-    )
-  }, [courseId, runAsyncToast, urlUpload, webSocket])
+                setUrlUpload((prev) =>
+                  prev.map((v) =>
+                    v.url === next.url
+                      ? { ...v, status: 'uploading', resultId: result }
+                      : v,
+                  ),
+                )
+              })
+          }
+        },
+        {
+          successMsg: `File at URL "${next.url}" queued for processing. You will be notified of completion.`,
+          errorMsg: `Failed to queue processing for URL "${next.url}". Please check the file type of the document at this URL.`,
+          appendApiError: true,
+          successDuration: 3500,
+        },
+      )
+    },
+    [courseId, runAsyncToast, urlUpload, webSocket],
+  )
 
   const listener = useCallback(
     async (data: SocketExpectedReturn) => {
@@ -244,25 +263,74 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
             setUrlUpload((prev) => prev.filter((v) => v.resultId !== resultId))
           }
         }
-
-        const hasRemainingFile = fileList.some(
-          (v) => v.status !== 'uploading' && v.status !== 'done',
-        )
-        const hasRemainingUrl = urlUpload.some((v) => v.status !== 'uploading')
-
-        if (hasRemainingFile) {
-          // arbitrarily prioritize files
-          uploadNextFile().then()
-          return
-        }
-        if (hasRemainingUrl) {
-          uploadNextUrl().then()
-          return
-        }
       }
     },
     [fileList, getDocumentsProxy, urlUpload, uploadNextUrl, uploadNextFile],
   )
+
+  async function uploadNext() {
+    const hasRemainingFile = fileList.some((v) => v.status !== 'queued')
+    const hasRemainingUrl = urlUpload.some((v) => v.status !== 'uploading')
+
+    if (hasRemainingFile) {
+      // arbitrarily prioritize files
+      await uploadNextFile(uploadNext)
+      return
+    }
+    if (hasRemainingUrl) {
+      await uploadNextUrl(uploadNext)
+      return
+    }
+  }
+
+  const uploadFiles = async () => {
+    const uids = fileList.map((f) => f.uid)
+    const subset = selectedFiles.filter((s) => !uids.includes(s.uid))
+    setFileList((prev) => [
+      ...prev,
+      ...subset.map((f) => ({ ...f, status: 'queued' as UploadedStatus })),
+    ])
+    setSelectedFiles([])
+    onClose()
+  }
+
+  const [prevFileList, setPrevFileList] = useState<UploadedFile[]>([])
+  useEffect(() => {
+    const uids = prevFileList.map((v) => v.uid)
+    const newAmount = fileList.length - prevFileList.length
+    const newFiles = fileList.filter((v) => !uids.includes(v.uid))
+    if (
+      fileList.length > 0 &&
+      !fileList.some((v) => v.status === 'uploading')
+    ) {
+      uploadNextFile(uploadNext).then()
+    } else {
+      if (newAmount > 1) {
+        message.info(
+          `There is already a file being uploaded, but the file${newAmount > 1 ? 's' : ''} ${newFiles.map((v) => v.name).join(', ')} ha${newAmount > 1 ? 've' : 's'} been queued.`,
+        )
+      }
+    }
+    setPrevFileList(fileList)
+  }, [fileList])
+
+  const addUrl = async (url: string) => {
+    if (urlUpload.some((v) => v.url == url)) {
+      message.warning(
+        `The document at ${url} is already being used in an upload operation.`,
+      )
+      return
+    }
+    setUrlUpload((prev) => [...prev, { url, status: 'queued' }])
+    if (!urlUpload.some((v) => v.status === 'uploading')) {
+      uploadNextUrl(uploadNext).then()
+    } else {
+      message.info(
+        `There is already a URL being uploaded, but the URL "${url}" has been queued.`,
+      )
+    }
+    onClose()
+  }
 
   useEffect(() => {
     if (webSocket) {
@@ -279,38 +347,6 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
     }
     return () => {}
   }, [listener, webSocket])
-
-  const uploadFiles = async () => {
-    const uids = fileList.map((f) => f.uid)
-    const subset = selectedFiles.filter((s) => !uids.includes(s.uid))
-    setFileList((prev) => [...prev, ...subset])
-    if (!fileList.some((v) => v.status === 'uploading')) {
-      uploadNextFile().then()
-    } else {
-      message.info(
-        `There is already a file being uploaded, but the file${subset.length > 1 ? 's' : ''}: ${subset.map((v) => v.name).join(', ')} ha${subset.length > 1 ? 've' : 's'} been queued.`,
-      )
-    }
-    onClose()
-  }
-
-  const addUrl = async (url: string) => {
-    if (urlUpload.some((v) => v.url == url)) {
-      message.warning(
-        `The document at ${url} is already being used in an upload operation.`,
-      )
-      return
-    }
-    setUrlUpload((prev) => [...prev, { url, status: 'queued' }])
-    if (!urlUpload.some((v) => v.status === 'uploading')) {
-      uploadNextUrl().then()
-    } else {
-      message.info(
-        `There is already a URL being uploaded, but the URL "${url}" has been queued.`,
-      )
-    }
-    onClose()
-  }
 
   return (
     <Modal
@@ -426,16 +462,9 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
                   multiple={true}
                   accept=".docx,.pptx,.txt,.csv,.pdf,.md,.png,.jpg,.jpeg,.gif,.tiff,.xls,.xlsx,.doc,.rtf,.svg,.ppt,.odt,.ods,.odp,.epub,.vsd,.vsdx"
                   fileList={selectedFiles}
-                  onChange={(info: UploadChangeParam<UploadFile<any>>) => {
+                  onChange={(info: UploadChangeParam) =>
                     setSelectedFiles(info.fileList)
-                    const uids = info.fileList.map((f) => f.uid)
-                    setFileList((prev) =>
-                      prev.filter(
-                        (f) =>
-                          !(f.status !== 'uploading' && !uids.includes(f.uid)),
-                      ),
-                    )
-                  }}
+                  }
                   maxCount={10}
                   beforeUpload={() => false} // Prevent automatic upload
                 >
@@ -461,6 +490,100 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
                   onChange={(checked) => setIsSlideDeck(checked)}
                 />
               </Form.Item>
+
+              {fileList.length > 0 && (
+                <div className={'mt-2 flex flex-col gap-1'}>
+                  <p className={'font-semibold'}>Uploaded Files</p>
+                  <List<UploadedFile>
+                    dataSource={fileList}
+                    bordered={false}
+                    renderItem={(item: UploadedFile) => (
+                      <List.Item>
+                        <div className={'flex gap-2'}>
+                          <div
+                            className={cn(
+                              item.status === 'uploaded'
+                                ? 'text-yellow-300'
+                                : '',
+                              item.status === 'error' ? 'text-red-600' : '',
+                              item.status === 'uploading'
+                                ? 'text-blue-500'
+                                : '',
+                              item.status === 'done' ? 'text-green-500' : '',
+                            )}
+                          >
+                            <Tooltip
+                              className={'flex gap-2'}
+                              title={(() => {
+                                switch (item.status) {
+                                  case 'uploaded':
+                                    return 'This document was uploaded but results were unable to be subscribed for.'
+                                  case 'error':
+                                    return 'This document failed to upload or process.'
+                                  case 'uploading':
+                                    return 'This document is in progress of being uploaded'
+                                  case 'done':
+                                    return 'This document successfully finished processing and uploading.'
+                                }
+                                return null
+                              })()}
+                            >
+                              {(item.status === 'uploaded' ||
+                                item.status === 'error') && <WarningOutlined />}
+                              {item.status === 'uploading' && (
+                                <LoadingOutlined />
+                              )}
+                              {item.status === 'done' && <CheckOutlined />}
+                              <span>{item.name}</span>
+                            </Tooltip>
+                          </div>
+                          <div>
+                            {item.status === 'error' && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setFileList((prev) => [
+                                      ...prev,
+                                      { ...item, status: 'queued' },
+                                    ])
+                                    if (
+                                      !fileList.some(
+                                        (v) => v.status === 'uploading',
+                                      )
+                                    ) {
+                                      uploadNext()
+                                    }
+                                  }}
+                                >
+                                  <RedoOutlined
+                                    className={'hover:text-helpmeblue'}
+                                  />
+                                </button>
+                              </>
+                            )}
+                            {(item.status === 'queued' ||
+                              item.status === 'error') && (
+                              <>
+                                <button
+                                  onClick={() =>
+                                    setFileList((prev) =>
+                                      prev.filter((v) => v.uid !== item.uid),
+                                    )
+                                  }
+                                >
+                                  <DeleteOutlined
+                                    className={'hover:text-red-500'}
+                                  />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </List.Item>
+                    )}
+                  />
+                </div>
+              )}
             </>
           )}
         </Form>

@@ -833,13 +833,14 @@ export class ChatbotController {
 
     const uploadResultId = await this.chatbotResultWebSocket.getUniqueId();
 
-    this.socket.registerListener(
+    await this.socket.registerListener(
       {
         event: ChatbotResultEvents.POST_RESULT,
         callback: async (data: ChatbotDocumentAggregateResponse) => {
+          console.log('CALLBACK HIT', data);
           try {
             if (data instanceof Error) {
-              this.socket.emit(ChatbotResultEvents.POST_RESULT, {
+              await this.socket.emitWithAck(ChatbotResultEvents.POST_RESULT, {
                 uploadResultId,
                 type: ChatbotResultEventName.ADD_AGGREGATE,
                 resultBody: data,
@@ -857,7 +858,7 @@ export class ChatbotController {
               `${file.originalname} (${file.mimetype}) upload chatbot service and save in db completed in ${endTime2 - endTime}ms for a total processing time of ${endTime2 - startTime}ms`,
             );
 
-            this.socket.emit(ChatbotResultEvents.POST_RESULT, {
+            await this.socket.emitWithAck(ChatbotResultEvents.POST_RESULT, {
               uploadResultId,
               type: ChatbotResultEventName.ADD_AGGREGATE,
               resultBody: data,
@@ -869,7 +870,7 @@ export class ChatbotController {
             if (chatbotDocPdf && chatbotDocPdf.idHelpMeDB) {
               await ChatbotDocPdfModel.remove(chatbotDocPdf);
             }
-            this.socket.emit(ChatbotResultEvents.POST_RESULT, {
+            await this.socket.emitWithAck(ChatbotResultEvents.POST_RESULT, {
               uploadResultId,
               type: ChatbotResultEventName.ADD_AGGREGATE,
               resultBody: err,
