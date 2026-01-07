@@ -94,7 +94,7 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
   useEffect(() => {
     ;(async () => {
       if (selectedIntegration) {
-        API.lmsIntegration
+        await API.lmsIntegration
           .canGenerate(selectedIntegration.apiPlatform)
           .then((res) => {
             setCanGenerate(res)
@@ -231,7 +231,7 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
               apiKeyExpiry == undefined
           }
 
-          API.lmsIntegration
+          await API.lmsIntegration
             .upsertCourseIntegration(courseId, body)
             .then((result) => {
               if (!result) {
