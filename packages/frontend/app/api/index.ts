@@ -38,6 +38,7 @@ import {
   DesktopNotifBody,
   DesktopNotifPartial,
   EditCourseInfoParams,
+  ExtraTAStatus,
   GetAlertsResponse,
   GetAvailableModelsBody,
   GetChatbotHistoryResponse,
@@ -46,6 +47,7 @@ import {
   GetInsightOutputResponse,
   GetInteractionsAndQuestionsResponse,
   GetLimitedCourseResponse,
+  GetOrganizationResponse,
   GetOrganizationUserResponse,
   GetProfileResponse,
   GetQueueChatResponse,
@@ -66,12 +68,12 @@ import {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
+  LMSQuiz,
+  LMSQuizAccessLevel,
   LMSSyncDocumentsResult,
   LMSToken,
   LoginParam,
   LtiPlatform,
-  LMSQuiz,
-  LMSQuizAccessLevel,
   MailServiceWithSubscription,
   OrganizationChatbotSettings,
   OrganizationChatbotSettingsDefaults,
@@ -96,7 +98,6 @@ import {
   QueueInviteParams,
   QueuePartial,
   QueueTypes,
-  ExtraTAStatus,
   RemoveLMSOrganizationParams,
   Role,
   SemesterPartial,
@@ -127,7 +128,6 @@ import {
   UpsertLMSCourseParams,
   UpsertLMSOrganizationParams,
   UserMailSubscription,
-  GetOrganizationResponse,
 } from '@koh/common'
 import Axios, { AxiosError, AxiosInstance, AxiosResponse, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -1515,6 +1515,8 @@ export class APIClient {
       ),
     deleteAccessToken: async (tokenId: number): Promise<boolean> =>
       this.req('DELETE', `/api/v1/lms/oauth2/token/${tokenId}`),
+    canGenerate: async (platform: LMSIntegrationPlatform): Promise<boolean> =>
+      this.req('GET', `/api/v1/lms/oauth2/can_generate?platform=${platform}`),
     getAccessTokens: async (
       platform?: LMSIntegrationPlatform,
     ): Promise<LMSToken[]> =>

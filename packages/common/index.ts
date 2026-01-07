@@ -4301,6 +4301,9 @@ export const ERROR_MESSAGES = {
   lmsAdapter: {
     missingAccessToken:
       'No access token found for course. Cannot authorize requests.',
+    tokenEmpty: 'Token contained no data to decrypt.',
+    missingClientSecret:
+      'Could not decrypt or encode access token as organization has no client secret.',
   },
   semesterController: {
     notAllowedToCreateSemester: (role: OrganizationRole) =>

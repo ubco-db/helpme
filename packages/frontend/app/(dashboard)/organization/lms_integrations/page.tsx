@@ -43,8 +43,6 @@ export default function LMSIntegrationsPage(): ReactElement {
   const [modalOpen, setModalOpen] = useState<boolean>(false)
   const [delModalOpen, setDelModalOpen] = useState<boolean>(false)
 
-  const [clientSecretEdited, setClientSecretEdited] = useState(false)
-
   const fetchDataAsync = useCallback(async () => {
     const response = await API.lmsIntegration.getOrganizationIntegrations(
       Number(userInfo?.organization?.orgId) ?? -1,
@@ -75,10 +73,17 @@ export default function LMSIntegrationsPage(): ReactElement {
   const platformOptions = useMemo(
     () =>
       Object.keys(mappedLMS).map((key) => {
+        const disabled = !!lmsIntegrations?.find((i) => i.apiPlatform == key)
         return {
           value: key,
-          label: <span>{mappedLMS[key]}</span>,
-          disabled: !!lmsIntegrations?.find((i) => i.apiPlatform == key),
+          label: (
+            <Tooltip
+              title={disabled ? 'This platform is already in use.' : null}
+            >
+              <span>{mappedLMS[key]}</span>
+            </Tooltip>
+          ),
+          disabled,
         }
       }),
     [lmsIntegrations, mappedLMS],
@@ -92,6 +97,7 @@ export default function LMSIntegrationsPage(): ReactElement {
   const upsertIntegration = async (
     fields: UpsertLMSOrganizationParams,
     operation: 'create' | 'update',
+    clientSecretEdited: boolean,
   ) => {
     const { apiPlatform, rootUrl, secure, clientId } = fields
     let { clientSecret } = fields
@@ -425,7 +431,6 @@ export default function LMSIntegrationsPage(): ReactElement {
           handleUpsert={upsertIntegration}
           modalCleanup={modalCleanup}
           focusIntegration={focusIntegration}
-          setClientSecretEdited={setClientSecretEdited}
           platformOptions={platformOptions}
         />
       )}
