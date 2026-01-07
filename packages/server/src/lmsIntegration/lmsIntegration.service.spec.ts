@@ -27,6 +27,7 @@ import {
   UserFactory,
 } from '../../test/util/factories';
 import {
+  ERROR_MESSAGES,
   LMSAnnouncement,
   LMSApiResponseStatus,
   LMSAssignment,
@@ -35,7 +36,7 @@ import {
   LMSPostResponseBody,
 } from '@koh/common';
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
-import { HttpStatus } from '@nestjs/common';
+import { BadRequestException, HttpStatus } from '@nestjs/common';
 import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
 import { CourseModel } from '../course/course.entity';
 import { OrganizationModel } from '../organization/organization.entity';
@@ -317,7 +318,7 @@ describe('LMSIntegrationService', () => {
       await expect(
         service.createAccessToken(user, orgInt, token),
       ).rejects.toThrow(
-        new Error('Cannot use encryption without a defined secret!'),
+        new BadRequestException(ERROR_MESSAGES.lmsAdapter.missingClientSecret),
       );
     });
 
