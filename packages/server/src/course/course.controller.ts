@@ -15,13 +15,13 @@ import {
   QueuePartial,
   QueueTypes,
   Role,
+  SetTAExtraStatusParams,
   TACheckinTimesResponse,
   TACheckoutResponse,
   UBCOuserParam,
   UserCourse,
   UserTiny,
   validateQueueConfigInput,
-  SetTAExtraStatusParams,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -827,7 +827,11 @@ export class CourseController {
     }
 
     try {
-      await UserCourseModel.update({ courseId, userId }, { role });
+      /*
+       pass in userId as well (even if it is the same) as that is the only way
+       it is passed to the subscribed afterUpdate event
+      */
+      await UserCourseModel.update({ courseId, userId }, { role, userId });
     } catch (err) {
       res.status(HttpStatus.BAD_REQUEST).send({ message: err.message });
       return;
