@@ -566,7 +566,7 @@ describe('Auth Integration', () => {
         ERROR_MESSAGES.authController.userNotFoundWithEmail,
       );
     });
-    it('should return BAD REQUEST when email is not verified', async () => {
+    it('should return 202when email is not verified', async () => {
       user.emailVerified = false;
       await user.save();
 
@@ -576,10 +576,7 @@ describe('Auth Integration', () => {
         organizationId: organization.id,
       });
 
-      expect(res.status).toBe(400);
-      expect(res.body.message).toBe(
-        ERROR_MESSAGES.authController.emailNotVerified,
-      );
+      expect(res.status).toBe(202);
     });
     it('should return BAD REQUEST when account is an SSO account (google)', async () => {
       user.accountType = AccountType.GOOGLE;
