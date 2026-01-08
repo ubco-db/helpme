@@ -1,4 +1,5 @@
 import {
+  asyncQuestionStatus,
   MailServiceType,
   OrganizationRole,
   QueueConfig,
@@ -772,5 +773,27 @@ export class SeedController {
     });
 
     return 'Data successfully seeded';
+  }
+
+  // seed 100 dummy Anytime Questions for testing pagination
+  @Get('fill_anytime_questions')
+  async fillAnytimeQuestions(): Promise<string> {
+    // grab the CS 304 course and studentOne user that get created in /seeds/create
+    const course = await CourseModel.findOne({
+      where: { name: 'CS 304' },
+    });
+
+    const creator = await UserModel.findOne({
+      where: { email: 'studentOne@ubc.ca' },
+    });
+
+    // createList is way faster than looping 100 times
+    // need to pass course and creator so it doesn't generate 100 dummy users and courses
+    await this.factoryService.AsyncQuestionFactory.createList(100, {
+      course: course,
+      creator: creator,
+    });
+
+    return `Successfully created 100 test Anytime Questions for course: ${course.name}`;
   }
 }
