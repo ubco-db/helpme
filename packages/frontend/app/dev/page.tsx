@@ -78,6 +78,27 @@ export default function DevPanel(): ReactElement {
           >
             Add Questions to Queue
           </Button>
+          <Button
+            style={{ marginRight: '15px' }}
+            type="default"
+            onClick={() => {
+              API.seeds
+                .fillAnytimeQuestions()
+                .then(() => {
+                  message.success(
+                    'Successfully created 100 test Anytime Questions',
+                  )
+                })
+                .catch((error) => {
+                  const errorMessage = getErrorMessage(error)
+                  message.error(
+                    `Error occurred while creating anytime questions: ${errorMessage}`,
+                  )
+                })
+            }}
+          >
+            Generate 100 Anytime Questions
+          </Button>
         </div>
       </div>
     </div>
