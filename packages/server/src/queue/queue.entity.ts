@@ -5,15 +5,12 @@ import {
   Column,
   Entity,
   JoinColumn,
-  JoinTable,
-  ManyToMany,
   ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { CourseModel } from '../course/course.entity';
-import { UserModel } from '../profile/user.entity';
 import { QuestionModel } from '../question/question.entity';
 import {
   OpenQuestionStatus,
@@ -24,6 +21,7 @@ import {
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { QueueInviteModel } from './queue-invite.entity';
 import { QueueChatsModel } from '../queueChats/queue-chats.entity';
+import { QueueStaffModel } from './queue-staff/queue-staff.entity';
 
 @Entity('queue_model')
 export class QueueModel extends BaseEntity {
@@ -52,9 +50,8 @@ export class QueueModel extends BaseEntity {
   @Column('text', { nullable: true })
   notes: string;
 
-  @ManyToMany((type) => UserModel, (user) => user.queues)
-  @JoinTable()
-  staffList: UserModel[];
+  @OneToMany((_type) => QueueStaffModel, (queueStaff) => queueStaff.queue)
+  queueStaff: QueueStaffModel[];
 
   @Column({ default: false })
   allowQuestions: boolean;

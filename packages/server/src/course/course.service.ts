@@ -14,6 +14,7 @@ import {
   TACheckinTimesResponse,
   UserCourse,
   UserPartial,
+  ExtraTAStatus,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -24,7 +25,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import { partition } from 'lodash';
+import { parseInt, partition } from 'lodash';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { QuestionModel } from 'question/question.entity';
 import { Between, DataSource, EntityManager, In, IsNull } from 'typeorm';
@@ -43,6 +44,9 @@ import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueModel } from 'queue/queue.entity';
 import { SuperCourseModel } from './super-course.entity';
 import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
+import { URLSearchParams } from 'node:url';
+import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class CourseService {
@@ -162,8 +166,12 @@ export class CourseService {
       );
     }
 
-    // Destructure coursePatch to separate courseInviteCode from other fields
-    const { courseInviteCode, ...otherFields } = coursePatch;
+    // Destructure coursePatch to separate invite-related fields from other fields
+    const {
+      courseInviteCode: _courseInviteCode,
+      isCourseInviteEnabled: _isCourseInviteEnabled,
+      ...otherFields
+    } = coursePatch;
     // Allow courseInviteCode to be null or empty but no other fields
     if (Object.values(otherFields).some((x) => x === null || x === '')) {
       throw new BadRequestException(
@@ -199,7 +207,24 @@ export class CourseService {
     }
 
     if (coursePatch.courseInviteCode !== undefined) {
-      course.courseInviteCode = coursePatch.courseInviteCode;
+      if (coursePatch.courseInviteCode === null) {
+        // Explicitly clear/disable invite code
+        course.courseInviteCode = null;
+      } else {
+        // Don't allow the user to set an invite code. Just give them a random one.
+        course.courseInviteCode = this.generateRandomInviteCode();
+      }
+    }
+
+    if (coursePatch.isCourseInviteEnabled !== undefined) {
+      // When enabling and there is no code yet, generate one.
+      if (
+        coursePatch.isCourseInviteEnabled &&
+        (!course.courseInviteCode || course.courseInviteCode === '')
+      ) {
+        course.courseInviteCode = this.generateRandomInviteCode();
+      }
+      course.isCourseInviteEnabled = coursePatch.isCourseInviteEnabled;
     }
 
     if (coursePatch.asyncQuestionDisplayTypes) {
@@ -320,7 +345,7 @@ export class CourseService {
   async getQueueInviteRedirectURLandInviteToCourse(
     queueInviteCookie: string,
     userId: number,
-  ): Promise<string> {
+  ): Promise<{ url: string; queryParams: URLSearchParams }> {
     const decodedCookie = decodeURIComponent(queueInviteCookie);
     const splitCookie = decodedCookie.split(',');
     const courseId = splitCookie[0];
@@ -329,6 +354,7 @@ export class CourseService {
     const courseInviteCode = Buffer.from(splitCookie[3], 'base64').toString(
       'utf-8',
     );
+
     // check if the queueInvite exists and if it will invite to course
     const queueInvite = await QueueInviteModel.findOne({
       where: {
@@ -340,49 +366,79 @@ export class CourseService {
       where: { id: userId },
       relations: ['courses'],
     });
+
     if (!user) {
-      return '/login?error=notSuccessfullyLoggedIn';
+      return {
+        url: '/login',
+        queryParams: new URLSearchParams({
+          error: 'notSuccessfullyLoggedIn',
+        }),
+      };
     }
+
     const isUserInCourse = user.courses.some(
       (course) => course.courseId === Number(courseId),
     );
-    if (isUserInCourse) {
-      // if they're already in the course, just redirect them to the queue
-      if (courseId && queueId) {
-        return `/course/${courseId}/queue/${queueId}`;
-      } else if (courseId) {
-        return `/course/${courseId}`;
-      } else {
-        return '/courses';
+
+    let url: string = '/courses';
+    const queryParams = new URLSearchParams();
+
+    const getUrlAndParams = async (): Promise<void> => {
+      if (isUserInCourse) {
+        // if they're already in the course, just redirect them to the queue
+        if (courseId && queueId) {
+          url = `/course/${courseId}/queue/${queueId}`;
+        } else if (courseId) {
+          url = `/course/${courseId}`;
+        }
+        return;
       }
-    } else if (!queueInvite) {
-      // if the queueInvite doesn't exist
-      return '/courses?err=inviteNotFound';
-    } else if (queueInvite.willInviteToCourse && courseInviteCode) {
-      // get course
-      const course = await CourseModel.findOne({
-        where: {
-          id: parseInt(courseId),
-        },
-      });
-      if (!course) {
-        return '/courses?err=courseNotFound';
+
+      if (!queueInvite) {
+        // if the queueInvite doesn't exist
+        queryParams.set('err', 'inviteNotFound');
+        return;
       }
-      if (course.courseInviteCode !== courseInviteCode) {
-        return '/courses?err=badCourseInviteCode';
+
+      if (queueInvite.willInviteToCourse && courseInviteCode) {
+        // get course
+        const course = await CourseModel.findOne({
+          where: {
+            id: parseInt(courseId),
+          },
+        });
+
+        if (!course) {
+          queryParams.set('err', 'courseNotFound');
+          return;
+        }
+
+        if (course.courseInviteCode !== courseInviteCode) {
+          queryParams.set('err', 'badCourseInviteCode');
+          return;
+        }
+
+        await this.addStudentToCourse(course, user).catch((err) => {
+          throw new BadRequestException(err.message);
+        });
+
+        if (courseId && queueId) {
+          url = `/course/${courseId}/queue/${queueId}`;
+        } else if (courseId) {
+          url = `/course/${courseId}`;
+        }
+        return;
       }
-      await this.addStudentToCourse(course, user).catch((err) => {
-        throw new BadRequestException(err.message);
-      });
-      if (courseId && queueId) {
-        return `/course/${courseId}/queue/${queueId}`;
-      } else if (courseId) return `/course/${courseId}`;
-      else {
-        return '/courses';
-      }
-    } else {
-      return `/courses?err=notInCourse`;
-    }
+
+      queryParams.set('err', 'notInCourse');
+    };
+
+    await getUrlAndParams();
+
+    return {
+      url,
+      queryParams,
+    };
   }
 
   async cloneCourse(
@@ -445,6 +501,7 @@ export class CourseService {
       clonedCourse.enabled = true;
       clonedCourse.name = originalCourse.name;
       clonedCourse.timezone = originalCourse.timezone;
+      clonedCourse.courseInviteCode = this.generateRandomInviteCode();
 
       if (cloneData.toClone?.coordinator_email) {
         clonedCourse.coordinator_email = originalCourse.coordinator_email;
@@ -905,5 +962,9 @@ export class CourseService {
     }
 
     return createdQueue;
+  }
+
+  private generateRandomInviteCode(): string {
+    return crypto.randomBytes(6).toString('hex');
   }
 }

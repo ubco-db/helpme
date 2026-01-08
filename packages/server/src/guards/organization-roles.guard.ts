@@ -1,10 +1,10 @@
 import { ERROR_MESSAGES } from '@koh/common';
 import {
-  Injectable,
   CanActivate,
   ExecutionContext,
-  UnauthorizedException,
   ForbiddenException,
+  Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
@@ -35,10 +35,7 @@ export class OrganizationRolesGuard implements CanActivate {
     return this.matchRoles(roles, user);
   }
 
-  async setupData(
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    request: any,
-  ): Promise<{ user: OrganizationUserModel }> {
+  async setupData(request: any): Promise<{ user: OrganizationUserModel }> {
     const user = await OrganizationUserModel.findOne({
       where: {
         userId: request.user.userId,

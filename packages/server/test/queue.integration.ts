@@ -6,6 +6,7 @@ import {
   QuestionFactory,
   QuestionTypeFactory,
   QueueFactory,
+  QueueStaffFactory,
   StudentCourseFactory,
   TACourseFactory,
   UserCourseFactory,
@@ -36,7 +37,10 @@ describe('Queue Integration', () => {
         courseId: course.id,
         course: course,
         questions: [await QuestionFactory.create()],
-        staffList: [ta],
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta,
       });
       const userCourse = await UserCourseFactory.create({
         user: await UserFactory.create(),
@@ -60,7 +64,11 @@ describe('Queue Integration', () => {
       const ta = await UserFactory.create();
       await TACourseFactory.create({ course: course, user: ta });
 
-      const queue = await QueueFactory.create({ course, staffList: [ta] });
+      const queue = await QueueFactory.create({ course });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta,
+      });
       const user = await UserFactory.create();
 
       await supertest({ userId: user.id })

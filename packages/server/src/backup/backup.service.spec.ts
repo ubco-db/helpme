@@ -1,4 +1,3 @@
- 
 import { Test, TestingModule } from '@nestjs/testing';
 import { BackupService, baseBackupCommand } from './backup.service';
 import * as fs from 'fs';

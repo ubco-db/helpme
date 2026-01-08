@@ -1,5 +1,6 @@
 import {
   ERROR_MESSAGES,
+  ExtraTAStatus,
   OrganizationRole,
   QuestionStatusKeys,
   Role,
@@ -23,6 +24,7 @@ import {
   QuestionFactory,
   QueueFactory,
   QueueInviteFactory,
+  QueueStaffFactory,
   StudentCourseFactory,
   TACourseFactory,
   UserCourseFactory,
@@ -34,6 +36,7 @@ import { CourseSettingsModel } from 'course/course_settings.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { CourseService } from '../src/course/course.service';
 import { MailModule } from 'mail/mail.module';
+import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
 
 describe('Course Integration', () => {
   const { supertest } = setupIntegrationTest(CourseModule, undefined, [
@@ -81,12 +84,12 @@ describe('Course Integration', () => {
         room: 'room 2',
         course: course,
       });
-      await QueueFactory.create({
+      const queue = await QueueFactory.create({
         isDisabled: false,
         room: 'room 3',
         course: course,
-        staffList: [taf.user],
       });
+      await QueueStaffFactory.create({ queue: queue, user: taf.user });
 
       const response = await supertest({ userId: ucf.userId })
         .get(`/courses/${course.id}`)
@@ -117,20 +120,20 @@ describe('Course Integration', () => {
         room: 'room 2',
         course: course,
       });
-      await QueueFactory.create({
+      const queue1 = await QueueFactory.create({
         isDisabled: false,
         room: 'room 3',
         course: course,
-        staffList: [taf.user],
       });
+      await QueueStaffFactory.create({ queue: queue1, user: taf.user });
 
-      await QueueFactory.create({
+      const queue2 = await QueueFactory.create({
         isDisabled: false,
         isProfessorQueue: true,
         room: 'room 4',
         course: course,
-        staffList: [taf.user],
       });
+      await QueueStaffFactory.create({ queue: queue2, user: taf.user });
 
       const response = await supertest({ userId: taf.userId })
         .get(`/courses/${course.id}`)
@@ -168,27 +171,27 @@ describe('Course Integration', () => {
         room: 'room 2',
         course: course,
       });
-      await QueueFactory.create({
+      const queue1 = await QueueFactory.create({
         isDisabled: false,
         room: 'room 3',
         course: course,
-        staffList: [taf.user],
       });
+      await QueueStaffFactory.create({ queue: queue1, user: taf.user });
 
-      await QueueFactory.create({
+      const queue2 = await QueueFactory.create({
         isDisabled: false,
         isProfessorQueue: true,
         room: 'room 4',
         course: course,
-        staffList: [taf.user],
       });
-      await QueueFactory.create({
+      await QueueStaffFactory.create({ queue: queue2, user: taf.user });
+      const queue3 = await QueueFactory.create({
         isDisabled: true,
         isProfessorQueue: true,
         room: 'room 5',
         course: course,
-        staffList: [taf.user],
       });
+      await QueueStaffFactory.create({ queue: queue3, user: taf.user });
 
       const response = await supertest({ userId: proff.userId })
         .get(`/courses/${course.id}`)
@@ -352,8 +355,8 @@ describe('Course Integration', () => {
       const ta = await UserFactory.create();
       const queue = await QueueFactory.create({
         room: 'The Alamo',
-        staffList: [ta],
       });
+      await QueueStaffFactory.create({ queue: queue, user: ta });
       const tcf = await TACourseFactory.create({
         course: queue.course,
         user: ta,
@@ -362,10 +365,10 @@ describe('Course Integration', () => {
       expect(
         (
           await QueueModel.findOne({
-            relations: { staffList: true },
+            relations: { queueStaff: true },
             where: { id: queue.id },
           })
-        ).staffList.length,
+        ).queueStaff.length,
       ).toEqual(1);
 
       await supertest({ userId: ta.id })
@@ -374,11 +377,11 @@ describe('Course Integration', () => {
 
       expect(
         await QueueModel.findOne({
-          relations: { staffList: true },
+          relations: { queueStaff: true },
           where: { id: queue.id },
         }),
       ).toMatchObject({
-        staffList: [],
+        queueStaff: [],
       });
 
       const events = await EventModel.find();
@@ -416,11 +419,11 @@ describe('Course Integration', () => {
 
       expect(
         await QueueModel.findOne({
-          relations: { staffList: true },
+          relations: { queueStaff: true },
           where: { id: queue.id },
         }),
       ).toMatchObject({
-        staffList: [],
+        queueStaff: [],
       });
 
       const events = await EventModel.find({
@@ -442,14 +445,14 @@ describe('Course Integration', () => {
       });
       const queue1 = await QueueFactory.create({
         room: 'queue1',
-        staffList: [ta],
         course: course,
       });
+      await QueueStaffFactory.create({ queue: queue1, user: ta });
       const queue2 = await QueueFactory.create({
         room: 'queue2',
-        staffList: [ta],
         course: course,
       });
+      await QueueStaffFactory.create({ queue: queue2, user: ta });
 
       await supertest({ userId: ta.id })
         .delete(`/courses/${tcf.courseId}/checkout_all`)
@@ -457,11 +460,11 @@ describe('Course Integration', () => {
 
       expect(
         await QueueModel.findOne({
-          relations: { staffList: true },
+          relations: { queueStaff: true },
           where: { id: queue1.id },
         }),
       ).toMatchObject({
-        staffList: [],
+        queueStaff: [],
       });
 
       const events = await EventModel.find();
@@ -476,8 +479,9 @@ describe('Course Integration', () => {
       const ta2 = await UserFactory.create();
       const queue1 = await QueueFactory.create({
         room: 'queue1',
-        staffList: [ta1, ta2],
       });
+      await QueueStaffFactory.create({ queue: queue1, user: ta1 });
+      await QueueStaffFactory.create({ queue: queue1, user: ta2 });
       const tcf = await TACourseFactory.create({
         course: queue1.course,
         user: ta1,
@@ -487,14 +491,11 @@ describe('Course Integration', () => {
         .delete(`/courses/${tcf.courseId}/checkout_all`)
         .expect(200);
 
-      expect(
-        await QueueModel.findOne({
-          relations: { staffList: true },
-          where: { id: queue1.id },
-        }),
-      ).toMatchObject({
-        staffList: [ta2],
+      const newQueueStaff = await QueueStaffModel.find({
+        where: { queueId: queue1.id },
       });
+      expect(newQueueStaff.length).toBe(1);
+      expect(newQueueStaff[0].userId).toBe(ta2.id);
 
       const events = await EventModel.find();
       expect(events.length).toBe(1);
@@ -531,11 +532,11 @@ describe('Course Integration', () => {
 
       expect(
         await QueueModel.findOne({
-          relations: { staffList: true },
+          relations: { queueStaff: true },
           where: { id: queue.id },
         }),
       ).toMatchObject({
-        staffList: [],
+        queueStaff: [],
       });
 
       const events = await EventModel.find({
@@ -543,6 +544,97 @@ describe('Course Integration', () => {
       });
 
       expect(events.length).toBe(0);
+    });
+  });
+
+  describe('PATCH /courses/:id/ta_status/:qid', () => {
+    it('returns 401 when the user is not logged in', async () => {
+      const queue = await QueueFactory.create();
+      await supertest()
+        .patch(`/courses/${queue.course.id}/ta_status/${queue.id}`)
+        .send({ status: ExtraTAStatus.AWAY })
+        .expect(401);
+    });
+
+    it('allows a checked-in TA to set and clear Away status', async () => {
+      const queue = await QueueFactory.create();
+      const ta = await UserFactory.create();
+      const tcf = await TACourseFactory.create({
+        course: queue.course,
+        user: ta,
+      });
+
+      // add TA to staff list for this queue
+      await QueueStaffFactory.create({ queue: queue, user: ta });
+
+      await supertest({ userId: ta.id })
+        .patch(`/courses/${queue.course.id}/ta_status/${queue.id}`)
+        .send({ status: ExtraTAStatus.AWAY })
+        .expect(200);
+
+      const joinRow = await QueueStaffModel.findOne({
+        where: { queueId: queue.id, userId: ta.id },
+      });
+      expect(joinRow).toBeTruthy();
+      expect(joinRow.extraTAStatus).toBe(ExtraTAStatus.AWAY);
+
+      const eventsAway = await EventModel.find({
+        where: {
+          userId: ta.id,
+          courseId: queue.course.id,
+          queueId: queue.id,
+          eventType: EventType.TA_MARKED_SELF_AWAY,
+        },
+      });
+      expect(eventsAway.length).toBe(1);
+
+      await supertest({ userId: ta.id })
+        .patch(`/courses/${queue.course.id}/ta_status/${queue.id}`)
+        .send({ status: null })
+        .expect(200);
+
+      const joinRowCleared = await QueueStaffModel.findOne({
+        where: { queueId: queue.id, userId: ta.id },
+      });
+      expect(joinRowCleared.extraTAStatus).toBeNull();
+
+      const eventsBack = await EventModel.find({
+        where: {
+          userId: ta.id,
+          courseId: queue.course.id,
+          queueId: queue.id,
+          eventType: EventType.TA_MARKED_SELF_BACK,
+        },
+      });
+      expect(eventsBack.length).toBe(1);
+    });
+
+    it('returns 400 when TA is not checked into the queue', async () => {
+      const queue = await QueueFactory.create();
+      const ta = await UserFactory.create();
+      const tcf = await TACourseFactory.create({
+        course: queue.course,
+        user: ta,
+      });
+
+      await supertest({ userId: ta.id })
+        .patch(`/courses/${queue.course.id}/ta_status/${queue.id}`)
+        .send({ status: ExtraTAStatus.AWAY })
+        .expect(400);
+    });
+
+    it('returns 404 when the queue does not exist', async () => {
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      const tcf = await TACourseFactory.create({
+        course,
+        user: ta,
+      });
+
+      await supertest({ userId: ta.id })
+        .patch(`/courses/${course.id}/ta_status/9999`)
+        .send({ status: ExtraTAStatus.AWAY })
+        .expect(404);
     });
   });
 
