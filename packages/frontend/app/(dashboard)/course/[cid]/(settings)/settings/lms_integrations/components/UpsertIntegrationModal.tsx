@@ -203,7 +203,7 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
         activeTab == 'access_token' || !organizationSettings.allowLMSApiKey
           ? accessTokenId
           : undefined,
-      ).then((result) => {
+      ).then(async (result) => {
         if (result == LMSApiResponseStatus.Success) {
           const body: UpsertLMSCourseParams = {
             apiPlatform: selectedIntegration.apiPlatform,
