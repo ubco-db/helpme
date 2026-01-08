@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, Checkbox, Modal, Segmented, message, Tooltip } from 'antd'
+import { Button, Checkbox, Form, Modal, Segmented, message, Tooltip } from 'antd'
 import { InfoCircleOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import csvDownload from 'json-to-csv-export'
@@ -35,20 +35,11 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
   visible,
   onCancel,
 }) => {
+  const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
-  const [includeQueueQuestions, setIncludeQueueQuestions] = useState(true)
-  const [includeAnytimeQuestions, setIncludeAnytimeQuestions] = useState(true)
-  const [includeChatbotInteractions, setIncludeChatbotInteractions] = useState(true)
-  const [groupBy, setGroupBy] = useState<'day' | 'week'>('week')
-  const [includeBreakdown, setIncludeBreakdown] = useState(false)
 
-
-  const handleExport = async () => {
-    // Check if at least one tool type is selected
-    if (!includeQueueQuestions && !includeAnytimeQuestions && !includeChatbotInteractions) {
-      message.error('Please select at least one tool type to export')
-      return
-    }
+  const handleExport = async (values: any) => {
+    const { includeQueueQuestions, includeAnytimeQuestions, includeChatbotInteractions, groupBy, includeBreakdown } = values
 
     setLoading(true)
     try {
@@ -233,6 +224,11 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
     }
   }
 
+  const handleCancel = () => {
+    form.resetFields()
+    onCancel()
+  }
+
   return (
     <Modal
       title={
@@ -250,73 +246,98 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
         </div>
       }
       open={visible}
-      onCancel={onCancel}
+      onCancel={handleCancel}
       footer={[
-        <Button key="cancel" onClick={onCancel}>
+        <Button key="cancel" onClick={handleCancel}>
           Cancel
         </Button>,
         <Button
           key="export"
           type="primary"
           loading={loading}
-          onClick={handleExport}
+          onClick={() => form.submit()}
         >
           Create Export
         </Button>,
       ]}
       width={600}
     >
-      <div className="space-y-6">
-        <div>
-          <h4 className="text-sm font-medium mb-3">What constitutes as a &quot;tool usage&quot;?</h4>
-          <div className="space-y-2">
-            <Checkbox
-              checked={includeQueueQuestions}
-              onChange={(e) => setIncludeQueueQuestions(e.target.checked)}
-            >
-              Queue Questions
-            </Checkbox>
-            <br />
-            <Checkbox
-              checked={includeAnytimeQuestions}
-              onChange={(e) => setIncludeAnytimeQuestions(e.target.checked)}
-            >
-              Anytime Questions
-            </Checkbox>
-            <br />
-            <Checkbox
-              checked={includeChatbotInteractions}
-              onChange={(e) => setIncludeChatbotInteractions(e.target.checked)}
-            >
-              Chatbot Interactions
-            </Checkbox>
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleExport}
+        initialValues={{
+          includeQueueQuestions: true,
+          includeAnytimeQuestions: true,
+          includeChatbotInteractions: true,
+          groupBy: 'week',
+          includeBreakdown: false,
+        }}
+      >
+        <div className="space-y-6">
+          <div>
+            <h4 className="text-sm font-medium mb-3">What constitutes as tool usage?</h4>
+            <div className="space-y-2">
+              <Form.Item 
+                name="includeQueueQuestions" 
+                valuePropName="checked" 
+                className="mb-2"
+                dependencies={['includeAnytimeQuestions', 'includeChatbotInteractions']}
+                rules={[
+                  {
+                    validator: async (_, value) => {
+                      const { includeAnytimeQuestions, includeChatbotInteractions } = form.getFieldsValue()
+                      if (!value && !includeAnytimeQuestions && !includeChatbotInteractions) {
+                        throw new Error('Please select at least one tool type to export')
+                      }
+                    },
+                  },
+                ]}
+              >
+                <Checkbox>Queue Questions</Checkbox>
+              </Form.Item>
+              <Form.Item 
+                name="includeAnytimeQuestions" 
+                valuePropName="checked" 
+                className="mb-2"
+                dependencies={['includeQueueQuestions', 'includeChatbotInteractions']}
+              >
+                <Checkbox>Anytime Questions</Checkbox>
+              </Form.Item>
+              <Form.Item 
+                name="includeChatbotInteractions" 
+                valuePropName="checked" 
+                className="mb-0"
+                dependencies={['includeQueueQuestions', 'includeAnytimeQuestions']}
+              >
+                <Checkbox>Chatbot Interactions</Checkbox>
+              </Form.Item>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-medium mb-3">Tool uses by day or by week?</h4>
+            <Form.Item name="groupBy" className="mb-0">
+              <Segmented
+                options={[
+                  { label: 'Day', value: 'day' },
+                  { label: 'Week', value: 'week' },
+                ]}
+              />
+            </Form.Item>
+          </div>
+
+          <div>
+            <div className="space-y-2">
+              <Form.Item name="includeBreakdown" valuePropName="checked" className="mb-0">
+                <Checkbox>
+                  Include breakdown by tool type (separate sections for each tool)
+                </Checkbox>
+              </Form.Item>
+            </div>
           </div>
         </div>
-
-        <div>
-          <h4 className="text-sm font-medium mb-3">Tool uses by day or by week?</h4>
-          <Segmented
-            options={[
-              { label: 'Day', value: 'day' },
-              { label: 'Week', value: 'week' },
-            ]}
-            value={groupBy}
-            onChange={(value) => setGroupBy(value as 'day' | 'week')}
-          />
-        
-        </div>
-
-        <div>
-          <div className="space-y-2">
-            <Checkbox
-              checked={includeBreakdown}
-              onChange={(e) => setIncludeBreakdown(e.target.checked)}
-            >
-              Include breakdown by tool type (separate sections for each tool)
-            </Checkbox>
-          </div>
-        </div>
-      </div>
+      </Form>
     </Modal>
   )
 }
