@@ -6,7 +6,7 @@
 
 - ***General***
   - Added the ability for the **HelpMe Chatbot to be embedded inside Canvas**!
-    - TODO: insert instructions on how to do so for professors
+    - TBD: instructions on setup for professors
     - When accessing the Canvas page with the HelpMe Chatbot, students will be prompted to login to ensure a HelpMe account is created. Afterwards, they will be auto-logged in each time
     - Staff and Students can still access their HelpMe course by visiting this site like normal
   - Added an "Away" toggle for checked-in staff in queues
