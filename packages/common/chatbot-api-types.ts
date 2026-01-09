@@ -555,6 +555,10 @@ export class ChatbotDocumentAggregateResponse {
   @Type(() => ChatbotDocumentResponse)
   @ValidateNested({ each: true })
   subDocuments!: ChatbotDocumentResponse[]
+
+  @IsString()
+  @IsOptional()
+  size?: string
 }
 
 export class ChatbotQuestionResponse {

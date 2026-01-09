@@ -293,6 +293,18 @@ export default function ChatbotSettings(
       ),
     },
     {
+      title: 'Page Count',
+      dataIndex: 'pageCount',
+      key: 'pageCount',
+      width: '10%',
+    },
+    {
+      title: 'Size',
+      dataIndex: 'size',
+      key: 'size',
+      width: '10%',
+    },
+    {
       title: 'Type',
       dataIndex: 'type',
       key: 'type',

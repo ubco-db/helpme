@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Button,
   Form,
@@ -12,6 +12,8 @@ import {
 import {
   ChatbotDocumentResponse,
   ChatbotQuestionResponse,
+  ChatbotResultEventName,
+  ChatbotResultEvents,
   CreateDocumentChunkBody,
   CreateQuestionBody,
   DocumentType,
@@ -28,6 +30,7 @@ import {
 import MarkdownGuideTooltipBody from './MarkdownGuideTooltipBody'
 import { API } from '@/app/api'
 import ChatbotSelectCitations from '../../components/ChatbotSelectCitations'
+import { useWebSocket } from '@/app/contexts/WebSocketContext'
 
 interface FormValues {
   question: string
@@ -56,6 +59,8 @@ const UpsertChatbotQuestionModal: React.FC<UpsertChatbotQuestionModalProps> = ({
   onUpsert,
   deleteQuestion,
 }) => {
+  const webSocket = useWebSocket()
+
   const [form] = Form.useForm()
   const [saveLoading, setSaveLoading] = useState(false)
 
@@ -99,6 +104,56 @@ const UpsertChatbotQuestionModal: React.FC<UpsertChatbotQuestionModalProps> = ({
     }
   }, [editingRecord, form])
 
+  const listener = useCallback(
+    async (data: {
+      params: { resultId: string; type: ChatbotResultEventName }
+      data: ChatbotDocumentResponse[]
+    }) => {
+      if (
+        'params' in data &&
+        'resultId' in data.params &&
+        'type' in data.params
+      ) {
+        if (data.params.type !== ChatbotResultEventName.ADD_CHUNK) {
+          return
+        }
+
+        const response = data.data
+
+        if ('error' in response) {
+          // an error occurred and was transmitted down
+          message.error(`Failed to insert question: ${response}`)
+        } else {
+          // success
+          const docChunks = response as ChatbotDocumentResponse[]
+          message.success(
+            `Document${docChunks.length > 1 ? 's' : ''} inserted successfully. You can now cancel or save the changes you made to the Q&A`,
+            6,
+          )
+          message.success(
+            `Document${docChunks.length > 1 ? 's' : ''} inserted successfully. `,
+          )
+          if (docChunks.length > 1)
+            message.info(
+              `Question text was too large! Inserted document was split into ${docChunks.length} document chunks.`,
+              6,
+            )
+          setSuccessfulQAInsert(true)
+        }
+      }
+    },
+    [],
+  )
+
+  useEffect(() => {
+    if (webSocket) {
+      webSocket.onMessageEvent.on(ChatbotResultEvents.POST_RESULT, listener)
+      return () => {
+        webSocket.onMessageEvent.off(ChatbotResultEvents.POST_RESULT, listener)
+      }
+    }
+  }, [listener, webSocket])
+
   const [successfulQAInsert, setSuccessfulQAInsert] = useState(false)
   // reset successfulQAInsert when the modal is closed
   useEffect(() => {
@@ -122,17 +177,18 @@ const UpsertChatbotQuestionModal: React.FC<UpsertChatbotQuestionModalProps> = ({
 
     await API.chatbot.staffOnly
       .addDocumentChunk(courseId, newChunk)
-      .then(async (docChunks: ChatbotDocumentResponse[]) => {
-        message.success(
-          `Document${docChunks.length > 1 ? 's' : ''} inserted successfully. You can now cancel or save the changes you made to the Q&A`,
-          6,
-        )
-        if (docChunks.length > 1)
-          message.info(
-            `Question text was too large! Inserted document was split into ${docChunks.length} document chunks.`,
-            6,
+      .then(async (resultId: string) => {
+        const res = await webSocket.subscribe(ChatbotResultEvents.GET_RESULT, {
+          type: ChatbotResultEventName.ADD_CHUNK,
+          resultId,
+        })
+        if (!res.success) {
+          message.success(
+            'Document creation successfully queued, but subscription to results failed.',
           )
-        setSuccessfulQAInsert(true)
+          return
+        }
+        message.success('Document creation successfully queued!')
       })
       .catch((e) => {
         const errorMessage = getErrorMessage(e)

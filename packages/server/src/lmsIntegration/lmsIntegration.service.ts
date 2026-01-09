@@ -1139,18 +1139,37 @@ export class LMSIntegrationService {
       return false;
     }
 
-    let uploadId = '';
-    uploadId = await this.chatbotResultWebSocket.getUniqueId();
+    const uploadId = await this.chatbotResultWebSocket.getUniqueId();
 
-    this.socket.registerListener(
-      {
-        event: ChatbotResultEvents.POST_RESULT,
-        callback: async (data: ChatbotDocumentAggregateResponse | Error) => {
+    const subscription = {
+      event: ChatbotResultEvents.GET_RESULT,
+      args: { resultId: result, type: eventType },
+    };
+    this.socket
+      .expectReply(
+        subscription,
+        eventType,
+        async (res: {
+          params: { resultId: string; type: ChatbotResultEventName };
+          data: ChatbotDocumentAggregateResponse;
+        }) => {
+          const { params, data } = res;
+
+          if (
+            !params?.resultId ||
+            params?.type !== eventType ||
+            (params?.resultId && params?.resultId !== result)
+          ) {
+            return;
+          }
+
           if (data instanceof Error) {
-            this.socket.emit(ChatbotResultEvents.POST_RESULT, {
-              uploadId,
-              type: eventType,
-              resultBody: {
+            await this.socket.emitWithAck(ChatbotResultEvents.POST_RESULT, {
+              params: {
+                resultId: uploadId,
+                type: eventType,
+              },
+              data: {
                 success: false,
                 id: item?.id,
               } as LMSFileUploadResponse,
@@ -1165,22 +1184,33 @@ export class LMSIntegrationService {
             adapter,
             model,
           );
-          this.socket.emit(ChatbotResultEvents.POST_RESULT, {
-            uploadId,
-            type: eventType,
-            resultBody: {
+          await this.socket.emitWithAck(ChatbotResultEvents.POST_RESULT, {
+            params: {
+              resultId: uploadId,
+              type: eventType,
+            },
+            data: {
               success: !!document,
               id: document?.id,
-              documentId: document.chatbotDocumentId,
+              documentId: document?.chatbotDocumentId,
             } as LMSFileUploadResponse,
           });
         },
-      },
-      {
-        event: ChatbotResultEvents.GET_RESULT,
-        args: { result, type: eventType },
-      },
-    );
+        async () => {
+          await this.socket.emitWithAck(ChatbotResultEvents.POST_RESULT, {
+            params: {
+              resultId: uploadId,
+              type: eventType,
+            },
+            data: {
+              success: false,
+              id: 'id' in item ? item?.id : undefined,
+            } as LMSFileUploadResponse,
+          });
+        },
+        1000 * 60 * 2, // Two minute timeout
+      )
+      .then();
 
     return uploadId;
   }

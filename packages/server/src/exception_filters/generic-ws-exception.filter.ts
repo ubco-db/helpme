@@ -43,8 +43,10 @@ export class BaseWsExceptionFilter<
     const status = 'error';
     const result = exception.getError();
 
+    const logger = BaseWsExceptionFilter.logger;
     if (isObject(result)) {
-      return client.emit('exception', result);
+      logger.error(result);
+      return client.emit(cause.pattern, result);
     }
 
     const payload: ErrorPayload<unknown> = {
@@ -52,6 +54,7 @@ export class BaseWsExceptionFilter<
       message: result,
     };
 
+    logger.error(payload);
     client.emit(cause.pattern, payload);
   }
 

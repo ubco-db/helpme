@@ -4210,5 +4210,8 @@ export const ERROR_MESSAGES = {
       malformedToken: 'Authorization token malformed',
       invalidToken: 'Authorization token invalid',
     },
+    operations: {
+      timeout: 'Request timed out',
+    },
   },
 }

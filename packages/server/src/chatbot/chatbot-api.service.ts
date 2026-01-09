@@ -137,6 +137,7 @@ export class ChatbotApiService {
         body = data;
       } else if (data != undefined && isObject(data)) {
         body = JSON.stringify(data);
+        headers['Content-Type'] = 'application/json';
       } else {
         body = data as any;
       }

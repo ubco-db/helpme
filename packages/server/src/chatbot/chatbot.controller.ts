@@ -364,12 +364,28 @@ export class ChatbotController {
         : pageSize;
 
     // this gets the full chatbot documents (rather than just the chunks)
-    return await this.chatbotApiService.getAllAggregateDocuments(
+    const aggregates = await this.chatbotApiService.getAllAggregateDocuments(
       courseId,
       page,
       pageSize,
       search,
     );
+
+    const ids = aggregates.items.map((v) => v.id);
+    const docSizes = await ChatbotDocPdfModel.createQueryBuilder()
+      .select('"chatbotId"', 'id')
+      .addSelect('pg_size_pretty("docSizeBytes"::bigint)', 'size')
+      .where('"chatbotId" IN (:...aggregateIds)', {
+        aggregateIds: ids,
+      })
+      .getRawMany<{ id: string; size: string }>();
+
+    docSizes.forEach(({ id, size }) => {
+      const agg = aggregates.items.find((v) => v.id === id);
+      agg['size'] = size;
+    });
+
+    return aggregates;
   }
 
   @Get(':courseId/document{/:page}')
@@ -499,7 +515,7 @@ export class ChatbotController {
     await this.chatbotApiService.deleteDocument(docId, courseId);
     // if that succeeded (an error would have been thrown if it didn't), then delete the document from database
     await ChatbotDocPdfModel.delete({
-      docIdChatbotDB: docId,
+      chatbotId: docId,
     });
   }
 
@@ -599,7 +615,7 @@ export class ChatbotController {
           'doc."docName" as "doc_docName"',
           'LENGTH(doc."docData") as "file_size"',
         ])
-        .where('doc."idHelpMeDB" = :docId', { docId })
+        .where('doc."id" = :docId', { docId })
         .getRawOne<{ doc_docName: string; file_size: string }>();
 
       if (!docInfo) {
@@ -668,7 +684,7 @@ export class ChatbotController {
         .select(
           `SUBSTRING(doc."docData" FROM ${start + 1} FOR ${end - start + 1}) as chunk`,
         )
-        .where('doc."idHelpMeDB" = :docId', { docId })
+        .where('doc."id" = :docId', { docId })
         .stream();
 
       // Don't pipe directly - we need to transform each row
@@ -817,9 +833,9 @@ export class ChatbotController {
     chatbotDocPdf.docName = file.originalname;
     chatbotDocPdf.courseId = courseId;
     chatbotDocPdf.docSizeBytes = file.buffer.length;
-    chatbotDocPdf = await chatbotDocPdf.save(); // so that we have an idHelpMeDB to generate the url
+    chatbotDocPdf = await chatbotDocPdf.save(); // so that we have an id to generate the url
     const docUrl =
-      '/api/v1/chatbot/document/' + courseId + '/' + chatbotDocPdf.idHelpMeDB;
+      '/api/v1/chatbot/document/' + courseId + '/' + chatbotDocPdf.id;
     chatbotDocPdf.docData = file.buffer;
     // Save file to database and upload to chatbot service in parallel with error handling
     const resultId = await this.chatbotApiService.uploadDocument(
@@ -833,59 +849,77 @@ export class ChatbotController {
 
     const uploadResultId = await this.chatbotResultWebSocket.getUniqueId();
 
-    await this.socket.registerListener(
-      {
-        event: ChatbotResultEvents.POST_RESULT,
-        callback: async (data: ChatbotDocumentAggregateResponse) => {
-          console.log('CALLBACK HIT', data);
-          try {
-            if (data instanceof Error) {
-              await this.socket.emitWithAck(ChatbotResultEvents.POST_RESULT, {
-                uploadResultId,
-                type: ChatbotResultEventName.ADD_AGGREGATE,
-                resultBody: data,
-              });
-              return;
-            }
+    const subscription = {
+      event: ChatbotResultEvents.GET_RESULT,
+      args: {
+        resultId,
+        type: ChatbotResultEventName.ADD_AGGREGATE,
+      },
+    };
 
-            if (chatbotDocPdf) {
-              chatbotDocPdf.docIdChatbotDB = data.id;
-              chatbotDocPdf = await chatbotDocPdf.save();
-            }
+    this.socket
+      .expectReply(
+        subscription,
+        ChatbotResultEvents.POST_RESULT,
+        async (result: {
+          params: { resultId: string; type: ChatbotResultEventName };
+          data: ChatbotDocumentAggregateResponse;
+        }) => {
+          const { params, data } = result;
 
-            const endTime2 = Date.now();
-            console.log(
-              `${file.originalname} (${file.mimetype}) upload chatbot service and save in db completed in ${endTime2 - endTime}ms for a total processing time of ${endTime2 - startTime}ms`,
-            );
-
-            await this.socket.emitWithAck(ChatbotResultEvents.POST_RESULT, {
-              uploadResultId,
-              type: ChatbotResultEventName.ADD_AGGREGATE,
-              resultBody: data,
-            });
-          } catch (err) {
-            if (!(data instanceof Error)) {
-              await this.deleteDocument(courseId, data.id);
-            }
-            if (chatbotDocPdf && chatbotDocPdf.idHelpMeDB) {
-              await ChatbotDocPdfModel.remove(chatbotDocPdf);
-            }
-            await this.socket.emitWithAck(ChatbotResultEvents.POST_RESULT, {
-              uploadResultId,
-              type: ChatbotResultEventName.ADD_AGGREGATE,
-              resultBody: err,
-            });
+          if (
+            !params?.resultId ||
+            params?.type !== ChatbotResultEventName.ADD_AGGREGATE ||
+            (params?.resultId && params?.resultId !== resultId)
+          ) {
+            return;
           }
+
+          if (data instanceof Error) {
+            await this.socket.emitWithAck(ChatbotResultEvents.POST_RESULT, {
+              resultId: uploadResultId,
+              type: ChatbotResultEventName.ADD_AGGREGATE,
+              data,
+            });
+            return;
+          }
+
+          if (chatbotDocPdf) {
+            chatbotDocPdf.chatbotId = data.id;
+            chatbotDocPdf = await chatbotDocPdf.save();
+          }
+
+          const endTime2 = Date.now();
+          console.log(
+            `${file.originalname} (${file.mimetype}) upload chatbot service and save in db completed in ${endTime2 - endTime}ms for a total processing time of ${endTime2 - startTime}ms`,
+          );
+
+          await this.socket.emitWithAck(ChatbotResultEvents.POST_RESULT, {
+            resultId: uploadResultId,
+            type: ChatbotResultEventName.ADD_AGGREGATE,
+            data,
+          });
         },
-      },
-      {
-        event: ChatbotResultEvents.GET_RESULT,
-        args: {
-          resultId,
-          type: ChatbotResultEventName.ADD_AGGREGATE,
+        async (result, err) => {
+          if (
+            result.data &&
+            !(result.data instanceof Error) &&
+            'id' in result.data
+          ) {
+            await this.deleteDocument(courseId, result.data.id);
+          }
+          if (chatbotDocPdf && chatbotDocPdf.id) {
+            await ChatbotDocPdfModel.remove(chatbotDocPdf);
+          }
+          await this.socket.emitWithAck(ChatbotResultEvents.POST_RESULT, {
+            resultId: uploadResultId,
+            type: ChatbotResultEventName.ADD_AGGREGATE,
+            data: err,
+          });
         },
-      },
-    );
+        1000 * 60 * 5, // Allow up to 5 minutes before formally timing out
+      )
+      .then();
 
     return uploadResultId;
   }

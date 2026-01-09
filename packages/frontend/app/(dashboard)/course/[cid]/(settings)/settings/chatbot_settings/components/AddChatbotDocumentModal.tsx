@@ -230,6 +230,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
 
   const listener = useCallback(
     async (data: SocketExpectedReturn) => {
+      console.log(data)
       if ('params' in data && 'resultId' in data.params) {
         const { resultId } = data.params
         const response = data.data
@@ -265,7 +266,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
         }
       }
     },
-    [fileList, getDocumentsProxy, urlUpload, uploadNextUrl, uploadNextFile],
+    [fileList, getDocumentsProxy, urlUpload],
   )
 
   async function uploadNext() {
@@ -334,15 +335,9 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
 
   useEffect(() => {
     if (webSocket) {
-      webSocket.onMessageEvent.on(
-        ChatbotResultEventName.ADD_AGGREGATE,
-        listener,
-      )
+      webSocket.onMessageEvent.on(ChatbotResultEvents.POST_RESULT, listener)
       return () => {
-        webSocket.onMessageEvent.off(
-          ChatbotResultEventName.ADD_AGGREGATE,
-          listener,
-        )
+        webSocket.onMessageEvent.off(ChatbotResultEvents.POST_RESULT, listener)
       }
     }
     return () => {}

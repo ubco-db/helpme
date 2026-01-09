@@ -644,20 +644,18 @@ describe('CourseService', () => {
       // Check chatbot document PDFs
       const originalChatbotDocs = await ChatbotDocPdfModel.find({
         where: { courseId: originalCourseId },
-        order: { idHelpMeDB: 'ASC' },
+        order: { id: 'ASC' },
       });
 
       const clonedChatbotDocs = await ChatbotDocPdfModel.find({
         where: { courseId: clonedCourseId },
-        order: { idHelpMeDB: 'ASC' },
+        order: { id: 'ASC' },
       });
 
       expect(clonedChatbotDocs.length).toEqual(originalChatbotDocs.length);
 
       for (let i = 0; i < clonedChatbotDocs.length; i++) {
-        expect(clonedChatbotDocs[i].idHelpMeDB).not.toEqual(
-          originalChatbotDocs[i].idHelpMeDB,
-        );
+        expect(clonedChatbotDocs[i].id).not.toEqual(originalChatbotDocs[i].id);
         expect(clonedChatbotDocs[i].courseId).toEqual(clonedCourseId);
         expect(clonedChatbotDocs[i].docName).toEqual(
           originalChatbotDocs[i].docName,

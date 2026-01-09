@@ -11,7 +11,6 @@ import {
   SubscribeMessage,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { WsJwtAuthGuard } from '../../guards/websocket/ws-jwt-auth.guard';
 import { WsApiKeyGuard } from '../../guards/websocket/ws-api-key.guard';
 import { WebSocketEvent } from '../../websocket/websocket.event';
 import {
@@ -29,6 +28,7 @@ import {
   ChatbotResultEvents,
   isProd,
 } from '@koh/common';
+import { WsGeneralGuard } from '../../guards/websocket/ws-general.guard';
 
 @Injectable()
 export class ChatbotResultGateway extends WebsocketGateway {
@@ -52,18 +52,21 @@ export class ChatbotResultGateway extends WebsocketGateway {
     super.handleDisconnect(client);
   }
 
-  @UseGuards(WsJwtAuthGuard)
+  @UseGuards(WsGeneralGuard)
   @SubscribeMessage(ChatbotResultEvents.GET_RESULT)
   async subscribeResultEvent(
     @ConnectedSocket() client: Socket,
-    @MessageBody() body: [{ resultId: string; type: ChatbotResultEventName }],
+    @MessageBody()
+    body:
+      | [{ resultId: string; type: ChatbotResultEventName }]
+      | { resultId: string; type: ChatbotResultEventName },
   ): Promise<boolean> {
     if (!isProd()) {
       this.logger.debug(
         `Client ${client.id} subscribe request: ${JSON.stringify(body)}.`,
       );
     }
-    const { resultId, type } = body[0];
+    const { resultId, type } = Array.isArray(body) ? body[0] : body;
     if (!this.events[ChatbotResultEvents.GET_RESULT]) {
       throw new WsNotFoundException();
     }
@@ -81,18 +84,21 @@ export class ChatbotResultGateway extends WebsocketGateway {
     return true;
   }
 
-  @UseGuards(WsJwtAuthGuard)
+  @UseGuards(WsGeneralGuard)
   @SubscribeMessage(ChatbotResultEvents.GET_RESULT + '/unsubscribe')
   async unsubscribeResultEvent(
     @ConnectedSocket() client: Socket,
-    @MessageBody() body: [{ resultId: string; type: ChatbotResultEventName }],
+    @MessageBody()
+    body:
+      | [{ resultId: string; type: ChatbotResultEventName }]
+      | { resultId: string; type: ChatbotResultEventName },
   ): Promise<boolean> {
     if (!isProd()) {
       this.logger.debug(
         `Client ${client.id} unsubscribe: ${JSON.stringify(body)}.`,
       );
     }
-    const { resultId, type } = body[0];
+    const { resultId, type } = Array.isArray(body) ? body[0] : body;
     if (!this.events[ChatbotResultEvents.GET_RESULT]) {
       throw new WsNotFoundException();
     }
@@ -114,8 +120,9 @@ export class ChatbotResultGateway extends WebsocketGateway {
     body: { resultId: string; type: ChatbotResultEventName; data: any },
   ): Promise<any> {
     if (!isProd()) {
+      const bodyStr = JSON.stringify(body);
       this.logger.debug(
-        `Client ${client.id} post data: ${JSON.stringify(body)}.`,
+        `Client ${client.id} post data: ${bodyStr.slice(0, 64) + (bodyStr.length > 64 ? '...' : '')}.`,
       );
     }
     const { resultId, type, data } = body;
