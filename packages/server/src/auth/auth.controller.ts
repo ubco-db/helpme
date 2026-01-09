@@ -188,22 +188,19 @@ export class AuthController {
     });
   }
 
+  /* Should probably be renamed to forgotPassword() */
   @Post('/password/reset')
   async requestPasswordReset(
     @Body() body: PasswordRequestResetBody,
     @Res() res: Response,
   ): Promise<Response<void>> {
-    res = await this.authService.validateResetPasswordParams(res, body);
-    if (res.headersSent) {
+    const { res: newres, user } =
+      await this.authService.validateResetPasswordParams(res, body);
+    if (newres.headersSent) {
       return;
     }
 
-    const { email, organizationId } = body;
-    return await this.authService.issuePasswordReset(
-      res,
-      email,
-      organizationId,
-    );
+    return await this.authService.issuePasswordReset(newres, user);
   }
 
   @Post('register')

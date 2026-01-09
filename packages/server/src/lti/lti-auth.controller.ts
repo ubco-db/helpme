@@ -144,17 +144,12 @@ export class LtiAuthController {
     @Body() body: PasswordRequestResetBody,
     @Res() res: Response,
   ): Promise<Response<void>> {
-    res = await this.authService.validateResetPasswordParams(res, body);
-    if (res.headersSent) {
+    const { res: newres, user } =
+      await this.authService.validateResetPasswordParams(res, body);
+    if (newres.headersSent) {
       return;
     }
-    const { email, organizationId } = body;
-    return await this.authService.issuePasswordReset(
-      res,
-      email,
-      organizationId,
-      '/lti',
-    );
+    return await this.authService.issuePasswordReset(newres, user, '/lti');
   }
 
   @Post('register')
