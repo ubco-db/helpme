@@ -1,5 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { IdToken } from 'lti-typescript';
+import { IdToken } from '@bhunt02/lti-typescript';
 
 @Injectable()
 export class LtiGuard implements CanActivate {
