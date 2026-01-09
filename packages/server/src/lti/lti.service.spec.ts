@@ -17,7 +17,7 @@ import {
   UserLtiIdentityFactory,
 } from '../../test/util/factories';
 import { LtiService } from './lti.service';
-import { IdToken, Provider } from 'lti-typescript';
+import { IdToken, Provider } from '@bhunt02/lti-typescript';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { NotFoundException } from '@nestjs/common';
 import { ERROR_MESSAGES } from '@koh/common';

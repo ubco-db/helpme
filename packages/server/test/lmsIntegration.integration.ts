@@ -960,6 +960,92 @@ describe('Lms Integration Integrations', () => {
     });
   });
 
+  describe('GET lms/oauth2/can_generate', () => {
+    enum CanGenerateConditions {
+      NO_ORGANIZATION_USER = 'user has no organization user',
+      NO_ORG_INTEGRATION = 'organization has no integrations',
+      NO_ORG_INTEGRATION_WITH_PLATFORM = 'organization does not have an integration for platform',
+      NO_CLIENT_ID = 'integration has no client id',
+      NO_CLIENT_SECRET = 'integration has no client secret',
+    }
+
+    it('should return 400 if platform is omitted', async () => {
+      const user = await UserFactory.create();
+      await supertest({ userId: user.id })
+        .get('/lms/oauth2/can_generate')
+        .expect(400);
+    });
+
+    it('should return 401 if user is not authorized', async () => {
+      await supertest()
+        .get('/lms/oauth2/can_generate?platform=Canvas')
+        .expect(401);
+    });
+
+    it.each([
+      CanGenerateConditions.NO_ORGANIZATION_USER,
+      CanGenerateConditions.NO_ORG_INTEGRATION,
+      CanGenerateConditions.NO_ORG_INTEGRATION_WITH_PLATFORM,
+      CanGenerateConditions.NO_CLIENT_SECRET,
+      CanGenerateConditions.NO_CLIENT_ID,
+    ])(
+      'should return false if %s',
+      async (condition: CanGenerateConditions) => {
+        const organization = await OrganizationFactory.create();
+
+        const user =
+          condition == CanGenerateConditions.NO_ORGANIZATION_USER
+            ? await UserFactory.create()
+            : await OrganizationUserFactory.create({ organization }).then(
+                (res) => res.organizationUser,
+              );
+
+        if (
+          condition != CanGenerateConditions.NO_ORG_INTEGRATION_WITH_PLATFORM &&
+          condition != CanGenerateConditions.NO_ORG_INTEGRATION
+        ) {
+          await lmsOrgIntFactory.create({
+            organization,
+            apiPlatform: LMSIntegrationPlatform.Canvas,
+            clientId:
+              condition == CanGenerateConditions.NO_CLIENT_ID ? '1' : null,
+            clientSecret:
+              condition == CanGenerateConditions.NO_CLIENT_SECRET
+                ? 'sflkglksdfjghsfgh'
+                : null,
+          });
+        } else if (
+          condition == CanGenerateConditions.NO_ORG_INTEGRATION_WITH_PLATFORM
+        ) {
+          await lmsOrgIntFactory.create({
+            organization,
+            apiPlatform: LMSIntegrationPlatform.None,
+          });
+        }
+
+        await supertest({ userId: user.id })
+          .get('/lms/oauth2/can_generate?platform=Canvas')
+          .expect(200)
+          .then((res) => expect(res.text).toEqual('false'));
+      },
+    );
+
+    it('should return true if integration exists and has defined clientId and clientSecret', async () => {
+      const orgInt = await lmsOrgIntFactory.create({
+        apiPlatform: LMSIntegrationPlatform.Canvas,
+        clientId: '1',
+        clientSecret: 'abc',
+      });
+      const user = await OrganizationUserFactory.create({
+        organization: orgInt.organization,
+      }).then((res) => res.organizationUser);
+      await supertest({ userId: user.id })
+        .get('/lms/oauth2/can_generate?platform=Canvas')
+        .expect(200)
+        .then((res) => expect(res.text).toEqual('true'));
+    });
+  });
+
   describe('DELETE lms/oauth2/token/:tokenId', () => {
     it('should return 401 if user is not authorized', async () => {
       await supertest().delete('/lms/oauth2/token/1').expect(401);

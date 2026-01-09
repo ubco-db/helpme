@@ -12,8 +12,8 @@ import {
   NotifMsgs,
 } from '../notification/notification.service';
 import { QueueSSEService } from '../queue/queue-sse.service';
-import { QueueModel } from '../queue/queue.entity';
 import { QuestionModel } from './question.entity';
+import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
 
 @EventSubscriber()
 export class QuestionSubscriber
@@ -31,7 +31,6 @@ export class QuestionSubscriber
     dataSource.subscribers.push(this);
   }
 
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   listenTo() {
     return QuestionModel;
   }
@@ -72,20 +71,15 @@ export class QuestionSubscriber
     ).getCount();
 
     if (numberOfQuestions === 0) {
-      const staff = (
-        await QueueModel.findOne({
-          where: {
-            id: event.entity.queueId,
-          },
-          relations: {
-            staffList: true,
-          },
-        })
-      ).staffList;
+      const queueStaff = await QueueStaffModel.find({
+        where: {
+          queueId: event.entity.queueId,
+        },
+      });
 
-      staff.forEach((staff) => {
+      queueStaff.forEach((staff) => {
         this.notifService.notifyUser(
-          staff.id,
+          staff.userId,
           NotifMsgs.ta.STUDENT_JOINED_EMPTY_QUEUE,
         );
       });

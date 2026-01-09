@@ -55,6 +55,7 @@ import { AuthStateModel } from '../auth/auth-state.entity';
 import * as crypto from 'crypto';
 import { UserLtiIdentityModel } from '../lti/user_lti_identity.entity';
 import { LtiIdentityTokenModel } from '../lti/lti_identity_token.entity';
+import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
 
 /* Has all of our factories and initializes them with the db dataSource.
   If you want to use one of these factories, import it from factories.ts instead.
@@ -111,6 +112,7 @@ export class FactoryService {
   public AuthStateFactory: Factory<AuthStateModel>;
   public UserLtiIdentityFactory: Factory<UserLtiIdentityModel>;
   public LtiIdentityTokenFactory: Factory<LtiIdentityTokenModel>;
+  public QueueStaffFactory: Factory<QueueStaffModel>;
 
   constructor(dataSource: DataSource) {
     this.UserFactory = new Factory(UserModel, dataSource)
@@ -172,10 +174,13 @@ export class FactoryService {
       .attr('room', 'Online')
       .assocOne('course', this.CourseFactory)
       .attr('allowQuestions', false)
-      .assocMany('staffList', this.UserFactory, 0)
       .attr('isProfessorQueue', false)
       .attr('isDisabled', false)
       .attr('config', {});
+
+    this.QueueStaffFactory = new Factory(QueueStaffModel, dataSource)
+      .assocOne('queue', this.QueueFactory)
+      .assocOne('user', this.UserFactory);
 
     this.QueueInviteFactory = new Factory(QueueInviteModel, dataSource)
       .assocOne('queue', this.QueueFactory)

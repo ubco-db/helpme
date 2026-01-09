@@ -14,10 +14,10 @@ type UpsertOrgIntegrationModalProps = {
   handleUpsert: (
     props: UpsertLMSOrganizationParams,
     operation: 'create' | 'update',
+    clientSecretEdited: boolean,
   ) => Promise<boolean>
   modalCleanup: () => void
   focusIntegration?: LMSOrganizationIntegrationPartial
-  setClientSecretEdited: React.Dispatch<React.SetStateAction<boolean>>
   platformOptions: {
     value: string
     label: JSX.Element
@@ -30,11 +30,12 @@ const UpsertOrgIntegrationModal: React.FC<UpsertOrgIntegrationModalProps> = ({
   handleUpsert,
   modalCleanup,
   focusIntegration,
-  setClientSecretEdited,
   platformOptions,
 }) => {
   const [form] = Form.useForm<UpsertLMSOrganizationParams>()
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const [clientSecretEdited, setClientSecretEdited] = useState(false)
 
   const onFinish = () => {
     if (isSubmitting) return
@@ -42,11 +43,14 @@ const UpsertOrgIntegrationModal: React.FC<UpsertOrgIntegrationModalProps> = ({
     form
       .validateFields()
       .then(async (fields) => {
+        const isUpdate = focusIntegration != undefined ? 'update' : 'create'
         const result = await handleUpsert(
           fields,
           focusIntegration != undefined ? 'update' : 'create',
+          isUpdate ? clientSecretEdited : true,
         )
         if (result) {
+          setClientSecretEdited(false)
           modalCleanup()
         }
       })
@@ -114,18 +118,15 @@ const UpsertOrgIntegrationModal: React.FC<UpsertOrgIntegrationModalProps> = ({
           </Form.Item>
           <Form.Item
             name={'rootUrl'}
-            label={'LMS Base URL'}
-            tooltip={'The base URL of the LMS API to connect to'}
+            label={'LMS Domain'}
+            tooltip={
+              'The base domain (e.g., example.com) of the LMS API to connect to'
+            }
             rules={[
               {
                 required: true,
-                type: 'url',
+                type: 'string',
                 message: 'Enter a base URL for the integration',
-              },
-              {
-                warningOnly: true,
-                pattern: /(https).*/,
-                message: 'The HTTPS protocol should be used.',
               },
             ]}
           >
@@ -135,6 +136,20 @@ const UpsertOrgIntegrationModal: React.FC<UpsertOrgIntegrationModalProps> = ({
             name={'secure'}
             label={'HTTPS'}
             tooltip={'Whether the platform uses HTTPS or not'}
+            rules={[
+              {
+                warningOnly: true,
+                type: 'boolean',
+                validator: (_, value, callback) => {
+                  if (value !== true) {
+                    return Promise.reject('Failed')
+                  }
+                  callback()
+                },
+                message:
+                  'The HTTPS protocol is typically desired as it enables secure, encrypted communication.',
+              },
+            ]}
           >
             <Switch />
           </Form.Item>

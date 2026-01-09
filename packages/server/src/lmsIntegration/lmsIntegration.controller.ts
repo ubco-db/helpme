@@ -227,6 +227,26 @@ export class LMSIntegrationController {
     return await this.integrationService.destroyAccessToken(token);
   }
 
+  @Get('oauth2/can_generate')
+  @UseGuards(JwtAuthGuard)
+  async getCanGenerate(
+    @User({
+      lmsAccessTokens: { organizationIntegration: true },
+      organizationUser: true,
+    })
+    user: UserModel,
+    @Query('platform', new ParseEnumPipe(LMSIntegrationPlatform))
+    platform: LMSIntegrationPlatform,
+  ): Promise<boolean> {
+    const lmsIntegration = await LMSOrganizationIntegrationModel.findOne({
+      where: {
+        organizationId: user.organizationUser?.organizationId,
+        apiPlatform: platform,
+      },
+    });
+    return !!lmsIntegration?.clientId && !!lmsIntegration?.clientSecret;
+  }
+
   @Get('oauth2/token')
   @UseGuards(JwtAuthGuard)
   async getAuthOptions(

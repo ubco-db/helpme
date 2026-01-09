@@ -16,6 +16,7 @@
     "typeorm": "yarn workspace @koh/server typeorm",
     "dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider concurrently -n \"server,frontend,proxy\" \"yarn workspace @koh/server dev\" \"yarn workspace @koh/frontend dev\" \"yarn dev:proxy\"",
     "dev:proxy": "node infrastructure/dev/devProxy.js",
+    "dev:setup": "tsx infrastructure/dev/setup.ts",
     "dev:db:up": "docker-compose up -d postgresql redis gotenberg",
     "dev:db:down": "docker-compose -f docker-compose.yml down",
     "dev:db:reset": "yarn workspace @koh/server run dev:db:reset",

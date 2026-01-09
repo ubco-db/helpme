@@ -5,15 +5,12 @@ import {
   Column,
   Entity,
   JoinColumn,
-  JoinTable,
-  ManyToMany,
   ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { CourseModel } from '../course/course.entity';
-import { UserModel } from '../profile/user.entity';
 import { QuestionModel } from '../question/question.entity';
 import {
   OpenQuestionStatus,
@@ -24,6 +21,7 @@ import {
 import { QuestionTypeModel } from '../questionType/question-type.entity';
 import { QueueInviteModel } from './queue-invite.entity';
 import { QueueChatsModel } from '../queueChats/queue-chats.entity';
+import { QueueStaffModel } from './queue-staff/queue-staff.entity';
 
 @Entity('queue_model')
 export class QueueModel extends BaseEntity {
@@ -52,14 +50,8 @@ export class QueueModel extends BaseEntity {
   @Column('text', { nullable: true })
   notes: string;
 
-  // NOTE: This relation uses a JoinTable and is also mapped by QueueStaffModel
-  // to store extra metadata (e.g., extra TA status) on the join row without
-  // refactoring all code that expects staffList: UserModel[]. If you need to
-  // modify attributes on the join table itself, do so via QueueStaffModel; Note said attributes
-  // will not appear on this queues array and you will need to query them directly via QueueStaffModel.find(...)
-  @ManyToMany((type) => UserModel, (user) => user.queues)
-  @JoinTable()
-  staffList: UserModel[];
+  @OneToMany((_type) => QueueStaffModel, (queueStaff) => queueStaff.queue)
+  queueStaff: QueueStaffModel[];
 
   @Column({ default: false })
   allowQuestions: boolean;

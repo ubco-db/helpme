@@ -18,7 +18,7 @@ import {
   PlatformModel,
   Provider,
   register,
-} from 'lti-typescript';
+} from '@bhunt02/lti-typescript';
 import { JwtService } from '@nestjs/jwt';
 import { LtiService } from './lti.service';
 

@@ -337,7 +337,10 @@ export default function QueueInvitePage(
                       courseId={queueInviteInfo.courseId}
                       queueId={queueInviteInfo.queueId}
                       ta={ta}
-                      helpedAt={ta.questionHelpedAt}
+                      busySince={
+                        ta.questionHelpedAt ??
+                        ta.helpingStudentInAnotherQueueSince
+                      }
                       isForPublic
                     />
                   ))}

@@ -5,7 +5,7 @@ import {
   Database,
   Provider,
   register,
-} from 'lti-typescript';
+} from '@bhunt02/lti-typescript';
 import { UserModel } from '../src/profile/user.entity';
 import { CourseModel } from '../src/course/course.entity';
 import { CourseFactory, UserFactory } from './util/factories';

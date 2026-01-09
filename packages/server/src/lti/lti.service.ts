@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { UserModel } from '../profile/user.entity';
-import { IdToken, Provider } from 'lti-typescript';
+import { IdToken, Provider } from '@bhunt02/lti-typescript';
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 import { ERROR_MESSAGES, Role } from '@koh/common';
 import { JwtService } from '@nestjs/jwt';

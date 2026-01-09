@@ -6,8 +6,8 @@ import { CalendarController } from './calendar.controller';
 import { QuestionService } from '../question/question.service';
 import { NotificationService } from '../notification/notification.service';
 import { ScheduleModule } from '@nestjs/schedule';
-import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 import { QueueChatService } from 'queueChats/queue-chats.service';
+import { QueueStaffService } from 'queue/queue-staff/queue-staff.service';
 
 @Module({
   controllers: [CalendarController],
@@ -16,8 +16,8 @@ import { QueueChatService } from 'queueChats/queue-chats.service';
     CalendarService,
     QuestionService,
     NotificationService,
-    QueueCleanService,
     QueueChatService,
+    QueueStaffService,
   ],
 })
 export class CalendarModule {}

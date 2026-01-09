@@ -12,8 +12,9 @@ import { Exclude } from 'class-transformer';
 import { UserModel } from '../profile/user.entity';
 import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
 import { DataEndec } from '../dataEndec';
-import { LMSPostResponseBody } from '@koh/common';
+import { ERROR_MESSAGES, LMSPostResponseBody } from '@koh/common';
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
+import { BadRequestException } from '@nestjs/common';
 
 export class LMSAccessToken {
   access_token: string;
@@ -100,7 +101,7 @@ export class LMSAccessTokenModel extends BaseEntity {
   async getToken(): Promise<LMSAccessToken> {
     const endec = this.getEndec();
     if (!this.data || !this.iv) {
-      throw new Error('No data to decrypt');
+      throw new BadRequestException(ERROR_MESSAGES.lmsAdapter.tokenEmpty);
     }
     return await endec.decrypt(this.data, this.iv);
   }
@@ -113,7 +114,9 @@ export class LMSAccessTokenModel extends BaseEntity {
     organizationIntegration: LMSOrganizationIntegrationModel,
   ): DataEndec {
     if (!organizationIntegration.clientSecret) {
-      throw new Error('Cannot use encryption without a defined secret!');
+      throw new BadRequestException(
+        ERROR_MESSAGES.lmsAdapter.missingClientSecret,
+      );
     }
     return new DataEndec(organizationIntegration.clientSecret);
   }

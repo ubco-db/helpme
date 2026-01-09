@@ -32,6 +32,7 @@ import dayjs, { Dayjs } from 'dayjs'
 import { useRouter } from 'next/navigation'
 import { DeleteOutlined } from '@ant-design/icons'
 import { useUserInfo } from '@/app/contexts/userContext'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 type CreateIntegrationModalProps = {
   isOpen: boolean
@@ -88,6 +89,20 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
   )
 
   const [apiKeyEdited, setApiKeyEdited] = useState(false)
+
+  const [canGenerate, setCanGenerate] = useState(false)
+  useEffect(() => {
+    ;(async () => {
+      if (selectedIntegration) {
+        await API.lmsIntegration
+          .canGenerate(selectedIntegration.apiPlatform)
+          .then((res) => {
+            setCanGenerate(res)
+          })
+          .catch(() => setCanGenerate(false))
+      }
+    })()
+  }, [selectedIntegration])
 
   const getAccessTokens = async () => {
     await API.lmsIntegration
@@ -168,79 +183,77 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
       return
     }
 
-    form
-      .validateFields()
-      .then((fields) => {
-        fields.apiKeyExpiry =
-          (fields.apiKeyExpiry as unknown as Dayjs | undefined)?.toDate() ??
-          (null as any)
-        const {
-          apiKey,
-          apiKeyExpiry,
-          accessTokenId,
-          apiCourseId,
-        }: UpsertLMSCourseParams = fields
+    form.validateFields().then((fields) => {
+      fields.apiKeyExpiry =
+        (fields.apiKeyExpiry as unknown as Dayjs | undefined)?.toDate() ??
+        (null as any)
+      const {
+        apiKey,
+        apiKeyExpiry,
+        accessTokenId,
+        apiCourseId,
+      }: UpsertLMSCourseParams = fields
 
-        testLMSConnection(
-          apiCourseId!,
-          selectedIntegration.apiPlatform,
-          activeTab == 'api_key' && organizationSettings.allowLMSApiKey
-            ? apiKey
-            : undefined,
-          activeTab == 'access_token' || !organizationSettings.allowLMSApiKey
-            ? accessTokenId
-            : undefined,
-        ).then((result) => {
-          if (result == LMSApiResponseStatus.Success) {
-            const body: UpsertLMSCourseParams = {
-              apiPlatform: selectedIntegration.apiPlatform,
-              apiKey,
-              apiKeyExpiry,
-              accessTokenId,
-              apiCourseId,
-            }
-
-            if (activeTab == 'api_key' && organizationSettings.allowLMSApiKey) {
-              delete body.accessTokenId
-            } else {
-              delete body.apiKey
-              delete body.apiKeyExpiry
-            }
-
-            if (!apiKeyEdited) {
-              delete body.apiKey
-              delete body.apiKeyExpiry
-            }
-
-            if (baseIntegration != undefined) {
-              body.apiKeyExpiryDeleted =
-                baseIntegration.apiKeyExpiry != undefined &&
-                apiKeyExpiry == undefined
-            }
-
-            API.lmsIntegration
-              .upsertCourseIntegration(courseId, body)
-              .then((result) => {
-                if (!result) {
-                  message.error(
-                    `Unknown error occurred, could not link the LMS integration`,
-                  )
-                } else if (result.includes('Success')) {
-                  message.success(result)
-                  modalCleanup()
-                } else {
-                  message.error(result)
-                }
-              })
-              .finally(() => {
-                onCreate()
-              })
+      testLMSConnection(
+        apiCourseId!,
+        selectedIntegration.apiPlatform,
+        activeTab == 'api_key' && organizationSettings.allowLMSApiKey
+          ? apiKey
+          : undefined,
+        activeTab == 'access_token' || !organizationSettings.allowLMSApiKey
+          ? accessTokenId
+          : undefined,
+      ).then(async (result) => {
+        if (result == LMSApiResponseStatus.Success) {
+          const body: UpsertLMSCourseParams = {
+            apiPlatform: selectedIntegration.apiPlatform,
+            apiKey,
+            apiKeyExpiry,
+            accessTokenId,
+            apiCourseId,
           }
-        })
+
+          if (activeTab == 'api_key' && organizationSettings.allowLMSApiKey) {
+            delete body.accessTokenId
+          } else {
+            delete body.apiKey
+            delete body.apiKeyExpiry
+          }
+
+          if (!apiKeyEdited) {
+            delete body.apiKey
+            delete body.apiKeyExpiry
+          }
+
+          if (baseIntegration != undefined) {
+            body.apiKeyExpiryDeleted =
+              baseIntegration.apiKeyExpiry != undefined &&
+              apiKeyExpiry == undefined
+          }
+
+          await API.lmsIntegration
+            .upsertCourseIntegration(courseId, body)
+            .then((result) => {
+              if (!result) {
+                message.error(
+                  `Unknown error occurred, could not link the LMS integration`,
+                )
+              } else if (result.includes('Success')) {
+                message.success(result)
+                modalCleanup()
+              } else {
+                message.error(result)
+              }
+            })
+            .catch((err) => {
+              message.error(getErrorMessage(err))
+            })
+            .finally(() => {
+              onCreate()
+            })
+        }
       })
-      .catch((err) => {
-        message.error(err)
-      })
+    })
   }
 
   const modalCleanup = () => {
@@ -265,7 +278,7 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
     }
   }
 
-  const handleInvalidate = () => {
+  const handleInvalidate = async () => {
     if (!formValues['accessTokenId']) {
       message.warning('No access token selected')
       return
@@ -287,7 +300,7 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
         }
       })
       .catch((err) => {
-        message.error(err)
+        message.error(getErrorMessage(err))
       })
       .finally(() => {
         getAccessTokens()
@@ -396,6 +409,7 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
                       handleGenerate={handleGenerate}
                       handleInvalidate={handleInvalidate}
                       userInfo={userInfo}
+                      canGenerate={canGenerate}
                     />
                   ),
                 },
@@ -414,6 +428,7 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
               handleGenerate={handleGenerate}
               handleInvalidate={handleInvalidate}
               userInfo={userInfo}
+              canGenerate={canGenerate}
             />
           )}
           <Divider>Course Information</Divider>
@@ -476,9 +491,7 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
                         : undefined,
                     )
                   })
-                  .catch((err) => {
-                    message.error(err)
-                  })
+                  .catch(() => {})
               }
               loading={isTesting}
             >
@@ -531,9 +544,16 @@ const ApiKeyFormItem: React.FC<{
 const AccessTokenFormItem: React.FC<{
   accessTokens: LMSToken[]
   handleGenerate: () => void
-  handleInvalidate: () => void
+  handleInvalidate: () => Promise<void>
   userInfo: User
-}> = ({ accessTokens, handleGenerate, handleInvalidate, userInfo }) => {
+  canGenerate: boolean
+}> = ({
+  accessTokens,
+  handleGenerate,
+  handleInvalidate,
+  userInfo,
+  canGenerate,
+}) => {
   const hasValidRole = [
     OrganizationRole.PROFESSOR,
     OrganizationRole.ADMIN,
@@ -541,6 +561,21 @@ const AccessTokenFormItem: React.FC<{
     (userInfo.organization?.organizationRole as OrganizationRole) ??
       OrganizationRole.MEMBER,
   )
+
+  if (!canGenerate) {
+    return (
+      <Alert
+        className={'my-2'}
+        type={'error'}
+        showIcon
+        message={
+          <span className={'font-semibold'}>Cannot Generate Access Tokens</span>
+        }
+        description={`Cannot generate an access token, your organization has not defined a client ID and/or a client secret for this platform.`}
+      />
+    )
+  }
+
   if (accessTokens.length <= 0) {
     return (
       <div className={'my-2 flex flex-col items-center gap-2'}>
@@ -563,6 +598,7 @@ const AccessTokenFormItem: React.FC<{
       </div>
     )
   }
+
   return (
     <div className={'flex flex-row justify-between gap-1'}>
       <Form.Item
@@ -584,9 +620,9 @@ const AccessTokenFormItem: React.FC<{
         <Button
           icon={<DeleteOutlined />}
           danger
-          onClick={(evt) => {
+          onClick={async (evt) => {
             evt.stopPropagation()
-            handleInvalidate()
+            await handleInvalidate()
           }}
         />
       </Tooltip>
