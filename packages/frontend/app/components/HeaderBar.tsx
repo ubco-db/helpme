@@ -33,7 +33,7 @@ import {
   UserRole,
 } from '@koh/common'
 import { useMediaQuery } from '../hooks/useMediaQuery'
-import { Drawer, DrawerContent, DrawerTrigger } from './ui/drawer'
+import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from './ui/drawer'
 import {
   CalendarDays,
   LineChart,
@@ -669,10 +669,10 @@ const HeaderBar: React.FC = () => {
         <DrawerTrigger>
           <MenuIcon size={40} className="ml-2" />
         </DrawerTrigger>
-        <DrawerContent>
+        <DrawerContent aria-description="Drawer for main navigation menu">
           {/* INSIDE DRAWER */}
           <div className="flex h-screen flex-col items-start justify-start">
-            <div className="my-1 flex w-full items-center justify-center border-b border-b-zinc-200 bg-white py-1 pr-5">
+            <DrawerTitle className="my-1 flex w-full items-center justify-center border-b border-b-zinc-200 bg-white py-1 pr-5">
               <Image
                 width={48}
                 height={48}
@@ -683,7 +683,7 @@ const HeaderBar: React.FC = () => {
               <span className="text-2xl font-semibold leading-none">
                 {userInfo?.organization?.organizationName}
               </span>
-            </div>
+            </DrawerTitle>
             <NavBar
               userInfo={userInfo}
               courseId={courseId}
