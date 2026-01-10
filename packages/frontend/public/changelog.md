@@ -1,6 +1,6 @@
 ## Version 1.8.0 - Canvas Chatbot Embed, Away Toggle
 
-*Jan 12th, 2025*
+*Jan 9th, 2025*
 
 #### New Features
 
