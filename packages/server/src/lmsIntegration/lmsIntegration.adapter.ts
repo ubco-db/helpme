@@ -20,7 +20,6 @@ import { LMSAuthStateModel } from './lms-auth-state.entity';
 import { ConfigService } from '@nestjs/config';
 import express from 'express';
 import { LMSAccessToken, LMSAccessTokenModel } from './lms-access-token.entity';
-import { OrganizationSettingsModel } from '../organization/organization_settings.entity';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -182,12 +181,14 @@ export abstract class AbstractLMSAdapter {
   }
 
   async getAuthorization() {
-    const orgSettings = await OrganizationSettingsModel.findOne({
-      where: {
-        organizationId: this.integration.orgIntegration.organizationId,
-      },
-    });
-    if (this.integration.apiKey != undefined && orgSettings?.allowLMSApiKey) {
+    // const orgSettings = await OrganizationSettingsModel.findOne({
+    //   where: {
+    //     organizationId: this.integration.orgIntegration.organizationId,
+    //   },
+    // });
+    // TODO: TEMPORARY: Allow API Keys through even if organization settings disallows adding them
+    if (this.integration.apiKey != undefined) {
+      // && orgSettings?.allowLMSApiKey) {
       if (
         this.integration.apiKeyExpiry &&
         this.integration.apiKeyExpiry.getTime() < Date.now()
