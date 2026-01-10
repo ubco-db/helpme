@@ -6,7 +6,7 @@
 
 - ***General***
   - Added the ability for the **HelpMe Chatbot to be embedded inside Canvas**!
-    - TBD: instructions on setup for professors
+    - **UBC Faculty:** To enable this integration, contact the [LTHub](mailto:LT.hub@ubc.ca) and request HelpMe be added to your Canvas course.
     - When accessing the Canvas page with the HelpMe Chatbot, students will be prompted to login to ensure a HelpMe account is created. Afterwards, they will be auto-logged in each time
     - Staff and Students can still access their HelpMe course by visiting this site like normal
   - Added an "Away" toggle for checked-in staff in queues
