@@ -2,14 +2,14 @@ import {
   BaseEntity,
   Column,
   Entity,
-  PrimaryGeneratedColumn,
-  ManyToOne,
   JoinColumn,
+  ManyToOne,
   OneToMany,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 import { CourseModel } from '../course/course.entity';
 import { UserModel } from '../profile/user.entity';
-import { ChatbotQuestionModel } from './question.entity';
+import { ChatbotQuestionModel } from './chatbot-question.entity';
 
 // A chatbot interaction is basically a conversation between a user and the chatbot.
 @Entity('chatbot_interactions_model')
@@ -20,12 +20,18 @@ export class InteractionModel extends BaseEntity {
   @Column()
   timestamp: Date;
 
+  @Column({ type: 'integer' })
+  courseId: number;
+
   @ManyToOne(() => CourseModel)
-  @JoinColumn({ name: 'course' })
+  @JoinColumn({ name: 'courseId' })
   course: CourseModel;
 
+  @Column({ type: 'integer' })
+  userId: number;
+
   @ManyToOne(() => UserModel)
-  @JoinColumn({ name: 'user' })
+  @JoinColumn({ name: 'userId' })
   user: UserModel;
 
   @OneToMany((type) => ChatbotQuestionModel, (question) => question.interaction)

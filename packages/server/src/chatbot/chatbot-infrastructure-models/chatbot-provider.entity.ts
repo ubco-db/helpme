@@ -7,14 +7,13 @@ import {
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
-  VirtualColumn,
 } from 'typeorm';
 import { OrganizationChatbotSettingsModel } from './organization-chatbot-settings.entity';
 import { LLMTypeModel } from './llm-type.entity';
 import {
   ChatbotAllowedHeaders,
+  ChatbotProviderResponse,
   ChatbotServiceProvider,
-  ProviderMetadata,
 } from '@koh/common';
 import { Exclude } from 'class-transformer';
 
@@ -82,8 +81,8 @@ export class ChatbotProviderModel extends BaseEntity {
   @Column({ type: 'text', array: true, nullable: false, default: [] })
   additionalNotes: string[] = [];
 
-  getMetadata(): ProviderMetadata {
-    return {
+  getMetadata(): ChatbotProviderResponse {
+    return <any>{
       type: this.providerType,
       baseUrl: this.baseUrl,
       apiKey: this.apiKey,

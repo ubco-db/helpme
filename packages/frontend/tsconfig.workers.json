@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "outDir": "public/workers",
+    "lib": ["webworker"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "noEmit": false,
+    "esModuleInterop": false,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "incremental": false
+  },
+  "include": ["webworkers/**/*.ts"]
+}

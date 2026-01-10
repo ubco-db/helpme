@@ -12,8 +12,8 @@ export default function LtiCoursePage(): ReactElement {
   // chatbot
   const {
     setCid,
-    preDeterminedQuestions,
-    setPreDeterminedQuestions,
+    suggestedQuestions,
+    setSuggestedQuestions,
     questionsLeft,
     setQuestionsLeft,
     messages,
@@ -42,8 +42,8 @@ export default function LtiCoursePage(): ReactElement {
               key={courseId}
               cid={courseId}
               variant="huge"
-              preDeterminedQuestions={preDeterminedQuestions}
-              setPreDeterminedQuestions={setPreDeterminedQuestions}
+              suggestedQuestions={suggestedQuestions}
+              setSuggestedQuestions={setSuggestedQuestions}
               questionsLeft={questionsLeft}
               setQuestionsLeft={setQuestionsLeft}
               messages={messages}

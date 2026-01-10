@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "es2018",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext",
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -26,5 +30,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "dist", ".next", "out", "next.config.js"]
+  "exclude": ["node_modules", "dist", ".next", "out", "next.config.js", "webworkers"]
 }

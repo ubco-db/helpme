@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Modal, Form, Input, DatePicker, FormInstance, Select, Tag } from 'antd'
+import { DatePicker, Form, FormInstance, Input, Modal, Select, Tag } from 'antd'
 import { antdTagColor } from '@koh/common'
 
 const { TextArea } = Input
@@ -27,6 +27,7 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
 
   return (
     <Modal
+      centered
       title={`${creatingSemester ? 'Add New' : 'Edit'} Semester`}
       open={isSemesterModalOpen}
       onCancel={handleCloseModal}

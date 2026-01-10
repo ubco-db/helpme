@@ -7,20 +7,22 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InteractionModel } from './interaction.entity';
-import { ChatbotQuestionModel } from './question.entity';
+import { ChatbotQuestionModel } from './chatbot-question.entity';
 import { CourseModel } from '../course/course.entity';
 import { UserModel } from '../profile/user.entity';
 import { OrganizationChatbotSettingsModel } from './chatbot-infrastructure-models/organization-chatbot-settings.entity';
 import {
   ChatbotAllowedHeaders,
-  ChatbotSettings,
-  ChatbotSettingsMetadata,
+  ChatbotCourseSettingsResponse,
+  ChatbotQuestionResponse,
   CourseChatbotSettingsForm,
   CreateChatbotProviderBody,
   CreateLLMTypeBody,
   CreateOrganizationChatbotSettingsBody,
   dropUndefined,
   ERROR_MESSAGES,
+  HelpMeChatbotQuestionTableResponse,
+  InteractionResponse,
   OllamaLLMType,
   OllamaModelDescription,
   OpenAILLMType,
@@ -39,6 +41,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { ChatbotApiService } from './chatbot-api.service';
 import { ChatbotDataSourceService } from './chatbot-datasource/chatbot-datasource.service';
+import { plainToClass } from 'class-transformer';
 
 // OpenAI makes it really annoying to scrape any data related
 // to the model capabilities (text, image processing) (selfish, much?)
@@ -177,58 +180,46 @@ export class ChatbotService {
     return await interaction.save();
   }
 
-  async createQuestion(data: {
-    questionText: string;
-    responseText: string;
-    vectorStoreId: string;
-    suggested: boolean;
-    isPreviousQuestion: boolean;
-    interactionId: number;
-  }): Promise<ChatbotQuestionModel> {
-    if (!data.questionText || !data.responseText || !data.vectorStoreId) {
-      const missingFields = [];
-      if (!data.questionText) missingFields.push('questionText');
-      if (!data.responseText) missingFields.push('responseText');
-      if (!data.vectorStoreId) missingFields.push('vectorStoreId');
-
+  async createQuestion(
+    interactionId: number,
+    data: DeepPartial<ChatbotQuestionModel>,
+  ): Promise<ChatbotQuestionModel> {
+    if (!data.vectorStoreId) {
       throw new HttpException(
-        `Missing required question properties: ${missingFields.join(', ')}`,
+        ERROR_MESSAGES.chatbotService.missingVectorStoreId,
         HttpStatus.BAD_REQUEST,
       );
     }
 
     const interaction = await InteractionModel.findOne({
       where: {
-        id: data.interactionId,
+        id: interactionId,
       },
     });
     if (!interaction) {
       throw new HttpException(
-        'Interaction not found based on the provided ID.',
+        ERROR_MESSAGES.chatbotService.interactionNotFound,
         HttpStatus.NOT_FOUND,
       );
     }
 
     const question = ChatbotQuestionModel.create({
       interaction,
-      questionText: data.questionText,
-      responseText: data.responseText,
-      suggested: data.suggested,
-      timestamp: new Date(),
       vectorStoreId: data.vectorStoreId,
       isPreviousQuestion: data.isPreviousQuestion,
     });
 
-    await question.save();
-
-    return question;
+    return await question.save();
   }
 
   // Unused, but going to leave here since it's not unlikely it will be used again in the future
-  async editQuestion(data: any): Promise<ChatbotQuestionModel> {
+  async editQuestion(
+    questionId: number,
+    data: DeepPartial<ChatbotQuestionModel>,
+  ): Promise<ChatbotQuestionModel> {
     const question = await ChatbotQuestionModel.findOne({
       where: {
-        id: data.id,
+        id: questionId,
       },
     });
     if (!question) {
@@ -256,7 +247,32 @@ export class ChatbotService {
     return question;
   }
 
-  async deleteQuestion(questionId: number) {
+  async deleteQuestionByVectorStoreId(
+    courseId: number,
+    vectorStoreId: string,
+  ): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const em = queryRunner.manager;
+      const questionRepo = em.getRepository(ChatbotQuestionModel);
+      await questionRepo.delete({
+        vectorStoreId,
+      });
+      await this.chatbotApiService.deleteQuestion(vectorStoreId, courseId);
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      if (queryRunner.isTransactionActive && !queryRunner.isReleased) {
+        await queryRunner.rollbackTransaction();
+      }
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async deleteQuestion(questionId: number): Promise<void> {
     const chatQuestion = await ChatbotQuestionModel.findOne({
       where: {
         id: questionId,
@@ -270,36 +286,307 @@ export class ChatbotService {
       );
     }
 
-    return await chatQuestion.remove();
+    await chatQuestion.remove();
   }
 
   async getInteractionsAndQuestions(
     courseId: number,
   ): Promise<InteractionModel[]> {
-    const course = await CourseModel.findOne({
-      // i hate how i have to do this (for some reason I can't just query interactions with courseId because the join relation wasn't really set up correctly in the InteractionModel entity)
-      where: {
-        id: courseId,
-      },
-    });
     return await InteractionModel.find({
-      where: { course: course },
+      where: { courseId },
       relations: {
         questions: true,
       },
     });
   }
 
-  async getAllInteractionsForUser(userId: number): Promise<InteractionModel[]> {
-    return await InteractionModel.find({
+  async getCombinedInteractionsAndQuestions(
+    courseId: number,
+  ): Promise<HelpMeChatbotQuestionTableResponse[]> {
+    function mergeChatbotQuestions(
+      helpMeQuestion: ChatbotQuestionModel,
+      chatbotQuestion: ChatbotQuestionResponse,
+      timesAsked?: number,
+      children?: HelpMeChatbotQuestionTableResponse[],
+      isChild?: boolean,
+      userScore?: number,
+    ): HelpMeChatbotQuestionTableResponse {
+      return {
+        ...helpMeQuestion,
+        chatbotQuestion,
+        timestamp: helpMeQuestion?.timestamp
+          ? new Date(
+              helpMeQuestion.timestamp, // prioritize the helpme database for this one (since it stores duplicates n stuff)
+            )
+          : chatbotQuestion?.askedAt
+            ? new Date(chatbotQuestion.askedAt)
+            : undefined,
+        userScore,
+        timesAsked,
+        children,
+        isChild,
+      };
+    }
+
+    function timeCompare(a: { timestamp?: Date }, b: { timestamp?: Date }) {
+      a.timestamp =
+        a.timestamp != undefined ? new Date(a.timestamp) : undefined;
+      b.timestamp =
+        b.timestamp != undefined ? new Date(b.timestamp) : undefined;
+      return (a.timestamp?.getTime() ?? 0) - (b.timestamp?.getTime() ?? 0);
+    }
+
+    const [interactions, chatbotQuestions] = await Promise.all([
+      this.getInteractionsAndQuestions(courseId), // helpme db
+      this.chatbotApiService.getAllQuestions(courseId), // chatbot db
+    ]);
+
+    //
+    // The Join
+    //
+    // We need to process and merge the questions from chatbot and helpme db (in unfortunately O(n^2) time, since we basically need to manually join each chatbot question with helpme question via vectorStoreId)
+    // (there are basically 0 to many helpme db questions for each chatbot db question)
+    const processedQuestions: HelpMeChatbotQuestionTableResponse[] = [];
+    const chatbotQuestionMap: Record<
+      string,
+      {
+        chatbotQuestion: ChatbotQuestionResponse;
+        mostRecent: ChatbotQuestionModel;
+        interactedWith: InteractionModel[];
+        timesAsked: number;
+        totalScore: number;
+      }
+    > = {};
+
+    // For easy mapping (avoid cost of 'find' function with O(1) average access time)
+    for (const chatbotQuestion of chatbotQuestions) {
+      let mostRecent: ChatbotQuestionModel | undefined = undefined;
+      let timesAsked = 0;
+      let totalScore = 0;
+
+      const interactedWith: InteractionModel[] = interactions.filter(
+        (interaction) =>
+          interaction.questions.some(
+            (question) => question.vectorStoreId === chatbotQuestion.id,
+          ),
+      );
+      const questionsWith: ChatbotQuestionModel[] = interactedWith
+        .map((i) => i.questions)
+        .reduce((p, c) => [...p, ...c], [])
+        .filter((q) => q.vectorStoreId == chatbotQuestion.id);
+
+      questionsWith.forEach((question: ChatbotQuestionModel) => {
+        if (
+          mostRecent == undefined ||
+          question.timestamp.getTime() > mostRecent.timestamp.getTime()
+        ) {
+          mostRecent = question;
+        }
+        timesAsked++;
+        totalScore += question.userScore;
+      });
+
+      chatbotQuestionMap[chatbotQuestion.id] = {
+        chatbotQuestion,
+        mostRecent,
+        interactedWith,
+        timesAsked,
+        totalScore,
+      };
+    }
+
+    const ids = Object.keys(chatbotQuestionMap);
+    // Filter interactions to only allow questions which have a corresponding question from the vector store
+    interactions.forEach(
+      (interaction) =>
+        (interaction.questions = interaction.questions.filter((q) =>
+          ids.includes(q.vectorStoreId),
+        )),
+    );
+
+    //
+    // Formatting the data nicely for the antd table
+    //
+    // this is something like O(n) time since it's just looping over the processed chatbot questions and all of their interactions
+    for (const id of ids) {
+      const {
+        chatbotQuestion,
+        interactedWith,
+        mostRecent,
+        totalScore,
+        timesAsked,
+      } = chatbotQuestionMap[id];
+
+      if (interactedWith.length === 0) {
+        // if there was no corresponding interaction found (e.g. it was a manually added question or anytime question), return what we can
+        processedQuestions.push({
+          id: -1,
+          interactionId: -1,
+          vectorStoreId: chatbotQuestion.id,
+          chatbotQuestion: chatbotQuestion,
+          timestamp: chatbotQuestion.askedAt,
+          userScore: 0,
+          isPreviousQuestion: false,
+          timesAsked,
+        });
+      }
+
+      // Now for the children (if you give an antd table item a list of children, it will auto-create sub rows for them):
+      // - if if there are more than 1 interaction for this chatbot question, it will first show the chatbot question and then its children will be all the interactions (children) and their children will be all the questions (grandchildren)
+      // - if there is only 1 interaction for this chatbot question, it will be the first question and its children will be all the other questions in the interaction
+
+      if (interactedWith.length >= 1) {
+        const children = [];
+        for (const interaction of interactedWith) {
+          if (interactedWith.length == 1) {
+            if (
+              interaction.questions.length === 0 ||
+              interaction.questions[0].vectorStoreId !== chatbotQuestion.id
+              // don't show the interaction if it doesn't have the chatbot db question as the first question (to avoid duplicates)
+            ) {
+              break;
+            }
+          } else {
+            if (interaction.questions.length <= 1) {
+              continue;
+            }
+          }
+
+          const grandchildren = [];
+          for (const childQuestion of interaction.questions.slice(1)) {
+            const corresponding =
+              chatbotQuestionMap[childQuestion.vectorStoreId];
+            grandchildren.push(
+              mergeChatbotQuestions(
+                childQuestion,
+                corresponding.chatbotQuestion,
+                null, // timesAsked is null since its not really helpful information to show in this case
+                undefined,
+                true,
+                // If there's only one interaction, just apply the total score regardless
+                interactedWith.length == 1 ||
+                  chatbotQuestion != corresponding.chatbotQuestion
+                  ? corresponding.totalScore
+                  : undefined,
+              ),
+            );
+          }
+          grandchildren.sort(timeCompare);
+          const firstChild = interaction.questions[0];
+
+          /*
+          If there's only one interaction with this question, return early with 'grandchildren' as the children.
+          */
+          if (interactedWith.length == 1) {
+            processedQuestions.push(
+              mergeChatbotQuestions(
+                firstChild,
+                chatbotQuestion,
+                timesAsked,
+                grandchildren.length > 0 ? grandchildren : undefined,
+                false,
+                totalScore,
+              ),
+            );
+            break;
+          }
+
+          /*
+          For each child, they are the first question in an interaction
+          and all of their children are the rest of the questions in the interaction
+           */
+          const corresponding = chatbotQuestionMap[firstChild.vectorStoreId];
+          children.push(
+            mergeChatbotQuestions(
+              firstChild,
+              corresponding.chatbotQuestion,
+              null,
+              grandchildren.length > 0 ? grandchildren : undefined,
+              true,
+              chatbotQuestion != corresponding.chatbotQuestion
+                ? corresponding.totalScore
+                : undefined,
+            ),
+          );
+        }
+        // If there's multiple interactions, the 'children' array is populated.
+        // Merge the top-level chatbot question with the most recent question and add its aggregate properties.
+        if (interactedWith.length > 1) {
+          children.sort((a, b) => timeCompare(b, a)); // Descending
+
+          // finally add on the question and all of its children
+          processedQuestions.push(
+            mergeChatbotQuestions(
+              mostRecent, // the mostRecentlyAskedHelpMeVersion is just to grab the createdAt date for it
+              chatbotQuestion,
+              timesAsked,
+              children.length > 0 ? children : undefined,
+              false,
+              totalScore,
+            ),
+          );
+        }
+      }
+    }
+
+    return plainToClass(HelpMeChatbotQuestionTableResponse, processedQuestions);
+  }
+
+  async getAllInteractionsForUser(
+    userId: number,
+  ): Promise<InteractionResponse[]> {
+    const interactions = await InteractionModel.find({
       where: { user: { id: userId } },
       relations: {
         questions: true,
       },
     });
+    const uniqueVectorStoreIds: string[] = interactions
+      .map((v) => v.questions.map((v) => v.vectorStoreId))
+      .reduce((p, c) => [...p, ...c], [])
+      .filter((v, i, a) => a.indexOf(v) == i);
+    const questionMap: Record<string, ChatbotQuestionResponse> = {};
+    for (const questionId of uniqueVectorStoreIds) {
+      try {
+        questionMap[questionId] =
+          await this.chatbotApiService.getQuestion(questionId);
+      } catch (err) {
+        questionMap[questionId] = {
+          id: questionId,
+          courseId: -1,
+          question: 'N/A',
+          answer: 'N/A',
+          askedAt: new Date(),
+          inserted: false,
+          suggested: false,
+          verified: false,
+          insertedDocuments: [],
+          citations: [],
+        } satisfies ChatbotQuestionResponse;
+      }
+    }
+    Object.keys(questionMap).forEach((k) => {
+      delete questionMap[k].insertedDocuments;
+      delete questionMap[k].citations;
+    });
+
+    return interactions.map((v) => {
+      const questions = v.questions.map((q) => ({
+        ...q,
+        chatbotQuestion: questionMap[q.vectorStoreId],
+      }));
+      return {
+        id: v.id,
+        timestamp: v.timestamp,
+        questions,
+      };
+    });
   }
 
-  async updateQuestionUserScore(questionId: number, userScore: number) {
+  async updateQuestionUserScore(
+    questionId: number,
+    userScore: number,
+  ): Promise<ChatbotQuestionModel> {
     const question = await ChatbotQuestionModel.findOne({
       where: {
         id: questionId,
@@ -445,7 +732,7 @@ export class ChatbotService {
 
   private async backfillCourseSettings(
     orgChatbotSettings: OrganizationChatbotSettingsModel,
-  ) {
+  ): Promise<void> {
     const hasNoCourseSetting = await CourseModel.find({
       where: {
         organizationCourse: {
@@ -456,21 +743,21 @@ export class ChatbotService {
     });
 
     for (const course of hasNoCourseSetting) {
-      let existingSetting: ChatbotSettings;
+      let existingSetting: ChatbotCourseSettingsResponse;
       try {
         existingSetting = await this.chatbotApiService.getChatbotSettings(
           course.id,
-          '',
         );
-      } catch (err) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_err) {
         try {
           const dataSource = await this.chatbotDataSource.getDataSource();
           const qry = dataSource.createQueryRunner();
           await qry.connect();
           existingSetting = (
             await qry.query(
-              'SELECT * FROM course_setting WHERE "pageContent" = $1',
-              [String(course.id)],
+              'SELECT * FROM course_settings_model WHERE "courseId" = $1',
+              [course.id],
             )
           )[0];
         } catch (_err) {}
@@ -482,7 +769,7 @@ export class ChatbotService {
       }
 
       const originals = dropUndefined(
-        pick((existingSetting?.metadata ?? {}) as ChatbotSettingsMetadata, [
+        pick((existingSetting ?? {}) as ChatbotCourseSettingsResponse, [
           'prompt',
           'temperature',
           'topK',
@@ -497,18 +784,14 @@ export class ChatbotService {
 
       let matchingModel: LLMTypeModel;
       if (
-        existingSetting?.metadata?.modelName != undefined ||
-        existingSetting?.metadata?.model?.modelName != undefined
+        existingSetting?.modelName != undefined ||
+        existingSetting?.model?.modelName != undefined
       ) {
         for (const provider of orgChatbotSettings.providers) {
-          console.log(
-            existingSetting.metadata.modelName,
-            existingSetting.metadata.model?.modelName,
-          );
           matchingModel = provider.availableModels.find(
             (m) =>
-              (m.modelName == existingSetting.metadata.modelName ||
-                m.modelName == existingSetting.metadata.model?.modelName) &&
+              (m.modelName == existingSetting?.modelName ||
+                m.modelName == existingSetting.model?.modelName) &&
               m.isText,
           );
           if (matchingModel) {
