@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  AsyncQuestion,
+  //Removed AsyncQuestion import because its not used directly in this file anymore
   asyncQuestionStatus,
   QuestionType,
   Role,
@@ -14,7 +14,15 @@ import React, {
   useMemo,
   useState,
 } from 'react'
-import { Button, Checkbox, Popover, Segmented, Select, Tooltip } from 'antd'
+import {
+  Button,
+  Checkbox,
+  Pagination,
+  Popover,
+  Segmented,
+  Select,
+  Tooltip,
+} from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getRoleInCourse } from '@/app/utils/generalUtils'
 import { useAsnycQuestions } from '@/app/hooks/useAsyncQuestions'
@@ -59,7 +67,17 @@ export default function AsyncCentrePage(
   const { userInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, courseId)
   const isStaff = role === Role.TA || role === Role.PROFESSOR
-  const [asyncQuestions, mutateAsyncQuestions] = useAsnycQuestions(courseId)
+
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [asyncQuestionsData, mutateAsyncQuestions] = useAsnycQuestions(
+    courseId,
+    page,
+    pageSize,
+  )
+  const asyncQuestions = asyncQuestionsData?.questions // extracts questions array from the new response object (so i dont have to change every single reference to asyncQuestions in the code below)
+  const totalQuestions = asyncQuestionsData?.total ?? 0 // extracts total count from the new response object (for pagination)
+
   const [createAsyncQuestionModalOpen, setCreateAsyncQuestionModalOpen] =
     useState(false)
   const [editAsyncCentreModalOpen, setEditAsyncCentreModalOpen] =
@@ -89,7 +107,6 @@ export default function AsyncCentrePage(
     if (convertChatbotQSearchParam && messages.length > 1) {
       setConvertChatbotQModalOpen(true)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [convertChatbotQSearchParam])
 
   useEffect(() => {
@@ -428,6 +445,24 @@ export default function AsyncCentrePage(
               showStudents={showStudents}
             />
           ))}
+
+          <Pagination
+            current={page}
+            pageSize={pageSize}
+            total={totalQuestions}
+            onChange={(newPage, newPageSize) => {
+              setPage(newPage)
+              if (newPageSize !== pageSize) {
+                setPageSize(newPageSize)
+                setPage(1) // reset to page 1 when page size changes so you don't end up on a page that doesnt exist anymore
+              }
+            }}
+            showSizeChanger
+            showTotal={(total, range) =>
+              `${range[0]}-${range[1]} of ${total} questions`
+            }
+            className="mt-4 text-center"
+          />
         </div>
         <ConvertChatbotQToAnytimeQModal
           courseId={courseId}
