@@ -51,8 +51,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [staffSetVisible, setStaffSetVisible] = useState<boolean>(
-    (question.staffSetVisible == null && question.authorSetVisible) ||
-      (question.staffSetVisible ?? true),
+    question.staffSetVisible ?? question.authorSetVisible ?? false,
   )
   const [visiblePopConfirmVisible, setVisiblePopConfirmVisible] =
     useState<boolean>(false)
@@ -65,8 +64,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
 
   useEffect(() => {
     setStaffSetVisible(
-      (question.staffSetVisible == null && question.authorSetVisible) ||
-        (question.staffSetVisible ?? true),
+      question.staffSetVisible ?? question.authorSetVisible ?? false,
     )
   }, [question.authorSetVisible, question.staffSetVisible])
 
