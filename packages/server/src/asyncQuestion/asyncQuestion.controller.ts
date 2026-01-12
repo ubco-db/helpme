@@ -23,6 +23,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -742,9 +743,11 @@ export class asyncQuestionController {
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async getAsyncQuestions(
     @Param('courseId', ParseIntPipe) courseId: number,
+    @Query('page', ParseIntPipe) page: number,
+    @Query('pageSize', ParseIntPipe) pageSize: number,
     @UserId() userId: number,
     @Res() res: Response,
-  ): Promise<AsyncQuestion[]> {
+  ): Promise<{ questions: AsyncQuestion[]; total: number }> {
     const userCourse = await UserCourseModel.findOne({
       where: {
         userId,
@@ -931,7 +934,12 @@ export class asyncQuestionController {
       return temp;
     });
 
-    res.status(HttpStatus.OK).send(questions);
+    // Apply pagination
+    const total = questions.length;
+    const skip = (page - 1) * pageSize;
+    const paginatedQuestions = questions.slice(skip, skip + pageSize);
+
+    res.status(HttpStatus.OK).send({ questions: paginatedQuestions, total });
     return;
   }
 
