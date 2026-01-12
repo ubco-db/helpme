@@ -305,7 +305,7 @@ export class LMSIntegrationService {
     tempIntegration.apiKey = apiKey;
     tempIntegration.apiCourseId = apiCourseId;
     tempIntegration.accessToken = accessToken;
-    tempIntegration.accessTokenId = accessToken.id;
+    tempIntegration.accessTokenId = accessToken?.id;
     tempIntegration.orgIntegration = orgIntegration;
 
     const adapter = await this.integrationAdapter.getAdapter(
