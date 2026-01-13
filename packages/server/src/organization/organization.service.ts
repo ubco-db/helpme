@@ -199,7 +199,7 @@ export class OrganizationService {
       const likeSearch = `%${search.replace(/\s+/g, '').toUpperCase()}%`;
 
       organizationUsers.andWhere(
-        `UPPER(CONCAT(user.firstName, user.lastName)) LIKE :search`,
+        `UPPER(REPLACE(user.name, ' ', '')) LIKE :search`,
         { search: likeSearch },
       );
     }
