@@ -88,17 +88,20 @@ exports[`Organization Integration GET /organization/:oid/get_user/:uid should re
 `;
 
 exports[`Organization Integration GET /organization/:oid/get_users{/:page} should return 200 when user is an admin 1`] = `
-[
-  {
-    "email": "user@ubc.ca",
-    "firstName": "User",
-    "lastName": "Person",
-    "organizationRole": "admin",
-    "photoUrl": "https://example.com",
-    "userId": 1,
-    "userRole": "user",
-  },
-]
+{
+  "total": 1,
+  "users": [
+    {
+      "email": "user@ubc.ca",
+      "firstName": "User",
+      "lastName": "Person",
+      "organizationRole": "admin",
+      "photoUrl": "https://example.com",
+      "userId": 1,
+      "userRole": "user",
+    },
+  ],
+}
 `;
 
 exports[`Organization Integration GET /organization/:oid/stats should return 200 when user is an admin 1`] = `

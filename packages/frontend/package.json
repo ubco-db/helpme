@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "next lint"
@@ -78,7 +78,7 @@
   "resolutions": {
     "@types/react": "19.1.2",
     "@types/react-dom": "19.1.2",
-    "**/nanoid": "^5.1.5",
+    "**/nanoid": "3.3.10",
     "**/katex": "^0.16.22",
     "**/prismjs": "^1.30.0"
   }

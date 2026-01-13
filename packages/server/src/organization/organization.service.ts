@@ -8,6 +8,7 @@ import {
   CourseResponse,
   ERROR_MESSAGES,
   GetOrganizationUserResponse,
+  GetOrganizationUsersPaginatedResponse,
   OrganizationRole,
   OrganizationRoleHistoryFilter,
   OrganizationRoleHistoryResponse,
@@ -185,7 +186,7 @@ export class OrganizationService {
     page: number,
     pageSize: number,
     search?: string,
-  ): Promise<{ users: OrgUser[]; total: number }> {
+  ): Promise<GetOrganizationUsersPaginatedResponse> {
     const organizationUsers = OrganizationUserModel.createQueryBuilder(
       'orgUser',
     )
