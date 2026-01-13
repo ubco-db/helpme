@@ -1502,6 +1502,15 @@ describe('AsyncQuestion Integration', () => {
         ]),
       );
     });
+    //test that pagination works correctly by requesting page 1 with pageSize 2 and confirming we get back 2 questions and total count is correct.
+    it('paginates questions correctly', async () => {
+      const response = await supertest({ userId: studentUser.id }).get(
+        `/asyncQuestions/${course.id}?page=1&pageSize=20`,
+      );
+      expect(response.status).toBe(200);
+      expect(response.body.questions).toHaveLength(2);
+      expect(response.body.total).toBe(2);
+    });
   });
 
   describe('GET /asyncQuestions/unread_async_count/:courseId', () => {
