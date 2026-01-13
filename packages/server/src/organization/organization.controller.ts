@@ -1431,9 +1431,8 @@ export class OrganizationController {
     @Param('oid', ParseIntPipe) oid: number,
     @Param('page', ParseIntPipe) page: number,
     @Query('search') search: string,
-  ): Promise<OrgUser[]> {
+  ): Promise<{ users: OrgUser[]; total: number }> {
     const pageSize = 50;
-
     if (!search) {
       search = '';
     }

@@ -170,6 +170,10 @@ export interface OrgUser {
   userRole: string
   organizationRole: string
 }
+export interface GetOrganizationUsersPaginatedResponse {
+  users: OrgUser[]
+  total: number
+}
 
 /**
  * Contains the partial user info needed by the frontend when nested in a response

@@ -185,58 +185,42 @@ export class OrganizationService {
     page: number,
     pageSize: number,
     search?: string,
-  ): Promise<OrgUser[]> {
-    const organizationUsers = OrganizationUserModel.createQueryBuilder()
-      .leftJoin(
-        UserModel,
-        'UserModel',
-        'UserModel.id = OrganizationUserModel.userId',
-      )
-      .where('OrganizationUserModel.organizationId = :organizationId', {
+  ): Promise<{ users: OrgUser[]; total: number }> {
+    const organizationUsers = OrganizationUserModel.createQueryBuilder(
+      'orgUser',
+    )
+      .leftJoinAndSelect('orgUser.organizationUser', 'user')
+      .where('orgUser.organizationId = :organizationId', {
         organizationId,
       });
 
     if (search) {
-      const likeSearch = `%${search.replace(' ', '')}%`.toUpperCase();
+      const likeSearch = `%${search.replace(/\s+/g, '').toUpperCase()}%`;
+
       organizationUsers.andWhere(
-        new Brackets((q) => {
-          q.where('UPPER("UserModel".name) like :searchString', {
-            searchString: likeSearch,
-          });
-        }),
+        `UPPER(CONCAT(user.firstName, user.lastName)) LIKE :search`,
+        { search: likeSearch },
       );
     }
 
-    const users = organizationUsers.select([
-      'UserModel.id as userId',
-      'UserModel.firstName as userFirstName',
-      'UserModel.lastName as userLastName',
-      'UserModel.email as userEmail',
-      'UserModel.photoURL as userPhotoUrl',
-      'UserModel.userRole as userRole',
-      'OrganizationUserModel.role as userOrganizationRole',
-    ]);
+    organizationUsers
+      .orderBy('user.lastName', 'ASC')
+      .skip((page - 1) * pageSize)
+      .take(pageSize);
 
-    const usersSubset = await users
-      .orderBy('UserModel.lastName')
-      .offset((page - 1) * pageSize)
-      .limit(pageSize)
-      // .getMany() wouldn't work here because relations are not working well with getMany()
-      .getRawMany();
+    const [entities, total] = await organizationUsers.getManyAndCount();
 
-    const usersResponse = usersSubset.map((user) => {
-      return {
-        userId: user.userid,
-        firstName: user.userfirstname,
-        lastName: user.userlastname,
-        email: user.useremail,
-        photoUrl: user.userphotourl,
-        userRole: user.userrole,
-        organizationRole: user.userorganizationrole,
-      };
-    });
+    const users: OrgUser[] = entities.map((orgUser) => ({
+      userId: orgUser.organizationUser.id,
+      firstName: orgUser.organizationUser.firstName,
+      lastName: orgUser.organizationUser.lastName,
+      email: orgUser.organizationUser.email,
+      photoUrl: orgUser.organizationUser.photoURL ?? null,
+      userRole: orgUser.organizationUser.userRole,
+      organizationRole: orgUser.role,
+    }));
 
-    return usersResponse;
+    return { users, total };
   }
 
   public async getOrganizationUserByUserId(
