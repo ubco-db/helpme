@@ -20,6 +20,7 @@ import TAFacultySchedulePanel from './schedule/components/TASchedulePanel'
 import StudentSchedulePanel from './schedule/components/StudentSchedulePanel'
 import { useChatbotContext } from './components/chatbot/ChatbotProvider'
 import Chatbot from './components/chatbot/Chatbot'
+import { useRouter } from 'next/navigation'
 
 type CoursePageProps = {
   params: Promise<{ cid: string }>
@@ -30,7 +31,8 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
   const cid = Number(params.cid)
   const { userInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, cid)
-  const { course } = useCourse(cid)
+  const { course, error: courseError } = useCourse(cid)
+  
   const [createQueueModalOpen, setCreateQueueModalOpen] = useState(false)
   const courseFeatures = useCourseFeatures(cid)
   const onlyChatBotEnabled = useMemo(
@@ -85,6 +87,22 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
       return ''
     }, [courseFeatures])
 
+  const isAccessDenied = courseError?.response?.status === 404
+  const router = useRouter()
+    if (isAccessDenied) {
+    return (
+      <div className="mt-8 flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
+        <h1 className="text-2xl font-semibold text-[#212934]">Access denied</h1>
+        <p className="max-w-md text-sm text-neutral-600">
+          You do not have access to this course.
+        </p>
+        
+        <Button type="primary" onClick={() => router.back()}>
+          Go back
+        </Button>
+      </div>
+    )
+  }  
   if (!course || !courseFeatures) {
     return <CenteredSpinner tip="Loading Course Data..." />
   } else {
