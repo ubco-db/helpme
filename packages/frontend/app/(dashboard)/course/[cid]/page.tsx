@@ -94,7 +94,8 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
       <div className="mt-8 flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
         <h1 className="text-2xl font-semibold text-[#212934]">Access denied</h1>
         <p className="max-w-md text-sm text-neutral-600">
-          You do not have access to this course.
+          You do not have access to this page.
+          {courseError?.message ?? 'Error'}
         </p>
         
         <Button type="primary" onClick={() => router.back()}>
