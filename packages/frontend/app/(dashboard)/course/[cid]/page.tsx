@@ -99,8 +99,8 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
           {courseError?.message ?? 'Error'}
         </p>
         
-        <Button type="primary" onClick={() => router.back()}>
-          Go back
+        <Button type="primary" onClick={() => router.push('/courses')}>
+          Return to Dashboard
         </Button>
       </div>
     )
