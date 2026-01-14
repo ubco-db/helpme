@@ -4083,12 +4083,13 @@ export const ERROR_MESSAGES = {
         bodyStatus: string,
       ): string =>
         `${role} cannot change status from ${questionStatus} to ${bodyStatus}`,
-      taOnlyEditQuestionStatus:
-        'TA/Professors can only edit question status, text, and tags',
+      taOnlyEditQuestionStatus(attributes: string[]): string {
+        return `TA/Professors cannot modify these attributes of questions: ${attributes.join(', ')}`
+      },
       otherTAHelping: 'Another TA is currently helping with this question',
       otherTAResolved: 'Another TA has already resolved this question',
       taHelpingOther: 'TA is already helping someone else',
-      loginUserCantEdit: 'Logged-in user does not have edit access',
+      loginUserCantEdit: "Students cannot modify other students' questions",
     },
     studentTaskProgress: {
       invalidAssignmentName:

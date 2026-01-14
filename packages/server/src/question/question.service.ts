@@ -12,6 +12,7 @@ import {
 } from '@koh/common';
 import {
   BadRequestException,
+  ForbiddenException,
   forwardRef,
   HttpException,
   HttpStatus,
@@ -31,6 +32,7 @@ import { QueueService } from '../queue/queue.service';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QueueChatService } from 'queueChats/queue-chats.service';
 import { QueueSSEService } from 'queue/queue-sse.service';
+import * as Sentry from '@sentry/nestjs';
 @Injectable()
 export class QuestionService {
   constructor(
@@ -89,7 +91,10 @@ export class QuestionService {
 
     const validTransition = question.changeStatus(newStatus, myRole);
     if (!validTransition) {
-      throw new UnauthorizedException(
+      const errorMessage = `Illegal question status transition: User ${userId} (${myRole}) attempted to change question ${question.id} from ${oldStatus} to ${newStatus}`;
+      console.error(errorMessage);
+      Sentry.captureException(new Error(errorMessage));
+      throw new ForbiddenException(
         ERROR_MESSAGES.questionController.updateQuestion.fsmViolation(
           myRole,
           oldStatus,
