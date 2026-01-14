@@ -196,12 +196,9 @@ export class OrganizationService {
       });
 
     if (search) {
-      const likeSearch = `%${search.replace(/\s+/g, '').toUpperCase()}%`;
-
-      organizationUsers.andWhere(
-        `UPPER(REPLACE(user.name, ' ', '')) LIKE :search`,
-        { search: likeSearch },
-      );
+      organizationUsers.andWhere(`user.name ILIKE :search`, {
+        search: `%${search}%`,
+      });
     }
 
     organizationUsers
