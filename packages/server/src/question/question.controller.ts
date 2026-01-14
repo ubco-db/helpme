@@ -470,7 +470,9 @@ export class QuestionController {
           console.error(errorMessage);
           Sentry.captureException(new Error(errorMessage));
           throw new ForbiddenException(
-            ERROR_MESSAGES.questionController.updateQuestion.taOnlyEditQuestionStatus,
+            ERROR_MESSAGES.questionController.updateQuestion.taOnlyEditQuestionStatus(
+              invalidKeys,
+            ),
           );
         }
         // When the TA is marking a task question, they can choose to mark only some of the tasks as done, which requires the TA to be able to modify the task question's text
