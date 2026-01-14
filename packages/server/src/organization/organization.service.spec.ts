@@ -183,8 +183,9 @@ describe('OrganizationService', () => {
   describe('getUsers', () => {
     it('should return empty organization users if no users are available', async () => {
       const organization = await OrganizationFactory.create();
-      const users = await service.getUsers(organization.id, 1, 50);
-      expect(users).toHaveLength(0);
+      const result = await service.getUsers(organization.id, 1, 50);
+      expect(result.users).toHaveLength(0);
+      expect(result.total).toBe(0);
     });
 
     it('should return empty organization users if no users match search query', async () => {
@@ -198,14 +199,15 @@ describe('OrganizationService', () => {
         userId: user.id,
       }).save();
 
-      const users = await service.getUsers(
+      const result = await service.getUsers(
         organization.id,
         1,
         50,
         'notMatchingSearch',
       );
 
-      expect(users).toHaveLength(0);
+      expect(result.users).toHaveLength(0);
+      expect(result.total).toBe(0);
     });
 
     it('should return organization users with search', async () => {
@@ -228,8 +230,9 @@ describe('OrganizationService', () => {
         userId: userTwo.id,
       }).save();
 
-      const users = await service.getUsers(organization.id, 1, 50, 'test');
-      expect(users).toMatchSnapshot();
+      const result = await service.getUsers(organization.id, 1, 50, 'test');
+      expect(result.users).toMatchSnapshot();
+      expect(result.total).toBe(1);
     });
 
     it('should return organization users', async () => {
@@ -247,8 +250,9 @@ describe('OrganizationService', () => {
         userId: userTwo.id,
       }).save();
 
-      const users = await service.getUsers(organization.id, 1, 50);
-      expect(users).toMatchSnapshot();
+      const result = await service.getUsers(organization.id, 1, 50);
+      expect(result.users).toMatchSnapshot();
+      expect(result.total).toBe(2);
     });
   });
 
