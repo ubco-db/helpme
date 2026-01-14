@@ -5,6 +5,7 @@ import useSWR from 'swr'
 export type GetCourseError = Error & {
   response?: {
     status: number
+    statusText?: string
     data: {
       message: string
     }
@@ -14,7 +15,7 @@ export type GetCourseError = Error & {
 export function useCourse(cid: number | null): {
   course: GetCourseResponse | undefined
   mutateCourse: () => void
-  error: GetCourseError
+  error?: GetCourseError
 } {
   const key = cid ? `/api/v1/courses/${cid}` : null
   const { data: course, mutate: mutateCourse, error } = useSWR(key, async () => {
