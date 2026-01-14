@@ -454,15 +454,14 @@ export class AuthService {
       recaptchaToken,
       organizationId,
     }: { email: string; recaptchaToken: string; organizationId: number },
-  ): Promise<{ res: Response; user?: UserModel }> {
+  ): Promise<[Response, UserModel | undefined]> {
     if (!recaptchaToken) {
-      return {
-        res: res
-          .status(HttpStatus.BAD_REQUEST)
-          .send({
-            message: ERROR_MESSAGES.authController.invalidRecaptchaToken,
-          }),
-      };
+      return [
+        res.status(HttpStatus.BAD_REQUEST).send({
+          message: ERROR_MESSAGES.authController.invalidRecaptchaToken,
+        }),
+        undefined,
+      ];
     }
 
     const response = await request.post(
@@ -470,11 +469,12 @@ export class AuthService {
     );
 
     if (!response.body.success) {
-      return {
-        res: res.status(HttpStatus.BAD_REQUEST).send({
+      return [
+        res.status(HttpStatus.BAD_REQUEST).send({
           message: ERROR_MESSAGES.authController.invalidRecaptchaToken,
         }),
-      };
+        undefined,
+      ];
     }
 
     const users = await UserModel.find({
@@ -490,11 +490,12 @@ export class AuthService {
     });
     let user: UserModel;
     if (!users || users.length === 0) {
-      return {
-        res: res.status(HttpStatus.NOT_FOUND).send({
+      return [
+        res.status(HttpStatus.NOT_FOUND).send({
           message: ERROR_MESSAGES.authController.userNotFoundWithEmail,
         }),
-      };
+        undefined,
+      ];
     } else if (users.length === 1) {
       // this is like 99.9% of users
       user = users[0];
@@ -525,41 +526,45 @@ export class AuthService {
         // If there's multiple legacy accounts, it's a case-sensitivity issue.
       } else if (usersWithLegacyAccountType.length > 1) {
         // this SHOULDN'T happen since emails should be unique. But, /register lacked case-insensitivity so some users have multiple accounts with same email (with different case).
-        return {
-          res: res.status(HttpStatus.BAD_REQUEST).send({
+        return [
+          res.status(HttpStatus.BAD_REQUEST).send({
             message:
               'Multiple users found with this email (can be case-sensitivity issue). Please contact adam.fipke@ubc.ca',
           }),
-        };
+          undefined,
+        ];
       }
     }
 
     // now handle logic for the user
     if (user.accountType === AccountType.GOOGLE) {
-      return {
-        res: res
+      return [
+        res
           .status(HttpStatus.BAD_REQUEST)
           .send({ message: ERROR_MESSAGES.authController.ssoAccountGoogle }),
-      };
+        undefined,
+      ];
     } else if (user.accountType === AccountType.SHIBBOLETH) {
-      return {
-        res: res.status(HttpStatus.BAD_REQUEST).send({
+      return [
+        res.status(HttpStatus.BAD_REQUEST).send({
           message: ERROR_MESSAGES.authController.ssoAccountShibboleth(
             user.organizationUser.organization.name,
           ),
         }),
-      };
+        undefined,
+      ];
     } else if (user.accountType !== AccountType.LEGACY) {
-      return {
-        res: res.status(HttpStatus.BAD_REQUEST).send({
+      return [
+        res.status(HttpStatus.BAD_REQUEST).send({
           message: ERROR_MESSAGES.authController.incorrectAccountType,
         }),
-      };
+        undefined,
+      ];
     }
 
     // DON'T reject unverified emails (since someone could create an account for someone else's email and then leave it unverified, with the real user not able to log in)
 
-    return { res: res, user: user };
+    return [res, user];
   }
 
   async createStudentSubscriptions(userId: number): Promise<void> {
