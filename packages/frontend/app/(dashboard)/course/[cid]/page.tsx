@@ -21,6 +21,7 @@ import StudentSchedulePanel from './schedule/components/StudentSchedulePanel'
 import { useChatbotContext } from './components/chatbot/ChatbotProvider'
 import Chatbot from './components/chatbot/Chatbot'
 import { useRouter } from 'next/navigation'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 type CoursePageProps = {
   params: Promise<{ cid: string }>
@@ -87,16 +88,19 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
       return ''
     }, [courseFeatures])
 
-  const isAccessDenied = courseError?.response?.status === 404
+  const isAccessDenied = courseError?.response?.status === 404 || courseError?.response?.status === 403
   const router = useRouter()
+  const errorText = isAccessDenied
+  ? 'You do not have access to this course or this course does not exist.'
+  : courseError
+    ? `${courseError.response?.statusText ?? 'Error'}: ${getErrorMessage(courseError)}`
+    : ''
     if (isAccessDenied) {
     return (
       <div className="mt-8 flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
-        <h1 className="text-2xl font-semibold text-[#212934]">Access denied</h1>
+        <h1 className="text-2xl font-semibold">Access denied</h1>
         <p className="max-w-md text-sm text-neutral-600">
-          You do not have access to this page.
-          <br />
-          {courseError?.message ?? 'Error'}
+          {errorText}          
         </p>
         
         <Button type="primary" onClick={() => router.push('/courses')}>
