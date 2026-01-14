@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { BarChartOutlined } from '@ant-design/icons'
+import { BarChartOutlined, BugOutlined } from '@ant-design/icons'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/app/utils/generalUtils'
@@ -27,6 +27,12 @@ const items = [
       />
     ),
     url: '/admin/lti',
+  },
+  {
+    key: 'debug',
+    label: 'Debug',
+    icon: <BugOutlined />,
+    url: '/admin/debug',
   },
 ]
 

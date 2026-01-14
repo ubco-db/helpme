@@ -15,7 +15,11 @@ import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { QuestionTagSelector } from '../../../components/QuestionTagElement'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
+import {
+  AsyncQuestion,
+  asyncQuestionStatus,
+  ChatbotQueryTypeEnum,
+} from '@koh/common'
 import { DeleteOutlined } from '@ant-design/icons'
 import {
   deleteAsyncQuestion,
@@ -80,7 +84,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
         courseId,
         {
           query: questionText,
-          type: 'abstract',
+          type: ChatbotQueryTypeEnum.ABSTRACT,
         },
       )
 
@@ -117,7 +121,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           courseId,
           data,
         )
-        return response.chatbotRepoVersion.answer
+        return response.answer
       } else {
         return 'All AI uses have been used up for today. Please try again tomorrow.'
       }
@@ -228,6 +232,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
 
   return (
     <Modal
+      centered
       open={open}
       title={question ? 'Edit Question' : 'What do you need help with?'}
       okText="Finish"

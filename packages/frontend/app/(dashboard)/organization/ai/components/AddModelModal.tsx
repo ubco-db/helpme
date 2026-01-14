@@ -2,10 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   ChatbotAllowedHeaders,
   ChatbotServiceProvider,
-  ChatbotServiceType,
   LLMType,
-  OllamaLLMType,
-  OpenAILLMType,
 } from '@koh/common'
 import { API } from '@/app/api'
 import { Button, Divider, List, message, Modal, Tooltip } from 'antd'
@@ -90,7 +87,7 @@ const AddModelModal = <T extends LLMType>({
         .then((response) => {
           setAvailableModels(response)
         })
-        .catch((_err) => {
+        .catch(() => {
           if (calledFromRetry) {
             message.error(
               `Failed to retrieve provider's model list from ${providerTypeName} service`,
@@ -145,6 +142,7 @@ const AddModelModal = <T extends LLMType>({
 
   return (
     <Modal
+      centered
       title={'Add Models'}
       open={open}
       onCancel={onClose}

@@ -1,6 +1,15 @@
 'use client'
 
-import { Button, Divider, Input, message, Table, Tooltip } from 'antd'
+import {
+  Button,
+  Collapse,
+  Divider,
+  Input,
+  List,
+  message,
+  Table,
+  Tooltip,
+} from 'antd'
 import {
   ReactElement,
   use,
@@ -12,38 +21,149 @@ import {
 import ExpandableText from '@/app/components/ExpandableText'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
-import EditChatbotQuestionModal from './components/EditChatbotQuestionModal'
-import { EditOutlined } from '@ant-design/icons'
+import UpsertChatbotQuestionModal from './components/UpsertChatbotQuestionModal'
+import { EditOutlined, PlusCircleOutlined } from '@ant-design/icons'
 import Highlighter from 'react-highlight-words'
-import AddChatbotQuestionModal from './components/AddChatbotQuestionModal'
 import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
 import { API } from '@/app/api'
 import {
-  ChatbotQuestionResponseChatbotDB,
-  ChatbotQuestionResponseHelpMeDB,
-  InteractionResponse,
+  ChatbotCitationResponse,
+  ChatbotDocumentListResponse,
+  ChatbotDocumentResponse,
   parseThinkBlock,
-  SourceDocument,
 } from '@koh/common'
 import { ThumbsDown, ThumbsUp } from 'lucide-react'
 import ChatbotHelpTooltip from '../components/ChatbotHelpTooltip'
+import {
+  extractWords,
+  mapChatbotDocumentsToListForm,
+  QuestionListItem,
+} from '@/app/(dashboard)/course/[cid]/(settings)/settings/util'
+import CustomPagination from '@/app/(dashboard)/course/[cid]/(settings)/settings/components/CustomPagination'
+import ChatbotListDocumentItem from '@/app/(dashboard)/course/[cid]/(settings)/settings/components/ChatbotListDocumentItem'
 
-export interface ChatbotQuestionFrontend {
-  key: string
-  vectorStoreId: string
-  helpMeId?: number
-  question: string
-  answer: string
-  verified?: boolean
-  sourceDocuments: SourceDocument[]
-  suggested: boolean
-  userScore?: number
-  inserted?: boolean
-  createdAt: Date | null
-  timesAsked?: number | null
-  children?: ChatbotQuestionFrontend[] // this is needed by antd table for grouping interactions.
-  isChild?: boolean
+const overrides = `
+:root {
+    --base-white: #ffffff;
+    --base-gray: #fafafa;
+    --base-border: #f4f4f4;
+    --hover-darken: 98%;
+    --border-darken: 95%;
+    --sort-darken: 95%;
+    --darken-per-level: 10%;
+
+    --head-cell: var(--base-gray);
+    --head-cell-border: var(--base-border);
+    --head-cell-hover: color-mix(in srgb, var(--head-cell) var(--hover-darken), white);
+    --head-cell-border-hover: color-mix(in srgb, var(--head-cell-border) var(--hover-darken), black);
+
+    --head-sort-cell: color-mix(in srgb, var(--head-cell) var(--sort-darken), black);
+    --head-sort-cell-border: color-mix(in srgb, var(--head-cell-border) var(--border-darken), black);
+    --head-sort-cell-hover: color-mix(in srgb, var(--head-sort-cell) var(--hover-darken), black);
+    --head-sort-cell-border-hover: color-mix(in srgb, var(--head-sort-cell-border) var(--hover-darken), black);
+
+    --body-cell: var(--base-white);
+    --body-cell-border: color-mix(in srgb, var(--base-white) var(--border-darken), black);
+    --body-cell-hover: color-mix(in srgb, var(--body-cell) var(--hover-darken), black);
+    --body-cell-hover-border: color-mix(in srgb, var(--body-cell-border) var(--hover-darken), black);
+
+    --body-cell-sort: var(--body-cell-hover);
+    --body-cell-sort-border: var(--body-cell-hover-border);
+    --body-cell-sort-hover: color-mix(in srgb, var(--body-cell-sort) var(--hover-darken), black);
+    --body-cell-sort-hover-border: color-mix(in srgb, var(--body-cell-sort-border) var(--hover-darken), black);
+
+    --body-cell-expanded: color-mix(in srgb, var(--body-cell) var(--sort-darken), black);
+    --body-cell-expanded-border: color-mix(in srgb, var(--body-cell-border) var(--sort-darken), black);
+    --body-cell-expanded-hover: color-mix(in srgb, var(--body-cell-expanded) var(--hover-darken), black);
+    --body-cell-expanded-hover-border: color-mix(in srgb, var(--body-cell-expanded-border) var(--hover-darken), black);
+
+    --body-cell-expanded-sort: var(--body-cell-expanded-hover);
+    --body-cell-expanded-sort-border: var(--body-cell-expanded-hover-border);
+    --body-cell-expanded-sort-hover: color-mix(in srgb, var(--body-cell-expanded-sort) var(--hover-darken), black);
+    --body-cell-expanded-sort-hover-border: color-mix(in srgb, var(--body-cell-expanded-sort-border) var(--hover-darken), black);
 }
+
+.ant-table-wrapper table {
+    border-collapse: separate;
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th {
+    background: var(--head-cell) !important;
+    border: 1px solid var(--head-cell-border) !important;
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th:hover {
+    background: var(--head-cell-hover) !important;
+    border: 1px solid var(--head-cell-border-hover) !important;
+}
+
+.ant-table-wrapper .ant-table-thead th.ant-table-column-sort {
+    background: var(--head-sort-cell) !important;
+    border: 1px solid var(--head-sort-cell-border) !important;
+}
+
+.ant-table-wrapper .ant-table-thead th.ant-table-column-sort:hover {
+    background: var(--head-sort-cell-hover) !important;
+    border: 1px solid var(--head-sort-cell-border-hover) !important;
+}
+
+.ant-table-wrapper tr {
+    background: var(--body-cell) !important;
+    transition: all 0.2s ease;
+}
+
+.ant-table-wrapper tr td {
+    border: 1px solid var(--body-cell-border) !important;
+}
+
+.ant-table-wrapper tr:hover {
+    background: var(--body-cell-hover) !important;
+}
+
+.ant-table-wrapper tr:hover td {
+    border: 1px solid var(--body-cell-hover-border) !important;
+}
+
+.ant-table-wrapper tr.expanded-row {
+    background: var(--body-cell-expanded) !important;
+}
+
+.ant-table-wrapper tr.expanded-row:hover {
+    background: var(--body-cell-expanded-hover) !important;
+}
+
+.ant-table-row td.ant-table-column-sort {
+    background: var(--body-cell-sort) !important;
+    border: 1px solid var(--body-cell-sort-border) !important;
+}
+
+.ant-table-row:hover td.ant-table-column-sort {
+    background: var(--body-cell-sort-hover) !important;
+    border: 1px solid var(--body-cell-sort-hover-border) !important;
+}
+
+.ant-table-wrapper tr.expanded-row td {
+    border: 1px solid var(--body-cell-expanded-border) !important;
+}
+
+.ant-table-wrapper tr.expanded-row:hover td {
+    border: 1px solid var(--body-cell-expanded-sort-hover-border) !important;
+}
+
+.ant-table-row.expanded-row .ant-table-column-sort {
+    background: var(--body-cell-expanded-sort) !important;
+    border: 1px solid var(--body-cell-expanded-sort-border) !important;
+}
+
+.ant-table-row.expanded-row:hover .ant-table-column-sort {
+    background: var(--body-cell-expanded-sort-hover) !important;
+    border: 1px solid var(--body-cell-expanded-sort-hover-border) !important;
+}
+
+.ant-table-wrapper tr.expanded-row td:first-of-type {
+    border-inline-start: 4px solid rgb(54 132 196) !important;
+}
+`
 
 type ChatbotQuestionsProps = {
   params: Promise<{ cid: string }>
@@ -54,27 +174,23 @@ export default function ChatbotQuestions(
 ): ReactElement {
   const params = use(props.params)
   const courseId = Number(params.cid)
-  const [addModelOpen, setAddModelOpen] = useState(false)
   const { userInfo } = useUserInfo()
   const [search, setSearch] = useState('')
-  const [editingRecord, setEditingRecord] =
-    useState<ChatbotQuestionFrontend | null>(null)
-  const [editRecordModalOpen, setEditRecordModalOpen] = useState(false)
-  const [questions, setQuestions] = useState<ChatbotQuestionFrontend[]>([])
-  const [existingDocuments, setExistingDocuments] = useState<SourceDocument[]>(
-    [],
-  )
+  const [page, setPage] = useState(1)
+  const [editingRecord, setEditingRecord] = useState<QuestionListItem>()
+  const [upsertModalOpen, setUpsertModalOpen] = useState(false)
+
+  const [questions, setQuestions] = useState<QuestionListItem[]>([])
   const [dataLoading, setDataLoading] = useState(false)
 
   // choosing to manually control which antd table rows are expanded so that we can expand all children conversations when they click "show conversations"
   const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([])
-  const handleRowExpand = (record: ChatbotQuestionFrontend) => {
+  const handleRowExpand = (record: QuestionListItem) => {
     let keys = [...expandedRowKeys]
     const parentKey = record.key
     const childKeys = record.children
-      ? record.children.map((child) => child.key)
+      ? record.children.map((child: QuestionListItem) => child.key)
       : []
-
     if (keys.includes(parentKey)) {
       // already expanded, so collapse parent and remove its children
       keys = keys.filter((key) => key !== parentKey && !childKeys.includes(key))
@@ -91,44 +207,33 @@ export default function ChatbotQuestions(
     }
     return questions.filter((question) => {
       return (
-        question.question.toLowerCase().includes(search.toLowerCase()) ||
-        question.answer.toLowerCase().includes(search.toLowerCase()) ||
+        question.chatbotQuestion.question
+          .toLowerCase()
+          .includes(search.toLowerCase()) ||
+        question.chatbotQuestion.answer
+          .toLowerCase()
+          .includes(search.toLowerCase()) ||
         question.children?.some(
           (q) =>
-            q.question.toLowerCase().includes(search.toLowerCase()) ||
-            q.answer.toLowerCase().includes(search.toLowerCase()),
+            q.chatbotQuestion.question
+              .toLowerCase()
+              .includes(search.toLowerCase()) ||
+            q.chatbotQuestion.answer
+              .toLowerCase()
+              .includes(search.toLowerCase()),
         )
       )
     })
   }, [search, questions])
 
-  useEffect(() => {
-    API.chatbot.staffOnly
-      .getAllAggregateDocuments(courseId)
-      .then((res) => {
-        const formattedDocuments = res.map((doc) => ({
-          key: doc.id,
-          docId: doc.id,
-          docName: doc.pageContent,
-          pageContent: doc.pageContent,
-          sourceLink: doc.metadata?.source || '',
-          pageNumbers: doc.metadata?.loc ? [doc.metadata.loc.pageNumber] : [],
-        }))
-        setExistingDocuments(formattedDocuments)
-      })
-      .catch((e) => {
-        message.error('Failed to fetch documents: ' + getErrorMessage(e))
-      })
-  }, [courseId])
-
   const columns: any[] = [
     {
       title: 'Question',
-      dataIndex: 'question',
+      dataIndex: ['chatbotQuestion', 'question'],
       key: 'question',
-      sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
-        const A = a.question || ''
-        const B = b.question || ''
+      sorter: (a: QuestionListItem, b: QuestionListItem) => {
+        const A = a.chatbotQuestion.question || ''
+        const B = b.chatbotQuestion.question || ''
         return A.localeCompare(B)
       },
       render: (text: string) => (
@@ -150,12 +255,12 @@ export default function ChatbotQuestions(
     },
     {
       title: 'Answer',
-      dataIndex: 'answer',
+      dataIndex: ['chatbotQuestion', 'answer'],
       key: 'answer',
       width: 600,
-      sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
-        const A = a.answer || ''
-        const B = b.answer || ''
+      sorter: (a: QuestionListItem, b: QuestionListItem) => {
+        const A = a.chatbotQuestion.answer || ''
+        const B = b.chatbotQuestion.answer || ''
         return A.localeCompare(B)
       },
       render: (text: string) => {
@@ -197,67 +302,51 @@ export default function ChatbotQuestions(
     },
     {
       title: 'Document Citations',
-      dataIndex: 'sourceDocuments',
-      key: 'sourceDocuments',
-      render: (sourceDocuments: SourceDocument[]) => {
-        return (
-          <ExpandableText maxRows={3}>
-            <div className="flex flex-col gap-1">
-              {sourceDocuments.map((doc, index) => (
-                <div
-                  className="flex w-fit max-w-[260px] flex-col overflow-hidden rounded-xl bg-slate-100 p-2"
-                  key={index}
-                >
-                  <div className="truncate font-semibold">
-                    {doc.sourceLink ? (
-                      <a
-                        href={doc.sourceLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {doc.docName}
-                      </a>
-                    ) : (
-                      <span>{doc.docName}</span>
-                    )}
-                  </div>
-                  <div className="mt-1 flex gap-1 text-xs">
-                    {doc.pageNumber ? (
-                      <div
-                        key={`${doc.docName}-${doc.pageNumber}`}
-                        className="whitespace-nowrap"
-                      >
-                        p.{doc.pageNumber}
-                      </div>
-                    ) : (
-                      <></>
-                    )}
-                  </div>
-                  <div className="mt-1 flex flex-wrap gap-1 text-xs">
-                    {doc.type ? <></> : <span>{doc.content}</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ExpandableText>
+      dataIndex: ['chatbotQuestion', 'citations'],
+      key: 'citations',
+      onCell: (record: any) => {
+        return {
+          className:
+            record.chatbotQuestion?.citations?.length > 0
+              ? '[&:not(th)]:p-0 [&:not(th)]:flex [&:not(th)]:flex-col [&:not(th)]:items-start'
+              : undefined,
+        }
+      },
+      render: (citations: ChatbotCitationResponse[]) => {
+        return citations?.length > 0 ? (
+          <Collapse
+            bordered={false}
+            className={'min-w-48 max-w-48'}
+            items={[
+              {
+                key: 'citations',
+                label: `View Citations`,
+                children: <CitationList citations={citations} />,
+              },
+            ]}
+          />
+        ) : (
+          <div className={'flex h-full w-full flex-grow p-2 text-center'}>
+            <p>No Citations</p>
+          </div>
         )
       },
     },
     {
       title: 'Verified',
-      dataIndex: 'verified',
+      dataIndex: ['chatbotQuestion', 'verified'],
       key: 'verified',
-      sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
-        const A = a.verified ? 1 : 0
-        const B = b.verified ? 1 : 0
+      sorter: (a: QuestionListItem, b: QuestionListItem) => {
+        const A = a.chatbotQuestion.verified ? 1 : 0
+        const B = b.chatbotQuestion.verified ? 1 : 0
         return B - A
       },
       filters: [
         { text: 'Verified', value: true },
         { text: 'Unverified', value: false },
       ],
-      onFilter: (value: boolean, record: ChatbotQuestionFrontend) =>
-        record.verified === value || record.isChild,
+      onFilter: (value: boolean, record: QuestionListItem) =>
+        record.chatbotQuestion.verified === value || record.isChild,
       render: (verified: boolean) => (
         <Tooltip
           title={
@@ -277,19 +366,19 @@ export default function ChatbotQuestions(
     {
       // the dash was put there so that it would line-break (horizontal space is really valuable for this table)
       title: 'Sugg-ested',
-      dataIndex: 'suggested',
+      dataIndex: ['chatbotQuestion', 'suggested'],
       key: 'suggested',
-      sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
-        const A = a.suggested ? 1 : 0
-        const B = b.suggested ? 1 : 0
+      sorter: (a: QuestionListItem, b: QuestionListItem) => {
+        const A = a.chatbotQuestion.suggested ? 1 : 0
+        const B = b.chatbotQuestion.suggested ? 1 : 0
         return B - A
       },
       filters: [
         { text: 'Suggested', value: true },
         { text: 'Not Suggested', value: false },
       ],
-      onFilter: (value: boolean, record: ChatbotQuestionFrontend) =>
-        record.suggested === value || record.isChild,
+      onFilter: (value: boolean, record: QuestionListItem) =>
+        record.chatbotQuestion.suggested === value || record.isChild,
       render: (suggested: boolean) => (
         <Tooltip
           title={
@@ -311,7 +400,7 @@ export default function ChatbotQuestions(
       dataIndex: 'timesAsked',
       key: 'timesAsked',
       width: 50,
-      sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
+      sorter: (a: QuestionListItem, b: QuestionListItem) => {
         const A = a.timesAsked ?? 0
         const B = b.timesAsked ?? 0
         return A - B
@@ -319,10 +408,10 @@ export default function ChatbotQuestions(
     },
     {
       title: 'User Score',
-      dataIndex: 'userScore',
+      dataIndex: ['chatbotQuestion', 'userScore'],
       key: 'userScore',
       width: 50,
-      sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
+      sorter: (a: QuestionListItem, b: QuestionListItem) => {
         const A = a.userScore ?? 0
         const B = b.userScore ?? 0
         return A - B
@@ -386,13 +475,18 @@ export default function ChatbotQuestions(
     },
     {
       title: 'Last Asked',
-      dataIndex: 'createdAt',
+      dataIndex: 'timestamp',
       key: 'createdAt',
       defaultSortOrder: 'descend',
       width: 90,
-      sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
-        const A = a.createdAt && !a.isChild ? a.createdAt.getTime() : 0
-        const B = b.createdAt && !b.isChild ? b.createdAt.getTime() : 0
+      className: '',
+      sorter: (a: QuestionListItem, b: QuestionListItem) => {
+        a.timestamp =
+          a.timestamp != undefined ? new Date(a.timestamp) : undefined
+        b.timestamp =
+          b.timestamp != undefined ? new Date(b.timestamp) : undefined
+        const A = !a.isChild ? (a.timestamp?.getTime() ?? 0) : 0
+        const B = !b.isChild ? (b.timestamp?.getTime() ?? 0) : 0
         return A - B
       },
       render: (createdAt: Date) => formatDateAndTimeForExcel(createdAt),
@@ -400,7 +494,7 @@ export default function ChatbotQuestions(
     {
       key: 'actions',
       width: 50,
-      render: (_: any, record: ChatbotQuestionFrontend) => (
+      render: (_: any, record: QuestionListItem) => (
         <div className="flex flex-col items-center justify-center gap-2">
           <Button
             onClick={() => showEditModal(record)}
@@ -411,26 +505,29 @@ export default function ChatbotQuestions(
     },
   ]
 
-  const showEditModal = (record: ChatbotQuestionFrontend) => {
+  const showEditModal = (record: QuestionListItem) => {
     setEditingRecord(record)
-    setEditRecordModalOpen(true)
+    setUpsertModalOpen(true)
   }
 
   const getQuestions = useCallback(async () => {
     setDataLoading(true)
-    // NOTE
-    // We store the chatbot questions in two separate backends for some reason
-    // the helpme database stores interactions and has duplicate questions and userScores
-    // the chatbot database stores .sourceDocuments and .verified and .inserted (AND is the only one updated when a question is edited AND is where added questions from AddChatbotQuestionModal go)
-    // we need to fetch both and merge them
-    // this becomes a really hard problem especially if you consider how the first question in an interaction can be a duplicate but subsequent questions can be different
     try {
-      const { helpmeDB, chatbotDB } =
+      const questions =
         await API.chatbot.staffOnly.getInteractionsAndQuestions(courseId)
 
-      const processedQuestions = processQuestions(helpmeDB, chatbotDB)
+      function applyKey(question: QuestionListItem, base: string = '') {
+        question.key =
+          question.id >= 0
+            ? `${base}${question.id}`
+            : `${base}${question.vectorStoreId}`
+        if (question.children && question.children.length > 0) {
+          question.children.forEach((c) => applyKey(c, `${question.key}-`))
+        }
+      }
+      ;(questions as any[]).forEach((q) => applyKey(q))
 
-      setQuestions(processedQuestions)
+      setQuestions(questions as QuestionListItem[])
     } catch (e) {
       const errorMessage = getErrorMessage(e)
       message.error('Failed to fetch questions: ' + errorMessage)
@@ -456,34 +553,25 @@ export default function ChatbotQuestions(
 
   return (
     <div className="md:mr-2">
+      <style>{overrides}</style>
       <title>{`HelpMe | Editing ${userInfo.courses.find((e) => e.course.id === courseId)?.course.name ?? ''} Chatbot Questions`}</title>
       {/* Tailwind color classes used (this will ensure the tailwind parser sees these classes being used and doesn't remove them): 
           bg-green-100 bg-green-200 bg-green-300 bg-green-400 bg-green-500 bg-green-600 bg-green-700 bg-green-800
           bg-red-100 bg-red-200 bg-red-300 bg-red-400 bg-red-500 bg-red-600 bg-red-700 bg-red-800
       */}
-      <AddChatbotQuestionModal
-        open={addModelOpen}
+      <UpsertChatbotQuestionModal
+        open={upsertModalOpen}
         courseId={courseId}
-        existingDocuments={existingDocuments}
-        onCancel={() => setAddModelOpen(false)}
-        onAddSuccess={() => {
-          getQuestions()
-          setAddModelOpen(false)
+        editingRecord={editingRecord}
+        onCancel={() => {
+          setUpsertModalOpen(false)
+          setEditingRecord(undefined)
+        }}
+        deleteQuestion={deleteQuestion}
+        onUpsert={() => {
+          setUpsertModalOpen(false)
         }}
       />
-      {editingRecord && (
-        <EditChatbotQuestionModal
-          open={editRecordModalOpen}
-          cid={courseId}
-          editingRecord={editingRecord}
-          onCancel={() => setEditRecordModalOpen(false)}
-          onSuccessfulUpdate={() => {
-            getQuestions()
-            setEditRecordModalOpen(false)
-          }}
-          deleteQuestion={deleteQuestion}
-        />
-      )}
       <div className="flex w-full items-center justify-between">
         <div className="flex-1">
           <h3 className="m-0 p-0 text-4xl font-bold text-gray-900">
@@ -505,18 +593,37 @@ export default function ChatbotQuestions(
             }}
             onPressEnter={getQuestions}
           />
-          <Button onClick={() => setAddModelOpen(true)}>Add Question</Button>
+          <Button
+            icon={<PlusCircleOutlined />}
+            onClick={() => {
+              setUpsertModalOpen(true)
+              setEditingRecord(undefined)
+            }}
+          >
+            Add Question
+          </Button>
         </div>
       </div>
       <Divider className="my-3" />
-      <Table
+      <Table<QuestionListItem>
         columns={columns}
         bordered
         size="small"
+        pagination={{
+          current: page,
+          total: filteredQuestions.length,
+          pageSize: 10,
+          onChange: (page) => {
+            setPage(page)
+          },
+          showSizeChanger: false,
+        }}
         dataSource={filteredQuestions}
         loading={filteredQuestions.length === 0 && dataLoading}
+        rowHoverable={false}
         expandable={{
           expandedRowKeys: expandedRowKeys,
+          expandedRowClassName: 'expanded-row',
           expandIcon: ({ expanded, record }) =>
             !record.children ? null : !record.children[0].children ? (
               expanded ? (
@@ -566,248 +673,55 @@ export default function ChatbotQuestions(
     </div>
   )
 }
-function mergeChatbotQuestions(
-  helpMeQuestion?: ChatbotQuestionResponseHelpMeDB | null,
-  chatbotQuestion?: ChatbotQuestionResponseChatbotDB | null,
-  timesAsked?: number | null,
-  children?: ChatbotQuestionFrontend[],
-  isChild?: boolean,
-  userScore?: number,
-): ChatbotQuestionFrontend {
-  return {
-    // key must be unique for each row in the table (otherwise weird react re-render things happen)
-    key:
-      (helpMeQuestion?.vectorStoreId ?? '') +
-      helpMeQuestion?.id.toString() +
-      (children && children.length > 0 ? children[0].key : '') +
-      (isChild ? 'child' : ''),
-    vectorStoreId: helpMeQuestion?.vectorStoreId ?? '', // should be guaranteed to exist
-    helpMeId: helpMeQuestion?.id || -1,
-    question:
-      chatbotQuestion?.pageContent ?? helpMeQuestion?.questionText ?? 'error', // chatbot database question takes precedence (in general) since when you edit a question, you only edit it on chatbot database
-    answer:
-      chatbotQuestion?.metadata.answer ??
-      helpMeQuestion?.responseText ??
-      'error',
-    verified: chatbotQuestion?.metadata.verified, // helpme database does not have verified
-    sourceDocuments: chatbotQuestion?.metadata.sourceDocuments ?? [], // helpme database does not have sourceDocuments
-    suggested:
-      chatbotQuestion?.metadata.suggested ?? helpMeQuestion?.suggested ?? false,
-    inserted: chatbotQuestion?.metadata.inserted, // helpme database does not have inserted
-    createdAt: helpMeQuestion?.timestamp
-      ? new Date(
-          helpMeQuestion.timestamp, // prioritize the helpme database for this one (since it stores duplicates n stuff)
-        )
-      : chatbotQuestion?.metadata.timestamp
-        ? new Date(chatbotQuestion.metadata.timestamp)
-        : null,
-    userScore,
-    timesAsked,
-    children,
-    isChild,
-  }
-}
 
-function processQuestions(
-  interactions: InteractionResponse[],
-  allQuestionsData: ChatbotQuestionResponseChatbotDB[],
-): ChatbotQuestionFrontend[] {
-  //
-  // The Join
-  //
-  // We need to process and merge the questions from chatbot and helpme db (in unfortunately O(n^2) time, since we basically need to manually join each chatbot question with helpme question via vectorStoreId)
-  // (there are basically 0 to many helpme db questions for each chatbot db question)
-  const processedQuestions: ChatbotQuestionFrontend[] = []
-  for (const chatbotQuestion of allQuestionsData) {
-    // for each chatbot question, find ALL interactions that have this chatbot question
-    for (const tempInteraction of interactions) {
-      if (
-        !tempInteraction.questions ||
-        tempInteraction.questions.length === 0
-      ) {
-        continue
-      }
+const CitationList: React.FC<{
+  citations: ChatbotCitationResponse[]
+}> = ({ citations }) => {
+  const documents = useMemo(
+    () =>
+      citations
+        .map((v) => v.document)
+        .filter((d) => d != undefined) as ChatbotDocumentResponse[],
+    [citations],
+  )
+  const [pageSize] = useState(3)
+  const [page, setPage] = useState(1)
+  const inDocumentListForm = useMemo(
+    () => mapChatbotDocumentsToListForm(documents),
+    [documents],
+  )
+  const numPages = useMemo(
+    () => Math.ceil(inDocumentListForm.length / pageSize),
+    [inDocumentListForm, pageSize],
+  )
 
-      // cycle through all the questions interactions
-      let hasAlreadyBeenAdded = false
-      for (const helpMeQuestion of tempInteraction.questions) {
-        if (helpMeQuestion.vectorStoreId === chatbotQuestion.id) {
-          // a match
-          if (!hasAlreadyBeenAdded) {
-            // to not add the same interaction multiple times
-            if (!chatbotQuestion.interactionsWithThisQuestion) {
-              chatbotQuestion.interactionsWithThisQuestion = []
-            }
-            chatbotQuestion.interactionsWithThisQuestion.push(tempInteraction)
-            hasAlreadyBeenAdded = true
-          }
-          if (
-            !chatbotQuestion.mostRecentlyAskedHelpMeVersion ||
-            chatbotQuestion.mostRecentlyAskedHelpMeVersion.timestamp <
-              helpMeQuestion.timestamp
-          ) {
-            chatbotQuestion.mostRecentlyAskedHelpMeVersion = helpMeQuestion
-          }
+  const contentWordMap = useMemo(() => {
+    const rec: Record<string, string[]> = {}
+    documents.forEach((d) => (rec[d.id] = extractWords(d.content)))
+    return rec
+  }, [documents])
 
-          // this will modify the original question object
-          chatbotQuestion.timesAsked = (chatbotQuestion.timesAsked ?? 0) + 1
-          helpMeQuestion.correspondingChatbotQuestion = chatbotQuestion // the join
-          chatbotQuestion.userScoreTotal =
-            (chatbotQuestion.userScoreTotal ?? 0) + helpMeQuestion.userScore
-        }
-      }
-    }
-  }
+  const paginatedDocuments = useMemo(
+    () => inDocumentListForm.slice((page - 1) * pageSize, page * pageSize),
+    [inDocumentListForm, page, pageSize],
+  )
 
-  //
-  // Formatting the data nicely for the antd table
-  //
-  // this is something like O(n) time since it's just looping over the processed chatbot questions and all of their interactions
-  for (const chatbotQuestion of allQuestionsData) {
-    const timesAsked = chatbotQuestion.timesAsked
-    const mostRecentlyAskedHelpMeVersion =
-      chatbotQuestion.mostRecentlyAskedHelpMeVersion
-    const interactionsWithThisQuestion =
-      chatbotQuestion.interactionsWithThisQuestion ?? []
-    if (interactionsWithThisQuestion.length === 0) {
-      // if there was no corresponding interaction found (e.g. it was a manually added question or anytime question), return what we can
-      processedQuestions.push({
-        key: chatbotQuestion.id,
-        vectorStoreId: chatbotQuestion.id,
-        question: chatbotQuestion.pageContent,
-        answer: chatbotQuestion.metadata.answer,
-        verified: chatbotQuestion.metadata.verified,
-        sourceDocuments: chatbotQuestion.metadata.sourceDocuments ?? [],
-        suggested: chatbotQuestion.metadata.suggested,
-        inserted: chatbotQuestion.metadata.inserted,
-        createdAt: chatbotQuestion.metadata.timestamp
-          ? new Date(chatbotQuestion.metadata.timestamp)
-          : null,
-        timesAsked,
-      })
-    }
-
-    // Now for the children (if you give an antd table item a list of children, it will auto-create sub rows for them):
-    // - if if there are more than 1 interaction for this chatbot question, it will first show the chatbot question and then its children will be all the interactions (children) and their children will be all the questions (grandchildren)
-    // - if there is only 1 interaction for this chatbot question, it will be the first question and its children will be all the other questions in the interaction
-    if (interactionsWithThisQuestion.length > 1) {
-      const children = []
-      for (const interaction of interactionsWithThisQuestion) {
-        // if the interaction is only a single question long, don't add it (since the parent table item *is* this question)
-        if (!interaction.questions || interaction.questions.length <= 1) {
-          continue
-        }
-        const grandchildren = []
-        for (let i = 1; i < interaction.questions.length; i++) {
-          const childHelpMeQuestion = interaction.questions[i]
-          if (!childHelpMeQuestion) {
-            continue
-          }
-
-          grandchildren.push(
-            mergeChatbotQuestions(
-              childHelpMeQuestion,
-              childHelpMeQuestion.correspondingChatbotQuestion,
-              null, // timesAsked is null since its not really helpful information to show in this case
-              undefined,
-              true,
-              chatbotQuestion !==
-                childHelpMeQuestion.correspondingChatbotQuestion
-                ? childHelpMeQuestion.correspondingChatbotQuestion
-                    ?.userScoreTotal
-                : undefined,
-            ),
-          )
-        }
-        grandchildren.sort((a, b) => {
-          const aTime = a.createdAt?.getTime() ?? 0
-          const bTime = b.createdAt?.getTime() ?? 0
-          return aTime - bTime // ascending order
-        })
-
-        // for each child, they are the first question in an interaction and all of their children are the rest of the questions in the interaction
-        children.push(
-          mergeChatbotQuestions(
-            interaction.questions[0],
-            interaction.questions[0].correspondingChatbotQuestion,
-            null,
-            grandchildren.length > 0 ? grandchildren : undefined,
-            true,
-            chatbotQuestion !==
-              interaction.questions[0].correspondingChatbotQuestion
-              ? interaction.questions[0].correspondingChatbotQuestion
-                  ?.userScoreTotal
-              : undefined,
-          ),
-        )
-      }
-
-      children.sort((a, b) => {
-        const aTime = a.createdAt?.getTime() ?? 0
-        const bTime = b.createdAt?.getTime() ?? 0
-        return bTime - aTime // descending order
-      })
-      // finally add on the question and all of its children
-      processedQuestions.push(
-        mergeChatbotQuestions(
-          mostRecentlyAskedHelpMeVersion, // the mostRecentlyAskedHelpMeVersion is just to grab the createdAt date for it
-          chatbotQuestion,
-          timesAsked,
-          children.length > 0 ? children : undefined,
-          false,
-          chatbotQuestion.userScoreTotal,
-        ),
-      )
-    } else if (interactionsWithThisQuestion.length === 1) {
-      // now for case if there is only 1 interaction for this chatbot db question
-      const interaction = interactionsWithThisQuestion[0]
-      if (
-        !interaction.questions ||
-        interaction.questions.length === 0 ||
-        interaction.questions[0].vectorStoreId !== chatbotQuestion.id // don't show the interaction if it doesn't have the chatbot db question as the first question (to avoid duplicates)
-      ) {
-        continue
-      }
-
-      // make the children all the other questions in the interaction
-      const children = []
-      if (interaction.questions.length > 1) {
-        for (let i = 1; i < interaction.questions.length; i++) {
-          const childHelpMeQuestion = interaction.questions[i]
-          if (!childHelpMeQuestion) {
-            continue
-          }
-
-          children.push(
-            mergeChatbotQuestions(
-              childHelpMeQuestion,
-              childHelpMeQuestion.correspondingChatbotQuestion,
-              null,
-              undefined,
-              true,
-              childHelpMeQuestion.correspondingChatbotQuestion?.userScoreTotal,
-            ),
-          )
-        }
-      }
-      children.sort((a, b) => {
-        const aTime = a.createdAt?.getTime() ?? 0
-        const bTime = b.createdAt?.getTime() ?? 0
-        return aTime - bTime // ascending order
-      })
-
-      // finally add on the question and all of its children
-      processedQuestions.push(
-        mergeChatbotQuestions(
-          interaction.questions[0],
-          chatbotQuestion,
-          timesAsked,
-          children.length > 0 ? children : undefined,
-          false,
-          chatbotQuestion.userScoreTotal,
-        ),
-      )
-    }
-  }
-  return processedQuestions
+  return (
+    <>
+      <List<ChatbotDocumentListResponse>
+        dataSource={paginatedDocuments}
+        pagination={false}
+        renderItem={(citation: ChatbotDocumentListResponse) => (
+          <ChatbotListDocumentItem
+            listDocument={citation}
+            contentWordMap={contentWordMap}
+            mode={'column'}
+            size={'small'}
+            pageSize={5}
+          />
+        )}
+      />
+      <CustomPagination page={page} numPages={numPages} onChange={setPage} />
+    </>
+  )
 }

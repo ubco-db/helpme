@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Modal, Select, Typography, Spin, Alert, Button } from 'antd'
+import React, { useEffect, useState } from 'react'
+import { Alert, Button, Modal, Select, Spin, Typography } from 'antd'
 import { EyeOutlined } from '@ant-design/icons'
 import { LMSQuiz, LMSQuizAccessLevel } from '@koh/common'
 import { API } from '@/app/api'
@@ -78,6 +78,7 @@ export const QuizContentPreviewModal: React.FC<
 
   return (
     <Modal
+      centered
       title={
         <div>
           <EyeOutlined style={{ marginRight: 8 }} />
