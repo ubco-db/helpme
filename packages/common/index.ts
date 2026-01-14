@@ -1318,7 +1318,7 @@ export type AsyncQuestion = {
   closedAt?: Date
   isAnonymous?: boolean
   staffSetVisible?: boolean
-  authorSetVisible?: boolean
+  authorSetVisible: boolean
   verified: boolean
   votes?: AsyncQuestionVotes[]
   comments: AsyncQuestionComment[]
