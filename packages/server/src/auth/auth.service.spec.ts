@@ -22,6 +22,7 @@ import {
 import {
   AccountRegistrationParams,
   AccountType,
+  ERROR_MESSAGES,
   OrganizationRole,
   OrgRoleChangeReason,
 } from '@koh/common';
@@ -937,7 +938,7 @@ describe('AuthService', () => {
       );
 
       const res = new MockResponse() as any;
-      await service.issuePasswordReset(res, email, organization.id);
+      await service.issuePasswordReset(res, user);
 
       expect(res.statusCode).toBe(202);
       expect(res._body).toHaveProperty('message', 'Password reset email sent');
@@ -948,13 +949,20 @@ describe('AuthService', () => {
 
   describe('validateResetPasswordParams', () => {
     it.each([
-      [400, 'Invalid recaptcha token', { recaptchaToken: undefined }],
-      [400, 'Recaptcha token invalid', { recaptchaToken: 'fail' }],
-      [400, 'User not found', { recaptchaToken: 'succeed', userFound: false }],
       [
         400,
-        'Email not verified',
-        { recaptchaToken: 'succeed', userFound: true, emailVerified: false },
+        ERROR_MESSAGES.authController.invalidRecaptchaToken,
+        { recaptchaToken: undefined },
+      ],
+      [
+        400,
+        ERROR_MESSAGES.authController.invalidRecaptchaToken,
+        { recaptchaToken: 'fail' },
+      ],
+      [
+        404,
+        ERROR_MESSAGES.authController.userNotFoundWithEmail,
+        { recaptchaToken: 'succeed', userFound: false },
       ],
       [
         null,
