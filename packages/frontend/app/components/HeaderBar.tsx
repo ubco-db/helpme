@@ -49,7 +49,7 @@ import {
   MailOutlined,
   SyncOutlined,
 } from '@ant-design/icons'
-import { Empty, Popconfirm } from 'antd'
+import { Popconfirm } from 'antd'
 import { sortQueues } from '../(dashboard)/course/[cid]/utils/commonCourseFunctions'
 import { useCourseFeatures } from '../hooks/useCourseFeatures'
 import CenteredSpinner from './CenteredSpinner'
@@ -304,11 +304,9 @@ const NavBar = ({
                           <div
                             className={`w-[60vw] p-4 text-center text-sm text-gray-500 ${role === Role.PROFESSOR ? 'lg:w-[600px]' : 'lg:w-[400px]'}`}
                           >
-                            <p className="">
-                              There are no queues in this course
-                            </p>
+                            <p>There are no queues in this course</p>
                             {role === Role.PROFESSOR && (
-                              <p className="">
+                              <p>
                                 You can create a queue on the{' '}
                                 <NextLink
                                   href={`${coursePrefix}/${courseId}`}
