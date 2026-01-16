@@ -12,6 +12,7 @@ type ToolUsageExportModalProps = {
   courseId: number
   visible: boolean
   onCancel: () => void
+  onFinish?: () => void
 }
 
 type StudentData = {
@@ -34,6 +35,7 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
   courseId,
   visible,
   onCancel,
+  onFinish,
 }) => {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
@@ -214,7 +216,11 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
         : 'No data found for the selected criteria'
       
       message.success(`Tool usage data exported successfully! ${dateRange}`)
-      onCancel()
+      if (onFinish) {
+        onFinish()
+      } else {
+        onCancel()
+      }
     } catch (error) {
       console.error('Failed to export tool usage data:', error)
       const errorMessage = getErrorMessage(error)

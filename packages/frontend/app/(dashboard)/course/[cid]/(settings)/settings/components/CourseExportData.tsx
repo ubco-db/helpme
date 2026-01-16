@@ -324,6 +324,7 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
           courseId={courseId}
           visible={toolUsageModalVisible}
           onCancel={() => setToolUsageModalVisible(false)}
+          onFinish={() => setToolUsageModalVisible(false)}
         />
       </div>
     )

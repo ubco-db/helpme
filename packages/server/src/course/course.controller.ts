@@ -37,6 +37,8 @@ import {
   InternalServerErrorException,
   NotFoundException,
   Param,
+  ParseBoolPipe,
+  ParseEnumPipe,
   ParseIntPipe,
   Patch,
   Post,
@@ -73,6 +75,10 @@ import { OrganizationService } from '../organization/organization.service';
 import { QueueStaffService } from 'queue/queue-staff/queue-staff.service';
 import { DataSource } from 'typeorm';
 import { QueueService } from '../queue/queue.service';
+enum TimeGrouping {
+  DAY = 'day',
+  WEEK = 'week',
+}
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -992,22 +998,32 @@ export class CourseController {
     return;
   }
 
+  // Helper function for the SELECT fields 
+  private getCommonSelectFields(tableAlias: string): string {
+    return `
+      ${tableAlias}.user_id,
+      ${tableAlias}."firstName",
+      ${tableAlias}."lastName",
+      ${tableAlias}.email,
+      ${tableAlias}.course_name,
+      ${tableAlias}.period_date,
+      ${tableAlias}.period_time
+    `;
+  }
+
   @Get(':id/export-tool-usage')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async exportToolUsage(
     @Param('id', ParseIntPipe) courseId: number,
-    @Query('includeQueueQuestions') includeQueueQuestions: string,
-    @Query('includeAnytimeQuestions') includeAnytimeQuestions: string,
-    @Query('includeChatbotInteractions') includeChatbotInteractions: string,
-    @Query('groupBy') groupBy: string,
+    @Query('includeQueueQuestions', new ParseBoolPipe({ optional: true })) includeQueueQuestions: boolean = true,
+    @Query('includeAnytimeQuestions', new ParseBoolPipe({ optional: true })) includeAnytimeQuestions: boolean = true,
+    @Query('includeChatbotInteractions', new ParseBoolPipe({ optional: true })) includeChatbotInteractions: boolean = true,
+    @Query('groupBy', new ParseEnumPipe(TimeGrouping, { optional: true })) groupBy: TimeGrouping = TimeGrouping.WEEK,
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
   ): Promise<ToolUsageExportData[]> {
-    const includeQueueQuestionsBool = includeQueueQuestions === 'true';
-    const includeAnytimeQuestionsBool = includeAnytimeQuestions === 'true';
-    const includeChatbotInteractionsBool = includeChatbotInteractions === 'true';
-    const isGroupByWeek = groupBy === 'week';
+    const isGroupByWeek = groupBy === TimeGrouping.WEEK;
     
     let startDateObj: Date;
     let endDateObj: Date;
@@ -1018,18 +1034,18 @@ export class CourseController {
     } else {
       const dateRangeQuery = `
         WITH all_dates AS (
-          ${includeQueueQuestionsBool ? `
+          ${includeQueueQuestions ? `
             SELECT q."createdAt" as date FROM "question_model" q
             JOIN "queue_model" qu ON q."queueId" = qu.id
             WHERE qu."courseId" = $1
           ` : ''}
-          ${includeQueueQuestionsBool && includeAnytimeQuestionsBool ? 'UNION ALL' : ''}
-          ${includeAnytimeQuestionsBool ? `
+          ${includeQueueQuestions && includeAnytimeQuestions ? 'UNION ALL' : ''}
+          ${includeAnytimeQuestions ? `
             SELECT aq."createdAt" as date FROM "async_question_model" aq
             WHERE aq."courseId" = $1 AND aq.status != 'StudentDeleted'
           ` : ''}
-          ${(includeQueueQuestionsBool || includeAnytimeQuestionsBool) && includeChatbotInteractionsBool ? 'UNION ALL' : ''}
-          ${includeChatbotInteractionsBool ? `
+          ${(includeQueueQuestions || includeAnytimeQuestions) && includeChatbotInteractions ? 'UNION ALL' : ''}
+          ${includeChatbotInteractions ? `
             SELECT ci.timestamp as date FROM "chatbot_interactions_model" ci
             WHERE ci.course = $1
           ` : ''}
@@ -1056,7 +1072,7 @@ export class CourseController {
     try {
       const results = [];
       
-      if (includeQueueQuestionsBool) {
+      if (includeQueueQuestions) {
         const queueQuery = isGroupByWeek
           ? `
             WITH student_weeks AS (
@@ -1094,13 +1110,7 @@ export class CourseController {
               GROUP BY u.id, DATE_TRUNC('week', q."createdAt")
             )
             SELECT 
-              sw.user_id,
-              sw."firstName",
-              sw."lastName",
-              sw.email,
-              sw.course_name,
-              sw.period_date,
-              sw.period_time,
+              ${this.getCommonSelectFields('sw')},
               COALESCE(qc.count, 0) as count
             FROM student_weeks sw
             LEFT JOIN question_counts qc ON sw.user_id = qc.user_id AND sw.period_date = qc.period_date
@@ -1129,7 +1139,7 @@ export class CourseController {
             question_counts AS (
               SELECT 
                 u.id as user_id,
-                TO_CHAR(q."createdAt", 'YYYY/MM/DD') as period_date,
+                TO_CHAR(q."createdAt"::date, 'YYYY/MM/DD') as period_date,
                 COUNT(*) as count
               FROM "user_model" u
               JOIN "user_course_model" uc ON u.id = uc."userId"
@@ -1142,13 +1152,7 @@ export class CourseController {
               GROUP BY u.id, q."createdAt"::date
             )
             SELECT 
-              sd.user_id,
-              sd."firstName",
-              sd."lastName",
-              sd.email,
-              sd.course_name,
-              sd.period_date,
-              sd.period_time,
+              ${this.getCommonSelectFields('sd')},
               COALESCE(qc.count, 0) as count
             FROM student_days sd
             LEFT JOIN question_counts qc ON sd.user_id = qc.user_id AND sd.period_date = qc.period_date
@@ -1159,7 +1163,7 @@ export class CourseController {
         results.push(...queueResults.map(row => ({ ...row, tool_type: 'queue_questions' })));
       }
       
-      if (includeAnytimeQuestionsBool) {
+      if (includeAnytimeQuestions) {
         const anytimeQuery = isGroupByWeek
           ? `
             WITH student_weeks AS (
@@ -1197,13 +1201,7 @@ export class CourseController {
               GROUP BY u.id, DATE_TRUNC('week', aq."createdAt")
             )
             SELECT 
-              sw.user_id,
-              sw."firstName",
-              sw."lastName",
-              sw.email,
-              sw.course_name,
-              sw.period_date,
-              sw.period_time,
+              ${this.getCommonSelectFields('sw')},
               COALESCE(qc.count, 0) as count
             FROM student_weeks sw
             LEFT JOIN question_counts qc ON sw.user_id = qc.user_id AND sw.period_date = qc.period_date
@@ -1232,7 +1230,7 @@ export class CourseController {
             question_counts AS (
               SELECT 
                 u.id as user_id,
-                TO_CHAR(aq."createdAt", 'YYYY/MM/DD') as period_date,
+                TO_CHAR(aq."createdAt"::date, 'YYYY/MM/DD') as period_date,
                 COUNT(*) as count
               FROM "user_model" u
               JOIN "user_course_model" uc ON u.id = uc."userId"
@@ -1245,13 +1243,7 @@ export class CourseController {
               GROUP BY u.id, aq."createdAt"::date
             )
             SELECT 
-              sd.user_id,
-              sd."firstName",
-              sd."lastName",
-              sd.email,
-              sd.course_name,
-              sd.period_date,
-              sd.period_time,
+              ${this.getCommonSelectFields('sd')},
               COALESCE(qc.count, 0) as count
             FROM student_days sd
             LEFT JOIN question_counts qc ON sd.user_id = qc.user_id AND sd.period_date = qc.period_date
@@ -1262,7 +1254,7 @@ export class CourseController {
         results.push(...anytimeResults.map(row => ({ ...row, tool_type: 'anytime_questions' })));
       }
       
-      if (includeChatbotInteractionsBool) {
+      if (includeChatbotInteractions) {
         const chatbotQuery = isGroupByWeek
           ? `
             WITH student_weeks AS (
@@ -1299,13 +1291,7 @@ export class CourseController {
               GROUP BY u.id, DATE_TRUNC('week', ci.timestamp)
             )
             SELECT 
-              sw.user_id,
-              sw."firstName",
-              sw."lastName",
-              sw.email,
-              sw.course_name,
-              sw.period_date,
-              sw.period_time,
+              ${this.getCommonSelectFields('sw')},
               COALESCE(ic.count, 0) as count
             FROM student_weeks sw
             LEFT JOIN interaction_counts ic ON sw.user_id = ic.user_id AND sw.period_date = ic.period_date
@@ -1334,7 +1320,7 @@ export class CourseController {
             interaction_counts AS (
               SELECT 
                 u.id as user_id,
-                TO_CHAR(ci.timestamp, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(ci.timestamp::date, 'YYYY/MM/DD') as period_date,
                 COUNT(DISTINCT ci.id) as count
               FROM "user_model" u
               JOIN "user_course_model" uc ON u.id = uc."userId"
@@ -1346,13 +1332,7 @@ export class CourseController {
               GROUP BY u.id, ci.timestamp::date
             )
             SELECT 
-              sd.user_id,
-              sd."firstName",
-              sd."lastName",
-              sd.email,
-              sd.course_name,
-              sd.period_date,
-              sd.period_time,
+              ${this.getCommonSelectFields('sd')},
               COALESCE(ic.count, 0) as count
             FROM student_days sd
             LEFT JOIN interaction_counts ic ON sd.user_id = ic.user_id AND sd.period_date = ic.period_date
