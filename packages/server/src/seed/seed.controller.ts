@@ -779,11 +779,11 @@ export class SeedController {
   @Get('fill_anytime_questions')
   async fillAnytimeQuestions(): Promise<string> {
     // grab the CS 304 course and studentOne user that get created in /seeds/create
-    const course = await CourseModel.findOne({
+    const course = await CourseModel.findOneOrFail({
       where: { name: 'CS 304' },
     });
 
-    const creator = await UserModel.findOne({
+    const creator = await UserModel.findOneOrFail({
       where: { email: 'studentOne@ubc.ca' },
     });
 
