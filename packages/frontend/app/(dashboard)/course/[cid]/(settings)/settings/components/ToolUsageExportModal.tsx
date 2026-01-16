@@ -40,7 +40,7 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
 
-  const handleExport = async (values: any) => {
+  const handleExport = async (values: FormValues) => {
     const { includeQueueQuestions, includeAnytimeQuestions, includeChatbotInteractions, groupBy, includeBreakdown } = values
 
     setLoading(true)
