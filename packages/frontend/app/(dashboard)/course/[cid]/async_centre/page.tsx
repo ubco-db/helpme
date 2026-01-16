@@ -1,11 +1,6 @@
 'use client'
 
-import {
-  //Removed AsyncQuestion import because its not used directly in this file anymore
-  asyncQuestionStatus,
-  QuestionType,
-  Role,
-} from '@koh/common'
+import { asyncQuestionStatus, QuestionType, Role } from '@koh/common'
 import React, {
   ReactElement,
   use,

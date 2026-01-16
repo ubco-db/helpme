@@ -977,7 +977,6 @@ describe('AsyncQuestion Integration', () => {
   });
 
   describe('GET /asyncQuestions/:courseId', () => {
-    // fixed the tests for new response format with pagination: {questions: AsyncQuestion[], total: number} instead of AsyncQuestion[]. needed to update all tests in this block.
     let asyncQuestion2: AsyncQuestionModel;
     let asyncQuestion3: AsyncQuestionModel;
 
@@ -998,12 +997,11 @@ describe('AsyncQuestion Integration', () => {
 
     it('allows students to view their questions in their course', async () => {
       const response = await supertest({ userId: studentUser.id }).get(
-        `/asyncQuestions/${course.id}?page=1&pageSize=20`, // all of these were updated to have pagination params
+        `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body.questions; // new object format
+      const questions: AsyncQuestion[] = response.body;
       expect(questions).toHaveLength(2);
-      expect(response.body.total).toBe(2); // total count from pagination
       expect(questions).toMatchSnapshot();
       expect(questions).toEqual(
         expect.arrayContaining([
@@ -1035,12 +1033,11 @@ describe('AsyncQuestion Integration', () => {
       });
 
       const response = await supertest({ userId: studentUser.id }).get(
-        `/asyncQuestions/${course.id}?page=1&pageSize=20`,
+        `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body.questions; // new object format
+      const questions: AsyncQuestion[] = response.body;
       expect(questions).toHaveLength(3);
-      expect(response.body.total).toBe(3); // total count from pagination
       expect(questions).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -1065,12 +1062,11 @@ describe('AsyncQuestion Integration', () => {
         commentText: 'comment2',
       });
       const response = await supertest({ userId: studentUser.id }).get(
-        `/asyncQuestions/${course.id}?page=1&pageSize=20`,
+        `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body.questions; // new object format
+      const questions: AsyncQuestion[] = response.body;
       expect(questions).toHaveLength(2);
-      expect(response.body.total).toBe(2); // total count from pagination
       expect(questions).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -1095,12 +1091,11 @@ describe('AsyncQuestion Integration', () => {
         vote: -1,
       });
       const response = await supertest({ userId: studentUser.id }).get(
-        `/asyncQuestions/${course.id}?page=1&pageSize=20`,
+        `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body.questions; // new object format
+      const questions: AsyncQuestion[] = response.body;
       expect(questions).toHaveLength(2);
-      expect(response.body.total).toBe(2); // total count from pagination
       expect(questions).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -1115,10 +1110,10 @@ describe('AsyncQuestion Integration', () => {
     });
     it('does not allow students to view other students questions unless the question is public, and public questions are anonymous', async () => {
       const response = await supertest({ userId: studentUser2.id }).get(
-        `/asyncQuestions/${course.id}?page=1&pageSize=20`,
+        `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body.questions; // new object format
+      const questions: AsyncQuestion[] = response.body;
       expect(questions).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -1162,12 +1157,11 @@ describe('AsyncQuestion Integration', () => {
     });
     it('allows staff to view all questions in their course, regardless of visibility', async () => {
       const response = await supertest({ userId: TAuser.id }).get(
-        `/asyncQuestions/${course.id}?page=1&pageSize=20`,
+        `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body.questions; // new object format
+      const questions: AsyncQuestion[] = response.body;
       expect(questions).toHaveLength(3);
-      expect(response.body.total).toBe(3); // total count from pagination
       expect(questions).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -1209,10 +1203,10 @@ describe('AsyncQuestion Integration', () => {
         commentText: 'comment2',
       });
       const response = await supertest({ userId: studentUser2.id }).get(
-        `/asyncQuestions/${course.id}?page=1&pageSize=20`,
+        `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body.questions; // new object format
+      const questions: AsyncQuestion[] = response.body;
       expect(questions).toHaveLength(2);
       expect(questions).toEqual(
         expect.arrayContaining([
@@ -1264,10 +1258,10 @@ describe('AsyncQuestion Integration', () => {
       );
       // staff can see all comments
       const response2 = await supertest({ userId: TAuser.id }).get(
-        `/asyncQuestions/${course.id}?page=1&pageSize=20`,
+        `/asyncQuestions/${course.id}`,
       );
       expect(response2.status).toBe(200);
-      const questions2: AsyncQuestion[] = response2.body.questions; // new object format
+      const questions2: AsyncQuestion[] = response2.body;
       expect(questions2).toHaveLength(3);
       expect(questions2).toEqual(
         expect.arrayContaining([
@@ -1317,10 +1311,10 @@ describe('AsyncQuestion Integration', () => {
         commentText: 'comment',
       });
       const response = await supertest({ userId: studentUser2.id }).get(
-        `/asyncQuestions/${course.id}?page=1&pageSize=20`,
+        `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body.questions; // new object format
+      const questions: AsyncQuestion[] = response.body;
       expect(questions).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -1382,15 +1376,15 @@ describe('AsyncQuestion Integration', () => {
         authorSetVisible: true,
       });
       const response = await supertest({ userId: studentUser2.id }).get(
-        `/asyncQuestions/${course.id}?page=1&pageSize=20`,
+        `/asyncQuestions/${course.id}`,
       );
       const response2 = await supertest({ userId: TAuser.id }).get(
-        `/asyncQuestions/${course.id}?page=1&pageSize=20`,
+        `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
       expect(response2.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body.questions; // new object format
-      const questions2: AsyncQuestion[] = response2.body.questions; // new object format
+      const questions: AsyncQuestion[] = response.body;
+      const questions2: AsyncQuestion[] = response2.body;
       expect(questions).toHaveLength(3);
       expect(questions).toEqual(
         expect.arrayContaining([
@@ -1427,18 +1421,18 @@ describe('AsyncQuestion Integration', () => {
         isAnonymous: true,
       });
       const response = await supertest({ userId: studentUser.id }).get(
-        `/asyncQuestions/${course.id}?page=1&pageSize=20`,
+        `/asyncQuestions/${course.id}`,
       );
       const response2 = await supertest({ userId: studentUser2.id }).get(
-        `/asyncQuestions/${course.id}?page=1&pageSize=20`,
+        `/asyncQuestions/${course.id}`,
       );
       const response3 = await supertest({ userId: TAuser.id }).get(
-        `/asyncQuestions/${course.id}?page=1&pageSize=20`,
+        `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body.questions; // new object format
-      const questions2: AsyncQuestion[] = response2.body.questions; // new object format
-      const questions3: AsyncQuestion[] = response3.body.questions; // new object format
+      const questions: AsyncQuestion[] = response.body;
+      const questions2: AsyncQuestion[] = response2.body;
+      const questions3: AsyncQuestion[] = response3.body;
       const fullInfo = {
         id: asyncQuestion9.id,
         isAnonymous: true,
@@ -1482,10 +1476,10 @@ describe('AsyncQuestion Integration', () => {
         isAnonymous: false,
       });
       const response = await supertest({ userId: studentUser2.id }).get(
-        `/asyncQuestions/${course.id}?page=1&pageSize=20`,
+        `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body.questions; // new object format
+      const questions: AsyncQuestion[] = response.body;
       expect(questions).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -1501,15 +1495,6 @@ describe('AsyncQuestion Integration', () => {
           }),
         ]),
       );
-    });
-    //test that pagination works correctly by requesting page 1 with pageSize 2 and confirming we get back 2 questions and total count is correct.
-    it('paginates questions correctly', async () => {
-      const response = await supertest({ userId: studentUser.id }).get(
-        `/asyncQuestions/${course.id}?page=1&pageSize=20`,
-      );
-      expect(response.status).toBe(200);
-      expect(response.body.questions).toHaveLength(2);
-      expect(response.body.total).toBe(2);
     });
   });
 
