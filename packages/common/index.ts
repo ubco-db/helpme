@@ -2411,6 +2411,9 @@ export type QuestionType = {
 export class TACheckinTimesResponse {
   @Type(() => TACheckinPair)
   taCheckinTimes!: TACheckinPair[]
+
+  @Type(() => TAAwayPair)
+  taAwayTimes!: TAAwayPair[]
 }
 
 export class TACheckinPair {
@@ -2433,6 +2436,22 @@ export class TACheckinPair {
 
   @IsNumber()
   numHelped!: number
+}
+
+export class TAAwayPair {
+  @IsString()
+  name!: string
+
+  @IsDate()
+  @Type(() => Date)
+  awayStartTime!: Date 
+
+  @IsDate()
+  @Type(() => Date)
+  awayEndTime!: Date
+
+  @IsBoolean()
+  inProgress!: boolean
 }
 
 export enum AlertType {
