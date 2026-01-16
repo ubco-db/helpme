@@ -1092,7 +1092,7 @@ export class CourseController {
                 DATE_TRUNC('week', $3::timestamp),
                 '1 week'::interval
               ) AS week_start
-              WHERE uc."courseId" = $1 AND uc.role = 'student'
+              WHERE uc."courseId" = $1 AND uc.role = ${Role.STUDENT}
             ),
             question_counts AS (
               SELECT 
