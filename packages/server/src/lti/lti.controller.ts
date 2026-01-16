@@ -26,7 +26,7 @@ import {
   IdToken,
   PlatformModel,
   PlatformProperties,
-} from 'lti-typescript';
+} from '@bhunt02/lti-typescript';
 import {
   CreateLtiPlatform,
   ERROR_MESSAGES,

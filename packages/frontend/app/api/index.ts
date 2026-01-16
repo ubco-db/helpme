@@ -137,6 +137,7 @@ import * as Sentry from '@sentry/nextjs'
 import { SetStateAction } from 'react'
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { GetOrganizationUsersPaginatedResponse } from '@koh/common'
 
 // Return type of array item, if T is an array
 type ItemIfArray<T> = T extends (infer I)[] ? I : T
@@ -1293,7 +1294,7 @@ export class APIClient {
       organizationId: number,
       page: number,
       search?: string,
-    ): Promise<OrgUser[]> =>
+    ): Promise<GetOrganizationUsersPaginatedResponse> =>
       this.req(
         'GET',
         `/api/v1/organization/${organizationId}/get_users/${page}${

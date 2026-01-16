@@ -1120,6 +1120,27 @@
   resolved "https://registry.yarnpkg.com/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz#75a2e8b51cb758a7553d6804a5932d7aace75c39"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
+"@bhunt02/lti-typescript@^0.1.7":
+  version "0.1.7"
+  resolved "https://registry.yarnpkg.com/@bhunt02/lti-typescript/-/lti-typescript-0.1.7.tgz#d3ff6dd01e712fad446c5005a28b6115c3b9b315"
+  integrity sha512-mcyMF7SV3lNFel8qyxOty2ulNHiQOIOYEa0SiWzP0LAPJ4msc6vMAiSwL6toJOUJkfzmkEIMIhlh1QskJ85hqQ==
+  dependencies:
+    axios "^1.12.2"
+    body-parser "^1.20.2"
+    cookie-parser "^1.4.7"
+    cors "^2.8.5"
+    debug "^4.4.1"
+    express "^4.19.2"
+    fast-url-parser "^1.1.3"
+    helmet "^6.0.1"
+    jsonwebtoken "^9.0.2"
+    parse-link-header "^2.0.0"
+    pg "^8.16.3"
+    rasha "^1.2.5"
+    reflect-metadata "^0.2.2"
+    sprightly "^2.0.1"
+    typeorm "^0.3.20"
+
 "@colors/colors@1.5.0":
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/@colors/colors/-/colors-1.5.0.tgz#bb504579c1cae923e6576a4f5da43d25f97bdbd9"
@@ -10072,26 +10093,6 @@ lru-cache@^7.14.1:
   version "7.18.3"
   resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-7.18.3.tgz#f793896e0fd0e954a59dfdd82f0773808df6aa89"
   integrity sha512-jumlc0BIUrS3qJGgIkWZsyfAM7NCWiBcCDhnd+3NNM5KbBmLTgHVfWBcg6W+rLUsIpzpERPsvwUP7CckAQSOoA==
-
-"lti-typescript@github:bhunt02/lti-typescript#release":
-  version "0.1.0"
-  resolved "https://codeload.github.com/bhunt02/lti-typescript/tar.gz/c450a985b74fcf4c0069543402cae6b3961082e9"
-  dependencies:
-    axios "^1.12.2"
-    body-parser "^1.20.2"
-    cookie-parser "^1.4.7"
-    cors "^2.8.5"
-    debug "^4.4.1"
-    express "^4.19.2"
-    fast-url-parser "^1.1.3"
-    helmet "^6.0.1"
-    jsonwebtoken "^9.0.2"
-    parse-link-header "^2.0.0"
-    pg "^8.16.3"
-    rasha "^1.2.5"
-    reflect-metadata "^0.2.2"
-    sprightly "^2.0.1"
-    typeorm "^0.3.20"
 
 lucide-react@^0.503.0:
   version "0.503.0"

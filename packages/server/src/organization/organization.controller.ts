@@ -28,6 +28,7 @@ import {
   ERROR_MESSAGES,
   GetOrganizationResponse,
   GetOrganizationUserResponse,
+  GetOrganizationUsersPaginatedResponse,
   OrganizationProfessor,
   OrganizationResponse,
   OrganizationRole,
@@ -1431,9 +1432,8 @@ export class OrganizationController {
     @Param('oid', ParseIntPipe) oid: number,
     @Param('page', ParseIntPipe) page: number,
     @Query('search') search: string,
-  ): Promise<OrgUser[]> {
+  ): Promise<GetOrganizationUsersPaginatedResponse> {
     const pageSize = 50;
-
     if (!search) {
       search = '';
     }

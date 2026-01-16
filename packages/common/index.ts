@@ -170,6 +170,10 @@ export interface OrgUser {
   userRole: string
   organizationRole: string
 }
+export interface GetOrganizationUsersPaginatedResponse {
+  users: OrgUser[]
+  total: number
+}
 
 /**
  * Contains the partial user info needed by the frontend when nested in a response
@@ -1318,7 +1322,7 @@ export type AsyncQuestion = {
   closedAt?: Date
   isAnonymous?: boolean
   staffSetVisible?: boolean
-  authorSetVisible?: boolean
+  authorSetVisible: boolean
   verified: boolean
   votes?: AsyncQuestionVotes[]
   comments: AsyncQuestionComment[]

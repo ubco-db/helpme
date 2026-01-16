@@ -146,8 +146,16 @@ export const useLtiContext = (): LtiContextType => {
   return context
 }
 
-function post_message_proxy(target: Window, window_params: any) {
-  target.postMessage(window_params, '*')
+function post_message_proxy(
+  target: Window,
+  window_params: any,
+  origin?: string,
+) {
+  try {
+    target.postMessage(window_params, origin ?? '*')
+  } catch (err) {
+    console.error(err)
+  }
 }
 
 function postMessage(
@@ -157,6 +165,10 @@ function postMessage(
   lti_storage_target?: string,
 ) {
   try {
+    const target =
+      window.document.referrer.trim() === ''
+        ? undefined
+        : window.document.referrer
     if (subject == 'lti.put_data' || subject == 'lti.get_data') {
       if (!lti_storage_target) {
         throw new Error(
@@ -181,17 +193,18 @@ function postMessage(
         })
       }
       if (!lti_storage_target || lti_storage_target == '_parent') {
-        return post_message_proxy(window.parent, { subject, ...params })
+        return post_message_proxy(window.parent, { subject, ...params }, target)
       } else {
-        post_message_proxy(
+        return post_message_proxy(
           (window.parent.frames as Record<string, any>)[
             'post_message_forwarding'
           ],
           { subject, ...params },
+          target,
         )
       }
     }
-    post_message_proxy(window.parent, { subject, ...params })
+    post_message_proxy(window.parent, { subject, ...params }, target)
   } catch (err) {
     console.error(
       `Failed to postMessage (subject: ${subject}: ${(err as Error).message}`,
