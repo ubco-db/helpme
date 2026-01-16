@@ -25,7 +25,7 @@ import {
 } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getRoleInCourse } from '@/app/utils/generalUtils'
-import { useAsnycQuestions } from '@/app/hooks/useAsyncQuestions'
+import { useAsyncQuestions } from '@/app/hooks/useAsyncQuestions'
 import AsyncCentreInfoColumn from './components/AsyncCentreInfoColumn'
 import {
   EditQueueButton,
@@ -70,13 +70,7 @@ export default function AsyncCentrePage(
 
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  const [asyncQuestionsData, mutateAsyncQuestions] = useAsnycQuestions(
-    courseId,
-    page,
-    pageSize,
-  )
-  const asyncQuestions = asyncQuestionsData?.questions // extracts questions array from the new response object (so i dont have to change every single reference to asyncQuestions in the code below)
-  const totalQuestions = asyncQuestionsData?.total ?? 0 // extracts total count from the new response object (for pagination)
+  const [asyncQuestions, mutateAsyncQuestions] = useAsyncQuestions(courseId)
 
   const [createAsyncQuestionModalOpen, setCreateAsyncQuestionModalOpen] =
     useState(false)
@@ -215,6 +209,14 @@ export default function AsyncCentrePage(
   }, [sortBy, applyCreatorFilter])
 
   const displayedQuestions = useMemo(() => applySort, [applySort])
+
+  const totalQuestions = displayedQuestions.length // total length after all filters applied
+
+  const paginatedQuestions = useMemo(() => {
+    const startIndex = (page - 1) * pageSize //calculates where to start slicing
+    const endIndex = startIndex + pageSize // and where to stop slicing
+    return displayedQuestions.slice(startIndex, endIndex)
+  }, [page, pageSize, displayedQuestions])
 
   // This endpoint will be called to update unread count back to 0 when this page is entered
   // May seem more inefficient but this is the only way to ensure that the unread count is accurate given that userInfo no longer tracks it
@@ -434,7 +436,7 @@ export default function AsyncCentrePage(
             </Popover>
           </div>
 
-          {displayedQuestions.map((question) => (
+          {paginatedQuestions.map((question) => (
             <AsyncQuestionCard
               key={question.id}
               question={question}
@@ -461,7 +463,7 @@ export default function AsyncCentrePage(
             showTotal={(total, range) =>
               `${range[0]}-${range[1]} of ${total} questions`
             }
-            className="mt-4 text-center"
+            className="mb-4 mt-4 text-center"
           />
         </div>
         <ConvertChatbotQToAnytimeQModal

@@ -2,23 +2,19 @@ import { AsyncQuestion } from '@koh/common'
 import useSWR from 'swr'
 import { API } from '../api'
 
-export function useAsnycQuestions(
+export function useAsyncQuestions(
   cid: number,
-  page: number,
-  pageSize: number,
 ): [
-  { questions: AsyncQuestion[]; total: number } | undefined,
+  AsyncQuestion[] | undefined,
   (
-    data?:
-      | { questions: AsyncQuestion[]; total: number }
-      | Promise<{ questions: AsyncQuestion[]; total: number }>,
+    data?: AsyncQuestion[] | Promise<AsyncQuestion[]>,
     shouldRevalidate?: boolean,
-  ) => Promise<{ questions: AsyncQuestion[]; total: number } | undefined>,
+  ) => Promise<AsyncQuestion[] | undefined>,
 ] {
-  const key = `/api/v1/courses/${cid}/asyncQuestions?page=${page}&pageSize=${pageSize}`
+  const key = `/api/v1/courses/${cid}/asyncQuestions`
 
   const { data: asyncQuestions, mutate } = useSWR(key, async () => {
-    return await API.asyncQuestions.get(cid, page, pageSize)
+    return await API.asyncQuestions.get(cid)
   })
 
   return [asyncQuestions, mutate]
