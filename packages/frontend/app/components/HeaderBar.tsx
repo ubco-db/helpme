@@ -279,26 +279,57 @@ const NavBar = ({
                       </NavigationMenuTrigger>
                       <NavigationMenuContent>
                         {/* On mobile, if there are more than 6 queues, put the queue list into two columns */}
-                        <ul
-                          className={`grid gap-1 p-4 md:grid-cols-2 lg:w-[600px] lg:gap-2 ${sortedQueues.length > 6 ? 'w-[95vw] grid-cols-2' : 'w-[60vw]'}`}
-                        >
-                          {sortedQueues.map((queue) => (
-                            <ListItem
-                              key={queue.id}
-                              title={queue.room}
-                              href={`/course/${courseId}/queue/${queue.id}`}
-                              onClick={() =>
-                                setIsDrawerOpen && setIsDrawerOpen(false)
-                              }
-                            >
-                              <>
-                                {`${queue.staffList.length > 0 ? `${queue.staffList.length} staff checked in` : ''}`}
-                                <br />
-                                {`${queue.queueSize > 0 ? `${queue.queueSize} students in queue` : ''}`}
-                              </>
-                            </ListItem>
-                          ))}
-                        </ul>
+                        {sortedQueues.length > 0 ? (
+                          <ul
+                            className={`grid gap-1 p-4 md:grid-cols-2 lg:w-[600px] lg:gap-2 ${sortedQueues.length > 6 ? 'w-[95vw] grid-cols-2' : 'w-[60vw]'}`}
+                          >
+                            {sortedQueues.map((queue) => (
+                              <ListItem
+                                key={queue.id}
+                                title={queue.room}
+                                href={`/course/${courseId}/queue/${queue.id}`}
+                                onClick={() =>
+                                  setIsDrawerOpen && setIsDrawerOpen(false)
+                                }
+                              >
+                                <>
+                                  {`${queue.staffList.length > 0 ? `${queue.staffList.length} staff checked in` : ''}`}
+                                  <br />
+                                  {`${queue.queueSize > 0 ? `${queue.queueSize} students in queue` : ''}`}
+                                </>
+                              </ListItem>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div
+                            className={`w-[60vw] p-4 text-center text-sm text-gray-500 ${role === Role.PROFESSOR ? 'lg:w-[600px]' : 'lg:w-[400px]'}`}
+                          >
+                            <p>There are no queues in this course</p>
+                            {role === Role.PROFESSOR && (
+                              <p>
+                                You can create a queue on the{' '}
+                                <NextLink
+                                  href={`${coursePrefix}/${courseId}`}
+                                  onClick={() =>
+                                    setIsDrawerOpen && setIsDrawerOpen(false)
+                                  }
+                                >
+                                  Course Home page
+                                </NextLink>{' '}
+                                or disable the Queues feature under{' '}
+                                <NextLink
+                                  href={`${coursePrefix}/${courseId}/settings`}
+                                  onClick={() =>
+                                    setIsDrawerOpen && setIsDrawerOpen(false)
+                                  }
+                                >
+                                  Course Settings
+                                </NextLink>
+                                .
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </NavigationMenuContent>
                     </NavigationMenuItem>
                   )}
