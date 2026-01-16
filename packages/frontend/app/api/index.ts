@@ -786,16 +786,8 @@ export class APIClient {
       ),
   }
   asyncQuestions = {
-    get: async (
-      cid: number,
-      page: number,
-      pageSize: number,
-    ): Promise<{ questions: AsyncQuestion[]; total: number }> =>
-      this.req(
-        'GET',
-        `/api/v1/asyncQuestions/${cid}?page=${page}&pageSize=${pageSize}`,
-        undefined,
-      ),
+    get: async (cid: number): Promise<AsyncQuestion[]> =>
+      this.req('GET', `/api/v1/asyncQuestions/${cid}`, undefined),
     create: async (body: CreateAsyncQuestions, cid: number) =>
       this.req(
         'POST',
