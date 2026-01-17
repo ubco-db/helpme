@@ -4,9 +4,10 @@ import { Button, Checkbox, Form, Modal, Segmented, message, Tooltip } from 'antd
 import { InfoCircleOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import csvDownload from 'json-to-csv-export'
+import * as Sentry from '@sentry/nextjs'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { ToolUsageExportData } from '@koh/common'
+import { ToolUsageExportData, ToolUsageType } from '@koh/common'
 
 type ToolUsageExportModalProps = {
   courseId: number
@@ -224,6 +225,25 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
     } catch (error) {
       console.error('Failed to export tool usage data:', error)
       const errorMessage = getErrorMessage(error)
+      
+      // Capture error in Sentry with context
+      Sentry.captureException(error, {
+        extra: {
+          courseId,
+          errorMessage,
+          exportOptions: {
+            includeQueueQuestions,
+            includeAnytimeQuestions,
+            includeChatbotInteractions,
+            groupBy,
+            includeBreakdown,
+          },
+        },
+        tags: {
+          feature: 'tool-usage-export',
+        },
+      })
+      
       message.error(`Failed to export tool usage data: ${errorMessage}`)
     } finally {
       setLoading(false)
@@ -281,8 +301,8 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
         }}
       >
         <div className="space-y-6">
-          <div>
-            <h4 className="text-sm font-medium mb-3">What constitutes as tool usage?</h4>
+          <fieldset>
+            <legend className="text-sm font-medium mb-3">What constitutes as tool usage?</legend>
             <div className="space-y-2">
               <Form.Item 
                 name="includeQueueQuestions" 
@@ -319,29 +339,22 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
                 <Checkbox>Chatbot Interactions</Checkbox>
               </Form.Item>
             </div>
-          </div>
+          </fieldset>
 
-          <div>
-            <h4 className="text-sm font-medium mb-3">Tool uses by day or by week?</h4>
-            <Form.Item name="groupBy" className="mb-0">
-              <Segmented
-                options={[
-                  { label: 'Day', value: 'day' },
-                  { label: 'Week', value: 'week' },
-                ]}
-              />
-            </Form.Item>
-          </div>
+          <Form.Item name="groupBy" label="Tool uses by day or by week?" className="mb-0">
+            <Segmented
+              options={[
+                { label: 'Day', value: 'day' },
+                { label: 'Week', value: 'week' },
+              ]}
+            />
+          </Form.Item>
 
-          <div>
-            <div className="space-y-2">
-              <Form.Item name="includeBreakdown" valuePropName="checked" className="mb-0">
-                <Checkbox>
-                  Include breakdown by tool type (separate sections for each tool)
-                </Checkbox>
-              </Form.Item>
-            </div>
-          </div>
+          <Form.Item name="includeBreakdown" valuePropName="checked" className="mb-0">
+            <Checkbox>
+              Include breakdown by tool type (separate sections for each tool)
+            </Checkbox>
+          </Form.Item>
         </div>
       </Form>
     </Modal>

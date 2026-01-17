@@ -3936,6 +3936,12 @@ export function dropUndefined(obj: any, dropNull = false) {
   return obj
 }
 
+export enum ToolUsageType {
+  QUEUE_QUESTIONS = 'queue_questions',
+  ANYTIME_QUESTIONS = 'anytime_questions',
+  CHATBOT_INTERACTIONS = 'chatbot_interactions',
+}
+
 /**
  * Represents a single row of tool usage data for export
  */
@@ -3948,7 +3954,7 @@ export interface ToolUsageExportData {
   period_date: string
   period_time: string
   count: number
-  tool_type: 'queue_questions' | 'anytime_questions' | 'chatbot_interactions'
+  tool_type: ToolUsageType
 }
 
 /* This is just to have the error messages in one place to make it easier for testing/maintenance.
