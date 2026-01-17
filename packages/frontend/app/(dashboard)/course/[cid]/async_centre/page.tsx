@@ -184,6 +184,7 @@ export default function AsyncCentrePage(
 
   const applySort = useMemo(() => {
     return [...applyCreatorFilter].sort((a, b) => {
+      //create new reference so useMemo detects change
       switch (sortBy) {
         case 'newest':
           return (
