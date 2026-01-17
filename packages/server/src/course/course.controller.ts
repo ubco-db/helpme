@@ -19,6 +19,7 @@ import {
   TACheckinTimesResponse,
   TACheckoutResponse,
   ToolUsageExportData,
+  ToolUsageType,
   UBCOuserParam,
   UserCourse,
   UserTiny,
@@ -1025,6 +1026,20 @@ export class CourseController {
   ): Promise<ToolUsageExportData[]> {
     const isGroupByWeek = groupBy === TimeGrouping.WEEK;
     
+    // Check if there are any students in the course before proceeding
+    const studentCount = await UserCourseModel.count({
+      where: {
+        courseId,
+        role: Role.STUDENT,
+      },
+    });
+
+    if (studentCount === 0) {
+      throw new BadRequestException(
+        'Cannot export tool usage data: No students are enrolled in this course.',
+      );
+    }
+    
     let startDateObj: Date;
     let endDateObj: Date;
     
@@ -1062,7 +1077,6 @@ export class CourseController {
       if (dateRange && dateRange.earliest_date && dateRange.latest_date) {
         startDateObj = new Date(dateRange.earliest_date);
         endDateObj = new Date(dateRange.latest_date);
-        console.log(`Calculated date range from data: ${startDateObj.toISOString()} to ${endDateObj.toISOString()}`);
       } else {
         endDateObj = new Date();
         startDateObj = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -1092,7 +1106,7 @@ export class CourseController {
                 DATE_TRUNC('week', $3::timestamp),
                 '1 week'::interval
               ) AS week_start
-              WHERE uc."courseId" = $1 AND uc.role = ${Role.STUDENT}
+              WHERE uc."courseId" = $1 AND uc.role = '${Role.STUDENT}'
             ),
             question_counts AS (
               SELECT 
@@ -1160,7 +1174,7 @@ export class CourseController {
           `;
 
         const queueResults = await UserCourseModel.query(queueQuery, [courseId, startDateObj, endDateObj]);
-        results.push(...queueResults.map(row => ({ ...row, tool_type: 'queue_questions' })));
+        results.push(...queueResults.map(row => ({ ...row, tool_type: ToolUsageType.QUEUE_QUESTIONS })));
       }
       
       if (includeAnytimeQuestions) {
@@ -1251,7 +1265,7 @@ export class CourseController {
           `;
 
         const anytimeResults = await UserCourseModel.query(anytimeQuery, [courseId, startDateObj, endDateObj]);
-        results.push(...anytimeResults.map(row => ({ ...row, tool_type: 'anytime_questions' })));
+        results.push(...anytimeResults.map(row => ({ ...row, tool_type: ToolUsageType.ANYTIME_QUESTIONS })));
       }
       
       if (includeChatbotInteractions) {
@@ -1340,7 +1354,7 @@ export class CourseController {
           `;
 
         const chatbotResults = await UserCourseModel.query(chatbotQuery, [courseId, startDateObj, endDateObj]);
-        results.push(...chatbotResults.map(row => ({ ...row, tool_type: 'chatbot_interactions' })));
+        results.push(...chatbotResults.map(row => ({ ...row, tool_type: ToolUsageType.CHATBOT_INTERACTIONS })));
       }
       // Return JSON data for frontend to handle CSV generation
       
