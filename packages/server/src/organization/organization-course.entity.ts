@@ -4,6 +4,7 @@ import {
   Column,
   Entity,
   JoinColumn,
+  CreateDateColumn,
   ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -23,6 +24,9 @@ export class OrganizationCourseModel extends BaseEntity {
   )
   @JoinColumn({ name: 'organizationId' })
   organization: OrganizationModel;
+
+  @CreateDateColumn({ type: 'timestamptz', nullable: true })
+  createdAt: Date;
 
   @Column({ nullable: true })
   organizationId: number;
