@@ -1,4 +1,5 @@
 import {
+  asyncQuestionStatus,
   ERROR_MESSAGES,
   ExtraTAStatus,
   OrganizationRole,
@@ -13,10 +14,12 @@ import { UserCourseModel } from 'profile/user-course.entity';
 import { CourseModule } from '../src/course/course.module';
 import { QueueModel } from '../src/queue/queue.entity';
 import {
+  AsyncQuestionFactory,
   ChatTokenFactory,
   CourseFactory,
   CourseSettingsFactory,
   EventFactory,
+  InteractionFactory,
   OrganizationCourseFactory,
   OrganizationFactory,
   OrganizationSettingsFactory,
@@ -2576,5 +2579,369 @@ describe('Course Integration', () => {
         favourited: true,
       });
     });
+  });
+
+  describe('GET /courses/:id/export-tool-usage', () => {
+    it('should return 400 when no students are enrolled in the course', async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course,
+      });
+
+      const response = await supertest({ userId: professor.id })
+        .get(`/courses/${course.id}/export-tool-usage`)
+        .expect(400);
+
+      expect(response.body.message).toContain(
+        'No students are enrolled in this course',
+      );
+    });
+
+    it('should export tool usage data grouped by week with all tool types', async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course,
+      });
+
+      // Create 3 students
+      const students = await UserFactory.createList(3);
+      for (const student of students) {
+        await StudentCourseFactory.create({
+          user: student,
+          course,
+        });
+      }
+
+      const queue = await QueueFactory.create({ course });
+
+      // Create queue questions
+      // Week 1: 2026-01-01 to 2026-01-07
+      await QuestionFactory.create({
+        creator: students[0],
+        queue,
+        createdAt: new Date('2026-01-02T10:00:00Z'),
+      });
+      await QuestionFactory.create({
+        creator: students[0],
+        queue,
+        createdAt: new Date('2026-01-03T14:00:00Z'),
+      });
+      await QuestionFactory.create({
+        creator: students[1],
+        queue,
+        createdAt: new Date('2026-01-04T09:00:00Z'),
+      });
+
+      // Week 2: 2026-01-08 to 2026-01-14
+      await QuestionFactory.create({
+        creator: students[1],
+        queue,
+        createdAt: new Date('2026-01-10T11:00:00Z'),
+      });
+      await QuestionFactory.create({
+        creator: students[2],
+        queue,
+        createdAt: new Date('2026-01-12T15:00:00Z'),
+      });
+
+      // Create async questions
+      await AsyncQuestionFactory.create({
+        creator: students[0],
+        course,
+        createdAt: new Date('2026-01-02T12:00:00Z'),
+        status: asyncQuestionStatus.AIAnswered,
+      });
+      await AsyncQuestionFactory.create({
+        creator: students[1],
+        course,
+        createdAt: new Date('2026-01-10T13:00:00Z'),
+        status: asyncQuestionStatus.AIAnswered,
+      });
+
+      // Create chatbot interactions
+      await InteractionFactory.create({
+        user: students[0],
+        course,
+        timestamp: new Date('2026-01-03T16:00:00Z'),
+      });
+      await InteractionFactory.create({
+        user: students[2],
+        course,
+        timestamp: new Date('2026-01-11T10:00:00Z'),
+      });
+
+      const response = await supertest({ userId: professor.id })
+        .get(`/courses/${course.id}/export-tool-usage`)
+        .query({
+          includeQueueQuestions: 'true',
+          includeAnytimeQuestions: 'true',
+          includeChatbotInteractions: 'true',
+          groupBy: 'week',
+        })
+        .expect(200);
+
+      expect(response.body).toMatchSnapshot();
+
+      // Verify specific counts
+      const student0Data = response.body.filter(
+        (row) => row.user_id === students[0].id,
+      );
+      const student0Week1Queue = student0Data.find(
+        (row) =>
+          row.tool_type === 'queue_questions' &&
+          row.period_date === '2025/12/29',
+      );
+      expect(Number(student0Week1Queue?.count)).toBe(2);
+    });
+
+    it('should export tool usage data grouped by day', async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course,
+      });
+
+      const students = await UserFactory.createList(2);
+      for (const student of students) {
+        await StudentCourseFactory.create({
+          user: student,
+          course,
+        });
+      }
+
+      const queue = await QueueFactory.create({ course });
+
+      // Create questions on specific days
+      await QuestionFactory.createList(3, {
+        creator: students[0],
+        queue,
+        createdAt: new Date('2026-01-15T10:00:00Z'),
+      });
+      await QuestionFactory.create({
+        creator: students[0],
+        queue,
+        createdAt: new Date('2026-01-16T11:00:00Z'),
+      });
+      await QuestionFactory.createList(2, {
+        creator: students[1],
+        queue,
+        createdAt: new Date('2026-01-15T14:00:00Z'),
+      });
+
+      const response = await supertest({ userId: professor.id })
+        .get(`/courses/${course.id}/export-tool-usage`)
+        .query({
+          includeQueueQuestions: 'true',
+          includeAnytimeQuestions: 'false',
+          includeChatbotInteractions: 'false',
+          groupBy: 'day',
+        })
+        .expect(200);
+
+      expect(response.body).toMatchSnapshot();
+
+      // Verify specific day counts
+      const student0Jan15 = response.body.find(
+        (row) =>
+          row.user_id === students[0].id &&
+          row.period_date === '2026/01/15' &&
+          row.tool_type === 'queue_questions',
+      );
+      expect(Number(student0Jan15?.count)).toBe(3);
+
+      const student1Jan15 = response.body.find(
+        (row) =>
+          row.user_id === students[1].id &&
+          row.period_date === '2026/01/15' &&
+          row.tool_type === 'queue_questions',
+      );
+      expect(Number(student1Jan15?.count)).toBe(2);
+    });
+
+    it('should export only queue questions when other tools are disabled', async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course,
+      });
+
+      const student = await UserFactory.create();
+      await StudentCourseFactory.create({
+        user: student,
+        course,
+      });
+
+      const queue = await QueueFactory.create({ course });
+      await QuestionFactory.create({
+        creator: student,
+        queue,
+        createdAt: new Date('2026-01-10T10:00:00Z'),
+      });
+
+      // Create async question and chatbot interaction that should be excluded
+      await AsyncQuestionFactory.create({
+        creator: student,
+        course,
+        createdAt: new Date('2026-01-10T11:00:00Z'),
+        status: asyncQuestionStatus.AIAnswered,
+      });
+      await InteractionFactory.create({
+        user: student,
+        course,
+        timestamp: new Date('2026-01-10T12:00:00Z'),
+      });
+
+      const response = await supertest({ userId: professor.id })
+        .get(`/courses/${course.id}/export-tool-usage`)
+        .query({
+          includeQueueQuestions: 'true',
+          includeAnytimeQuestions: 'false',
+          includeChatbotInteractions: 'false',
+          groupBy: 'week',
+        })
+        .expect(200);
+
+      // Should only have queue_questions tool type
+      const toolTypes = [...new Set(response.body.map((row) => row.tool_type))];
+      expect(toolTypes).toEqual(['queue_questions']);
+    });
+
+    it('should handle large dataset with multiple students and time periods', async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course,
+      });
+
+      // Create 10 students
+      const students = await UserFactory.createList(10);
+      for (const student of students) {
+        await StudentCourseFactory.create({
+          user: student,
+          course,
+        });
+      }
+
+      const queue = await QueueFactory.create({ course });
+
+      // Create varying amounts of questions per student over 4 weeks
+      for (let studentIdx = 0; studentIdx < students.length; studentIdx++) {
+        const questionCount = studentIdx + 1; // 1 to 10 questions per student
+        for (let i = 0; i < questionCount; i++) {
+          const weekOffset = i % 4; // Spread across 4 weeks
+          await QuestionFactory.create({
+            creator: students[studentIdx],
+            queue,
+            createdAt: new Date(
+              `2026-01-${String(1 + weekOffset * 7).padStart(2, '0')}T10:00:00Z`,
+            ),
+          });
+        }
+      }
+
+      const response = await supertest({ userId: professor.id })
+        .get(`/courses/${course.id}/export-tool-usage`)
+        .query({
+          includeQueueQuestions: 'true',
+          includeAnytimeQuestions: 'false',
+          includeChatbotInteractions: 'false',
+          groupBy: 'week',
+        })
+        .expect(200);
+
+      expect(response.body.length).toBeGreaterThan(0);
+      expect(response.body).toMatchSnapshot();
+
+      // Verify total question count
+      const totalCount = response.body.reduce(
+        (sum, row) => sum + Number(row.count),
+        0,
+      );
+      expect(totalCount).toBe(55); // Sum of 1+2+3+...+10
+    });
+
+    it('should allow TA to export tool usage', async () => {
+      const course = await CourseFactory.create();
+      const ta = await UserFactory.create();
+      await TACourseFactory.create({
+        user: ta,
+        course,
+      });
+
+      const student = await UserFactory.create();
+      await StudentCourseFactory.create({
+        user: student,
+        course,
+      });
+
+      const queue = await QueueFactory.create({ course });
+      await QuestionFactory.create({
+        creator: student,
+        queue,
+        createdAt: new Date('2026-01-10T10:00:00Z'),
+      });
+
+      await supertest({ userId: ta.id })
+        .get(`/courses/${course.id}/export-tool-usage`)
+        .expect(200);
+    });
+
+    it('should exclude StudentDeleted async questions from export', async () => {
+      const course = await CourseFactory.create();
+      const professor = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: professor,
+        role: Role.PROFESSOR,
+        course,
+      });
+
+      const student = await UserFactory.create();
+      await StudentCourseFactory.create({
+        user: student,
+        course,
+      });
+
+      // Create valid async question
+      await AsyncQuestionFactory.create({
+        creator: student,
+        course,
+        createdAt: new Date('2026-01-10T10:00:00Z'),
+        status: asyncQuestionStatus.AIAnswered,
+      });
+
+      // Create deleted async question (should be excluded)
+      await AsyncQuestionFactory.create({
+        creator: student,
+        course,
+        createdAt: new Date('2026-01-10T11:00:00Z'),
+        status: asyncQuestionStatus.StudentDeleted,
+      });
+
+      const response = await supertest({ userId: professor.id })
+        .get(`/courses/${course.id}/export-tool-usage`)
+        .query({
+          includeQueueQuestions: 'false',
+          includeAnytimeQuestions: 'true',
+          includeChatbotInteractions: 'false',
+          groupBy: 'week',
+        })
+        .expect(200);
+
+      const anytimeData = response.body.filter(
+        (row) => row.tool_type === 'anytime_questions' && row.count > 0,
+      );
+      expect(Number(anytimeData[0]?.count)).toBe(1); 
   });
 });
