@@ -388,7 +388,7 @@ export default function AsyncCentrePage(
           }
         />
         <VerticalDivider />
-        <div className="flex-grow md:mt-4">
+        <div className="flex flex-grow flex-col md:mt-4">
           {/* Filters on DESKTOP ONLY */}
           <div className="mb-4 hidden items-center gap-x-4 md:flex">
             <h3 className="hidden flex-shrink-0 text-lg font-bold md:block">
@@ -432,35 +432,39 @@ export default function AsyncCentrePage(
             </Popover>
           </div>
 
-          {paginatedQuestions.map((question) => (
-            <AsyncQuestionCard
-              key={question.id}
-              question={question}
-              userId={userInfo.id}
-              mutateAsyncQuestions={mutateAsyncQuestions}
-              userCourseRole={role}
-              courseId={courseId}
-              showStudents={showStudents}
-            />
-          ))}
+          <div className="flex flex-grow flex-col justify-between">
+            <div className="flex flex-grow flex-col">
+              {paginatedQuestions.map((question) => (
+                <AsyncQuestionCard
+                  key={question.id}
+                  question={question}
+                  userId={userInfo.id}
+                  mutateAsyncQuestions={mutateAsyncQuestions}
+                  userCourseRole={role}
+                  courseId={courseId}
+                  showStudents={showStudents}
+                />
+              ))}
+            </div>
 
-          <Pagination
-            current={page}
-            pageSize={pageSize}
-            total={totalQuestions}
-            onChange={(newPage, newPageSize) => {
-              setPage(newPage)
-              if (newPageSize !== pageSize) {
-                setPageSize(newPageSize)
-                setPage(1) // reset to page 1 when page size changes so you don't end up on a page that doesnt exist anymore
+            <Pagination
+              current={page}
+              pageSize={pageSize}
+              total={totalQuestions}
+              onChange={(newPage, newPageSize) => {
+                setPage(newPage)
+                if (newPageSize !== pageSize) {
+                  setPageSize(newPageSize)
+                  setPage(1) // reset to page 1 when page size changes so you don't end up on a page that doesnt exist anymore
+                }
+              }}
+              showSizeChanger
+              showTotal={(total, range) =>
+                `${range[0]}-${range[1]} of ${total} questions`
               }
-            }}
-            showSizeChanger
-            showTotal={(total, range) =>
-              `${range[0]}-${range[1]} of ${total} questions`
-            }
-            className="mb-4 mt-4 text-center"
-          />
+              className="mb-4 mt-4 text-center"
+            />
+          </div>
         </div>
         <ConvertChatbotQToAnytimeQModal
           courseId={courseId}
