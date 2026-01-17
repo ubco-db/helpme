@@ -462,7 +462,7 @@ export default function AsyncCentrePage(
               showTotal={(total, range) =>
                 `${range[0]}-${range[1]} of ${total} questions`
               }
-              className="mb-4 mt-4 text-center"
+              className="mb-2 mt-4 text-center"
             />
           </div>
         </div>
