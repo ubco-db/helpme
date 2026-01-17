@@ -1,6 +1,7 @@
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -17,6 +18,9 @@ export class QueueStaffModel extends BaseEntity {
 
   @PrimaryColumn('integer', { name: 'userId' })
   userId: number;
+
+  @CreateDateColumn({ type: 'timestamptz', nullable: true })
+  createdAt: Date;
 
   @ManyToOne(() => QueueModel, (queue) => queue.queueStaff, {
     onDelete: 'CASCADE',

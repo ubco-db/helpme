@@ -121,7 +121,8 @@ export class FactoryService {
       .attr('lastName', 'Person')
       .attr('emailVerified', true)
       .attr('photoURL', 'https://example.com')
-      .attr('hideInsights', []);
+      .attr('hideInsights', [])
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
     this.StudentCourseFactory = new Factory(UserCourseModel, dataSource).attr(
       'role',
