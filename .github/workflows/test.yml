@@ -46,4 +46,12 @@ jobs:
         with:
           node-version: 20
       - uses: bahmutov/npm-install@v1
+      - name: Run database migrations
+        run: npm run migration:run
+        working-directory: packages/server
+        env:
+          PGPASSWORD: mysecretpassword
+          DB_HOST: localhost
+          DB_USERNAME: helpme
+          DB_PASSWORD: mysecretpassword
       - run: yarn test

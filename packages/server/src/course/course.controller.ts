@@ -1118,7 +1118,7 @@ export class CourseController {
               JOIN "queue_model" qu ON qu."courseId" = uc."courseId"
               JOIN "question_model" q ON q."queueId" = qu.id AND q."creatorId" = u.id
               WHERE uc."courseId" = $1 
-                  AND uc.role = 'student'
+                  AND uc.role = '${Role.STUDENT}'
                   AND q."createdAt" >= $2
                   AND q."createdAt" <= $3
               GROUP BY u.id, DATE_TRUNC('week', q."createdAt")
@@ -1148,7 +1148,7 @@ export class CourseController {
                 $3::date,
                 '1 day'::interval
               ) AS day_start
-              WHERE uc."courseId" = $1 AND uc.role = 'student'
+              WHERE uc."courseId" = $1 AND uc.role ='${Role.STUDENT}'
             ),
             question_counts AS (
               SELECT 
@@ -1160,7 +1160,7 @@ export class CourseController {
               JOIN "queue_model" qu ON qu."courseId" = uc."courseId"
               JOIN "question_model" q ON q."queueId" = qu.id AND q."creatorId" = u.id
               WHERE uc."courseId" = $1 
-                  AND uc.role = 'student'
+                  AND uc.role = '${Role.STUDENT}'
                   AND q."createdAt" >= $2
                   AND q."createdAt" <= $3
               GROUP BY u.id, q."createdAt"::date
@@ -1197,7 +1197,7 @@ export class CourseController {
                 DATE_TRUNC('week', $3::timestamp),
                 '1 week'::interval
               ) AS week_start
-              WHERE uc."courseId" = $1 AND uc.role = 'student'
+              WHERE uc."courseId" = $1 AND uc.role = '${Role.STUDENT}'
             ),
             question_counts AS (
               SELECT 
@@ -1208,7 +1208,7 @@ export class CourseController {
               JOIN "user_course_model" uc ON u.id = uc."userId"
               JOIN "async_question_model" aq ON aq."courseId" = uc."courseId" AND aq."creatorId" = u.id
               WHERE uc."courseId" = $1 
-                  AND uc.role = 'student'
+                  AND uc.role = '${Role.STUDENT}'
                   AND aq."createdAt" >= $2
                   AND aq."createdAt" <= $3
                   AND aq.status != 'StudentDeleted'
@@ -1239,7 +1239,7 @@ export class CourseController {
                 $3::date,
                 '1 day'::interval
               ) AS day_start
-              WHERE uc."courseId" = $1 AND uc.role = 'student'
+              WHERE uc."courseId" = $1 AND uc.role = '${Role.STUDENT}'
             ),
             question_counts AS (
               SELECT 
@@ -1250,7 +1250,7 @@ export class CourseController {
               JOIN "user_course_model" uc ON u.id = uc."userId"
               JOIN "async_question_model" aq ON aq."courseId" = uc."courseId" AND aq."creatorId" = u.id
               WHERE uc."courseId" = $1 
-                  AND uc.role = 'student'
+                  AND uc.role = '${Role.STUDENT}'
                   AND aq."createdAt" >= $2
                   AND aq."createdAt" <= $3
                   AND aq.status != 'StudentDeleted'
@@ -1288,7 +1288,7 @@ export class CourseController {
                 DATE_TRUNC('week', $3::timestamp),
                 '1 week'::interval
               ) AS week_start
-              WHERE uc."courseId" = $1 AND uc.role = 'student'
+              WHERE uc."courseId" = $1 AND uc.role ='${Role.STUDENT}'
             ),
             interaction_counts AS (
               SELECT 
@@ -1299,7 +1299,7 @@ export class CourseController {
               JOIN "user_course_model" uc ON u.id = uc."userId"
               JOIN "chatbot_interactions_model" ci ON ci.course = uc."courseId" AND ci."user" = u.id
               WHERE uc."courseId" = $1 
-                  AND uc.role = 'student'
+                  AND uc.role ='${Role.STUDENT}'
                   AND ci.timestamp >= $2
                   AND ci.timestamp <= $3
               GROUP BY u.id, DATE_TRUNC('week', ci.timestamp)
@@ -1329,7 +1329,7 @@ export class CourseController {
                 $3::date,
                 '1 day'::interval
               ) AS day_start
-              WHERE uc."courseId" = $1 AND uc.role = 'student'
+              WHERE uc."courseId" = $1 AND uc.role = '${Role.STUDENT}'
             ),
             interaction_counts AS (
               SELECT 
@@ -1340,7 +1340,7 @@ export class CourseController {
               JOIN "user_course_model" uc ON u.id = uc."userId"
               JOIN "chatbot_interactions_model" ci ON ci.course = uc."courseId" AND ci."user" = u.id
               WHERE uc."courseId" = $1 
-                  AND uc.role = 'student'
+                  AND uc.role = '${Role.STUDENT}'
                   AND ci.timestamp >= $2
                   AND ci.timestamp <= $3
               GROUP BY u.id, ci.timestamp::date

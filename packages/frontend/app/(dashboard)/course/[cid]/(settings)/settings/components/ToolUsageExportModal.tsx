@@ -32,13 +32,21 @@ type CSVRow = {
   [key: string]: string | number
 }
 
+type FormValues = {
+  includeQueueQuestions: boolean
+  includeAnytimeQuestions: boolean
+  includeChatbotInteractions: boolean
+  groupBy: 'day' | 'week'
+  includeBreakdown: boolean
+}
+
 const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
   courseId,
   visible,
   onCancel,
   onFinish,
 }) => {
-  const [form] = Form.useForm()
+  const [form] = Form.useForm<FormValues>()
   const [loading, setLoading] = useState(false)
 
   const handleExport = async (values: FormValues) => {
@@ -288,7 +296,7 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
       ]}
       width={600}
     >
-      <Form
+      <Form<FormValues>
         form={form}
         layout="vertical"
         onFinish={handleExport}
