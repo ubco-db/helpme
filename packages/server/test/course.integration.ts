@@ -2942,6 +2942,7 @@ describe('Course Integration', () => {
       const anytimeData = response.body.filter(
         (row) => row.tool_type === 'anytime_questions' && row.count > 0,
       );
-      expect(Number(anytimeData[0]?.count)).toBe(1); 
+      expect(Number(anytimeData[0]?.count)).toBe(1); // Should only count the non-deleted one
+    });
   });
 });
