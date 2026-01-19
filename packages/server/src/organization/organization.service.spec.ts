@@ -320,7 +320,15 @@ describe('OrganizationService', () => {
         organization.id,
         course.id,
       );
-      expect(organizationCourse).toMatchSnapshot();
+      expect(organizationCourse).toMatchSnapshot({
+        createdAt: expect.any(Date),
+        course: {
+          createdAt: expect.any(Date),
+          semester: {
+            createdAt: expect.any(Date),
+          },
+        },
+      } as any);
     });
   });
 

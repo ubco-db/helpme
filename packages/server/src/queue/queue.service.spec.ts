@@ -201,7 +201,29 @@ describe('QueueService', () => {
         ours.creatorId,
         Role.STUDENT,
       );
-      expect(lqr).toMatchSnapshot();
+      expect(lqr).toMatchSnapshot({
+        0: {
+          questionTypes: {
+            0: {
+              createdAt: expect.any(Date),
+            },
+          },
+        },
+        1: {
+          questionTypes: {
+            0: {
+              createdAt: expect.any(Date),
+            },
+          },
+        },
+        2: {
+          questionTypes: {
+            0: {
+              createdAt: expect.any(Date),
+            },
+          },
+        },
+      } as any);
     });
   });
 });
