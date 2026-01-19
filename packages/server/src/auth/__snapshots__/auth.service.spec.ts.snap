@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`AuthService loginWithGoogle should create a new user when user does not exist 1`] = `
-UserModel {
+{
   "accountDeactivated": false,
   "accountType": "google",
   "defaultMessage": null,
@@ -14,7 +14,7 @@ UserModel {
   "includeDefaultMessage": true,
   "lastName": "Doe",
   "name": "John Doe",
-  "organizationUser": OrganizationUserModel {
+  "organizationUser": {
     "id": 1,
     "organizationId": 2,
     "role": "member",
@@ -29,7 +29,7 @@ UserModel {
 `;
 
 exports[`AuthService loginWithShibboleth should create a new user when user does not exist 1`] = `
-UserModel {
+{
   "accountDeactivated": false,
   "accountType": "shibboleth",
   "defaultMessage": null,
@@ -42,7 +42,7 @@ UserModel {
   "includeDefaultMessage": true,
   "lastName": "Doe",
   "name": "John Doe",
-  "organizationUser": OrganizationUserModel {
+  "organizationUser": {
     "id": 1,
     "organizationId": 2,
     "role": "member",
