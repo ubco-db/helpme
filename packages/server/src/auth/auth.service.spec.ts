@@ -46,18 +46,6 @@ import * as request from 'superagent';
 import { AuthStateModel } from './auth-state.entity';
 import { pick } from 'lodash';
 
-function stripCreatedAt<T extends Record<string, any>>(obj: T) {
-  const clone = JSON.parse(JSON.stringify(obj));
-
-  delete clone.createdAt;
-
-  if (clone.organizationUser) {
-    delete clone.organizationUser.createdAt;
-  }
-
-  return clone;
-}
-
 jest.mock('superagent', () => ({
   post: jest.fn(),
 }));
@@ -1057,7 +1045,7 @@ describe('AuthService', () => {
           organizationUser: true,
         },
       });
-      expect(stripCreatedAt(user)).toMatchSnapshot();
+      expect(user).toMatchSnapshot();
       expect(roleChangeSpy).toHaveBeenCalledTimes(1);
       expect(roleChangeSpy).toHaveBeenCalledWith(
         organization.id,
@@ -1116,7 +1104,9 @@ describe('AuthService', () => {
           organizationUser: true,
         },
       });
-      expect(stripCreatedAt(user)).toMatchSnapshot();
+      expect(user).toMatchSnapshot({
+        createdAt: expect.any(String),
+      });
       expect(roleChangeSpy).toHaveBeenCalledTimes(1);
       expect(roleChangeSpy).toHaveBeenCalledWith(
         organization.id,
