@@ -86,7 +86,9 @@ describe('Queue Integration', () => {
       const res = await supertest({ userId: 99 })
         .get(`/queues/${queue.id}`)
         .expect(401);
-      expect(res.body).toMatchSnapshot();
+      expect(res.body).toMatchSnapshot({
+        timestamp: expect.any(String),
+      });
     });
 
     it('returns 404 when user is not in course', async () => {

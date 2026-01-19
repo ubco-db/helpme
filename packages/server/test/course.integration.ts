@@ -60,7 +60,9 @@ describe('Course Integration', () => {
       const response = await supertest({ userId: user.id })
         .get(`/courses/${course.id}`)
         .expect(200);
-      expect(response.body).toMatchSnapshot();
+      expect(response.body).toMatchSnapshot({
+        createdAt: expect.any(String),
+      });
     });
 
     it('gets queues that are not disabled and staffed (student)', async () => {
@@ -140,7 +142,9 @@ describe('Course Integration', () => {
         .expect(200);
       // date agnostic snapshots
       expect(response.body.queues.length).toBe(3);
-      response.body.queues.map((q) => expect(q).toMatchSnapshot({}));
+      response.body.queues.map((q) =>
+        expect(q).toMatchSnapshot({ createdAt: expect.any(String) }),
+      );
 
       response.body.queues.map((q) => expect(q.isDisabled).toBeFalsy());
     });
@@ -198,7 +202,9 @@ describe('Course Integration', () => {
         .expect(200);
 
       // date agnostic snapshots
-      response.body.queues.map((q) => expect(q).toMatchSnapshot({}));
+      response.body.queues.map((q) =>
+        expect(q).toMatchSnapshot({ createdAt: expect.any(String) }),
+      );
 
       response.body.queues.map((q) => expect(q.isDisabled).toBeFalsy());
     });
@@ -300,7 +306,9 @@ describe('Course Integration', () => {
         .post(`/courses/${queue.course.id}/checkin/${queue.id}`)
         .expect(201);
 
-      expect(response.body).toMatchSnapshot();
+      expect(response.body).toMatchSnapshot({
+        createdAt: expect.any(String),
+      });
 
       const events = await EventModel.find();
       expect(events.length).toBe(1);
@@ -675,16 +683,19 @@ describe('Course Integration', () => {
       expect(q1).toMatchSnapshot({
         id: expect.any(Number),
         courseId: expect.any(Number),
+        createdAt: expect.any(String),
       });
 
       expect(q2).toMatchSnapshot({
         id: expect.any(Number),
         courseId: expect.any(Number),
+        createdAt: expect.any(String),
       });
 
       expect(q3).toMatchSnapshot({
         id: expect.any(Number),
         courseId: expect.any(Number),
+        createdAt: expect.any(String),
       });
     });
 
