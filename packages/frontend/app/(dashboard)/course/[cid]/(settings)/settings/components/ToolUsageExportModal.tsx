@@ -234,23 +234,11 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
       console.error('Failed to export tool usage data:', error)
       const errorMessage = getErrorMessage(error)
       
-      // Capture error in Sentry with context
-      Sentry.captureException(error, {
-        extra: {
-          courseId,
-          errorMessage,
-          exportOptions: {
-            includeQueueQuestions,
-            includeAnytimeQuestions,
-            includeChatbotInteractions,
-            groupBy,
-            includeBreakdown,
-          },
-        },
-        tags: {
-          feature: 'tool-usage-export',
-        },
-      })
+      Sentry.captureException(
+        new Error(
+          `Tool usage export failed for course ${courseId}.`,
+        ),
+      )
       
       message.error(`Failed to export tool usage data: ${errorMessage}`)
     } finally {
