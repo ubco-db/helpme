@@ -236,7 +236,7 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
       
       Sentry.captureException(
         new Error(
-          `Tool usage export failed for course ${courseId}.`,
+          `Tool usage export failed for course ${courseId}. Error: ${errorMessage}. Options: includeQueueQuestions=${includeQueueQuestions}, includeAnytimeQuestions=${includeAnytimeQuestions}, includeChatbotInteractions=${includeChatbotInteractions}, groupBy=${groupBy}, includeBreakdown=${includeBreakdown}`,
         ),
       )
       

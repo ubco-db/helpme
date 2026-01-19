@@ -46,13 +46,4 @@ jobs:
         with:
           node-version: 20
       - uses: bahmutov/npm-install@v1
-      - name: Run database migrations
-        run: npm run migration:run
-        working-directory: packages/server
-        env:
-          POSTGRES_USER: helpme
-          POSTGRES_PASSWORD: mysecretpassword
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: 5432
-          POSTGRES_DB: postgres
       - run: yarn test
