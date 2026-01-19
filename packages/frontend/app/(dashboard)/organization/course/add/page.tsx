@@ -88,7 +88,9 @@ export default function AddCoursePage(): ReactElement {
         setOrganizationSemesters(
           semesters.filter(
             (semester) =>
-              semester.endDate && new Date(semester.endDate) > new Date(),
+              semester.endDate &&
+              (new Date(semester.endDate) > new Date() ||
+                new Date(semester.endDate) < new Date('1971-01-01')), // show the test semester, which has an end date of before 1971
           ), // filter out past semesters
         )
       })
@@ -257,9 +259,6 @@ export default function AddCoursePage(): ReactElement {
                       label="Course Timezone"
                       name="courseTimezone"
                       tooltip="Timezone of the course"
-                      rules={[
-                        { required: true, message: 'Please select a timezone' },
-                      ]}
                     >
                       <Select>
                         {COURSE_TIMEZONES.map((timezone) => (
@@ -276,7 +275,7 @@ export default function AddCoursePage(): ReactElement {
                       label="Semester"
                       name="semesterId"
                       className="flex-1"
-                      rules={[{ required: false }]}
+                      rules={[{ required: true }]}
                     >
                       <Select
                         placeholder="Select Semester"
