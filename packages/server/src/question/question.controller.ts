@@ -17,6 +17,7 @@ import {
   Body,
   ClassSerializerInterceptor,
   Controller,
+  ForbiddenException,
   Get,
   HttpException,
   HttpStatus,
@@ -50,6 +51,7 @@ import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QuestionService } from './question.service';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { QueueRolesGuard } from 'guards/queue-role.guard';
+import * as Sentry from '@sentry/nestjs';
 
 // NOTE: FIXME: EVERY REQUEST INTO QUESTIONCONTROLLER REQUIRES THE BODY TO HAVE A
 // FIELD questionId OR queueId! If not, stupid weird untraceable bugs will happen
@@ -446,26 +448,31 @@ export class QuestionController {
     }
 
     //If not creator, check if user is TA/PROF of course of question
-    const isTaOrProf =
-      (await UserCourseModel.count({
+    const userRoleInCourse = (
+      await UserCourseModel.findOne({
         where: {
           userId,
           courseId: question.queue.courseId,
-          role: In([Role.TA, Role.PROFESSOR]),
         },
-      })) > 0;
+      })
+    )?.role;
 
-    if (isTaOrProf) {
+    if (userRoleInCourse === Role.TA || userRoleInCourse === Role.PROFESSOR) {
       if (!question.isTaskQuestion) {
         // Staff cannot edit anything except status, questionTypes, and text
         const allowedKeys = ['status', 'questionTypes', 'text'];
         const bodyKeys = Object.keys(body);
-        const hasInvalidKeys = bodyKeys.some(
+        const invalidKeys = bodyKeys.filter(
           (key) => !allowedKeys.includes(key),
         );
-        if (hasInvalidKeys) {
-          throw new UnauthorizedException(
-            ERROR_MESSAGES.questionController.updateQuestion.taOnlyEditQuestionStatus,
+        if (invalidKeys.length > 0) {
+          const errorMessage = `User ${userId} (${userRoleInCourse}) attempted to update question ${question.id} with invalid keys: ${invalidKeys.map((key) => `"${key}"`).join(', ')}`;
+          console.error(errorMessage);
+          Sentry.captureException(new Error(errorMessage));
+          throw new ForbiddenException(
+            ERROR_MESSAGES.questionController.updateQuestion.taOnlyEditQuestionStatus(
+              invalidKeys,
+            ),
           );
         }
         // When the TA is marking a task question, they can choose to mark only some of the tasks as done, which requires the TA to be able to modify the task question's text
@@ -560,7 +567,10 @@ export class QuestionController {
 
       return question;
     } else {
-      throw new UnauthorizedException(
+      const errorMessage = `User ${userId} (${userRoleInCourse}) attempted to update question ${question.id} but they are not the question creator (creatorId: ${question.creatorId})`;
+      console.error(errorMessage);
+      Sentry.captureException(new Error(errorMessage));
+      throw new ForbiddenException(
         ERROR_MESSAGES.questionController.updateQuestion.loginUserCantEdit,
       );
     }
