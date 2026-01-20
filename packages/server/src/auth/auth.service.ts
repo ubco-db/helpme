@@ -1,6 +1,7 @@
 import {
   AccountRegistrationParams,
   AccountType,
+  ERROR_MESSAGES,
   OrganizationRole,
   OrgRoleChangeReason,
   RegistrationTokenDetails,
@@ -36,6 +37,8 @@ import { LoginEntryOptions, LoginService } from '../login/login.service';
 import { AuthStateModel } from './auth-state.entity';
 import * as crypto from 'crypto';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { ILike } from 'typeorm';
+import * as Sentry from '@sentry/nestjs';
 
 export const AUTH_URL = {
   google: 'https://accounts.google.com/o/oauth2/v2/auth',
@@ -429,21 +432,7 @@ export class AuthService {
     return res;
   }
 
-  async issuePasswordReset(
-    res: Response,
-    email: string,
-    organizationId: number,
-    prefix?: string,
-  ) {
-    const user = await UserModel.findOne({
-      where: {
-        email,
-        organizationUser: { organizationId },
-        accountType: AccountType.LEGACY,
-      },
-      relations: ['organizationUser'],
-    });
-
+  async issuePasswordReset(res: Response, user: UserModel, prefix?: string) {
     const resetToken = await this.createPasswordResetToken(user);
 
     this.mailerService
@@ -465,11 +454,14 @@ export class AuthService {
       recaptchaToken,
       organizationId,
     }: { email: string; recaptchaToken: string; organizationId: number },
-  ): Promise<Response> {
+  ): Promise<[Response, UserModel | undefined]> {
     if (!recaptchaToken) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'Invalid recaptcha token' });
+      return [
+        res.status(HttpStatus.BAD_REQUEST).send({
+          message: ERROR_MESSAGES.authController.invalidRecaptchaToken,
+        }),
+        undefined,
+      ];
     }
 
     const response = await request.post(
@@ -477,35 +469,102 @@ export class AuthService {
     );
 
     if (!response.body.success) {
-      return res.status(HttpStatus.BAD_REQUEST).send({
-        message: 'Recaptcha token invalid',
-      });
+      return [
+        res.status(HttpStatus.BAD_REQUEST).send({
+          message: ERROR_MESSAGES.authController.invalidRecaptchaToken,
+        }),
+        undefined,
+      ];
     }
 
-    const user = await UserModel.findOne({
+    const users = await UserModel.find({
       where: {
-        email,
+        email: ILike(email), // Case insensitive search (since users can mistype emails)
         organizationUser: { organizationId },
-        accountType: AccountType.LEGACY,
       },
       relations: {
-        organizationUser: true,
+        organizationUser: {
+          organization: true,
+        },
       },
     });
+    let user: UserModel;
+    if (!users || users.length === 0) {
+      return [
+        res.status(HttpStatus.NOT_FOUND).send({
+          message: ERROR_MESSAGES.authController.userNotFoundWithEmail,
+        }),
+        undefined,
+      ];
+    } else if (users.length === 1) {
+      // this is like 99.9% of users
+      user = users[0];
+    } else {
+      Sentry.captureMessage(
+        'Multiple users found with same email (can be case-sensitivity issue or multiple accounts with same type).',
+        {
+          level: 'error',
+          extra: {
+            users: users.map((user) => ({
+              id: user.id,
+              // email: user.email, // decided against logging email in sentry since then sentry would be collecting emails and UBC PIA probably won't like that
+            })),
+          },
+        },
+      );
 
-    if (!user) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'User not found' });
+      const usersWithLegacyAccountType = users.filter(
+        (user) => user.accountType === AccountType.LEGACY,
+      );
+
+      // Find the legacy account and use it if it exists (Note that it shouldn't actually be possible to have multiple accounts with same email and different types)
+      if (usersWithLegacyAccountType.length === 1) {
+        user = usersWithLegacyAccountType[0];
+        // If there isn't one, use the first user.
+      } else if (usersWithLegacyAccountType.length === 0) {
+        user = users[0];
+        // If there's multiple legacy accounts, it's a case-sensitivity issue.
+      } else if (usersWithLegacyAccountType.length > 1) {
+        // this SHOULDN'T happen since emails should be unique. But, /register lacked case-insensitivity so some users have multiple accounts with same email (with different case).
+        return [
+          res.status(HttpStatus.BAD_REQUEST).send({
+            message:
+              'Multiple users found with this email (can be case-sensitivity issue). Please contact adam.fipke@ubc.ca',
+          }),
+          undefined,
+        ];
+      }
     }
 
-    if (!user.emailVerified) {
-      return res
-        .status(HttpStatus.BAD_REQUEST)
-        .send({ message: 'Email not verified' });
+    // now handle logic for the user
+    if (user.accountType === AccountType.GOOGLE) {
+      return [
+        res
+          .status(HttpStatus.BAD_REQUEST)
+          .send({ message: ERROR_MESSAGES.authController.ssoAccountGoogle }),
+        undefined,
+      ];
+    } else if (user.accountType === AccountType.SHIBBOLETH) {
+      return [
+        res.status(HttpStatus.BAD_REQUEST).send({
+          message: ERROR_MESSAGES.authController.ssoAccountShibboleth(
+            user.organizationUser.organization.name,
+          ),
+        }),
+        undefined,
+      ];
+    } else if (user.accountType !== AccountType.LEGACY) {
+      return [
+        res.status(HttpStatus.BAD_REQUEST).send({
+          message: ERROR_MESSAGES.authController.incorrectAccountType,
+        }),
+        undefined,
+      ];
     }
 
-    return res;
+    // DON'T reject unverified emails (since someone could create an account for someone else's email and then leave it unverified, with the real user not able to log in)
+
+    return [res, user];
   }
 
   async createStudentSubscriptions(userId: number): Promise<void> {
