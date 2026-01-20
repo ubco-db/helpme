@@ -3,9 +3,9 @@
 exports[`InsightsService helpSeekingOverTime 1`] = `
 [
   {
-    "Anytime_Questions": 0,
-    "Chatbot_Interactions": 0,
-    "Queue_Questions": 0,
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
     "date": Any<Number>,
   },
   {
