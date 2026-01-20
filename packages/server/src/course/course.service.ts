@@ -26,7 +26,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import { partition } from 'lodash';
+import { parseInt, partition } from 'lodash';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { QuestionModel } from 'question/question.entity';
 import { Between, DataSource, EntityManager, In, IsNull } from 'typeorm';
@@ -45,7 +45,8 @@ import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueModel } from 'queue/queue.entity';
 import { SuperCourseModel } from './super-course.entity';
 import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
-import { QueueStaffModel } from 'queue/queue-staff.entity';
+import { URLSearchParams } from 'node:url';
+import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -126,57 +127,6 @@ export class CourseService {
     }
 
     return { taCheckinTimes };
-  }
-
-  async setTAExtraStatusForQueue(
-    queueId: number,
-    courseId: number,
-    userId: number,
-    status: ExtraTAStatus | null,
-  ): Promise<void> {
-    const allowedStatuses: Array<ExtraTAStatus | null> = [
-      ExtraTAStatus.AWAY,
-      null,
-    ];
-    if (!allowedStatuses.includes(status ?? null)) {
-      throw new BadRequestException('Invalid status');
-    }
-
-    const joinRow = await QueueStaffModel.findOne({
-      where: { queueModelId: queueId, userModelId: userId },
-    });
-    if (!joinRow) {
-      // If the row doesn't exist, something is out of sync; bail
-      throw new BadRequestException('Unable to set status');
-    }
-
-    const prev = joinRow.extraTAStatus;
-    joinRow.extraTAStatus = status ?? null;
-    await joinRow.save();
-
-    if (
-      prev !== ExtraTAStatus.AWAY &&
-      joinRow.extraTAStatus === ExtraTAStatus.AWAY
-    ) {
-      await EventModel.create({
-        time: new Date(),
-        eventType: EventType.TA_MARKED_SELF_AWAY,
-        userId,
-        courseId,
-        queueId,
-      }).save();
-    } else if (
-      prev === ExtraTAStatus.AWAY &&
-      (joinRow.extraTAStatus === null || joinRow.extraTAStatus === undefined)
-    ) {
-      await EventModel.create({
-        time: new Date(),
-        eventType: EventType.TA_MARKED_SELF_BACK,
-        userId,
-        courseId,
-        queueId,
-      }).save();
-    }
   }
 
   async removeUserFromCourse(userCourse: UserCourseModel): Promise<void> {
@@ -396,7 +346,7 @@ export class CourseService {
   async getQueueInviteRedirectURLandInviteToCourse(
     queueInviteCookie: string,
     userId: number,
-  ): Promise<string> {
+  ): Promise<{ url: string; queryParams: URLSearchParams }> {
     const decodedCookie = decodeURIComponent(queueInviteCookie);
     const splitCookie = decodedCookie.split(',');
     const courseId = splitCookie[0];
@@ -405,6 +355,7 @@ export class CourseService {
     const courseInviteCode = Buffer.from(splitCookie[3], 'base64').toString(
       'utf-8',
     );
+
     // check if the queueInvite exists and if it will invite to course
     const queueInvite = await QueueInviteModel.findOne({
       where: {
@@ -416,61 +367,82 @@ export class CourseService {
       where: { id: userId },
       relations: ['courses'],
     });
+
     if (!user) {
-      return '/login?error=notSuccessfullyLoggedIn';
+      return {
+        url: '/login',
+        queryParams: new URLSearchParams({
+          error: 'notSuccessfullyLoggedIn',
+        }),
+      };
     }
+
     const isUserInCourse = user.courses.some(
       (course) => course.courseId === Number(courseId),
     );
-    if (isUserInCourse) {
-      // if they're already in the course, just redirect them to the queue
-      if (courseId && queueId) {
-        return `/course/${courseId}/queue/${queueId}`;
-      } else if (courseId) {
-        return `/course/${courseId}`;
-      } else {
-        return '/courses';
+
+    let url: string = '/courses';
+    const queryParams = new URLSearchParams();
+
+    const getUrlAndParams = async (): Promise<void> => {
+      if (isUserInCourse) {
+        // if they're already in the course, just redirect them to the queue
+        if (courseId && queueId) {
+          url = `/course/${courseId}/queue/${queueId}`;
+        } else if (courseId) {
+          url = `/course/${courseId}`;
+        }
+        return;
       }
-    } else if (!queueInvite) {
-      // if the queueInvite doesn't exist
-      const params = new URLSearchParams({
-        err: QUERY_PARAMS.queueInvite.error.inviteNotFound,
-      });
-      return `/courses?${params.toString()}`;
-    } else if (queueInvite.willInviteToCourse && courseInviteCode) {
-      // get course
-      const course = await CourseModel.findOne({
-        where: {
-          id: Number(courseId),
-        },
-      });
-      if (!course) {
-        const params = new URLSearchParams({
-          err: QUERY_PARAMS.queueInvite.error.courseNotFound,
+
+      if (!queueInvite) {
+        // if the queueInvite doesn't exist
+        queryParams.set('err', QUERY_PARAMS.queueInvite.error.inviteNotFound);
+        return;
+      }
+
+      if (queueInvite.willInviteToCourse && courseInviteCode) {
+        // get course
+        const course = await CourseModel.findOne({
+          where: {
+            id: parseInt(courseId),
+          },
         });
-        return `/courses?${params.toString()}`;
-      }
-      if (course.courseInviteCode !== courseInviteCode) {
-        const params = new URLSearchParams({
-          err: QUERY_PARAMS.queueInvite.error.badCourseInviteCode,
+
+        if (!course) {
+          queryParams.set('err', QUERY_PARAMS.queueInvite.error.courseNotFound);
+          return;
+        }
+
+        if (course.courseInviteCode !== courseInviteCode) {
+          queryParams.set(
+            'err',
+            QUERY_PARAMS.queueInvite.error.badCourseInviteCode,
+          );
+          return;
+        }
+
+        await this.addStudentToCourse(course, user).catch((err) => {
+          throw new BadRequestException(err.message);
         });
-        return `/courses?${params.toString()}`;
+
+        if (courseId && queueId) {
+          url = `/course/${courseId}/queue/${queueId}`;
+        } else if (courseId) {
+          url = `/course/${courseId}`;
+        }
+        return;
       }
-      await this.addStudentToCourse(course, user).catch((err) => {
-        throw new BadRequestException(err.message);
-      });
-      if (courseId && queueId) {
-        return `/course/${courseId}/queue/${queueId}`;
-      } else if (courseId) return `/course/${courseId}`;
-      else {
-        return '/courses';
-      }
-    } else {
-      const params = new URLSearchParams({
-        err: QUERY_PARAMS.queueInvite.error.notInCourse,
-      });
-      return `/courses?${params.toString()}`;
-    }
+
+      queryParams.set('err', QUERY_PARAMS.queueInvite.error.notInCourse);
+    };
+
+    await getUrlAndParams();
+
+    return {
+      url,
+      queryParams,
+    };
   }
 
   async cloneCourse(

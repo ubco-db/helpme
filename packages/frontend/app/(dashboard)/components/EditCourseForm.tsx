@@ -219,7 +219,6 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
               name="courseTimezone"
               tooltip="Timezone of the course"
               className="flex-1"
-              rules={[{ required: true, message: 'Please select a timezone' }]}
             >
               <Select>
                 {COURSE_TIMEZONES.map((timezone) => (
@@ -234,7 +233,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
               label="Semester"
               name="semesterId"
               className="flex-1"
-              rules={[{ required: false }]}
+              required
             >
               <Select
                 placeholder="Select Semester"
@@ -247,7 +246,10 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
                       {formatSemesterDate(semester)}
                     </span>
                     {semester.endDate &&
-                      new Date(semester.endDate) < new Date() && (
+                      new Date(semester.endDate) < new Date() &&
+                      !(
+                        new Date(semester.endDate) < new Date('1971-01-01')
+                      ) && (
                         <span style={{ color: 'red', marginLeft: 6 }}>
                           (ended)
                         </span>

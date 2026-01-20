@@ -11,6 +11,7 @@ import CoursePreference from './CoursePreference'
 import EmailNotifications from './EmailNotifications'
 import UserChatbotHistory from './UserChatbotHistory'
 import { useSearchParams } from 'next/navigation'
+import UserAccessTokens from '@/app/(dashboard)/profile/components/UserAccessTokens'
 
 const ProfileSettings: React.FC = () => {
   const params = useSearchParams()
@@ -23,6 +24,8 @@ const ProfileSettings: React.FC = () => {
         return SettingsOptions.PREFERENCES
       case 'chatbot_history':
         return SettingsOptions.CHATBOT_HISTORY
+      case 'access_tokens':
+        return SettingsOptions.ACCESS_TOKENS
       default:
         return SettingsOptions.PROFILE
     }
@@ -56,6 +59,9 @@ const ProfileSettings: React.FC = () => {
           )}
           {currentSettings === SettingsOptions.PREFERENCES && (
             <CoursePreference />
+          )}
+          {currentSettings === SettingsOptions.ACCESS_TOKENS && (
+            <UserAccessTokens />
           )}
           {currentSettings === SettingsOptions.CHATBOT_HISTORY && (
             <UserChatbotHistory />

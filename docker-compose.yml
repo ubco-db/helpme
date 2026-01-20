@@ -8,7 +8,7 @@ services:
       - ./infrastructure/dev/docker-postgresql-multiple-databases:/docker-entrypoint-initdb.d
       - pg:/var/lib/postgresql/data
     environment:
-      - POSTGRES_MULTIPLE_DATABASES=prod,dev,test,chatbot,chatbot_test
+      - POSTGRES_MULTIPLE_DATABASES=prod,dev,test,chatbot,chatbot_test,lti,lti_test
     env_file:
       - ./packages/server/postgres.env # this is where the root user credentials are set. Please make this file with postgres.env.example as a base if you haven't already
     # command: ["postgres", "-c", "log_statement=all"] # Uncomment this and re-run yarn dev:db:up to see all sql commands being ran on the container
@@ -21,38 +21,38 @@ services:
       - '6379:6379'
     networks:
       - api
-  frontend:
-    container_name: helpme_frontend
-    command: yarn workspace @koh/frontend dev
-    depends_on:
-      - backend
-    build:
-      context: .
-      dockerfile: Dockerfile
-    networks:
-      - api
-  backend:
-    container_name: helpme_backend
-    command: yarn workspace @koh/server dev
-    depends_on:
-      - postgresql
-      - redis
-      - httpd
-    env_file:
-      - ./packages/server/.env
-    build:
-      context: .
-      dockerfile: Dockerfile
-    networks:
-      - api
-  httpd:
-    build:
-      context: .
-      dockerfile: Dockerfile.httpd
-    ports:
-      - '80:80'
-    networks:
-      - api
+#  frontend:
+#    container_name: helpme_frontend
+#    command: yarn workspace @koh/frontend dev
+#    depends_on:
+#      - backend
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    networks:
+#      - api
+#  backend:
+#    container_name: helpme_backend
+#    command: yarn workspace @koh/server dev
+#    depends_on:
+#      - postgresql
+#      - redis
+#      - httpd
+#    env_file:
+#      - ./packages/server/.env
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    networks:
+#      - api
+#  httpd:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.httpd
+#    ports:
+#      - '80:80'
+#    networks:
+#      - api
   gotenberg: # Used for converting files to pdf
     image: gotenberg/gotenberg:8
     restart: always

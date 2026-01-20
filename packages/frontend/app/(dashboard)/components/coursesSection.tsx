@@ -11,12 +11,14 @@ import CoursesSectionTableView from './CoursesSectionTableView'
 interface CoursesSectionProps {
   semesters: SemesterPartial[]
   enabledTableView: boolean
+  ltiView?: boolean
   highlightedCourseId?: number
 }
 
 const CoursesSection: React.FC<CoursesSectionProps> = ({
   semesters,
   enabledTableView,
+  ltiView,
   highlightedCourseId,
 }) => {
   // For some reason, jdenticon is not working when imported as a module and needs to use require
@@ -200,25 +202,35 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
 
                 <Link
                   id={index === 0 ? 'skip-link-target' : ''}
-                  href={`course/${course.course.id}`}
+                  href={
+                    ltiView
+                      ? `lti/${course.course.id}`
+                      : `course/${course.course.id}`
+                  }
                 >
                   <Button
                     type="primary"
                     className="mt-5 rounded p-[1.1rem] font-medium"
                     block
                   >
-                    Course page
+                    {ltiView ? 'Chatbot' : 'Course page'}
                   </Button>
                 </Link>
 
                 {course.role === Role.PROFESSOR && (
-                  <Link href={`/course/${course.course.id}/settings`}>
+                  <Link
+                    href={
+                      ltiView
+                        ? `/lti/${course.course.id}/integration`
+                        : `/course/${course.course.id}/settings`
+                    }
+                  >
                     <Button
                       type="primary"
                       className="mt-4 rounded p-[1.1rem] font-medium"
                       block
                     >
-                      Edit Course
+                      {ltiView ? 'LMS Integration' : 'Edit Course'}
                     </Button>
                   </Link>
                 )}

@@ -10,8 +10,8 @@ import { RedisProfileService } from 'redisProfile/redis-profile.service';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { OrganizationService } from '../organization/organization.service';
 import { OrganizationModule } from '../organization/organization.module';
-import { ProfInviteModule } from 'course/prof-invite/prof-invite.module';
-import { ProfInviteService } from 'course/prof-invite/prof-invite.service';
+import { LoginModule } from '../login/login.module';
+import { LoginService } from '../login/login.service';
 
 @Module({
   imports: [
@@ -24,7 +24,7 @@ import { ProfInviteService } from 'course/prof-invite/prof-invite.service';
     }),
     MailModule,
     OrganizationModule,
-    ProfInviteModule,
+    LoginModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -34,7 +34,7 @@ import { ProfInviteService } from 'course/prof-invite/prof-invite.service';
     RedisProfileService,
     ChatbotApiService,
     OrganizationService,
-    ProfInviteService,
+    LoginService,
   ],
   exports: [AuthService],
 })

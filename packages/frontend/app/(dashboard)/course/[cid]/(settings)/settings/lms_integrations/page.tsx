@@ -17,7 +17,7 @@ import {
   Tabs,
   Tooltip,
 } from 'antd'
-import { use, useCallback, useEffect, useMemo, useState } from 'react'
+import React, { use, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   LMSAnnouncement,
   LMSApiResponseStatus,
@@ -45,6 +45,8 @@ import {
 } from '@ant-design/icons'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 export default function CourseLMSIntegrationPage(props: {
   params: Promise<{
@@ -52,13 +54,19 @@ export default function CourseLMSIntegrationPage(props: {
     tab: 'assignment' | 'announcement' | 'page' | 'file' | 'quiz' | undefined
   }>
 }) {
-  const params = use(props.params)
   const searchParams = useSearchParams()
   const router = useRouter()
+  const pathname = usePathname()
+
+  const { userInfo } = useUserInfo()
+  const params = use(props.params)
   const pathName = usePathname()
   const courseId = useMemo(() => Number(params.cid) ?? -1, [params.cid])
   const tab = useMemo(() => searchParams.get('tab'), [searchParams])
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
+  const organizationSettings = useOrganizationSettings(
+    userInfo?.organization?.orgId ?? -1,
+  )
 
   const [currentTab, setCurrentTab] = useState<
     | 'assignment'
@@ -105,7 +113,6 @@ export default function CourseLMSIntegrationPage(props: {
     files,
     quizzes,
     isLoadingIntegration,
-    isLoadingCourse,
     isLoadingStudents,
     isLoadingAssignments,
     isLoadingAnnouncements,
@@ -127,6 +134,31 @@ export default function CourseLMSIntegrationPage(props: {
   const [delModalOpen, setDelModalOpen] = useState<boolean>(false)
   const [isTesting, setIsTesting] = useState<boolean>(false)
   const [selectedResources, setSelectedResources] = useState<string[]>([])
+  const [preselect, setPreselect] = useState<
+    LMSIntegrationPlatform | undefined
+  >()
+
+  useEffect(() => {
+    const success_msg = searchParams.get('success_message')
+    const error_msg = searchParams.get('error_message')
+    const platform = searchParams.get('platform')
+
+    if (platform) {
+      setPreselect(platform as LMSIntegrationPlatform)
+    }
+
+    if (success_msg) {
+      message.success(success_msg, 3).then(() => {
+        router.push(pathname)
+      })
+    } else if (error_msg) {
+      message.error(error_msg, 3).then(() => {
+        router.push(pathname)
+      })
+    } else {
+      router.push(pathname)
+    }
+  }, [pathname, router, searchParams])
 
   useEffect(() => {
     if (integration?.selectedResourceTypes) {
@@ -162,17 +194,36 @@ export default function CourseLMSIntegrationPage(props: {
       })
   }, [courseId])
 
+  useEffect(() => {
+    if (lmsIntegrations.length > 0 && preselect) {
+      setSelectedIntegration(
+        lmsIntegrations.find((v) => v.apiPlatform == preselect),
+      )
+      setModalOpen(true)
+      setPreselect(undefined)
+    }
+  }, [preselect, lmsIntegrations])
+
   const testLMSConnection = async (
-    apiKey: string,
     apiCourseId: string,
     apiPlatform: LMSIntegrationPlatform,
+    apiKey?: string,
+    accessTokenId?: number,
   ) => {
-    if (apiKey == undefined || apiKey.trim() == '') {
-      message.warning('API Key is required')
+    if (organizationSettings?.allowLMSApiKey) {
+      if (
+        accessTokenId == undefined &&
+        (apiKey == undefined || apiKey.trim() == '')
+      ) {
+        message.warning('API Key or Access Token is required')
+        return LMSApiResponseStatus.Error
+      }
+    } else if (accessTokenId == undefined) {
+      message.warning('Access Token is required')
       return LMSApiResponseStatus.Error
     }
 
-    if (apiCourseId == undefined || apiCourseId.trim() == '') {
+    if (apiCourseId == undefined || String(apiCourseId).trim() == '') {
       message.warning('API Course ID is required')
       return LMSApiResponseStatus.Error
     }
@@ -182,6 +233,7 @@ export default function CourseLMSIntegrationPage(props: {
       .testIntegration(courseId, {
         apiPlatform: apiPlatform,
         apiKey: apiKey,
+        accessTokenId: accessTokenId,
         apiCourseId: apiCourseId,
       })
       .then((response) => {
@@ -381,7 +433,7 @@ export default function CourseLMSIntegrationPage(props: {
     [ableToSync],
   )
 
-  if (isLoadingIntegration) {
+  if (isLoadingIntegration || !organizationSettings) {
     return <CenteredSpinner tip={'Loading...'} />
   }
 
@@ -404,6 +456,16 @@ export default function CourseLMSIntegrationPage(props: {
             <div className={'flex flex-col'}>
               <p>
                 This course is not integrated with a learning management system.
+              </p>
+              <p>
+                By integrating a course with a learning management system, you
+                can enable documents to be retrieved by HelpMe automatically.
+                These will be used to build your course chatbot&#39;s knowledge
+                base.
+              </p>
+              <p>
+                Other benefits include being able to view which students from
+                your course do not have a corresponding enrollment on the LMS.
               </p>
               {lmsIntegrations.length == 0 ? (
                 <>
@@ -459,6 +521,7 @@ export default function CourseLMSIntegrationPage(props: {
               isTesting={isTesting}
               testLMSConnection={testLMSConnection}
               onCreate={() => setUpdateFlag(!updateFlag)}
+              organizationSettings={organizationSettings}
             />
           </div>
         </Card>
@@ -905,6 +968,7 @@ export default function CourseLMSIntegrationPage(props: {
             isTesting={isTesting}
             testLMSConnection={testLMSConnection}
             onCreate={() => setUpdateFlag(!updateFlag)}
+            organizationSettings={organizationSettings}
           />
           <Modal
             title={'Are you sure you want to delete this LMS integration?'}

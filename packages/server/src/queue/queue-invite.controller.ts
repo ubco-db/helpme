@@ -149,7 +149,7 @@ Works functionally the same as getQueue in queue.controller.ts but is publicly a
       throw new NotFoundException();
     }
     try {
-      return this.queueService.getQueue(queueId);
+      return this.queueService.getQueueFormatted(queueId);
     } catch (err) {
       console.error(err);
       throw new HttpException(

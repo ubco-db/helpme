@@ -1,4 +1,4 @@
-import { DynamicModule, INestApplication, Module, Type } from '@nestjs/common';
+import { INestApplication, Module, Type } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule, TestingModuleBuilder } from '@nestjs/testing';
@@ -34,6 +34,8 @@ import { ChatbotApiService } from '../../src/chatbot/chatbot-api.service';
 import { ChatbotDataSourceModule } from '../../src/chatbot/chatbot-datasource/chatbot-datasource.module';
 import { Role } from '@koh/common';
 import { UserCourseModel } from 'profile/user-course.entity';
+import express, { Locals, Response } from 'express';
+import { CookieOptions } from 'express-serve-static-core';
 
 export interface SupertestOptions {
   userId?: number;
@@ -76,6 +78,11 @@ export function setupIntegrationTest(
   module: Type<any>,
   modifyModule?: ModuleModifier,
   additionalModules: Type<any>[] = [],
+  additionalMiddlewares: ((
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => any)[] = [],
 ): {
   supertest: (u?: SupertestOptions) => supertest.SuperTest<supertest.Test>;
   getTestModule: () => TestingModule;
@@ -167,7 +174,12 @@ export function setupIntegrationTest(
     // Create and configure the application
 
     app = testModule.createNestApplication();
-    addGlobalsToApp(app);
+    addGlobalsToApp(app, true);
+    if (additionalMiddlewares) {
+      for (const mw of additionalMiddlewares) {
+        app.use(mw);
+      }
+    }
     jwtService = testModule.get<JwtService>(JwtService);
     appConfig = testModule.get<ApplicationConfigService>(
       ApplicationConfigService,
@@ -475,6 +487,102 @@ export const failedPermsCheckForQueue = async (
   }
   expect(res.statusCode).toBe(403);
 };
+
+export class MockResponse<
+  TBody = any,
+  TLocals = Record<string, any>,
+> extends Response {
+  _headers: Record<string, string> = {};
+  statusCode: number;
+  _redirect: string;
+  _cookies: Record<string, string> = {};
+  _body: TBody;
+  locals: TLocals & Locals;
+  headersSent: boolean = false;
+
+  set(field: any, value?: string | string[]): this {
+    if (typeof field === 'string') {
+      this._headers[field] = Array.isArray(value) ? value.join(';') : value;
+    } else {
+      this._headers = {
+        ...this._headers,
+        ...field,
+      };
+    }
+    return this;
+  }
+
+  header(field: any, value?: string | string[]): this {
+    return this.set(field, value);
+  }
+
+  get(field: string): string | undefined {
+    return this._headers[field];
+  }
+
+  cookie(name: string, val: string | any, options?: CookieOptions): this {
+    this._cookies[`${name}${options ? '-' + JSON.stringify(options) : ''}`] =
+      typeof val == 'string' ? val : JSON.stringify(val);
+    this._headers['cookie'] = Object.entries(this._cookies)
+      .map(([k, v]) => `${k.substring(0, k.indexOf('-'))}=${v}`)
+      .join('; ');
+    return this;
+  }
+
+  clearCookie(name: string, options?: CookieOptions): this {
+    if (!options) {
+      Object.keys(this._cookies).forEach((k) => {
+        if (k.startsWith(name)) {
+          delete this._cookies[k];
+        }
+      });
+    } else {
+      delete this._cookies[`${name}-${JSON.stringify(options)}`];
+    }
+    this._headers['cookie'] = Object.entries(this._cookies)
+      .map(([k, v]) => `${k.substring(0, k.indexOf('-'))}=${v}`)
+      .join('; ');
+    return this;
+  }
+
+  location(url: string): this {
+    this._headers['location'] = url;
+    return this;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-expect-error
+  status(code: number): this {
+    this.statusCode = code;
+    return this;
+  }
+
+  sendStatus(code: number): this {
+    this.statusCode = code;
+    this.send();
+    return this;
+  }
+
+  redirect(url: string): void;
+  redirect(code: number | string, url?: string): void {
+    if (typeof code === 'string') {
+      this._redirect = code;
+      this.statusCode = 302;
+    } else {
+      this._redirect = url;
+      this.statusCode = code;
+    }
+  }
+
+  send(body?: any): this {
+    if (!this.statusCode) {
+      this.statusCode = 200;
+    }
+    this._body = body;
+    this.headersSent = true;
+    return this;
+  }
+}
 
 // TODO: add a function for not allowing someone to access a route because they are not in the course (said function will need to be passed what a successful call would look like and then just call it from another user who is in the same or but different course).
 

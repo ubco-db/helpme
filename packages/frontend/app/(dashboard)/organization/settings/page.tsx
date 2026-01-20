@@ -13,13 +13,13 @@ import {
   Switch,
 } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
-import { ReactElement, useEffect, useMemo, useState } from 'react'
+import { ReactNode, useEffect, useMemo, useState } from 'react'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { Organization } from '@/app/typings/organization'
 import { API } from '@/app/api'
 import Image from 'next/image'
 import ImageCropperModal from '@/app/(dashboard)/components/ImageCropperModal'
 import {
+  GetOrganizationResponse,
   OrganizationRole,
   OrganizationSettingsDefaults,
   SemesterPartial,
@@ -30,7 +30,7 @@ import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
 import { AllProfInvites } from './components/AllProfInvites'
 
-export default function SettingsPage(): ReactElement {
+export default function SettingsPage(): ReactNode {
   // Handler to update SSO patterns
   const updateSSO = async () => {
     try {
@@ -67,7 +67,7 @@ export default function SettingsPage(): ReactElement {
     [userInfo?.organization?.orgId],
   )
 
-  const [organization, setOrganization] = useState<Organization>()
+  const [organization, setOrganization] = useState<GetOrganizationResponse>()
   const [organizationSemesters, setOrganizationSemesters] = useState<
     SemesterPartial[]
   >([])
@@ -76,17 +76,20 @@ export default function SettingsPage(): ReactElement {
   useEffect(() => {
     const fetchDataAsync = async () => {
       const response = await API.organizations.get(organizationId)
+      const semesters = response.semesters.map((s: SemesterPartial) => ({
+        id: s.id,
+        name: s.name,
+        startDate: s.startDate ? new Date(s.startDate) : null,
+        endDate: s.endDate ? new Date(s.endDate) : null,
+        description: s.description,
+        color: s.color,
+      }))
       setOrganization({
         ...response,
-        semesters: response.semesters.map((s: SemesterPartial) => ({
-          id: s.id,
-          name: s.name,
-          startDate: s.startDate ? new Date(s.startDate) : null,
-          endDate: s.endDate ? new Date(s.endDate) : null,
-          description: s.description,
-          color: s.color,
-        })),
+        semesters,
       })
+      setOrganizationSemesters(semesters)
+
       formGeneral.setFieldsValue({
         organizationName: response.name,
         organizationDescription: response.description,
@@ -258,6 +261,18 @@ export default function SettingsPage(): ReactElement {
                       'Enables whether organization professors can create courses. Course professors without the organization professor role can never create courses.'
                     }
                     title={'Professors Can Create Courses'}
+                    organizationId={organizationId}
+                  />
+                  <OrganizationSettingSwitch
+                    defaultChecked={
+                      organizationSettings?.allowLMSApiKey ??
+                      OrganizationSettingsDefaults.allowLMSApiKey
+                    }
+                    settingName={'allowLMSApiKey'}
+                    description={
+                      'Enables whether LMS integrations are allowed to use API keys. Otherwise, professors will need to use OAuth flow to generate an access token from the platform.'
+                    }
+                    title={'Allow LMS Integration API Keys'}
                     organizationId={organizationId}
                   />
                 </div>

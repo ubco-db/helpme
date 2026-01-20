@@ -2,7 +2,6 @@ import { config } from 'dotenv';
 import { isProd } from '@koh/common';
 import * as fs from 'fs';
 import { DataSourceOptions } from 'typeorm';
-import { AdminUserModel } from './src/admin/admin-user.entity';
 import { CourseModel } from './src/course/course.entity';
 import { SemesterModel } from './src/semester/semester.entity';
 import { DesktopNotifModel } from './src/notification/desktop-notif.entity';
@@ -34,7 +33,7 @@ import { ApplicationConfigModel } from './src/config/application_config.entity';
 import { InsightDashboardModel } from './src/insights/dashboard.entity';
 import { QueueInviteModel } from './src/queue/queue-invite.entity';
 import { QueueChatsModel } from './src/queueChats/queue-chats.entity';
-import { QueueStaffModel } from './src/queue/queue-staff.entity';
+import { QueueStaffModel } from './src/queue/queue-staff/queue-staff.entity';
 import { LMSOrganizationIntegrationModel } from './src/lmsIntegration/lmsOrgIntegration.entity';
 import { LMSCourseIntegrationModel } from './src/lmsIntegration/lmsCourseIntegration.entity';
 import { LMSAssignmentModel } from './src/lmsIntegration/lmsAssignment.entity';
@@ -53,6 +52,12 @@ import { ChatbotProviderModel } from './src/chatbot/chatbot-infrastructure-model
 import { CourseChatbotSettingsModel } from './src/chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
 import { OrganizationChatbotSettingsModel } from './src/chatbot/chatbot-infrastructure-models/organization-chatbot-settings.entity';
 import { LLMTypeModel } from './src/chatbot/chatbot-infrastructure-models/llm-type.entity';
+import { LMSAccessTokenModel } from './src/lmsIntegration/lms-access-token.entity';
+import { LMSAuthStateModel } from './src/lmsIntegration/lms-auth-state.entity';
+import { LtiCourseInviteModel } from './src/lti/lti-course-invite.entity';
+import { AuthStateModel } from './src/auth/auth-state.entity';
+import { LtiIdentityTokenModel } from './src/lti/lti_identity_token.entity';
+import { UserLtiIdentityModel } from './src/lti/user_lti_identity.entity';
 import { ProfInviteModel } from './src/course/prof-invite/prof-invite.entity';
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
@@ -96,7 +101,6 @@ const typeorm: DataSourceOptions = {
     QuestionTypeModel,
     QueueModel,
     DesktopNotifModel,
-    AdminUserModel,
     EventModel,
     QuestionGroupModel,
     AlertModel,
@@ -134,6 +138,12 @@ const typeorm: DataSourceOptions = {
     CourseChatbotSettingsModel,
     OrganizationChatbotSettingsModel,
     LLMTypeModel,
+    LMSAuthStateModel,
+    LMSAccessTokenModel,
+    LtiCourseInviteModel,
+    AuthStateModel,
+    UserLtiIdentityModel,
+    LtiIdentityTokenModel,
     ProfInviteModel,
   ],
   logging:
