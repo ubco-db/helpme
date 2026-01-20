@@ -229,15 +229,17 @@ export class QueueController {
       ...Object.values(LimboQuestionStatus),
     ]).getMany();
 
-    questions.forEach(async (q: QuestionModel) => {
-      // all students mark their own question as "stale"
-      await this.questionService.changeStatus(
-        ClosedQuestionStatus.Stale,
-        q,
-        q.creatorId,
-        Role.STUDENT,
-      );
-    });
+    await Promise.all(
+      questions.map((q: QuestionModel) =>
+        // all students mark their own question as "stale"
+        this.questionService.changeStatus(
+          ClosedQuestionStatus.Stale,
+          q,
+          q.creatorId,
+          Role.STUDENT,
+        ),
+      ),
+    );
 
     try {
       await queue.save();
