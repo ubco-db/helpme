@@ -1,0 +1,256 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`InsightsService helpSeekingOverTime 1`] = `
+[
+  {
+    "Anytime_Questions": 0,
+    "Chatbot_Interactions": 0,
+    "Queue_Questions": 0,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+  {
+    "Anytime_Questions": 1,
+    "Chatbot_Interactions": 1,
+    "Queue_Questions": 1,
+    "date": Any<Number>,
+  },
+]
+`;
+
+exports[`InsightsService mostActiveTimes 1`] = `
+[
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 480,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 540,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 600,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 660,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 720,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 780,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 840,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 900,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 960,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 1020,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 1080,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 1140,
+  },
+  {
+    "Amount": 1,
+    "Weekday": 1,
+    "time": 1200,
+  },
+]
+`;

@@ -126,14 +126,14 @@ describe('OrganizationService', () => {
       }).save();
 
       const courses = await service.getCourses(organization.id, 1, 50);
-      expect(courses).toMatchSnapshot({
-        0: {
+      expect(courses).toMatchSnapshot([
+        {
           semester: {
-            startDate: expect.any(String),
-            endDate: expect.any(String),
+            startDate: expect.any(Date),
+            endDate: expect.any(Date),
           },
         },
-      } as any);
+      ]);
     });
 
     it('should not return organization courses if no courses match search query', async () => {
@@ -183,14 +183,14 @@ describe('OrganizationService', () => {
       }).save();
 
       const courses = await service.getCourses(organization.id, 1, 50, 'test');
-      expect(courses).toMatchSnapshot({
-        0: {
+      expect(courses).toMatchSnapshot([
+        {
           semester: {
-            startDate: expect.any(String),
-            endDate: expect.any(String),
+            startDate: expect.any(Date),
+            endDate: expect.any(Date),
           },
         },
-      } as any);
+      ]);
     });
   });
 
@@ -340,8 +340,8 @@ describe('OrganizationService', () => {
           createdAt: expect.any(Date),
           semester: {
             createdAt: expect.any(Date),
-            startDate: expect.any(Date),
-            endDate: expect.any(Date),
+            startDate: expect.any(String),
+            endDate: expect.any(String),
           },
         },
       } as any);

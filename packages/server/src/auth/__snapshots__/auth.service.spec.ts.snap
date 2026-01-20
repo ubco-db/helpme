@@ -15,8 +15,8 @@ exports[`AuthService loginWithGoogle should create a new user when user does not
   "includeDefaultMessage": true,
   "lastName": "Doe",
   "name": "John Doe",
-  "organizationUser": OrganizationUserModel {
-    "createdAt": 2026-01-20T00:28:13.128Z,
+  "organizationUser": {
+    "createdAt": Any<Date>,
     "id": 1,
     "organizationId": 2,
     "role": "member",

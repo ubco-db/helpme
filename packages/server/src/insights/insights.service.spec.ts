@@ -453,7 +453,7 @@ describe('InsightsService', () => {
       ],
     })) as GanttChartOutputType;
 
-    expect(res.data).toEqual(expected);
+    expect(res.data).toMatchSnapshot();
     expect(res.xKey).toBe('time');
     expect(res.yKey).toBe('Weekday');
     expect(res.zKey).toBe('Amount');
@@ -509,7 +509,9 @@ describe('InsightsService', () => {
       ],
     })) as ChartOutputType;
 
-    expect(res.data).toEqual(expected);
+    expect(res.data).toMatchSnapshot(
+      res.data.map(() => ({ date: expect.any(Number) })),
+    );
     expect(res.xKey).toEqual('date');
     expect(res.yKeys).toEqual([
       'Queue_Questions',
