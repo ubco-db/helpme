@@ -1,7 +1,7 @@
-import { Message } from '@koh/common'
+import { HelpMeChatMessage } from '@koh/common'
 
 export interface ChatbotQToConvertToAnytimeQ {
-  messages: Message[]
+  messages: HelpMeChatMessage[]
 }
 
 export const chatbotStartingMessageCourse =

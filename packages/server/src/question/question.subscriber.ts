@@ -31,7 +31,6 @@ export class QuestionSubscriber
     dataSource.subscribers.push(this);
   }
 
-   
   listenTo() {
     return QuestionModel;
   }

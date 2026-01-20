@@ -1,8 +1,8 @@
 'use client'
 
 import { Role } from '@koh/common'
-import { Col, Row, Button } from 'antd'
-import { ReactElement, useEffect, useMemo, useState, use } from 'react'
+import { Button, Col, Row } from 'antd'
+import { ReactElement, use, useEffect, useMemo, useState } from 'react'
 import QueueCard from './components/QueueCard'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -44,8 +44,8 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
   const {
     setCid,
     setRenderSmallChatbot,
-    preDeterminedQuestions,
-    setPreDeterminedQuestions,
+    suggestedQuestions,
+    setSuggestedQuestions,
     questionsLeft,
     setQuestionsLeft,
     messages,
@@ -201,8 +201,8 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                       key={cid}
                       cid={cid}
                       variant="big"
-                      preDeterminedQuestions={preDeterminedQuestions}
-                      setPreDeterminedQuestions={setPreDeterminedQuestions}
+                      suggestedQuestions={suggestedQuestions}
+                      setSuggestedQuestions={setSuggestedQuestions}
                       questionsLeft={questionsLeft}
                       setQuestionsLeft={setQuestionsLeft}
                       messages={messages}
@@ -228,8 +228,8 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
               key={cid}
               cid={cid}
               variant="huge"
-              preDeterminedQuestions={preDeterminedQuestions}
-              setPreDeterminedQuestions={setPreDeterminedQuestions}
+              suggestedQuestions={suggestedQuestions}
+              setSuggestedQuestions={setSuggestedQuestions}
               questionsLeft={questionsLeft}
               setQuestionsLeft={setQuestionsLeft}
               messages={messages}
@@ -241,7 +241,6 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
               helpmeQuestionId={helpmeQuestionId}
               chatbotQuestionType={chatbotQuestionType}
               setChatbotQuestionType={setChatbotQuestionType}
-              /* eslint-disable-next-line @typescript-eslint/no-empty-function */
               setIsOpen={() => {}}
             />
           </div>

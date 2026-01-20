@@ -233,16 +233,16 @@ h1, h2, h3, h4, h5, h6 {
 
 .queueCard, .asyncCentreCard {
   /* Tailwind shadows don't look great in this scenario so went with custom */
-  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   transition: box-shadow 0.3s ease;
 }
 .queueCard:hover, .queueCard:focus, .asyncCentreCard:hover, .asyncCentreCard:focus {
-  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
 }
 @media (max-width: 650px) {
   /* make the box shadow more pronounced on mobile to make it look more tap-able */
   .queueCard, .asyncCentreCard {
-    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 }
 .queueCard:hover .ant-card-head, a:focus .queueCard .ant-card-head {
@@ -268,6 +268,41 @@ Here's the issue on antd's github: https://github.com/ant-design/ant-design/issu
 }
 .fix-antd-form-label .ant-form-item-horizontal .ant-form-item-label {
   padding: 0.25rem 0 0 0 !important;
+}
+
+/*
+Making modals scrollable
+*/
+
+.ant-modal-content {
+    padding: 1rem 0 1rem 0 !important;
+}
+
+.ant-modal-header {
+    padding: 0 1rem !important;
+}
+
+.ant-modal-footer {
+    padding: 0 1rem !important;
+}
+
+.ant-modal-body {
+    padding: 0 0.1rem 0 1rem !important;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+}
+
+@media (width <= 40rem) {
+    .ant-modal-body {
+        max-height: 60vh;
+    }
+}
+
+@media (width >= 48rem) {
+    .ant-modal-body {
+        max-height: 80vh;
+    }
 }
 
 /*
@@ -327,8 +362,8 @@ It is used for displaying markdown nicely inside any <Markdown> components
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
-  width: 0px;
-  height: 0px;
+  width: 0;
+  height: 0;
 }
 
 /* SHADCN Charts */

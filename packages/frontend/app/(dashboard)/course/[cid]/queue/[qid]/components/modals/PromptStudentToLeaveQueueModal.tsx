@@ -1,6 +1,6 @@
 import { Button, message, Tooltip } from 'antd'
 import Modal from 'antd/lib/modal/Modal'
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowRightLeft, DoorOpen, PersonStanding } from 'lucide-react'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
@@ -122,6 +122,7 @@ const PromptStudentToLeaveQueueModal: React.FC<
 
   return (
     <Modal
+      centered
       open={true}
       width={650}
       classNames={{

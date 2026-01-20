@@ -73,6 +73,7 @@ const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
 
   return (
     <Modal
+      centered
       open={open}
       title={drafting ? 'Create Demo' : 'Edit Your Demo'}
       okText={drafting ? 'Finish' : 'Save Changes'}

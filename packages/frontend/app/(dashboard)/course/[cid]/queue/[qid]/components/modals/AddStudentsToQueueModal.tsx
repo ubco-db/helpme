@@ -1,7 +1,6 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Modal from 'antd/lib/modal/Modal'
-import { Form, message, Checkbox, Input, Select, Segmented } from 'antd'
-import { useEffect, useState } from 'react'
+import { Checkbox, Form, Input, message, Segmented, Select } from 'antd'
 import {
   ConfigTasks,
   OpenQuestionStatus,
@@ -140,6 +139,7 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
 
   return (
     <Modal
+      centered
       open={open}
       title={
         <div className="flex flex-wrap gap-x-4 gap-y-2">

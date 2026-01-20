@@ -90,6 +90,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
 
   return (
     <Modal
+      centered
       open={open}
       title={drafting ? 'Describe your question' : 'Edit your question'}
       okText={drafting ? 'Finish' : 'Save Changes'}
