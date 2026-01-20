@@ -1,7 +1,6 @@
 import {
   BaseEntity,
   Column,
-  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -16,9 +15,6 @@ import { OrganizationRole } from '@koh/common';
 export class OrganizationUserModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
-
-  @CreateDateColumn({ type: 'timestamptz', nullable: true })
-  createdAt: Date;
 
   @ManyToOne(
     (type) => OrganizationModel,

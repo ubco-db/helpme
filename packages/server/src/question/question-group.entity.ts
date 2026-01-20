@@ -1,7 +1,6 @@
 import {
   BaseEntity,
   Column,
-  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -16,9 +15,6 @@ import { QuestionModel } from './question.entity';
 export class QuestionGroupModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
-
-  @CreateDateColumn({ type: 'timestamptz', nullable: true })
-  createdAt: Date;
 
   @OneToMany((type) => QuestionModel, (q) => q.group)
   questions: QuestionModel[];
