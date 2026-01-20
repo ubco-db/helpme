@@ -33,5 +33,6 @@ import { ProfInviteModule } from 'course/prof-invite/prof-invite.module';
     ChatbotApiService,
     ProfInviteService,
   ],
+  exports: [LoginService, ProfInviteService],
 })
 export class LoginModule {}
