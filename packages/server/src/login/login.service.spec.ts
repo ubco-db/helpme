@@ -26,6 +26,7 @@ import { Request } from 'express';
 import { UserModel } from '../profile/user.entity';
 import { CourseService } from '../course/course.service';
 import { LtiService } from '../lti/lti.service';
+import { ProfInviteService } from '../course/prof-invite/prof-invite.service';
 import { CourseModel } from '../course/course.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { OrganizationModel } from '../organization/organization.entity';
@@ -50,7 +51,15 @@ describe('LoginService', () => {
           }),
         }),
       ],
-      providers: [LoginService],
+      providers: [
+        LoginService,
+        {
+          provide: ProfInviteService,
+          useValue: {
+            acceptProfInviteFromCookie: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<LoginService>(LoginService);
