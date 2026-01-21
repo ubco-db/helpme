@@ -21,7 +21,7 @@ import {
   UserFactory,
 } from '../../test/util/factories';
 import { LoginService } from './login.service';
-import { ERROR_MESSAGES } from '@koh/common';
+import { ERROR_MESSAGES, QUERY_PARAMS } from '@koh/common';
 import { Request } from 'express';
 import { UserModel } from '../profile/user.entity';
 import { CourseService } from '../course/course.service';
@@ -507,7 +507,9 @@ describe('LoginService', () => {
           expect(res.headersSent).toEqual(false);
           if (queueInvite) {
             expect(res._cookies['queueInviteInfo']).toBeUndefined();
-            expect(redirectUrl).toEqual(`/courses?err=notInCourse`);
+            expect(redirectUrl).toEqual(
+              `/courses?err=${QUERY_PARAMS.queueInvite.error.notInCourse}`,
+            );
           } else if (secureRedirect) {
             expect(res._cookies['__SECURE_REDIRECT']).toBeUndefined();
             expect(redirectUrl).toEqual(
@@ -529,7 +531,7 @@ describe('LoginService', () => {
             expect(res._cookies['queueInviteInfo']).toBeUndefined();
             expect(res._body).toHaveProperty(
               'redirectUri',
-              `/courses?err=notInCourse`,
+              `/courses?err=${QUERY_PARAMS.queueInvite.error.notInCourse}`,
             );
           } else if (secureRedirect) {
             expect(res._cookies['__SECURE_REDIRECT']).toBeUndefined();
