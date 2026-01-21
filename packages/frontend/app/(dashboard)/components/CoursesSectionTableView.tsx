@@ -11,10 +11,12 @@ import { useMemo } from 'react'
 
 interface CoursesSectionTableViewProps {
   semesters: SemesterPartial[]
+  highlightedCourseId?: number
 }
 
 const CoursesSectionTableView: React.FC<CoursesSectionTableViewProps> = ({
   semesters,
+  highlightedCourseId,
 }) => {
   const { userInfo, setUserInfo } = useUserInfo()
 
@@ -106,6 +108,9 @@ const CoursesSectionTableView: React.FC<CoursesSectionTableViewProps> = ({
           {text}
           {course.course.sectionGroupName && (
             <span className="ml-1 text-sm text-blue-700/50">{`${course.course.sectionGroupName}`}</span>
+          )}
+          {highlightedCourseId === course.course.id && (
+            <span className="ml-1 text-sm text-yellow-500">(New)</span>
           )}
         </Link>
       ),
