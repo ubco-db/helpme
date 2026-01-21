@@ -2444,11 +2444,12 @@ export class TAAwayPair {
 
   @IsDate()
   @Type(() => Date)
-  awayStartTime!: Date 
+  awayStartTime!: Date
 
   @IsDate()
+  @IsOptional()
   @Type(() => Date)
-  awayEndTime!: Date
+  awayEndTime?: Date
 
   @IsBoolean()
   inProgress!: boolean
