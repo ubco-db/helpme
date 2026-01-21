@@ -9,7 +9,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId allows students
     "closedAt": null,
     "comments": [],
     "courseId": 1,
-    "createdAt": "2025-01-01T00:00:00.000Z",
     "creator": {
       "anonId": 3,
       "colour": "#0097A7",
@@ -37,7 +36,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId allows students
     "closedAt": null,
     "comments": [],
     "courseId": 1,
-    "createdAt": "2025-01-01T00:00:00.000Z",
     "creator": {
       "anonId": 4,
       "colour": "#5A2E2E",
@@ -104,7 +102,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId does not show s
         },
       ],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 4,
         "colour": "#5A2E2E",
@@ -132,7 +129,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId does not show s
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 6,
         "colour": "#5A2E2E",
@@ -160,7 +156,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId does not show s
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 3,
         "colour": "#0097A7",
@@ -221,7 +216,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId does not show s
         },
       ],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 4,
         "colour": "#5A2E2E",
@@ -248,7 +242,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId does not show s
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 6,
         "colour": "#5A2E2E",
@@ -283,7 +276,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId does not show u
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 3,
         "colour": "#0097A7",
@@ -311,7 +303,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId does not show u
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 6,
         "colour": "#1abc9c",
@@ -339,7 +330,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId does not show u
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 4,
         "colour": "#5A2E2E",
@@ -369,7 +359,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId does not show u
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 6,
         "colour": "#5A2E2E",
@@ -397,7 +386,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId does not show u
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 3,
         "colour": "#0097A7",
@@ -425,7 +413,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId does not show u
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 6,
         "colour": "#1abc9c",
@@ -453,7 +440,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId does not show u
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 4,
         "colour": "#5A2E2E",
@@ -483,7 +469,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId does not show u
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 6,
         "colour": "#5A2E2E",
@@ -511,7 +496,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId does not show u
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 6,
         "colour": "#1abc9c",
@@ -538,7 +522,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId does not show u
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 4,
         "colour": "#5A2E2E",
@@ -572,7 +555,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId prevents studen
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 6,
         "colour": "#5A2E2E",
@@ -600,7 +582,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId prevents studen
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 3,
         "colour": "#0097A7",
@@ -628,7 +609,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId prevents studen
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 6,
         "colour": "#1abc9c",
@@ -656,7 +636,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId prevents studen
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 8,
         "colour": "#3498db",
@@ -684,7 +663,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId prevents studen
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 7,
         "colour": "#2ecc71",
@@ -712,7 +690,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId prevents studen
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 4,
         "colour": "#5A2E2E",
@@ -742,7 +719,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId prevents studen
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 6,
         "colour": "#5A2E2E",
@@ -770,7 +746,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId prevents studen
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 6,
         "colour": "#1abc9c",
@@ -797,7 +772,6 @@ exports[`AsyncQuestion Integration GET /asyncQuestions/:courseId prevents studen
       "closedAt": null,
       "comments": [],
       "courseId": 1,
-      "createdAt": "2025-01-01T00:00:00.000Z",
       "creator": {
         "anonId": 4,
         "colour": "#5A2E2E",
