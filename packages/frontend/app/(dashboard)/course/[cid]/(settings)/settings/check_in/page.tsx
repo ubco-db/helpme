@@ -53,6 +53,18 @@ export default function TACheckInCheckOutTimes(
       const modifiedEvents = result.taCheckinTimes.map((event) =>
         parseEvent(event),
       )
+
+      const awayEvents =
+        result.taAwayTimes?.map((away) => ({
+          title: `${away.name} (Away)`,
+          start: new Date(away.awayStartTime),
+          end: away.awayEndTime ? new Date(away.awayEndTime) : new Date(),
+          backgroundColor: away.inProgress ? '#d97706' : '#f59e0b',
+          studentsHelped: 0,
+          TAStatus: TAStatus.Away,
+        })) ?? [];
+      setEvents([...modifiedEvents, ...awayEvents]);
+
       setEvents(modifiedEvents)
     } catch (error) {
       const errorMessage = getErrorMessage(error)
