@@ -13,7 +13,6 @@ import {
   OrganizationRoleHistoryFilter,
   OrganizationRoleHistoryResponse,
   OrgRoleChangeReason,
-  OrgRoleChangeReasonMap,
   OrgRoleHistory,
   OrgUser,
   Role,
