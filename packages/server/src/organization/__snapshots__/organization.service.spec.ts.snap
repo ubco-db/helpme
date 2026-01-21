@@ -86,7 +86,6 @@ exports[`OrganizationService getOrganizationCourse should return organization co
     "zoomLink": null,
   },
   "courseId": 1,
-  "createdAt": Any<Date>,
   "id": 1,
   "organizationId": 1,
   "profIds": [],

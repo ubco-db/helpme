@@ -15,8 +15,7 @@ exports[`AuthService loginWithGoogle should create a new user when user does not
   "includeDefaultMessage": true,
   "lastName": "Doe",
   "name": "John Doe",
-  "organizationUser": {
-    "createdAt": Any<Date>,
+  "organizationUser": OrganizationUserModel {
     "id": 1,
     "organizationId": 2,
     "role": "member",
@@ -45,8 +44,7 @@ exports[`AuthService loginWithShibboleth should create a new user when user does
   "includeDefaultMessage": true,
   "lastName": "Doe",
   "name": "John Doe",
-  "organizationUser": {
-    "createdAt": Any<Date>,
+  "organizationUser": OrganizationUserModel {
     "id": 1,
     "organizationId": 2,
     "role": "member",

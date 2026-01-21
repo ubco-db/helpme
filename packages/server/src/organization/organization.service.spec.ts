@@ -335,7 +335,6 @@ describe('OrganizationService', () => {
         course.id,
       );
       expect(organizationCourse).toMatchSnapshot({
-        createdAt: expect.any(Date),
         course: {
           createdAt: expect.any(Date),
           semester: {
