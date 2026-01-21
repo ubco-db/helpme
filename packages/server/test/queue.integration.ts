@@ -87,7 +87,7 @@ describe('Queue Integration', () => {
         .get(`/queues/${queue.id}`)
         .expect(401);
       expect(res.body).toMatchSnapshot({
-        timestamp: expect.any(String),
+        statusCode: expect.any(Number),
       });
     });
 

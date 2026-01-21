@@ -759,7 +759,8 @@ describe('ChatbotController Integration', () => {
         .send(params)
         .expect(200);
       expect(res.body).toMatchSnapshot({
-        createdAt: expect.any(String),
+        id: expect.any(Number),
+        providerType: expect.any(String),
       });
     });
   });
@@ -1008,7 +1009,8 @@ describe('ChatbotController Integration', () => {
           .get(`/chatbot/course/${orgCourse.courseId}`)
           .expect(200);
         expect(res.body).toMatchSnapshot({
-          createdAt: expect.any(String),
+          id: expect.any(Number),
+          courseId: expect.any(Number),
         });
         expect(upsertSpy).toHaveBeenCalledTimes(1);
         upsertSpy.mockRestore();
@@ -1033,7 +1035,8 @@ describe('ChatbotController Integration', () => {
           .get(`/chatbot/course/${orgCourse.courseId}`)
           .expect(200);
         expect(res.body).toMatchSnapshot({
-          createdAt: expect.any(String),
+          id: expect.any(Number),
+          courseId: expect.any(Number),
         });
         expect(upsertSpy).not.toHaveBeenCalled();
         upsertSpy.mockRestore();
@@ -1401,11 +1404,12 @@ describe('ChatbotController Integration', () => {
           .get(`/chatbot/course/${orgCourse.courseId}/provider`)
           .expect(200);
 
-        expect(res.body).toMatchSnapshot({
-          0: {
-            createdAt: expect.any(String),
+        expect(res.body).toMatchSnapshot([
+          {
+            id: expect.any(Number),
+            providerType: expect.any(String),
           },
-        });
+        ]);
       },
     );
   });
