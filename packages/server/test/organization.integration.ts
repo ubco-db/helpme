@@ -139,9 +139,7 @@ describe('Organization Integration', () => {
 
       const res = await supertest().get('/organization').expect(200);
 
-      expect(res.body).toMatchSnapshot({
-        0: { createdAt: expect.any(String) },
-      });
+      expect(res.body).toMatchSnapshot();
     });
   });
 
@@ -186,11 +184,7 @@ describe('Organization Integration', () => {
       );
 
       expect(res.status).toBe(200);
-      expect(res.body).toMatchSnapshot({
-        users: {
-          0: { createdAt: expect.any(String) },
-        },
-      });
+      expect(res.body).toMatchSnapshot();
     });
   });
 
@@ -241,11 +235,7 @@ describe('Organization Integration', () => {
       );
 
       expect(res.status).toBe(200);
-      expect(res.body).toMatchSnapshot({
-        courses: {
-          0: { createdAt: expect.any(String) },
-        },
-      });
+      expect(res.body).toMatchSnapshot();
     });
   });
 
@@ -303,11 +293,7 @@ describe('Organization Integration', () => {
       );
 
       expect(res.status).toBe(200);
-      expect(res.body).toMatchSnapshot({
-        organization: {
-          createdAt: expect.any(String),
-        },
-      });
+      expect(res.body).toMatchSnapshot();
     });
   });
 
@@ -430,9 +416,7 @@ describe('Organization Integration', () => {
       );
 
       expect(res.status).toBe(200);
-      expect(res.body).toMatchSnapshot({
-        createdAt: expect.any(String),
-      });
+      expect(res.body).toMatchSnapshot();
     });
   });
 
@@ -459,9 +443,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}`,
       );
 
-      expect(res.body).toMatchSnapshot({
-        createdAt: expect.any(String),
-      });
+      expect(res.body).toMatchSnapshot();
       expect(res.status).toBe(200);
     });
 

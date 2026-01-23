@@ -336,9 +336,7 @@ describe('ChatbotController Integration', () => {
       const res = await supertest({ userId: user.id })
         .get(`/chatbot/organization/${organization.id}`)
         .expect(200);
-      expect(res.body).toMatchSnapshot({
-        createdAt: expect.any(String),
-      });
+      expect(res.body).toMatchSnapshot();
     });
   });
 
@@ -398,9 +396,7 @@ describe('ChatbotController Integration', () => {
         .post(`/chatbot/organization/${organization.id}`)
         .send(params)
         .expect(201);
-      expect(res.body).toMatchSnapshot({
-        createdAt: expect.any(String),
-      });
+      expect(res.body).toMatchSnapshot();
     });
   });
 
@@ -557,11 +553,7 @@ describe('ChatbotController Integration', () => {
       const res = await supertest({ userId: user.id })
         .get(`/chatbot/organization/${organization.id}/course`)
         .expect(200);
-      expect(res.body).toMatchSnapshot({
-        0: {
-          createdAt: expect.any(String),
-        },
-      });
+      expect(res.body).toMatchSnapshot();
     });
   });
 
@@ -582,11 +574,7 @@ describe('ChatbotController Integration', () => {
       const res = await supertest({ userId: user.id })
         .get(`/chatbot/organization/${organization.id}/provider`)
         .expect(200);
-      expect(res.body).toMatchSnapshot({
-        0: {
-          createdAt: expect.any(String),
-        },
-      });
+      expect(res.body).toMatchSnapshot();
     });
   });
 
@@ -758,10 +746,8 @@ describe('ChatbotController Integration', () => {
         )
         .send(params)
         .expect(200);
-      expect(res.body).toMatchSnapshot({
-        id: expect.any(Number),
-        providerType: expect.any(String),
-      });
+      expect(pick(res.body, props)).toEqual(pick(params, props));
+      expect(res.body).toMatchSnapshot();
     });
   });
 
@@ -1008,10 +994,7 @@ describe('ChatbotController Integration', () => {
         const res = await supertest({ userId: user.id })
           .get(`/chatbot/course/${orgCourse.courseId}`)
           .expect(200);
-        expect(res.body).toMatchSnapshot({
-          id: expect.any(Number),
-          courseId: expect.any(Number),
-        });
+        expect(res.body).toMatchSnapshot();
         expect(upsertSpy).toHaveBeenCalledTimes(1);
         upsertSpy.mockRestore();
       },
@@ -1034,10 +1017,7 @@ describe('ChatbotController Integration', () => {
         const res = await supertest({ userId: user.id })
           .get(`/chatbot/course/${orgCourse.courseId}`)
           .expect(200);
-        expect(res.body).toMatchSnapshot({
-          id: expect.any(Number),
-          courseId: expect.any(Number),
-        });
+        expect(res.body).toMatchSnapshot();
         expect(upsertSpy).not.toHaveBeenCalled();
         upsertSpy.mockRestore();
       },
@@ -1404,12 +1384,7 @@ describe('ChatbotController Integration', () => {
           .get(`/chatbot/course/${orgCourse.courseId}/provider`)
           .expect(200);
 
-        expect(res.body).toMatchSnapshot([
-          {
-            id: expect.any(Number),
-            providerType: expect.any(String),
-          },
-        ]);
+        expect(res.body).toMatchSnapshot();
       },
     );
   });
