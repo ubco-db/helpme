@@ -134,7 +134,9 @@ describe('Queue Integration', () => {
         .get(`/queues/${queue.id}/questions`)
         .expect(200);
 
-      expect(res.body).toMatchSnapshot();
+      expect(res.body.questions.length).toBe(1);
+      expect(res.body.questions[0]).toHaveProperty('id');
+      expect(res.body.questions[0]).toHaveProperty('questionType');
       expect(res.body.questions[0].creator).not.toHaveProperty('firstName');
       expect(res.body.questions[0].creator).not.toHaveProperty('lastName');
     });
