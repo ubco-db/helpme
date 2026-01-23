@@ -139,7 +139,14 @@ describe('Organization Integration', () => {
 
       const res = await supertest().get('/organization').expect(200);
 
-      expect(res.body).toMatchSnapshot();
+      expect(res.body).toMatchSnapshot([
+        {
+          createdAt: expect.any(String),
+        },
+        {
+          createdAt: expect.any(String),
+        },
+      ]);
     });
   });
 
@@ -235,7 +242,14 @@ describe('Organization Integration', () => {
       );
 
       expect(res.status).toBe(200);
-      expect(res.body).toMatchSnapshot();
+      expect(res.body).toMatchSnapshot([
+        {
+          semester: {
+            endDate: expect.any(String),
+            startDate: expect.any(String),
+          },
+        },
+      ]);
     });
   });
 
@@ -443,7 +457,9 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}`,
       );
 
-      expect(res.body).toMatchSnapshot();
+      expect(res.body).toMatchSnapshot({
+        createdAt: expect.any(String),
+      });
       expect(res.status).toBe(200);
     });
 

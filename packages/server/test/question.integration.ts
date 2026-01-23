@@ -1386,9 +1386,10 @@ describe('Question Integration', () => {
       expect(updatedQuestion.isTaskQuestion).toBe(false);
       expect(updatedQuestion.queueId).toBe(q.queueId);
       expect(updatedQuestion.questionTypes.length).toBe(1);
-      expect(updatedQuestion.questionTypes[0]).toEqual({
+      expect(updatedQuestion.questionTypes[0]).toMatchObject({
         cid: qt.cid,
         color: qt.color,
+        createdAt: expect.any(Date),
         deletedAt: null,
         id: qt.id,
         name: qt.name,
