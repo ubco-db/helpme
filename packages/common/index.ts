@@ -351,6 +351,7 @@ export enum MailServiceType {
   ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST = 'async_question_new_comment_on_my_post',
   ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST = 'async_question_new_comment_on_others_post',
   COURSE_CLONE_SUMMARY = 'course_clone_summary',
+  WEEKLY_COURSE_SUMMARY= 'weekly_course_summary',
 }
 /**
  * Represents one of three possible user roles in a course.
