@@ -208,6 +208,11 @@ export default function AsyncCentrePage(
 
   const totalQuestions = displayedQuestions.length // total length after all filters applied
 
+  // reset to page 1 whenever the filtered question count changes.
+  useEffect(() => {
+    setPage(1)
+  }, [displayedQuestions.length])
+
   const paginatedQuestions = useMemo(() => {
     const startIndex = (page - 1) * pageSize //calculates where to start slicing
     const endIndex = startIndex + pageSize // and where to stop slicing
