@@ -2,7 +2,7 @@ import { AsyncQuestion } from '@koh/common'
 import useSWR from 'swr'
 import { API } from '../api'
 
-export function useAsnycQuestions(
+export function useAsyncQuestions(
   cid: number,
 ): [
   AsyncQuestion[] | undefined,

@@ -1,11 +1,6 @@
 'use client'
 
-import {
-  AsyncQuestion,
-  asyncQuestionStatus,
-  QuestionType,
-  Role,
-} from '@koh/common'
+import { asyncQuestionStatus, QuestionType, Role } from '@koh/common'
 import React, {
   ReactElement,
   use,
@@ -14,10 +9,18 @@ import React, {
   useMemo,
   useState,
 } from 'react'
-import { Button, Checkbox, Popover, Segmented, Select, Tooltip } from 'antd'
+import {
+  Button,
+  Checkbox,
+  Pagination,
+  Popover,
+  Segmented,
+  Select,
+  Tooltip,
+} from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getRoleInCourse } from '@/app/utils/generalUtils'
-import { useAsnycQuestions } from '@/app/hooks/useAsyncQuestions'
+import { useAsyncQuestions } from '@/app/hooks/useAsyncQuestions'
 import AsyncCentreInfoColumn from './components/AsyncCentreInfoColumn'
 import {
   EditQueueButton,
@@ -59,7 +62,11 @@ export default function AsyncCentrePage(
   const { userInfo } = useUserInfo()
   const role = getRoleInCourse(userInfo, courseId)
   const isStaff = role === Role.TA || role === Role.PROFESSOR
-  const [asyncQuestions, mutateAsyncQuestions] = useAsnycQuestions(courseId)
+
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [asyncQuestions, mutateAsyncQuestions] = useAsyncQuestions(courseId)
+
   const [createAsyncQuestionModalOpen, setCreateAsyncQuestionModalOpen] =
     useState(false)
   const [editAsyncCentreModalOpen, setEditAsyncCentreModalOpen] =
@@ -89,7 +96,6 @@ export default function AsyncCentrePage(
     if (convertChatbotQSearchParam && messages.length > 1) {
       setConvertChatbotQModalOpen(true)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [convertChatbotQSearchParam])
 
   useEffect(() => {
@@ -177,7 +183,8 @@ export default function AsyncCentrePage(
   )
 
   const applySort = useMemo(() => {
-    return applyCreatorFilter.sort((a, b) => {
+    return [...applyCreatorFilter].sort((a, b) => {
+      //create new reference so useMemo detects change
       switch (sortBy) {
         case 'newest':
           return (
@@ -198,6 +205,19 @@ export default function AsyncCentrePage(
   }, [sortBy, applyCreatorFilter])
 
   const displayedQuestions = useMemo(() => applySort, [applySort])
+
+  const totalQuestions = displayedQuestions.length // total length after all filters applied
+
+  // reset to page 1 whenever the filtered question count changes.
+  useEffect(() => {
+    setPage(1)
+  }, [displayedQuestions.length])
+
+  const paginatedQuestions = useMemo(() => {
+    const startIndex = (page - 1) * pageSize //calculates where to start slicing
+    const endIndex = startIndex + pageSize // and where to stop slicing
+    return displayedQuestions.slice(startIndex, endIndex)
+  }, [page, pageSize, displayedQuestions])
 
   // This endpoint will be called to update unread count back to 0 when this page is entered
   // May seem more inefficient but this is the only way to ensure that the unread count is accurate given that userInfo no longer tracks it
@@ -373,7 +393,7 @@ export default function AsyncCentrePage(
           }
         />
         <VerticalDivider />
-        <div className="flex-grow md:mt-4">
+        <div className="flex flex-grow flex-col md:mt-4">
           {/* Filters on DESKTOP ONLY */}
           <div className="mb-4 hidden items-center gap-x-4 md:flex">
             <h3 className="hidden flex-shrink-0 text-lg font-bold md:block">
@@ -417,17 +437,39 @@ export default function AsyncCentrePage(
             </Popover>
           </div>
 
-          {displayedQuestions.map((question) => (
-            <AsyncQuestionCard
-              key={question.id}
-              question={question}
-              userId={userInfo.id}
-              mutateAsyncQuestions={mutateAsyncQuestions}
-              userCourseRole={role}
-              courseId={courseId}
-              showStudents={showStudents}
+          <div className="flex flex-grow flex-col justify-between">
+            <div className="flex flex-grow flex-col">
+              {paginatedQuestions.map((question) => (
+                <AsyncQuestionCard
+                  key={question.id}
+                  question={question}
+                  userId={userInfo.id}
+                  mutateAsyncQuestions={mutateAsyncQuestions}
+                  userCourseRole={role}
+                  courseId={courseId}
+                  showStudents={showStudents}
+                />
+              ))}
+            </div>
+
+            <Pagination
+              current={page}
+              pageSize={pageSize}
+              total={totalQuestions}
+              onChange={(newPage, newPageSize) => {
+                setPage(newPage)
+                if (newPageSize !== pageSize) {
+                  setPageSize(newPageSize)
+                  setPage(1) // reset to page 1 when page size changes so you don't end up on a page that doesnt exist anymore
+                }
+              }}
+              showSizeChanger
+              showTotal={(total, range) =>
+                `${range[0]}-${range[1]} of ${total} questions`
+              }
+              className="mb-2 mt-4 text-center"
             />
-          ))}
+          </div>
         </div>
         <ConvertChatbotQToAnytimeQModal
           courseId={courseId}
