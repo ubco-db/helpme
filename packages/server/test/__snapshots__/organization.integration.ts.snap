@@ -61,10 +61,10 @@ exports[`Organization Integration GET /organization/:oid/get_courses{/:page} sho
     "semester": {
       "color": "blue",
       "description": "Test Semester Description",
-      "endDate": "2022-12-31T08:00:00.000Z",
+      "endDate": "2022-12-31T00:00:00.000Z",
       "id": 1,
       "name": "Test Semester",
-      "startDate": "2020-09-01T07:00:00.000Z",
+      "startDate": "2020-09-01T00:00:00.000Z",
     },
     "semesterId": 1,
   },
