@@ -140,8 +140,8 @@ export class FactoryService {
 
     this.SemesterFactory = new Factory(SemesterModel, dataSource)
       .attr('name', 'Test Semester')
-      .attr('startDate', new Date(2020, 8, 1))
-      .attr('endDate', new Date(2022, 11, 31))
+      .attr('startDate', new Date('2020-09-01'))
+      .attr('endDate', new Date('2022-12-31'))
       .attr('description', 'Test Semester Description')
       .assocOne('organization', this.OrganizationFactory);
 
