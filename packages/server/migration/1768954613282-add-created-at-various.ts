@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class RemoveCreatedAt1768954613282 implements MigrationInterface {
-  name = 'RemoveCreatedAt1768954613282';
+export class AddCreatedAtVarious1768954613282 implements MigrationInterface {
+  name = 'AddCreatedAtVarious1768954613282';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

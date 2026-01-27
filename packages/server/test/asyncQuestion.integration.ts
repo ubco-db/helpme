@@ -1002,8 +1002,7 @@ describe('AsyncQuestion Integration', () => {
       expect(response.status).toBe(200);
       const questions: AsyncQuestion[] = response.body;
       expect(questions).toHaveLength(2);
-      const snapshotQuestions = questions.map(({ createdAt, ...rest }) => rest);
-      expect(snapshotQuestions).toMatchSnapshot();
+      expect(questions).toMatchSnapshot();
       expect(questions).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -1296,12 +1295,7 @@ describe('AsyncQuestion Integration', () => {
         student: questions,
         staff: questions2,
       };
-      const snapshotAllQuestions = {
-        student: allQuestions.student.map(({ createdAt, ...r }) => r),
-        staff: allQuestions.staff.map(({ createdAt, ...r }) => r),
-      };
-
-      expect(snapshotAllQuestions).toMatchSnapshot();
+      expect(allQuestions).toMatchSnapshot();
     });
     it('will show user information on non-anonymous comments even if viewer is not the creator or staff', async () => {
       const asyncQuestion5 = await AsyncQuestionFactory.create({
@@ -1416,12 +1410,7 @@ describe('AsyncQuestion Integration', () => {
         student: questions,
         staff: questions2,
       };
-      const snapshotAllQuestions = {
-        student: questions.map(({ createdAt, ...r }) => r),
-        staff: questions2.map(({ createdAt, ...r }) => r),
-      };
-
-      expect(snapshotAllQuestions).toMatchSnapshot();
+      expect(allQuestions).toMatchSnapshot();
     });
     it('does not show user information when question is anonymous except if the viewer is the creator or staff', async () => {
       const asyncQuestion9 = await AsyncQuestionFactory.create({
@@ -1476,13 +1465,7 @@ describe('AsyncQuestion Integration', () => {
         student: questions2,
         staff: questions3,
       };
-      const snapshotAllQuestions = {
-        author: questions.map(({ createdAt, ...r }) => r),
-        student: questions2.map(({ createdAt, ...r }) => r),
-        staff: questions3.map(({ createdAt, ...r }) => r),
-      };
-
-      expect(snapshotAllQuestions).toMatchSnapshot();
+      expect(allQuestions).toMatchSnapshot();
     });
     it('shows user information when question is not anonymous even if the viewer is not the creator or staff', async () => {
       const asyncQuestion9 = await AsyncQuestionFactory.create({
