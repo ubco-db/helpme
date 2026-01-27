@@ -242,14 +242,7 @@ describe('Organization Integration', () => {
       );
 
       expect(res.status).toBe(200);
-      expect(res.body).toMatchSnapshot([
-        {
-          semester: {
-            endDate: expect.any(String),
-            startDate: expect.any(String),
-          },
-        },
-      ]);
+      expect(res.body).toMatchSnapshot();
     });
   });
 
