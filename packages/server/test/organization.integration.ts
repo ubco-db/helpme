@@ -139,14 +139,7 @@ describe('Organization Integration', () => {
 
       const res = await supertest().get('/organization').expect(200);
 
-      expect(res.body).toMatchSnapshot([
-        {
-          createdAt: expect.any(String),
-        },
-        {
-          createdAt: expect.any(String),
-        },
-      ]);
+      expect(res.body).toMatchSnapshot();
     });
   });
 

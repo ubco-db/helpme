@@ -132,17 +132,7 @@ describe('Queue Integration', () => {
         .get(`/queues/${queue.id}/questions`)
         .expect(200);
 
-      expect(res.body).toMatchSnapshot({
-        questions: [
-          {
-            questionTypes: [
-              {
-                createdAt: expect.any(String),
-              },
-            ],
-          },
-        ],
-      });
+      expect(res.body).toMatchSnapshot();
       expect(res.body.questions[0].creator).not.toHaveProperty('firstName');
       expect(res.body.questions[0].creator).not.toHaveProperty('lastName');
     });

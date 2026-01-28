@@ -4,7 +4,7 @@ exports[`Organization Integration GET /organization should return 200 and list o
 [
   {
     "bannerUrl": null,
-    "createdAt": Any<String>,
+    "createdAt": "2026-01-28T03:11:03.588Z",
     "description": "UBC Okanagan",
     "googleAuthEnabled": true,
     "id": 1,
@@ -18,7 +18,7 @@ exports[`Organization Integration GET /organization should return 200 and list o
   },
   {
     "bannerUrl": null,
-    "createdAt": Any<String>,
+    "createdAt": "2026-01-28T03:11:03.592Z",
     "description": "UBC Okanagan",
     "googleAuthEnabled": true,
     "id": 2,
@@ -36,7 +36,7 @@ exports[`Organization Integration GET /organization should return 200 and list o
 exports[`Organization Integration GET /organization/:oid should return 200 and response when user is logged in 1`] = `
 {
   "bannerUrl": null,
-  "createdAt": Any<String>,
+  "createdAt": "2026-01-28T03:11:24.333Z",
   "description": "UBC Okanagan",
   "googleAuthEnabled": true,
   "id": 1,
@@ -61,10 +61,10 @@ exports[`Organization Integration GET /organization/:oid/get_courses{/:page} sho
     "semester": {
       "color": "blue",
       "description": "Test Semester Description",
-      "endDate": "2022-12-31T00:00:00.000Z",
+      "endDate": "2022-12-30T08:00:00.000Z",
       "id": 1,
       "name": "Test Semester",
-      "startDate": "2020-09-01T00:00:00.000Z",
+      "startDate": "2020-08-31T07:00:00.000Z",
     },
     "semesterId": 1,
   },

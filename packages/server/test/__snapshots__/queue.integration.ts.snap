@@ -28,7 +28,7 @@ exports[`Queue Integration GET /queues/:id/questions returns questions in the qu
         {
           "cid": 1,
           "color": "#000000",
-          "createdAt": Any<String>,
+          "createdAt": "2020-01-01T00:00:00.000Z",
           "deletedAt": null,
           "id": 1,
           "name": "Question Type",

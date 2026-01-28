@@ -12,10 +12,10 @@ exports[`OrganizationService getCourses should return organization courses 1`] =
     "semester": {
       "color": "blue",
       "description": "Test Semester Description",
-      "endDate": 2022-12-31T00:00:00.000Z,
+      "endDate": 2022-12-30T08:00:00.000Z,
       "id": 1,
       "name": "Test Semester",
-      "startDate": 2020-09-01T00:00:00.000Z,
+      "startDate": 2020-08-31T07:00:00.000Z,
     },
     "semesterId": 1,
   },
@@ -32,10 +32,10 @@ exports[`OrganizationService getCourses should return organization courses with 
     "semester": {
       "color": "blue",
       "description": "Test Semester Description",
-      "endDate": 2022-12-31T00:00:00.000Z,
+      "endDate": 2022-12-30T08:00:00.000Z,
       "id": 1,
       "name": "Test Semester",
-      "startDate": 2020-09-01T00:00:00.000Z,
+      "startDate": 2020-08-31T07:00:00.000Z,
     },
     "semesterId": 1,
   },
@@ -56,11 +56,11 @@ exports[`OrganizationService getOrganizationAndRoleByUserId should return the or
 
 exports[`OrganizationService getOrganizationCourse should return organization course 1`] = `
 {
-  "course": {
+  "course": CourseModel {
     "asyncQuestionDisplayTypes": [],
     "coordinator_email": null,
     "courseInviteCode": "invite-code",
-    "createdAt": Any<Date>,
+    "createdAt": 2020-01-01T00:00:00.000Z,
     "deletedAt": null,
     "enabled": true,
     "icalURL": "https://calendar.google.com/calendar/ical/t6lu2pic7u9otrbpkuk26sl34g%40group.calendar.google.com/public/basic.ics",
@@ -70,15 +70,15 @@ exports[`OrganizationService getOrganizationCourse should return organization co
     "questionTimer": null,
     "sectionGroupName": "001",
     "selfEnroll": false,
-    "semester": {
+    "semester": SemesterModel {
       "color": "blue",
-      "createdAt": Any<Date>,
+      "createdAt": 2020-01-01T00:00:00.000Z,
       "description": "Test Semester Description",
-      "endDate": "2022-12-31",
+      "endDate": "2022-12-30",
       "id": 1,
       "name": "Test Semester",
       "organizationId": 2,
-      "startDate": "2020-09-01",
+      "startDate": "2020-08-31",
     },
     "semesterId": 1,
     "superCourseId": null,

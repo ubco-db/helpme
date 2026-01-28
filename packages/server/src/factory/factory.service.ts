@@ -143,7 +143,8 @@ export class FactoryService {
       .attr('startDate', new Date('2020-09-01'))
       .attr('endDate', new Date('2022-12-31'))
       .attr('description', 'Test Semester Description')
-      .assocOne('organization', this.OrganizationFactory);
+      .assocOne('organization', this.OrganizationFactory)
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
     this.CourseFactory = new Factory(CourseModel, dataSource)
       .attr('name', 'CS 304')
@@ -156,6 +157,7 @@ export class FactoryService {
       .attr('enabled', true)
       .attr('courseInviteCode', 'invite-code')
       .attr('isCourseInviteEnabled', true)
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'))
       .assocOne('semester', this.SemesterFactory);
 
     this.CourseSettingsFactory = new Factory(CourseSettingsModel, dataSource)
@@ -169,7 +171,8 @@ export class FactoryService {
     this.UserCourseFactory = new Factory(UserCourseModel, dataSource)
       .assocOne('user', this.UserFactory)
       .assocOne('course', this.CourseFactory)
-      .attr('role', Role.STUDENT);
+      .attr('role', Role.STUDENT)
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
     this.QueueFactory = new Factory(QueueModel, dataSource)
       .attr('room', 'Online')
@@ -177,7 +180,8 @@ export class FactoryService {
       .attr('allowQuestions', false)
       .attr('isProfessorQueue', false)
       .attr('isDisabled', false)
-      .attr('config', {});
+      .attr('config', {})
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
     this.QueueStaffFactory = new Factory(QueueStaffModel, dataSource)
       .assocOne('queue', this.QueueFactory)
@@ -189,7 +193,8 @@ export class FactoryService {
       .attr('isQuestionsVisible', false)
       .attr('willInviteToCourse', false)
       .attr('inviteCode', 'invite-code')
-      .attr('QRCodeErrorLevel', 'L');
+      .attr('QRCodeErrorLevel', 'L')
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
     this.QuestionTypeFactory = new Factory(QuestionTypeModel, dataSource)
       .attr('cid', 1)
@@ -197,7 +202,8 @@ export class FactoryService {
       .assocOne('queue', this.QueueFactory)
       .attr('queueId', 1)
       .attr('color', '#000000')
-      .attr('questions', []);
+      .attr('questions', [])
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
     // WARNING: DO NOT USE CREATORID. AS YOU SEE HERE, WE ONLY ACCEPT CREATOR
     //TODO: make it accept creatorId as well

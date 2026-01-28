@@ -994,11 +994,7 @@ describe('ChatbotController Integration', () => {
         const res = await supertest({ userId: user.id })
           .get(`/chatbot/course/${orgCourse.courseId}`)
           .expect(200);
-        expect(res.body).toMatchSnapshot({
-          course: {
-            createdAt: expect.any(String),
-          },
-        });
+        expect(res.body).toMatchSnapshot();
         expect(upsertSpy).toHaveBeenCalledTimes(1);
         upsertSpy.mockRestore();
       },

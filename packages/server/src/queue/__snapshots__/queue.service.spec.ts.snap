@@ -1,11 +1,11 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`QueueService personalizeQuestions hides details of other students 1`] = `
-{
+ListQuestionsResponse {
   "groups": [],
   "priorityQueue": [],
   "questions": [
-    {
+    QuestionModel {
       "closedAt": null,
       "createdAt": 2020-11-02T12:00:00.000Z,
       "creator": UserModel {},
@@ -17,10 +17,10 @@ exports[`QueueService personalizeQuestions hides details of other students 1`] =
       "lastReadyAt": null,
       "location": "Unselected",
       "questionTypes": [
-        {
+        QuestionTypeModel {
           "cid": 1,
           "color": "#000000",
-          "createdAt": Any<Date>,
+          "createdAt": 2020-01-01T00:00:00.000Z,
           "deletedAt": null,
           "id": 1,
           "name": "Question Type",
@@ -32,7 +32,7 @@ exports[`QueueService personalizeQuestions hides details of other students 1`] =
       "text": "help us",
       "waitTime": 0,
     },
-    {
+    QuestionModel {
       "closedAt": null,
       "createdAt": 2020-11-02T12:00:00.000Z,
       "creator": UserModel {},
@@ -44,10 +44,10 @@ exports[`QueueService personalizeQuestions hides details of other students 1`] =
       "lastReadyAt": null,
       "location": "Unselected",
       "questionTypes": [
-        {
+        QuestionTypeModel {
           "cid": 1,
           "color": "#000000",
-          "createdAt": Any<Date>,
+          "createdAt": 2020-01-01T00:00:00.000Z,
           "deletedAt": null,
           "id": 2,
           "name": "Question Type",
@@ -81,10 +81,10 @@ exports[`QueueService personalizeQuestions hides details of other students 1`] =
       "lastReadyAt": null,
       "location": "Unselected",
       "questionTypes": [
-        {
+        QuestionTypeModel {
           "cid": 1,
           "color": "#000000",
-          "createdAt": Any<Date>,
+          "createdAt": 2020-01-01T00:00:00.000Z,
           "deletedAt": null,
           "id": 1,
           "name": "Question Type",
