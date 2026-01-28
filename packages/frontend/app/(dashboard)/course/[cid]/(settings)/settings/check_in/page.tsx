@@ -65,7 +65,7 @@ export default function TACheckInCheckOutTimes(
         })) ?? [];
       setEvents([...modifiedEvents, ...awayEvents]);
 
-      setEvents(modifiedEvents)
+      // setEvents(modifiedEvents)
     } catch (error) {
       const errorMessage = getErrorMessage(error)
       message.error('An error occurred while fetching events:' + errorMessage)
