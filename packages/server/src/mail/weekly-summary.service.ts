@@ -61,24 +61,23 @@ export class WeeklySummaryService {
       // Process each professor-course pair
       for (const professorCourse of professorCourses) {
         try {
-          // Check if professor is subscribed to weekly summaries
-          const subscription = await UserSubscriptionModel.findOne({
-            where: {
-              userId: professorCourse.user.id,
-              isSubscribed: true,
-              service: {
-                serviceType: MailServiceType.WEEKLY_COURSE_SUMMARY,
-              },
-            },
-            relations: ['service'],
-          });
+          // const subscription = await UserSubscriptionModel.findOne({
+          //   where: {
+          //     userId: professorCourse.user.id,
+          //     isSubscribed: true,
+          //     service: {
+          //       serviceType: MailServiceType.WEEKLY_COURSE_SUMMARY,
+          //     },
+          //   },
+          //   relations: ['service'],
+          // });
 
-          if (!subscription) {
-            console.log(
-              `Professor ${professorCourse.user.email} unsubscribed from weekly summaries`,
-            );
-            continue;
-          }
+          // if (!subscription) {
+          //   console.log(
+          //     `Professor ${professorCourse.user.email} unsubscribed from weekly summaries`,
+          //   );
+          //   continue;
+          // }
 
           // Gather statistics
           const chatbotStats = await this.getChatbotStats(
@@ -145,6 +144,7 @@ export class WeeklySummaryService {
       console.log(
         `Weekly summary job completed in ${duration}ms. Sent: ${emailsSent}, Failed: ${emailsFailed}`,
       );
+
     } catch (error) {
       console.error('Fatal error in weekly summary job:', error);
       Sentry.captureException(error);
@@ -260,7 +260,6 @@ export class WeeklySummaryService {
     }));
   }
 
-//Edge cases
   private async shouldSuggestArchiving(course: CourseModel): Promise<boolean> {
     // Check if semester has ended
     if (course.semester?.endDate) {

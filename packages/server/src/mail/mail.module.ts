@@ -6,12 +6,13 @@ import { MailServicesController } from './mail-services.controller';
 import { UserModel } from 'profile/user.entity';
 import { MailerService } from './mailer.service';
 import { WeeklySummaryService } from './weekly-summary.service';
+import { WeeklySummaryCommand } from './weekly-summary.command';
 
 @Global()
 @Module({
   controllers: [MailController, MailServicesController],
   imports: [ConfigModule],
-  providers: [MailService, MailerService, WeeklySummaryService],
+  providers: [MailService, MailerService, WeeklySummaryService, WeeklySummaryCommand],
   exports: [MailService],
 })
 export class MailModule {}
