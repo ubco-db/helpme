@@ -1,4 +1,4 @@
-import { Button, Modal, Pagination, Checkbox, List, Input } from 'antd'
+import { Button, Checkbox, Input, List, Modal, Pagination } from 'antd'
 import { useMemo, useState } from 'react'
 import { useInsightContext } from '@/app/(dashboard)/course/[cid]/(insights)/context/InsightsContext'
 import { UserPartial } from '@koh/common'
@@ -38,6 +38,7 @@ const StudentFilter: React.FC<StudentFilterProps> = ({
     studentDetails != undefined && (
       <>
         <Modal
+          centered
           title={'Select Students'}
           open={modalOpen}
           onCancel={onClose}

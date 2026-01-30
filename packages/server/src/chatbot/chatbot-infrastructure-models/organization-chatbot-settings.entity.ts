@@ -11,7 +11,7 @@ import { ChatbotProviderModel } from './chatbot-provider.entity';
 import { OrganizationModel } from '../../organization/organization.entity';
 import { CourseChatbotSettingsModel } from './course-chatbot-settings.entity';
 import { pick } from 'lodash';
-import { OrganizationChatbotSettingsMetadata } from '@koh/common';
+import { ChatbotOrganizationSettings } from '@koh/common';
 
 @Entity('organization_chatbot_settings_model')
 export class OrganizationChatbotSettingsModel extends BaseEntity {
@@ -89,7 +89,7 @@ export class OrganizationChatbotSettingsModel extends BaseEntity {
     return mappedDefaultProps;
   }
 
-  getMetadata(): OrganizationChatbotSettingsMetadata {
+  getMetadata(): ChatbotOrganizationSettings {
     return {
       defaultProvider: this.defaultProvider?.getMetadata(),
     };

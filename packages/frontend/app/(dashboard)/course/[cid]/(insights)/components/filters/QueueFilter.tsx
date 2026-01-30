@@ -1,4 +1,4 @@
-import { Button, Modal, Checkbox, List, Input } from 'antd'
+import { Button, Checkbox, Input, List, Modal } from 'antd'
 import { useMemo, useState } from 'react'
 import { useInsightContext } from '@/app/(dashboard)/course/[cid]/(insights)/context/InsightsContext'
 import { QueuePartial } from '@koh/common'
@@ -39,6 +39,7 @@ const QueueFilter: React.FC<QueueFilterProps> = ({
     queueDetails != undefined && (
       <>
         <Modal
+          centered
           title={'Select Queues'}
           open={modalOpen}
           onCancel={onClose}

@@ -1,24 +1,23 @@
 import {
-  Modal,
-  Form,
-  Input,
-  DatePicker,
-  TimePicker,
-  Checkbox,
-  Radio,
-  message,
   Button,
-  Popconfirm,
+  Checkbox,
   ColorPickerProps,
+  DatePicker,
+  Form,
   GetProp,
+  Input,
+  message,
+  Modal,
+  Popconfirm,
+  Radio,
   Select,
+  TimePicker,
 } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import dayjs from 'dayjs'
 import { API } from '@/app/api'
-import { Event } from '@/app/typings/types'
+import { dayToIntMapping, Event } from '@/app/typings/types'
 import { Calendar, calendarEventLocationType } from '@koh/common'
-import { dayToIntMapping } from '@/app/typings/types'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { DeleteOutlined } from '@ant-design/icons'
 import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
@@ -175,6 +174,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 
   return (
     <Modal
+      centered
       open={visible}
       title="Edit Event"
       okText="Save Changes"
@@ -261,21 +261,23 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         />
       </Form.Item>
 
-      <Form.Item
-        label="Start Time"
-        name="startTime"
-        rules={[{ required: true, message: 'Please select the start time!' }]}
-      >
-        <TimePicker format="HH:mm" minuteStep={5} />
-      </Form.Item>
+      <div className={'grid w-full grid-cols-2'}>
+        <Form.Item
+          label="Start Time"
+          name="startTime"
+          rules={[{ required: true, message: 'Please select the start time!' }]}
+        >
+          <TimePicker format="HH:mm" minuteStep={5} />
+        </Form.Item>
 
-      <Form.Item
-        label="End Time"
-        name="endTime"
-        rules={[{ required: true, message: 'Please select the end time!' }]}
-      >
-        <TimePicker format="HH:mm" minuteStep={5} />
-      </Form.Item>
+        <Form.Item
+          label="End Time"
+          name="endTime"
+          rules={[{ required: true, message: 'Please select the end time!' }]}
+        >
+          <TimePicker format="HH:mm" minuteStep={5} />
+        </Form.Item>
+      </div>
       <Form.Item
         label="Staff"
         name="staffIds"
@@ -331,7 +333,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       </Form.Item>
 
       {isRepeating && (
-        <>
+        <div className={'grid w-full grid-cols-2'}>
           <Form.Item
             label="Start Date"
             name="startDate"
@@ -379,6 +381,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
             <DatePicker />
           </Form.Item>
           <Form.Item
+            className={'col-span-2'}
             label="Repeat on"
             name="daysOfWeek"
             rules={[
@@ -396,7 +399,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
               ))}
             </Checkbox.Group>
           </Form.Item>
-        </>
+        </div>
       )}
 
       <Form.Item

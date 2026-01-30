@@ -1,11 +1,11 @@
-import { useMemo, useState, useEffect } from 'react'
-import { Modal, Input, Form, message, Checkbox, Tooltip } from 'antd'
+import { useEffect, useMemo, useState } from 'react'
+import { Checkbox, Form, Input, message, Modal, Tooltip } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { QuestionTagSelector } from '../../../components/QuestionTagElement'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { asyncQuestionStatus } from '@koh/common'
+import { asyncQuestionStatus, ChatbotQueryTypeEnum } from '@koh/common'
 import { QuestionCircleOutlined } from '@ant-design/icons'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { ChatbotQToConvertToAnytimeQ } from '@/app/typings/chatbot'
@@ -65,7 +65,7 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
             courseId,
             {
               query: questionText,
-              type: 'abstract',
+              type: ChatbotQueryTypeEnum.ABSTRACT,
             },
           )
 
@@ -110,7 +110,7 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
           courseId,
           data,
         )
-        return response.chatbotRepoVersion.answer
+        return response.answer
       } else {
         return 'All AI uses have been used up for today. Please try again tomorrow.'
       }
@@ -172,6 +172,7 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
 
   return (
     <Modal
+      centered
       open={open}
       title={
         <span>
