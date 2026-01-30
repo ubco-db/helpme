@@ -12,6 +12,7 @@ import {
   Role,
   TACheckinPair,
   TACheckinTimesResponse,
+  TAAwayPair,
   UserCourse,
   UserPartial,
   ExtraTAStatus,
@@ -54,7 +55,7 @@ export class CourseService {
     private readonly mailService: MailService,
     private readonly chatbotApiService: ChatbotApiService,
     private readonly dataSource: DataSource,
-  ) {}
+  ) { }
 
   async getTACheckInCheckOutTimes(
     courseId: number,
@@ -74,26 +75,44 @@ export class CourseService {
           EventType.TA_CHECKED_OUT,
           EventType.TA_CHECKED_OUT_FORCED,
           EventType.TA_CHECKED_OUT_EVENT_END,
+          EventType.TA_MARKED_SELF_AWAY,
+          EventType.TA_MARKED_SELF_BACK,
         ]),
         time: Between(startDateAsDate, endDateAsDate),
         courseId,
       },
       relations: ['user'],
     });
+    console.log('Fetched TA events:', taEvents);
 
     const [checkinEvents, otherEvents] = partition(
       taEvents,
       (e) => e.eventType === EventType.TA_CHECKED_IN,
     );
 
+    const checkoutEvents = taEvents.filter((e) =>
+      e.eventType === EventType.TA_CHECKED_OUT ||
+      e.eventType === EventType.TA_CHECKED_OUT_FORCED ||
+      e.eventType === EventType.TA_CHECKED_OUT_EVENT_END
+    );
+
+    const awayEvents = taEvents.filter(
+      (e) =>
+        e.eventType === EventType.TA_MARKED_SELF_AWAY ||
+        e.eventType === EventType.TA_MARKED_SELF_BACK,
+    );
+
     const taCheckinTimes: TACheckinPair[] = [];
+    const taAwayTimes: TAAwayPair[] = [];
+    const MIN_AWAY_THRESHOLD = 2;// 2 minute threshold to be considered away
+    const MIN_AWAY_MS = MIN_AWAY_THRESHOLD * 60 * 1000;
 
     for (const checkinEvent of checkinEvents) {
       let closestEvent: EventModel = null;
       let mostRecentTime = new Date();
       const originalDate = mostRecentTime;
 
-      for (const checkoutEvent of otherEvents) {
+      for (const checkoutEvent of checkoutEvents) {
         if (
           checkoutEvent.userId === checkinEvent.userId &&
           checkoutEvent.time > checkinEvent.time &&
@@ -123,9 +142,53 @@ export class CourseService {
         forced: closestEvent?.eventType === EventType.TA_CHECKED_OUT_FORCED,
         numHelped,
       });
+
+      const windowEnd = closestEvent?.time ?? new Date();
+      const taAwayEvents = awayEvents.filter(
+        (e) =>
+          e.userId === checkinEvent.userId &&
+          e.time >= checkinEvent.time &&
+          e.time <= windowEnd,
+      )
+        .sort((a, b) => a.time.getTime() - b.time.getTime());
+
+      let currentAwayStart: Date | null = null;
+
+      for (const evt of taAwayEvents) {
+        if (evt.eventType === EventType.TA_MARKED_SELF_AWAY) {
+          currentAwayStart = evt.time;
+        } else if (
+          evt.eventType === EventType.TA_MARKED_SELF_BACK &&
+          currentAwayStart
+        ) {
+          const duration = evt.time.getTime() - currentAwayStart.getTime();
+          if (duration >= MIN_AWAY_MS) {
+            taAwayTimes.push({
+              name: checkinEvent.user.name,
+              awayStartTime: currentAwayStart,
+              awayEndTime: evt.time,
+              inProgress: false,
+            });
+          }
+          currentAwayStart = null;
+        }
+      }
+
+      if (currentAwayStart) {
+        const duration = windowEnd.getTime() - currentAwayStart.getTime();
+        if (duration >= MIN_AWAY_MS) {
+          taAwayTimes.push({
+            name: checkinEvent.user.name,
+            awayStartTime: currentAwayStart,
+            awayEndTime: windowEnd,
+            inProgress: !closestEvent,
+          });
+        }
+      }
+
     }
 
-    return { taCheckinTimes };
+    return { taCheckinTimes, taAwayTimes };
   }
 
   async removeUserFromCourse(userCourse: UserCourseModel): Promise<void> {
@@ -763,7 +826,7 @@ export class CourseService {
             result.newAggregateHelpmePDFIdMap &&
             Object.keys(result.newAggregateHelpmePDFIdMap).length > 0 &&
             Object.keys(result.newAggregateHelpmePDFIdMap).length <
-              Object.keys(docIdMap).length
+            Object.keys(docIdMap).length
           ) {
             console.error(`Error during end of course clone for clone course Id ${clonedCourse.id} (original course Id: ${courseId}). 
               Partial document mapping detected. Despite the helpme repo having ${Object.keys(docIdMap).length} document pdfs to clone, 
@@ -872,13 +935,12 @@ export class CourseService {
       <p>Here is the summary of the course cloning process:</p>
       <ul>
         ${progressLog
-          .map(
-            (log) =>
-              `<li style="color: ${
-                log.success ? 'green' : 'red'
-              }">${log.message}</li>`,
-          )
-          .join('')}
+        .map(
+          (log) =>
+            `<li style="color: ${log.success ? 'green' : 'red'
+            }">${log.message}</li>`,
+        )
+        .join('')}
       </ul>
       <br>
       Note: Do NOT reply to this email.
