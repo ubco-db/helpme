@@ -4,6 +4,7 @@ import { API } from '@/app/api'
 import {
   GetOrganizationResponse,
   OrganizationCourseResponse,
+  OrganizationRole,
   Role,
   User,
 } from '@koh/common'
@@ -20,6 +21,7 @@ import { QuestionCircleOutlined } from '@ant-design/icons'
 import CourseCloneFormModal from './CourseCloneFormModal'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
+import ProfInvites from './ProfInvites'
 
 type EditCourseProps = {
   courseId: number
@@ -34,7 +36,6 @@ const EditCourse: React.FC<EditCourseProps> = ({
 }) => {
   const organizationSettings = useOrganizationSettings(organization.id)
   const [courseData, setCourseData] = useState<OrganizationCourseResponse>()
-  const [featuresEnabled, setFeaturesEnabled] = useState(false)
   const { userInfo, setUserInfo } = useUserInfo()
 
   const router = useRouter()
@@ -76,83 +77,73 @@ const EditCourse: React.FC<EditCourseProps> = ({
     })
   }
 
-  const checkFeaturesDisabled = async () => {
-    if (user.courses.length === 0) {
-      setFeaturesEnabled(false)
-      return
-    }
-
-    const isUserInCourse = user.courses.find(
-      (course) => course.course.id === courseId,
-    )
-
-    if (isUserInCourse) {
-      setFeaturesEnabled(true)
-    }
-  }
+  const isUserInCourse = userInfo.courses.find(
+    (course) => course.course.id === courseId,
+  )
 
   useEffect(() => {
     fetchCourseData()
-    checkFeaturesDisabled()
   }, [])
 
   return courseData ? (
     <>
       <title>{`HelpMe | Editing ${courseData.course?.name}`}</title>
       <div className="mb-5 space-y-5">
-        <Card variant="outlined" title="Edit Course">
-          <EditCourseForm
-            courseData={courseData}
-            organization={organization}
-            fetchCourseData={fetchCourseData}
-            user={user}
-          />
-        </Card>
+        <EditCourseForm
+          courseData={courseData}
+          organization={organization}
+          fetchCourseData={fetchCourseData}
+          user={user}
+        />
 
-        {featuresEnabled && (
-          <>
-            <Card variant="outlined" title="Course Features">
-              <CourseFeaturesForm courseData={courseData} />
-            </Card>
+        {isUserInCourse && (
+          <Card variant="outlined" title="Course Features">
+            <CourseFeaturesForm courseData={courseData} />
+          </Card>
+        )}
 
-            <Card
-              variant="outlined"
-              title={
-                <div className="flex items-center justify-start gap-3">
-                  <div>Course Invite Link</div>
-                  <div className="text-gray-500">
-                    <Tooltip
-                      title={
-                        <div className="flex flex-col gap-y-2">
-                          <p>
-                            This is the invite link for the course. Once
-                            enabled, you can copy the link and share it with
-                            your students (e.g. Syllabus, Announcement, Lab
-                            sheet) or print the QR code.
-                          </p>
-                          <p>
-                            Later on, once all your students have joined, you
-                            can choose to disable the link.
-                          </p>
-                          <p>
-                            You may also regenerate a new link in case it was
-                            leaked.
-                          </p>
-                        </div>
-                      }
-                    >
-                      Help <QuestionCircleOutlined />
-                    </Tooltip>
-                  </div>
+        {user.organization?.organizationRole === OrganizationRole.ADMIN && (
+          <ProfInvites courseData={courseData} />
+        )}
+
+        {isUserInCourse && (
+          <Card
+            variant="outlined"
+            title={
+              <div className="flex items-center justify-start gap-3">
+                <h3>Course Invite Link</h3>
+                <div className="text-gray-500">
+                  <Tooltip
+                    title={
+                      <div className="flex flex-col gap-y-2">
+                        <p>
+                          This is the invite link for the course. Once enabled,
+                          you can copy the link and share it with your students
+                          (e.g. Syllabus, Announcement, Lab sheet) or print the
+                          QR code.
+                        </p>
+                        <p>
+                          Later on, once all your students have joined, you can
+                          choose to disable the link.
+                        </p>
+                        <p>
+                          You may also regenerate a new link in case it was
+                          leaked.
+                        </p>
+                      </div>
+                    }
+                  >
+                    Help <QuestionCircleOutlined />
+                  </Tooltip>
                 </div>
-              }
-            >
-              <CourseInviteCode
-                fetchCourseData={fetchCourseData}
-                courseData={courseData}
-              />
-            </Card>
-          </>
+              </div>
+            }
+          >
+            <CourseInviteCode
+              fetchCourseData={fetchCourseData}
+              courseData={courseData}
+            />
+          </Card>
         )}
 
         {checkCourseCreatePermissions(userInfo, organizationSettings) && (
