@@ -30,6 +30,7 @@ import * as bcrypt from 'bcrypt';
 import { CourseService } from 'course/course.service';
 import { LoginService } from '../login/login.service';
 import { UserId } from '../decorators/user.decorator';
+import { UserModel } from 'profile/user.entity';
 
 @Controller('auth')
 export class AuthController {
@@ -188,22 +189,19 @@ export class AuthController {
     });
   }
 
+  /* Could also be named forgotPassword (putting this here to be more ctrl+f-able) */
   @Post('/password/reset')
   async requestPasswordReset(
     @Body() body: PasswordRequestResetBody,
     @Res() res: Response,
   ): Promise<Response<void>> {
-    res = await this.authService.validateResetPasswordParams(res, body);
+    let user: UserModel = undefined;
+    [res, user] = await this.authService.validateResetPasswordParams(res, body);
     if (res.headersSent) {
       return;
     }
 
-    const { email, organizationId } = body;
-    return await this.authService.issuePasswordReset(
-      res,
-      email,
-      organizationId,
-    );
+    return await this.authService.issuePasswordReset(res, user);
   }
 
   @Post('register')
