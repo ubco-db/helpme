@@ -55,15 +55,27 @@ export class WeeklySummaryService {
         `Found ${professorCourses.length} professor-course relationships`,
       );
 
+      const professorMap = new Map<number, typeof professorCourses>();
+      for (const pc of professorCourses) {
+        if (!professorMap.has(pc.user.id)) {
+          professorMap.set(pc.user.id, []);
+        }
+        professorMap.get(pc.user.id).push(pc);
+      }
+
+      console.log(`Grouped into ${professorMap.size} unique professors`);
+
       let emailsSent = 0;
       let emailsFailed = 0;
 
-      // Process each professor-course pair
-      for (const professorCourse of professorCourses) {
+      // Process each professor with all their courses
+      for (const [professorId, courses] of professorMap.entries()) {
+        const professor = courses[0].user;
+
         try {
           // const subscription = await UserSubscriptionModel.findOne({
           //   where: {
-          //     userId: professorCourse.user.id,
+          //     userId: professorId,
           //     isSubscribed: true,
           //     service: {
           //       serviceType: MailServiceType.WEEKLY_COURSE_SUMMARY,
@@ -74,67 +86,80 @@ export class WeeklySummaryService {
 
           // if (!subscription) {
           //   console.log(
-          //     `Professor ${professorCourse.user.email} unsubscribed from weekly summaries`,
+          //     `Professor ${professor.email} unsubscribed from weekly summaries`,
           //   );
           //   continue;
           // }
 
-          // Gather statistics
-          const chatbotStats = await this.getChatbotStats(
-            professorCourse.courseId,
-            lastWeek,
-          );
-          const asyncStats = await this.getAsyncQuestionStats(
-            professorCourse.courseId,
-            lastWeek,
-          );
-
-          // Check if there's any activity
-          const hasActivity =
-            chatbotStats.totalQuestions > 0 || asyncStats.total > 0;
-
-          // If no activity, check if archiving
-          if (!hasActivity) {
-            const shouldSuggestArchive = await this.shouldSuggestArchiving(
-              professorCourse.course,
+          // Gather statistics for all courses
+          const courseStatsArray = [];
+          for (const professorCourse of courses) {
+            const chatbotStats = await this.getChatbotStats(
+              professorCourse.courseId,
+              lastWeek,
+            );
+            const asyncStats = await this.getAsyncQuestionStats(
+              professorCourse.courseId,
+              lastWeek,
             );
 
-            if (shouldSuggestArchive) {
-              // Send archive suggestion email
-              await this.sendArchiveSuggestionEmail(professorCourse);
-              emailsSent++;
+            const hasActivity =
+              chatbotStats.totalQuestions > 0 || asyncStats.total > 0;
+
+            // If no activity, check if should suggest archiving
+            if (!hasActivity) {
+              const shouldSuggestArchive = await this.shouldSuggestArchiving(
+                professorCourse.course,
+              );
+              courseStatsArray.push({
+                course: professorCourse.course,
+                chatbotStats,
+                asyncStats,
+                suggestArchive: shouldSuggestArchive,
+              });
+            } else {
+              courseStatsArray.push({
+                course: professorCourse.course,
+                chatbotStats,
+                asyncStats,
+                suggestArchive: false,
+              });
             }
-            continue;
           }
 
-          // Build and send the email
-          const emailHtml = this.buildWeeklySummaryEmail(
-            professorCourse.course,
-            chatbotStats,
-            asyncStats,
+          // Build consolidated email with all courses
+          const emailHtml = this.buildConsolidatedWeeklySummaryEmail(
+            courseStatsArray,
+            lastWeek,
           );
 
+          const courseNames = courses.map((c) => c.course.name).join(', ');
+          const subject =
+            courses.length === 1
+              ? `HelpMe Weekly Summary: ${courses[0].course.name} - Week of ${this.formatDate(lastWeek)}`
+              : `HelpMe Weekly Summary: ${courses.length} Courses - Week of ${this.formatDate(lastWeek)}`;
+
           await this.mailService.sendEmail({
-            receiverOrReceivers: professorCourse.user.email,
+            receiverOrReceivers: professor.email,
             type: MailServiceType.WEEKLY_COURSE_SUMMARY,
-            subject: `HelpMe Weekly Summary: ${professorCourse.course.name} - Week of ${this.formatDate(lastWeek)}`,
+            subject,
             content: emailHtml,
           });
 
           emailsSent++;
           console.log(
-            `Sent weekly summary to ${professorCourse.user.email} for course ${professorCourse.course.name}`,
+            `Sent consolidated weekly summary to ${professor.email} for ${courses.length} course(s): ${courseNames}`,
           );
         } catch (error) {
           emailsFailed++;
           console.error(
-            `Failed to send weekly summary for course ${professorCourse.courseId} to ${professorCourse.user.email}:`,
+            `Failed to send weekly summary to ${professor.email}:`,
             error,
           );
           Sentry.captureException(error, {
             extra: {
-              courseId: professorCourse.courseId,
-              userId: professorCourse.user.id,
+              professorId,
+              courseCount: courses.length,
             },
           });
         }
@@ -290,6 +315,152 @@ export class WeeklySummaryService {
     return recentInteractions === 0 && recentAsyncQuestions === 0;
   }
 
+  private buildConsolidatedWeeklySummaryEmail(
+    courseStatsArray: Array<{
+      course: CourseModel;
+      chatbotStats: ChatbotStats;
+      asyncStats: AsyncQuestionStats;
+      suggestArchive: boolean;
+    }>,
+    weekStartDate: Date,
+  ): string {
+    const weekEndDate = new Date();
+    
+    let html = `
+      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px;">
+          HelpMe Weekly Summary
+        </h1>
+        <p style="color: #7f8c8d; font-size: 16px;">
+          Week of ${this.formatDate(weekStartDate)} - ${this.formatDate(weekEndDate)}
+        </p>
+        <p style="color: #34495e; margin-bottom: 30px;">
+          Summary for ${courseStatsArray.length} course${courseStatsArray.length !== 1 ? 's' : ''}
+        </p>
+    `;
+
+    // Process each course
+    for (const courseData of courseStatsArray) {
+      const { course, chatbotStats, asyncStats, suggestArchive } = courseData;
+
+      html += `
+        <div style="background-color: #f8f9fa; border-left: 4px solid #3498db; padding: 20px; margin-bottom: 30px; border-radius: 5px;">
+          <h2 style="color: #2c3e50; margin-top: 0;">${course.name}</h2>
+      `;
+
+      if (suggestArchive) {
+        html += `
+          <div style="background-color: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <h3 style="color: #856404; margin-top: 0;">Consider Archiving This Course</h3>
+            <p style="color: #856404; margin-bottom: 0;">
+              No activity in the past 4 weeks. You may want to archive this course if the semester has ended.
+            </p>
+          </div>
+        `;
+        continue; // Skip stats for archived courses
+      }
+
+      const hasActivity = chatbotStats.totalQuestions > 0 || asyncStats.total > 0;
+
+      if (!hasActivity) {
+        html += `
+          <p style="color: #7f8c8d; font-style: italic;">No activity this week.</p>
+        `;
+      } else {
+        // Chatbot Activity Section
+        if (chatbotStats.totalQuestions > 0) {
+          html += `
+            <h3 style="color: #3498db; margin-top: 0;">Chatbot Activity</h3>
+            <ul style="line-height: 1.8; color: #34495e;">
+              <li><strong>${chatbotStats.totalQuestions}</strong> questions asked by <strong>${chatbotStats.uniqueStudents}</strong> unique student${chatbotStats.uniqueStudents !== 1 ? 's' : ''}</li>
+              <li>Average: <strong>${chatbotStats.avgQuestionsPerStudent.toFixed(1)}</strong> questions per student</li>
+              <li>Most active day: <strong>${chatbotStats.mostActiveDay}</strong></li>
+            </ul>
+            
+            <h4 style="color: #34495e;">Daily Breakdown:</h4>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          `;
+
+          chatbotStats.byDayOfWeek.forEach((dayData) => {
+            if (dayData.count > 0) {
+              const barWidth = Math.max(
+                (dayData.count / chatbotStats.totalQuestions) * 100,
+                5,
+              );
+              html += `
+                <tr>
+                  <td style="padding: 5px; width: 100px; color: #34495e;">${dayData.day}:</td>
+                  <td style="padding: 5px;">
+                    <div style="background-color: #3498db; height: 20px; width: ${barWidth}%; display: inline-block; border-radius: 3px;"></div>
+                    <span style="margin-left: 10px; color: #34495e;">${dayData.count}</span>
+                  </td>
+                </tr>
+              `;
+            }
+          });
+
+          html += `
+            </table>
+          `;
+        }
+
+        // Async Questions Section
+        if (asyncStats.total > 0) {
+          html += `
+            <h3 style="color: #e74c3c; margin-top: 20px;">Async Questions</h3>
+            <ul style="line-height: 1.8; color: #34495e;">
+              <li><strong>${asyncStats.total}</strong> total questions</li>
+              <li><strong style="color: #27ae60;">${asyncStats.aiResolved}</strong> resolved by AI</li>
+              <li><strong style="color: #3498db;">${asyncStats.humanAnswered}</strong> answered by staff</li>
+              <li><strong style="color: #e74c3c;">${asyncStats.stillNeedHelp}</strong> still need help</li>
+              <li><strong>${asyncStats.withNewComments}</strong> with new comments this week</li>
+          `;
+
+          if (asyncStats.avgResponseTime !== null) {
+            html += `
+              <li>Average response time: <strong>${asyncStats.avgResponseTime.toFixed(1)}</strong> hours</li>
+            `;
+          }
+
+          html += `
+            </ul>
+          `;
+
+          if (asyncStats.stillNeedHelp > 0) {
+            html += `
+              <div style="background-color: #fee; border-left: 4px solid #e74c3c; padding: 10px; margin-top: 15px; border-radius: 3px;">
+                <p style="margin: 0; color: #c0392b;">
+                  <strong>${asyncStats.stillNeedHelp}</strong> question${asyncStats.stillNeedHelp !== 1 ? 's' : ''} still need${asyncStats.stillNeedHelp === 1 ? 's' : ''} attention
+                </p>
+              </div>
+            `;
+          }
+        } else if (chatbotStats.totalQuestions > 0) {
+          html += `
+            <h3 style="color: #e74c3c; margin-top: 20px;">Async Questions</h3>
+            <p style="color: #7f8c8d;">No async questions this week.</p>
+          `;
+        }
+      }
+
+      html += `
+        </div>
+      `;
+    }
+
+    // Footer
+    html += `
+        <hr style="border: 1px solid #ecf0f1; margin: 30px 0;">
+        <p style="color: #95a5a6; font-size: 12px; text-align: center;">
+          Weekly summary from HelpMe.<br>
+          Manage your email preferences in settings.
+        </p>
+      </div>
+    `;
+
+    return html;
+  }
+
   private buildWeeklySummaryEmail(
     course: CourseModel,
     chatbotStats: ChatbotStats,
@@ -364,7 +535,7 @@ export class WeeklySummaryService {
       }
 
       if (asyncStats.avgResponseTime !== null) {
-        html += `<li>⏱Average response time: <strong>${asyncStats.avgResponseTime.toFixed(1)}</strong> hours</li>`;
+        html += `<li>Average response time: <strong>${asyncStats.avgResponseTime.toFixed(1)}</strong> hours</li>`;
       }
 
       html += `
@@ -405,10 +576,10 @@ export class WeeklySummaryService {
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2c3e50;">📋 Course Activity Update: ${course.name}</h2>
+        <h2 style="color: #2c3e50;">Course Activity Update: ${course.name}</h2>
         
         <div style="background-color: #f8f9fa; border-left: 4px solid #6c757d; padding: 15px; margin: 20px 0;">
-          <p>We noticed that <strong>${course.name}</strong> hasn't had any activity in the last 4 weeks.</p>
+          <p><strong>${course.name}</strong> has had no activity in the last 4 weeks.</p>
         </div>
         
         <p>Possible reasons:</p>
@@ -418,7 +589,7 @@ export class WeeklySummaryService {
           <li>The course may no longer be active</li>
         </ul>
         
-        <p><strong>Consider archiving this course</strong> to keep your course list organized.</p>
+        <p>Consider archiving this course to keep your course list organized.</p>
         
         <p style="text-align: center; margin-top: 30px;">
           <a href="${process.env.DOMAIN}/course/${course.id}/settings" 
