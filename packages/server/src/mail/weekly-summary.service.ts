@@ -59,10 +59,14 @@ export class WeeklySummaryService {
         .andWhere('course.enabled = :enabled', { enabled: true })
         .getMany();
 
+      
+     // TO REMOVE
       console.log(
         `Found ${professorCourses.length} professor-course relationships`,
       );
+      console.log('Courses found:', professorCourses.map(pc => `${pc.course.name} (ID: ${pc.courseId}, enabled: ${pc.course.enabled})`).join(', '));
 
+      // Group courses by professor
       const professorMap = new Map<number, typeof professorCourses>();
       for (const pc of professorCourses) {
         if (!professorMap.has(pc.user.id)) {
@@ -71,7 +75,12 @@ export class WeeklySummaryService {
         professorMap.get(pc.user.id).push(pc);
       }
 
-      console.log(`Grouped into ${professorMap.size} unique professors`);
+
+      console.log(`Grouped into ${professorMap.size} unique professors`); // TO REMOVE
+      for (const [profId, courses] of professorMap.entries()) {
+        const prof = courses[0].user;
+        console.log(`  Professor ${prof.email}: ${courses.map(c => c.course.name).join(', ')}`); // TO REMOVE
+      }
 
       let emailsSent = 0;
       let emailsFailed = 0;
@@ -102,22 +111,25 @@ export class WeeklySummaryService {
           // Gather statistics for all courses
           const courseStatsArray = [];
           for (const professorCourse of courses) {
+            console.log(`Processing course: ${professorCourse.course.name} (ID: ${professorCourse.courseId})`); // TO REMOVE
+            
             const chatbotStats = await this.getChatbotStats(
               professorCourse.courseId,
               lastWeek,
             );
-            const asyncStats = await this.getAsyncQuestionStats(
-              professorCourse.courseId,
-              lastWeek,
-            );
+            
             // Wrap async stats in try-catch to handle data issues
             let asyncStats: AsyncQuestionStats;
             try {
               asyncStats = await this.getAsyncQuestionStats(
                 professorCourse.courseId,
                 lastWeek,
+              );
             } catch (error) {
-              console.error(`Failed to get async stats for course ${professorCourse.courseId}:`, error.message);
+              //TODO: Remove logging after debugging
+              console.error(`Failed to get async stats for course ${professorCourse.courseId}:`, error.message); 
+              console.error('Stack trace:', error.stack);
+              // Return empty stats if there's an error
               asyncStats = {
                 total: 0,
                 aiResolved: 0,
@@ -146,6 +158,12 @@ export class WeeklySummaryService {
 
             const hasActivity =
               chatbotStats.totalQuestions > 0 || asyncStats.total > 0 || queueStats.totalQuestions > 0;
+            
+            // REMOVE
+            console.log(`  Chatbot: ${chatbotStats.totalQuestions} questions, ${chatbotStats.uniqueStudents} students`);
+            console.log(`  Async: ${asyncStats.total} questions`);
+            console.log(`  Queue: ${queueStats.totalQuestions} questions, ${queueStats.uniqueStudents} students`);
+            console.log(`  Has activity: ${hasActivity}`);
 
             // If no activity, check if should suggest archiving
             if (!hasActivity) {
@@ -262,11 +280,11 @@ export class WeeklySummaryService {
     courseId: number,
     since: Date,
   ): Promise<AsyncQuestionStats> {
-    const questions = await AsyncQuestionModel.createQueryBuilder('aq')
+    const questions = (await AsyncQuestionModel.createQueryBuilder('aq')
       .leftJoinAndSelect('aq.comments', 'comments')
       .where('aq.courseId = :courseId', { courseId })
       .andWhere('aq.createdAt >= :since', { since })
-      .getMany();
+      .getMany()) || [];
 
     const total = questions.length;
     const aiResolved = questions.filter(
@@ -281,21 +299,15 @@ export class WeeklySummaryService {
     ).length;
 
     // Calculate average response time for answered questions
-    const answeredQuestions = questions.filter((q) => q.closedAt);
+    const answeredQuestions = questions.filter((q) => q.closedAt && q.createdAt) || [];
     const avgResponseTime =
       answeredQuestions.length > 0
         ? answeredQuestions.reduce(
-            (sum, q) =>
-              sum +
-              (q.closedAt.getTime() - new Date(q.createdAt).getTime()) /
             (sum, q) => {
-              if (!q.createdAt) {
-                console.warn(`Question ${q.id} has no createdAt timestamp`);
-                return sum;
-              }
-              const closedTime = q.closedAt ? q.closedAt.getTime() : Date.now();
+              const closedTime = q.closedAt.getTime();
               const createdTime = new Date(q.createdAt).getTime();
               return sum + (closedTime - createdTime) / (1000 * 60 * 60);
+            },
             0,
           ) / answeredQuestions.length
         : null;
@@ -372,6 +384,7 @@ export class WeeklySummaryService {
     if (course.semester?.endDate) {
       const semesterEndDate = new Date(course.semester.endDate);
       if (semesterEndDate < new Date()) {
+        console.log(`  ${course.name}: Semester ended on ${semesterEndDate}`);
         return true;
       }
     }
@@ -394,12 +407,14 @@ export class WeeklySummaryService {
       },
     });
 
-    return recentInteractions === 0 && recentAsyncQuestions === 0;
+    // Check for recent queue questions
     const recentQueueQuestions = await QuestionModel.createQueryBuilder('q')
       .innerJoin('q.queue', 'queue')
       .where('queue.courseId = :courseId', { courseId: course.id })
       .andWhere('q.createdAt >= :since', { since: fourWeeksAgo })
       .getCount();
+
+    // console.log(`  ${course.name} activity check (last 4 weeks): Chatbot=${recentInteractions}, Async=${recentAsyncQuestions}, Queue=${recentQueueQuestions}`);
 
     return recentInteractions === 0 && recentAsyncQuestions === 0 && recentQueueQuestions === 0;
   }
@@ -431,7 +446,6 @@ export class WeeklySummaryService {
 
     // Process each course
     for (const courseData of courseStatsArray) {
-      const { course, chatbotStats, asyncStats, suggestArchive } = courseData;
       const { course, chatbotStats, asyncStats, queueStats, suggestArchive } = courseData;
 
       html += `
@@ -451,7 +465,6 @@ export class WeeklySummaryService {
         continue; // Skip stats for archived courses
       }
 
-      const hasActivity = chatbotStats.totalQuestions > 0 || asyncStats.total > 0;
       const hasActivity = chatbotStats.totalQuestions > 0 || asyncStats.total > 0 || queueStats.totalQuestions > 0;
 
       if (!hasActivity) {
@@ -533,6 +546,8 @@ export class WeeklySummaryService {
             <p style="color: #7f8c8d;">No async questions this week.</p>
           `;
         }
+
+        // Queue Questions Section
         if (queueStats.totalQuestions > 0) {
           html += `
             <h3 style="color: #9b59b6; margin-top: 20px;">Office Hours Queue</h3>
@@ -574,153 +589,6 @@ export class WeeklySummaryService {
     `;
 
     return html;
-  }
-
-  private buildWeeklySummaryEmail(
-    course: CourseModel,
-    chatbotStats: ChatbotStats,
-    asyncStats: AsyncQuestionStats,
-  ): string {
-    const lastWeek = new Date();
-    lastWeek.setDate(lastWeek.getDate() - 7);
-
-    let html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2c3e50;">Weekly Summary: ${course.name}</h2>
-        <p style="color: #7f8c8d;">Week of ${this.formatDate(lastWeek)} - ${this.formatDate(new Date())}</p>
-        <hr style="border: 1px solid #ecf0f1;">
-    `;
-
-    // Chatbot Activity Section
-    if (chatbotStats.totalQuestions > 0) {
-      html += `
-        <h3 style="color: #3498db;">Chatbot Activity</h3>
-        <ul style="line-height: 1.8;">
-          <li><strong>${chatbotStats.totalQuestions}</strong> questions asked by <strong>${chatbotStats.uniqueStudents}</strong> unique student${chatbotStats.uniqueStudents !== 1 ? 's' : ''}</li>
-          <li>Average: <strong>${chatbotStats.avgQuestionsPerStudent.toFixed(1)}</strong> questions per student</li>
-          <li>Most active day: <strong>${chatbotStats.mostActiveDay}</strong></li>
-        </ul>
-        
-        <h4 style="color: #34495e;">Daily Breakdown:</h4>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-      `;
-
-      chatbotStats.byDayOfWeek.forEach((dayData) => {
-        if (dayData.count > 0) {
-          const barWidth = Math.max(
-            (dayData.count / chatbotStats.totalQuestions) * 100,
-            5,
-          );
-          html += `
-            <tr>
-              <td style="padding: 5px; width: 100px;">${dayData.day}:</td>
-              <td style="padding: 5px;">
-                <div style="background-color: #3498db; height: 20px; width: ${barWidth}%; display: inline-block;"></div>
-                <span style="margin-left: 10px;">${dayData.count}</span>
-              </td>
-            </tr>
-          `;
-        }
-      });
-
-      html += `
-        </table>
-      `;
-    } else {
-      html += `
-        <h3 style="color: #3498db;">Chatbot Activity</h3>
-        <p style="color: #7f8c8d;">No chatbot questions this week.</p>
-      `;
-    }
-
-    // Async Questions Section
-    if (asyncStats.total > 0) {
-      html += `
-        <hr style="border: 1px solid #ecf0f1; margin: 20px 0;">
-        <h3 style="color: #9b59b6;">Anytime Questions</h3>
-        <ul style="line-height: 1.8;">
-          <li><strong>${asyncStats.total}</strong> new question${asyncStats.total !== 1 ? 's' : ''} posted</li>
-          <li><strong>${asyncStats.aiResolved}</strong> resolved via AI</li>
-          <li><strong>${asyncStats.humanAnswered}</strong> answered by staff</li>
-          <li><strong>${asyncStats.stillNeedHelp}</strong> still need help</li>
-      `;
-
-      if (asyncStats.withNewComments > 0) {
-        html += `<li> <strong>${asyncStats.withNewComments}</strong> question${asyncStats.withNewComments !== 1 ? 's' : ''} received new comments</li>`;
-      }
-
-      if (asyncStats.avgResponseTime !== null) {
-        html += `<li>Average response time: <strong>${asyncStats.avgResponseTime.toFixed(1)}</strong> hours</li>`;
-      }
-
-      html += `
-        </ul>
-      `;
-
-      if (asyncStats.stillNeedHelp > 0) {
-        html += `
-          <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin: 15px 0;">
-            <strong>Action Needed:</strong> ${asyncStats.stillNeedHelp} question${asyncStats.stillNeedHelp !== 1 ? 's' : ''} still need${asyncStats.stillNeedHelp === 1 ? 's' : ''} your attention.
-          </div>
-        `;
-      }
-    } else {
-      html += `
-        <hr style="border: 1px solid #ecf0f1; margin: 20px 0;">
-        <h3 style="color: #9b59b6;"> Anytime Questions</h3>
-        <p style="color: #7f8c8d;">No async questions this week.</p>
-      `;
-    }
-
-    html += `
-        <hr style="border: 1px solid #ecf0f1; margin: 20px 0;">
-        <p style="text-align: center;">
-          <a href="${process.env.DOMAIN}/course/${course.id}" 
-             style="background-color: #3498db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
-            View Course Dashboard
-          </a>
-        </p>
-      </div>
-    `;
-
-    return html;
-  }
-
-  private async sendArchiveSuggestionEmail(professorCourse: any): Promise<void> {
-    const course = professorCourse.course;
-
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2c3e50;">Course Activity Update: ${course.name}</h2>
-        
-        <div style="background-color: #f8f9fa; border-left: 4px solid #6c757d; padding: 15px; margin: 20px 0;">
-          <p><strong>${course.name}</strong> has had no activity in the last 4 weeks.</p>
-        </div>
-        
-        <p>Possible reasons:</p>
-        <ul>
-          ${course.semester?.endDate && new Date(course.semester.endDate) < new Date() ? '<li>The semester has ended</li>' : ''}
-          ${!course.enabled ? '<li>The course is currently disabled</li>' : ''}
-          <li>The course may no longer be active</li>
-        </ul>
-        
-        <p>Consider archiving this course to keep your course list organized.</p>
-        
-        <p style="text-align: center; margin-top: 30px;">
-          <a href="${process.env.DOMAIN}/course/${course.id}/settings" 
-             style="background-color: #6c757d; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
-            Manage Course Settings
-          </a>
-        </p>
-      </div>
-    `;
-
-    await this.mailService.sendEmail({
-      receiverOrReceivers: professorCourse.user.email,
-      type: MailServiceType.WEEKLY_COURSE_SUMMARY,
-      subject: `HelpMe - Consider Archiving: ${course.name}`,
-      content: html,
-    });
   }
 
   private formatDate(date: Date): string {
