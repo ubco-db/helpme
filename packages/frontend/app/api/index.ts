@@ -1068,6 +1068,8 @@ export class APIClient {
     delete: async () => this.req('GET', `/api/v1/seeds/delete`),
     create: async () => this.req('GET', `/api/v1/seeds/create`),
     fillQueue: async () => this.req('GET', `/api/v1/seeds/fill_queue`),
+    fillAnytimeQuestions: async () =>
+      this.req('GET', `/api/v1/seeds/fill_anytime_questions`),
   }
   semesters = {
     get: async (oid: number): Promise<SemesterPartial[]> =>
