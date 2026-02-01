@@ -4,6 +4,7 @@ import { MailService } from './mail.service';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { InteractionModel } from '../chatbot/interaction.entity';
 import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
+import { QuestionModel } from '../question/question.entity';
 import { CourseModel } from '../course/course.entity';
 import { MailServiceType, Role } from '@koh/common';
 import { MoreThanOrEqual } from 'typeorm';
@@ -25,6 +26,13 @@ interface AsyncQuestionStats {
   stillNeedHelp: number;
   withNewComments: number;
   avgResponseTime: number | null;
+}
+
+interface QueueStats {
+  totalQuestions: number;
+  uniqueStudents: number;
+  avgWaitTime: number | null;
+  avgHelpTime: number | null;
 }
 
 @Injectable()
@@ -102,9 +110,42 @@ export class WeeklySummaryService {
               professorCourse.courseId,
               lastWeek,
             );
+            // Wrap async stats in try-catch to handle data issues
+            let asyncStats: AsyncQuestionStats;
+            try {
+              asyncStats = await this.getAsyncQuestionStats(
+                professorCourse.courseId,
+                lastWeek,
+            } catch (error) {
+              console.error(`Failed to get async stats for course ${professorCourse.courseId}:`, error.message);
+              asyncStats = {
+                total: 0,
+                aiResolved: 0,
+                humanAnswered: 0,
+                stillNeedHelp: 0,
+                withNewComments: 0,
+                avgResponseTime: 0,
+              };
+            }
+
+            let queueStats: QueueStats;
+            try {
+              queueStats = await this.getQueueStats(
+                professorCourse.courseId,
+                lastWeek,
+              );
+            } catch (error) {
+              console.error(`Failed to get queue stats for course ${professorCourse.courseId}:`, error.message);
+              queueStats = {
+                totalQuestions: 0,
+                uniqueStudents: 0,
+                avgWaitTime: null,
+                avgHelpTime: null,
+              };
+            }
 
             const hasActivity =
-              chatbotStats.totalQuestions > 0 || asyncStats.total > 0;
+              chatbotStats.totalQuestions > 0 || asyncStats.total > 0 || queueStats.totalQuestions > 0;
 
             // If no activity, check if should suggest archiving
             if (!hasActivity) {
@@ -115,6 +156,7 @@ export class WeeklySummaryService {
                 course: professorCourse.course,
                 chatbotStats,
                 asyncStats,
+                queueStats,
                 suggestArchive: shouldSuggestArchive,
               });
             } else {
@@ -122,6 +164,7 @@ export class WeeklySummaryService {
                 course: professorCourse.course,
                 chatbotStats,
                 asyncStats,
+                queueStats,
                 suggestArchive: false,
               });
             }
@@ -245,7 +288,14 @@ export class WeeklySummaryService {
             (sum, q) =>
               sum +
               (q.closedAt.getTime() - new Date(q.createdAt).getTime()) /
-                (1000 * 60 * 60),
+            (sum, q) => {
+              if (!q.createdAt) {
+                console.warn(`Question ${q.id} has no createdAt timestamp`);
+                return sum;
+              }
+              const closedTime = q.closedAt ? q.closedAt.getTime() : Date.now();
+              const createdTime = new Date(q.createdAt).getTime();
+              return sum + (closedTime - createdTime) / (1000 * 60 * 60);
             0,
           ) / answeredQuestions.length
         : null;
@@ -257,6 +307,38 @@ export class WeeklySummaryService {
       stillNeedHelp,
       withNewComments,
       avgResponseTime,
+    };
+  }
+
+  private async getQueueStats(
+    courseId: number,
+    since: Date,
+  ): Promise<QueueStats> {
+    const questions = await QuestionModel.createQueryBuilder('q')
+      .innerJoin('q.queue', 'queue')
+      .innerJoin('q.creator', 'creator')
+      .where('queue.courseId = :courseId', { courseId })
+      .andWhere('q.createdAt >= :since', { since })
+      .getMany();
+
+    const totalQuestions = questions.length;
+    const uniqueStudents = new Set(questions.map(q => q.creatorId)).size;
+
+    const questionsWithWait = questions.filter(q => q.waitTime > 0);
+    const avgWaitTime = questionsWithWait.length > 0
+      ? questionsWithWait.reduce((sum, q) => sum + q.waitTime, 0) / questionsWithWait.length / 60
+      : null;
+
+    const questionsWithHelp = questions.filter(q => q.helpTime > 0);
+    const avgHelpTime = questionsWithHelp.length > 0
+      ? questionsWithHelp.reduce((sum, q) => sum + q.helpTime, 0) / questionsWithHelp.length / 60
+      : null;
+
+    return {
+      totalQuestions,
+      uniqueStudents,
+      avgWaitTime,
+      avgHelpTime,
     };
   }
 
@@ -313,6 +395,13 @@ export class WeeklySummaryService {
     });
 
     return recentInteractions === 0 && recentAsyncQuestions === 0;
+    const recentQueueQuestions = await QuestionModel.createQueryBuilder('q')
+      .innerJoin('q.queue', 'queue')
+      .where('queue.courseId = :courseId', { courseId: course.id })
+      .andWhere('q.createdAt >= :since', { since: fourWeeksAgo })
+      .getCount();
+
+    return recentInteractions === 0 && recentAsyncQuestions === 0 && recentQueueQuestions === 0;
   }
 
   private buildConsolidatedWeeklySummaryEmail(
@@ -320,6 +409,7 @@ export class WeeklySummaryService {
       course: CourseModel;
       chatbotStats: ChatbotStats;
       asyncStats: AsyncQuestionStats;
+      queueStats: QueueStats;
       suggestArchive: boolean;
     }>,
     weekStartDate: Date,
@@ -342,6 +432,7 @@ export class WeeklySummaryService {
     // Process each course
     for (const courseData of courseStatsArray) {
       const { course, chatbotStats, asyncStats, suggestArchive } = courseData;
+      const { course, chatbotStats, asyncStats, queueStats, suggestArchive } = courseData;
 
       html += `
         <div style="background-color: #f8f9fa; border-left: 4px solid #3498db; padding: 20px; margin-bottom: 30px; border-radius: 5px;">
@@ -361,6 +452,7 @@ export class WeeklySummaryService {
       }
 
       const hasActivity = chatbotStats.totalQuestions > 0 || asyncStats.total > 0;
+      const hasActivity = chatbotStats.totalQuestions > 0 || asyncStats.total > 0 || queueStats.totalQuestions > 0;
 
       if (!hasActivity) {
         html += `
@@ -439,6 +531,29 @@ export class WeeklySummaryService {
           html += `
             <h3 style="color: #e74c3c; margin-top: 20px;">Async Questions</h3>
             <p style="color: #7f8c8d;">No async questions this week.</p>
+          `;
+        }
+        if (queueStats.totalQuestions > 0) {
+          html += `
+            <h3 style="color: #9b59b6; margin-top: 20px;">Office Hours Queue</h3>
+            <ul style="line-height: 1.8; color: #34495e;">
+              <li><strong>${queueStats.totalQuestions}</strong> questions from <strong>${queueStats.uniqueStudents}</strong> unique student${queueStats.uniqueStudents !== 1 ? 's' : ''}</li>
+          `;
+
+          if (queueStats.avgWaitTime !== null) {
+            html += `
+              <li>Average wait time: <strong>${queueStats.avgWaitTime.toFixed(1)}</strong> minutes</li>
+            `;
+          }
+
+          if (queueStats.avgHelpTime !== null) {
+            html += `
+              <li>Average help time: <strong>${queueStats.avgHelpTime.toFixed(1)}</strong> minutes</li>
+            `;
+          }
+
+          html += `
+            </ul>
           `;
         }
       }
