@@ -1045,9 +1045,7 @@ describe('AuthService', () => {
           organizationUser: true,
         },
       });
-      expect(user).toMatchSnapshot({
-        createdAt: expect.any(Date),
-      });
+      expect(user).toMatchSnapshot();
       expect(roleChangeSpy).toHaveBeenCalledTimes(1);
       expect(roleChangeSpy).toHaveBeenCalledWith(
         organization.id,
@@ -1106,9 +1104,7 @@ describe('AuthService', () => {
           organizationUser: true,
         },
       });
-      expect(user).toMatchSnapshot({
-        createdAt: expect.any(Date),
-      });
+      expect(user).toMatchSnapshot();
       expect(roleChangeSpy).toHaveBeenCalledTimes(1);
       expect(roleChangeSpy).toHaveBeenCalledWith(
         organization.id,

@@ -124,19 +124,18 @@ export class FactoryService {
       .attr('hideInsights', [])
       .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
-    this.StudentCourseFactory = new Factory(UserCourseModel, dataSource).attr(
-      'role',
-      Role.STUDENT,
-    );
+    this.StudentCourseFactory = new Factory(UserCourseModel, dataSource)
+      .attr('role', Role.STUDENT)
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
-    this.TACourseFactory = new Factory(UserCourseModel, dataSource).attr(
-      'role',
-      Role.TA,
-    );
+    this.TACourseFactory = new Factory(UserCourseModel, dataSource)
+      .attr('role', Role.TA)
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
     this.OrganizationFactory = new Factory(OrganizationModel, dataSource)
       .attr('name', 'UBCO')
-      .attr('description', 'UBC Okanagan');
+      .attr('description', 'UBC Okanagan')
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
     this.SemesterFactory = new Factory(SemesterModel, dataSource)
       .attr('name', 'Test Semester')

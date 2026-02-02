@@ -443,9 +443,7 @@ describe('Organization Integration', () => {
         `/organization/${organization.id}`,
       );
 
-      expect(res.body).toMatchSnapshot({
-        createdAt: expect.any(String),
-      });
+      expect(res.body).toMatchSnapshot();
       expect(res.status).toBe(200);
     });
 
