@@ -675,16 +675,19 @@ describe('Course Integration', () => {
       expect(q1).toMatchSnapshot({
         id: expect.any(Number),
         courseId: expect.any(Number),
+        createdAt: expect.any(Date),
       });
 
       expect(q2).toMatchSnapshot({
         id: expect.any(Number),
         courseId: expect.any(Number),
+        createdAt: expect.any(Date),
       });
 
       expect(q3).toMatchSnapshot({
         id: expect.any(Number),
         courseId: expect.any(Number),
+        createdAt: expect.any(Date),
       });
     });
 
