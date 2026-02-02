@@ -298,11 +298,7 @@ export class LMSIntegrationController {
     @User({
       organizationUser: true,
       lmsAccessTokens: { organizationIntegration: true },
-      courses: {
-        course: {
-          organizationCourse: true,
-        },
-      },
+      courses: true,
     })
     user: UserModel,
     @Res() response: express.Response,
