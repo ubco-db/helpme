@@ -298,6 +298,11 @@ export class LMSIntegrationController {
     @User({
       organizationUser: true,
       lmsAccessTokens: { organizationIntegration: true },
+      courses: {
+        course: {
+          organizationCourse: true,
+        },
+      },
     })
     user: UserModel,
     @Res() response: express.Response,
@@ -366,11 +371,31 @@ export class LMSIntegrationController {
         );
       }
 
-      const roles = [OrganizationRole.ADMIN, OrganizationRole.PROFESSOR];
-      if (!roles.includes(user.organizationUser?.role)) {
-        throw new UnauthorizedException(
-          ERROR_MESSAGES.roleGuard.mustBeRoleToAccess(roles),
-        );
+      const organizationRoles = [
+        OrganizationRole.ADMIN,
+        OrganizationRole.PROFESSOR,
+      ];
+      const hasOrganizationRole = organizationRoles.includes(
+        user.organizationUser?.role,
+      );
+      if (!hasOrganizationRole) {
+        const courseRoles = [Role.TA, Role.PROFESSOR];
+        let hasCourseRole = false;
+        // If not an organization admin/professor, check if user is a professor/TA in any course they have membership in
+        for (const role of user.courses.map((c) => c.role)) {
+          if (courseRoles.includes(role)) {
+            hasCourseRole = true;
+            break;
+          }
+        }
+        if (!hasCourseRole) {
+          throw new UnauthorizedException(
+            ERROR_MESSAGES.roleGuard.mustBeRoleToAccessExtended(
+              courseRoles,
+              organizationRoles,
+            ),
+          );
+        }
       }
 
       return await AbstractLMSAdapter.redirectAuth(

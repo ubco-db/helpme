@@ -1169,7 +1169,7 @@ describe('Lms Integration Integrations', () => {
         });
     });
 
-    it('should fail if user is not an org professor or org admin', async () => {
+    it('should fail if user is not an org professor or org admin and not a professor/ta in any courses', async () => {
       const org = await OrganizationFactory.create({});
       await OrganizationUserFactory.create({
         organizationUser: user,
@@ -1187,10 +1187,10 @@ describe('Lms Integration Integrations', () => {
           expect(response.headers).toHaveProperty(
             'location',
             `/courses?error_message=${encodeURIComponent(
-              ERROR_MESSAGES.roleGuard.mustBeRoleToAccess([
-                OrganizationRole.ADMIN,
-                OrganizationRole.PROFESSOR,
-              ]),
+              ERROR_MESSAGES.roleGuard.mustBeRoleToAccessExtended(
+                [Role.TA, Role.PROFESSOR],
+                [OrganizationRole.ADMIN, OrganizationRole.PROFESSOR],
+              ),
             )
               .replace(/%20/g, '+')
               .split(' ')
@@ -1199,67 +1199,89 @@ describe('Lms Integration Integrations', () => {
         });
     });
 
-    it('should succeed and skip generation if user already has a token for the platform', async () => {
-      const org = await OrganizationFactory.create({});
-      await OrganizationUserFactory.create({
-        organizationUser: user,
-        organization: org,
-        role: OrganizationRole.PROFESSOR,
-      });
-      const orgInt = await lmsOrgIntFactory.create({
-        organization: org,
-        apiPlatform: LMSIntegrationPlatform.Canvas,
-        clientId: 'id',
-        clientSecret: crypto.randomBytes(32).toString('hex'),
-      });
-      await LMSAccessTokenFactory.create({
-        organizationIntegration: orgInt,
-        user,
-      });
-
-      await supertest({ userId: user.id })
-        .get('/lms/oauth2/authorize?platform=Canvas')
-        .then((response) => {
-          expect(response.headers).toHaveProperty(
-            'location',
-            `/courses?success_message=Access token for use with ${orgInt.apiPlatform} has already been created.`
-              .split(' ')
-              .join('+'),
-          );
+    it.each([false, true])(
+      'should succeed and skip generation if user already has a token for the platform (has org permissions = %o)',
+      async (isProf: boolean) => {
+        const org = await OrganizationFactory.create({});
+        await OrganizationUserFactory.create({
+          organizationUser: user,
+          organization: org,
+          role: isProf ? OrganizationRole.PROFESSOR : OrganizationRole.MEMBER,
         });
-    });
-
-    it('should succeed and move on to generating state, etc and redirect to auth', async () => {
-      const org = await OrganizationFactory.create({});
-      await OrganizationUserFactory.create({
-        organizationUser: user,
-        organization: org,
-        role: OrganizationRole.PROFESSOR,
-      });
-      const orgInt = await lmsOrgIntFactory.create({
-        rootUrl: 'baseUrl',
-        organization: org,
-        apiPlatform: LMSIntegrationPlatform.Canvas,
-        clientId: 'id',
-        clientSecret: crypto.randomBytes(32).toString('hex'),
-      });
-
-      await supertest({ userId: user.id })
-        .get('/lms/oauth2/authorize?platform=Canvas')
-        .expect(302)
-        .then((response) => {
-          const uri = new URL(response.headers.location);
-
-          expect(uri.pathname).toBe('/login/oauth2/auth');
-          expect(uri.searchParams.get('client_id')).toEqual(orgInt.clientId);
-          expect(uri.searchParams.get('response_type')).toEqual('code');
-          expect(uri.searchParams.get('scope')).toBeDefined();
-          expect(uri.searchParams.get('state')).toBeDefined();
-          expect(uri.searchParams.get('redirect_uri')).toEqual(
-            `${process.env.DOMAIN}/api/v1/lms/oauth2/response`,
-          );
+        if (!isProf) {
+          const course = await CourseFactory.create();
+          await UserCourseFactory.create({
+            user,
+            course,
+            role: Role.PROFESSOR,
+          });
+        }
+        const orgInt = await lmsOrgIntFactory.create({
+          organization: org,
+          apiPlatform: LMSIntegrationPlatform.Canvas,
+          clientId: 'id',
+          clientSecret: crypto.randomBytes(32).toString('hex'),
         });
-    });
+        await LMSAccessTokenFactory.create({
+          organizationIntegration: orgInt,
+          user,
+        });
+
+        await supertest({ userId: user.id })
+          .get('/lms/oauth2/authorize?platform=Canvas')
+          .then((response) => {
+            expect(response.headers).toHaveProperty(
+              'location',
+              `/courses?success_message=Access token for use with ${orgInt.apiPlatform} has already been created.`
+                .split(' ')
+                .join('+'),
+            );
+          });
+      },
+    );
+
+    it.each([false, true])(
+      'should succeed and move on to generating state, etc and redirect to auth (has org permissions = %o)',
+      async (isProf: boolean) => {
+        const org = await OrganizationFactory.create({});
+        await OrganizationUserFactory.create({
+          organizationUser: user,
+          organization: org,
+          role: isProf ? OrganizationRole.PROFESSOR : OrganizationRole.MEMBER,
+        });
+        if (!isProf) {
+          const course = await CourseFactory.create();
+          await UserCourseFactory.create({
+            user,
+            course,
+            role: Role.PROFESSOR,
+          });
+        }
+        const orgInt = await lmsOrgIntFactory.create({
+          rootUrl: 'baseUrl',
+          organization: org,
+          apiPlatform: LMSIntegrationPlatform.Canvas,
+          clientId: 'id',
+          clientSecret: crypto.randomBytes(32).toString('hex'),
+        });
+
+        await supertest({ userId: user.id })
+          .get('/lms/oauth2/authorize?platform=Canvas')
+          .expect(302)
+          .then((response) => {
+            const uri = new URL(response.headers.location);
+
+            expect(uri.pathname).toBe('/login/oauth2/auth');
+            expect(uri.searchParams.get('client_id')).toEqual(orgInt.clientId);
+            expect(uri.searchParams.get('response_type')).toEqual('code');
+            expect(uri.searchParams.get('scope')).toBeDefined();
+            expect(uri.searchParams.get('state')).toBeDefined();
+            expect(uri.searchParams.get('redirect_uri')).toEqual(
+              `${process.env.DOMAIN}/api/v1/lms/oauth2/response`,
+            );
+          });
+      },
+    );
   });
 
   describe('GET lms/oauth2/response', () => {
