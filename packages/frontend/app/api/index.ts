@@ -109,6 +109,7 @@ import {
   TACheckoutResponse,
   TAUpdateStatusResponse,
   TestLMSIntegrationParams,
+  ToolUsageExportData,
   UBCOuserParam,
   UnreadAsyncQuestionResponse,
   UpdateAsyncQuestions,
@@ -713,6 +714,26 @@ export class APIClient {
     },
     toggleFavourited: async (courseId: number) => {
       return this.req('PATCH', `/api/v1/courses/${courseId}/toggle_favourited`)
+    },
+    exportToolUsage: async (
+      courseId: number,
+      includeQueueQuestions: boolean = true,
+      includeAnytimeQuestions: boolean = true,
+      includeChatbotInteractions: boolean = true,
+      groupBy: 'day' | 'week' = 'week'
+    ): Promise<ToolUsageExportData[]> => {
+      const queryParams = new URLSearchParams({
+        includeQueueQuestions: includeQueueQuestions.toString(),
+        includeAnytimeQuestions: includeAnytimeQuestions.toString(),
+        includeChatbotInteractions: includeChatbotInteractions.toString(),
+        groupBy
+      })
+
+      return this.req(
+        'GET',
+        `/api/v1/courses/${courseId}/export-tool-usage?${queryParams.toString()}`,
+        undefined
+      )
     },
   }
   mail = {
