@@ -4,7 +4,7 @@ exports[`AuthService loginWithGoogle should create a new user when user does not
 UserModel {
   "accountDeactivated": false,
   "accountType": "google",
-  "createdAt": 2026-02-02T01:12:46.782Z,
+  "createdAt": 2020-01-01T00:00:00.000Z,
   "defaultMessage": null,
   "desktopNotifsEnabled": false,
   "email": "mocked_email@example.com",
@@ -33,7 +33,7 @@ exports[`AuthService loginWithShibboleth should create a new user when user does
 UserModel {
   "accountDeactivated": false,
   "accountType": "shibboleth",
-  "createdAt": 2026-02-02T01:12:45.199Z,
+  "createdAt": 2020-01-01T00:00:00.000Z,
   "defaultMessage": null,
   "desktopNotifsEnabled": false,
   "email": "mocked_email@example.com",
