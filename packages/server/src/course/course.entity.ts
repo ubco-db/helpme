@@ -2,6 +2,7 @@ import { Exclude } from 'class-transformer';
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
   DeleteDateColumn,
   Entity,
   JoinColumn,
@@ -32,6 +33,9 @@ import { ProfInviteModel } from './prof-invite/prof-invite.entity';
 export class CourseModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @CreateDateColumn({ type: 'timestamptz', nullable: true })
+  createdAt: Date;
 
   @OneToMany(() => QueueModel, (q) => q.course)
   queues: QueueModel[];

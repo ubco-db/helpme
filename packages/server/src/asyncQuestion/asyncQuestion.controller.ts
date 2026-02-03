@@ -743,7 +743,6 @@ export class asyncQuestionController {
   async getAsyncQuestions(
     @Param('courseId', ParseIntPipe) courseId: number,
     @UserId() userId: number,
-    @Res() res: Response,
   ): Promise<AsyncQuestion[]> {
     const userCourse = await UserCourseModel.findOne({
       where: {
@@ -931,8 +930,7 @@ export class asyncQuestionController {
       return temp;
     });
 
-    res.status(HttpStatus.OK).send(questions);
-    return;
+    return questions as unknown as AsyncQuestion[];
   }
 
   // Moved from userInfo context endpoint as this updates too frequently to make sense caching it with userInfo data

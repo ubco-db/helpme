@@ -1,6 +1,7 @@
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -25,6 +26,9 @@ export class SemesterModel extends BaseEntity {
 
   @PrimaryGeneratedColumn()
   id: number;
+
+  @CreateDateColumn({ type: 'timestamptz', nullable: true })
+  createdAt: Date;
 
   @Column('text', { default: 'Legacy Semester' })
   name: string;

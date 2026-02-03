@@ -4,6 +4,7 @@ import {
   Column,
   Entity,
   JoinColumn,
+  CreateDateColumn,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -26,6 +27,9 @@ export class OrganizationModel extends BaseEntity {
 
   @Column('text')
   name: string;
+
+  @CreateDateColumn({ type: 'timestamptz', nullable: true })
+  createdAt: Date;
 
   @Column('text', { nullable: true })
   description: string;

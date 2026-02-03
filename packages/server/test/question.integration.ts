@@ -1272,12 +1272,19 @@ describe('Question Integration', () => {
         queue: queue,
       });
 
-      await supertest({ userId: q.creatorId })
-        .patch(`/questions/${q.id}`)
-        .send({
-          status: QuestionStatusKeys.Helping,
-        })
-        .expect(401);
+      const consoleSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      try {
+        await supertest({ userId: q.creatorId })
+          .patch(`/questions/${q.id}`)
+          .send({
+            status: QuestionStatusKeys.Helping,
+          })
+          .expect(403);
+      } finally {
+        consoleSpy.mockRestore();
+      }
     });
     it('PATCH status to helping as TA works', async () => {
       const course = await CourseFactory.create();
@@ -1372,13 +1379,24 @@ describe('Question Integration', () => {
           questionTypes: [{ id: qt.id }],
         })
         .expect(200);
-      await supertest({ userId: ta.id })
-        .patch(`/questions/${q.id}`)
-        .send({
-          isTaskQuestion: true,
-        })
-        .expect(401);
-
+      const consoleSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      try {
+        const res = await supertest({ userId: ta.id })
+          .patch(`/questions/${q.id}`)
+          .send({
+            isTaskQuestion: true,
+          })
+          .expect(403);
+        expect(res.body?.message).toBe(
+          ERROR_MESSAGES.questionController.updateQuestion.taOnlyEditQuestionStatus(
+            ['isTaskQuestion'],
+          ),
+        );
+      } finally {
+        consoleSpy.mockRestore();
+      }
       const updatedQuestion = await QuestionModel.findOne({
         where: { id: q.id },
       });
@@ -1389,6 +1407,7 @@ describe('Question Integration', () => {
       expect(updatedQuestion.questionTypes[0]).toEqual({
         cid: qt.cid,
         color: qt.color,
+        createdAt: qt.createdAt,
         deletedAt: null,
         id: qt.id,
         name: qt.name,
@@ -1406,13 +1425,26 @@ describe('Question Integration', () => {
         user: ta,
       });
 
-      const res = await supertest({ userId: ta.id })
-        .patch(`/questions/${q.id}`)
-        .send({
-          status: ClosedQuestionStatus.ConfirmedDeleted,
-        })
-        .expect(401);
-      expect(res.body?.message).toContain('ta cannot change status from ');
+      const consoleSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      try {
+        const res = await supertest({ userId: ta.id })
+          .patch(`/questions/${q.id}`)
+          .send({
+            status: ClosedQuestionStatus.ConfirmedDeleted,
+          })
+          .expect(403);
+        expect(res.body?.message).toContain(
+          ERROR_MESSAGES.questionController.updateQuestion.fsmViolation(
+            Role.TA,
+            q.status,
+            ClosedQuestionStatus.ConfirmedDeleted,
+          ),
+        );
+      } finally {
+        consoleSpy.mockRestore();
+      }
     });
     it('PATCH question fails when you are not the question creator', async () => {
       const q = await QuestionFactory.create({ text: 'Help pls' });
@@ -1423,16 +1455,23 @@ describe('Question Integration', () => {
         user: student,
       });
 
-      const res = await supertest({ userId: student.id })
-        .patch(`/questions/${q.id}`)
-        .send({
-          text: 'bonjour',
-        })
-        .expect(401);
+      const consoleSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      try {
+        const res = await supertest({ userId: student.id })
+          .patch(`/questions/${q.id}`)
+          .send({
+            text: 'bonjour',
+          })
+          .expect(403);
 
-      expect(res.body?.message).toBe(
-        'Logged-in user does not have edit access',
-      );
+        expect(res.body?.message).toBe(
+          ERROR_MESSAGES.questionController.updateQuestion.loginUserCantEdit,
+        );
+      } finally {
+        consoleSpy.mockRestore();
+      }
     });
     it('User not in course cannot patch a question', async () => {
       const course = await CourseFactory.create();

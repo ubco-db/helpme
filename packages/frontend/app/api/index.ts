@@ -109,6 +109,7 @@ import {
   TACheckoutResponse,
   TAUpdateStatusResponse,
   TestLMSIntegrationParams,
+  ToolUsageExportData,
   UBCOuserParam,
   UnreadAsyncQuestionResponse,
   UpdateAsyncQuestions,
@@ -723,6 +724,26 @@ export class APIClient {
     toggleFavourited: async (courseId: number) => {
       return this.req('PATCH', `/api/v1/courses/${courseId}/toggle_favourited`)
     },
+    exportToolUsage: async (
+      courseId: number,
+      includeQueueQuestions: boolean = true,
+      includeAnytimeQuestions: boolean = true,
+      includeChatbotInteractions: boolean = true,
+      groupBy: 'day' | 'week' = 'week',
+    ): Promise<ToolUsageExportData[]> => {
+      const queryParams = new URLSearchParams({
+        includeQueueQuestions: includeQueueQuestions.toString(),
+        includeAnytimeQuestions: includeAnytimeQuestions.toString(),
+        includeChatbotInteractions: includeChatbotInteractions.toString(),
+        groupBy,
+      })
+
+      return this.req(
+        'GET',
+        `/api/v1/courses/${courseId}/export-tool-usage?${queryParams.toString()}`,
+        undefined,
+      )
+    },
   }
   profInvites = {
     accept: async (
@@ -1106,6 +1127,8 @@ export class APIClient {
     delete: async () => this.req('GET', `/api/v1/seeds/delete`),
     create: async () => this.req('GET', `/api/v1/seeds/create`),
     fillQueue: async () => this.req('GET', `/api/v1/seeds/fill_queue`),
+    fillAnytimeQuestions: async () =>
+      this.req('GET', `/api/v1/seeds/fill_anytime_questions`),
   }
   semesters = {
     get: async (oid: number): Promise<SemesterPartial[]> =>

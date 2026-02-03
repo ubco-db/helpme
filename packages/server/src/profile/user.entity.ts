@@ -2,6 +2,7 @@ import { Exclude } from 'class-transformer';
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   OneToMany,
@@ -35,6 +36,10 @@ import { ProfInviteModel } from 'course/prof-invite/prof-invite.entity';
 export class UserModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @CreateDateColumn({ type: 'timestamptz', nullable: true })
+  createdAt: Date;
+
   @Column('int', { nullable: true })
   sid: number;
 

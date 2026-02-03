@@ -1,6 +1,7 @@
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   OneToOne,
@@ -16,6 +17,9 @@ export class QueueInviteModel extends BaseEntity {
   // Each queue can have 0 to 1 queue_invite
   @PrimaryColumn()
   queueId: number;
+
+  @CreateDateColumn({ type: 'timestamptz', nullable: true })
+  createdAt: Date;
 
   @OneToOne((type) => QueueModel, (queue) => queue.queueInvite, {
     onDelete: 'CASCADE',

@@ -18,6 +18,8 @@ import {
   SetTAExtraStatusParams,
   TACheckinTimesResponse,
   TACheckoutResponse,
+  ToolUsageExportData,
+  ToolUsageType,
   UBCOuserParam,
   UserCourse,
   UserTiny,
@@ -36,6 +38,8 @@ import {
   InternalServerErrorException,
   NotFoundException,
   Param,
+  ParseBoolPipe,
+  ParseEnumPipe,
   ParseIntPipe,
   Patch,
   Post,
@@ -72,6 +76,10 @@ import { OrganizationService } from '../organization/organization.service';
 import { QueueStaffService } from 'queue/queue-staff/queue-staff.service';
 import { DataSource } from 'typeorm';
 import { QueueService } from '../queue/queue.service';
+enum TimeGrouping {
+  DAY = 'day',
+  WEEK = 'week',
+}
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -989,6 +997,420 @@ export class CourseController {
 
     res.status(200).send(queueInvites);
     return;
+  }
+
+  // Helper function for the SELECT fields
+  private getCommonSelectFields(tableAlias: string): string {
+    return `
+      ${tableAlias}.user_id,
+      ${tableAlias}."firstName",
+      ${tableAlias}."lastName",
+      ${tableAlias}.email,
+      ${tableAlias}.course_name,
+      ${tableAlias}.period_date,
+      ${tableAlias}.period_time
+    `;
+  }
+
+  @Get(':id/export-tool-usage')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async exportToolUsage(
+    @Param('id', ParseIntPipe) courseId: number,
+    @Query('includeQueueQuestions', new ParseBoolPipe({ optional: true }))
+    includeQueueQuestions: boolean = true,
+    @Query('includeAnytimeQuestions', new ParseBoolPipe({ optional: true }))
+    includeAnytimeQuestions: boolean = true,
+    @Query('includeChatbotInteractions', new ParseBoolPipe({ optional: true }))
+    includeChatbotInteractions: boolean = true,
+    @Query('groupBy', new ParseEnumPipe(TimeGrouping, { optional: true }))
+    groupBy: TimeGrouping = TimeGrouping.WEEK,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ): Promise<ToolUsageExportData[]> {
+    const isGroupByWeek = groupBy === TimeGrouping.WEEK;
+
+    // Check if there are any students in the course before proceeding
+    const studentCount = await UserCourseModel.count({
+      where: {
+        courseId,
+        role: Role.STUDENT,
+      },
+    });
+
+    if (studentCount === 0) {
+      throw new BadRequestException(
+        'Cannot export tool usage data: No students are enrolled in this course.',
+      );
+    }
+
+    let startDateObj: Date;
+    let endDateObj: Date;
+
+    if (startDate && endDate) {
+      startDateObj = new Date(startDate);
+      endDateObj = new Date(endDate);
+    } else {
+      const dateRangeQuery = `
+        WITH all_dates AS (
+          ${
+            includeQueueQuestions
+              ? `
+            SELECT q."createdAt" as date FROM "question_model" q
+            JOIN "queue_model" qu ON q."queueId" = qu.id
+            WHERE qu."courseId" = $1
+          `
+              : ''
+          }
+          ${includeQueueQuestions && includeAnytimeQuestions ? 'UNION ALL' : ''}
+          ${
+            includeAnytimeQuestions
+              ? `
+            SELECT aq."createdAt" as date FROM "async_question_model" aq
+            WHERE aq."courseId" = $1 AND aq.status != 'StudentDeleted'
+          `
+              : ''
+          }
+          ${(includeQueueQuestions || includeAnytimeQuestions) && includeChatbotInteractions ? 'UNION ALL' : ''}
+          ${
+            includeChatbotInteractions
+              ? `
+            SELECT ci.timestamp as date FROM "chatbot_interactions_model" ci
+            WHERE ci.course = $1
+          `
+              : ''
+          }
+        )
+        SELECT 
+          MIN(date) as earliest_date,
+          MAX(date) as latest_date
+        FROM all_dates
+      `;
+
+      const dateRangeResult = await UserCourseModel.query(dateRangeQuery, [
+        courseId,
+      ]);
+      const dateRange = dateRangeResult[0];
+
+      if (dateRange && dateRange.earliest_date && dateRange.latest_date) {
+        startDateObj = new Date(dateRange.earliest_date);
+        endDateObj = new Date(dateRange.latest_date);
+      } else {
+        endDateObj = new Date();
+        startDateObj = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      }
+    }
+
+    try {
+      const results = [];
+
+      if (includeQueueQuestions) {
+        const queueQuery = isGroupByWeek
+          ? `
+            WITH student_weeks AS (
+              SELECT DISTINCT
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                c.name as course_name,
+                TO_CHAR(week_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(week_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                DATE_TRUNC('week', $2::timestamp),
+                DATE_TRUNC('week', $3::timestamp),
+                '1 week'::interval
+              ) AS week_start
+              WHERE uc."courseId" = $1 AND uc.role = '${Role.STUDENT}'
+            ),
+            question_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(DATE_TRUNC('week', q."createdAt"), 'YYYY/MM/DD') as period_date,
+                COUNT(*) as count
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "queue_model" qu ON qu."courseId" = uc."courseId"
+              JOIN "question_model" q ON q."queueId" = qu.id AND q."creatorId" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role = '${Role.STUDENT}'
+                  AND q."createdAt" >= $2
+                  AND q."createdAt" <= $3
+              GROUP BY u.id, DATE_TRUNC('week', q."createdAt")
+            )
+            SELECT 
+              ${this.getCommonSelectFields('sw')},
+              COALESCE(qc.count, 0) as count
+            FROM student_weeks sw
+            LEFT JOIN question_counts qc ON sw.user_id = qc.user_id AND sw.period_date = qc.period_date
+            ORDER BY sw."lastName", sw."firstName", sw.period_date
+          `
+          : `
+            WITH student_days AS (
+              SELECT DISTINCT
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                c.name as course_name,
+                TO_CHAR(day_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(day_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                $2::date,
+                $3::date,
+                '1 day'::interval
+              ) AS day_start
+              WHERE uc."courseId" = $1 AND uc.role ='${Role.STUDENT}'
+            ),
+            question_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(q."createdAt"::date, 'YYYY/MM/DD') as period_date,
+                COUNT(*) as count
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "queue_model" qu ON qu."courseId" = uc."courseId"
+              JOIN "question_model" q ON q."queueId" = qu.id AND q."creatorId" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role = '${Role.STUDENT}'
+                  AND q."createdAt" >= $2
+                  AND q."createdAt" <= $3
+              GROUP BY u.id, q."createdAt"::date
+            )
+            SELECT 
+              ${this.getCommonSelectFields('sd')},
+              COALESCE(qc.count, 0) as count
+            FROM student_days sd
+            LEFT JOIN question_counts qc ON sd.user_id = qc.user_id AND sd.period_date = qc.period_date
+            ORDER BY sd."lastName", sd."firstName", sd.period_date
+          `;
+
+        const queueResults = await UserCourseModel.query(queueQuery, [
+          courseId,
+          startDateObj,
+          endDateObj,
+        ]);
+        results.push(
+          ...queueResults.map((row) => ({
+            ...row,
+            tool_type: ToolUsageType.QUEUE_QUESTIONS,
+          })),
+        );
+      }
+
+      if (includeAnytimeQuestions) {
+        const anytimeQuery = isGroupByWeek
+          ? `
+            WITH student_weeks AS (
+              SELECT DISTINCT
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                c.name as course_name,
+                TO_CHAR(week_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(week_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                DATE_TRUNC('week', $2::timestamp),
+                DATE_TRUNC('week', $3::timestamp),
+                '1 week'::interval
+              ) AS week_start
+              WHERE uc."courseId" = $1 AND uc.role = '${Role.STUDENT}'
+            ),
+            question_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(DATE_TRUNC('week', aq."createdAt"), 'YYYY/MM/DD') as period_date,
+                COUNT(*) as count
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "async_question_model" aq ON aq."courseId" = uc."courseId" AND aq."creatorId" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role = '${Role.STUDENT}'
+                  AND aq."createdAt" >= $2
+                  AND aq."createdAt" <= $3
+                  AND aq.status != 'StudentDeleted'
+              GROUP BY u.id, DATE_TRUNC('week', aq."createdAt")
+            )
+            SELECT 
+              ${this.getCommonSelectFields('sw')},
+              COALESCE(qc.count, 0) as count
+            FROM student_weeks sw
+            LEFT JOIN question_counts qc ON sw.user_id = qc.user_id AND sw.period_date = qc.period_date
+            ORDER BY sw."lastName", sw."firstName", sw.period_date
+          `
+          : `
+            WITH student_days AS (
+              SELECT DISTINCT
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                c.name as course_name,
+                TO_CHAR(day_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(day_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                $2::date,
+                $3::date,
+                '1 day'::interval
+              ) AS day_start
+              WHERE uc."courseId" = $1 AND uc.role = '${Role.STUDENT}'
+            ),
+            question_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(aq."createdAt"::date, 'YYYY/MM/DD') as period_date,
+                COUNT(*) as count
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "async_question_model" aq ON aq."courseId" = uc."courseId" AND aq."creatorId" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role = '${Role.STUDENT}'
+                  AND aq."createdAt" >= $2
+                  AND aq."createdAt" <= $3
+                  AND aq.status != 'StudentDeleted'
+              GROUP BY u.id, aq."createdAt"::date
+            )
+            SELECT 
+              ${this.getCommonSelectFields('sd')},
+              COALESCE(qc.count, 0) as count
+            FROM student_days sd
+            LEFT JOIN question_counts qc ON sd.user_id = qc.user_id AND sd.period_date = qc.period_date
+            ORDER BY sd."lastName", sd."firstName", sd.period_date
+          `;
+
+        const anytimeResults = await UserCourseModel.query(anytimeQuery, [
+          courseId,
+          startDateObj,
+          endDateObj,
+        ]);
+        results.push(
+          ...anytimeResults.map((row) => ({
+            ...row,
+            tool_type: ToolUsageType.ANYTIME_QUESTIONS,
+          })),
+        );
+      }
+
+      if (includeChatbotInteractions) {
+        const chatbotQuery = isGroupByWeek
+          ? `
+            WITH student_weeks AS (
+              SELECT DISTINCT
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                c.name as course_name,
+                TO_CHAR(week_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(week_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                DATE_TRUNC('week', $2::timestamp),
+                DATE_TRUNC('week', $3::timestamp),
+                '1 week'::interval
+              ) AS week_start
+              WHERE uc."courseId" = $1 AND uc.role ='${Role.STUDENT}'
+            ),
+            interaction_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(DATE_TRUNC('week', ci.timestamp), 'YYYY/MM/DD') as period_date,
+                COUNT(DISTINCT ci.id) as count
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "chatbot_interactions_model" ci ON ci.course = uc."courseId" AND ci."user" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role ='${Role.STUDENT}'
+                  AND ci.timestamp >= $2
+                  AND ci.timestamp <= $3
+              GROUP BY u.id, DATE_TRUNC('week', ci.timestamp)
+            )
+            SELECT 
+              ${this.getCommonSelectFields('sw')},
+              COALESCE(ic.count, 0) as count
+            FROM student_weeks sw
+            LEFT JOIN interaction_counts ic ON sw.user_id = ic.user_id AND sw.period_date = ic.period_date
+            ORDER BY sw."lastName", sw."firstName", sw.period_date
+          `
+          : `
+            WITH student_days AS (
+              SELECT DISTINCT
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                c.name as course_name,
+                TO_CHAR(day_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(day_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                $2::date,
+                $3::date,
+                '1 day'::interval
+              ) AS day_start
+              WHERE uc."courseId" = $1 AND uc.role = '${Role.STUDENT}'
+            ),
+            interaction_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(ci.timestamp::date, 'YYYY/MM/DD') as period_date,
+                COUNT(DISTINCT ci.id) as count
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "chatbot_interactions_model" ci ON ci.course = uc."courseId" AND ci."user" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role = '${Role.STUDENT}'
+                  AND ci.timestamp >= $2
+                  AND ci.timestamp <= $3
+              GROUP BY u.id, ci.timestamp::date
+            )
+            SELECT 
+              ${this.getCommonSelectFields('sd')},
+              COALESCE(ic.count, 0) as count
+            FROM student_days sd
+            LEFT JOIN interaction_counts ic ON sd.user_id = ic.user_id AND sd.period_date = ic.period_date
+            ORDER BY sd."lastName", sd."firstName", sd.period_date
+          `;
+
+        const chatbotResults = await UserCourseModel.query(chatbotQuery, [
+          courseId,
+          startDateObj,
+          endDateObj,
+        ]);
+        results.push(
+          ...chatbotResults.map((row) => ({
+            ...row,
+            tool_type: ToolUsageType.CHATBOT_INTERACTIONS,
+          })),
+        );
+      }
+      // Return JSON data for frontend to handle CSV generation
+
+      return results;
+    } catch (error) {
+      console.error('Error exporting tool usage:', error);
+      throw new HttpException(
+        'Failed to export tool usage data',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   @Patch(':id/set_ta_notes/:uid')
