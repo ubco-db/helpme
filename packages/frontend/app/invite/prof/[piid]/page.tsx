@@ -5,7 +5,7 @@ import { ReactElement, use, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import Link from 'next/link'
-import { setProfInviteCookie } from '@/app/api/cookieApi'
+import { setProfInviteCookie } from '@/app/api/cookie-utils'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 
@@ -26,7 +26,7 @@ export default function ProfInvitePage(
   useEffect(() => {
     // accept the invite right away if logged in.
     API.profile
-      .index()
+      .getUser()
       .then(async () => {
         // Instead of doing a GET and then giving a 302 redirect,
         // I opted to do a POST that returns the redirect url since that way I can hide the url inside the body
