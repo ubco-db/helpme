@@ -351,6 +351,7 @@ export enum MailServiceType {
   ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST = 'async_question_new_comment_on_my_post',
   ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST = 'async_question_new_comment_on_others_post',
   COURSE_CLONE_SUMMARY = 'course_clone_summary',
+  CHATBOT_ANSWER_UPDATED = 'chatbot_answer_updated',
 }
 /**
  * Represents one of three possible user roles in a course.
@@ -523,6 +524,22 @@ export interface UpdateChatbotQuestionParams {
     docId: string
     pageNumbersString: string
   }[]
+}
+
+export class NotifyUpdatedChatbotAnswerParams {
+  @IsString()
+  oldAnswer!: string
+
+  @IsString()
+  newAnswer!: string
+
+  @IsString()
+  @IsOptional()
+  oldQuestion?: string
+
+  @IsString()
+  @IsOptional()
+  newQuestion?: string
 }
 
 // this is the response from the backend when new questions are asked

@@ -393,6 +393,22 @@ export class APIClient {
         docId: string,
       ): Promise<{ success: boolean }> =>
         this.req('DELETE', `/api/v1/chatbot/document/${courseId}/${docId}`),
+      notifyAnswerUpdate: async (
+        courseId: number,
+        vectorStoreId: string,
+        body: {
+          oldAnswer: string
+          newAnswer: string
+          oldQuestion?: string
+          newQuestion?: string
+        },
+      ): Promise<{ recipients: number }> =>
+        this.req(
+          'POST',
+          `/api/v1/chatbot/question/${courseId}/${vectorStoreId}/notify`,
+          undefined,
+          body,
+        ),
       uploadDocument: async (
         courseId: number,
         body: FormData,
