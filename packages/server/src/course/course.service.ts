@@ -83,7 +83,6 @@ export class CourseService {
       },
       relations: ['user'],
     });
-    console.log('Fetched TA events:', taEvents);
 
     const [checkinEvents, otherEvents] = partition(
       taEvents,
