@@ -56,7 +56,7 @@ export default function TACheckInCheckOutTimes(
 
       const awayEvents =
         result.taAwayTimes?.map((away) => ({
-          title: `${away.name} (Away)`,
+          title: `${away.name} ${away.inProgress ? 'is Currently Away' : 'was Away'}`,
           start: new Date(away.awayStartTime),
           end: away.awayEndTime ? new Date(away.awayEndTime) : new Date(),
           backgroundColor: away.inProgress ? '#d97706' : '#f59e0b',
