@@ -21,7 +21,7 @@ import {
 } from '@ant-design/icons'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { ChatbotSettingsMetadata } from '@koh/common'
+import { ChatbotCourseSettingsProperties } from '@koh/common'
 import ChatbotHelpTooltip from '../../components/ChatbotHelpTooltip'
 
 interface LegacyChatbotSettingsModalProps {
@@ -70,8 +70,11 @@ const LegacyChatbotSettingsModal: React.FC<LegacyChatbotSettingsModalProps> = ({
     await API.chatbot.staffOnly.legacy
       .getSettings(courseId)
       .then((currentChatbotSettings) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { courseId, model, organizationSettings, ...rest } =
+          currentChatbotSettings
         form.setFieldsValue({
-          ...currentChatbotSettings.metadata,
+          rest,
         })
       })
       .catch((error) => {
@@ -91,7 +94,7 @@ const LegacyChatbotSettingsModal: React.FC<LegacyChatbotSettingsModalProps> = ({
     }
   }, [open, courseId, fetchChatbotSettings, fetchAvailableModels])
 
-  const handleUpdate = async (values: ChatbotSettingsMetadata) => {
+  const handleUpdate = async (values: ChatbotCourseSettingsProperties) => {
     const updateData = {
       modelName: values.modelName,
       prompt: values.prompt,
@@ -246,6 +249,7 @@ const LegacyChatbotSettingsModal: React.FC<LegacyChatbotSettingsModalProps> = ({
 
   return (
     <Modal
+      centered
       title={
         <div className="flex items-center gap-2">
           <SettingOutlined />

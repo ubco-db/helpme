@@ -12,6 +12,7 @@ const StudentRephraseModal: React.FC<StudentRephraseModalProps> = ({
 }) => {
   return (
     <Modal
+      centered
       open={true}
       footer={[
         <Button

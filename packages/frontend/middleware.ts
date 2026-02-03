@@ -4,8 +4,10 @@ import * as Sentry from '@sentry/nextjs'
 import { RequestCookies } from 'next/dist/compiled/@edge-runtime/cookies'
 import { getAuthTokenString } from '@/app/api/cookie-utils'
 
-// These are files that do not require authentication. Used for displaying logos outside of HelpMe.
+// These are files that do not require authentication.
+// Used for displaying logos outside of HelpMe, or for accessing web worker source code files.
 const publicFiles: RegExp[] = [
+  new RegExp('^/workers/.*[.]js$'),
   new RegExp('^/helpme_logo_(full|medium|small)[.]png$'),
 ]
 

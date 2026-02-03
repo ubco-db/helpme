@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
+    "dev": "yarn watch:workers & next dev --turbopack",
+    "build": "yarn build:workers & next build",
+    "build:workers": "tsc -p tsconfig.workers.json",
+    "watch:workers": "tsc -p tsconfig.workers.json --watch",
     "start": "next start -p 3001",
     "lint": "next lint"
   },
@@ -55,6 +57,7 @@
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.0",
     "remark-math": "^6.0.0",
+    "socket.io-client": "^4.8.3",
     "sonner": "^2.0.6",
     "swr": "^2.2.5",
     "tailwind-merge": "^2.4.0",
@@ -67,6 +70,7 @@
     "@types/react": "19.1.2",
     "@types/react-dom": "19.1.2",
     "@types/react-google-recaptcha": "^2.1.9",
+    "@types/webworker": "^0.0.51",
     "@welldone-software/why-did-you-render": "^10.0.1",
     "eslint": "^9.32.0",
     "eslint-config-next": "15.3.1",

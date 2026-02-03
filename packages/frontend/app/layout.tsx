@@ -5,6 +5,7 @@ import { cn } from '@/app/utils/generalUtils'
 import AntdProvider from './components/AntdProvider'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { Suspense } from 'react'
+import { WebSocketProvider } from '@/app/contexts/WebSocketContext'
 
 const interFontSans = Inter({
   subsets: ['latin'],
@@ -37,7 +38,7 @@ export default function RootLayout({
       >
         <AntdProvider>
           <Suspense fallback={<CenteredSpinner tip={'Loading...'} />}>
-            {children}
+            <WebSocketProvider>{children}</WebSocketProvider>
           </Suspense>
         </AntdProvider>
       </body>

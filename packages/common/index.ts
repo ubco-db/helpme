@@ -1,4 +1,4 @@
-import { Exclude, Type } from 'class-transformer'
+import { Exclude, Expose, Type } from 'class-transformer'
 import {
   IsArray,
   IsBoolean,
@@ -19,6 +19,15 @@ import {
 import 'reflect-metadata'
 import { Cache } from 'cache-manager'
 import { Ajv } from 'ajv'
+import {
+  ChatbotAskBody,
+  ChatbotAskResponse,
+  ChatbotQuestionResponse,
+  ChatMessage,
+  Citation,
+} from './chatbot-api-types'
+
+export * from './chatbot-api-types'
 
 export const PROD_URL = 'https://coursehelp.ubc.ca'
 
@@ -254,9 +263,8 @@ export type CourseCloneAttributes = {
     chatbot?: {
       settings?: boolean
       documents?: boolean
-      manuallyCreatedChunks?: boolean
       insertedQuestions?: boolean
-      insertedLMSData?: boolean
+      insertedDocuments?: boolean
     }
   }
 }
@@ -277,9 +285,8 @@ export const defaultCourseCloneAttributes: CourseCloneAttributes = {
     chatbot: {
       settings: true,
       documents: true,
-      manuallyCreatedChunks: true,
       insertedQuestions: true,
-      insertedLMSData: false,
+      insertedDocuments: false,
     },
   },
 }
@@ -373,175 +380,119 @@ export enum AccountType {
 
 // chatbot questions and interactions
 
-export interface UpdateDocumentChunkParams {
-  documentText: string
-  metadata: {
-    name: string
-    source: string
-  }
+export class PaginatedResponse<T> {
+  @IsInt()
+  total!: number
+
+  @IsArray()
+  items!: T[]
 }
 
-// comes from helpme db
-export interface ChatbotQuestionResponseHelpMeDB {
-  id: number
-  vectorStoreId: string
-  interactionId: number
-  questionText: string
-  responseText: string
-  timestamp: Date
-  userScore: number
-  suggested: boolean
-  isPreviousQuestion: boolean
-  correspondingChatbotQuestion?: ChatbotQuestionResponseChatbotDB // used by chatbot_questions page on frontend
-  timesAsked?: number // same as above
-}
-
-// comes from chatbot db
-export interface ChatbotQuestionResponseChatbotDB {
-  id: string
-  pageContent: string // this is the question
-  metadata: {
-    answer: string
-    timestamp?: string // i found a chatbot question without a timestamp 😭
-    courseId: string
-    verified: boolean
-    sourceDocuments: SourceDocument[]
-    suggested: boolean
-    inserted?: boolean
-  }
-  userScoreTotal?: number // NOT returned from db, it's calculated and used by chatbot_questions page on frontend
-  timesAsked?: number // same as above
-  interactionsWithThisQuestion?: InteractionResponse[] // same as above
-  mostRecentlyAskedHelpMeVersion?: ChatbotQuestionResponseHelpMeDB | null // same as above
-}
-
-interface Loc {
-  pageNumber: number
-}
-
-// source document return type (from chatbot db)
-export interface SourceDocument {
-  id?: string
-  metadata?: {
-    loc?: Loc
-    name: string
-    type?: string
-    source?: string
-    courseId?: string
-    fromLMS?: boolean
-    apiDocId?: number
-  }
-  type?: string
-  // TODO: is it content or pageContent? since this file uses both. EDIT: It seems to be both/either. Gross.
-  content?: string
-  pageContent: string
-  docName: string
-  docId?: string // no idea if this exists in the actual data EDIT: yes it does, sometimes
-  pageNumbers?: number[] // same with this, but this might only be for the edit question modal
-  pageNumbersString?: string // used only for the edit question modal
-  sourceLink?: string
-  pageNumber?: number
-  key?: string // used for front-end rendering
-}
-
-export interface PreDeterminedQuestion {
-  id: string
-  pageContent: string
-  metadata: {
-    answer: string
-    courseId: string
-    inserted: boolean
-    sourceDocuments: SourceDocument[]
-    suggested: boolean
-    verified: boolean
-  }
-}
-
-export interface Message {
-  type: 'apiMessage' | 'userMessage'
-  message: string | void
+export class HelpMeChatMessage extends ChatMessage {
+  @IsBoolean()
+  @IsOptional()
   verified?: boolean
-  sourceDocuments?: SourceDocument[]
+
+  @IsArray()
+  @IsOptional()
+  @Type(() => Citation)
+  @ValidateNested({ each: true })
+  citations?: Citation[]
+
+  @IsString()
+  @IsOptional()
   questionId?: string
-  thinkText?: string | null // used on frontend only
+
+  @IsString()
+  @IsOptional()
+  thinkText?: string // used on frontend only
 }
 
-export interface ChatbotQueryParams {
-  query: string
-  type: 'default' | 'abstract'
-}
+export class HelpMeChatbotAskBody extends ChatbotAskBody {
+  @IsString()
+  question!: string
 
-export interface ChatbotAskParams {
-  question: string
-  history: Message[]
+  @IsArray()
+  @Type(() => HelpMeChatMessage)
+  @ValidateNested({ each: true })
+  history!: HelpMeChatMessage[]
+
+  @IsInt()
+  @IsOptional()
   interactionId?: number
-  onlySaveInChatbotDB?: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  save?: boolean
 }
 
-export interface ChatbotAskSuggestedParams {
-  question: string
-  responseText: string
-  vectorStoreId: string
+export class ChatbotAskSuggestedBody {
+  @IsString()
+  vectorStoreId!: string
 }
 
-export interface AddDocumentChunkParams {
-  documentText: string
-  metadata: {
-    name: string
-    type: string
-    source?: string
-    loc?: Loc
-    id?: string
-    courseId?: number
-  }
-  prefix?: string
+export class HelpMeChatbotQuestionResponse {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  vectorStoreId!: string
+
+  @IsInt()
+  interactionId!: number
+
+  @IsInt()
+  userScore!: number
+
+  @IsBoolean()
+  isPreviousQuestion!: boolean
+
+  @IsDate()
+  @IsOptional()
+  timestamp?: Date
+
+  @IsInstance(ChatbotQuestionResponse)
+  @IsOptional()
+  chatbotQuestion?: ChatbotQuestionResponse
 }
 
-export interface AddDocumentAggregateParams {
-  name: string
-  source: string
-  documentText: string
-  metadata?: any
-  prefix?: string
+export class HelpMeChatbotQuestionTableResponse extends HelpMeChatbotQuestionResponse {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @IsOptional()
+  children?: HelpMeChatbotQuestionTableResponse[]
+
+  @IsBoolean()
+  @IsOptional()
+  isChild?: boolean
+
+  @IsInt()
+  @IsOptional()
+  userScoreTotal?: number
+
+  @IsInt()
+  @IsOptional()
+  timesAsked?: number
 }
 
-export interface UpdateDocumentAggregateParams {
-  documentText: string
-  metadata?: any
-  prefix?: string
+export class HelpMeChatbotAskResponse extends ChatbotAskResponse {
+  internal!: Omit<HelpMeChatbotQuestionResponse, 'chatbotQuestion'>
 }
 
-export interface UpdateChatbotQuestionParams {
-  id: string
-  inserted?: boolean
-  sourceDocuments?: SourceDocument[]
-  question?: string
-  answer?: string
-  verified?: boolean
-  suggested?: boolean
-  selectedDocuments?: {
-    docId: string
-    pageNumbersString: string
-  }[]
-}
+export class InteractionResponse {
+  @Expose()
+  @IsInt()
+  id!: number
 
-// this is the response from the backend when new questions are asked
-// if question is I don't know, only answer and questionId are returned
-export interface ChatbotAskResponse {
-  chatbotRepoVersion: ChatbotAskResponseChatbotDB
-  helpmeRepoVersion: ChatbotQuestionResponseHelpMeDB | null
-}
+  @Expose()
+  @IsDate()
+  timestamp!: Date
 
-// comes from /ask from chatbot db
-export interface ChatbotAskResponseChatbotDB {
-  question: string
-  answer: string
-  questionId: string
-  interactionId: number
-  sourceDocuments?: SourceDocument[]
-  verified: boolean
-  courseId: string
-  isPreviousQuestion: boolean
+  @IsArray()
+  @Type(() => HelpMeChatbotQuestionResponse)
+  @ValidateNested({ each: true })
+  @IsOptional()
+  questions?: HelpMeChatbotQuestionResponse[]
 }
 
 export enum ChatbotServiceType {
@@ -549,20 +500,10 @@ export enum ChatbotServiceType {
   LATEST = 'latest',
 }
 
-export interface AddChatbotQuestionParams {
-  question: string
-  answer: string
-  verified: boolean
-  suggested: boolean
-  sourceDocuments: SourceDocument[]
-}
-
 export interface OrganizationChatbotSettings {
   id: number
-
   defaultProvider: ChatbotProvider
   providers: ChatbotProvider[]
-
   default_prompt?: string
   default_temperature?: number
   default_topK?: number
@@ -919,41 +860,6 @@ export class UpdateLLMTypeBody {
   additionalNotes?: string[]
 }
 
-export interface ChatbotSettings {
-  id: string
-  pageContent: string
-  metadata: ChatbotSettingsMetadata
-}
-
-export interface ProviderMetadata {
-  type: ChatbotServiceProvider
-  baseUrl: string
-  apiKey: string
-  defaultModelName: string
-  defaultVisionModelName: string
-  headers: ChatbotAllowedHeaders
-}
-
-export interface ModelMetadata {
-  provider: ProviderMetadata
-  modelName: string
-}
-
-export interface OrganizationChatbotSettingsMetadata {
-  defaultProvider: ProviderMetadata
-}
-
-export interface ChatbotSettingsMetadata {
-  organizationSettings?: OrganizationChatbotSettingsMetadata
-  model?: ModelMetadata
-  modelName?: string
-  prompt: string
-  similarityThresholdDocuments: number
-  similarityThresholdQuestions: number
-  temperature: number
-  topK: number
-}
-
 export class UpsertCourseChatbotSettings {
   @IsInt()
   @IsOptional()
@@ -974,30 +880,6 @@ export class UpsertCourseChatbotSettings {
   @IsNumber()
   @IsOptional()
   topK?: number
-}
-
-export type ChatbotSettingsUpdateParams = Partial<ChatbotSettingsMetadata>
-
-export interface InteractionResponse {
-  id: number
-  timestamp: Date
-  questions?: ChatbotQuestionResponseHelpMeDB[]
-}
-
-export class ChatbotDocument {
-  id!: number
-  name!: number
-  type!: string
-  subDocumentIds!: string[]
-}
-
-export type GetInteractionsAndQuestionsResponse = {
-  helpmeDB: InteractionResponse[]
-  chatbotDB: ChatbotQuestionResponseChatbotDB[]
-}
-
-export type GetChatbotHistoryResponse = {
-  history: InteractionResponse[]
 }
 
 /**
@@ -2070,6 +1952,7 @@ export type LMSFileUploadResponse = {
 export type LMSSyncDocumentsResult = {
   itemsSynced: number
   itemsRemoved: number
+  resultIds: string[]
   errors: number
 }
 
@@ -3911,7 +3794,7 @@ export function parseThinkBlock(answer: string) {
 
   if (!match) {
     // No <think> block, return the text unchanged
-    return { thinkText: null, cleanAnswer: answer }
+    return { thinkText: undefined, cleanAnswer: answer }
   }
 
   const thinkText = match[1].trim()
@@ -3998,6 +3881,8 @@ export const ERROR_MESSAGES = {
       'Organization settings could not be created; organization not found.',
   },
   chatbotController: {
+    textFileTooBig:
+      'Text-only files (.txt, .csv, .md) must be less than 2 MB in size.',
     organizationSettingsAlreadyExists:
       'Chatbot settings for this organization already exists.',
     organizationSettingsNotFound:
@@ -4013,6 +3898,9 @@ export const ERROR_MESSAGES = {
       `Specified chatbot provider is not an ${provider} provider.`,
   },
   chatbotService: {
+    missingVectorStoreId:
+      'Cannot create question, corresponding vector store ID for question not specified',
+    interactionNotFound: 'Interaction with specified ID was not found.',
     defaultModelNotFound:
       'Specified default model was not found in list of models',
     courseSettingsNotFound:
@@ -4338,5 +4226,18 @@ export const ERROR_MESSAGES = {
       `Members with role ${role} are not allowed to alter semesters`,
     notAllowedToDeleteSemester: (role: OrganizationRole) =>
       `Members with role ${role} are not allowed to delete semesters`,
+  },
+  webSocket: {
+    jwt: {
+      userNotFound: 'User not found',
+      disallowedPattern: 'Not authorized to use this route',
+      missingAuthHeader: 'Authorization header missing',
+      missingAuthToken: 'Authorization token missing',
+      malformedToken: 'Authorization token malformed',
+      invalidToken: 'Authorization token invalid',
+    },
+    operations: {
+      timeout: 'Request timed out',
+    },
   },
 }

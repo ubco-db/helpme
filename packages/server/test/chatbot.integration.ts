@@ -1,6 +1,6 @@
 import { ChatbotModule } from 'chatbot/chatbot.module';
 import {
-  ChatbotAskSuggestedParams,
+  ChatbotAskSuggestedBody,
   ChatbotServiceProvider,
   ChatbotServiceType,
   CreateChatbotProviderBody,
@@ -26,7 +26,7 @@ import {
   UserFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
-import { ChatbotQuestionModel } from 'chatbot/question.entity';
+import { ChatbotQuestionModel } from 'chatbot/chatbot-question.entity';
 import { OrganizationModel } from '../src/organization/organization.entity';
 import { CourseModel } from '../src/course/course.entity';
 import { OrganizationCourseModel } from '../src/organization/organization-course.entity';
@@ -115,9 +115,7 @@ describe('ChatbotController Integration', () => {
         role: Role.STUDENT,
       });
 
-      const body: ChatbotAskSuggestedParams = {
-        question: 'How does photosynthesis work?',
-        responseText: 'Photosynthesis is the process by which plants...',
+      const body: ChatbotAskSuggestedBody = {
         vectorStoreId: '123',
       };
 
@@ -126,8 +124,6 @@ describe('ChatbotController Integration', () => {
         .send(body)
         .expect(201);
       expect(response.body.id).toBeDefined();
-      expect(response.body.questionText).toEqual(body.question);
-      expect(response.body.responseText).toEqual(body.responseText);
       expect(response.body.vectorStoreId).toEqual(body.vectorStoreId);
       expect(response.body.interactionId).toBeDefined();
     });

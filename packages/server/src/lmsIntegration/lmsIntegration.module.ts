@@ -8,9 +8,15 @@ import { ChatbotApiService } from '../chatbot/chatbot-api.service';
 import { SyncLMSCommand } from './sync_lms.command';
 import { CacheModule } from '@nestjs/cache-manager';
 import { OrganizationService } from '../organization/organization.service';
+import { WebsocketModule } from 'websocket/websocket.module';
 
 @Module({
-  imports: [ScheduleModule.forRoot(), ChatbotModule, CacheModule.register()],
+  imports: [
+    ScheduleModule.forRoot(),
+    ChatbotModule,
+    CacheModule.register(),
+    WebsocketModule,
+  ],
   controllers: [LMSIntegrationController],
   providers: [
     LMSIntegrationService,

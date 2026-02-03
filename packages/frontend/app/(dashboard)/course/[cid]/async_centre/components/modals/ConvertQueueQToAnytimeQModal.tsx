@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Form, Input, message, Modal, Spin, Tooltip } from 'antd'
-import { useUserInfo } from '@/app/contexts/userContext'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { QuestionTagSelector } from '../../../components/QuestionTagElement'
 import { API } from '@/app/api'
@@ -8,10 +7,10 @@ import { getErrorMessage } from '@/app/utils/generalUtils'
 import {
   AlertType,
   asyncQuestionStatus,
+  ChatbotQueryTypeEnum,
   ClosedQuestionStatus,
 } from '@koh/common'
 import { QuestionCircleOutlined } from '@ant-design/icons'
-import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 
 interface FormValues {
   QuestionAbstract: string
@@ -39,8 +38,6 @@ const ConvertQueueQToAnytimeQModal: React.FC<
   onCancel,
   onCreateOrUpdateQuestion,
 }) => {
-  const { userInfo } = useUserInfo()
-  const courseFeatures = useCourseFeatures(courseId)
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(false)
@@ -95,7 +92,7 @@ const ConvertQueueQToAnytimeQModal: React.FC<
               courseId,
               {
                 query: myQuestion.text,
-                type: 'abstract',
+                type: ChatbotQueryTypeEnum.ABSTRACT,
               },
             )
 
@@ -184,6 +181,7 @@ const ConvertQueueQToAnytimeQModal: React.FC<
 
   return (
     <Modal
+      centered
       open={open}
       title={
         <span>

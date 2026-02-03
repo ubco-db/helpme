@@ -8,7 +8,6 @@ import {
   message,
   Modal,
   Select,
-  Space,
   Tooltip,
 } from 'antd'
 import {
@@ -250,6 +249,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         }
       `}</style>
       <Modal
+        centered
         title={
           <div className="flex items-center gap-2">
             <SettingOutlined />
@@ -264,7 +264,34 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         }
         open={open}
         onCancel={onClose}
-        footer={null}
+        footer={
+          <>
+            <Tooltip
+              title={
+                areParamsDefault &&
+                'All parameters are already their default value.'
+              }
+            >
+              <Button
+                onClick={handleReset}
+                loading={isLoadingData || isPerformingAction}
+                disabled={areParamsDefault}
+              >
+                Reset to default settings
+              </Button>
+            </Tooltip>
+            <Tooltip title={!haveSettingsChanged && 'No changes detected.'}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={isLoadingData || isPerformingAction}
+                disabled={!haveSettingsChanged}
+              >
+                Update settings
+              </Button>
+            </Tooltip>
+          </>
+        }
       >
         <Form
           form={form}
@@ -620,33 +647,6 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
               </div>
             </Form.Item>
           </div>
-
-          <Space className="flex justify-end">
-            <Tooltip
-              title={
-                areParamsDefault &&
-                'All parameters are already their default value.'
-              }
-            >
-              <Button
-                onClick={handleReset}
-                loading={isLoadingData || isPerformingAction}
-                disabled={areParamsDefault}
-              >
-                Reset to default settings
-              </Button>
-            </Tooltip>
-            <Tooltip title={!haveSettingsChanged && 'No changes detected.'}>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={isLoadingData || isPerformingAction}
-                disabled={!haveSettingsChanged}
-              >
-                Update settings
-              </Button>
-            </Tooltip>
-          </Space>
         </Form>
       </Modal>
     </>

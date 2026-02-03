@@ -1,5 +1,5 @@
 import Modal from 'antd/lib/modal/Modal'
-import { Button, message, Card, Col, Row, Segmented } from 'antd'
+import { Button, Card, Col, message, Row, Segmented } from 'antd'
 import {
   AllStudentAssignmentProgress,
   AssignmentProgressWithUser,
@@ -100,6 +100,7 @@ const AssignmentReportModal: React.FC<AssignmentReportModalProps> = ({
   }
   return (
     <Modal
+      centered
       title={
         <div className="flex flex-wrap gap-x-4 gap-y-2">
           <div className="flex items-center justify-center">

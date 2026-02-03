@@ -15,6 +15,7 @@ const EventEndedCheckoutStaffModal: React.FC<
 
   return (
     <Modal
+      centered
       open={true}
       footer={[
         <Button

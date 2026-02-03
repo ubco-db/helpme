@@ -1,11 +1,11 @@
 import Modal from 'antd/lib/modal/Modal'
 import {
-  Input,
-  Form,
   Button,
-  message,
-  GetProp,
   ColorPickerProps,
+  Form,
+  GetProp,
+  Input,
+  message,
   Space,
 } from 'antd'
 import { CloseOutlined, PlusOutlined } from '@ant-design/icons'
@@ -133,6 +133,7 @@ const EditAsyncCentreModal: React.FC<EditAsyncCentreModalProps> = ({
 
   return (
     <Modal
+      centered
       open={open}
       title="Edit Queue Details"
       okText="Save Changes"

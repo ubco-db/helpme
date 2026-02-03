@@ -34,8 +34,18 @@ const nextConfig = {
     if (process.env.NEXT_PUBLIC_WHY_DID_YOU_RENDER === 'true') {
 		injectWhyDidYouRender(config, context)
     }
-		return config;
-	}
+    return config;
+  },
+  turbopack: {
+    resolveExtensions: ['.mdx', '.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
+  },
+  transpilePackages: ['require-in-the-middle']
 };
 
 export default withSentryConfig(nextConfig, {

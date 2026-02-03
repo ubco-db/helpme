@@ -14,7 +14,6 @@ import {
   TACheckinTimesResponse,
   UserCourse,
   UserPartial,
-  ExtraTAStatus,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -45,7 +44,6 @@ import { QueueModel } from 'queue/queue.entity';
 import { SuperCourseModel } from './super-course.entity';
 import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
 import { URLSearchParams } from 'node:url';
-import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -665,18 +663,18 @@ export class CourseService {
            WHERE "courseId" = $2`,
           [clonedCourse.id, courseId],
         );
-        // get all the idHelpMeDB and docIdChatbotDB values from the cloned course
+        // get all the id and chatbotId values from the cloned course
         const clonedCourseDocPdfs = await manager.find(ChatbotDocPdfModel, {
           select: {
             // only need these 2 fields. Don't want the whole documents
-            idHelpMeDB: true,
-            docIdChatbotDB: true, // these are the old ids, we need to update them once the new document aggregates are cloned in the chatbot repo
+            id: true,
+            chatbotId: true, // these are the old ids, we need to update them once the new document aggregates are cloned in the chatbot repo
           },
           where: { courseId: clonedCourse.id },
         });
         for (const doc of clonedCourseDocPdfs) {
-          // map each old docIdChatbotDB to the new idHelpMeDB
-          docIdMap[doc.docIdChatbotDB] = doc.idHelpMeDB.toString();
+          // map each old docIdChatbotDB to the new id
+          docIdMap[doc.chatbotId] = doc.id.toString();
         }
       }
 
@@ -686,7 +684,7 @@ export class CourseService {
       // since it will automatically create a chatbot service when you call an endpoint with a courseId that does not exist
       if (cloneData.toClone.chatbot?.settings) {
         const oldChatbotSettings = await this.chatbotApiService
-          .getChatbotSettings(courseId, chatToken)
+          .getChatbotSettings(courseId)
           .catch((err) => {
             console.error(
               `Failed to get current course chatbot data in chatbot service:`,
@@ -698,11 +696,7 @@ export class CourseService {
           });
 
         await this.chatbotApiService
-          .updateChatbotSettings(
-            oldChatbotSettings.metadata,
-            clonedCourse.id,
-            chatToken,
-          )
+          .updateChatbotSettings(oldChatbotSettings, clonedCourse.id)
           .catch((err) => {
             console.error(
               `Failed to set cloned chatbot data in chatbot service:`,
@@ -716,19 +710,17 @@ export class CourseService {
       if (
         cloneData.toClone.chatbot?.documents ||
         cloneData.toClone.chatbot?.insertedQuestions ||
-        cloneData.toClone.chatbot?.insertedLMSData
+        cloneData.toClone.chatbot?.insertedDocuments
       ) {
         const result = await this.chatbotApiService
-          .cloneCourseDocuments(
-            courseId,
-            chatToken,
-            clonedCourse.id,
-            cloneData.toClone.chatbot?.documents === true,
-            cloneData.toClone.chatbot?.insertedQuestions === true,
-            cloneData.toClone.chatbot?.insertedLMSData === true,
-            cloneData.toClone.chatbot?.manuallyCreatedChunks === true,
+          .cloneCourseDocuments(courseId, clonedCourse.id, {
+            includeDocuments: cloneData.toClone.chatbot?.documents === true,
+            includeInsertedQuestions:
+              cloneData.toClone.chatbot?.insertedQuestions === true,
+            includeInsertedDocuments:
+              cloneData.toClone.chatbot?.insertedDocuments === true,
             docIdMap,
-          )
+          })
           .catch((err) => {
             console.error(
               `Failed to clone chatbot documents from original course in chatbot service:`,
@@ -750,8 +742,8 @@ export class CourseService {
             )) {
               await manager.update(
                 ChatbotDocPdfModel,
-                { idHelpMeDB: newHelpmeDocId },
-                { docIdChatbotDB: newAggregateDocId },
+                { id: newHelpmeDocId },
+                { chatbotId: newAggregateDocId },
               );
             }
           }

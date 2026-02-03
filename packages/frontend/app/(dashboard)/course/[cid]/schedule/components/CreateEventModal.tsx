@@ -1,15 +1,15 @@
 import {
-  Modal,
-  Form,
-  Input,
-  DatePicker,
   Checkbox,
-  Radio,
-  message,
-  TimePicker,
-  Select,
   ColorPickerProps,
+  DatePicker,
+  Form,
   GetProp,
+  Input,
+  message,
+  Modal,
+  Radio,
+  Select,
+  TimePicker,
 } from 'antd'
 import { useEffect, useState } from 'react'
 import { API } from '@/app/api'
@@ -156,6 +156,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
   return (
     <Modal
+      centered
       open={visible}
       title="Create a new event"
       okText="Create"
@@ -184,7 +185,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
               ? dayjs(lastSetEndDate)
               : dayjs(event?.start).add(4, 'month'),
           }}
-          onValuesChange={(changedValues, allValues) => {
+          onValuesChange={(changedValues) => {
             if (changedValues.endDate) {
               setLastSetEndDate(changedValues.endDate)
             }
@@ -220,29 +221,31 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
         />
       </Form.Item>
 
-      <Form.Item
-        label="Date"
-        name="date"
-        rules={[
-          { required: true, message: 'Please select the date of the event' },
-        ]}
-      >
-        <DatePicker />
-      </Form.Item>
-      <Form.Item
-        label="Time"
-        name="time"
-        rules={[
-          { required: true, message: 'Please select the times of the event' },
-        ]}
-      >
-        <RangePicker
-          // Don't show seconds, also show minutes in intervals of 5
-          minuteStep={5}
-          format="HH:mm"
-          className="w-36"
-        />
-      </Form.Item>
+      <div className={'grid w-full grid-cols-2'}>
+        <Form.Item
+          label="Date"
+          name="date"
+          rules={[
+            { required: true, message: 'Please select the date of the event' },
+          ]}
+        >
+          <DatePicker />
+        </Form.Item>
+        <Form.Item
+          label="Time"
+          name="time"
+          rules={[
+            { required: true, message: 'Please select the times of the event' },
+          ]}
+        >
+          <RangePicker
+            // Don't show seconds, also show minutes in intervals of 5
+            minuteStep={5}
+            format="HH:mm"
+            className="w-36"
+          />
+        </Form.Item>
+      </div>
       <Form.Item
         label="Staff"
         name="staffIds"
@@ -297,7 +300,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
       </Form.Item>
 
       {isRepeating && (
-        <>
+        <div className={'grid w-full grid-cols-2'}>
           <Form.Item
             label="Start Date"
             name="startDate"
@@ -351,6 +354,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
             <DatePicker picker="date" />
           </Form.Item>
           <Form.Item
+            className={'col-span-2'}
             label="Repeat on"
             name="daysOfWeek"
             rules={[
@@ -368,7 +372,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
               ))}
             </Checkbox.Group>
           </Form.Item>
-        </>
+        </div>
       )}
 
       <Form.Item

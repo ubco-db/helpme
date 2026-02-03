@@ -102,6 +102,7 @@ const CreateQueueModal: React.FC<CreateQueueModalProps> = ({
 
   return (
     <Modal
+      centered
       open={open}
       title="Create a new queue"
       okText="Create"

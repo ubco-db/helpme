@@ -13,9 +13,9 @@ import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { ApplicationConfigModule } from '../config/application_config.module';
 import { RedisQueueModule } from '../redisQueue/redis-queue.module';
 import { MailModule } from 'mail/mail.module';
-import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { CourseSubscriber } from './course.subscriber';
 import { OrganizationService } from '../organization/organization.service';
+import { ChatbotModule } from '../chatbot/chatbot.module';
 
 @Module({
   controllers: [CourseController],
@@ -27,6 +27,7 @@ import { OrganizationService } from '../organization/organization.service';
     MailModule,
     RedisQueueModule,
     ApplicationConfigModule,
+    ChatbotModule,
   ],
   providers: [
     HeatmapService,
@@ -36,9 +37,8 @@ import { OrganizationService } from '../organization/organization.service';
     RedisProfileService,
 
     ApplicationConfigService,
-    ChatbotApiService,
     OrganizationService,
   ],
-  exports: [CourseService, ChatbotApiService],
+  exports: [CourseService],
 })
 export class CourseModule {}

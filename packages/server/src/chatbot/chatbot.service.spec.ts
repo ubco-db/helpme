@@ -18,7 +18,7 @@ import {
   OrganizationFactory,
   UserFactory,
 } from '../../test/util/factories';
-import { ChatbotQuestionModel } from './question.entity';
+import { ChatbotQuestionModel } from './chatbot-question.entity';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -292,58 +292,46 @@ describe('ChatbotService', () => {
     it('should create a question with valid properties', async () => {
       const interaction = await InteractionFactory.create();
       const questionParams = {
-        interactionId: interaction.id,
         questionText: "What's the meaning of life?",
         responseText: "It's a philosophical question.",
         suggested: true,
         isPreviousQuestion: false,
         vectorStoreId: '1',
       };
-      const createdQuestion = await service.createQuestion(questionParams);
+      const createdQuestion = await service.createQuestion(
+        interaction.id,
+        questionParams,
+      );
       expect(createdQuestion).toBeDefined();
-      expect(createdQuestion.questionText).toEqual(questionParams.questionText);
-      expect(createdQuestion.responseText).toEqual(questionParams.responseText);
     });
   });
 
   describe('editQuestion', () => {
     it('should throw an error if question is not found', async () => {
-      await expect(
-        service.editQuestion({ id: 999, userScore: 5 }),
-      ).rejects.toThrow('Question not found based on the provided ID.');
+      await expect(service.editQuestion(999, { userScore: 5 })).rejects.toThrow(
+        'Question not found based on the provided ID.',
+      );
     });
 
     it('should successfully edit an existing question', async () => {
       const interaction = await InteractionFactory.create();
-      const originalQuestion = await service.createQuestion({
-        interactionId: interaction.id,
-        questionText: 'Original question',
-        responseText: 'Original response',
-        suggested: true,
+      const originalQuestion = await service.createQuestion(interaction.id, {
         vectorStoreId: '1',
         isPreviousQuestion: false,
       });
 
       const updatedQuestionData = {
-        id: originalQuestion.id,
-        questionText: 'Updated question',
-        responseText: 'Updated response',
-        suggested: false,
         isPreviousQuestion: true,
         vectorStoreId: '2',
       };
 
-      const updatedQuestion = await service.editQuestion(updatedQuestionData);
+      const updatedQuestion = await service.editQuestion(
+        originalQuestion.id,
+        updatedQuestionData,
+      );
 
       expect(updatedQuestion).toBeDefined();
       expect(updatedQuestion.id).toEqual(originalQuestion.id);
-      expect(updatedQuestion.questionText).toEqual(
-        updatedQuestionData.questionText,
-      );
-      expect(updatedQuestion.responseText).toEqual(
-        updatedQuestionData.responseText,
-      );
-      expect(updatedQuestion.suggested).toEqual(updatedQuestionData.suggested);
       expect(updatedQuestion.isPreviousQuestion).toEqual(
         updatedQuestionData.isPreviousQuestion,
       );
@@ -354,31 +342,25 @@ describe('ChatbotService', () => {
 
     it('should only update provided fields', async () => {
       const interaction = await InteractionFactory.create();
-      const originalQuestion = await service.createQuestion({
-        interactionId: interaction.id,
-        questionText: 'Original question',
-        responseText: 'Original response',
-        suggested: true,
+      const originalQuestion = await service.createQuestion(interaction.id, {
         vectorStoreId: '1',
         isPreviousQuestion: false,
       });
 
       const updatedQuestionData = {
-        id: originalQuestion.id,
-        questionText: 'Updated question',
+        isPreviousQuestion: true,
       };
 
-      const updatedQuestion = await service.editQuestion(updatedQuestionData);
+      const updatedQuestion = await service.editQuestion(
+        originalQuestion.id,
+        updatedQuestionData,
+      );
 
       expect(updatedQuestion).toBeDefined();
       expect(updatedQuestion.id).toEqual(originalQuestion.id);
-      expect(updatedQuestion.questionText).toEqual(
-        updatedQuestionData.questionText,
+      expect(updatedQuestion.isPreviousQuestion).toEqual(
+        updatedQuestionData.isPreviousQuestion,
       );
-      expect(updatedQuestion.responseText).toEqual(
-        originalQuestion.responseText,
-      );
-      expect(updatedQuestion.suggested).toEqual(originalQuestion.suggested);
       expect(updatedQuestion.vectorStoreId).toEqual(
         originalQuestion.vectorStoreId,
       );
@@ -387,21 +369,16 @@ describe('ChatbotService', () => {
     it('should allow updating the interactionId', async () => {
       const interaction1 = await InteractionFactory.create();
       const interaction2 = await InteractionFactory.create();
-      const originalQuestion = await service.createQuestion({
-        interactionId: interaction1.id,
+      const originalQuestion = await service.createQuestion(interaction1.id, {
         vectorStoreId: '1',
-        questionText: 'Original question',
-        responseText: 'Original response',
-        suggested: true,
         isPreviousQuestion: false,
       });
 
       const updatedQuestionData = {
-        id: originalQuestion.id,
         interactionId: interaction2.id,
       };
 
-      await service.editQuestion(updatedQuestionData);
+      await service.editQuestion(originalQuestion.id, updatedQuestionData);
 
       const updatedQuestion = await ChatbotQuestionModel.findOne({
         where: {
@@ -626,14 +603,14 @@ describe('ChatbotService', () => {
           await chatbotDataSourceService.getDataSource();
         const chatbotSide = await chatbotDataSource.query(
           `
-          SELECT "pageContent", metadata FROM course_setting WHERE "pageContent" = $1;
+          SELECT * FROM course_settings_model WHERE "courseId" = $1;
         `,
-          [String(course.id)],
+          [course.id],
         );
         expect(chatbotSide).toEqual([
           {
-            pageContent: `${course.id}`,
-            metadata: courseSetting.getMetadata(),
+            ...courseSetting.getMetadata(),
+            courseId: course.id,
           },
         ]);
       }
@@ -1189,9 +1166,9 @@ describe('ChatbotService', () => {
       const chatbotDataSource = await chatbotDataSourceService.getDataSource();
       const chatbotSide = await chatbotDataSource.query(
         `
-          SELECT "pageContent", metadata FROM course_setting WHERE "pageContent" = $1;
+          SELECT * FROM course_settings_model WHERE "courseId" = $1;
         `,
-        [String(course0.id)],
+        [course0.id],
       );
       result.organizationSettings =
         await OrganizationChatbotSettingsModel.findOne({
@@ -1205,8 +1182,8 @@ describe('ChatbotService', () => {
         });
       expect(chatbotSide).toEqual([
         {
-          pageContent: `${course0.id}`,
-          metadata: result.getMetadata(),
+          courseId: course0.id,
+          ...result.getMetadata(),
         },
       ]);
 
@@ -1304,14 +1281,14 @@ describe('ChatbotService', () => {
       const chatbotDataSource = await chatbotDataSourceService.getDataSource();
       const chatbotSide = await chatbotDataSource.query(
         `
-          SELECT "pageContent", metadata FROM course_setting WHERE "pageContent" = $1;
+        SELECT * FROM course_settings_model WHERE "courseId" = $1;
         `,
-        [String(course0.id)],
+        [course0.id],
       );
       expect(chatbotSide).toEqual([
         {
-          pageContent: `${course0.id}`,
-          metadata: result.getMetadata(),
+          courseId: course0.id,
+          ...result.getMetadata(),
         },
       ]);
 
@@ -1397,14 +1374,14 @@ describe('ChatbotService', () => {
       const chatbotDataSource = await chatbotDataSourceService.getDataSource();
       let chatbotSide = await chatbotDataSource.query(
         `
-          SELECT "pageContent", metadata FROM course_setting WHERE "pageContent" = $1;
+            SELECT * FROM course_settings_model WHERE "courseId" = $1;
         `,
-        [String(course0.id)],
+        [course0.id],
       );
       expect(chatbotSide).toEqual([
         {
-          pageContent: `${course0.id}`,
-          metadata: createResult.getMetadata(),
+          courseId: course0.id,
+          ...createResult.getMetadata(),
         },
       ]);
 
@@ -1464,14 +1441,14 @@ describe('ChatbotService', () => {
         });
       chatbotSide = await chatbotDataSource.query(
         `
-          SELECT "pageContent", metadata FROM course_setting WHERE "pageContent" = $1;
+            SELECT * FROM course_settings_model WHERE "courseId" = $1;
         `,
-        [String(course0.id)],
+        [course0.id],
       );
       expect(chatbotSide).toEqual([
         {
-          pageContent: `${course0.id}`,
-          metadata: updateResult.getMetadata(),
+          courseId: course0.id,
+          ...updateResult.getMetadata(),
         },
       ]);
     });
@@ -1565,14 +1542,14 @@ describe('ChatbotService', () => {
       const chatbotDataSource = await chatbotDataSourceService.getDataSource();
       const chatbotSide = await chatbotDataSource.query(
         `
-          SELECT "pageContent", metadata FROM course_setting WHERE "pageContent" = $1;
+            SELECT * FROM course_settings_model WHERE "courseId" = $1;
         `,
-        [String(course0.id)],
+        [course0.id],
       );
       expect(chatbotSide).toEqual([
         {
-          pageContent: `${course0.id}`,
-          metadata: result.getMetadata(),
+          courseId: course0.id,
+          ...result.getMetadata(),
         },
       ]);
     });

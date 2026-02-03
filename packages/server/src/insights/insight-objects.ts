@@ -139,7 +139,7 @@ const APPLY_FILTER_MAP = {
   },
   InteractionModel: {
     courseId: ({ query, filter }: ApplyFilterParams) => {
-      query.andWhere('"InteractionModel"."course" = :courseId', {
+      query.andWhere('"InteractionModel"."courseId" = :courseId', {
         courseId: filter.courseId,
       });
     },

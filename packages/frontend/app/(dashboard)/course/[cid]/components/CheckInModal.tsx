@@ -22,6 +22,7 @@ const CheckInModal: React.FC<CheckInModalProps> = ({
 
   return (
     <Modal
+      centered
       title="Check into a queue"
       open={visible}
       onCancel={() => {
