@@ -3976,6 +3976,17 @@ export const ERROR_MESSAGES = {
       'Event date is in the past. No AutoCheckout will occur. Please unassign staff from event.',
     invalidRecurringEvent: 'Recurring events must have a start and end date',
   },
+  authController: {
+    userNotFoundWithEmail: 'No user exists with this email',
+    ssoAccountGoogle:
+      'This email is an SSO account and has no password to reset. Please login with "Continue with Google" instead.',
+    ssoAccountShibboleth: (organizationName: string) =>
+      `This email is an SSO account and has no password to reset. Please login with "Continue with ${organizationName}" instead.`,
+    incorrectAccountType:
+      'This account is the incorrect type and has no password to reset.',
+    invalidRecaptchaToken: 'Invalid recaptcha token',
+    emailNotVerified: 'Email not verified',
+  },
   organizationController: {
     notEnoughDiskSpace: 'Not enough disk space to upload file',
     userAlreadyInOrganization: 'User is already in organization',
