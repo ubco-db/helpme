@@ -4,6 +4,7 @@ exports[`Organization Integration GET /organization should return 200 and list o
 [
   {
     "bannerUrl": null,
+    "createdAt": "2020-01-01T00:00:00.000Z",
     "description": "UBC Okanagan",
     "googleAuthEnabled": true,
     "id": 1,
@@ -17,6 +18,7 @@ exports[`Organization Integration GET /organization should return 200 and list o
   },
   {
     "bannerUrl": null,
+    "createdAt": "2020-01-01T00:00:00.000Z",
     "description": "UBC Okanagan",
     "googleAuthEnabled": true,
     "id": 2,
@@ -34,6 +36,7 @@ exports[`Organization Integration GET /organization should return 200 and list o
 exports[`Organization Integration GET /organization/:oid should return 200 and response when user is logged in 1`] = `
 {
   "bannerUrl": null,
+  "createdAt": "2020-01-01T00:00:00.000Z",
   "description": "UBC Okanagan",
   "googleAuthEnabled": true,
   "id": 1,

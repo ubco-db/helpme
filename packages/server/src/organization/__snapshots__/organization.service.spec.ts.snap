@@ -60,6 +60,7 @@ exports[`OrganizationService getOrganizationCourse should return organization co
     "asyncQuestionDisplayTypes": [],
     "coordinator_email": null,
     "courseInviteCode": "invite-code",
+    "createdAt": 2020-01-01T00:00:00.000Z,
     "deletedAt": null,
     "enabled": true,
     "icalURL": "https://calendar.google.com/calendar/ical/t6lu2pic7u9otrbpkuk26sl34g%40group.calendar.google.com/public/basic.ics",
@@ -71,6 +72,7 @@ exports[`OrganizationService getOrganizationCourse should return organization co
     "selfEnroll": false,
     "semester": SemesterModel {
       "color": "blue",
+      "createdAt": 2020-01-01T00:00:00.000Z,
       "description": "Test Semester Description",
       "endDate": "2022-12-31",
       "id": 1,
