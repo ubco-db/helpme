@@ -13,7 +13,6 @@ import {
   OrganizationRoleHistoryFilter,
   OrganizationRoleHistoryResponse,
   OrgRoleChangeReason,
-  OrgRoleChangeReasonMap,
   OrgRoleHistory,
   OrgUser,
   Role,
@@ -435,10 +434,7 @@ export class OrganizationService {
           timestamp: history.OrganizationRoleHistory_timestamp,
           fromRole: history.OrganizationRoleHistory_fromRole,
           toRole: history.OrganizationRoleHistory_toRole,
-          changeReason:
-            OrgRoleChangeReasonMap[
-              history.OrganizationRoleHistory_changeReason
-            ],
+          changeReason: history.OrganizationRoleHistory_roleChangeReason,
           toUser: {
             userId: history.touserid,
             firstName: history.touserfirstname,

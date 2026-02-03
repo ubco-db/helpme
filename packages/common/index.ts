@@ -351,6 +351,7 @@ export enum MailServiceType {
   ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST = 'async_question_new_comment_on_my_post',
   ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST = 'async_question_new_comment_on_others_post',
   COURSE_CLONE_SUMMARY = 'course_clone_summary',
+  ADMIN_NOTICE = 'admin_notice', // currently used for all prof invite admin emails. Just wanted something generic for it.
 }
 /**
  * Represents one of three possible user roles in a course.
@@ -1076,6 +1077,56 @@ export class QueuePartial {
   zoomLink?: string
 
   courseId!: number
+}
+
+export class GetProfInviteResponse {
+  course!: {
+    id: number
+    name: string
+  }
+  adminUser!: {
+    id: number
+    name: string
+    email: string
+  }
+  id!: number
+  code!: string
+  maxUses!: number
+  usesUsed!: number
+  @Type(() => Date)
+  createdAt!: Date
+  @Type(() => Date)
+  expiresAt!: Date
+  makeOrgProf!: boolean
+}
+export class CreateProfInviteParams {
+  @IsInt()
+  orgId!: number
+  @IsInt()
+  courseId!: number
+
+  @IsOptional()
+  @IsInt()
+  maxUses?: number
+
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  expiresAt?: Date
+
+  @IsOptional()
+  @IsBoolean()
+  makeOrgProf?: boolean
+}
+
+export class AcceptProfInviteParams {
+  @IsString()
+  code!: string
+}
+
+export type GetProfInviteDetailsResponse = {
+  courseId: number
+  orgId: number
 }
 
 /**
@@ -2188,9 +2239,15 @@ export type OrganizationProfessor = {
   organizationUser: {
     id: number
     name: string
+    email: string
   }
   trueRole?: OrganizationRole
   userId: number
+}
+
+export type CreateCourseResponse = {
+  message: string
+  courseId: number
 }
 
 export class UpdateOrganizationCourseDetailsParams {
@@ -2480,10 +2537,10 @@ export class OrganizationCourseResponse {
   id?: number
 
   @IsInt()
-  organizationId?: number
+  organizationId!: number
 
   @IsInt()
-  courseId?: number
+  courseId!: number
 
   course?: GetCourseResponse
 
@@ -2977,6 +3034,7 @@ export enum OrgRoleChangeReason {
   manualModification = 'manualModification',
   joinedOrganizationMember = 'joinedOrganizationMember',
   joinedOrganizationProfessor = 'joinedOrganizationProfessor',
+  acceptedProfInvite = 'acceptedProfInvite',
   unknown = 'unknown',
 }
 
@@ -2984,6 +3042,7 @@ export enum OrgRoleChangeReasonMap {
   manualModification = 'Role was manually modified by an organization member with sufficient permissions.',
   joinedOrganizationMember = 'User joined the organization and gained the member role.',
   joinedOrganizationProfessor = 'User joined the organization and gained the professor role.',
+  acceptedProfInvite = 'User accepted a professor invite with makeOrgProf flag set to true given by the given admin user.',
   unknown = '',
 }
 
@@ -4207,6 +4266,8 @@ export const ERROR_MESSAGES = {
     notLoggedIn: 'Must be logged in',
     noCourseIdFound: 'No courseId found',
     notInCourse: 'Not In This Course',
+    noOrgId: 'Organization ID not given',
+    invalidOrgId: 'Invalid Organization ID: Not a valid number',
     notAuthorized: "You don't have permissions to perform this action",
     userNotInOrganization: 'User not in organization',
     mustBeRoleToAccess: (roles: string[]): string =>
@@ -4339,4 +4400,42 @@ export const ERROR_MESSAGES = {
     notAllowedToDeleteSemester: (role: OrganizationRole) =>
       `Members with role ${role} are not allowed to delete semesters`,
   },
+}
+
+/* Common Query Params
+  Does two things: 
+  - Allows us to easily modify the query params for error messages in 1 spot
+  - More importantly, it connects the backend with the frontend to make it easier to find where a particular query param is coming from
+  */
+export const QUERY_PARAMS = {
+  profInvite: {
+    // note that some uses of these query params will just check for .startsWith (e.g. .startsWith('prof_invite_'))
+    error: {
+      expired: 'prof_invite_expired',
+      expiresAt: 'expired_at',
+      maxUsesReached: 'prof_invite_max_uses_reached',
+      maxUses: 'max_uses',
+      notFound: 'prof_invite_not_found',
+      profInviteId: 'pinvite_id',
+      userNotFound: 'prof_invite_user_not_found',
+      badCode: 'prof_invite_bad_code',
+      unknown: 'prof_invite_unknown_error',
+      // It's tempting to want to re-organize this better, but it can make the urls more gross to read (e.g. /courses?error=${QUERY_PARAMS.profInviteError.notFound.queryParam}&${QUERY_PARAMS.profInviteError.notFound.extraParams.profInviteId}=${profInviteId})
+      // I also considered putting the full error messages here, but they're only used in one place and I think would do more harm than good for maintainability
+    },
+    notice: {
+      adminAlreadyInCourse: 'pi_admin_already_in_course',
+      adminAcceptedInviteNotConsumed: 'pi_admin_accepted_invite_not_consumed',
+      inviteAccepted: 'pi_invite_accepted',
+    },
+  },
+  queueInvite: {
+    error: {
+      notInCourse: 'queue_invite_not_in_course',
+      inviteNotFound: 'queue_invite_not_found',
+      courseNotFound: 'queue_invite_course_not_found',
+      badCourseInviteCode: 'queue_invite_bad_course_invite_code',
+    },
+  },
+  // TODO: add the /login redirect query params here. Avoided doing so right now since that would require middleware.ts to import this file and iirc there is errors when you try to do that
 }

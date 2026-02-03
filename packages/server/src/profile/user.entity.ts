@@ -30,6 +30,7 @@ import { LMSAuthStateModel } from '../lmsIntegration/lms-auth-state.entity';
 import { LMSAccessTokenModel } from '../lmsIntegration/lms-access-token.entity';
 import { UserLtiIdentityModel } from '../lti/user_lti_identity.entity';
 import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
+import { ProfInviteModel } from 'course/prof-invite/prof-invite.entity';
 
 @Entity('user_model')
 export class UserModel extends BaseEntity {
@@ -179,4 +180,8 @@ export class UserModel extends BaseEntity {
   @Exclude()
   @OneToMany(() => UserLtiIdentityModel, (identity) => identity.user)
   ltiIdentities: UserLtiIdentityModel[];
+
+  @OneToMany((type) => ProfInviteModel, (profInvite) => profInvite.adminUser)
+  @Exclude()
+  createdProfInvites: ProfInviteModel[];
 }
