@@ -94,6 +94,9 @@ export default function CoursesPage(): ReactElement {
                 case QUERY_PARAMS.profInvite.error.badCode:
                   profInviteMsg = `The professor invite code in the link is incorrect. Please ensure the invite link is fully intact. Otherwise, please contact an admin.`
                   break
+                case QUERY_PARAMS.profInvite.error.unknown:
+                  profInviteMsg = `An unexpected error occurred while trying to accept the professor invite. Please try again. If the error persists, try clearing your cookies. If the error still occurs, please contact an admin.`
+                  break
                 default:
                   profInviteMsg = `An unexpected error occurred: ${error}`
               }

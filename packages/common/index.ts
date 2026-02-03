@@ -4397,6 +4397,7 @@ export const QUERY_PARAMS = {
       profInviteId: 'pinvite_id',
       userNotFound: 'prof_invite_user_not_found',
       badCode: 'prof_invite_bad_code',
+      unknown: 'prof_invite_unknown_error',
       // It's tempting to want to re-organize this better, but it can make the urls more gross to read (e.g. /courses?error=${QUERY_PARAMS.profInviteError.notFound.queryParam}&${QUERY_PARAMS.profInviteError.notFound.extraParams.profInviteId}=${profInviteId})
       // I also considered putting the full error messages here, but they're only used in one place and I think would do more harm than good for maintainability
     },

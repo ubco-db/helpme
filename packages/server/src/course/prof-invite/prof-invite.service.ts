@@ -6,7 +6,6 @@ import {
   Role,
 } from '@koh/common';
 import { Injectable } from '@nestjs/common';
-
 import { UserCourseModel } from 'profile/user-course.entity';
 import { UserModel } from 'profile/user.entity';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
@@ -14,6 +13,7 @@ import { ProfInviteModel } from './prof-invite.entity';
 import { OrganizationService } from 'organization/organization.service';
 import { randomBytes } from 'node:crypto';
 import { MailService } from 'mail/mail.service';
+import * as Sentry from '@sentry/nestjs';
 
 @Injectable()
 export class ProfInviteService {
@@ -46,13 +46,30 @@ export class ProfInviteService {
     userId: number,
     profInviteCookie: string,
   ): Promise<string> {
-    const decodedCookie = decodeURIComponent(profInviteCookie);
-    const splitCookie = decodedCookie.split(',');
-    const profInviteId = Number(splitCookie[0]);
-    // const orgId = splitCookie[1]; // these are part of the cookie but not used for this.
-    // const courseId = splitCookie[2];
-    const profInviteCode = splitCookie[3];
-    return this.acceptProfInvite(userId, profInviteId, profInviteCode);
+    try {
+      const decodedCookie = decodeURIComponent(profInviteCookie);
+      const splitCookie = decodedCookie.split(',');
+      const profInviteId = Number(splitCookie[0]);
+      // const orgId = splitCookie[1]; // these are part of the cookie but not used for this.
+      // const courseId = splitCookie[2];
+      const profInviteCode = splitCookie[3];
+      return this.acceptProfInvite(userId, profInviteId, profInviteCode);
+    } catch (error) {
+      Sentry.captureException(error, {
+        extra: {
+          profInviteCookie: profInviteCookie,
+          userId: userId,
+        },
+      });
+      console.error(
+        'Unhandled error when trying to accept prof invite from cookie:',
+        error,
+      );
+      const params = new URLSearchParams({
+        err: QUERY_PARAMS.profInvite.error.unknown,
+      });
+      return `/courses?${params.toString()}`;
+    }
   }
 
   /* This will accept and consume a prof invite, sending any relevant emails to the admin that created it asynchronously */
@@ -277,7 +294,9 @@ export class ProfInviteService {
     return `/course/${profInvite.courseId}?${params.toString()}`;
   }
 
-  // --- Email Construction Helpers --- Used for tests
+  //
+  // Email Construction Helpers
+  //
 
   public getCommonEmailBody(
     profInvite: ProfInviteModel,
