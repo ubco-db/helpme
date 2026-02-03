@@ -60,7 +60,6 @@ export default function TACheckInCheckOutTimes(
           start: new Date(away.awayStartTime),
           end: away.awayEndTime ? new Date(away.awayEndTime) : new Date(),
           backgroundColor: away.inProgress ? '#d97706' : '#f59e0b',
-          studentsHelped: 0,
           TAStatus: TAStatus.Away,
         })) ?? [];
       setEvents([...modifiedEvents, ...awayEvents]);
@@ -163,12 +162,14 @@ export default function TACheckInCheckOutTimes(
                       <p>
                         {formattedStartWithAmPm} - {formattedEndWithAmPm}
                       </p>
+                      {extendedProps.TAStatus !== TAStatus.Away && (
                       <p>
                         {extendedProps.studentsHelped} helped
                         {extendedProps.TAStatus === TAStatus.InQueue
                           ? ' so far'
                           : ''}
                       </p>
+                      )}
                       {extendedProps.TAStatus !== TAStatus.CheckedOut && (
                         <p>{extendedProps.TAStatus}</p>
                       )}
@@ -180,12 +181,14 @@ export default function TACheckInCheckOutTimes(
                       {formattedStart} - {formattedEnd}
                     </p>
                     <p>{TAName}</p>
+                  {extendedProps.TAStatus !== TAStatus.Away && (  
                     <p className="text-xs">
                       {extendedProps.studentsHelped} helped
                       {extendedProps.TAStatus === TAStatus.InQueue
                         ? ' so far'
                         : ''}
                     </p>
+                  )}
                   </div>
                 </Tooltip>
               )
