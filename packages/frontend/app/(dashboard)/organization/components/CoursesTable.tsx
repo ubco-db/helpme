@@ -4,19 +4,18 @@ import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { SearchOutlined } from '@ant-design/icons'
 import { CourseResponse, GetOrganizationResponse } from '@koh/common'
-import { Button, Checkbox, Col, Input, List, Pagination, Row, Tag } from 'antd'
+import { Button, Checkbox, Col, Input, Row, Tag, Table } from 'antd'
+import { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
 import useSWR, { mutate } from 'swr'
 import BatchCourseCloneModal from './BatchCourseCloneModal'
 import { organizationApi } from '@/app/api/organizationApi'
+import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import SemesterInfoPopover from '../../components/SemesterInfoPopover'
-import { cn } from '@/app/utils/generalUtils'
 
 const CoursesTable: React.FC = () => {
   const { userInfo } = useUserInfo()
-
-  const [page, setPage] = useState(1)
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
   const [showIds, setShowIds] = useState(true)
@@ -32,7 +31,6 @@ const CoursesTable: React.FC = () => {
   const handleSearch = (event: any) => {
     event.preventDefault()
     setSearch(event.target.value)
-    setPage(1)
   }
 
   useEffect(() => {
@@ -50,22 +48,80 @@ const CoursesTable: React.FC = () => {
     fetchOrganization()
   }, [userInfo.organization?.orgId])
 
-  useEffect(() => {
-    return () => {
-      // Clear the cache for the "CoursesTab" component
-      mutate(`courses/${page}/${search}`)
-    }
-  }, [page, search])
-
   const { data: courses } = useSWR(
-    `courses/${page}/${search}`,
+    `courses/${search}`,
     async () =>
       await API.organizations.getCourses(
         userInfo?.organization?.orgId ?? -1,
-        page,
+        1,
         search,
       ),
   )
+
+  const columns: ColumnsType<CourseResponse> = [
+    showIds && {
+      title: 'Course ID',
+      dataIndex: 'courseId',
+      key: 'courseId',
+    },
+    {
+      title: 'Course Name',
+      dataIndex: 'courseName',
+      key: 'courseName',
+    },
+    {
+      title: 'Semester',
+      dataIndex: 'semester',
+      key: 'semester',
+      render: (semester: any) => {
+        if (!semester) return null
+        return (
+          <SemesterInfoPopover semester={semester}>
+            <Tag color={semester.color} bordered={false} className="text-sm">
+              {semester.name === 'Legacy Semester'
+                ? 'No Semester'
+                : semester.name}
+            </Tag>
+          </SemesterInfoPopover>
+        )
+      },
+    },
+    !organization?.ssoEnabled && {
+      title: 'Status',
+      dataIndex: 'isEnabled',
+      key: 'status',
+      render: (isEnabled: boolean) => {
+        return !isEnabled ? <Tag color="red">Archived</Tag> : null
+      },
+    },
+    {
+      title: 'Total Students',
+      dataIndex: 'totalStudents',
+      key: 'totalStudents',
+    },
+    {
+      title: 'Date Created',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (createdAt: Date) => {
+        if (!createdAt) return '-'
+        const date = formatDateAndTimeForExcel(createdAt)
+        return date.split(' ')[0] // YYYY-MM-DD
+      },
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_: any, record: CourseResponse) => (
+        <Button
+          type="primary"
+          href={`/organization/course/${record.courseId}/edit`}
+        >
+          Edit
+        </Button>
+      ),
+    },
+  ].filter(Boolean) as ColumnsType<CourseResponse>
 
   if (!organization) {
     return <CenteredSpinner tip="Fetching Organization Info..." />
@@ -104,72 +160,16 @@ const CoursesTable: React.FC = () => {
             </Col>
           </Row>
 
-          <List
-            style={{ marginTop: 20 }}
+          <Table
             dataSource={courses}
-            renderItem={(item: CourseResponse) => (
-              <>
-                <List.Item
-                  style={{ borderBottom: '1px solid #f0f0f0', padding: 10 }}
-                  key={item.courseId}
-                  actions={[
-                    <Button
-                      key=""
-                      type="primary"
-                      href={`/organization/course/${item.courseId}/edit`}
-                    >
-                      Edit
-                    </Button>,
-                  ]}
-                >
-                  <List.Item.Meta
-                    title={
-                      <span>
-                        <span
-                          className={cn(
-                            showIds ? '' : 'hidden',
-                            'text-helpmeblue font-semibold',
-                          )}
-                        >
-                          {item.courseId}
-                        </span>{' '}
-                        {item.courseName}
-                        <span className="text-gray-500">
-                          {' '}
-                          {item.sectionGroupName}
-                        </span>
-                      </span>
-                    }
-                  />
-                  {item.semester && (
-                    <SemesterInfoPopover semester={item.semester}>
-                      <Tag
-                        color={item.semester.color}
-                        bordered={false}
-                        className="text-sm"
-                      >
-                        {item.semester.name === 'Legacy Semester'
-                          ? 'No Semester'
-                          : item.semester.name}
-                      </Tag>
-                    </SemesterInfoPopover>
-                  )}
-                  {!item.isEnabled && <Tag color="red">Archived</Tag>}
-                </List.Item>
-              </>
-            )}
+            columns={columns}
+            rowKey="courseId"
+            pagination={{
+              pageSize: 10,
+              showQuickJumper: true,
+            }}
           />
         </div>
-        {courses.length > 50 && (
-          <Pagination
-            className="float-right"
-            current={page}
-            pageSize={50}
-            total={courses.length}
-            onChange={(page) => setPage(page)}
-            showSizeChanger={false}
-          />
-        )}
         <BatchCourseCloneModal
           open={isCloneModalOpen}
           onClose={() => setIsCloneModalOpen(false)}

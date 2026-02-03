@@ -138,11 +138,13 @@ export class OrganizationService {
         'CourseModel.enabled as isEnabled',
         'CourseModel.sectionGroupName as sectionGroupName',
         'CourseModel.semesterId as semesterId',
+        'CourseModel.createdAt as createdAt',
         'SemesterModel.name as semesterName',
         'SemesterModel.color as semesterColor',
         'SemesterModel.startDate as semesterStartDate',
         'SemesterModel.endDate as semesterEndDate',
         'SemesterModel.description as semesterDescription',
+        '(SELECT COUNT(*) FROM user_course_model WHERE user_course_model."courseId" = CourseModel.id AND user_course_model."role" = \'student\') as totalStudents',
       ])
       // first order by semester end date, then by course name
       .orderBy('SemesterModel.endDate', 'DESC')
@@ -167,6 +169,8 @@ export class OrganizationService {
         isEnabled: course.isenabled,
         sectionGroupName: course.sectiongroupname,
         semesterId: course.semesterid,
+        createdAt: course.createdat,
+        totalStudents: course.totalstudents,
         semester: {
           id: course.semesterid,
           name: course.semestername,
