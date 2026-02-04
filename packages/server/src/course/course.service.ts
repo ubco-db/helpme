@@ -161,7 +161,7 @@ export class CourseService {
       taCheckinTimes.push({
         name: checkinEvent.user.name,
         checkinTime: checkinEvent.time,
-        checkoutTime: windowEnd,
+        checkoutTime: closestEndEvent?.time,
         inProgress: !closestEndEvent,
         forced: closestEndEvent?.eventType === EventType.TA_CHECKED_OUT_FORCED,
         numHelped,
@@ -209,7 +209,7 @@ export class CourseService {
           taAwayTimes.push({
             name: checkinEvent.user.name,
             awayStartTime: currentAwayStart,
-            awayEndTime: windowEnd,
+            awayEndTime: null,
             inProgress: !closestEndEvent,
           });
         }
