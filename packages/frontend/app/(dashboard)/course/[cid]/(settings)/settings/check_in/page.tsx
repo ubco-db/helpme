@@ -53,7 +53,16 @@ export default function TACheckInCheckOutTimes(
       const modifiedEvents = result.taCheckinTimes.map((event) =>
         parseEvent(event),
       )
-      setEvents(modifiedEvents)
+
+      const awayEvents =
+        result.taAwayTimes?.map((away) => ({
+          title: `${away.name} ${away.inProgress ? 'is Currently Away' : 'was Away'}`,
+          start: new Date(away.awayStartTime),
+          end: away.awayEndTime ? new Date(away.awayEndTime) : new Date(),
+          backgroundColor: away.inProgress ? '#d97706' : '#f59e0b',
+          TAStatus: TAStatus.Away,
+        })) ?? []
+      setEvents([...modifiedEvents, ...awayEvents])
     } catch (error) {
       const errorMessage = getErrorMessage(error)
       message.error('An error occurred while fetching events:' + errorMessage)
@@ -152,15 +161,18 @@ export default function TACheckInCheckOutTimes(
                       <p>
                         {formattedStartWithAmPm} - {formattedEndWithAmPm}
                       </p>
-                      <p>
-                        {extendedProps.studentsHelped} helped
-                        {extendedProps.TAStatus === TAStatus.InQueue
-                          ? ' so far'
-                          : ''}
-                      </p>
-                      {extendedProps.TAStatus !== TAStatus.CheckedOut && (
-                        <p>{extendedProps.TAStatus}</p>
+                      {extendedProps.TAStatus !== TAStatus.Away && (
+                        <p>
+                          {extendedProps.studentsHelped} helped
+                          {extendedProps.TAStatus === TAStatus.InQueue
+                            ? ' so far'
+                            : ''}
+                        </p>
                       )}
+                      {extendedProps.TAStatus !== TAStatus.CheckedOut &&
+                        extendedProps.TAStatus !== TAStatus.Away && (
+                          <p>{extendedProps.TAStatus}</p>
+                        )}
                     </div>
                   }
                 >
@@ -169,12 +181,14 @@ export default function TACheckInCheckOutTimes(
                       {formattedStart} - {formattedEnd}
                     </p>
                     <p>{TAName}</p>
-                    <p className="text-xs">
-                      {extendedProps.studentsHelped} helped
-                      {extendedProps.TAStatus === TAStatus.InQueue
-                        ? ' so far'
-                        : ''}
-                    </p>
+                    {extendedProps.TAStatus !== TAStatus.Away && (
+                      <p className="text-xs">
+                        {extendedProps.studentsHelped} helped
+                        {extendedProps.TAStatus === TAStatus.InQueue
+                          ? ' so far'
+                          : ''}
+                      </p>
+                    )}
                   </div>
                 </Tooltip>
               )
