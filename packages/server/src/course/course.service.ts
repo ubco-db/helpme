@@ -55,8 +55,11 @@ export class CourseService {
     private readonly mailService: MailService,
     private readonly chatbotApiService: ChatbotApiService,
     private readonly dataSource: DataSource,
-  ) { }
+  ) {}
 
+  // Note that this still does not handle the case where multiple checkin events happen without a corresponding checkout event.
+  // This doesn't really seem to be an issue outside of dev though (since it *requires* bad data),
+  // and it will only mess up the visuals a bit even if it does happen. I'll put a TODO to fix this here anyway.
   async getTACheckInCheckOutTimes(
     courseId: number,
     startDate: string,
@@ -89,10 +92,11 @@ export class CourseService {
       (e) => e.eventType === EventType.TA_CHECKED_IN,
     );
 
-    const checkoutEvents = taEvents.filter((e) =>
-      e.eventType === EventType.TA_CHECKED_OUT ||
-      e.eventType === EventType.TA_CHECKED_OUT_FORCED ||
-      e.eventType === EventType.TA_CHECKED_OUT_EVENT_END
+    const checkoutEvents = taEvents.filter(
+      (e) =>
+        e.eventType === EventType.TA_CHECKED_OUT ||
+        e.eventType === EventType.TA_CHECKED_OUT_FORCED ||
+        e.eventType === EventType.TA_CHECKED_OUT_EVENT_END,
     );
 
     const awayEvents = taEvents.filter(
@@ -103,63 +107,86 @@ export class CourseService {
 
     const taCheckinTimes: TACheckinPair[] = [];
     const taAwayTimes: TAAwayPair[] = [];
-    const MIN_AWAY_THRESHOLD = 2;// 2 minute threshold to be considered away
+    const MIN_AWAY_THRESHOLD = 2; // 2 minute threshold to be considered away
     const MIN_AWAY_MS = MIN_AWAY_THRESHOLD * 60 * 1000;
 
     for (const checkinEvent of checkinEvents) {
-      let closestEvent: EventModel = null;
+      let closestEndEvent: EventModel = null;
       let mostRecentTime = new Date();
-      const originalDate = mostRecentTime;
+      const now = mostRecentTime;
 
       for (const checkoutEvent of checkoutEvents) {
         if (
           checkoutEvent.userId === checkinEvent.userId &&
           checkoutEvent.time > checkinEvent.time &&
+          // goal is to find the end event that has the shortest time difference from the checkin event
           checkoutEvent.time.getTime() - checkinEvent.time.getTime() <
             mostRecentTime.getTime() - checkinEvent.time.getTime()
         ) {
-          closestEvent = checkoutEvent;
+          closestEndEvent = checkoutEvent;
           mostRecentTime = checkoutEvent.time;
         }
       }
+      // if the checkin and checkout event happened on two different days (and the checkout event isn't the 3am TA_CHECKED_OUT_FORCED event),
+      //  set the checkout time to 3:01am forced checkout (just in case the event wasn't created)
+      // This is to fix events appearing to span multiple days due the event not getting created.
+      if (
+        closestEndEvent &&
+        checkinEvent.time.toDateString() !==
+          closestEndEvent.time.toDateString() &&
+        closestEndEvent.eventType !== EventType.TA_CHECKED_OUT_FORCED &&
+        closestEndEvent.time.getHours() !== 3 &&
+        closestEndEvent.time.getMinutes() < 2
+      ) {
+        const endOfCheckinDay = new Date(checkinEvent.time);
+        endOfCheckinDay.setDate(endOfCheckinDay.getDate() + 1);
+        endOfCheckinDay.setHours(3, 1, 0, 0);
+        const newEvent = new EventModel();
+        newEvent.time = endOfCheckinDay;
+        newEvent.eventType = EventType.TA_CHECKED_OUT_FORCED;
+        newEvent.courseId = closestEndEvent.courseId;
+        newEvent.userId = closestEndEvent.userId;
+        newEvent.user = closestEndEvent.user;
+        closestEndEvent = newEvent;
+      }
+      const windowEnd = closestEndEvent?.time ?? now;
 
       const numHelped = await QuestionModel.count({
         where: {
           taHelpedId: checkinEvent.userId,
-          helpedAt: Between(
-            checkinEvent.time,
-            closestEvent?.time || new Date(),
-          ),
+          helpedAt: Between(checkinEvent.time, windowEnd),
         },
       });
 
       taCheckinTimes.push({
         name: checkinEvent.user.name,
         checkinTime: checkinEvent.time,
-        checkoutTime: closestEvent?.time,
-        inProgress: mostRecentTime === originalDate,
-        forced: closestEvent?.eventType === EventType.TA_CHECKED_OUT_FORCED,
+        checkoutTime: windowEnd,
+        inProgress: !closestEndEvent,
+        forced: closestEndEvent?.eventType === EventType.TA_CHECKED_OUT_FORCED,
         numHelped,
       });
 
-      const windowEnd = closestEvent?.time ?? new Date();
-      const taAwayEvents = awayEvents.filter(
-        (e) =>
-          e.userId === checkinEvent.userId &&
-          e.time >= checkinEvent.time &&
-          e.time <= windowEnd,
-      )
+      const taAwayEvents = awayEvents
+        .filter(
+          (e) =>
+            e.userId === checkinEvent.userId &&
+            e.time >= checkinEvent.time &&
+            e.time <= windowEnd,
+        )
         .sort((a, b) => a.time.getTime() - b.time.getTime());
 
       let currentAwayStart: Date | null = null;
 
       for (const evt of taAwayEvents) {
+        // assumes that the away events are in order. First the currentAwayStart is set
         if (evt.eventType === EventType.TA_MARKED_SELF_AWAY) {
           currentAwayStart = evt.time;
         } else if (
           evt.eventType === EventType.TA_MARKED_SELF_BACK &&
           currentAwayStart
         ) {
+          // Then, in the next iteration it will be TA_MARKED_SELF_BACK and the duration is calculated and currentAwayStart is consumed
           const duration = evt.time.getTime() - currentAwayStart.getTime();
           if (duration >= MIN_AWAY_MS) {
             taAwayTimes.push({
@@ -173,6 +200,9 @@ export class CourseService {
         }
       }
 
+      // Once gone through all of the taAwayEvents and if there's still a currentAwayStart left, then either:
+      // - The user was checked out (if closestEndEvent)
+      // - It means it's inProgress and they're still actively away (if !closestEndEvent)
       if (currentAwayStart) {
         const duration = windowEnd.getTime() - currentAwayStart.getTime();
         if (duration >= MIN_AWAY_MS) {
@@ -180,11 +210,10 @@ export class CourseService {
             name: checkinEvent.user.name,
             awayStartTime: currentAwayStart,
             awayEndTime: windowEnd,
-            inProgress: !closestEvent,
+            inProgress: !closestEndEvent,
           });
         }
       }
-
     }
 
     return { taCheckinTimes, taAwayTimes };
@@ -825,7 +854,7 @@ export class CourseService {
             result.newAggregateHelpmePDFIdMap &&
             Object.keys(result.newAggregateHelpmePDFIdMap).length > 0 &&
             Object.keys(result.newAggregateHelpmePDFIdMap).length <
-            Object.keys(docIdMap).length
+              Object.keys(docIdMap).length
           ) {
             console.error(`Error during end of course clone for clone course Id ${clonedCourse.id} (original course Id: ${courseId}). 
               Partial document mapping detected. Despite the helpme repo having ${Object.keys(docIdMap).length} document pdfs to clone, 
@@ -934,12 +963,13 @@ export class CourseService {
       <p>Here is the summary of the course cloning process:</p>
       <ul>
         ${progressLog
-        .map(
-          (log) =>
-            `<li style="color: ${log.success ? 'green' : 'red'
-            }">${log.message}</li>`,
-        )
-        .join('')}
+          .map(
+            (log) =>
+              `<li style="color: ${
+                log.success ? 'green' : 'red'
+              }">${log.message}</li>`,
+          )
+          .join('')}
       </ul>
       <br>
       Note: Do NOT reply to this email.
