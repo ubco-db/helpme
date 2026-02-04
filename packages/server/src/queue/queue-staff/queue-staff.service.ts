@@ -319,15 +319,6 @@ export class QueueStaffService {
 
       queues.forEach(async (queue) => {
         queue.queueStaff.forEach(async (queueStaff) => {
-          if (queueStaff.extraTAStatus === ExtraTAStatus.AWAY) {
-            await EventModel.create({
-              time: new Date(),
-              eventType: EventType.TA_MARKED_SELF_BACK,
-              userId: queueStaff.userId,
-              courseId: queue.courseId,
-              queueId: queue.id,
-            }).save()
-          }
 
           await EventModel.create({
             time: new Date(),
