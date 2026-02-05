@@ -21,7 +21,12 @@
         - [Endpoints that change their behavior based on role](#endpoints-that-change-their-behavior-based-on-role)
         - [Why some endpoints have `@Res` and some don't](#why-some-endpoints-have-res-and-some-dont)
           - [Ways to return errors/http status codes + messages](#ways-to-return-errorshttp-status-codes--messages)
+      - [Data Transfer Objects (DTOs), Serialization, and Sending Data from Frontend to Backend (and vise-versa)](#data-transfer-objects-dtos-serialization-and-sending-data-from-frontend-to-backend-and-vise-versa)
+        - [Backend Deserialization and Validation](#backend-deserialization-and-validation)
+        - [Frontend Deserialization (and Validation)](#frontend-deserialization-and-validation)
       - [TypeORM](#typeorm)
+        - [Entities (Database Schema)](#entities-database-schema)
+          - [Editing Entities (\& Migrations)](#editing-entities--migrations)
         - [Examples of typeorm runtime errors](#examples-of-typeorm-runtime-errors)
           - [Missing relations](#missing-relations)
           - [Querying with models and IsNull()](#querying-with-models-and-isnull)
@@ -63,10 +68,10 @@ File structure is as follows:
     - `/test` - contains integration tests
   - `/frontend` - frontend code
     - `.env` - Environment variables for the frontend
-    - `/api`
-        - `index.ts` - This is our first important index.ts. Contains functions that call the backend endpoints. It keeps the fetch calls all in one place, making it easier to maintain (e.g. if you renamed an endpoint, you only need to change in 1 area)  
     - `/app` - contains all the pages and components
-    - `/public` - Contains 
+      - `/api`
+          - `index.ts` - This is our first important index.ts. Contains functions that call the backend endpoints. It keeps the fetch calls all in one place, making it easier to maintain (e.g. if you renamed an endpoint, you only need to change in 1 area)  
+    - `/public` - Contains some special public files/images
   - `/common` - shared code between the frontend and backend
     - `index.ts` - This is our other important index.ts. Contains all types or functions used on both the frontend and backend
 
@@ -162,7 +167,7 @@ Want to conditionally render something like an `elseif` statement? Do: `{conditi
 
 `service` - These define methods that make calls to the database. Unit tests test these.
 
-`entity` - These define the database schema. If you make any changes to these, be sure to make a migration (see `DEVELOPING.md`). If you are making a new entity, be sure to add it inside `ormconfig.ts`!
+`entity` - These define the database schema. If you make any changes to these, be sure to make a migration (see `DEVELOPING.md` and [this section](#editing-entities--migrations)). If you are making a new entity, be sure to add it inside `ormconfig.ts`!
 
 #### Redis
 
@@ -258,11 +263,157 @@ There are multiple ways to make your endpoints give different errors/status code
   - note you will need to add the `@Res()` decorator at the top of the controller
   - This also lets you return other status codes (e.g. 201 Created) and is not just limited to errors
 
+#### Data Transfer Objects (DTOs), Serialization, and Sending Data from Frontend to Backend (and vise-versa)
+
+There is a few things you need to know when sending data between the Frontend to the Backend (or vise-versa).
+
+So in strongly typed languages you have types and object types. These help give intellisense when you use a variable wrong amongst other things. This is fantastic, but it doesn't work across networks (Frontend to Backend or vise-versa). This is known as end-to-end type safety. Some newer Frameworks have this, but ours does not. We have to define the shared types between the Frontend and the Backend, and these are known as Data Transfer Objects or DTOs, and they are stored in `common/index.ts`.
+
+However, defining the types alone normally wouldn't be enough. This is because any data sent between the Frontend and Backend is first turned into one big string, a process known as Serialization. Turning this big string back into an object is known as Deserialization. 
+
+What this means for you is that the attributes of the objects the Backend/Frontend receive are usually all strings. Since it would be annoying to manually convert these to their actual types (e.g. `const myTotal = Number(response.data.total)`) we employ a couple libraries to automatically convert them as explained in the next sections.
+
+##### Backend Deserialization and Validation
+
+For the Backend, Nest.js has various pipes for serializing sent parameters, such as `ParseIntPipe` and `ParseEnumPipe`. For bodies, defined by the `@Body` decorator, these will **automatically be serialized *and validated* assuming that it's given a valid class-validator DTO**.
+
+For example, see this endpoint definition:
+```ts
+@Patch(':questionId')
+@UseGuards(QuestionRolesGuard)
+@Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
+async updateQuestion(
+  @Param('questionId') questionId: number,
+  @Body() body: { text: string, queueId: number, status: QuestionStatus, questionTypes: QuestionTypeParams[] },
+  @UserId() userId: number,
+): Promise<UpdateQuestionResponse> {
+```
+There are two problems here.
+
+First, while it looks like the `questionId` parameter will always be a `number`, this is actually not the case and it is actually a ***string***. Not only that, the user can actually pass in anything they want to the `questionId` field, including `"bob"`, `"null"`, `"\"DROP TABLE user;"`. This could be extremely dangerous, and you will receive no warning or error about it. And if you don't write your TypeORM queries correctly, could result in SQL Injection attacks. 
+
+To fix this, add `ParseIntPipe` like so:
+```ts
+@Param('questionId', ParseIntPipe) questionId: number,
+```
+This will ensure that `questionId` is always a valid number and will reject the request otherwise.
+
+The next issue is the `body`. Like `questionId`, the attributes of the body (`text`, `queueId`, and `status`) are all non-validated and not deserialized, meaning they are all strings and the strings can be anything. Additionally, the user can pass additional attributes in the `body` or even none at all. 
+
+To fix this, defined a `DTO` inside `common/index.ts` and use decorators from the `class-validator` package for each attribute, like so:
+```ts
+export class UpdateQuestionParams {
+  @IsString()
+  @IsOptional()
+  text?: string
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => QuestionTypeParams)
+  @IsOptional()
+  questionTypes?: QuestionTypeParams[] // Note that QuestionTypeParams is also a DTO class just like this one
+
+  @IsInt()
+  @IsOptional()
+  queueId?: number
+
+  @IsEnum(QuestionStatusKeys)
+  @IsOptional()
+  status?: QuestionStatus
+}
+```
+and then change the endpoint like so:
+```ts
+@Body() body: UpdateQuestionParams,
+```
+
+Now, all attributes of the `body` object are deserialized *and* validated.
+
+For more details on Nest.js Pipes and Validation, see https://docs.nestjs.com/techniques/validation
+
+***NOTE***: Like with the Frontend, your DTO **MUST** be a *class* and **MUST** use *class-validator decorators* otherwise it will not work. If your DTO is a `type`, `interface`, etc. just *assume* that it won't be validated nor deserialized entirely.
+
+##### Frontend Deserialization (and Validation)
+
+By default, any data sent from the backend to the frontend seems to have some basic deserialization done (perhaps done automatically by Axios). This means if your endpoint returns data that's just basic objects, arrays, strings, and integers, it should appear to work fine. Most of our endpoints are like this, actually (but probably shouldn't be). If your endpoint returns something like a Date, this will remain as a string unless deserialized or has a proper DTO setup.
+
+Also, currently we don't *really* validate the data given by the backend, which is technically a security vulnerability if our Backend is compromised and starts sending bad data to clients. I mean we have some, like React already auto-escapes HTML, but the key thing is that our backend can return *different* data than what the DTO says it returns without a proper setup.
+
+Now, if you want to make your Frontend do validation and deserialization, follow the example below.
+
+For this frontend api method (inside `frontend/app/api/index.ts`)...
+```ts
+getAllProfInvites: async (
+  orgId: number,
+  courseId?: number,
+): Promise<GetProfInviteResponse[]> =>
+  this.req(
+    'GET',
+    `/api/v1/prof_invites/all/${orgId}`,
+    undefined,
+    undefined,
+    { courseId },
+  ),
+```
+...and corresponding response class DTO inside `common/index.ts`...
+```ts
+export class GetProfInviteResponse {
+  @IsString()
+  code!: string
+  @Type(() => Date)
+  expiresAt!: Date
+}
+```
+... this would have the issue where all my `expiresAt` times would be strings like `"2012-01-04T20:00:00.000Z"`. You *could* fix this by just putting `new Date(invite.expiresAt)` around each time you use it, but there's a proper way to do it so it happens automatically. 
+
+To do so:
+1. Put your response class as a generic to the `req` method
+2. Pass your response class as a parameter to the `req` method
+```ts
+getAllProfInvites: async (
+  orgId: number,
+  courseId?: number,
+): Promise<GetProfInviteResponse[]> =>
+  this.req<GetProfInviteResponse[]>( // 1
+    'GET',
+    `/api/v1/prof_invites/all/${orgId}`,
+    GetProfInviteResponse, // 2
+    undefined,
+    { courseId },
+  ),
+```
+
+And just like that, your dates are now deserialized automatically! Additionally, if you added proper class validators like `IsString()`, `IsEnum()`, etc., you will have validated the backend output as well, improving security in case the backend gets compromised!
+
+***NOTE***: Like with the Backend, your DTO **MUST** be a *class* and **MUST** use *class-validator decorators* otherwise it will not work. If your DTO is a `type`, `interface`, etc. just *assume* that it won't be validated nor deserialized entirely.
+
 #### TypeORM
 
 ORM stands for Object-Relational Mapping. It's used to transform database rows into javascript objects. There are many ORMs out there, but long ago the original devs chose TypeORM as their ORM of choice (probably because it's one of the first listed ORMs in the Nest.js docs).
 
 This section may be expanded upon in the future, but for now it might be best to just look at how other services/controllers do queries and kinda copy that.
+
+##### Entities (Database Schema)
+
+The `table_name.entity.ts` files define the tables of our database schema and their relationships with one another. 
+
+For more general information around entities and different column types, check out the (typeORM docs)[https://typeorm.io/docs/entity/entities/]
+
+###### Editing Entities (& Migrations)
+
+If you want to add/delete/edit a table column, note that you must also generate a migration file. The migration files works as a history of database schema changes and can be re-used to reconstruct or roll-back the database schema. 
+
+You can generate a migration file with: `yarn migration:generate ./migration/your-migration-name -d ./typeORMCLI.config.ts`. Note that this will wipe your dev database. If you want to keep it, you can make a backup by running the commands:
+
+- `docker exec -u postgres helpme-postgresql-1 pg_dumpall -U postgres | gzip > backups/my_dev_backup.sql.gz` Creates backup (do before running migration)
+- `docker exec -i helpme-postgresql-1 psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS dev; DROP DATABASE IF EXISTS chatbot;"` Wipes the databases (do after running migration)
+- `gunzip -c backups/my_dev_backup.sql | docker exec -i helpme-postgresql-1 psql -U postgres` to restore the backup.
+
+You may need to adjust the commands slightly depending on the name of your docker container name or postgres admin username (they might also incorrect, I haven't tested them in a bit -Adam).
+
+Additionally, if your database change requires some custom query to update old production data, you can add it in your migration file (just don't forget to also define a `down` step too so the query can be un-done).
+
+In `dev` mode, all changes to database schema happen automatically and you won't need to run the migrations. Though there can some [quirks](#known-quirks-when-developing) if there's preexisting data that is illegal in the schema, but you will get a detailed error message to let you know what to fix.
 
 ##### Examples of typeorm runtime errors
 
