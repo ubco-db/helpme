@@ -153,10 +153,10 @@ export class APIClient {
   }
 
   /**
-   * Send HTTP and return data, optionally serialized with class-transformer (helpful for Date serialization)
+   * Send HTTP and return data, optionally deserialized with class-transformer (helpful for Date deserialization)
    * @param method HTTP method
    * @param url URL to send req to
-   * @param responseClass Class with class-transformer decorators to serialize response to
+   * @param responseClass Class with class-transformer decorators to deserialize response to
    * @param body body to send with req
    * @param params any query parameters to include in req URL
    */
@@ -720,19 +720,19 @@ export class APIClient {
       includeQueueQuestions: boolean = true,
       includeAnytimeQuestions: boolean = true,
       includeChatbotInteractions: boolean = true,
-      groupBy: 'day' | 'week' = 'week'
+      groupBy: 'day' | 'week' = 'week',
     ): Promise<ToolUsageExportData[]> => {
       const queryParams = new URLSearchParams({
         includeQueueQuestions: includeQueueQuestions.toString(),
         includeAnytimeQuestions: includeAnytimeQuestions.toString(),
         includeChatbotInteractions: includeChatbotInteractions.toString(),
-        groupBy
+        groupBy,
       })
 
       return this.req(
         'GET',
         `/api/v1/courses/${courseId}/export-tool-usage?${queryParams.toString()}`,
-        undefined
+        undefined,
       )
     },
   }
