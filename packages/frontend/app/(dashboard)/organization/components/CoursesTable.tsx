@@ -7,7 +7,7 @@ import { CourseResponse, GetOrganizationResponse } from '@koh/common'
 import { Button, Checkbox, Col, Input, Row, Tag, Table } from 'antd'
 import { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
-import useSWR, { mutate } from 'swr'
+import useSWR from 'swr'
 import BatchCourseCloneModal from './BatchCourseCloneModal'
 import { organizationApi } from '@/app/api/organizationApi'
 import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
@@ -53,7 +53,7 @@ const CoursesTable: React.FC = () => {
     async () =>
       await API.organizations.getCourses(
         userInfo?.organization?.orgId ?? -1,
-        1,
+        undefined,
         search,
       ),
   )
@@ -68,6 +68,13 @@ const CoursesTable: React.FC = () => {
       title: 'Course Name',
       dataIndex: 'courseName',
       key: 'courseName',
+      render: (name: string, record: CourseResponse) => (
+        <div className="flex items-center gap-2">
+          {name}
+          <span className="text-gray-500">{` ${record.sectionGroupName}`}</span>
+          {!record.isEnabled && <Tag color="red">Archived</Tag>}
+        </div>
+      ),
     },
     {
       title: 'Semester',
@@ -86,14 +93,6 @@ const CoursesTable: React.FC = () => {
         )
       },
     },
-    !organization?.ssoEnabled && {
-      title: 'Status',
-      dataIndex: 'isEnabled',
-      key: 'status',
-      render: (isEnabled: boolean) => {
-        return !isEnabled ? <Tag color="red">Archived</Tag> : null
-      },
-    },
     {
       title: 'Total Students',
       dataIndex: 'totalStudents',
@@ -103,9 +102,11 @@ const CoursesTable: React.FC = () => {
       title: 'Date Created',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (createdAt: Date) => {
+      render: (createdAt: Date | string) => {
         if (!createdAt) return '-'
-        const date = formatDateAndTimeForExcel(createdAt)
+        const dateValue =
+          typeof createdAt === 'string' ? new Date(createdAt) : createdAt
+        const date = formatDateAndTimeForExcel(dateValue)
         return date.split(' ')[0] // YYYY-MM-DD
       },
     },
