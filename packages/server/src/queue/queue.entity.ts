@@ -3,6 +3,7 @@ import { QuestionGroupModel } from '../question/question-group.entity';
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -27,6 +28,9 @@ import { QueueStaffModel } from './queue-staff/queue-staff.entity';
 export class QueueModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @CreateDateColumn({ type: 'timestamptz', nullable: true })
+  createdAt: Date;
 
   @ManyToOne((type) => CourseModel, (course) => course.queues)
   @JoinColumn({ name: 'courseId' })

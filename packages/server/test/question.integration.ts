@@ -1407,6 +1407,7 @@ describe('Question Integration', () => {
       expect(updatedQuestion.questionTypes[0]).toEqual({
         cid: qt.cid,
         color: qt.color,
+        createdAt: qt.createdAt,
         deletedAt: null,
         id: qt.id,
         name: qt.name,
