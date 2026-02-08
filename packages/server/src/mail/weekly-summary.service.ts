@@ -35,6 +35,14 @@ interface QueueStats {
   avgHelpTime: number | null;
 }
 
+interface NewStudentData {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  joinedAt: Date;
+}
+
 @Injectable()
 export class WeeklySummaryService {
   constructor(private mailService: MailService) {}
@@ -112,8 +120,14 @@ export class WeeklySummaryService {
           const courseStatsArray = [];
           for (const professorCourse of courses) {
             console.log(`Processing course: ${professorCourse.course.name} (ID: ${professorCourse.courseId})`); // TO REMOVE
+            console.log(`Looking for students who joined after: ${lastWeek.toISOString()}`); // DEBUG
             
             const chatbotStats = await this.getChatbotStats(
+              professorCourse.courseId,
+              lastWeek,
+            );
+            
+            const newStudents = await this.getNewStudents(
               professorCourse.courseId,
               lastWeek,
             );
@@ -175,6 +189,7 @@ export class WeeklySummaryService {
                 chatbotStats,
                 asyncStats,
                 queueStats,
+                newStudents,
                 suggestArchive: shouldSuggestArchive,
               });
             } else {
@@ -183,6 +198,7 @@ export class WeeklySummaryService {
                 chatbotStats,
                 asyncStats,
                 queueStats,
+                newStudents,
                 suggestArchive: false,
               });
             }
@@ -419,12 +435,40 @@ export class WeeklySummaryService {
     return recentInteractions === 0 && recentAsyncQuestions === 0 && recentQueueQuestions === 0;
   }
 
+  private async getNewStudents(
+    courseId: number,
+    since: Date,
+  ): Promise<NewStudentData[]> {
+    const newStudentRecords = await UserCourseModel.createQueryBuilder('uc')
+      .innerJoinAndSelect('uc.user', 'user')
+      .where('uc.courseId = :courseId', { courseId })
+      .andWhere('uc.role = :role', { role: Role.STUDENT })
+      .andWhere('uc.createdAt >= :since', { since })
+      .orderBy('user.lastName', 'ASC')
+      .addOrderBy('user.firstName', 'ASC')
+      .getMany();
+
+    console.log(`New students for course ${courseId} since ${since}:`, newStudentRecords.length); // DEBUG
+    newStudentRecords.forEach(uc => {
+      console.log(`  - ${uc.user.firstName} ${uc.user.lastName} (${uc.user.email}) joined at ${uc.createdAt}`); // DEBUG
+    });
+
+    return newStudentRecords.map((uc) => ({
+      id: uc.user.id,
+      firstName: uc.user.firstName,
+      lastName: uc.user.lastName,
+      email: uc.user.email,
+      joinedAt: uc.createdAt,
+    }));
+  }
+
   private buildConsolidatedWeeklySummaryEmail(
     courseStatsArray: Array<{
       course: CourseModel;
       chatbotStats: ChatbotStats;
       asyncStats: AsyncQuestionStats;
       queueStats: QueueStats;
+      newStudents: NewStudentData[];
       suggestArchive: boolean;
     }>,
     weekStartDate: Date,
@@ -446,12 +490,37 @@ export class WeeklySummaryService {
 
     // Process each course
     for (const courseData of courseStatsArray) {
-      const { course, chatbotStats, asyncStats, queueStats, suggestArchive } = courseData;
+      const { course, chatbotStats, asyncStats, queueStats, newStudents, suggestArchive } = courseData;
 
       html += `
         <div style="background-color: #f8f9fa; border-left: 4px solid #3498db; padding: 20px; margin-bottom: 30px; border-radius: 5px;">
           <h2 style="color: #2c3e50; margin-top: 0;">${course.name}</h2>
       `;
+
+      if (newStudents.length > 0) {
+        html += `
+          <div style="background-color: #e8f5e9; border: 1px solid #4caf50; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <h3 style="color: #2e7d32; margin-top: 0;">New Students This Week</h3>
+            <p style="color: #2e7d32; margin-bottom: 10px;">
+              <strong>${newStudents.length}</strong> new student${newStudents.length !== 1 ? 's' : ''} joined this course:
+            </p>
+            <ul style="line-height: 1.6; color: #1b5e20; margin-bottom: 10px;">
+        `;
+        
+        newStudents.forEach((student) => {
+          html += `
+              <li><strong>${student.firstName} ${student.lastName}</strong> (${student.email})</li>
+          `;
+        });
+        
+        html += `
+            </ul>
+            <p style="color: #2e7d32; font-size: 14px; margin: 10px 0 0 0;">
+              <em>If any of these students should not be in the course, please remove them from the course under Course Roster and either disable or change the course invite link under Course Settings.</em>
+            </p>
+          </div>
+        `;
+      }
 
       if (suggestArchive) {
         html += `
@@ -462,6 +531,9 @@ export class WeeklySummaryService {
             </p>
           </div>
         `;
+        html += `
+        </div>
+      `;
         continue; // Skip stats for archived courses
       }
 
