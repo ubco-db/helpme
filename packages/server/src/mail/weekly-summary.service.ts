@@ -10,6 +10,7 @@ import { MailServiceType, Role } from '@koh/common';
 import { MoreThanOrEqual } from 'typeorm';
 import * as Sentry from '@sentry/nestjs';
 import { UserSubscriptionModel } from './user-subscriptions.entity';
+import { UserModel } from '../profile/user.entity';
 
 interface ChatbotStats {
   totalQuestions: number;
@@ -41,6 +42,21 @@ interface NewStudentData {
   lastName: string;
   email: string;
   joinedAt: Date;
+}
+
+interface TopStudentData {
+  id: number;
+  name: string;
+  email: string;
+  questionsAsked: number;
+}
+
+interface StaffPerformanceData {
+  id: number;
+  name: string;
+  questionsHelped: number;
+  asyncQuestionsHelped: number;
+  avgHelpTime: number | null; // in minutes
 }
 
 @Injectable()
@@ -132,6 +148,16 @@ export class WeeklySummaryService {
               lastWeek,
             );
             
+            const topStudents = await this.getTopActiveStudents(
+              professorCourse.courseId,
+              lastWeek,
+            );
+            
+            const staffPerformance = await this.getStaffPerformance(
+              professorCourse.courseId,
+              lastWeek,
+            );
+            
             // Wrap async stats in try-catch to handle data issues
             let asyncStats: AsyncQuestionStats;
             try {
@@ -190,6 +216,8 @@ export class WeeklySummaryService {
                 asyncStats,
                 queueStats,
                 newStudents,
+                topStudents,
+                staffPerformance,
                 suggestArchive: shouldSuggestArchive,
               });
             } else {
@@ -199,6 +227,8 @@ export class WeeklySummaryService {
                 asyncStats,
                 queueStats,
                 newStudents,
+                topStudents,
+                staffPerformance,
                 suggestArchive: false,
               });
             }
@@ -462,6 +492,96 @@ export class WeeklySummaryService {
     }));
   }
 
+
+  private async getStaffPerformance(
+    courseId: number,
+    since: Date,
+  ): Promise<StaffPerformanceData[]> {
+    // Get queue questions helped by each staff member
+    const queueHelped = await QuestionModel.createQueryBuilder('q')
+      .select('q.taHelpedId', 'staffId')
+      .addSelect('COUNT(q.id)', 'count')
+      .addSelect('AVG(q.helpTime)', 'avgHelpTime')
+      .innerJoin('q.queue', 'queue')
+      .where('queue.courseId = :courseId', { courseId })
+      .andWhere('q.taHelpedId IS NOT NULL')
+      .andWhere('q.createdAt >= :since', { since })
+      .andWhere('q.status = :status', { status: 'Resolved' })
+      .groupBy('q.taHelpedId')
+      .getRawMany();
+
+    // Get async questions helped by each staff member
+    const asyncHelped = await AsyncQuestionModel.createQueryBuilder('aq')
+      .select('aq.taHelpedId', 'staffId')
+      .addSelect('COUNT(aq.id)', 'count')
+      .where('aq.courseId = :courseId', { courseId })
+      .andWhere('aq.taHelpedId IS NOT NULL')
+      .andWhere('aq.createdAt >= :since', { since })
+      .andWhere('aq.status = :status', { status: 'HumanAnswered' })
+      .groupBy('aq.taHelpedId')
+      .getRawMany();
+
+    const staffIds = [...new Set([
+      ...queueHelped.map(q => q.staffId),
+      ...asyncHelped.map(a => a.staffId),
+    ])];
+
+    if (staffIds.length === 0) {
+      return [];
+    }
+
+    const staffNames = await UserModel.createQueryBuilder('u')
+      .select('u.id', 'id')
+      .addSelect("u.firstName || ' ' || u.lastName", 'name')
+      .where('u.id IN (:...ids)', { ids: staffIds })
+      .getRawMany();
+
+    return staffIds.map(staffId => {
+      const queueData = queueHelped.find(q => q.staffId === staffId);
+      const asyncData = asyncHelped.find(a => a.staffId === staffId);
+      const staff = staffNames.find(s => s.id === staffId);
+
+      return {
+        id: staffId,
+        name: staff?.name || `ID ${staffId}`,
+        questionsHelped: parseInt(queueData?.count || '0'),
+        asyncQuestionsHelped: parseInt(asyncData?.count || '0'),
+        avgHelpTime: queueData?.avgHelpTime ? parseFloat(queueData.avgHelpTime) / 60 : null, // Convert seconds to minutes
+      };
+    }).sort((a, b) => (b.questionsHelped + b.asyncQuestionsHelped) - (a.questionsHelped + a.asyncQuestionsHelped));
+  }
+
+  private async getTopActiveStudents(
+    courseId: number,
+    since: Date,
+  ): Promise<TopStudentData[]> {
+    // Get top 5 students by queue questions asked
+    const results = await QuestionModel.createQueryBuilder('q')
+      .select('q.creatorId', 'id')
+      .addSelect("u.firstName || ' ' || u.lastName", 'name')
+      .addSelect('u.email', 'email')
+      .addSelect('COUNT(*)', 'questionsAsked')
+      .innerJoin('q.queue', 'queue')
+      .innerJoin('q.creator', 'u')
+      .where('queue.courseId = :courseId', { courseId })
+      .andWhere('q.createdAt >= :since', { since })
+      .groupBy('q.creatorId')
+      .addGroupBy('u.firstName')
+      .addGroupBy('u.lastName')
+      .addGroupBy('u.email')
+      .orderBy('COUNT(*)', 'DESC')
+      .limit(5)
+      .getRawMany();
+
+    return results.map((r) => ({
+      id: r.id,
+      name: r.name,
+      email: r.email,
+      questionsAsked: parseInt(r.questionsAsked),
+    }));
+  }
+
+  
   private buildConsolidatedWeeklySummaryEmail(
     courseStatsArray: Array<{
       course: CourseModel;
@@ -469,6 +589,8 @@ export class WeeklySummaryService {
       asyncStats: AsyncQuestionStats;
       queueStats: QueueStats;
       newStudents: NewStudentData[];
+      topStudents: TopStudentData[];
+      staffPerformance: StaffPerformanceData[];
       suggestArchive: boolean;
     }>,
     weekStartDate: Date,
@@ -490,13 +612,16 @@ export class WeeklySummaryService {
 
     // Process each course
     for (const courseData of courseStatsArray) {
-      const { course, chatbotStats, asyncStats, queueStats, newStudents, suggestArchive } = courseData;
+      const { course, chatbotStats, asyncStats, queueStats, newStudents, topStudents, staffPerformance, suggestArchive } = courseData;
+
+      console.log(`Building email for ${course.name}: ${newStudents.length} new students`); // DEBUG
 
       html += `
         <div style="background-color: #f8f9fa; border-left: 4px solid #3498db; padding: 20px; margin-bottom: 30px; border-radius: 5px;">
           <h2 style="color: #2c3e50; margin-top: 0;">${course.name}</h2>
       `;
 
+      // New Students Section (show for all courses, even inactive ones)
       if (newStudents.length > 0) {
         html += `
           <div style="background-color: #e8f5e9; border: 1px solid #4caf50; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
@@ -643,6 +768,59 @@ export class WeeklySummaryService {
             </ul>
           `;
         }
+      }
+
+      // Top Active Students Section
+      if (topStudents.length > 0) {
+        html += `
+          <h3 style="color: #f39c12; margin-top: 20px;">⭐ Most Active Students</h3>
+          <p style="color: #7f8c8d; margin-bottom: 10px;">Top students by questions asked this week:</p>
+          <ol style="line-height: 1.8; color: #34495e;">
+        `;
+        
+        topStudents.forEach((student) => {
+          html += `
+            <li><strong>${student.name}</strong> - ${student.questionsAsked} question${student.questionsAsked !== 1 ? 's' : ''}</li>
+          `;
+        });
+        
+        html += `
+          </ol>
+        `;
+      }
+
+      // Staff Performance Section
+      if (staffPerformance.length > 0) {
+        html += `
+          <h3 style="color: #8e44ad; margin-top: 20px;">👥 Staff Performance</h3>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <thead>
+              <tr style="background-color: #ecf0f1;">
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Staff Member</th>
+                <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Queue Questions</th>
+                <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Async Questions</th>
+                <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Avg Help Time</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        staffPerformance.forEach((staff) => {
+          const totalHelped = staff.questionsHelped + staff.asyncQuestionsHelped;
+          html += `
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;">${staff.name}</td>
+                <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${staff.questionsHelped}</td>
+                <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${staff.asyncQuestionsHelped}</td>
+                <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${staff.avgHelpTime !== null ? staff.avgHelpTime.toFixed(1) + ' min' : 'N/A'}</td>
+              </tr>
+          `;
+        });
+        
+        html += `
+            </tbody>
+          </table>
+        `;
       }
 
       html += `
