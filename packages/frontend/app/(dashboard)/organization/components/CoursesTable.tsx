@@ -3,7 +3,11 @@
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { SearchOutlined } from '@ant-design/icons'
-import { CourseResponse, GetOrganizationResponse } from '@koh/common'
+import {
+  CourseResponse,
+  GetOrganizationResponse,
+  SemesterPartial,
+} from '@koh/common'
 import { Button, Checkbox, Col, Input, Row, Tag, Table } from 'antd'
 import { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
@@ -18,7 +22,6 @@ const CoursesTable: React.FC = () => {
   const { userInfo } = useUserInfo()
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
-  const [showIds, setShowIds] = useState(true)
   const [organization, setOrganization] = useState<GetOrganizationResponse>()
 
   const [isCloneModalOpen, setIsCloneModalOpen] = useState(false)
@@ -59,7 +62,7 @@ const CoursesTable: React.FC = () => {
   )
 
   const columns: ColumnsType<CourseResponse> = [
-    showIds && {
+    {
       title: 'Course ID',
       dataIndex: 'courseId',
       key: 'courseId',
@@ -80,7 +83,7 @@ const CoursesTable: React.FC = () => {
       title: 'Semester',
       dataIndex: 'semester',
       key: 'semester',
-      render: (semester: any) => {
+      render: (semester: SemesterPartial) => {
         if (!semester) return null
         return (
           <SemesterInfoPopover semester={semester}>
@@ -122,7 +125,7 @@ const CoursesTable: React.FC = () => {
         </Button>
       ),
     },
-  ].filter(Boolean) as ColumnsType<CourseResponse>
+  ]
 
   if (!organization) {
     return <CenteredSpinner tip="Fetching Organization Info..." />
@@ -144,14 +147,6 @@ const CoursesTable: React.FC = () => {
               />
             </Col>
             <Col className="flex items-center gap-2" flex="none">
-              <Col>
-                <Checkbox
-                  checked={showIds}
-                  onChange={() => setShowIds((prev) => !prev)}
-                >
-                  Show IDs
-                </Checkbox>
-              </Col>
               <Button type="primary" href={`/organization/course/add`}>
                 Add New Course
               </Button>
@@ -165,8 +160,10 @@ const CoursesTable: React.FC = () => {
             dataSource={courses}
             columns={columns}
             rowKey="courseId"
+            className="mt-2"
+            size="small"
             pagination={{
-              pageSize: 10,
+              pageSize: 30,
               showQuickJumper: true,
             }}
           />

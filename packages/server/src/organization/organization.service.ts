@@ -144,7 +144,7 @@ export class OrganizationService {
         'SemesterModel.startDate as semesterStartDate',
         'SemesterModel.endDate as semesterEndDate',
         'SemesterModel.description as semesterDescription',
-        '(SELECT COUNT(*) FROM user_course_model WHERE user_course_model."courseId" = CourseModel.id AND user_course_model."role" = \'student\') as totalStudents',
+        `(SELECT COUNT(*) FROM user_course_model WHERE user_course_model."courseId" = CourseModel.id AND user_course_model."role" = '${Role.STUDENT}') as totalStudents`,
       ])
       // first order by semester end date, then by course name
       .orderBy('SemesterModel.endDate', 'DESC')
