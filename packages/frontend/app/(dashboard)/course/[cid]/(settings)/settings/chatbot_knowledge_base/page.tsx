@@ -53,9 +53,9 @@ export default function ChatbotKnowledgeBase(
     const body: AddDocumentChunkParams = {
       documentText: values.content,
       metadata: {
-        name: values.name ?? 'Manually Inserted Information',
+        name: values.name || 'Manually Inserted Information',
         type: 'inserted_document',
-        source: values.source ?? undefined,
+        source: values.source || undefined,
         loc: values.pageNumber
           ? { pageNumber: parseInt(values.pageNumber) }
           : undefined,
