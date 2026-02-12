@@ -24,14 +24,15 @@ interface FormValues {
   content: string
   source: string
   pageNumber: string
+  name: string
 }
 
-interface ChatbotDocumentsProps {
+interface ChatbotKnowledgeBaseProps {
   params: Promise<{ cid: string }>
 }
 
-export default function ChatbotDocuments(
-  props: ChatbotDocumentsProps,
+export default function ChatbotKnowledgeBase(
+  props: ChatbotKnowledgeBaseProps,
 ): ReactElement {
   const params = use(props.params)
   const courseId = Number(params.cid)
@@ -46,12 +47,13 @@ export default function ChatbotDocuments(
   const [editRecordModalOpen, setEditRecordModalOpen] = useState(false)
   const [form] = Form.useForm()
   const [addDocChunkPopupVisible, setAddDocChunkPopupVisible] = useState(false)
+  const [dataLoading, setDataLoading] = useState(false)
 
   const addDocument = async (values: FormValues) => {
     const body: AddDocumentChunkParams = {
       documentText: values.content,
       metadata: {
-        name: 'Manually Inserted Information',
+        name: values.name ?? 'Manually Inserted Information',
         type: 'inserted_document',
         source: values.source ?? undefined,
         loc: values.pageNumber
@@ -91,6 +93,7 @@ export default function ChatbotDocuments(
 
   const fetchDocuments = useCallback(async () => {
     if (courseId) {
+      setDataLoading(true)
       await API.chatbot.staffOnly
         .getAllDocumentChunks(courseId)
         .then((response) => {
@@ -106,6 +109,7 @@ export default function ChatbotDocuments(
           message.error('Failed to load documents: ' + errorMessage)
         })
     }
+    setDataLoading(false)
   }, [courseId, setDocuments, setFilteredDocuments, search])
 
   useEffect(() => {
@@ -270,6 +274,13 @@ export default function ChatbotDocuments(
               >
                 <Input.TextArea />
               </Form.Item>
+              <Form.Item
+                label="Name"
+                name="name"
+                tooltip={`When this chunk is cited, it will show this name. Defaults to "Manually Inserted Info" if not specified.`}
+              >
+                <Input placeholder="Manually Inserted Info" />
+              </Form.Item>
               {/* <Form.Item label="Edited Chunk" name="editedChunk">
               <Input.TextArea />
             </Form.Item> */}
@@ -282,13 +293,14 @@ export default function ChatbotDocuments(
                     message: 'Please enter a valid URL',
                   },
                 ]}
-                tooltip="When a student clicks on the citation, they will be redirected to this link"
+                tooltip="When a student clicks on the citation, they will be redirected to this link. Can be a link to anything."
               >
-                <Input />
+                <Input placeholder="https://canvas.ubc.ca/courses/.../pages/..." />
               </Form.Item>
               <Form.Item
                 label="Page Number"
                 name="pageNumber"
+                tooltip="If the document in the Source URL is multi-page (e.g. a PDF), the content of the chunk should be found on this page. This is only for display purposes so that the citation says 'My doc p.3' for example. Feel free to leave this as 0 or blank."
                 rules={[
                   {
                     type: 'number',
@@ -335,6 +347,8 @@ export default function ChatbotDocuments(
         dataSource={filteredDocuments}
         size="small"
         className="w-full"
+        bordered
+        loading={documents.length === 0 && dataLoading}
         locale={{
           emptyText: (
             <Empty

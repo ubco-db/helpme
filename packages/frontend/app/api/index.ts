@@ -270,6 +270,8 @@ export class APIClient {
       this.req('DELETE', `/api/v1/profile/delete_profile_picture`),
     readChangelog: async (): Promise<void> =>
       this.req('PATCH', `/api/v1/profile/read_changelog`, undefined),
+    clearCache: async (): Promise<void> =>
+      this.req('DELETE', `/api/v1/profile/clear_cache`),
   }
 
   chatbot = {
@@ -720,19 +722,19 @@ export class APIClient {
       includeQueueQuestions: boolean = true,
       includeAnytimeQuestions: boolean = true,
       includeChatbotInteractions: boolean = true,
-      groupBy: 'day' | 'week' = 'week'
+      groupBy: 'day' | 'week' = 'week',
     ): Promise<ToolUsageExportData[]> => {
       const queryParams = new URLSearchParams({
         includeQueueQuestions: includeQueueQuestions.toString(),
         includeAnytimeQuestions: includeAnytimeQuestions.toString(),
         includeChatbotInteractions: includeChatbotInteractions.toString(),
-        groupBy
+        groupBy,
       })
 
       return this.req(
         'GET',
         `/api/v1/courses/${courseId}/export-tool-usage?${queryParams.toString()}`,
-        undefined
+        undefined,
       )
     },
   }

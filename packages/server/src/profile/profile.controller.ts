@@ -210,4 +210,10 @@ export class ProfileController {
         .send({ message: 'Error reading changelogs' });
     }
   }
+
+  @Delete('/clear_cache')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  async clearCache(@UserId() userId: number): Promise<void> {
+    await this.redisProfileService.deleteProfile(`u:${userId}`);
+  }
 }
