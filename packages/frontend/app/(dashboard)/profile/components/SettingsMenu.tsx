@@ -62,7 +62,7 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
         },
         {
           key: SettingsOptions.ADVANCED,
-          label: 'Advanced Settings',
+          label: 'Advanced',
           children: <AdvancedSettings />,
         },
       ]}
@@ -95,7 +95,7 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
         },
         {
           key: SettingsOptions.ADVANCED,
-          label: 'Advanced Settings',
+          label: 'Advanced',
           icon: <SettingOutlined />,
         },
       ]}

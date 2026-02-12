@@ -1,11 +1,7 @@
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import {
-  DeleteOutlined,
-  QuestionCircleOutlined,
-  SettingOutlined,
-} from '@ant-design/icons'
+import { DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import { Button, Card, message, Tooltip } from 'antd'
 import { useState } from 'react'
 
@@ -16,14 +12,7 @@ const ClearProfileCache: React.FC = () => {
   return (
     <>
       {userInfo && (
-        <Card
-          title={
-            <h2>
-              <SettingOutlined /> Profile Cache
-            </h2>
-          }
-          classNames={{ body: 'py-2' }}
-        >
+        <Card title={<h3> Profile Cache</h3>} classNames={{ body: 'py-2' }}>
           <Tooltip
             title={`Notice some weird behavior where the server is giving you errors but the client looks fine on your end? The profile caching may have become unsynced. Click this button to clear the cache (there are no consequences of doing so).`}
           >
