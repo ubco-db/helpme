@@ -285,7 +285,7 @@ export default function ChatbotKnowledgeBase(
               <Input.TextArea />
             </Form.Item> */}
               <Form.Item
-                label="Source"
+                label="Source URL"
                 name="source"
                 rules={[
                   {
