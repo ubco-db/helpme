@@ -10,6 +10,7 @@ import {
 } from '@koh/common'
 import { Button, Checkbox, Col, Input, Row, Tag, Table } from 'antd'
 import { ColumnsType } from 'antd/es/table'
+import type { SortOrder } from 'antd/es/table/interface'
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import BatchCourseCloneModal from './BatchCourseCloneModal'
@@ -61,16 +62,60 @@ const CoursesTable: React.FC = () => {
       ),
   )
 
+  const getDateValue = (value?: Date | string | null): number | null => {
+    if (!value) return null
+    const dateValue = typeof value === 'string' ? new Date(value) : value
+    const time = dateValue.getTime()
+    return Number.isNaN(time) ? null : time
+  }
+
+  const getSemesterEndTime = (
+    semester?: SemesterPartial | null,
+  ): number | null => {
+    if (!semester) return null
+    if (semester.name === 'Legacy Semester') return null
+    return getDateValue(semester.endDate ?? null)
+  }
+
+  const compareSemesters = (
+    a: CourseResponse,
+    b: CourseResponse,
+    sortOrder?: SortOrder,
+  ): number => {
+    const order: SortOrder = sortOrder === 'descend' ? 'descend' : 'ascend'
+    const aTime = getSemesterEndTime(a.semester)
+    const bTime = getSemesterEndTime(b.semester)
+    const aIsNull = aTime === null
+    const bIsNull = bTime === null
+
+    const desiredCompare = () => {
+      if (aIsNull && bIsNull) return 0
+      if (aIsNull) return -1
+      if (bIsNull) return 1
+      return order === 'ascend' ? aTime - bTime : bTime - aTime
+    }
+
+    const result = desiredCompare()
+    return order === 'ascend' ? result : -result
+  }
+
   const columns: ColumnsType<CourseResponse> = [
     {
       title: 'Course ID',
       dataIndex: 'courseId',
       key: 'courseId',
+      sorter: (a: CourseResponse, b: CourseResponse) =>
+        (a.courseId ?? 0) - (b.courseId ?? 0),
     },
     {
       title: 'Course Name',
       dataIndex: 'courseName',
       key: 'courseName',
+      sorter: (a: CourseResponse, b: CourseResponse) => {
+        const A = a.courseName || ''
+        const B = b.courseName || ''
+        return A.localeCompare(B)
+      },
       render: (name: string, record: CourseResponse) => (
         <div className="flex items-center gap-2">
           {name}
@@ -83,6 +128,8 @@ const CoursesTable: React.FC = () => {
       title: 'Semester',
       dataIndex: 'semester',
       key: 'semester',
+      defaultSortOrder: 'descend',
+      sorter: compareSemesters,
       render: (semester: SemesterPartial) => {
         if (!semester) return null
         return (
@@ -100,11 +147,18 @@ const CoursesTable: React.FC = () => {
       title: 'Total Students',
       dataIndex: 'totalStudents',
       key: 'totalStudents',
+      sorter: (a: CourseResponse, b: CourseResponse) =>
+        (a.totalStudents ?? 0) - (b.totalStudents ?? 0),
     },
     {
       title: 'Date Created',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      sorter: (a: CourseResponse, b: CourseResponse) => {
+        const A = getDateValue(a.createdAt) ?? 0
+        const B = getDateValue(b.createdAt) ?? 0
+        return A - B
+      },
       render: (createdAt: Date | string) => {
         if (!createdAt) return '-'
         const dateValue =
