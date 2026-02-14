@@ -59,12 +59,27 @@ interface StaffPerformanceData {
   avgHelpTime: number | null; // in minutes
 }
 
+interface MostActiveDaysData {
+  byDayOfWeek: { day: string; count: number }[];
+  mostActiveDay: string;
+}
+
+interface PeakHoursData {
+  peakHours: string[];
+  quietHours: string[];
+}
+
+interface RecommendationData {
+  type: 'warning' | 'info' | 'success';
+  message: string;
+}
+
 @Injectable()
 export class WeeklySummaryService {
   constructor(private mailService: MailService) {}
 
   // Run every week
-  @Cron(CronExpression.EVERY_WEEK)
+  @Cron(CronExpression.EVERY_MINUTE) 
   async sendWeeklySummaries() {
     console.log('Starting weekly summary email job...');
     const startTime = Date.now();
@@ -158,7 +173,16 @@ export class WeeklySummaryService {
               lastWeek,
             );
             
-            // Wrap async stats in try-catch to handle data issues
+            const mostActiveDays = await this.getMostActiveDays(
+              professorCourse.courseId,
+              lastWeek,
+            );
+            
+            const peakHours = await this.getPeakHours(
+              professorCourse.courseId,
+              lastWeek,
+            );
+            
             let asyncStats: AsyncQuestionStats;
             try {
               asyncStats = await this.getAsyncQuestionStats(
@@ -166,9 +190,6 @@ export class WeeklySummaryService {
                 lastWeek,
               );
             } catch (error) {
-              //TODO: Remove logging after debugging
-              console.error(`Failed to get async stats for course ${professorCourse.courseId}:`, error.message); 
-              console.error('Stack trace:', error.stack);
               // Return empty stats if there's an error
               asyncStats = {
                 total: 0,
@@ -198,13 +219,6 @@ export class WeeklySummaryService {
 
             const hasActivity =
               chatbotStats.totalQuestions > 0 || asyncStats.total > 0 || queueStats.totalQuestions > 0;
-            
-            // REMOVE
-            console.log(`  Chatbot: ${chatbotStats.totalQuestions} questions, ${chatbotStats.uniqueStudents} students`);
-            console.log(`  Async: ${asyncStats.total} questions`);
-            console.log(`  Queue: ${queueStats.totalQuestions} questions, ${queueStats.uniqueStudents} students`);
-            console.log(`  Has activity: ${hasActivity}`);
-
             // If no activity, check if should suggest archiving
             if (!hasActivity) {
               const shouldSuggestArchive = await this.shouldSuggestArchiving(
@@ -218,9 +232,19 @@ export class WeeklySummaryService {
                 newStudents,
                 topStudents,
                 staffPerformance,
+                mostActiveDays,
+                peakHours,
+                recommendations: [],
                 suggestArchive: shouldSuggestArchive,
               });
             } else {
+              const recommendations = this.generateRecommendations(
+                queueStats,
+                asyncStats,
+                peakHours,
+                mostActiveDays,
+              );
+              
               courseStatsArray.push({
                 course: professorCourse.course,
                 chatbotStats,
@@ -229,6 +253,9 @@ export class WeeklySummaryService {
                 newStudents,
                 topStudents,
                 staffPerformance,
+                mostActiveDays,
+                peakHours,
+                recommendations,
                 suggestArchive: false,
               });
             }
@@ -435,7 +462,7 @@ export class WeeklySummaryService {
       }
     }
 
-    // Check for recent activity (4 weeks)
+    // Check if a course has had any activity in the past 4 weeks. If not, suggest archiving the course. 
     const fourWeeksAgo = new Date();
     fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
 
@@ -460,7 +487,6 @@ export class WeeklySummaryService {
       .andWhere('q.createdAt >= :since', { since: fourWeeksAgo })
       .getCount();
 
-    // console.log(`  ${course.name} activity check (last 4 weeks): Chatbot=${recentInteractions}, Async=${recentAsyncQuestions}, Queue=${recentQueueQuestions}`);
 
     return recentInteractions === 0 && recentAsyncQuestions === 0 && recentQueueQuestions === 0;
   }
@@ -529,7 +555,6 @@ export class WeeklySummaryService {
     if (staffIds.length === 0) {
       return [];
     }
-
     const staffNames = await UserModel.createQueryBuilder('u')
       .select('u.id', 'id')
       .addSelect("u.firstName || ' ' || u.lastName", 'name')
@@ -558,7 +583,7 @@ export class WeeklySummaryService {
     // Get top 5 students by queue questions asked
     const results = await QuestionModel.createQueryBuilder('q')
       .select('q.creatorId', 'id')
-      .addSelect("u.firstName || ' ' || u.lastName", 'name')
+      .addSelect('u.name', 'name')
       .addSelect('u.email', 'email')
       .addSelect('COUNT(*)', 'questionsAsked')
       .innerJoin('q.queue', 'queue')
@@ -566,8 +591,7 @@ export class WeeklySummaryService {
       .where('queue.courseId = :courseId', { courseId })
       .andWhere('q.createdAt >= :since', { since })
       .groupBy('q.creatorId')
-      .addGroupBy('u.firstName')
-      .addGroupBy('u.lastName')
+      .addGroupBy('u.name')
       .addGroupBy('u.email')
       .orderBy('COUNT(*)', 'DESC')
       .limit(5)
@@ -575,10 +599,150 @@ export class WeeklySummaryService {
 
     return results.map((r) => ({
       id: r.id,
-      name: r.name,
+      name: r.name || 'Unknown Student',
       email: r.email,
       questionsAsked: parseInt(r.questionsAsked),
     }));
+  }
+
+  private async getMostActiveDays(
+    courseId: number,
+    since: Date,
+  ): Promise<MostActiveDaysData> {
+    //get question counts by day of week for queue questions
+    const results = await QuestionModel.createQueryBuilder('q')
+      .select("EXTRACT(DOW FROM q.createdAt)", 'dayOfWeek')
+      .addSelect('COUNT(*)', 'count')
+      .innerJoin('q.queue', 'queue')
+      .where('queue.courseId = :courseId', { courseId })
+      .andWhere('q.createdAt >= :since', { since })
+      .groupBy("EXTRACT(DOW FROM q.createdAt)")
+      .getRawMany();
+
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const byDayOfWeek = dayNames.map(day => ({ day, count: 0 }));
+    
+    results.forEach((result) => {
+      const dayIndex = parseInt(result.dayOfWeek);
+      byDayOfWeek[dayIndex].count = parseInt(result.count);
+    });
+    let mostActiveDay = 'No activity';
+    let maxCount = 0;
+    //find most active day
+    byDayOfWeek.forEach((dayData) => {
+      if (dayData.count > maxCount) {
+        maxCount = dayData.count;
+        mostActiveDay = dayData.day;
+      }
+    });
+
+    return {
+      byDayOfWeek,
+      mostActiveDay,
+    };
+  }
+
+  private async getPeakHours(
+    courseId: number,
+    since: Date,
+  ): Promise<PeakHoursData> {
+    //similar logic to most active days but group by hours
+    const results = await QuestionModel.createQueryBuilder('q')
+      .select("EXTRACT(HOUR FROM q.createdAt)", 'hour')
+      .addSelect('COUNT(*)', 'count')
+      .innerJoin('q.queue', 'queue')
+      .where('queue.courseId = :courseId', { courseId })
+      .andWhere('q.createdAt >= :since', { since })
+      .groupBy("EXTRACT(HOUR FROM q.createdAt)")
+      .getRawMany();
+
+    if (results.length === 0) {
+      return { peakHours: [], quietHours: [] };
+    }
+
+    const totalCount = results.reduce((sum, r) => sum + parseInt(r.count), 0);
+    const avgCount = totalCount / results.length;
+    const peakHours: string[] = [];
+    const quietHours: string[] = [];
+
+    results.forEach((result) => {
+      const hour = parseInt(result.hour);
+      const count = parseInt(result.count);
+      
+      const formatHour = (h: number): string => {
+        if (h === 0) return '12am';
+        if (h < 12) return `${h}am`;
+        if (h === 12) return '12pm';
+        return `${h - 12}pm`;
+      };
+
+      if (count > avgCount * 1.2) { 
+        peakHours.push(formatHour(hour));
+      } else if (count < avgCount * 0.5 && hour >= 8 && hour <= 22) { 
+        quietHours.push(formatHour(hour));
+      }
+    });
+
+    return { peakHours, quietHours };
+  }
+
+  private generateRecommendations(
+    queueStats: QueueStats,
+    asyncStats: AsyncQuestionStats,
+    peakHours: PeakHoursData,
+    mostActiveDays: MostActiveDaysData,
+  ): RecommendationData[] {
+    const recommendations: RecommendationData[] = [];
+
+    // Check for unanswered async questions
+    if (asyncStats.stillNeedHelp > 0) {
+      recommendations.push({
+        type: 'warning',
+        message: `${asyncStats.stillNeedHelp} async question${asyncStats.stillNeedHelp !== 1 ? 's' : ''} still need${asyncStats.stillNeedHelp === 1 ? 's' : ''} attention from staff.`,
+      });
+    }
+
+    // Check for high wait times
+    if (queueStats.avgWaitTime !== null && queueStats.avgWaitTime > 30) {
+      recommendations.push({
+        type: 'warning',
+        message: `Average wait time is ${queueStats.avgWaitTime.toFixed(1)} minutes. Consider adding more office hours${peakHours.peakHours.length > 0 ? ` during peak times (${peakHours.peakHours.slice(0, 3).join(', ')})` : ''}.`,
+      });
+    }
+
+    // Check for low engagement
+    if (queueStats.totalQuestions > 0 && queueStats.totalQuestions < 5) {
+      recommendations.push({
+        type: 'info',
+        message: 'Queue usage is low. Consider reminding students about office hours availability.',
+      });
+    }
+
+    // Check for good performance
+    if (queueStats.avgWaitTime !== null && queueStats.avgWaitTime < 10 && queueStats.totalQuestions > 10) {
+      recommendations.push({
+        type: 'success',
+        message: 'Response time is excellent. No recommendations needed.',
+      });
+    }
+
+    // Suggest best times for office hours based on activity
+    if (mostActiveDays.mostActiveDay !== 'No activity' && mostActiveDays.byDayOfWeek.some(d => d.count > 0)) {
+      const activeDays = mostActiveDays.byDayOfWeek
+        .filter(d => d.count > 0)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3)
+        .map(d => d.day);
+      
+      if (activeDays.length > 0) {
+        recommendations.push({
+          type: 'info',
+          message: `Most active day${activeDays.length > 1 ? 's' : ''}: ${activeDays.join(', ')}. Consider adding more office hours on these days.`,
+        });
+      }
+    }
+
+    return recommendations;
   }
 
   
@@ -591,6 +755,9 @@ export class WeeklySummaryService {
       newStudents: NewStudentData[];
       topStudents: TopStudentData[];
       staffPerformance: StaffPerformanceData[];
+      mostActiveDays: MostActiveDaysData;
+      peakHours: PeakHoursData;
+      recommendations: RecommendationData[];
       suggestArchive: boolean;
     }>,
     weekStartDate: Date,
@@ -612,9 +779,8 @@ export class WeeklySummaryService {
 
     // Process each course
     for (const courseData of courseStatsArray) {
-      const { course, chatbotStats, asyncStats, queueStats, newStudents, topStudents, staffPerformance, suggestArchive } = courseData;
+      const { course, chatbotStats, asyncStats, queueStats, newStudents, topStudents, staffPerformance, mostActiveDays, peakHours, recommendations, suggestArchive } = courseData;
 
-      console.log(`Building email for ${course.name}: ${newStudents.length} new students`); // DEBUG
 
       html += `
         <div style="background-color: #f8f9fa; border-left: 4px solid #3498db; padding: 20px; margin-bottom: 30px; border-radius: 5px;">
@@ -768,6 +934,62 @@ export class WeeklySummaryService {
             </ul>
           `;
         }
+
+        // Most Active Days Section - show if there's any queue activity
+        if (queueStats.totalQuestions > 0 && mostActiveDays.byDayOfWeek.some(d => d.count > 0)) {
+          const totalQuestions = mostActiveDays.byDayOfWeek.reduce((sum, d) => sum + d.count, 0);
+          html += `
+            <h3 style="color: #16a085; margin-top: 20px;">📅 Most Active Days</h3>
+            <p style="color: #7f8c8d; margin-bottom: 10px;">Queue activity by day of the week:</p>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          `;
+
+          mostActiveDays.byDayOfWeek.forEach((dayData) => {
+            if (dayData.count > 0) {
+              const barWidth = Math.max(
+                (dayData.count / totalQuestions) * 100,
+                5,
+              );
+              html += `
+                <tr>
+                  <td style="padding: 5px; width: 100px; color: #34495e; font-weight: ${dayData.day === mostActiveDays.mostActiveDay ? 'bold' : 'normal'};">${dayData.day}:</td>
+                  <td style="padding: 5px;">
+                    <div style="background-color: ${dayData.day === mostActiveDays.mostActiveDay ? '#16a085' : '#95a5a6'}; height: 20px; width: ${barWidth}%; display: inline-block; border-radius: 3px;"></div>
+                    <span style="margin-left: 10px; color: #34495e; font-weight: ${dayData.day === mostActiveDays.mostActiveDay ? 'bold' : 'normal'};">${dayData.count}</span>
+                  </td>
+                </tr>
+              `;
+            }
+          });
+
+          html += `
+            </table>
+            <p style="color: #16a085; font-size: 14px; margin: 0;"><strong>Busiest day:</strong> ${mostActiveDays.mostActiveDay}</p>
+          `;
+        }
+
+        // Peak Hours Section - show if there's queue activity and peak hours identified
+        if (queueStats.totalQuestions > 0 && (peakHours.peakHours.length > 0 || peakHours.quietHours.length > 0)) {
+          html += `
+            <h3 style="color: #e67e22; margin-top: 20px;">🕐 Peak Hours</h3>
+          `;
+
+          if (peakHours.peakHours.length > 0) {
+            html += `
+            <p style="color: #34495e; margin-bottom: 10px;">
+              <strong>Busiest times:</strong> <span style="color: #e67e22;">${peakHours.peakHours.join(', ')}</span>
+            </p>
+            `;
+          }
+
+          if (peakHours.quietHours.length > 0) {
+            html += `
+            <p style="color: #34495e; margin-top: 5px;">
+              <strong>Quieter times:</strong> <span style="color: #7f8c8d;">${peakHours.quietHours.join(', ')}</span>
+            </p>
+            `;
+          }
+        }
       }
 
       // Top Active Students Section
@@ -821,6 +1043,36 @@ export class WeeklySummaryService {
             </tbody>
           </table>
         `;
+      }
+
+      if (recommendations.length > 0) {
+        html += `
+          <h3 style="color: #2980b9; margin-top: 20px;">💡 Recommendations</h3>
+        `;
+
+        recommendations.forEach((rec) => {
+          let bgColor, borderColor, icon;
+          
+          if (rec.type === 'warning') {
+            bgColor = '#fff3cd';
+            borderColor = '#ffc107';
+            icon = '⚠️';
+          } else if (rec.type === 'success') {
+            bgColor = '#d4edda';
+            borderColor = '#28a745';
+            icon = '✅';
+          } else {
+            bgColor = '#d1ecf1';
+            borderColor = '#17a2b8';
+            icon = 'ℹ️';
+          }
+
+          html += `
+          <div style="background-color: ${bgColor}; border-left: 4px solid ${borderColor}; padding: 12px; margin-bottom: 10px; border-radius: 3px;">
+            <p style="margin: 0; color: #34495e;"><strong>${icon}</strong> ${rec.message}</p>
+          </div>
+          `;
+        });
       }
 
       html += `
