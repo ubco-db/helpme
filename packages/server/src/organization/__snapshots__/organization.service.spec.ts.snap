@@ -7,6 +7,7 @@ exports[`OrganizationService getCourses should return organization courses 1`] =
   {
     "courseId": 1,
     "courseName": "CS 304",
+    "createdAt": 2020-01-01T00:00:00.000Z,
     "isEnabled": true,
     "sectionGroupName": "001",
     "semester": {
@@ -18,6 +19,7 @@ exports[`OrganizationService getCourses should return organization courses 1`] =
       "startDate": 2020-09-01T00:00:00.000Z,
     },
     "semesterId": 1,
+    "totalStudents": "0",
   },
 ]
 `;
@@ -27,6 +29,7 @@ exports[`OrganizationService getCourses should return organization courses with 
   {
     "courseId": 1,
     "courseName": "test",
+    "createdAt": 2020-01-01T00:00:00.000Z,
     "isEnabled": true,
     "sectionGroupName": "001",
     "semester": {
@@ -38,6 +41,7 @@ exports[`OrganizationService getCourses should return organization courses with 
       "startDate": 2020-09-01T00:00:00.000Z,
     },
     "semesterId": 1,
+    "totalStudents": "0",
   },
 ]
 `;
