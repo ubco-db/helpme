@@ -106,7 +106,6 @@ export class AsyncQuestionModel extends BaseEntity {
 
   @AfterLoad()
   sumVotes() {
-    // Prevent crash when question upvote/downvote data isn't loaded with the query
     this.votesSum = this.votes?.reduce((acc, vote) => acc + vote.vote, 0) ?? 0;
   }
 }
