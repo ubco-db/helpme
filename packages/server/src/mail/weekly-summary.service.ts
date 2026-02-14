@@ -9,7 +9,6 @@ import { CourseModel } from '../course/course.entity';
 import { MailServiceType, Role } from '@koh/common';
 import { MoreThanOrEqual } from 'typeorm';
 import * as Sentry from '@sentry/nestjs';
-import { UserSubscriptionModel } from './user-subscriptions.entity';
 import { UserModel } from '../profile/user.entity';
 
 interface ChatbotStats {
@@ -79,7 +78,7 @@ export class WeeklySummaryService {
   constructor(private mailService: MailService) {}
 
   // Run every week
-  @Cron(CronExpression.EVERY_MINUTE) 
+  @Cron(CronExpression.EVERY_WEEK) 
   async sendWeeklySummaries() {
     console.log('Starting weekly summary email job...');
     const startTime = Date.now();
@@ -98,13 +97,6 @@ export class WeeklySummaryService {
         .andWhere('course.enabled = :enabled', { enabled: true })
         .getMany();
 
-      
-     // TO REMOVE
-      console.log(
-        `Found ${professorCourses.length} professor-course relationships`,
-      );
-      console.log('Courses found:', professorCourses.map(pc => `${pc.course.name} (ID: ${pc.courseId}, enabled: ${pc.course.enabled})`).join(', '));
-
       // Group courses by professor
       const professorMap = new Map<number, typeof professorCourses>();
       for (const pc of professorCourses) {
@@ -112,13 +104,6 @@ export class WeeklySummaryService {
           professorMap.set(pc.user.id, []);
         }
         professorMap.get(pc.user.id).push(pc);
-      }
-
-
-      console.log(`Grouped into ${professorMap.size} unique professors`); // TO REMOVE
-      for (const [profId, courses] of professorMap.entries()) {
-        const prof = courses[0].user;
-        console.log(`  Professor ${prof.email}: ${courses.map(c => c.course.name).join(', ')}`); // TO REMOVE
       }
 
       let emailsSent = 0;
@@ -129,30 +114,9 @@ export class WeeklySummaryService {
         const professor = courses[0].user;
 
         try {
-          // const subscription = await UserSubscriptionModel.findOne({
-          //   where: {
-          //     userId: professorId,
-          //     isSubscribed: true,
-          //     service: {
-          //       serviceType: MailServiceType.WEEKLY_COURSE_SUMMARY,
-          //     },
-          //   },
-          //   relations: ['service'],
-          // });
-
-          // if (!subscription) {
-          //   console.log(
-          //     `Professor ${professor.email} unsubscribed from weekly summaries`,
-          //   );
-          //   continue;
-          // }
-
           // Gather statistics for all courses
           const courseStatsArray = [];
           for (const professorCourse of courses) {
-            console.log(`Processing course: ${professorCourse.course.name} (ID: ${professorCourse.courseId})`); // TO REMOVE
-            console.log(`Looking for students who joined after: ${lastWeek.toISOString()}`); // DEBUG
-            
             const chatbotStats = await this.getChatbotStats(
               professorCourse.courseId,
               lastWeek,
@@ -190,7 +154,7 @@ export class WeeklySummaryService {
                 lastWeek,
               );
             } catch (error) {
-              // Return empty stats if there's an error
+              //Return empty stats if there's an error
               asyncStats = {
                 total: 0,
                 aiResolved: 0,
@@ -219,7 +183,7 @@ export class WeeklySummaryService {
 
             const hasActivity =
               chatbotStats.totalQuestions > 0 || asyncStats.total > 0 || queueStats.totalQuestions > 0;
-            // If no activity, check if should suggest archiving
+            //If no activity, should suggest archiving
             if (!hasActivity) {
               const shouldSuggestArchive = await this.shouldSuggestArchiving(
                 professorCourse.course,
@@ -261,7 +225,7 @@ export class WeeklySummaryService {
             }
           }
 
-          // Build consolidated email with all courses
+          //Build consolidated email with all courses
           const emailHtml = this.buildConsolidatedWeeklySummaryEmail(
             courseStatsArray,
             lastWeek,
@@ -504,11 +468,6 @@ export class WeeklySummaryService {
       .addOrderBy('user.firstName', 'ASC')
       .getMany();
 
-    console.log(`New students for course ${courseId} since ${since}:`, newStudentRecords.length); // DEBUG
-    newStudentRecords.forEach(uc => {
-      console.log(`  - ${uc.user.firstName} ${uc.user.lastName} (${uc.user.email}) joined at ${uc.createdAt}`); // DEBUG
-    });
-
     return newStudentRecords.map((uc) => ({
       id: uc.user.id,
       firstName: uc.user.firstName,
@@ -536,7 +495,7 @@ export class WeeklySummaryService {
       .groupBy('q.taHelpedId')
       .getRawMany();
 
-    // Get async questions helped by each staff member
+    // Get async questions helped 
     const asyncHelped = await AsyncQuestionModel.createQueryBuilder('aq')
       .select('aq.taHelpedId', 'staffId')
       .addSelect('COUNT(aq.id)', 'count')
@@ -571,7 +530,7 @@ export class WeeklySummaryService {
         name: staff?.name || `ID ${staffId}`,
         questionsHelped: parseInt(queueData?.count || '0'),
         asyncQuestionsHelped: parseInt(asyncData?.count || '0'),
-        avgHelpTime: queueData?.avgHelpTime ? parseFloat(queueData.avgHelpTime) / 60 : null, // Convert seconds to minutes
+        avgHelpTime: queueData?.avgHelpTime ? parseFloat(queueData.avgHelpTime) / 60 : null, 
       };
     }).sort((a, b) => (b.questionsHelped + b.asyncQuestionsHelped) - (a.questionsHelped + a.asyncQuestionsHelped));
   }
@@ -646,7 +605,7 @@ export class WeeklySummaryService {
     courseId: number,
     since: Date,
   ): Promise<PeakHoursData> {
-    //similar logic to most active days but group by hours
+    //Similar logic to most active days but group by hours
     const results = await QuestionModel.createQueryBuilder('q')
       .select("EXTRACT(HOUR FROM q.createdAt)", 'hour')
       .addSelect('COUNT(*)', 'count')
@@ -939,7 +898,7 @@ export class WeeklySummaryService {
         if (queueStats.totalQuestions > 0 && mostActiveDays.byDayOfWeek.some(d => d.count > 0)) {
           const totalQuestions = mostActiveDays.byDayOfWeek.reduce((sum, d) => sum + d.count, 0);
           html += `
-            <h3 style="color: #16a085; margin-top: 20px;">📅 Most Active Days</h3>
+            <h3 style="color: #16a085; margin-top: 20px;">Most Active Days</h3>
             <p style="color: #7f8c8d; margin-bottom: 10px;">Queue activity by day of the week:</p>
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
           `;
@@ -971,7 +930,7 @@ export class WeeklySummaryService {
         // Peak Hours Section - show if there's queue activity and peak hours identified
         if (queueStats.totalQuestions > 0 && (peakHours.peakHours.length > 0 || peakHours.quietHours.length > 0)) {
           html += `
-            <h3 style="color: #e67e22; margin-top: 20px;">🕐 Peak Hours</h3>
+            <h3 style="color: #e67e22; margin-top: 20px;">Peak Hours</h3>
           `;
 
           if (peakHours.peakHours.length > 0) {
@@ -995,7 +954,7 @@ export class WeeklySummaryService {
       // Top Active Students Section
       if (topStudents.length > 0) {
         html += `
-          <h3 style="color: #f39c12; margin-top: 20px;">⭐ Most Active Students</h3>
+          <h3 style="color: #f39c12; margin-top: 20px;">Most Active Students</h3>
           <p style="color: #7f8c8d; margin-bottom: 10px;">Top students by questions asked this week:</p>
           <ol style="line-height: 1.8; color: #34495e;">
         `;
@@ -1014,7 +973,7 @@ export class WeeklySummaryService {
       // Staff Performance Section
       if (staffPerformance.length > 0) {
         html += `
-          <h3 style="color: #8e44ad; margin-top: 20px;">👥 Staff Performance</h3>
+          <h3 style="color: #8e44ad; margin-top: 20px;">Staff Performance</h3>
           <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
             <thead>
               <tr style="background-color: #ecf0f1;">
@@ -1047,29 +1006,26 @@ export class WeeklySummaryService {
 
       if (recommendations.length > 0) {
         html += `
-          <h3 style="color: #2980b9; margin-top: 20px;">💡 Recommendations</h3>
+          <h3 style="color: #2980b9; margin-top: 20px;">Recommendations</h3>
         `;
 
         recommendations.forEach((rec) => {
-          let bgColor, borderColor, icon;
+          let bgColor, borderColor;
           
           if (rec.type === 'warning') {
             bgColor = '#fff3cd';
             borderColor = '#ffc107';
-            icon = '⚠️';
           } else if (rec.type === 'success') {
             bgColor = '#d4edda';
             borderColor = '#28a745';
-            icon = '✅';
           } else {
             bgColor = '#d1ecf1';
             borderColor = '#17a2b8';
-            icon = 'ℹ️';
           }
 
           html += `
           <div style="background-color: ${bgColor}; border-left: 4px solid ${borderColor}; padding: 12px; margin-bottom: 10px; border-radius: 3px;">
-            <p style="margin: 0; color: #34495e;"><strong>${icon}</strong> ${rec.message}</p>
+            <p style="margin: 0; color: #34495e;">${rec.message}</p>
           </div>
           `;
         });
