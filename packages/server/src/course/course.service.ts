@@ -12,6 +12,7 @@ import {
   Role,
   TACheckinPair,
   TACheckinTimesResponse,
+  TAAwayPair,
   UserCourse,
   UserPartial,
   ExtraTAStatus,
@@ -56,6 +57,9 @@ export class CourseService {
     private readonly dataSource: DataSource,
   ) {}
 
+  // Note that this still does not handle the case where multiple checkin events happen without a corresponding checkout event.
+  // This doesn't really seem to be an issue outside of dev though (since it *requires* bad data),
+  // and it will only mess up the visuals a bit even if it does happen. I'll put a TODO to fix this here anyway.
   async getTACheckInCheckOutTimes(
     courseId: number,
     startDate: string,
@@ -74,6 +78,8 @@ export class CourseService {
           EventType.TA_CHECKED_OUT,
           EventType.TA_CHECKED_OUT_FORCED,
           EventType.TA_CHECKED_OUT_EVENT_END,
+          EventType.TA_MARKED_SELF_AWAY,
+          EventType.TA_MARKED_SELF_BACK,
         ]),
         time: Between(startDateAsDate, endDateAsDate),
         courseId,
@@ -86,46 +92,131 @@ export class CourseService {
       (e) => e.eventType === EventType.TA_CHECKED_IN,
     );
 
+    const checkoutEvents = taEvents.filter(
+      (e) =>
+        e.eventType === EventType.TA_CHECKED_OUT ||
+        e.eventType === EventType.TA_CHECKED_OUT_FORCED ||
+        e.eventType === EventType.TA_CHECKED_OUT_EVENT_END,
+    );
+
+    const awayEvents = taEvents.filter(
+      (e) =>
+        e.eventType === EventType.TA_MARKED_SELF_AWAY ||
+        e.eventType === EventType.TA_MARKED_SELF_BACK,
+    );
+
     const taCheckinTimes: TACheckinPair[] = [];
+    const taAwayTimes: TAAwayPair[] = [];
+    const MIN_AWAY_THRESHOLD = 2; // 2 minute threshold to be considered away
+    const MIN_AWAY_MS = MIN_AWAY_THRESHOLD * 60 * 1000;
 
     for (const checkinEvent of checkinEvents) {
-      let closestEvent: EventModel = null;
+      let closestEndEvent: EventModel = null;
       let mostRecentTime = new Date();
-      const originalDate = mostRecentTime;
+      const now = mostRecentTime;
 
-      for (const checkoutEvent of otherEvents) {
+      for (const checkoutEvent of checkoutEvents) {
         if (
           checkoutEvent.userId === checkinEvent.userId &&
           checkoutEvent.time > checkinEvent.time &&
+          // goal is to find the end event that has the shortest time difference from the checkin event
           checkoutEvent.time.getTime() - checkinEvent.time.getTime() <
             mostRecentTime.getTime() - checkinEvent.time.getTime()
         ) {
-          closestEvent = checkoutEvent;
+          closestEndEvent = checkoutEvent;
           mostRecentTime = checkoutEvent.time;
         }
       }
+      // if the checkin and checkout event happened on two different days (and the checkout event isn't the 3am TA_CHECKED_OUT_FORCED event),
+      //  set the checkout time to 3:01am forced checkout (just in case the event wasn't created)
+      // This is to fix events appearing to span multiple days due the event not getting created.
+      if (
+        closestEndEvent &&
+        checkinEvent.time.toDateString() !==
+          closestEndEvent.time.toDateString() &&
+        closestEndEvent.eventType !== EventType.TA_CHECKED_OUT_FORCED &&
+        closestEndEvent.time.getHours() !== 3 &&
+        closestEndEvent.time.getMinutes() < 2
+      ) {
+        const endOfCheckinDay = new Date(checkinEvent.time);
+        endOfCheckinDay.setDate(endOfCheckinDay.getDate() + 1);
+        endOfCheckinDay.setHours(3, 1, 0, 0);
+        const newEvent = new EventModel();
+        newEvent.time = endOfCheckinDay;
+        newEvent.eventType = EventType.TA_CHECKED_OUT_FORCED;
+        newEvent.courseId = closestEndEvent.courseId;
+        newEvent.userId = closestEndEvent.userId;
+        newEvent.user = closestEndEvent.user;
+        closestEndEvent = newEvent;
+      }
+      const windowEnd = closestEndEvent?.time ?? now;
 
       const numHelped = await QuestionModel.count({
         where: {
           taHelpedId: checkinEvent.userId,
-          helpedAt: Between(
-            checkinEvent.time,
-            closestEvent?.time || new Date(),
-          ),
+          helpedAt: Between(checkinEvent.time, windowEnd),
         },
       });
 
       taCheckinTimes.push({
         name: checkinEvent.user.name,
         checkinTime: checkinEvent.time,
-        checkoutTime: closestEvent?.time,
-        inProgress: mostRecentTime === originalDate,
-        forced: closestEvent?.eventType === EventType.TA_CHECKED_OUT_FORCED,
+        checkoutTime: closestEndEvent?.time,
+        inProgress: !closestEndEvent,
+        forced: closestEndEvent?.eventType === EventType.TA_CHECKED_OUT_FORCED,
         numHelped,
       });
+
+      const taAwayEvents = awayEvents
+        .filter(
+          (e) =>
+            e.userId === checkinEvent.userId &&
+            e.time >= checkinEvent.time &&
+            e.time <= windowEnd,
+        )
+        .sort((a, b) => a.time.getTime() - b.time.getTime());
+
+      let currentAwayStart: Date | null = null;
+
+      for (const evt of taAwayEvents) {
+        // assumes that the away events are in order. First the currentAwayStart is set
+        if (evt.eventType === EventType.TA_MARKED_SELF_AWAY) {
+          currentAwayStart = evt.time;
+        } else if (
+          evt.eventType === EventType.TA_MARKED_SELF_BACK &&
+          currentAwayStart
+        ) {
+          // Then, in the next iteration it will be TA_MARKED_SELF_BACK and the duration is calculated and currentAwayStart is consumed
+          const duration = evt.time.getTime() - currentAwayStart.getTime();
+          if (duration >= MIN_AWAY_MS) {
+            taAwayTimes.push({
+              name: checkinEvent.user.name,
+              awayStartTime: currentAwayStart,
+              awayEndTime: evt.time,
+              inProgress: false,
+            });
+          }
+          currentAwayStart = null;
+        }
+      }
+
+      // Once gone through all of the taAwayEvents and if there's still a currentAwayStart left, then either:
+      // - The user was checked out (if closestEndEvent)
+      // - It means it's inProgress and they're still actively away (if !closestEndEvent)
+      if (currentAwayStart) {
+        const duration = windowEnd.getTime() - currentAwayStart.getTime();
+        if (duration >= MIN_AWAY_MS) {
+          taAwayTimes.push({
+            name: checkinEvent.user.name,
+            awayStartTime: currentAwayStart,
+            awayEndTime: null,
+            inProgress: !closestEndEvent,
+          });
+        }
+      }
     }
 
-    return { taCheckinTimes };
+    return { taCheckinTimes, taAwayTimes };
   }
 
   async removeUserFromCourse(userCourse: UserCourseModel): Promise<void> {

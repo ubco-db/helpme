@@ -46,7 +46,7 @@ export class QueueStaffService {
     public queueService: QueueService,
     public redisQueueService: RedisQueueService,
     public dataSource: DataSource,
-  ) {}
+  ) { }
 
   /* Takes in QueueStaff[] and formats it for frontend consumption.
   Needs the following for getting StaffHelpingInOtherQueues (omit `courses: true` if you don't need it):
@@ -319,6 +319,7 @@ export class QueueStaffService {
 
       queues.forEach(async (queue) => {
         queue.queueStaff.forEach(async (queueStaff) => {
+
           await EventModel.create({
             time: new Date(),
             eventType: EventType.TA_CHECKED_OUT_FORCED,
