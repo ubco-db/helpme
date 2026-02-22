@@ -720,19 +720,19 @@ export class APIClient {
       includeQueueQuestions: boolean = true,
       includeAnytimeQuestions: boolean = true,
       includeChatbotInteractions: boolean = true,
-      groupBy: 'day' | 'week' = 'week'
+      groupBy: 'day' | 'week' = 'week',
     ): Promise<ToolUsageExportData[]> => {
       const queryParams = new URLSearchParams({
         includeQueueQuestions: includeQueueQuestions.toString(),
         includeAnytimeQuestions: includeAnytimeQuestions.toString(),
         includeChatbotInteractions: includeChatbotInteractions.toString(),
-        groupBy
+        groupBy,
       })
 
       return this.req(
         'GET',
         `/api/v1/courses/${courseId}/export-tool-usage?${queryParams.toString()}`,
-        undefined
+        undefined,
       )
     },
   }
@@ -1214,6 +1214,14 @@ export class APIClient {
       this.req(
         'PATCH',
         `/api/v1/organization/${organizationId}/update_course_access/${courseId}`,
+      ),
+    deleteCourse: async (
+      organizationId: number,
+      courseId: number,
+    ): Promise<void> =>
+      this.req(
+        'DELETE',
+        `/api/v1/organization/${organizationId}/delete_course/${courseId}`,
       ),
     updateAccess: async (
       organizationId: number,
