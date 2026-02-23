@@ -1193,6 +1193,25 @@ describe('AsyncQuestion Integration', () => {
         ]),
       );
     });
+    it('returns no visible questions but hidden count > 0 when all questions are private to another student', async () => {
+      const studentUser4 = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: studentUser4,
+        course,
+        role: Role.STUDENT,
+      });
+
+      asyncQuestion2.staffSetVisible = false;
+      await asyncQuestion2.save();
+
+      const response = await supertest({ userId: studentUser4.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body.questions).toEqual([]);
+      expect(response.body.hiddenPrivateQuestionsCount).toBe(3);
+    });
     it('does not show sensitive information for anonymous comments on questions unless they are the creator or staff', async () => {
       const comment1 = await AsyncQuestionCommentFactory.create({
         question: asyncQuestion2,
