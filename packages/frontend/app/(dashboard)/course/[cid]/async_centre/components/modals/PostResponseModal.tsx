@@ -144,7 +144,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
       footer={(_, { OkBtn, CancelBtn }) => (
         <div className={'flex justify-between gap-1'}>
           <div className={'flex flex-col justify-center gap-2'}>
-            {question.creator.id == userInfo.id ? ( // special case where a TA created their own question
+            {question.creator.id === userInfo.id ? ( // special case where a TA created their own question
               <>
                 <DeleteButton
                   question={question}
@@ -166,6 +166,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
                 )}
               </>
             ) : (
+              // Standard case
               <DeleteButton
                 question={question}
                 deleteLoading={deleteLoading}

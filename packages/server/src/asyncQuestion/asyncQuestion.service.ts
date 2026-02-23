@@ -403,8 +403,8 @@ export class AsyncQuestionService {
     courseId: number,
     userToken: string,
   ) {
-    // Since the name can take up quite a bit of space, no more than 60 characters (show ... if longer)
-    const chunkName = `${(question.questionAbstract ?? question.questionText).slice(0, 60)}${(question.questionAbstract ?? question.questionText).length > 60 ? '...' : ''}`;
+    // Since the name can take up quite a bit of space, no more than 40 characters (show ... if longer)
+    const chunkName = `Previously Asked Anytime Question: ${(question.questionAbstract ?? question.questionText).slice(0, 40)}${(question.questionAbstract ?? question.questionText).length > 40 ? '...' : ''}`;
     const chunkParams: AddDocumentChunkParams = {
       documentText: `${this.formatQuestionTextForChatbot(question)}\n\nAnswer: ${question.answerText}`,
       metadata: {
