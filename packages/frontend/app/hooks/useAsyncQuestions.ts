@@ -1,15 +1,17 @@
-import { AsyncQuestion } from '@koh/common'
+import { GetAsyncQuestionsResponse } from '@koh/common'
 import useSWR from 'swr'
 import { API } from '../api'
 
 export function useAsyncQuestions(
   cid: number,
 ): [
-  AsyncQuestion[] | undefined,
+  GetAsyncQuestionsResponse | undefined,
   (
-    data?: AsyncQuestion[] | Promise<AsyncQuestion[]>,
+    data?:
+      | GetAsyncQuestionsResponse
+      | Promise<GetAsyncQuestionsResponse>,
     shouldRevalidate?: boolean,
-  ) => Promise<AsyncQuestion[] | undefined>,
+  ) => Promise<GetAsyncQuestionsResponse | undefined>,
 ] {
   const key = `/api/v1/courses/${cid}/asyncQuestions`
 
