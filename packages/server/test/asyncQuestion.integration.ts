@@ -1234,6 +1234,22 @@ describe('AsyncQuestion Integration', () => {
       expect(response.body.questions).toEqual([]);
       expect(response.body.hiddenPrivateQuestionsCount).toBe(2);
     });
+    it("does not include the requester's own private questions in hidden private count", async () => {
+      asyncQuestion2.staffSetVisible = false;
+      await asyncQuestion2.save();
+
+      const response = await supertest({ userId: studentUser2.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body.hiddenPrivateQuestionsCount).toBe(2);
+      expect(response.body.questions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: asyncQuestion3.id }),
+        ]),
+      );
+    });
     it('does not show sensitive information for anonymous comments on questions unless they are the creator or staff', async () => {
       const comment1 = await AsyncQuestionCommentFactory.create({
         question: asyncQuestion2,
