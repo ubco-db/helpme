@@ -76,7 +76,7 @@ export class TestChatbotModule {}
 
 export function setupIntegrationTest(
   module: Type<any>,
-  modifyModule?: ModuleModifier,
+  modifyModules?: ModuleModifier[],
   additionalModules: Type<any>[] = [],
   additionalMiddlewares: ((
     req: express.Request,
@@ -166,8 +166,10 @@ export function setupIntegrationTest(
       .overrideModule(ChatbotDataSourceModule)
       .useModule(TestChatbotDataSourceModule);
 
-    if (modifyModule) {
-      testModuleBuilder = modifyModule(testModuleBuilder);
+    if (modifyModules) {
+      for (const modifyModule of modifyModules) {
+        testModuleBuilder = modifyModule(testModuleBuilder);
+      }
     }
     testModule = await testModuleBuilder.compile();
 
@@ -300,9 +302,16 @@ export const mockRedisQueueService = {
   getKey: jest.fn().mockResolvedValue([]),
   deleteKey: jest.fn(),
 };
-
 export const overrideRedisQueue: ModuleModifier = (builder) =>
   builder.overrideProvider(RedisQueueService).useValue(mockRedisQueueService);
+
+export const mockChatbotService = {
+  // can add more if you'd like
+  addDocumentChunk: jest.fn(),
+  deleteDocumentChunksByAsyncQuestionId: jest.fn(),
+};
+export const overrideChatbotService: ModuleModifier = (builder) =>
+  builder.overrideProvider(ChatbotApiService).useValue(mockChatbotService);
 
 const mockSendEmail = jest.fn().mockImplementation(() => Promise.resolve());
 export const mockEmailService = {

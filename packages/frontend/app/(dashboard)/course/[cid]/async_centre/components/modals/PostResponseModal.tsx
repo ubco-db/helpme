@@ -57,6 +57,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
     useState<boolean>(false)
   const courseFeatures = useCourseFeatures(courseId)
   const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false
+  const [saveToChatbot, setSaveToChatbot] = useState(true)
 
   const [hasCheckedPopconfirm, setHasCheckedPopconfirm] =
     useState<boolean>(!authorCanSetVisible)
@@ -88,6 +89,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
         staffSetVisible: staffSetVisible,
         status: newStatus,
         verified: values.verified,
+        saveToChatbot: saveToChatbot,
       })
       .then(() => {
         message.success('Response Successfully Posted/Edited')
@@ -108,6 +110,17 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
       title="Post/Edit response to Student question"
       okText="Finish"
       cancelText="Cancel"
+      cancelButtonProps={{
+        className: 'md:w-24',
+      }}
+      width={{
+        xs: '100%',
+        sm: '100%',
+        md: '100%',
+        lg: '60%',
+        xl: '50%',
+        xxl: '35%',
+      }}
       okButtonProps={{
         autoFocus: true,
         htmlType: 'submit',
@@ -129,11 +142,10 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
       onCancel={onCancel}
       // display delete button for mobile in footer
       footer={(_, { OkBtn, CancelBtn }) => (
-        <div className={'flex flex-col gap-1'}>
-          {question.creator.id == userInfo.id && (
-            <div className={'flex flex-col gap-1 md:hidden'}>
-              <Divider className={'text-gray-500'}>Actions</Divider>
-              <div className={'flex flex-row justify-between gap-1'}>
+        <div className={'flex justify-between gap-1'}>
+          <div className={'flex flex-col justify-center gap-2'}>
+            {question.creator.id == userInfo.id ? ( // special case where a TA created their own question
+              <>
                 <DeleteButton
                   question={question}
                   deleteLoading={deleteLoading}
@@ -149,51 +161,69 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
                     onClick={() => setCreateAsyncQuestionModalOpen(true)}
                   >
                     {' '}
-                    Edit
+                    Edit Question
                   </Button>
                 )}
-              </div>
-              <Divider className={'text-gray-500'} orientation={'right'}>
-                Post Response
-              </Divider>
-            </div>
-          )}
-          <div className={'flex justify-between gap-2'}>
-            {question.creator.id != userInfo.id ? (
-              <div className={'w-min'}>
-                <DeleteButton
-                  question={question}
-                  deleteLoading={deleteLoading}
-                  setDeleteLoading={setDeleteLoading}
-                  deleteAsyncQuestion={deleteAsyncQuestion}
-                  onPostResponse={onPostResponse}
-                />
-              </div>
+              </>
             ) : (
-              <div></div>
+              <DeleteButton
+                question={question}
+                deleteLoading={deleteLoading}
+                setDeleteLoading={setDeleteLoading}
+                deleteAsyncQuestion={deleteAsyncQuestion}
+                onPostResponse={onPostResponse}
+              />
             )}
-            <div className="flex justify-end gap-2">
-              <CancelBtn />
-              <OkBtn />
-              <Popconfirm
-                className={'max-w-32 md:max-w-48'}
-                title="Are you sure you want to override visibility?"
-                description={
-                  question.authorSetVisible
-                    ? 'The student who created this question wanted it to be visible to other students.'
-                    : 'The student who created this question did not want for it to be visible to other students.'
+            <CancelBtn />
+          </div>
+          <div className="flex flex-col items-center justify-center gap-1 rounded-md bg-blue-100 p-1 px-2">
+            <OkBtn />
+            <Popconfirm
+              className={'max-w-32 md:max-w-48'}
+              title="Are you sure you want to override visibility?"
+              description={
+                question.authorSetVisible
+                  ? 'The student who created this question wanted it to be visible to other students.'
+                  : 'The student who created this question did not want for it to be visible to other students.'
+              }
+              open={confirmPopoverOpen}
+              arrow={false}
+              okText="Yes"
+              cancelText="No"
+              onConfirm={() => {
+                onFinish().then()
+                setConfirmPopoverOpen(false)
+              }}
+              onCancel={() => setConfirmPopoverOpen(false)}
+            />
+            <Checkbox
+              checked={saveToChatbot}
+              onChange={(e) => setSaveToChatbot(e.target.checked)}
+              // Antd checkboxes will automatically put its children into a span with some padding, so this targets it to get rid of the padding
+              className="[&>span]:!px-0 [&>span]:text-center"
+            >
+              <Tooltip
+                placement="bottom"
+                title={
+                  <div className="flex flex-col gap-1">
+                    <p>
+                      Keeping this enabled will insert this Q&A into the
+                      chatbot&apos;s knowledge base, allowing the chatbot to
+                      reference it in future answers.
+                    </p>
+                    <p>
+                      Please consider disabling this if the question contains
+                      private information.
+                    </p>
+                  </div>
                 }
-                open={confirmPopoverOpen}
-                arrow={false}
-                okText="Yes"
-                cancelText="No"
-                onConfirm={() => {
-                  onFinish().then()
-                  setConfirmPopoverOpen(false)
-                }}
-                onCancel={() => setConfirmPopoverOpen(false)}
-              ></Popconfirm>
-            </div>
+              >
+                <span className="pb-2 pl-1.5">
+                  Save to Chatbot
+                  <QuestionCircleOutlined className="ml-1 text-gray-500" />
+                </span>
+              </Tooltip>
+            </Checkbox>
           </div>
         </div>
       )}
@@ -311,7 +341,7 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
   return (
     <Popconfirm
       className={'inline-flex flex-auto md:hidden'}
-      title="Are you sure you want to delete the question?"
+      title="Are you sure you want to delete this question?"
       okText="Yes"
       cancelText="No"
       getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}

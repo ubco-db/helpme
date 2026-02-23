@@ -40,7 +40,7 @@ import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { AsyncQuestionRolesGuard } from 'guards/async-question-roles.guard';
 import { pick } from 'lodash';
 import { UserModel } from 'profile/user.entity';
-import { Not } from 'typeorm';
+import { In, Not } from 'typeorm';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { AsyncQuestionService } from './asyncQuestion.service';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
@@ -323,10 +323,10 @@ export class asyncQuestionController {
   @Patch('faculty/:questionId')
   @UseGuards(AsyncQuestionRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
-  async updateTAQuestion(
+  async updateQuestionStaff(
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
-    @UserId() userId: number,
+    @User({ chat_token: true }) user: UserModel,
   ): Promise<AsyncQuestionParams> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: questionId },
@@ -354,7 +354,7 @@ export class asyncQuestionController {
     // Verify if user is TA/PROF of the course
     const requester = await UserCourseModel.findOne({
       where: {
-        userId: userId,
+        userId: user.id,
         courseId: courseId,
       },
     });
@@ -373,7 +373,7 @@ export class asyncQuestionController {
 
     if (body.status === asyncQuestionStatus.HumanAnswered) {
       question.closedAt = new Date();
-      question.taHelpedId = userId;
+      question.taHelpedId = user.id;
       await this.asyncQuestionService.sendQuestionAnsweredEmails(question);
     } else if (
       body.status !== asyncQuestionStatus.TADeleted &&
@@ -389,6 +389,14 @@ export class asyncQuestionController {
     }
 
     const updatedQuestion = await question.save();
+
+    if (body.saveToChatbot) {
+      await this.asyncQuestionService.upsertQAToChatbotChunk(
+        updatedQuestion,
+        courseId,
+        user.chat_token.token,
+      );
+    }
 
     // Mark as new unread for all students if the question is marked as visible
     const courseSettings = await CourseSettingsModel.findOne({
@@ -406,7 +414,7 @@ export class asyncQuestionController {
       await this.asyncQuestionService.markUnreadForRoles(
         updatedQuestion,
         [Role.STUDENT],
-        userId,
+        user.id,
       );
     }
     // When the question creator gets their question human verified, notify them
@@ -760,11 +768,19 @@ export class asyncQuestionController {
     let all: AsyncQuestionModel[];
 
     if (!asyncQuestionKeys || Object.keys(asyncQuestionKeys).length === 0) {
-      console.log('Fetching from Database');
+      console.log(
+        `Fetching async questions from Database for courseId ${courseId}`,
+      );
       all = await AsyncQuestionModel.find({
         where: {
           courseId,
-          status: Not(asyncQuestionStatus.StudentDeleted),
+          // don't include studentDeleted or TADeleted questions
+          status: Not(
+            In([
+              asyncQuestionStatus.StudentDeleted,
+              asyncQuestionStatus.TADeleted,
+            ]),
+          ),
         },
         relations: [
           'creator',
@@ -783,7 +799,9 @@ export class asyncQuestionController {
       if (all)
         await this.redisQueueService.setAsyncQuestions(`c:${courseId}:aq`, all);
     } else {
-      console.log('Fetching from Redis');
+      console.log(
+        `Fetching async questions from Redis for courseId ${courseId}`,
+      );
       all = Object.values(asyncQuestionKeys).map(
         (question) => question as AsyncQuestionModel,
       );
