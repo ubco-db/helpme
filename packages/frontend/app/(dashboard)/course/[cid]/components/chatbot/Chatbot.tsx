@@ -559,14 +559,14 @@ const Chatbot: React.FC<ChatbotProps> = ({
                 chatbotQuestionType === 'Course' &&
                 messages.length > 1 && (
                   <div>
-                    Unhappy with your answer?{' '}
+                    Discuss or verify this with your professor/TA:{' '}
                     <Link
                       href={{
                         pathname: `/course/${cid}/async_centre`,
                         query: { convertChatbotQ: true },
                       }}
                     >
-                      Convert to anytime question
+                      Convert to Anytime Question
                     </Link>
                   </div>
                 )}
