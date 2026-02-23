@@ -12,6 +12,7 @@ import React, {
 import {
   Button,
   Checkbox,
+  Empty,
   Pagination,
   Popover,
   Segmented,
@@ -65,7 +66,11 @@ export default function AsyncCentrePage(
 
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  const [asyncQuestions, mutateAsyncQuestions] = useAsyncQuestions(courseId)
+  const [asyncQuestionsResponse, mutateAsyncQuestions] =
+    useAsyncQuestions(courseId)
+  const asyncQuestions = asyncQuestionsResponse?.questions
+  const hiddenPrivateQuestionsCount =
+    asyncQuestionsResponse?.hiddenPrivateQuestionsCount ?? 0
 
   const [createAsyncQuestionModalOpen, setCreateAsyncQuestionModalOpen] =
     useState(false)
@@ -207,6 +212,8 @@ export default function AsyncCentrePage(
   const displayedQuestions = useMemo(() => applySort, [applySort])
 
   const totalQuestions = displayedQuestions.length // total length after all filters applied
+  const totalPages = Math.max(1, Math.ceil(totalQuestions / pageSize))
+  const isLastPage = page >= totalPages
 
   // reset to page 1 whenever the filtered question count changes.
   useEffect(() => {
@@ -218,6 +225,17 @@ export default function AsyncCentrePage(
     const endIndex = startIndex + pageSize // and where to stop slicing
     return displayedQuestions.slice(startIndex, endIndex)
   }, [page, pageSize, displayedQuestions])
+
+  const showHiddenPrivateQuestionsNotice =
+    !isStaff &&
+    hiddenPrivateQuestionsCount > 0 &&
+    paginatedQuestions.length > 0 &&
+    isLastPage
+
+  const showNoQuestionsPostedEmpty =
+    (asyncQuestions?.length ?? 0) === 0 && hiddenPrivateQuestionsCount === 0
+  const showNoPublicOrMineEmpty =
+    (asyncQuestions?.length ?? 0) === 0 && hiddenPrivateQuestionsCount > 0
 
   // This endpoint will be called to update unread count back to 0 when this page is entered
   // May seem more inefficient but this is the only way to ensure that the unread count is accurate given that userInfo no longer tracks it
@@ -344,7 +362,10 @@ export default function AsyncCentrePage(
 
   if (!userInfo) {
     return <CenteredSpinner tip="Loading User Info..." />
-  } else if (asyncQuestions === undefined || asyncQuestions === null) {
+  } else if (
+    asyncQuestionsResponse === undefined ||
+    asyncQuestionsResponse === null
+  ) {
     return <CenteredSpinner tip="Loading Questions..." />
   } else {
     return (
@@ -450,25 +471,57 @@ export default function AsyncCentrePage(
                   showStudents={showStudents}
                 />
               ))}
+
+              {showNoQuestionsPostedEmpty && (
+                <div className="flex flex-grow items-center justify-center">
+                  <Empty description="No questions have been posted here yet" />
+                </div>
+              )}
+              {showNoPublicOrMineEmpty && (
+                <div className="flex flex-grow items-center justify-center">
+                  <Empty
+                    description={
+                      <div className="text-center">
+                        <p className="mb-1">
+                          No public or questions you created found
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          +{hiddenPrivateQuestionsCount} additional private
+                          question
+                          {hiddenPrivateQuestionsCount === 1 ? '' : 's'}
+                        </p>
+                      </div>
+                    }
+                  />
+                </div>
+              )}
+              {showHiddenPrivateQuestionsNotice && (
+                <p className="mt-1 pl-2 text-sm text-gray-500">
+                  +{hiddenPrivateQuestionsCount} additional private question
+                  {hiddenPrivateQuestionsCount === 1 ? '' : 's'}
+                </p>
+              )}
             </div>
 
-            <Pagination
-              current={page}
-              pageSize={pageSize}
-              total={totalQuestions}
-              onChange={(newPage, newPageSize) => {
-                setPage(newPage)
-                if (newPageSize !== pageSize) {
-                  setPageSize(newPageSize)
-                  setPage(1) // reset to page 1 when page size changes so you don't end up on a page that doesnt exist anymore
+            {totalQuestions > 0 && (
+              <Pagination
+                current={page}
+                pageSize={pageSize}
+                total={totalQuestions}
+                onChange={(newPage, newPageSize) => {
+                  setPage(newPage)
+                  if (newPageSize !== pageSize) {
+                    setPageSize(newPageSize)
+                    setPage(1) // reset to page 1 when page size changes so you don't end up on a page that doesnt exist anymore
+                  }
+                }}
+                showSizeChanger
+                showTotal={(total, range) =>
+                  `${range[0]}-${range[1]} of ${total} questions`
                 }
-              }}
-              showSizeChanger
-              showTotal={(total, range) =>
-                `${range[0]}-${range[1]} of ${total} questions`
-              }
-              className="mb-2 mt-4 text-center"
-            />
+                className="mb-2 mt-4 text-center"
+              />
+            )}
           </div>
         </div>
         <ConvertChatbotQToAnytimeQModal
