@@ -1329,6 +1329,11 @@ export type AsyncQuestion = {
   votesSum: number
 }
 
+export type GetAsyncQuestionsResponse = {
+  questions: AsyncQuestion[]
+  hiddenPrivateQuestionsCount: number
+}
+
 /**
  * An async question is created when a student wants help from a TA.
  */
