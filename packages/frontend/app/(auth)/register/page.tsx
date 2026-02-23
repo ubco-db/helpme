@@ -269,6 +269,10 @@ export default function RegisterPage(props: {
                   </Col>
                 </Row>
 
+                <Form.Item label="Name Pronunciation" name="namePronunciation">
+                  <Input allowClear={true} placeholder="Example: uh-LEE-shuh" />
+                </Form.Item>
+
                 <Form.Item
                   label="Email"
                   name="email"

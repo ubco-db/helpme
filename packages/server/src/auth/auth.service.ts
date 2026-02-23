@@ -345,6 +345,7 @@ export class AuthService {
     const {
       firstName,
       lastName,
+      namePronunciation,
       email,
       password,
       confirmPassword,
@@ -379,6 +380,12 @@ export class AuthService {
       return res
         .status(HttpStatus.BAD_REQUEST)
         .send({ message: 'First and last name must be at most 32 characters' });
+    }
+
+    if (namePronunciation && namePronunciation.trim().length > 64) {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .send({ message: 'Name pronunciation must be at most 64 characters' });
     }
 
     if (email.trim().length < 4 || email.trim().length > 64) {
@@ -692,6 +699,7 @@ export class AuthService {
     password,
     sid,
     organizationId,
+    namePronunciation,
   }: Omit<
     AccountRegistrationParams,
     'confirmPassword' | 'recaptchaToken'
@@ -719,6 +727,7 @@ export class AuthService {
           firstName,
           lastName,
           password: hashedPassword,
+          namePronunciation,
           hideInsights: [],
         }).save();
       } else {
@@ -728,6 +737,7 @@ export class AuthService {
           firstName,
           lastName,
           password: hashedPassword,
+          namePronunciation,
           sid,
           hideInsights: [],
         }).save();
