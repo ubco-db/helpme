@@ -1000,7 +1000,8 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
+      expect(response.body.hiddenPrivateQuestionsCount).toBe(1);
       expect(questions).toHaveLength(2);
       expect(questions).toMatchSnapshot();
       expect(questions).toEqual(
@@ -1036,7 +1037,7 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
       expect(questions).toHaveLength(3);
       expect(questions).toEqual(
         expect.arrayContaining([
@@ -1065,7 +1066,7 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
       expect(questions).toHaveLength(2);
       expect(questions).toEqual(
         expect.arrayContaining([
@@ -1094,7 +1095,7 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
       expect(questions).toHaveLength(2);
       expect(questions).toEqual(
         expect.arrayContaining([
@@ -1113,7 +1114,7 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
       expect(questions).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -1160,7 +1161,8 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
+      expect(response.body.hiddenPrivateQuestionsCount).toBe(0);
       expect(questions).toHaveLength(3);
       expect(questions).toEqual(
         expect.arrayContaining([
@@ -1206,7 +1208,7 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
       expect(questions).toHaveLength(2);
       expect(questions).toEqual(
         expect.arrayContaining([
@@ -1261,7 +1263,7 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response2.status).toBe(200);
-      const questions2: AsyncQuestion[] = response2.body;
+      const questions2: AsyncQuestion[] = response2.body.questions;
       expect(questions2).toHaveLength(3);
       expect(questions2).toEqual(
         expect.arrayContaining([
@@ -1314,7 +1316,7 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
       expect(questions).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -1383,8 +1385,8 @@ describe('AsyncQuestion Integration', () => {
       );
       expect(response.status).toBe(200);
       expect(response2.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
-      const questions2: AsyncQuestion[] = response2.body;
+      const questions: AsyncQuestion[] = response.body.questions;
+      const questions2: AsyncQuestion[] = response2.body.questions;
       expect(questions).toHaveLength(3);
       expect(questions).toEqual(
         expect.arrayContaining([
@@ -1430,9 +1432,9 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
-      const questions2: AsyncQuestion[] = response2.body;
-      const questions3: AsyncQuestion[] = response3.body;
+      const questions: AsyncQuestion[] = response.body.questions;
+      const questions2: AsyncQuestion[] = response2.body.questions;
+      const questions3: AsyncQuestion[] = response3.body.questions;
       const fullInfo = {
         id: asyncQuestion9.id,
         isAnonymous: true,
@@ -1479,7 +1481,7 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
       expect(questions).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
