@@ -4,6 +4,7 @@ import { UserModel } from 'profile/user.entity';
 import {
   AsyncQuestionCommentFactory,
   AsyncQuestionFactory,
+  ChatTokenFactory,
   CourseFactory,
   CourseSettingsFactory,
   QuestionTypeFactory,
@@ -64,6 +65,9 @@ describe('AsyncQuestion Integration', () => {
       user: TAuser,
       course,
       role: Role.TA,
+    });
+    await ChatTokenFactory.create({
+      user: TAuser,
     });
     await UserCourseFactory.create({
       user: studentUser,
