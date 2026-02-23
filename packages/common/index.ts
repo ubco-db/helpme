@@ -1724,6 +1724,10 @@ export class UpdateProfileParams {
 
   @IsString()
   @IsOptional()
+  namePronunciation?: string
+
+  @IsString()
+  @IsOptional()
   defaultMessage?: string
 
   @IsBoolean()
