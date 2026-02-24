@@ -226,17 +226,6 @@ export default function AsyncCentrePage(
     return displayedQuestions.slice(startIndex, endIndex)
   }, [page, pageSize, displayedQuestions])
 
-  const showHiddenPrivateQuestionsNotice =
-    !isStaff &&
-    hiddenPrivateQuestionsCount > 0 &&
-    paginatedQuestions.length > 0 &&
-    isLastPage
-
-  const showNoQuestionsPostedEmpty =
-    (asyncQuestions?.length ?? 0) === 0 && hiddenPrivateQuestionsCount === 0
-  const showNoPublicOrMineEmpty =
-    (asyncQuestions?.length ?? 0) === 0 && hiddenPrivateQuestionsCount > 0
-
   // This endpoint will be called to update unread count back to 0 when this page is entered
   // May seem more inefficient but this is the only way to ensure that the unread count is accurate given that userInfo no longer tracks it
   useEffect(() => {
@@ -364,7 +353,8 @@ export default function AsyncCentrePage(
     return <CenteredSpinner tip="Loading User Info..." />
   } else if (
     asyncQuestionsResponse === undefined ||
-    asyncQuestionsResponse === null
+    asyncQuestionsResponse === null ||
+    asyncQuestions === undefined // should always be defined beyond this point, just for type safety
   ) {
     return <CenteredSpinner tip="Loading Questions..." />
   } else {
@@ -472,35 +462,54 @@ export default function AsyncCentrePage(
                 />
               ))}
 
-              {showNoQuestionsPostedEmpty && (
+              {asyncQuestions.length === 0 &&
+              hiddenPrivateQuestionsCount === 0 ? (
                 <div className="flex flex-grow items-center justify-center">
                   <Empty description="No questions have been posted here yet" />
                 </div>
+              ) : (
+                asyncQuestions.length === 0 &&
+                hiddenPrivateQuestionsCount > 0 && (
+                  <div className="flex flex-grow items-center justify-center">
+                    <Empty
+                      description={
+                        <div className="text-center">
+                          <p className="mb-1">
+                            No public questions or questions you created found.
+                            Try posting a course question!
+                          </p>
+                          {hiddenPrivateQuestionsCount > 0 && (
+                            <Tooltip title="These are questions other students have asked that have not been made public by the Professor/TA (they're all private by default, meaning only the Professor/TA can see them)">
+                              <p className="text-sm text-gray-500">
+                                +{hiddenPrivateQuestionsCount} additional
+                                private question
+                                {hiddenPrivateQuestionsCount === 1 ? '' : 's'}
+                              </p>
+                            </Tooltip>
+                          )}
+                        </div>
+                      }
+                    />
+                  </div>
+                )
               )}
-              {showNoPublicOrMineEmpty && (
-                <div className="flex flex-grow items-center justify-center">
-                  <Empty
-                    description={
-                      <div className="text-center">
-                        <p className="mb-1">
-                          No public or questions you created found
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          +{hiddenPrivateQuestionsCount} additional private
-                          question
-                          {hiddenPrivateQuestionsCount === 1 ? '' : 's'}
-                        </p>
-                      </div>
-                    }
-                  />
-                </div>
-              )}
-              {showHiddenPrivateQuestionsNotice && (
-                <p className="mt-1 pl-2 text-sm text-gray-500">
-                  +{hiddenPrivateQuestionsCount} additional private question
-                  {hiddenPrivateQuestionsCount === 1 ? '' : 's'}
-                </p>
-              )}
+              {
+                // Show how many total private questions that the student can't see so that the student has
+                //  a better way to know that this system is being used
+                // (and students usually ask questions to the most-popular system the prof set up)
+                !isStaff &&
+                  hiddenPrivateQuestionsCount > 0 &&
+                  paginatedQuestions.length > 0 &&
+                  isLastPage && (
+                    <Tooltip title="These are questions other students have asked that have not been made public by the Professor/TA (they're all private by default, meaning only the Professor/TA can see them)">
+                      <p className="mt-1 self-center pl-2 text-sm text-gray-500">
+                        +{hiddenPrivateQuestionsCount} additional private
+                        question
+                        {hiddenPrivateQuestionsCount === 1 ? '' : 's'}
+                      </p>
+                    </Tooltip>
+                  )
+              }
             </div>
 
             {totalQuestions > 0 && (
