@@ -425,7 +425,7 @@ export interface SourceDocument {
   metadata?: {
     loc?: Loc
     name: string
-    type?: string // "inserted_question", "inserted_async_question", etc. Will get put into a proper enum in the Vector Store Refactor but it will need to add inserted_async_question to the enum
+    type?: string
     source?: string
     courseId?: string
     fromLMS?: boolean

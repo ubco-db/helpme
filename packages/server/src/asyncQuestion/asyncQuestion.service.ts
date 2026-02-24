@@ -409,7 +409,7 @@ export class AsyncQuestionService {
       documentText: `${this.formatQuestionTextForChatbot(question)}\n\nAnswer: ${question.answerText}`,
       metadata: {
         name: chunkName,
-        type: 'inserted_async_question',
+        type: 'inserted_question',
         asyncQuestionId: question.id,
         source: `/course/${courseId}/async_centre`,
         courseId: courseId,
