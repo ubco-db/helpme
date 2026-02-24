@@ -2098,6 +2098,8 @@ export interface CourseResponse {
   sectionGroupName?: string
   semesterId?: number
   semester: SemesterPartial
+  createdAt: Date
+  totalStudents: number
 }
 
 export class GetCourseResponse {
