@@ -827,7 +827,9 @@ export class asyncQuestionController {
 
           return {
             question: undefined,
-            isHiddenPrivate: question.status !== asyncQuestionStatus.TADeleted,
+            isHiddenPrivate:
+              question.status !== asyncQuestionStatus.TADeleted &&
+              question.status !== asyncQuestionStatus.StudentDeleted,
           };
         }),
       );
