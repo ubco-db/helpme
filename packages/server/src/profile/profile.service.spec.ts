@@ -161,12 +161,17 @@ describe('ProfileService', () => {
   describe('updateUserProfile', () => {
     it('should update user profile details', async () => {
       const user = await UserFactory.create({ email: 'test@ubc.ca' });
-      const updatedData = { firstName: 'Updated', lastName: 'User' };
+      const updatedData = {
+        firstName: 'Updated',
+        lastName: 'User',
+        namePronunciation: 'UP-day-tid',
+      };
 
       await service.updateUserProfile(user, updatedData);
 
       expect(user.firstName).toBe('Updated');
       expect(user.lastName).toBe('User');
+      expect(user.namePronunciation).toBe('UP-day-tid');
     });
 
     it('should throw error when updating email for non-legacy account', async () => {

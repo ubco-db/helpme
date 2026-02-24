@@ -874,6 +874,36 @@ describe('AuthService', () => {
           sid: 2,
         },
       ],
+      [
+        400,
+        'Name pronunciation must be at most 64 characters',
+        {
+          recaptchaToken: 'succeed',
+          firstName: 'first',
+          lastName: 'last',
+          email: 'email@example.com',
+          password: 'abcdef',
+          confirmPassword: 'abcdef',
+          organizationId: 1,
+          sid: 2,
+          namePronunciation: 'a'.repeat(65),
+        },
+      ],
+      [
+        null,
+        null,
+        {
+          recaptchaToken: 'succeed',
+          firstName: 'first',
+          lastName: 'last',
+          email: 'email@example.com',
+          password: 'abcdef',
+          confirmPassword: 'abcdef',
+          organizationId: 1,
+          sid: 2,
+          namePronunciation: 'uh-LEE-shuh',
+        },
+      ],
     ])(
       'should return %d with %s if params %o',
       async (

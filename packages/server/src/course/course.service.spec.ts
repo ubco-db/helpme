@@ -183,6 +183,7 @@ describe('CourseService', () => {
         firstName: 'Tingwei',
         lastName: 'Shi',
         email: 'tshi@northeastern.edu',
+        namePronunciation: 'TING-way',
         photoURL:
           'https://files.slack.com/files-pri/TE565NU79-F02K81U7S13/image_from_ios.jpg',
       });
@@ -359,13 +360,14 @@ describe('CourseService', () => {
       ]);
     });
 
-    it('returns name, email, and photoURL for user', async () => {
+    it('returns name, email, photoURL, and namePronunciation for user', async () => {
       const courseId = 1;
       search = 'tingwei';
       const user = (await service.getUserInfo(courseId, page, pageSize, search))
         .users[0] as UserPartial;
       expect(user.name).toEqual('Tingwei Shi');
       expect(user.email).toEqual('tshi@northeastern.edu');
+      expect(user.namePronunciation).toEqual('TING-way');
       expect(user.photoURL).toEqual(
         'https://files.slack.com/files-pri/TE565NU79-F02K81U7S13/image_from_ios.jpg',
       );
