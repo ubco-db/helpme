@@ -76,7 +76,7 @@ export class TestChatbotModule {}
 
 export function setupIntegrationTest(
   module: Type<any>,
-  modifyModules?: ModuleModifier[],
+  modifyModules?: ModuleModifier | ModuleModifier[],
   additionalModules: Type<any>[] = [],
   additionalMiddlewares: ((
     req: express.Request,
@@ -167,8 +167,12 @@ export function setupIntegrationTest(
       .useModule(TestChatbotDataSourceModule);
 
     if (modifyModules) {
-      for (const modifyModule of modifyModules) {
-        testModuleBuilder = modifyModule(testModuleBuilder);
+      if (Array.isArray(modifyModules)) {
+        for (const modifyModule of modifyModules) {
+          testModuleBuilder = modifyModule(testModuleBuilder);
+        }
+      } else {
+        testModuleBuilder = modifyModules(testModuleBuilder);
       }
     }
     testModule = await testModuleBuilder.compile();
