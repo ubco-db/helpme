@@ -40,7 +40,7 @@ import {
 import { API } from '@/app/api'
 import MarkdownCustom from '@/app/components/Markdown'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   Message,
   parseThinkBlock,
@@ -99,6 +99,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const hasAskedQuestion = useRef(false) // to track if the user has asked a question
   const pathname = usePathname()
+  const router = useRouter()
   const currentPageTitle = convertPathnameToPageName(pathname)
   const [popResetOpen, setPopResetOpen] = useState(false)
   // used to temporarily store what question type the user is trying to change to
@@ -558,16 +559,31 @@ const Chatbot: React.FC<ChatbotProps> = ({
                 courseFeatures.asyncQueueEnabled &&
                 chatbotQuestionType === 'Course' &&
                 messages.length > 1 && (
-                  <div>
-                    Discuss or verify this with your professor/TA:{' '}
-                    <Link
-                      href={{
-                        pathname: `/course/${cid}/async_centre`,
-                        query: { convertChatbotQ: true },
+                  <div className="text-sm">
+                    Want to discuss or verify this with your Professor/TA?{' '}
+                    <Popconfirm
+                      title="Continue Navigation?"
+                      getPopupContainer={(trigger) =>
+                        trigger.parentNode as HTMLElement
+                      }
+                      onConfirm={() => {
+                        router.push(
+                          `/course/${cid}/async_centre?convertChatbotQ=true`,
+                        )
                       }}
                     >
-                      Convert to Anytime Question
-                    </Link>
+                      <Link
+                        href={{
+                          pathname: `/course/${cid}/async_centre`,
+                          query: { convertChatbotQ: true },
+                        }}
+                        onNavigate={(e) => {
+                          e.preventDefault()
+                        }}
+                      >
+                        Convert to Anytime Question
+                      </Link>
+                    </Popconfirm>
                   </div>
                 )}
             </div>
