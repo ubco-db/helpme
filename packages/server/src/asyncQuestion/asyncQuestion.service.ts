@@ -47,7 +47,7 @@ export class AsyncQuestionService {
           content: `<br> <b>${commenterIsStaff ? commenter.name : 'Someone'} has commented on your "${question.questionAbstract ?? (question.questionText ? question.questionText.slice(0, 50) : '')}" Anytime Question:</b> 
                 <br> <b>Comment Text<b>: ${comment.commentText}
                 <br>
-                <br> Note: Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Reply Here</a> <br>`,
+                <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre"><b>View and Answer It Here</b></a> <br>`,
         })
         .catch((err) => {
           console.error(

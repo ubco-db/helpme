@@ -49,7 +49,7 @@ const UserAccessTokens: React.FC = () => {
     <div className={'flex flex-col gap-12'}>
       <Card
         title="Learning Management System Access Tokens"
-        classNames={{ body: 'flex flex-col gap-4' }}
+        classNames={{ body: 'flex flex-col gap-4', title: 'text-wrap' }}
       >
         <p>
           These are access tokens generated for learning management systems your
