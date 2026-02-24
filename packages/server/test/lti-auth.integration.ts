@@ -671,10 +671,11 @@ describe('LTI Auth Integration', () => {
         organizationId: organization.id,
       });
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(404);
     });
 
-    it('should return BAD REQUEST when email is not verified', async () => {
+    // we allow users to reset their password even if they are not verified since someone malicious could've made an account with their email and not verify it
+    it('should return 202 when email is not verified', async () => {
       const organization = await OrganizationFactory.create();
       const user = await UserFactory.create({
         email: 'email.com',
@@ -692,7 +693,7 @@ describe('LTI Auth Integration', () => {
         organizationId: organization.id,
       });
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(202);
     });
 
     it('should return ACCEPTED when email is sent', async () => {
