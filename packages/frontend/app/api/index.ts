@@ -3,7 +3,6 @@ import {
   AddChatbotQuestionParams,
   AddDocumentChunkParams,
   AllStudentAssignmentProgress,
-  AsyncQuestion,
   AsyncQuestionComment,
   AsyncQuestionCommentParams,
   AsyncQuestionParams,
@@ -40,6 +39,7 @@ import {
   EditCourseInfoParams,
   ExtraTAStatus,
   GetAlertsResponse,
+  GetAsyncQuestionsResponse,
   GetAvailableModelsBody,
   GetChatbotHistoryResponse,
   GetCourseResponse,
@@ -810,7 +810,7 @@ export class APIClient {
       ),
   }
   asyncQuestions = {
-    get: async (cid: number): Promise<AsyncQuestion[]> =>
+    get: async (cid: number): Promise<GetAsyncQuestionsResponse> =>
       this.req('GET', `/api/v1/asyncQuestions/${cid}`, undefined),
     create: async (body: CreateAsyncQuestions, cid: number) =>
       this.req(
