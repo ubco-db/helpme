@@ -10,6 +10,8 @@ import { RedisProfileService } from 'redisProfile/redis-profile.service';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { OrganizationService } from '../organization/organization.service';
 import { OrganizationModule } from '../organization/organization.module';
+import { LoginModule } from '../login/login.module';
+import { LoginService } from '../login/login.service';
 
 @Module({
   imports: [
@@ -22,6 +24,7 @@ import { OrganizationModule } from '../organization/organization.module';
     }),
     MailModule,
     OrganizationModule,
+    LoginModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -31,6 +34,7 @@ import { OrganizationModule } from '../organization/organization.module';
     RedisProfileService,
     ChatbotApiService,
     OrganizationService,
+    LoginService,
   ],
   exports: [AuthService],
 })

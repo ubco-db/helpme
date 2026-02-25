@@ -60,7 +60,20 @@ export default function Home(): ReactElement {
         <Divider className="my-8" />
 
         <div className="flex flex-col items-center justify-center">
-          <p className="mb-1 text-base">(New) Tutorial Videos</p>
+          <p className="mb-1 text-base font-bold">HelpMe Overview</p>
+          <div className="flex h-full w-full items-center justify-center">
+            <div className="youtube-video-container">
+              <iframe
+                src="https://www.youtube.com/embed/H9ywkvDdeZ0?si=kmMPT9d1eBacKb6Y"
+                title="YouTube video player"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+              />
+            </div>
+          </div>
+          <p className="mb-1 mt-6 text-base">Tutorial Videos</p>
           <p className="mb-2 text-sm text-gray-600">
             (Just one right now, more coming soon)
           </p>

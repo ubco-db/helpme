@@ -1,5 +1,4 @@
 import {
-  decodeBase64,
   generateTagIdFromName,
   LimboQuestionStatus,
   ListQuestionsResponse,
@@ -9,18 +8,20 @@ import {
   QueueConfig,
   QueueInviteParams,
   Role,
-  StaffForStaffList,
   StatusInPriorityQueue,
   StatusInQueue,
   StatusSentToCreator,
-  StaffMember,
-  ExtraTAStatus,
+  decodeBase64,
+  GetQueueResponse,
+  StaffForQueueInvite,
 } from '@koh/common';
 import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { classToClass } from 'class-transformer';
 import { pick } from 'lodash';
@@ -31,83 +32,47 @@ import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueInviteModel } from './queue-invite.entity';
-import { UserModel } from 'profile/user.entity';
-
-type StaffHelpingInOtherQueues = {
-  queueId: number;
-  userId: number;
-  courseId: number;
-  helpedAt: Date;
-}[];
+import { QueueStaffService } from './queue-staff/queue-staff.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class QueueService {
   constructor(
     private alertsService: AlertsService,
     private readonly appConfig: ApplicationConfigService,
+    @Inject(forwardRef(() => QueueStaffService))
+    private queueStaffService: QueueStaffService,
     private dataSource: DataSource,
   ) {}
 
-  async getQueue(queueId: number): Promise<QueueModel> {
+  /* Gets the QueueModel and adds on queueSize. Don't return this to frontend directly, use getQueueFormatted for that.
+  Use this if you want a QueueModel to do some operations on. 
+  Before returning the queue to frontend, use formatStaffListPropertyForFrontend() or getFormattedStaffList() to make sure the staff list is the right structure.
+  (Since the stafflist our frontend uses is not the same structure as the backend)
+  */
+  async getQueueRaw(queueId: number): Promise<QueueModel> {
     const queue = await QueueModel.findOne({
       where: {
         id: queueId,
       },
       relations: {
-        staffList: {
-          courses: true,
+        queueStaff: {
+          user: {
+            courses: true,
+          },
         },
       },
     });
     await queue.addQueueSize();
-    const StaffHelpingInOtherQueues =
-      await this.getStaffHelpingInOtherQueues(queueId);
-
-    queue.staffList = queue.staffList.map((user) => {
-      const staffHelpingInOtherQueue = StaffHelpingInOtherQueues.find(
-        (staff) => staff.userId === user.id,
-      );
-      return {
-        id: user.id,
-        name: user.name,
-        photoURL: user.photoURL,
-        TANotes:
-          user.courses.find((ucm) => ucm.courseId === queue.courseId)
-            ?.TANotes ?? '',
-        extraStatus: !staffHelpingInOtherQueue
-          ? undefined
-          : staffHelpingInOtherQueue.courseId !== queue.courseId
-            ? ExtraTAStatus.HELPING_IN_ANOTHER_COURSE
-            : staffHelpingInOtherQueue.queueId !== queueId
-              ? ExtraTAStatus.HELPING_IN_ANOTHER_QUEUE
-              : undefined,
-        helpingStudentInAnotherQueueSince: staffHelpingInOtherQueue?.helpedAt,
-      } as StaffMember as unknown as UserModel;
-    });
 
     return queue;
   }
 
-  /* Finds all staff members who are helping in other queues that ARE NOT the given queue.
-     It also returns the question's helpedAt so you can display how long they have been helped for.
-  */
-  async getStaffHelpingInOtherQueues(
-    queueId: number,
-  ): Promise<StaffHelpingInOtherQueues> {
-    // yes, this is joining the staff list table with itself. We start with the queueId of this queue and want to find which staff that are in this queue that are also checked into other queues.
-    const query = `
-    SELECT q.id AS "queueId", qstaff2."userModelId" AS "userId", q."courseId", question."helpedAt"
-    FROM queue_model_staff_list_user_model AS qstaff1
-    RIGHT JOIN queue_model_staff_list_user_model AS qstaff2 ON qstaff1."userModelId" = qstaff2."userModelId" AND qstaff2."queueModelId" != 19 
-    LEFT JOIN queue_model AS q ON qstaff2."queueModelId" = q.id
-    RIGHT JOIN question_model AS question ON question."queueId" = q.id AND question."taHelpedId" = qstaff2."userModelId" AND question.status = $1
-    WHERE qstaff1."queueModelId" = $2
-    `;
-    const result = (await this.dataSource.query(query, [
-      OpenQuestionStatus.Helping,
-      queueId,
-    ])) as StaffHelpingInOtherQueues;
-    return result ? result : [];
+  /* Queries for a QueueModel and formats it for the frontend */
+  async getQueueFormatted(queueId: number): Promise<GetQueueResponse> {
+    return await this.queueStaffService.formatStaffListPropertyForFrontend(
+      await this.getQueueRaw(queueId),
+    );
   }
 
   async getQuestions(queueId: number): Promise<ListQuestionsResponse> {
@@ -305,7 +270,7 @@ export class QueueService {
     newConfig: QueueConfig,
   ): Promise<string[]> {
     const questionTypeMessages: string[] = []; // this will contain messages about what question types were created, updated, or deleted
-    const queue = await this.getQueue(queueId);
+    const queue = await this.getQueueRaw(queueId);
 
     const oldConfig: QueueConfig = queue.config ?? { tags: {} };
 
@@ -462,7 +427,10 @@ export class QueueService {
     }
 
     try {
-      const invite = QueueInviteModel.create({ queueId });
+      const invite = QueueInviteModel.create({
+        queueId,
+        inviteCode: this.generateRandomInviteCode(),
+      });
       await invite.save();
     } catch (err) {
       console.error('Error while creating queue invite:');
@@ -571,8 +539,10 @@ export class QueueService {
         course: {
           organizationCourse: true,
         },
-        staffList: {
-          courses: true,
+        queueStaff: {
+          user: {
+            courses: true,
+          },
         },
       },
     });
@@ -593,22 +563,19 @@ export class QueueService {
     });
 
     // create a new StaffList with only the necessary fields
-    const staffList: StaffForStaffList[] = queue.staffList.map((user) => {
+    const staffList: StaffForQueueInvite[] = (
+      await this.queueStaffService.getFormattedStaffList(queue)
+    ).map((queueStaff) => {
       let helpedAt = null;
       helpedQuestions.forEach((question) => {
-        if (question.taHelpedId === user.id) {
+        if (question.taHelpedId === queueStaff.id) {
           helpedAt = question.helpedAt;
         }
       });
 
       return {
-        id: user.id,
-        name: user.name,
-        photoURL: user.photoURL,
+        ...queueStaff,
         questionHelpedAt: helpedAt,
-        TANotes:
-          user.courses.find((ucm) => ucm.courseId === queue.courseId)
-            ?.TANotes ?? '',
       };
     });
 
@@ -655,5 +622,9 @@ export class QueueService {
     }
 
     return !!queueInvite.isQuestionsVisible;
+  }
+
+  private generateRandomInviteCode(): string {
+    return crypto.randomBytes(6).toString('hex');
   }
 }

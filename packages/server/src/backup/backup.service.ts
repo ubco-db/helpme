@@ -21,7 +21,7 @@ export class BackupService {
   private readonly MINIMUM_FREE_SPACE_MB = 1000; // Minimum space (in MB) required for backup
 
   // Daily Backup Task - Keeps rolling backups for 14 days (TODO: change back to 30 when we get a proper place for backups)
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  // @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleDailyBackup() {
     const date = new Date().toISOString().split('T')[0];
     const backupFile = `backup-${date}.sql.gz`;
@@ -49,7 +49,7 @@ export class BackupService {
   }
 
   // Semi-Hourly backup task - Backup every 3 hours and keep for 5 days, between 7am to 10pm (the daily backup is the 12am one)
-  @Cron('0 7-22/3 * * *')
+  // @Cron('0 7-22/3 * * *')
   async handleSemiHourlyBackup() {
     const now = new Date();
     const date = now.toISOString().split('T')[0];

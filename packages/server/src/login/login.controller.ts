@@ -1,15 +1,15 @@
-import { ERROR_MESSAGES, isProd, UBCOloginParam } from '@koh/common';
+import { AccountType, ERROR_MESSAGES, isProd, LoginParam } from '@koh/common';
 import {
   Body,
   Controller,
   Get,
   HttpException,
   HttpStatus,
+  ParseBoolPipe,
   Post,
   Query,
   Req,
   Res,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -17,9 +17,10 @@ import { Request, Response } from 'express';
 import * as bcrypt from 'bcrypt';
 import { UserModel } from 'profile/user.entity';
 import * as request from 'superagent';
-import { getCookie } from 'common/helpers';
 import { CourseService } from 'course/course.service';
 import { minutes, Throttle } from '@nestjs/throttler';
+import { LtiService } from '../lti/lti.service';
+import { LoginService } from './login.service';
 
 // Only 7 attempts per minute
 @Throttle({ default: { limit: 7, ttl: minutes(1) } })
@@ -29,12 +30,13 @@ export class LoginController {
     private jwtService: JwtService,
     private configService: ConfigService,
     private courseService: CourseService,
+    private loginService: LoginService,
   ) {}
 
-  @Post('/ubc_login')
+  @Post('/login')
   async receiveDataFromLogin(
     @Res() res: Response,
-    @Body() body: UBCOloginParam,
+    @Body() body: LoginParam,
   ): Promise<any> {
     if (isProd()) {
       if (!body.recaptchaToken) {
@@ -69,8 +71,20 @@ export class LoginController {
       user.organizationUser &&
       user.organizationUser.organization.legacyAuthEnabled === false
     ) {
-      return res.status(HttpStatus.UNAUTHORIZED).send({
+      return res.status(HttpStatus.METHOD_NOT_ALLOWED).send({
         message: 'Organization does not allow login with username/password',
+      });
+    }
+
+    // Allow developers to use LEGACY auth on any account type,
+    // but don't allow this on production
+    if (
+      (isProd() && user.accountType != AccountType.LEGACY) ||
+      !user.password
+    ) {
+      return res.status(HttpStatus.BAD_REQUEST).send({
+        message:
+          'Account was registered with SSO and cannot be accessed with email/password login',
       });
     }
 
@@ -85,13 +99,6 @@ export class LoginController {
         ERROR_MESSAGES.loginController.invalidTempJWTToken,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
-    }
-
-    if (user.password === null || user.password === undefined) {
-      return res.status(HttpStatus.UNAUTHORIZED).send({
-        message:
-          'User was created with Institution/Google. Please login with Institution or Google instead',
-      });
     }
 
     bcrypt.compare(body.password, user.password, (err, data) => {
@@ -118,85 +125,37 @@ export class LoginController {
 
   // This is the real admin entry point, Kevin changed to also just take a user id, change to that sign in only
   @Get('/login/entry')
-  async enterUBCOH(
+  async loginEnter(
     @Req() req: Request,
     @Res() res: Response,
     @Query('token') token: string,
     @Query('redirect') redirect?: string,
   ): Promise<void> {
-    const isVerified = await this.jwtService.verifyAsync(token);
-
-    if (!isVerified) {
-      throw new UnauthorizedException();
-    }
-
-    const payload = this.jwtService.decode(token) as { userId: number };
-    await this.enter(req, res, payload.userId, redirect);
-  }
-
-  // Set cookie and redirect to proper page
-  private async enter(
-    req: Request,
-    res: Response,
-    userId: number,
-    redirect?: string,
-  ) {
-    // Expires in 30 days
-    const authToken = await this.jwtService.signAsync({
-      userId,
-      expiresIn: 60 * 60 * 24 * 30,
-    });
-
-    if (authToken === null || authToken === undefined) {
-      throw new HttpException(
-        ERROR_MESSAGES.loginController.invalidTempJWTToken,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    const isSecure = this.configService
-      .get<string>('DOMAIN')
-      .startsWith('https://');
-
-    let redirectUrl: string;
-    const cookie = getCookie(req, '__SECURE_REDIRECT');
-    const queueInviteCookie = getCookie(req, 'queueInviteInfo');
-
-    if (queueInviteCookie) {
-      await this.courseService
-        .getQueueInviteRedirectURLandInviteToCourse(queueInviteCookie, userId)
-        .then((url) => {
-          redirectUrl = url;
-          res.clearCookie('queueInviteInfo');
-        });
-    } else if (cookie) {
-      const decodedCookie = decodeURIComponent(cookie);
-      redirectUrl = `/invite?cid=${decodedCookie.split(',')[0]}&code=${encodeURIComponent(decodedCookie.split(',')[1])}`;
-      res.clearCookie('__SECURE_REDIRECT', {
-        httpOnly: true,
-        secure: isSecure,
-      });
-    } else if (redirect) {
-      redirectUrl = redirect;
-    } else {
-      redirectUrl = '/courses';
-    }
-
-    res
-      .cookie('auth_token', authToken, { httpOnly: true, secure: isSecure })
-      .redirect(HttpStatus.FOUND, redirectUrl);
+    return this.loginService.initLoginEnter(
+      req,
+      res,
+      token,
+      this.courseService,
+      undefined,
+      {
+        redirect,
+      },
+    );
   }
 
   @Get('/logout')
   async logout(
     @Res() res: Response,
     @Query('redirect') redirect?: string,
+    @Query('lti', new ParseBoolPipe({ optional: true })) lti?: boolean,
   ): Promise<void> {
-    const isSecure = this.configService
-      .get<string>('DOMAIN')
-      .startsWith('https://');
+    const loginUrl = (lti ? '/lti' : '') + '/login';
     res
-      .clearCookie('auth_token', { httpOnly: true, secure: isSecure })
-      .redirect(302, redirect ? `/login?redirect=${redirect}` : '/login');
+      .clearCookie('auth_token', {
+        httpOnly: true,
+        secure: this.configService.get<string>('DOMAIN').startsWith('https'),
+      })
+      .clearCookie('lti_auth_token', LtiService.cookieOptions) // Clear LTI Auth Token
+      .redirect(302, redirect ? `${loginUrl}?redirect=${redirect}` : loginUrl);
   }
 }

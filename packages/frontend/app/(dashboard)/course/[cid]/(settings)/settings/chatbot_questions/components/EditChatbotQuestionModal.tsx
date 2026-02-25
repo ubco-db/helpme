@@ -90,7 +90,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
     const newChunk: AddDocumentChunkParams = {
       documentText: values.question + '\nAnswer:' + values.answer,
       metadata: {
-        name: 'inserted Q&A',
+        name: 'Previously Asked Question',
         type: 'inserted_question',
         id: editingRecord.vectorStoreId,
         courseId: cid,

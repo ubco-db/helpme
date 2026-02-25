@@ -4,6 +4,7 @@ import {
   Column,
   Entity,
   JoinColumn,
+  CreateDateColumn,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -16,6 +17,7 @@ import { SuperCourseModel } from 'course/super-course.entity';
 import { OrganizationSettingsModel } from './organization_settings.entity';
 import { OrganizationRoleHistory } from './organization_role_history.entity';
 import { OrganizationChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/organization-chatbot-settings.entity';
+import { AuthStateModel } from '../auth/auth-state.entity';
 
 @Entity('organization_model')
 export class OrganizationModel extends BaseEntity {
@@ -24,6 +26,9 @@ export class OrganizationModel extends BaseEntity {
 
   @Column('text')
   name: string;
+
+  @CreateDateColumn({ type: 'timestamptz', nullable: true })
+  createdAt: Date;
 
   @Column('text', { nullable: true })
   description: string;
@@ -54,27 +59,27 @@ export class OrganizationModel extends BaseEntity {
 
   @Exclude()
   @OneToOne(
-    (type) => OrganizationSettingsModel,
+    () => OrganizationSettingsModel,
     (organizationSettings) => organizationSettings.organization,
   )
   organizationSettings: OrganizationSettingsModel;
 
   @Exclude()
   @OneToMany(
-    (type) => OrganizationRoleHistory,
+    () => OrganizationRoleHistory,
     (roleHistory) => roleHistory.organization,
   )
   organizationRoleHistory: OrganizationRoleHistory[];
 
   @Exclude()
   @JoinColumn({ name: 'organizationId' })
-  @OneToMany((type) => SemesterModel, (semester) => semester.organization)
+  @OneToMany(() => SemesterModel, (semester) => semester.organization)
   semesters: SemesterModel[];
 
   @Exclude()
   @JoinColumn({ name: 'organizationId' })
   @OneToMany(
-    (type) => OrganizationUserModel,
+    () => OrganizationUserModel,
     (organizationUser) => organizationUser.organization,
   )
   organizationUsers: OrganizationUserModel[];
@@ -82,7 +87,7 @@ export class OrganizationModel extends BaseEntity {
   @Exclude()
   @JoinColumn({ name: 'organizationId' })
   @OneToMany(
-    (type) => OrganizationCourseModel,
+    () => OrganizationCourseModel,
     (organizationCourse) => organizationCourse.organization,
   )
   organizationCourses: OrganizationCourseModel[];
@@ -90,7 +95,7 @@ export class OrganizationModel extends BaseEntity {
   @Exclude()
   @JoinColumn({ name: 'organizationId' })
   @OneToMany(
-    (type) => LMSOrganizationIntegrationModel,
+    () => LMSOrganizationIntegrationModel,
     (integration) => integration.organization,
   )
   organizationIntegrations: LMSOrganizationIntegrationModel[];
@@ -101,10 +106,16 @@ export class OrganizationModel extends BaseEntity {
   superCourses: SuperCourseModel[];
 
   @Exclude()
-  @JoinColumn({ name: 'organizationId' })
   @OneToOne(
-    (type) => OrganizationChatbotSettingsModel,
+    () => OrganizationChatbotSettingsModel,
     (orgChatbotSettings) => orgChatbotSettings.organization,
   )
   chatbotSettings: OrganizationChatbotSettingsModel;
+
+  @Exclude()
+  @OneToMany(
+    () => OrganizationChatbotSettingsModel,
+    (orgChatbotSettings) => orgChatbotSettings.organization,
+  )
+  userAuthStates: AuthStateModel;
 }

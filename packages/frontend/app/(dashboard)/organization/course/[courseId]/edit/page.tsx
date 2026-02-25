@@ -1,19 +1,24 @@
 import EditCourse from '@/app/(dashboard)/components/EditCourse'
 import { organizationApi } from '@/app/api/organizationApi'
-import { userApi } from '@/app/api/userApi'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { GetOrganizationResponse, User } from '@koh/common'
+import { GetOrganizationResponse } from '@koh/common'
+import getAPI from '@/app/api/server'
+import { redirect } from 'next/navigation'
 
 type CourseEditPageProps = {
   params: Promise<{ courseId: string }>
 }
 
 export default async function CourseEditPage(props: CourseEditPageProps) {
+  const API = await getAPI()
   const params = await props.params
-  const currentUser = await userApi.getUser()
+  const currentUser = await API.profile
+    .getUser()
+    .catch(() => redirect(`/courses`))
   const organization: GetOrganizationResponse =
     await organizationApi.getOrganization(currentUser.organization?.orgId ?? -1)
   const courseId = Number(params.courseId)
+
   if (!currentUser) {
     return <CenteredSpinner tip="Loading user..." />
   } else if (!organization) {

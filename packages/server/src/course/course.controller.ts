@@ -15,8 +15,11 @@ import {
   QueuePartial,
   QueueTypes,
   Role,
+  SetTAExtraStatusParams,
   TACheckinTimesResponse,
   TACheckoutResponse,
+  ToolUsageExportData,
+  ToolUsageType,
   UBCOuserParam,
   UserCourse,
   UserTiny,
@@ -32,8 +35,11 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  InternalServerErrorException,
   NotFoundException,
   Param,
+  ParseBoolPipe,
+  ParseEnumPipe,
   ParseIntPipe,
   Patch,
   Post,
@@ -45,7 +51,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { Roles } from '../decorators/roles.decorator';
 import { User, UserId } from '../decorators/user.decorator';
@@ -63,12 +68,18 @@ import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ConfigService } from '@nestjs/config';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
-import { QueueCleanService } from 'queue/queue-clean/queue-clean.service';
 import { CourseRole } from 'decorators/course-role.decorator';
 import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { CourseRoles } from 'decorators/course-roles.decorator';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { OrganizationService } from '../organization/organization.service';
+import { QueueStaffService } from 'queue/queue-staff/queue-staff.service';
+import { DataSource } from 'typeorm';
+import { QueueService } from '../queue/queue.service';
+enum TimeGrouping {
+  DAY = 'day',
+  WEEK = 'week',
+}
 
 @Controller('courses')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -76,11 +87,13 @@ export class CourseController {
   constructor(
     private configService: ConfigService,
     private queueSSEService: QueueSSEService,
+    private queueService: QueueService,
     private heatmapService: HeatmapService,
     private courseService: CourseService,
-    private queueCleanService: QueueCleanService,
+    private queueStaffService: QueueStaffService,
     private organizationService: OrganizationService,
     private readonly appConfig: ApplicationConfigService,
+    private dataSource: DataSource,
   ) {}
 
   @Get(':oid/organization_courses')
@@ -127,7 +140,11 @@ export class CourseController {
       relations: ['organizationCourse', 'organizationCourse.organization'],
     });
 
-    if (!courseWithOrganization) {
+    if (
+      !courseWithOrganization ||
+      !courseWithOrganization.courseInviteCode ||
+      courseWithOrganization.isCourseInviteEnabled === false
+    ) {
       res.status(HttpStatus.NOT_FOUND).send({
         message: ERROR_MESSAGES.courseController.courseNotFound,
       });
@@ -162,7 +179,11 @@ export class CourseController {
       relations: ['organizationCourse', 'organizationCourse.organization'],
     });
 
-    if (!courseWithOrganization) {
+    if (
+      !courseWithOrganization ||
+      !courseWithOrganization.courseInviteCode ||
+      courseWithOrganization.isCourseInviteEnabled === false
+    ) {
       res.status(HttpStatus.NOT_FOUND).send({
         message: ERROR_MESSAGES.courseController.courseNotFound,
       });
@@ -201,7 +222,9 @@ export class CourseController {
       },
       relations: {
         queues: {
-          staffList: true,
+          queueStaff: {
+            user: true,
+          },
         },
         organizationCourse: {
           organization: true,
@@ -217,22 +240,20 @@ export class CourseController {
 
     course.queues = course.queues.filter((q) => !q.isDisabled);
 
+    let queues: QueuePartial[] = [];
     try {
-      await Promise.all(
-        course.queues.map((q) => {
-          q.addQueueSize();
+      queues = await Promise.all(
+        course.queues.map(async (rawQueue) => {
+          await rawQueue.addQueueSize(); // mutates queue
+          return await this.queueStaffService.formatStaffListPropertyForFrontend(
+            rawQueue,
+          );
         }),
       );
     } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.updatedQueueError +
-          '\n' +
-          'Error message: ' +
-          err,
-      );
-      throw new HttpException(
+      console.error(ERROR_MESSAGES.courseController.updatedQueueError, err);
+      throw new InternalServerErrorException(
         ERROR_MESSAGES.courseController.updatedQueueError,
-        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
 
@@ -241,12 +262,7 @@ export class CourseController {
       // Use raw query for performance (avoid entity instantiation and serialization)
       heatmap = await this.heatmapService.getCachedHeatmapFor(id);
     } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.courseOfficeHourError +
-          '\n' +
-          'Error message: ' +
-          err,
-      );
+      console.error(ERROR_MESSAGES.courseController.courseOfficeHourError, err);
       throw new HttpException(
         ERROR_MESSAGES.courseController.courseHeatMapError,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -255,6 +271,7 @@ export class CourseController {
 
     return {
       ...course,
+      queues,
       heatmap,
       organizationCourse: course.organizationCourse?.organization ?? null,
     };
@@ -392,6 +409,7 @@ export class CourseController {
     }
   }
 
+  // TODO: put this in transaction someday
   @Post(':id/checkin/:qid')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)
@@ -406,7 +424,9 @@ export class CourseController {
         isDisabled: false,
       },
       relations: {
-        staffList: true,
+        queueStaff: {
+          user: true,
+        },
       },
     });
     if (!queue) {
@@ -437,48 +457,22 @@ export class CourseController {
       );
     }
 
-    if (queue.staffList.length === 0) {
+    // If user was already in the queue...
+    if (queue.queueStaff.some((staff) => staff.userId === user.id)) {
+      throw new BadRequestException(`User already checked-in to ${queue.room}`);
+    }
+
+    const queueWasPreviouslyEmpty = queue.queueStaff.length === 0;
+    if (queueWasPreviouslyEmpty) {
       queue.allowQuestions = true;
-      this.queueCleanService.deleteAllLeaveQueueCronJobsForQueue(queue.id);
-      await this.queueCleanService.resolvePromptStudentToLeaveQueueAlerts(
+      await queue.save();
+      this.queueStaffService.deleteAllLeaveQueueCronJobsForQueue(queue.id);
+      await this.queueStaffService.resolvePromptStudentToLeaveQueueAlerts(
         queue.id,
       );
     }
 
-    queue.staffList.push(user);
-    try {
-      await queue.save();
-    } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.saveQueueError +
-          '\nError message: ' +
-          err,
-      );
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.saveQueueError,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    try {
-      await EventModel.create({
-        time: new Date(),
-        eventType: EventType.TA_CHECKED_IN,
-        user,
-        courseId,
-        queueId: queue.id,
-      }).save();
-    } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.createEventError +
-          '\nError message: ' +
-          err,
-      );
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.createEventError,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    await this.queueStaffService.checkUserIn(user.id, queue.id, courseId);
 
     try {
       await this.queueSSEService.updateQueue(queue.id);
@@ -493,7 +487,7 @@ export class CourseController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
-    return queue;
+    return await this.queueService.getQueueFormatted(queue.id);
   }
 
   @Delete(':id/checkout/:qid')
@@ -509,64 +503,23 @@ export class CourseController {
         id: qid,
         isDisabled: false,
       },
-      relations: {
-        staffList: true,
-      },
     });
 
-    if (queue === undefined || queue === null) {
+    if (!queue) {
       throw new HttpException(
         ERROR_MESSAGES.courseController.queueNotFound,
         HttpStatus.NOT_FOUND,
       );
     }
 
-    // Do nothing if user not already in stafflist
-    if (!queue.staffList.find((e) => e.id === user.id)) return;
-
-    // remove user from stafflist
-    queue.staffList = queue.staffList.filter((e) => e.id !== user.id);
-    // if no more staff in queue, disallow questions (idk what that does exactly)
-    if (queue.staffList.length === 0) {
-      queue.allowQuestions = false;
-    }
-    try {
-      await queue.save();
-    } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.saveQueueError +
-          '\nError Message: ' +
-          err,
-      );
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.saveQueueError,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-    // if no more staff in queue and prompt students to leave queue (this needs to be after the saving of the queue since this service also checks if the stafflist is empty)
-    if (queue.staffList.length === 0) {
-      await this.queueCleanService.promptStudentsToLeaveQueue(queue.id);
-    }
-
-    try {
-      await EventModel.create({
-        time: new Date(),
-        eventType: EventType.TA_CHECKED_OUT,
-        user,
+    await this.dataSource.transaction(async (manager) => {
+      await this.queueStaffService.checkUserOut(
+        user.id,
+        queue.id,
         courseId,
-        queueId: queue.id,
-      }).save();
-    } catch (err) {
-      console.error(
-        ERROR_MESSAGES.courseController.createEventError +
-          '\nError message: ' +
-          err,
+        manager,
       );
-      throw new HttpException(
-        ERROR_MESSAGES.courseController.createEventError,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    });
 
     try {
       await this.queueSSEService.updateQueue(queue.id);
@@ -584,76 +537,88 @@ export class CourseController {
     return { queueId: queue.id };
   }
 
+  /**
+   * Allows a TA to set or clear their extra status (e.g., Away) for a specific queue.
+   */
+  @Patch(':id/ta_status/:qid')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async setTAExtraStatus(
+    @Param('id', ParseIntPipe) courseId: number,
+    @Param('qid', ParseIntPipe) queueId: number,
+    @User() user: UserModel,
+    @Body() body: SetTAExtraStatusParams,
+  ): Promise<void> {
+    const queue = await QueueModel.findOne({
+      where: {
+        id: queueId,
+        isDisabled: false,
+      },
+      relations: {
+        queueStaff: true,
+      },
+    });
+
+    if (!queue) {
+      throw new NotFoundException(
+        ERROR_MESSAGES.courseController.queueNotFound,
+      );
+    }
+
+    // Only allow if the user is checked into this queue
+    const isInStaffList = queue.queueStaff.some((s) => s.userId === user.id);
+    if (!isInStaffList) {
+      throw new BadRequestException('You must be checked in to set status');
+    }
+
+    await this.queueStaffService.setTAExtraStatusForQueue(
+      queueId,
+      courseId,
+      user.id,
+      body?.status ?? null,
+    );
+
+    await this.queueSSEService.updateQueue(queueId);
+    return;
+  }
+
   @Delete(':id/checkout_all')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.PROFESSOR, Role.TA)
   async checkMeOutAll(
     @Param('id', ParseIntPipe) courseId: number,
-    @User() user: UserModel,
+    @UserId() userId: number,
   ): Promise<void> {
-    const queues = await QueueModel.find({
+    const allQueuesThatUserWasIn = await QueueModel.find({
       where: {
         courseId,
         isDisabled: false,
+        queueStaff: {
+          userId,
+        },
       },
-      relations: ['staffList'],
+      relations: {
+        queueStaff: true,
+      },
     });
 
-    for (const queue of queues) {
-      // if you are in a queue
-      if (queue.staffList.find((e) => e.id === user.id)) {
-        // remove yourself from the queue
-        queue.staffList = queue.staffList.filter((e) => e.id !== user.id);
-        if (queue.staffList.length === 0) {
-          queue.allowQuestions = false;
-        }
-        try {
-          await queue.save();
-        } catch (err) {
-          console.error(
-            ERROR_MESSAGES.courseController.saveQueueError +
-              '\nError Message: ' +
-              err,
-          );
-          throw new HttpException(
-            ERROR_MESSAGES.courseController.saveQueueError,
-            HttpStatus.INTERNAL_SERVER_ERROR,
-          );
-        }
+    await this.dataSource.transaction(async (manager) => {
+      await this.queueStaffService.checkUserOutAll(userId, courseId, manager);
+    });
 
-        try {
-          await EventModel.create({
-            time: new Date(),
-            eventType: EventType.TA_CHECKED_OUT,
-            user,
-            courseId,
-            queueId: queue.id,
-          }).save();
-        } catch (err) {
-          console.error(
-            ERROR_MESSAGES.courseController.createEventError +
-              '\nError message: ' +
-              err,
-          );
-          throw new HttpException(
-            ERROR_MESSAGES.courseController.createEventError,
-            HttpStatus.INTERNAL_SERVER_ERROR,
-          );
-        }
-
-        try {
-          await this.queueSSEService.updateQueue(queue.id);
-        } catch (err) {
-          console.error(
-            ERROR_MESSAGES.courseController.createEventError +
-              '\nError message: ' +
-              err,
-          );
-          throw new HttpException(
-            ERROR_MESSAGES.courseController.updatedQueueError,
-            HttpStatus.INTERNAL_SERVER_ERROR,
-          );
-        }
+    for (const queue of allQueuesThatUserWasIn) {
+      try {
+        await this.queueSSEService.updateQueue(queue.id);
+      } catch (err) {
+        console.error(
+          ERROR_MESSAGES.courseController.createEventError +
+            '\nError message: ' +
+            err,
+        );
+        throw new HttpException(
+          ERROR_MESSAGES.courseController.updatedQueueError,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
     }
   }
@@ -753,7 +718,8 @@ export class CourseController {
     }
 
     if (
-      course.course.courseInviteCode === null ||
+      !course.course.courseInviteCode ||
+      course.course.isCourseInviteEnabled === false ||
       course.course.courseInviteCode !== code
     ) {
       res.status(HttpStatus.BAD_REQUEST).send({
@@ -869,7 +835,11 @@ export class CourseController {
     }
 
     try {
-      await UserCourseModel.update({ courseId, userId }, { role });
+      /*
+       pass in userId as well (even if it is the same) as that is the only way
+       it is passed to the subscribed afterUpdate event
+      */
+      await UserCourseModel.update({ courseId, userId }, { role, userId });
     } catch (err) {
       res.status(HttpStatus.BAD_REQUEST).send({ message: err.message });
       return;
@@ -1028,6 +998,374 @@ export class CourseController {
     res.status(200).send(queueInvites);
     return;
   }
+
+  // Helper function for the SELECT fields 
+  private getCommonSelectFields(tableAlias: string): string {
+    return `
+      ${tableAlias}.user_id,
+      ${tableAlias}."firstName",
+      ${tableAlias}."lastName",
+      ${tableAlias}.email,
+      ${tableAlias}.course_name,
+      ${tableAlias}.period_date,
+      ${tableAlias}.period_time
+    `;
+  }
+
+  @Get(':id/export-tool-usage')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async exportToolUsage(
+    @Param('id', ParseIntPipe) courseId: number,
+    @Query('includeQueueQuestions', new ParseBoolPipe({ optional: true })) includeQueueQuestions: boolean = true,
+    @Query('includeAnytimeQuestions', new ParseBoolPipe({ optional: true })) includeAnytimeQuestions: boolean = true,
+    @Query('includeChatbotInteractions', new ParseBoolPipe({ optional: true })) includeChatbotInteractions: boolean = true,
+    @Query('groupBy', new ParseEnumPipe(TimeGrouping, { optional: true })) groupBy: TimeGrouping = TimeGrouping.WEEK,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ): Promise<ToolUsageExportData[]> {
+    const isGroupByWeek = groupBy === TimeGrouping.WEEK;
+    
+    // Check if there are any students in the course before proceeding
+    const studentCount = await UserCourseModel.count({
+      where: {
+        courseId,
+        role: Role.STUDENT,
+      },
+    });
+
+    if (studentCount === 0) {
+      throw new BadRequestException(
+        'Cannot export tool usage data: No students are enrolled in this course.',
+      );
+    }
+    
+    let startDateObj: Date;
+    let endDateObj: Date;
+    
+    if (startDate && endDate) {
+      startDateObj = new Date(startDate);
+      endDateObj = new Date(endDate);
+    } else {
+      const dateRangeQuery = `
+        WITH all_dates AS (
+          ${includeQueueQuestions ? `
+            SELECT q."createdAt" as date FROM "question_model" q
+            JOIN "queue_model" qu ON q."queueId" = qu.id
+            WHERE qu."courseId" = $1
+          ` : ''}
+          ${includeQueueQuestions && includeAnytimeQuestions ? 'UNION ALL' : ''}
+          ${includeAnytimeQuestions ? `
+            SELECT aq."createdAt" as date FROM "async_question_model" aq
+            WHERE aq."courseId" = $1 AND aq.status != 'StudentDeleted'
+          ` : ''}
+          ${(includeQueueQuestions || includeAnytimeQuestions) && includeChatbotInteractions ? 'UNION ALL' : ''}
+          ${includeChatbotInteractions ? `
+            SELECT ci.timestamp as date FROM "chatbot_interactions_model" ci
+            WHERE ci.course = $1
+          ` : ''}
+        )
+        SELECT 
+          MIN(date) as earliest_date,
+          MAX(date) as latest_date
+        FROM all_dates
+      `;
+      
+      const dateRangeResult = await UserCourseModel.query(dateRangeQuery, [courseId]);
+      const dateRange = dateRangeResult[0];
+      
+      if (dateRange && dateRange.earliest_date && dateRange.latest_date) {
+        startDateObj = new Date(dateRange.earliest_date);
+        endDateObj = new Date(dateRange.latest_date);
+      } else {
+        endDateObj = new Date();
+        startDateObj = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      }
+    }
+
+    try {
+      const results = [];
+      
+      if (includeQueueQuestions) {
+        const queueQuery = isGroupByWeek
+          ? `
+            WITH student_weeks AS (
+              SELECT DISTINCT
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                c.name as course_name,
+                TO_CHAR(week_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(week_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                DATE_TRUNC('week', $2::timestamp),
+                DATE_TRUNC('week', $3::timestamp),
+                '1 week'::interval
+              ) AS week_start
+              WHERE uc."courseId" = $1 AND uc.role = '${Role.STUDENT}'
+            ),
+            question_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(DATE_TRUNC('week', q."createdAt"), 'YYYY/MM/DD') as period_date,
+                COUNT(*) as count
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "queue_model" qu ON qu."courseId" = uc."courseId"
+              JOIN "question_model" q ON q."queueId" = qu.id AND q."creatorId" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role = '${Role.STUDENT}'
+                  AND q."createdAt" >= $2
+                  AND q."createdAt" <= $3
+              GROUP BY u.id, DATE_TRUNC('week', q."createdAt")
+            )
+            SELECT 
+              ${this.getCommonSelectFields('sw')},
+              COALESCE(qc.count, 0) as count
+            FROM student_weeks sw
+            LEFT JOIN question_counts qc ON sw.user_id = qc.user_id AND sw.period_date = qc.period_date
+            ORDER BY sw."lastName", sw."firstName", sw.period_date
+          `
+          : `
+            WITH student_days AS (
+              SELECT DISTINCT
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                c.name as course_name,
+                TO_CHAR(day_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(day_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                $2::date,
+                $3::date,
+                '1 day'::interval
+              ) AS day_start
+              WHERE uc."courseId" = $1 AND uc.role ='${Role.STUDENT}'
+            ),
+            question_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(q."createdAt"::date, 'YYYY/MM/DD') as period_date,
+                COUNT(*) as count
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "queue_model" qu ON qu."courseId" = uc."courseId"
+              JOIN "question_model" q ON q."queueId" = qu.id AND q."creatorId" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role = '${Role.STUDENT}'
+                  AND q."createdAt" >= $2
+                  AND q."createdAt" <= $3
+              GROUP BY u.id, q."createdAt"::date
+            )
+            SELECT 
+              ${this.getCommonSelectFields('sd')},
+              COALESCE(qc.count, 0) as count
+            FROM student_days sd
+            LEFT JOIN question_counts qc ON sd.user_id = qc.user_id AND sd.period_date = qc.period_date
+            ORDER BY sd."lastName", sd."firstName", sd.period_date
+          `;
+
+        const queueResults = await UserCourseModel.query(queueQuery, [courseId, startDateObj, endDateObj]);
+        results.push(...queueResults.map(row => ({ ...row, tool_type: ToolUsageType.QUEUE_QUESTIONS })));
+      }
+      
+      if (includeAnytimeQuestions) {
+        const anytimeQuery = isGroupByWeek
+          ? `
+            WITH student_weeks AS (
+              SELECT DISTINCT
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                c.name as course_name,
+                TO_CHAR(week_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(week_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                DATE_TRUNC('week', $2::timestamp),
+                DATE_TRUNC('week', $3::timestamp),
+                '1 week'::interval
+              ) AS week_start
+              WHERE uc."courseId" = $1 AND uc.role = '${Role.STUDENT}'
+            ),
+            question_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(DATE_TRUNC('week', aq."createdAt"), 'YYYY/MM/DD') as period_date,
+                COUNT(*) as count
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "async_question_model" aq ON aq."courseId" = uc."courseId" AND aq."creatorId" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role = '${Role.STUDENT}'
+                  AND aq."createdAt" >= $2
+                  AND aq."createdAt" <= $3
+                  AND aq.status != 'StudentDeleted'
+              GROUP BY u.id, DATE_TRUNC('week', aq."createdAt")
+            )
+            SELECT 
+              ${this.getCommonSelectFields('sw')},
+              COALESCE(qc.count, 0) as count
+            FROM student_weeks sw
+            LEFT JOIN question_counts qc ON sw.user_id = qc.user_id AND sw.period_date = qc.period_date
+            ORDER BY sw."lastName", sw."firstName", sw.period_date
+          `
+          : `
+            WITH student_days AS (
+              SELECT DISTINCT
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                c.name as course_name,
+                TO_CHAR(day_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(day_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                $2::date,
+                $3::date,
+                '1 day'::interval
+              ) AS day_start
+              WHERE uc."courseId" = $1 AND uc.role = '${Role.STUDENT}'
+            ),
+            question_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(aq."createdAt"::date, 'YYYY/MM/DD') as period_date,
+                COUNT(*) as count
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "async_question_model" aq ON aq."courseId" = uc."courseId" AND aq."creatorId" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role = '${Role.STUDENT}'
+                  AND aq."createdAt" >= $2
+                  AND aq."createdAt" <= $3
+                  AND aq.status != 'StudentDeleted'
+              GROUP BY u.id, aq."createdAt"::date
+            )
+            SELECT 
+              ${this.getCommonSelectFields('sd')},
+              COALESCE(qc.count, 0) as count
+            FROM student_days sd
+            LEFT JOIN question_counts qc ON sd.user_id = qc.user_id AND sd.period_date = qc.period_date
+            ORDER BY sd."lastName", sd."firstName", sd.period_date
+          `;
+
+        const anytimeResults = await UserCourseModel.query(anytimeQuery, [courseId, startDateObj, endDateObj]);
+        results.push(...anytimeResults.map(row => ({ ...row, tool_type: ToolUsageType.ANYTIME_QUESTIONS })));
+      }
+      
+      if (includeChatbotInteractions) {
+        const chatbotQuery = isGroupByWeek
+          ? `
+            WITH student_weeks AS (
+              SELECT DISTINCT
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                c.name as course_name,
+                TO_CHAR(week_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(week_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                DATE_TRUNC('week', $2::timestamp),
+                DATE_TRUNC('week', $3::timestamp),
+                '1 week'::interval
+              ) AS week_start
+              WHERE uc."courseId" = $1 AND uc.role ='${Role.STUDENT}'
+            ),
+            interaction_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(DATE_TRUNC('week', ci.timestamp), 'YYYY/MM/DD') as period_date,
+                COUNT(DISTINCT ci.id) as count
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "chatbot_interactions_model" ci ON ci.course = uc."courseId" AND ci."user" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role ='${Role.STUDENT}'
+                  AND ci.timestamp >= $2
+                  AND ci.timestamp <= $3
+              GROUP BY u.id, DATE_TRUNC('week', ci.timestamp)
+            )
+            SELECT 
+              ${this.getCommonSelectFields('sw')},
+              COALESCE(ic.count, 0) as count
+            FROM student_weeks sw
+            LEFT JOIN interaction_counts ic ON sw.user_id = ic.user_id AND sw.period_date = ic.period_date
+            ORDER BY sw."lastName", sw."firstName", sw.period_date
+          `
+          : `
+            WITH student_days AS (
+              SELECT DISTINCT
+                u.id as user_id,
+                u."firstName",
+                u."lastName",
+                u.email,
+                c.name as course_name,
+                TO_CHAR(day_start, 'YYYY/MM/DD') as period_date,
+                TO_CHAR(day_start, 'HH24:MI') as period_time
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "course_model" c ON c.id = uc."courseId"
+              CROSS JOIN generate_series(
+                $2::date,
+                $3::date,
+                '1 day'::interval
+              ) AS day_start
+              WHERE uc."courseId" = $1 AND uc.role = '${Role.STUDENT}'
+            ),
+            interaction_counts AS (
+              SELECT 
+                u.id as user_id,
+                TO_CHAR(ci.timestamp::date, 'YYYY/MM/DD') as period_date,
+                COUNT(DISTINCT ci.id) as count
+              FROM "user_model" u
+              JOIN "user_course_model" uc ON u.id = uc."userId"
+              JOIN "chatbot_interactions_model" ci ON ci.course = uc."courseId" AND ci."user" = u.id
+              WHERE uc."courseId" = $1 
+                  AND uc.role = '${Role.STUDENT}'
+                  AND ci.timestamp >= $2
+                  AND ci.timestamp <= $3
+              GROUP BY u.id, ci.timestamp::date
+            )
+            SELECT 
+              ${this.getCommonSelectFields('sd')},
+              COALESCE(ic.count, 0) as count
+            FROM student_days sd
+            LEFT JOIN interaction_counts ic ON sd.user_id = ic.user_id AND sd.period_date = ic.period_date
+            ORDER BY sd."lastName", sd."firstName", sd.period_date
+          `;
+
+        const chatbotResults = await UserCourseModel.query(chatbotQuery, [courseId, startDateObj, endDateObj]);
+        results.push(...chatbotResults.map(row => ({ ...row, tool_type: ToolUsageType.CHATBOT_INTERACTIONS })));
+      }
+      // Return JSON data for frontend to handle CSV generation
+      
+      return results;
+
+    } catch (error) {
+      console.error('Error exporting tool usage:', error);
+      throw new HttpException('Failed to export tool usage data', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
 
   @Patch(':id/set_ta_notes/:uid')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)

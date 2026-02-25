@@ -26,13 +26,14 @@
 2. Make sure you have [node](https://nodejs.org/en/download/), [yarn](https://classic.yarnpkg.com/en/docs/install), and [psql](https://blog.timescale.com/tutorials/how-to-install-psql-on-mac-ubuntu-debian-windows/) (or another program that lets you connect and view the database like [Beekeeper Studio](https://www.beekeeperstudio.io/get-community)) installed. 
   - `yarn -v` should be `1.x.x`. Do not get Yarn 2. Node should also be version 20.x.x. If it's not, install [nvm](https://github.com/nvm-sh/nvm)
 3. Run `yarn install` in this directory to get dependencies
-4. Run `yarn dev:db:up` to start the database via docker; `yarn dev:db:down` will stop it (this step might not be needed).
-5. Change the environment variables to match your environment. 
+4. Change the environment variables to match your environment. 
   - You can find the required environment variables in the `.env.development` file in the `packages/server` directory. If you're new to `.env` files, basically create a new `.env` file in the same directory as `.env.development` and copy-paste all of the variables over
     - Note that if you have installed postgres before and you have changed the default postgres password, you may need to change the password from mysecretpassword to this password
     - If you are running the app in a Docker container (for production), you should instead use the `.env.docker` environment variable template in the `packages/server` directory. 
   - There is also a .env for the frontend (`dev.env`). Do just as you did and create a `.env` in `packages/frontend` and copy-paste all the variables from `dev.env` over.
+  - There's a 2nd environment file that needs to be in `packages/server` called `postgres.env`. Copy-paste `postgres.env.example` and rename it to `postgres.env`.
   - For more details, see [ENVIRONMENT_VARIABLES.md](ENVIRONMENT_VARIABLES.md)
+5. Run `yarn dev:db:up` to start the database via docker; `yarn dev:db:down` will stop it (this step might not be needed).
 6. Start the app in development with `yarn dev`
 7. Visit the app at http://localhost:3000/dev and click the "seed" button to seed the database with dummy data. 
   - You may need to first create a `dev`, `test`, and `chatbot` database in your local postgres database (using psql or Beekeeper Studio). 

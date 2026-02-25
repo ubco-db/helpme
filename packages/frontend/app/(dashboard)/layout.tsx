@@ -3,10 +3,10 @@
 import React, { useEffect, useState } from 'react'
 import { UserInfoProvider } from '../contexts/userContext'
 import { User } from '@koh/common'
-import { userApi } from '../api/userApi'
+import { fetchUserDetails } from '@/app/api'
 import Link from 'next/link'
 import { Button, Spin } from 'antd'
-import HeaderBar from '../components/HeaderBar'
+import HeaderBar from '@/app/components/HeaderBar'
 import { usePathname, useRouter } from 'next/navigation'
 import { LayoutProps } from '@/app/typings/types'
 import StandardPageContainer from '../components/standardPageContainer'
@@ -15,9 +15,13 @@ import ChatbotContextProvider from './course/[cid]/components/chatbot/ChatbotPro
 import FooterBar from './components/FooterBar'
 import { AsyncToasterProvider } from '../contexts/AsyncToasterContext'
 import { LogoutOutlined, ReloadOutlined } from '@ant-design/icons'
-import { getErrorMessage } from '../utils/generalUtils'
+import VerifyEmailPage from '@/app/(auth)/verify/page'
+import { UserRole } from '@/middlewareType'
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
+  children,
+  adminPage,
+}) => {
   const [profile, setProfile] = useState<User>()
   const [errorGettingUser, setErrorGettingUser] = useState<string | undefined>(
     undefined,
@@ -27,22 +31,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const URLSegments = pathname.split('/')
 
   useEffect(() => {
-    const fetchUserDetails = async () => {
-      await userApi
-        .getUser()
-        .then((userDetails) => {
-          setProfile(userDetails)
-        })
-        .catch((error) => {
-          if (error.status === 401) {
-            router.push(`/api/v1/logout?redirect=${pathname}`)
-          } else {
-            setErrorGettingUser(getErrorMessage(error))
-          }
-        })
-    }
-    fetchUserDetails()
-  }, [])
+    fetchUserDetails(setProfile, setErrorGettingUser, router, pathname)
+  }, [pathname, router])
 
   return errorGettingUser ? (
     <main className="mt-20 flex content-center justify-center gap-3">
@@ -82,6 +72,27 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <p>
         (You may also see this if another error is thrown, such as too many
         requests.)
+      </p>
+      <p>
+        <Link
+          className="text-xl text-blue-500"
+          href={`/api/v1/logout?redirect=${pathname}`}
+          prefetch={false}
+        >
+          Log Out
+        </Link>
+      </p>
+    </main>
+  ) : !profile.emailVerified ? (
+    // should never happen since middleware.ts will redirect to /verify but just in case
+    <VerifyEmailPage />
+  ) : adminPage && profile.userRole != UserRole.ADMIN ? (
+    <main className="mt-20 flex flex-col items-center justify-center gap-2">
+      <p>You do not have permission to view this page.</p>
+      <p>
+        <Link className="text-xl text-blue-500" href={`/courses`}>
+          My Dashboard
+        </Link>
       </p>
       <p>
         <Link

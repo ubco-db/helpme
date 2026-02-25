@@ -6,6 +6,7 @@ import {
   asyncQuestionStatus,
   CreateAsyncQuestions,
   ERROR_MESSAGES,
+  GetAsyncQuestionsResponse,
   nameToRGB,
   Role,
   UnreadAsyncQuestionResponse,
@@ -743,8 +744,7 @@ export class asyncQuestionController {
   async getAsyncQuestions(
     @Param('courseId', ParseIntPipe) courseId: number,
     @UserId() userId: number,
-    @Res() res: Response,
-  ): Promise<AsyncQuestion[]> {
+  ): Promise<GetAsyncQuestionsResponse> {
     const userCourse = await UserCourseModel.findOne({
       where: {
         userId,
@@ -795,6 +795,7 @@ export class asyncQuestionController {
     }
 
     let questions: Partial<AsyncQuestionModel>[];
+    let hiddenPrivateQuestionsCount = 0;
 
     const isStaff: boolean =
       userCourse.role === Role.TA || userCourse.role === Role.PROFESSOR;
@@ -809,23 +810,36 @@ export class asyncQuestionController {
       );
     } else {
       // Students see their own questions and questions that are visible
-      questions = (
-        await Promise.all(
-          all.map(async (question) => {
-            if (
-              question.creatorId === userId ||
-              (await this.asyncQuestionService.isVisible(
-                question,
-                courseSettings,
-              ))
-            ) {
-              return question;
-            } else {
-              return undefined;
-            }
-          }),
-        )
-      ).filter((s) => s != undefined);
+      const visibilityResults = await Promise.all(
+        all.map(async (question) => {
+          if (question.creatorId === userId) {
+            return { question, isHiddenPrivate: false };
+          }
+
+          const isVisible = await this.asyncQuestionService.isVisible(
+            question,
+            courseSettings,
+          );
+
+          if (isVisible) {
+            return { question, isHiddenPrivate: false };
+          }
+
+          return {
+            question: undefined,
+            isHiddenPrivate:
+              question.status !== asyncQuestionStatus.TADeleted &&
+              question.status !== asyncQuestionStatus.StudentDeleted,
+          };
+        }),
+      );
+
+      questions = visibilityResults
+        .map((result) => result.question)
+        .filter((question): question is AsyncQuestionModel => !!question);
+      hiddenPrivateQuestionsCount = visibilityResults.filter(
+        (result) => result.isHiddenPrivate,
+      ).length;
     }
 
     questions = questions.map((question: AsyncQuestionModel) => {
@@ -931,8 +945,10 @@ export class asyncQuestionController {
       return temp;
     });
 
-    res.status(HttpStatus.OK).send(questions);
-    return;
+    return {
+      questions: questions as unknown as AsyncQuestion[],
+      hiddenPrivateQuestionsCount,
+    };
   }
 
   // Moved from userInfo context endpoint as this updates too frequently to make sense caching it with userInfo data

@@ -2,6 +2,7 @@ import { Role } from '@koh/common';
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -17,7 +18,13 @@ export class UserCourseModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne((type) => UserModel, (user) => user.courses)
+  @CreateDateColumn({ type: 'timestamptz', nullable: true })
+  createdAt: Date;
+
+  @ManyToOne((type) => UserModel, (user) => user.courses, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
   @JoinColumn({ name: 'userId' })
   user: UserModel;
 

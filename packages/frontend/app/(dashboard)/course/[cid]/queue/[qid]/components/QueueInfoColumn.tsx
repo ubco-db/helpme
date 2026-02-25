@@ -10,7 +10,7 @@ import {
   UpOutlined,
   EnvironmentOutlined,
 } from '@ant-design/icons'
-import { Button, Popconfirm, Row, Switch, Tooltip } from 'antd'
+import { Button, Popconfirm, Row, Switch, Tooltip, message } from 'antd'
 import moment from 'moment'
 import React, { ReactNode, useState } from 'react'
 import { useQueue } from '@/app/hooks/useQueue'
@@ -28,7 +28,11 @@ import RenderEvery from '@/app/components/RenderEvery'
 import TagGroupSwitch from './TagGroupSwitch'
 import StaffList from './StaffList'
 import { getQueueTypeLabel } from '../utils/commonQueueFunctions'
-import { QueuePartial, GetQueueChatsResponse } from '@koh/common'
+import { QueuePartial, GetQueueChatsResponse, ExtraTAStatus } from '@koh/common'
+import { useUserInfo } from '@/app/contexts/userContext'
+import { API } from '@/app/api'
+import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 
 interface QueueInfoColumnProps {
   cid: number
@@ -58,15 +62,26 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
   queueChats,
 }) => {
   const router = useRouter()
+  const { userInfo } = useUserInfo()
+  const isMobile = useMediaQuery('(max-width: 768px)')
 
-  // const [away, setAway] = useState(false);
-  // const checkAway = (checked: boolean) => {
-  //   if (!checked) {
-  //     setAway(true);
-  //   } else {
-  //     setAway(false);
-  //   }
-  // };
+  const me = queue?.staffList?.find((s) => s.id === userInfo?.id)
+  const isAway = me?.extraStatus === ExtraTAStatus.AWAY
+  const [savingAway, setSavingAway] = useState(false)
+  const awaySwitchId = `away-switch-${queueId}`
+  const toggleAway = async (checked: boolean) => {
+    // checked = Away; unchecked = Answering
+    const newStatus = checked ? ExtraTAStatus.AWAY : null
+    try {
+      setSavingAway(true)
+      await API.taStatus.setExtraStatus(cid, queueId, newStatus)
+    } catch (err) {
+      const errorMessage = getErrorMessage(err)
+      message.error(errorMessage)
+    } finally {
+      setSavingAway(false)
+    }
+  }
   return (
     <div className="relative flex flex-shrink-0 flex-col pb-1 md:mt-8 md:w-72 md:pb-7">
       {/* only show the queue title and warning here on desktop, it's moved further down on mobile (and placed in queue page.tsx) */}
@@ -116,8 +131,23 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
         {buttons}
       </div>
 
-      <div className="flex md:mt-3">
+      <div className="flex items-center justify-between md:mt-3">
         <h3 className="mb-0 text-2xl font-semibold">Staff</h3>
+        {isStaff && (
+          <div className="ml-auto flex items-center gap-2">
+            <label htmlFor={awaySwitchId} className="text-sm text-zinc-600">
+              Away
+            </label>
+
+            <Switch
+              id={awaySwitchId}
+              size={isMobile ? 'small' : undefined}
+              checked={isAway}
+              onChange={toggleAway}
+              loading={savingAway}
+            />
+          </div>
+        )}
         {/* Button to hide staff list on mobile */}
         <Button
           className="md:hidden"
@@ -147,13 +177,6 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
       {isStaff && (
         // "Clear Queue" and "Delete Queue" buttons for DESKTOP ONLY - mobile is in EditQueueModal.tsx
         <div className="bottom-0 hidden h-full w-full flex-col justify-end text-white md:flex">
-          {/* <p>Toggle to indicate away </p>
-            <Switch
-              onChange={checkAway}
-              checkedChildren="Answering"
-              unCheckedChildren="Away"
-              style={{ width: "200px", marginTop: "-50px", marginBottom: "50px" }}
-            /> */}
           <Popconfirm
             title={
               'Are you sure you want to clear all students from the queue?'

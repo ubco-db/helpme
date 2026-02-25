@@ -29,11 +29,11 @@ export class AlertsService {
           const queue = await QueueModel.findOne({
             where: { id: payload.queueId },
             relations: {
-              staffList: true,
+              queueStaff: true,
             },
           });
 
-          const isQueueOpen = queue.staffList.length > 0 && !queue.isDisabled;
+          const isQueueOpen = queue.queueStaff.length > 0 && !queue.isDisabled;
           if (question.closedAt || !isQueueOpen) {
             alert.resolved = new Date();
             await alert.save();

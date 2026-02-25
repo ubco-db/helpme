@@ -74,7 +74,7 @@ const StaffList: React.FC<StaffListProps> = ({ queue, queueId, courseId }) => {
                 ? `${taToQuestions[ta.id].length} students`
                 : taToQuestions[ta.id]?.[0]?.creator?.name
             }
-            helpedAt={
+            busySince={
               taToQuestions[ta.id]?.[0]?.helpedAt ??
               ta.helpingStudentInAnotherQueueSince
             }
@@ -94,8 +94,9 @@ interface StatusCardProps {
   myRole?: Role
   myId?: number
   studentName?: string
-  helpedAt?: Date
+  busySince?: Date
   grouped?: boolean
+  isForPublic?: boolean // true for queue invite page
 }
 /**
  * View component just renders TA status
@@ -108,10 +109,11 @@ const StatusCard: React.FC<StatusCardProps> = ({
   myRole,
   myId,
   studentName,
-  helpedAt,
+  busySince,
   grouped,
+  isForPublic,
 }) => {
-  const isBusy = !!helpedAt || !!ta.extraStatus
+  const isBusy = !!busySince || !!ta.extraStatus
   const [canSave, setCanSave] = useState(false)
   const [popoverOpen, setPopoverOpen] = useState(false)
   const isStaff = myRole === Role.TA || myRole === Role.PROFESSOR
@@ -177,32 +179,52 @@ const StatusCard: React.FC<StatusCardProps> = ({
       <div
         className={`flex rounded-md bg-white p-2 shadow-md md:mb-3 md:p-3 ${shouldShowEdit ? 'cursor-pointer' : ''}`}
       >
-        <UserAvatar size={48} username={ta.name} photoURL={ta.photoURL} />
+        <UserAvatar
+          size={48}
+          className="flex-shrink-0"
+          username={ta.name}
+          photoURL={ta.photoURL}
+        />
         <div className="ml-2 flex-grow">
           <Row justify="space-between">
             <div className="font-bold text-gray-900">{ta.name}</div>
             <span>
-              <Badge status={isBusy ? 'processing' : 'success'} />
-              {isBusy ? 'Busy' : 'Available'}
+              <Badge
+                className="mr-0.5"
+                status={
+                  ta.extraStatus === ExtraTAStatus.AWAY
+                    ? 'error'
+                    : isBusy
+                      ? 'processing'
+                      : 'success'
+                }
+              />
+              {ta.extraStatus === ExtraTAStatus.AWAY
+                ? 'Away'
+                : isBusy
+                  ? 'Busy'
+                  : 'Available'}
             </span>
           </Row>
           <div className="flex items-start justify-between">
             <div className="mt-1 italic">
               {grouped ? (
                 'Helping a group'
-              ) : isBusy && helpedAt ? (
+              ) : isBusy && busySince ? (
                 <HelpingFor
                   studentName={studentName}
-                  helpedAt={helpedAt}
+                  busySince={busySince}
                   extraTAStatus={ta.extraStatus}
                 />
+              ) : ta.extraStatus === ExtraTAStatus.AWAY ? (
+                'Will be back soon'
               ) : (
                 // this 1 dot is enough to make the button wrap onto the next row, so i'm only showing it as "..." if there's no button (it looks weird if it's still "..")
                 'Looking for my next student..' + (isStaff ? '.' : '')
               )}
             </div>
             {/* Students have a button to message their TAs */}
-            {!isStaff && queueId && (
+            {!isForPublic && !isStaff && queueId && (
               <MessageButton
                 recipientName={ta.name}
                 staffId={ta.id}
@@ -312,17 +334,18 @@ const UpdateTANotesForm: React.FC<{
 interface HelpingForProps {
   studentName?: string
   extraTAStatus?: ExtraTAStatus
-  helpedAt: Date
+  busySince: Date
 }
 const HelpingFor: React.FC<HelpingForProps> = ({
   studentName,
-  helpedAt,
+  busySince,
   extraTAStatus,
 }) => {
   // A dirty fix until we can get the serializer working properly again (i renamed `questions` in SSEQueueResponse to `queueQuestions` and renamed `queue` in ListQuestionsResponse to `questions` and stuff broke for some reason)
-  let tempDate = helpedAt
-  if (typeof helpedAt === 'string') {
-    tempDate = new Date(Date.parse(helpedAt))
+  // TODO: update: just need to set up the api method inside api/index.ts so it uses a responseClass
+  let tempDate = busySince
+  if (typeof busySince === 'string') {
+    tempDate = new Date(Date.parse(busySince))
   }
   return (
     <RenderEvery

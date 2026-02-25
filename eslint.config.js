@@ -21,6 +21,7 @@ const compat = new FlatCompat({
 
 module.exports = defineConfig([
     {
+        files: ['./packages/**/*'],
         ignores: ['langchain-services/**/*'],
         languageOptions: {
             parser: tsParser,

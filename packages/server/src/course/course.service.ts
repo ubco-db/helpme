@@ -12,8 +12,10 @@ import {
   Role,
   TACheckinPair,
   TACheckinTimesResponse,
+  TAAwayPair,
   UserCourse,
   UserPartial,
+  ExtraTAStatus,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -24,7 +26,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import { partition } from 'lodash';
+import { parseInt, partition } from 'lodash';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { QuestionModel } from 'question/question.entity';
 import { Between, DataSource, EntityManager, In, IsNull } from 'typeorm';
@@ -43,6 +45,9 @@ import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { QueueModel } from 'queue/queue.entity';
 import { SuperCourseModel } from './super-course.entity';
 import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
+import { URLSearchParams } from 'node:url';
+import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class CourseService {
@@ -52,6 +57,9 @@ export class CourseService {
     private readonly dataSource: DataSource,
   ) {}
 
+  // Note that this still does not handle the case where multiple checkin events happen without a corresponding checkout event.
+  // This doesn't really seem to be an issue outside of dev though (since it *requires* bad data),
+  // and it will only mess up the visuals a bit even if it does happen. I'll put a TODO to fix this here anyway.
   async getTACheckInCheckOutTimes(
     courseId: number,
     startDate: string,
@@ -70,6 +78,8 @@ export class CourseService {
           EventType.TA_CHECKED_OUT,
           EventType.TA_CHECKED_OUT_FORCED,
           EventType.TA_CHECKED_OUT_EVENT_END,
+          EventType.TA_MARKED_SELF_AWAY,
+          EventType.TA_MARKED_SELF_BACK,
         ]),
         time: Between(startDateAsDate, endDateAsDate),
         courseId,
@@ -82,46 +92,131 @@ export class CourseService {
       (e) => e.eventType === EventType.TA_CHECKED_IN,
     );
 
+    const checkoutEvents = taEvents.filter(
+      (e) =>
+        e.eventType === EventType.TA_CHECKED_OUT ||
+        e.eventType === EventType.TA_CHECKED_OUT_FORCED ||
+        e.eventType === EventType.TA_CHECKED_OUT_EVENT_END,
+    );
+
+    const awayEvents = taEvents.filter(
+      (e) =>
+        e.eventType === EventType.TA_MARKED_SELF_AWAY ||
+        e.eventType === EventType.TA_MARKED_SELF_BACK,
+    );
+
     const taCheckinTimes: TACheckinPair[] = [];
+    const taAwayTimes: TAAwayPair[] = [];
+    const MIN_AWAY_THRESHOLD = 2; // 2 minute threshold to be considered away
+    const MIN_AWAY_MS = MIN_AWAY_THRESHOLD * 60 * 1000;
 
     for (const checkinEvent of checkinEvents) {
-      let closestEvent: EventModel = null;
+      let closestEndEvent: EventModel = null;
       let mostRecentTime = new Date();
-      const originalDate = mostRecentTime;
+      const now = mostRecentTime;
 
-      for (const checkoutEvent of otherEvents) {
+      for (const checkoutEvent of checkoutEvents) {
         if (
           checkoutEvent.userId === checkinEvent.userId &&
           checkoutEvent.time > checkinEvent.time &&
+          // goal is to find the end event that has the shortest time difference from the checkin event
           checkoutEvent.time.getTime() - checkinEvent.time.getTime() <
             mostRecentTime.getTime() - checkinEvent.time.getTime()
         ) {
-          closestEvent = checkoutEvent;
+          closestEndEvent = checkoutEvent;
           mostRecentTime = checkoutEvent.time;
         }
       }
+      // if the checkin and checkout event happened on two different days (and the checkout event isn't the 3am TA_CHECKED_OUT_FORCED event),
+      //  set the checkout time to 3:01am forced checkout (just in case the event wasn't created)
+      // This is to fix events appearing to span multiple days due the event not getting created.
+      if (
+        closestEndEvent &&
+        checkinEvent.time.toDateString() !==
+          closestEndEvent.time.toDateString() &&
+        closestEndEvent.eventType !== EventType.TA_CHECKED_OUT_FORCED &&
+        closestEndEvent.time.getHours() !== 3 &&
+        closestEndEvent.time.getMinutes() < 2
+      ) {
+        const endOfCheckinDay = new Date(checkinEvent.time);
+        endOfCheckinDay.setDate(endOfCheckinDay.getDate() + 1);
+        endOfCheckinDay.setHours(3, 1, 0, 0);
+        const newEvent = new EventModel();
+        newEvent.time = endOfCheckinDay;
+        newEvent.eventType = EventType.TA_CHECKED_OUT_FORCED;
+        newEvent.courseId = closestEndEvent.courseId;
+        newEvent.userId = closestEndEvent.userId;
+        newEvent.user = closestEndEvent.user;
+        closestEndEvent = newEvent;
+      }
+      const windowEnd = closestEndEvent?.time ?? now;
 
       const numHelped = await QuestionModel.count({
         where: {
           taHelpedId: checkinEvent.userId,
-          helpedAt: Between(
-            checkinEvent.time,
-            closestEvent?.time || new Date(),
-          ),
+          helpedAt: Between(checkinEvent.time, windowEnd),
         },
       });
 
       taCheckinTimes.push({
         name: checkinEvent.user.name,
         checkinTime: checkinEvent.time,
-        checkoutTime: closestEvent?.time,
-        inProgress: mostRecentTime === originalDate,
-        forced: closestEvent?.eventType === EventType.TA_CHECKED_OUT_FORCED,
+        checkoutTime: closestEndEvent?.time,
+        inProgress: !closestEndEvent,
+        forced: closestEndEvent?.eventType === EventType.TA_CHECKED_OUT_FORCED,
         numHelped,
       });
+
+      const taAwayEvents = awayEvents
+        .filter(
+          (e) =>
+            e.userId === checkinEvent.userId &&
+            e.time >= checkinEvent.time &&
+            e.time <= windowEnd,
+        )
+        .sort((a, b) => a.time.getTime() - b.time.getTime());
+
+      let currentAwayStart: Date | null = null;
+
+      for (const evt of taAwayEvents) {
+        // assumes that the away events are in order. First the currentAwayStart is set
+        if (evt.eventType === EventType.TA_MARKED_SELF_AWAY) {
+          currentAwayStart = evt.time;
+        } else if (
+          evt.eventType === EventType.TA_MARKED_SELF_BACK &&
+          currentAwayStart
+        ) {
+          // Then, in the next iteration it will be TA_MARKED_SELF_BACK and the duration is calculated and currentAwayStart is consumed
+          const duration = evt.time.getTime() - currentAwayStart.getTime();
+          if (duration >= MIN_AWAY_MS) {
+            taAwayTimes.push({
+              name: checkinEvent.user.name,
+              awayStartTime: currentAwayStart,
+              awayEndTime: evt.time,
+              inProgress: false,
+            });
+          }
+          currentAwayStart = null;
+        }
+      }
+
+      // Once gone through all of the taAwayEvents and if there's still a currentAwayStart left, then either:
+      // - The user was checked out (if closestEndEvent)
+      // - It means it's inProgress and they're still actively away (if !closestEndEvent)
+      if (currentAwayStart) {
+        const duration = windowEnd.getTime() - currentAwayStart.getTime();
+        if (duration >= MIN_AWAY_MS) {
+          taAwayTimes.push({
+            name: checkinEvent.user.name,
+            awayStartTime: currentAwayStart,
+            awayEndTime: null,
+            inProgress: !closestEndEvent,
+          });
+        }
+      }
     }
 
-    return { taCheckinTimes };
+    return { taCheckinTimes, taAwayTimes };
   }
 
   async removeUserFromCourse(userCourse: UserCourseModel): Promise<void> {
@@ -162,8 +257,12 @@ export class CourseService {
       );
     }
 
-    // Destructure coursePatch to separate courseInviteCode from other fields
-    const { courseInviteCode, ...otherFields } = coursePatch;
+    // Destructure coursePatch to separate invite-related fields from other fields
+    const {
+      courseInviteCode: _courseInviteCode,
+      isCourseInviteEnabled: _isCourseInviteEnabled,
+      ...otherFields
+    } = coursePatch;
     // Allow courseInviteCode to be null or empty but no other fields
     if (Object.values(otherFields).some((x) => x === null || x === '')) {
       throw new BadRequestException(
@@ -199,7 +298,24 @@ export class CourseService {
     }
 
     if (coursePatch.courseInviteCode !== undefined) {
-      course.courseInviteCode = coursePatch.courseInviteCode;
+      if (coursePatch.courseInviteCode === null) {
+        // Explicitly clear/disable invite code
+        course.courseInviteCode = null;
+      } else {
+        // Don't allow the user to set an invite code. Just give them a random one.
+        course.courseInviteCode = this.generateRandomInviteCode();
+      }
+    }
+
+    if (coursePatch.isCourseInviteEnabled !== undefined) {
+      // When enabling and there is no code yet, generate one.
+      if (
+        coursePatch.isCourseInviteEnabled &&
+        (!course.courseInviteCode || course.courseInviteCode === '')
+      ) {
+        course.courseInviteCode = this.generateRandomInviteCode();
+      }
+      course.isCourseInviteEnabled = coursePatch.isCourseInviteEnabled;
     }
 
     if (coursePatch.asyncQuestionDisplayTypes) {
@@ -320,7 +436,7 @@ export class CourseService {
   async getQueueInviteRedirectURLandInviteToCourse(
     queueInviteCookie: string,
     userId: number,
-  ): Promise<string> {
+  ): Promise<{ url: string; queryParams: URLSearchParams }> {
     const decodedCookie = decodeURIComponent(queueInviteCookie);
     const splitCookie = decodedCookie.split(',');
     const courseId = splitCookie[0];
@@ -329,6 +445,7 @@ export class CourseService {
     const courseInviteCode = Buffer.from(splitCookie[3], 'base64').toString(
       'utf-8',
     );
+
     // check if the queueInvite exists and if it will invite to course
     const queueInvite = await QueueInviteModel.findOne({
       where: {
@@ -340,49 +457,79 @@ export class CourseService {
       where: { id: userId },
       relations: ['courses'],
     });
+
     if (!user) {
-      return '/login?error=notSuccessfullyLoggedIn';
+      return {
+        url: '/login',
+        queryParams: new URLSearchParams({
+          error: 'notSuccessfullyLoggedIn',
+        }),
+      };
     }
+
     const isUserInCourse = user.courses.some(
       (course) => course.courseId === Number(courseId),
     );
-    if (isUserInCourse) {
-      // if they're already in the course, just redirect them to the queue
-      if (courseId && queueId) {
-        return `/course/${courseId}/queue/${queueId}`;
-      } else if (courseId) {
-        return `/course/${courseId}`;
-      } else {
-        return '/courses';
+
+    let url: string = '/courses';
+    const queryParams = new URLSearchParams();
+
+    const getUrlAndParams = async (): Promise<void> => {
+      if (isUserInCourse) {
+        // if they're already in the course, just redirect them to the queue
+        if (courseId && queueId) {
+          url = `/course/${courseId}/queue/${queueId}`;
+        } else if (courseId) {
+          url = `/course/${courseId}`;
+        }
+        return;
       }
-    } else if (!queueInvite) {
-      // if the queueInvite doesn't exist
-      return '/courses?err=inviteNotFound';
-    } else if (queueInvite.willInviteToCourse && courseInviteCode) {
-      // get course
-      const course = await CourseModel.findOne({
-        where: {
-          id: parseInt(courseId),
-        },
-      });
-      if (!course) {
-        return '/courses?err=courseNotFound';
+
+      if (!queueInvite) {
+        // if the queueInvite doesn't exist
+        queryParams.set('err', 'inviteNotFound');
+        return;
       }
-      if (course.courseInviteCode !== courseInviteCode) {
-        return '/courses?err=badCourseInviteCode';
+
+      if (queueInvite.willInviteToCourse && courseInviteCode) {
+        // get course
+        const course = await CourseModel.findOne({
+          where: {
+            id: parseInt(courseId),
+          },
+        });
+
+        if (!course) {
+          queryParams.set('err', 'courseNotFound');
+          return;
+        }
+
+        if (course.courseInviteCode !== courseInviteCode) {
+          queryParams.set('err', 'badCourseInviteCode');
+          return;
+        }
+
+        await this.addStudentToCourse(course, user).catch((err) => {
+          throw new BadRequestException(err.message);
+        });
+
+        if (courseId && queueId) {
+          url = `/course/${courseId}/queue/${queueId}`;
+        } else if (courseId) {
+          url = `/course/${courseId}`;
+        }
+        return;
       }
-      await this.addStudentToCourse(course, user).catch((err) => {
-        throw new BadRequestException(err.message);
-      });
-      if (courseId && queueId) {
-        return `/course/${courseId}/queue/${queueId}`;
-      } else if (courseId) return `/course/${courseId}`;
-      else {
-        return '/courses';
-      }
-    } else {
-      return `/courses?err=notInCourse`;
-    }
+
+      queryParams.set('err', 'notInCourse');
+    };
+
+    await getUrlAndParams();
+
+    return {
+      url,
+      queryParams,
+    };
   }
 
   async cloneCourse(
@@ -445,6 +592,7 @@ export class CourseService {
       clonedCourse.enabled = true;
       clonedCourse.name = originalCourse.name;
       clonedCourse.timezone = originalCourse.timezone;
+      clonedCourse.courseInviteCode = this.generateRandomInviteCode();
 
       if (cloneData.toClone?.coordinator_email) {
         clonedCourse.coordinator_email = originalCourse.coordinator_email;
@@ -905,5 +1053,9 @@ export class CourseService {
     }
 
     return createdQueue;
+  }
+
+  private generateRandomInviteCode(): string {
+    return crypto.randomBytes(6).toString('hex');
   }
 }

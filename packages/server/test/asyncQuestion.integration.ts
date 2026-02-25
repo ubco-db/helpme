@@ -1000,7 +1000,8 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
+      expect(response.body.hiddenPrivateQuestionsCount).toBe(1);
       expect(questions).toHaveLength(2);
       expect(questions).toMatchSnapshot();
       expect(questions).toEqual(
@@ -1036,7 +1037,7 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
       expect(questions).toHaveLength(3);
       expect(questions).toEqual(
         expect.arrayContaining([
@@ -1065,7 +1066,7 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
       expect(questions).toHaveLength(2);
       expect(questions).toEqual(
         expect.arrayContaining([
@@ -1094,7 +1095,7 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
       expect(questions).toHaveLength(2);
       expect(questions).toEqual(
         expect.arrayContaining([
@@ -1113,7 +1114,7 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
       expect(questions).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -1160,7 +1161,8 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
+      expect(response.body.hiddenPrivateQuestionsCount).toBe(0);
       expect(questions).toHaveLength(3);
       expect(questions).toEqual(
         expect.arrayContaining([
@@ -1191,6 +1193,63 @@ describe('AsyncQuestion Integration', () => {
         ]),
       );
     });
+    it('returns no visible questions but hidden count > 0 when all questions are private to another student', async () => {
+      const studentUser4 = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: studentUser4,
+        course,
+        role: Role.STUDENT,
+      });
+
+      asyncQuestion2.staffSetVisible = false;
+      await asyncQuestion2.save();
+
+      const response = await supertest({ userId: studentUser4.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body.questions).toEqual([]);
+      expect(response.body.hiddenPrivateQuestionsCount).toBe(3);
+    });
+    it('does not include TADeleted questions in hidden private count', async () => {
+      const studentUser4 = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: studentUser4,
+        course,
+        role: Role.STUDENT,
+      });
+
+      asyncQuestion2.staffSetVisible = false;
+      await asyncQuestion2.save();
+
+      asyncQuestion3.status = asyncQuestionStatus.TADeleted;
+      await asyncQuestion3.save();
+
+      const response = await supertest({ userId: studentUser4.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body.questions).toEqual([]);
+      expect(response.body.hiddenPrivateQuestionsCount).toBe(2);
+    });
+    it("does not include the requester's own private questions in hidden private count", async () => {
+      asyncQuestion2.staffSetVisible = false;
+      await asyncQuestion2.save();
+
+      const response = await supertest({ userId: studentUser2.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body.hiddenPrivateQuestionsCount).toBe(2);
+      expect(response.body.questions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: asyncQuestion3.id }),
+        ]),
+      );
+    });
     it('does not show sensitive information for anonymous comments on questions unless they are the creator or staff', async () => {
       const comment1 = await AsyncQuestionCommentFactory.create({
         question: asyncQuestion2,
@@ -1206,7 +1265,7 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
       expect(questions).toHaveLength(2);
       expect(questions).toEqual(
         expect.arrayContaining([
@@ -1261,7 +1320,7 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response2.status).toBe(200);
-      const questions2: AsyncQuestion[] = response2.body;
+      const questions2: AsyncQuestion[] = response2.body.questions;
       expect(questions2).toHaveLength(3);
       expect(questions2).toEqual(
         expect.arrayContaining([
@@ -1314,7 +1373,7 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
       expect(questions).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -1383,8 +1442,8 @@ describe('AsyncQuestion Integration', () => {
       );
       expect(response.status).toBe(200);
       expect(response2.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
-      const questions2: AsyncQuestion[] = response2.body;
+      const questions: AsyncQuestion[] = response.body.questions;
+      const questions2: AsyncQuestion[] = response2.body.questions;
       expect(questions).toHaveLength(3);
       expect(questions).toEqual(
         expect.arrayContaining([
@@ -1430,9 +1489,9 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
-      const questions2: AsyncQuestion[] = response2.body;
-      const questions3: AsyncQuestion[] = response3.body;
+      const questions: AsyncQuestion[] = response.body.questions;
+      const questions2: AsyncQuestion[] = response2.body.questions;
+      const questions3: AsyncQuestion[] = response3.body.questions;
       const fullInfo = {
         id: asyncQuestion9.id,
         isAnonymous: true,
@@ -1479,7 +1538,7 @@ describe('AsyncQuestion Integration', () => {
         `/asyncQuestions/${course.id}`,
       );
       expect(response.status).toBe(200);
-      const questions: AsyncQuestion[] = response.body;
+      const questions: AsyncQuestion[] = response.body.questions;
       expect(questions).toEqual(
         expect.arrayContaining([
           expect.objectContaining({

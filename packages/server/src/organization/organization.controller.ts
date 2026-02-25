@@ -28,6 +28,7 @@ import {
   ERROR_MESSAGES,
   GetOrganizationResponse,
   GetOrganizationUserResponse,
+  GetOrganizationUsersPaginatedResponse,
   OrganizationProfessor,
   OrganizationResponse,
   OrganizationRole,
@@ -78,6 +79,7 @@ import { CourseRoles } from 'decorators/course-roles.decorator';
 import { CourseService } from 'course/course.service';
 import { ParseDatePipe } from '@nestjs/common/pipes/parse-date.pipe';
 import { OrgRole } from '../decorators/org-role.decorator';
+import * as crypto from 'crypto';
 
 // TODO: put the error messages in ERROR_MESSAGES object
 
@@ -353,6 +355,7 @@ export class OrganizationController {
         zoomLink: courseDetails.zoomLink,
         timezone: courseDetails.timezone,
         enabled: true,
+        courseInviteCode: crypto.randomBytes(6).toString('hex'),
       });
 
       await manager.save(newCourse);
@@ -1429,9 +1432,8 @@ export class OrganizationController {
     @Param('oid', ParseIntPipe) oid: number,
     @Param('page', ParseIntPipe) page: number,
     @Query('search') search: string,
-  ): Promise<OrgUser[]> {
+  ): Promise<GetOrganizationUsersPaginatedResponse> {
     const pageSize = 50;
-
     if (!search) {
       search = '';
     }

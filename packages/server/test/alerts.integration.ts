@@ -5,6 +5,7 @@ import {
   CourseFactory,
   QuestionFactory,
   QueueFactory,
+  QueueStaffFactory,
   StudentCourseFactory,
   TACourseFactory,
   UserCourseFactory,
@@ -27,16 +28,16 @@ describe('Alerts Integration', () => {
 
       const queue1 = await QueueFactory.create({
         course: course1,
-        staffList: [ta.user],
       });
+      await QueueStaffFactory.create({ queue: queue1, user: ta.user });
       const question1 = await QuestionFactory.create({
         queue: queue1,
       });
 
       const queue2 = await QueueFactory.create({
         course: course2,
-        staffList: [ta.user],
       });
+      await QueueStaffFactory.create({ queue: queue2, user: ta.user });
       const question2 = await QuestionFactory.create({
         queue: queue2,
       });
@@ -135,8 +136,8 @@ describe('Alerts Integration', () => {
 
       const queue = await QueueFactory.create({
         course,
-        staffList: [ta],
       });
+      await QueueStaffFactory.create({ queue, user: ta });
       const question = await QuestionFactory.create({
         creator: student,
         queue,
