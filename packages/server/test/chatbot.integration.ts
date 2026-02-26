@@ -249,8 +249,20 @@ describe('ChatbotController Integration', () => {
         totalRecipients: 5,
         unsubscribedRecipients: 0,
       });
-      expectEmailSent(
-        students.slice(0, 5).map((s) => s.email),
+      const calledEmails = mockEmailService.sendEmail.mock.calls.map(
+        (args) => args[0].receiverOrReceivers,
+      );
+      const calledTypes = mockEmailService.sendEmail.mock.calls.map(
+        (args) => args[0].type,
+      );
+      const allStudentEmails = new Set(students.map((s) => s.email));
+
+      expect(calledEmails).toHaveLength(5);
+      expect(new Set(calledEmails).size).toBe(5);
+      for (const email of calledEmails) {
+        expect(allStudentEmails.has(email)).toBe(true);
+      }
+      expect(calledTypes).toEqual(
         Array(5).fill(MailServiceType.CHATBOT_ANSWER_UPDATED),
       );
     });
@@ -292,8 +304,25 @@ describe('ChatbotController Integration', () => {
         totalRecipients: 5,
         unsubscribedRecipients: 2,
       });
-      expectEmailSent(
-        students.slice(0, 3).map((s) => s.email),
+      const calledEmails = mockEmailService.sendEmail.mock.calls.map(
+        (args) => args[0].receiverOrReceivers,
+      );
+      const calledTypes = mockEmailService.sendEmail.mock.calls.map(
+        (args) => args[0].type,
+      );
+      const subscribedEmails = new Set(
+        students.slice(0, 3).map((student) => student.email),
+      );
+      const unsubscribedEmails = new Set(
+        students.slice(3).map((student) => student.email),
+      );
+
+      expect(calledEmails).toHaveLength(3);
+      for (const email of calledEmails) {
+        expect(subscribedEmails.has(email)).toBe(true);
+        expect(unsubscribedEmails.has(email)).toBe(false);
+      }
+      expect(calledTypes).toEqual(
         Array(3).fill(MailServiceType.CHATBOT_ANSWER_UPDATED),
       );
     });
