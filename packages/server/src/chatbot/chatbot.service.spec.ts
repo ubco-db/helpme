@@ -37,7 +37,9 @@ import {
   CreateOrganizationChatbotSettingsBody,
   dropUndefined,
   ERROR_MESSAGES,
+  NotifyUpdatedChatbotAnswerParams,
   OrganizationChatbotSettingsDefaults,
+  Role,
   UpdateChatbotProviderBody,
   UpdateLLMTypeBody,
   UpsertCourseChatbotSettings,
@@ -52,6 +54,7 @@ import {
 } from './chatbot-datasource/chatbot-datasource.service';
 import { ChatbotApiService } from './chatbot-api.service';
 import { MailService } from 'mail/mail.service';
+import { UserSubscriptionModel } from '../mail/user-subscriptions.entity';
 
 const mockCacheManager = {
   get: jest.fn(),
@@ -142,6 +145,7 @@ describe('ChatbotService', () => {
       ).then();
     });
     updateChatbotRepositorySpy.mockRestore();
+    mockMailService.sendEmail.mockReset();
   });
 
   beforeEach(async () => {
@@ -1884,5 +1888,147 @@ describe('ChatbotService', () => {
         );
       },
     );
+  });
+
+  describe('notifyUpdatedAnswer', () => {
+    const makeBody = (
+      overrides: Partial<NotifyUpdatedChatbotAnswerParams> = {},
+    ): NotifyUpdatedChatbotAnswerParams => ({
+      oldAnswer: 'old',
+      newAnswer: 'new',
+      ...overrides,
+    });
+
+    const makeUser = (courseId: number, role: Role): any => ({
+      id: 1,
+      courses: [{ courseId, role }],
+    });
+
+    it('throws when answer did not change', async () => {
+      await expect(
+        service.notifyUpdatedAnswer(
+          1,
+          'vec-id',
+          makeBody({ oldAnswer: 'same', newAnswer: ' same ' }),
+          makeUser(1, Role.PROFESSOR),
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('throws when there are no recipients', async () => {
+      const findSpy = jest
+        .spyOn(ChatbotQuestionModel, 'find')
+        .mockResolvedValue([] as any);
+
+      await expect(
+        service.notifyUpdatedAnswer(
+          1,
+          'vec-id',
+          makeBody(),
+          makeUser(1, Role.PROFESSOR),
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(mockMailService.sendEmail).not.toHaveBeenCalled();
+      findSpy.mockRestore();
+    });
+
+    it('sends individual emails and caps at 5 recipients', async () => {
+      const courseId = 1;
+      const vectorStoreId = 'vec-id';
+      const emails = [
+        'u1@example.com',
+        'u2@example.com',
+        'u3@example.com',
+        'u4@example.com',
+        'u5@example.com',
+        'u6@example.com',
+      ];
+
+      const findSpy = jest
+        .spyOn(ChatbotQuestionModel, 'find')
+        .mockResolvedValue(
+          emails.map((email) => ({
+            interaction: {
+              course: { id: courseId, name: 'Test Course' },
+              user: { email },
+            },
+          })) as any,
+        );
+      const subscriptionSpy = jest
+        .spyOn(UserSubscriptionModel, 'find')
+        .mockResolvedValue([]);
+
+      const result = await service.notifyUpdatedAnswer(
+        courseId,
+        vectorStoreId,
+        makeBody(),
+        makeUser(courseId, Role.PROFESSOR),
+      );
+
+      expect(mockMailService.sendEmail).toHaveBeenCalledTimes(5);
+      const calledRecipients = mockMailService.sendEmail.mock.calls.map(
+        (args) => args[0].receiverOrReceivers,
+      );
+      expect(calledRecipients).toEqual(emails.slice(0, 5));
+      expect(result).toEqual({
+        recipients: 5,
+        totalRecipients: 5,
+        unsubscribedRecipients: 0,
+      });
+      findSpy.mockRestore();
+      subscriptionSpy.mockRestore();
+    });
+
+    it('does not email unsubscribed recipients and reports counts', async () => {
+      const courseId = 1;
+      const vectorStoreId = 'vec-id';
+      const emails = [
+        'u1@example.com',
+        'u2@example.com',
+        'u3@example.com',
+        'u4@example.com',
+        'u5@example.com',
+      ];
+      const unsubscribedEmails = [emails[1], emails[3]];
+
+      const findSpy = jest
+        .spyOn(ChatbotQuestionModel, 'find')
+        .mockResolvedValue(
+          emails.map((email) => ({
+            interaction: {
+              course: { id: courseId, name: 'Test Course' },
+              user: { email },
+            },
+          })) as any,
+        );
+      const subscriptionSpy = jest
+        .spyOn(UserSubscriptionModel, 'find')
+        .mockResolvedValue(
+          unsubscribedEmails.map((email) => ({ user: { email } })) as any,
+        );
+
+      const result = await service.notifyUpdatedAnswer(
+        courseId,
+        vectorStoreId,
+        makeBody(),
+        makeUser(courseId, Role.PROFESSOR),
+      );
+
+      expect(mockMailService.sendEmail).toHaveBeenCalledTimes(3);
+      const calledRecipients = mockMailService.sendEmail.mock.calls.map(
+        (args) => args[0].receiverOrReceivers,
+      );
+      expect(calledRecipients).toEqual(
+        emails.filter((email) => !unsubscribedEmails.includes(email)),
+      );
+      expect(result).toEqual({
+        recipients: 3,
+        totalRecipients: 5,
+        unsubscribedRecipients: 2,
+      });
+      findSpy.mockRestore();
+      subscriptionSpy.mockRestore();
+    });
   });
 });

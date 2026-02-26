@@ -404,7 +404,11 @@ export class APIClient {
           oldQuestion?: string
           newQuestion?: string
         },
-      ): Promise<{ recipients: number }> =>
+      ): Promise<{
+        recipients: number
+        totalRecipients: number
+        unsubscribedRecipients: number
+      }> =>
         this.req(
           'POST',
           `/api/v1/chatbot/question/${courseId}/${vectorStoreId}/notify`,

@@ -19,16 +19,19 @@ import {
   CourseFactory,
   InteractionFactory,
   LLMTypeFactory,
+  mailServiceFactory,
   OrganizationChatbotSettingsFactory,
   OrganizationCourseFactory,
   OrganizationFactory,
   OrganizationUserFactory,
+  userSubscriptionFactory,
   UserCourseFactory,
   UserFactory,
 } from './util/factories';
 import {
   expectEmailNotSent,
   expectEmailSent,
+  mockEmailService,
   overrideEmailService,
   setupIntegrationTest,
 } from './util/testUtils';
@@ -147,74 +150,23 @@ describe('ChatbotController Integration', () => {
       jest.clearAllMocks();
     });
 
-    it('sends individual emails (capped at 5 recipients) to users who asked the question', async () => {
-      const professor = await UserFactory.create();
+    const createStaffForCourse = async (role: Role = Role.PROFESSOR) => {
+      const staff = await UserFactory.create();
       const course = await CourseFactory.create();
       await UserCourseFactory.create({
-        user: professor,
+        user: staff,
         course,
-        role: Role.PROFESSOR,
+        role,
       });
+      return { staff, course };
+    };
 
-      const vectorStoreId = 'vec-notify-123';
-
-      const students = await Promise.all(
-        Array.from({ length: 6 }).map((_, i) =>
-          UserFactory.create({
-            email: `chatbot-notify-${i}@example.com`,
-          }),
-        ),
-      );
-
-      for (const student of students) {
-        await UserCourseFactory.create({
-          user: student,
-          course,
-          role: Role.STUDENT,
-        });
-        const interaction = await InteractionFactory.create({
-          user: student,
-          course,
-        });
-        await ChatbotQuestionModel.create({
-          vectorStoreId,
-          questionText: 'Original question text',
-          responseText: 'Old answer',
-          suggested: true,
-          interaction,
-        }).save();
-      }
-
-      const body = {
-        oldAnswer: 'Old answer',
-        newAnswer: 'New updated answer',
-        oldQuestion: 'Old question?',
-        newQuestion: 'New updated question?',
-      };
-
-      const res = await supertest({ userId: professor.id })
-        .post(`/chatbot/question/${course.id}/${vectorStoreId}/notify`)
-        .send(body)
-        .expect(201);
-
-      expect(res.body).toEqual({ recipients: 5 });
-      expectEmailSent(
-        students.slice(0, 5).map((s) => s.email),
-        Array(5).fill(MailServiceType.CHATBOT_ANSWER_UPDATED),
-      );
-    });
-
-    it('returns 400 and does not send emails when answer did not change', async () => {
-      const professor = await UserFactory.create();
-      const course = await CourseFactory.create();
-      await UserCourseFactory.create({
-        user: professor,
-        course,
-        role: Role.PROFESSOR,
-      });
-
-      const vectorStoreId = 'vec-notify-unchanged';
-      const student = await UserFactory.create();
+    const createAskedQuestion = async (
+      course: CourseModel,
+      vectorStoreId: string,
+      email: string,
+    ) => {
+      const student = await UserFactory.create({ email });
       await UserCourseFactory.create({
         user: student,
         course,
@@ -226,18 +178,253 @@ describe('ChatbotController Integration', () => {
       });
       await ChatbotQuestionModel.create({
         vectorStoreId,
-        questionText: 'Some question',
-        responseText: 'Same answer',
+        questionText: 'Original question text',
+        responseText: 'Old answer',
         suggested: true,
         interaction,
       }).save();
+      return student;
+    };
 
-      const body = {
-        oldAnswer: 'Same answer',
-        newAnswer: ' Same answer ',
-      };
+    const notifyBody = (overrides: Record<string, any> = {}) => ({
+      oldAnswer: 'Old answer',
+      newAnswer: 'New updated answer',
+      oldQuestion: 'Old question?',
+      newQuestion: 'New updated question?',
+      ...overrides,
+    });
 
-      await supertest({ userId: professor.id })
+    it('only allows professors and TAs to use notify endpoint', async () => {
+      const { course } = await createStaffForCourse(Role.PROFESSOR);
+      const vectorStoreId = 'vec-notify-access-control';
+      await createAskedQuestion(course, vectorStoreId, 'asked@example.com');
+
+      const ta = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: ta,
+        course,
+        role: Role.TA,
+      });
+
+      const student = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: student,
+        course,
+        role: Role.STUDENT,
+      });
+
+      await supertest({ userId: ta.id })
+        .post(`/chatbot/question/${course.id}/${vectorStoreId}/notify`)
+        .send(notifyBody())
+        .expect(201);
+
+      await supertest({ userId: student.id })
+        .post(`/chatbot/question/${course.id}/${vectorStoreId}/notify`)
+        .send(notifyBody())
+        .expect(403);
+    });
+
+    it('sends individual emails (capped at 5 recipients) to users who asked the question', async () => {
+      const { staff, course } = await createStaffForCourse(Role.PROFESSOR);
+
+      const vectorStoreId = 'vec-notify-123';
+
+      const students = await Promise.all(
+        Array.from({ length: 6 }).map((_, i) =>
+          createAskedQuestion(
+            course,
+            vectorStoreId,
+            `chatbot-notify-${i}@example.com`,
+          ),
+        ),
+      );
+
+      const res = await supertest({ userId: staff.id })
+        .post(`/chatbot/question/${course.id}/${vectorStoreId}/notify`)
+        .send(notifyBody())
+        .expect(201);
+
+      expect(res.body).toEqual({
+        recipients: 5,
+        totalRecipients: 5,
+        unsubscribedRecipients: 0,
+      });
+      expectEmailSent(
+        students.slice(0, 5).map((s) => s.email),
+        Array(5).fill(MailServiceType.CHATBOT_ANSWER_UPDATED),
+      );
+    });
+
+    it('respects explicit unsubscribes and returns recipient counts', async () => {
+      const { staff, course } = await createStaffForCourse(Role.PROFESSOR);
+
+      const vectorStoreId = 'vec-notify-unsubscribed';
+      const students = await Promise.all(
+        Array.from({ length: 5 }).map((_, i) =>
+          createAskedQuestion(
+            course,
+            vectorStoreId,
+            `chatbot-notify-unsub-${i}@example.com`,
+          ),
+        ),
+      );
+
+      const mailService = await mailServiceFactory.create({
+        serviceType: MailServiceType.CHATBOT_ANSWER_UPDATED,
+        name: 'chatbot_answer_updated',
+      });
+
+      for (const [i, student] of students.entries()) {
+        await userSubscriptionFactory.create({
+          user: student,
+          service: mailService,
+          isSubscribed: i < 3,
+        });
+      }
+
+      const res = await supertest({ userId: staff.id })
+        .post(`/chatbot/question/${course.id}/${vectorStoreId}/notify`)
+        .send(notifyBody())
+        .expect(201);
+
+      expect(res.body).toEqual({
+        recipients: 3,
+        totalRecipients: 5,
+        unsubscribedRecipients: 2,
+      });
+      expectEmailSent(
+        students.slice(0, 3).map((s) => s.email),
+        Array(3).fill(MailServiceType.CHATBOT_ANSWER_UPDATED),
+      );
+    });
+
+    it('returns 400 and does not send emails when answer did not change', async () => {
+      const { staff, course } = await createStaffForCourse(Role.PROFESSOR);
+      const vectorStoreId = 'vec-notify-unchanged';
+      await createAskedQuestion(course, vectorStoreId, 'unchanged@example.com');
+
+      await supertest({ userId: staff.id })
+        .post(`/chatbot/question/${course.id}/${vectorStoreId}/notify`)
+        .send(
+          notifyBody({ oldAnswer: 'Same answer', newAnswer: ' Same answer ' }),
+        )
+        .expect(400);
+
+      expectEmailNotSent();
+    });
+
+    it('only notifies students who asked the target question', async () => {
+      const { staff, course } = await createStaffForCourse(Role.PROFESSOR);
+      const vectorStoreId = 'vec-notify-only-asked';
+      const askedStudents = await Promise.all(
+        Array.from({ length: 2 }).map((_, i) =>
+          createAskedQuestion(course, vectorStoreId, `asked-${i}@example.com`),
+        ),
+      );
+
+      const otherStudent = await UserFactory.create({
+        email: 'not-asked@example.com',
+      });
+      await UserCourseFactory.create({
+        user: otherStudent,
+        course,
+        role: Role.STUDENT,
+      });
+
+      await supertest({ userId: staff.id })
+        .post(`/chatbot/question/${course.id}/${vectorStoreId}/notify`)
+        .send(notifyBody())
+        .expect(201);
+
+      expectEmailSent(
+        askedStudents.map((s) => s.email),
+        Array(askedStudents.length).fill(
+          MailServiceType.CHATBOT_ANSWER_UPDATED,
+        ),
+      );
+      const calledRecipients = mockEmailService.sendEmail.mock.calls.map(
+        (call) => call[0].receiverOrReceivers,
+      );
+      expect(calledRecipients).not.toContain(otherStudent.email);
+    });
+
+    it('succeeds when oldAnswer is empty string and newAnswer is non-empty', async () => {
+      const { staff, course } = await createStaffForCourse(Role.PROFESSOR);
+      const vectorStoreId = 'vec-notify-empty-old';
+      await createAskedQuestion(course, vectorStoreId, 'empty-old@example.com');
+
+      const res = await supertest({ userId: staff.id })
+        .post(`/chatbot/question/${course.id}/${vectorStoreId}/notify`)
+        .send(notifyBody({ oldAnswer: '', newAnswer: 'Updated answer' }))
+        .expect(201);
+
+      expect(res.body.recipients).toBe(1);
+    });
+
+    it('succeeds when newAnswer is empty string and oldAnswer is non-empty', async () => {
+      const { staff, course } = await createStaffForCourse(Role.PROFESSOR);
+      const vectorStoreId = 'vec-notify-empty-new';
+      await createAskedQuestion(course, vectorStoreId, 'empty-new@example.com');
+
+      const res = await supertest({ userId: staff.id })
+        .post(`/chatbot/question/${course.id}/${vectorStoreId}/notify`)
+        .send(notifyBody({ oldAnswer: 'Old answer', newAnswer: '' }))
+        .expect(201);
+
+      expect(res.body.recipients).toBe(1);
+    });
+
+    it('returns 400 if oldAnswer is missing', async () => {
+      const { staff, course } = await createStaffForCourse(Role.PROFESSOR);
+      const vectorStoreId = 'vec-notify-missing-old';
+      await createAskedQuestion(
+        course,
+        vectorStoreId,
+        'missing-old@example.com',
+      );
+
+      await supertest({ userId: staff.id })
+        .post(`/chatbot/question/${course.id}/${vectorStoreId}/notify`)
+        .send({ newAnswer: 'updated' })
+        .expect(400);
+    });
+
+    it('returns 400 if newAnswer is missing', async () => {
+      const { staff, course } = await createStaffForCourse(Role.PROFESSOR);
+      const vectorStoreId = 'vec-notify-missing-new';
+      await createAskedQuestion(
+        course,
+        vectorStoreId,
+        'missing-new@example.com',
+      );
+
+      await supertest({ userId: staff.id })
+        .post(`/chatbot/question/${course.id}/${vectorStoreId}/notify`)
+        .send({ oldAnswer: 'old' })
+        .expect(400);
+    });
+
+    it.each([
+      [{ oldAnswer: 123, newAnswer: 'new' }, 'oldAnswer number'],
+      [{ oldAnswer: 'old', newAnswer: 456 }, 'newAnswer number'],
+      [
+        { oldAnswer: 'old', newAnswer: 'new', oldQuestion: 999 },
+        'oldQuestion number',
+      ],
+      [
+        { oldAnswer: 'old', newAnswer: 'new', newQuestion: false },
+        'newQuestion boolean',
+      ],
+    ])('returns 400 for invalid DTO type: %s', async (body, _label) => {
+      const { staff, course } = await createStaffForCourse(Role.PROFESSOR);
+      const vectorStoreId = `vec-notify-invalid-${Math.random().toString(36).slice(2)}`;
+      await createAskedQuestion(
+        course,
+        vectorStoreId,
+        'invalid-type@example.com',
+      );
+
+      await supertest({ userId: staff.id })
         .post(`/chatbot/question/${course.id}/${vectorStoreId}/notify`)
         .send(body)
         .expect(400);

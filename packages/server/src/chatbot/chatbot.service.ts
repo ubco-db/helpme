@@ -21,10 +21,13 @@ import {
   CreateOrganizationChatbotSettingsBody,
   dropUndefined,
   ERROR_MESSAGES,
+  MailServiceType,
+  NotifyUpdatedChatbotAnswerParams,
   OllamaLLMType,
   OllamaModelDescription,
   OpenAILLMType,
   OrganizationChatbotSettingsDefaults,
+  Role,
   UpdateChatbotProviderBody,
   UpdateLLMTypeBody,
   UpsertCourseChatbotSettings,
@@ -39,6 +42,8 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { ChatbotApiService } from './chatbot-api.service';
 import { ChatbotDataSourceService } from './chatbot-datasource/chatbot-datasource.service';
+import { MailService } from '../mail/mail.service';
+import { UserSubscriptionModel } from '../mail/user-subscriptions.entity';
 
 // OpenAI makes it really annoying to scrape any data related
 // to the model capabilities (text, image processing) (selfish, much?)
@@ -137,6 +142,7 @@ export class ChatbotService {
     private dataSource: DataSource,
     private chatbotDataSource: ChatbotDataSourceService,
     private chatbotApiService: ChatbotApiService,
+    private readonly mailService: MailService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
@@ -314,6 +320,137 @@ export class ChatbotService {
     question.userScore = userScore;
     await question.save();
     return question;
+  }
+
+  async notifyUpdatedAnswer(
+    courseId: number,
+    vectorStoreId: string,
+    body: NotifyUpdatedChatbotAnswerParams,
+    user: UserModel,
+  ): Promise<{
+    recipients: number;
+    totalRecipients: number;
+    unsubscribedRecipients: number;
+  }> {
+    const { oldAnswer, newAnswer, oldQuestion, newQuestion } = body ?? {};
+
+    if ((oldAnswer ?? '').trim() === (newAnswer ?? '').trim()) {
+      throw new BadRequestException(
+        'Cannot send notification: answer was not changed.',
+      );
+    }
+
+    const asked = await ChatbotQuestionModel.find({
+      where: {
+        vectorStoreId,
+        interaction: {
+          course: {
+            id: courseId,
+          },
+        },
+      },
+      relations: { interaction: { user: true, course: true } },
+    });
+
+    const recipients = Array.from(
+      new Set(
+        asked
+          .filter((a) => a.interaction?.course?.id === courseId)
+          .map((a) => a.interaction?.user?.email)
+          .filter((email): email is string => !!email),
+      ),
+    );
+
+    if (recipients.length === 0) {
+      throw new BadRequestException(
+        'Cannot send notification: no recipients for this question.',
+      );
+    }
+
+    const qChanged =
+      (oldQuestion ?? '').trim() !== (newQuestion ?? oldQuestion ?? '').trim();
+
+    const questionSection = qChanged
+      ? `<tr><td style="font-weight:bold;">Question (before)</td><td colspan="2">${
+          oldQuestion ?? ''
+        }</td></tr>
+         <tr><td style="font-weight:bold;">Question (after)</td><td colspan="2">${
+           newQuestion ?? ''
+         }</td></tr>`
+      : `<tr><td style="font-weight:bold;">Question</td><td colspan="2">${
+          oldQuestion ?? newQuestion ?? ''
+        }</td></tr>`;
+
+    const courseName = asked[0]?.interaction?.course?.name ?? 'your course';
+
+    const courseRole =
+      user.courses?.find((uc) => uc.courseId === courseId)?.role ?? null;
+
+    const staffDescriptor =
+      courseRole === Role.PROFESSOR
+        ? 'the Instructor'
+        : courseRole === Role.TA
+          ? 'a TA'
+          : 'a staff member';
+
+    const html = `
+      <div>
+        <p>The answer to a chatbot question you asked in ${courseName} has been updated by ${staffDescriptor}.</p>
+        <table style="border-collapse:collapse;width:100%;">
+          ${questionSection}
+          <tr>
+            <td style="font-weight:bold;">Answer (before)</td>
+            <td>${oldAnswer}</td>
+          </tr>
+          <tr>
+            <td style="font-weight:bold;">Answer (after)</td>
+            <td>${newAnswer}</td>
+          </tr>
+        </table>
+        <br/>
+        <p>
+          Want to follow up? Create an
+          <a href="${process.env.DOMAIN}/course/${courseId}/async_centre">Anytime Question</a>
+          to discuss it more!
+        </p>
+      </div>
+    `;
+
+    // TODO: Once we get our official HelpMe email, we can remove this cap
+    //  (this was added so we don't get rate limited by gmail as easily).
+    // Note that we CANNOT just 1 email with all the recipients, since then students
+    // will be able to see each others emails (and that they asked a particular question)
+    const limitedRecipients = recipients.slice(0, 5);
+    const unsubscribed = await UserSubscriptionModel.find({
+      where: {
+        isSubscribed: false,
+        user: { email: In(limitedRecipients) },
+        service: { serviceType: MailServiceType.CHATBOT_ANSWER_UPDATED },
+      },
+      relations: { user: true },
+    });
+    const unsubscribedEmails = new Set(
+      unsubscribed.map((sub) => sub.user.email),
+    );
+    const subscribedRecipients = limitedRecipients.filter(
+      (email) => !unsubscribedEmails.has(email),
+    );
+
+    for (const email of subscribedRecipients) {
+      await this.mailService.sendEmail({
+        receiverOrReceivers: email,
+        subject: `Chatbot answer updated by staff member for ${courseName}`,
+        type: MailServiceType.CHATBOT_ANSWER_UPDATED,
+        content: html,
+        track: false,
+      });
+    }
+
+    return {
+      recipients: subscribedRecipients.length,
+      totalRecipients: limitedRecipients.length,
+      unsubscribedRecipients: unsubscribedEmails.size,
+    };
   }
 
   async isChatbotServiceLegacy(courseId: number): Promise<boolean> {

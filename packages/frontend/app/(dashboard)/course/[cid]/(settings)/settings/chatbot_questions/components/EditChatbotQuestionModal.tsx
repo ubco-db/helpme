@@ -192,8 +192,12 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
               },
             )
             if (resp?.recipients != undefined) {
-              if (resp.recipients === 5) {
-                message.success('Notification email sent to 5 users (max 5).')
+              if (resp.totalRecipients === 5) {
+                message.success(
+                  `Notification email sent to ${resp.recipients} user${
+                    resp.recipients === 1 ? '' : 's'
+                  } (max 5).`,
+                )
               } else {
                 message.success(
                   `Notification email sent to ${resp.recipients} user${
