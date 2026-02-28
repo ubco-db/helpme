@@ -2799,6 +2799,49 @@ describe('Organization Integration', () => {
     });
   });
 
+  describe('DELETE /organization/:oid/delete_course/:cid', () => {
+    it('should return 403 when user is not an org admin', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: user.id,
+        organizationId: organization.id,
+        role: OrganizationRole.PROFESSOR,
+      }).save();
+
+      const response = await supertest({ userId: user.id }).delete(
+        `/organization/${organization.id}/delete_course/${course.id}`,
+      );
+
+      expect(response.status).toBe(403);
+    });
+
+    it('should return 200 and delete course when user is an org admin', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: user.id,
+        organizationId: organization.id,
+        role: OrganizationRole.ADMIN,
+      }).save();
+
+      const response = await supertest({ userId: user.id }).delete(
+        `/organization/${organization.id}/delete_course/${course.id}`,
+      );
+
+      expect(response.status).toBe(200);
+
+      const deletedCourse = await CourseModel.findOne({
+        where: { id: course.id },
+      });
+      expect(deletedCourse).toBeNull();
+    });
+  });
+
   describe('POST /organization/:oid/upload_logo', () => {
     it('should return 401 when user is not logged in', async () => {
       const res = await supertest().post('/organization/1/upload_logo');
@@ -3452,49 +3495,6 @@ describe('Organization Integration', () => {
       expect(response.text).toBe(
         'Batch Cloning Operation Successfully Queued!',
       );
-    });
-  });
-
-  describe('DELETE /organization/:oid/delete_course/:cid', () => {
-    it('should return 403 when user is not an org admin', async () => {
-      const user = await UserFactory.create();
-      const organization = await OrganizationFactory.create();
-      const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.PROFESSOR,
-      }).save();
-
-      const response = await supertest({ userId: user.id }).delete(
-        `/organization/${organization.id}/delete_course/${course.id}`,
-      );
-
-      expect(response.status).toBe(403);
-    });
-
-    it('should return 200 and delete course when user is an org admin', async () => {
-      const user = await UserFactory.create();
-      const organization = await OrganizationFactory.create();
-      const course = await CourseFactory.create();
-
-      await OrganizationUserModel.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: OrganizationRole.ADMIN,
-      }).save();
-
-      const response = await supertest({ userId: user.id }).delete(
-        `/organization/${organization.id}/delete_course/${course.id}`,
-      );
-
-      expect(response.status).toBe(200);
-
-      const deletedCourse = await CourseModel.findOne({
-        where: { id: course.id },
-      });
-      expect(deletedCourse).toBeNull();
     });
   });
 });
