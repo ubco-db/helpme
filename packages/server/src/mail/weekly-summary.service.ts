@@ -33,6 +33,7 @@ interface QueueStats {
   uniqueStudents: number;
   avgWaitTime: number | null;
   avgHelpTime: number | null;
+  queueNames: string[];
 }
 
 interface NewStudentData {
@@ -178,6 +179,7 @@ export class WeeklySummaryService {
                 uniqueStudents: 0,
                 avgWaitTime: null,
                 avgHelpTime: null,
+                queueNames: [],
               };
             }
 
@@ -364,7 +366,7 @@ export class WeeklySummaryService {
     since: Date,
   ): Promise<QueueStats> {
     const questions = await QuestionModel.createQueryBuilder('q')
-      .innerJoin('q.queue', 'queue')
+      .innerJoinAndSelect('q.queue', 'queue')
       .innerJoin('q.creator', 'creator')
       .where('queue.courseId = :courseId', { courseId })
       .andWhere('q.createdAt >= :since', { since })
@@ -372,6 +374,13 @@ export class WeeklySummaryService {
 
     const totalQuestions = questions.length;
     const uniqueStudents = new Set(questions.map(q => q.creatorId)).size;
+    const queueNames = [...new Set(
+      questions
+        .map(q => q.queue?.room)
+        .filter(room => room != null && room !== '')
+    )];
+
+    console.log(`Course ${courseId}: Found ${queueNames.length} unique queue(s): ${queueNames.join(', ')}`);
 
     const questionsWithWait = questions.filter(q => q.waitTime > 0);
     const avgWaitTime = questionsWithWait.length > 0
@@ -388,6 +397,7 @@ export class WeeklySummaryService {
       uniqueStudents,
       avgWaitTime,
       avgHelpTime,
+      queueNames,
     };
   }
 
@@ -766,7 +776,8 @@ export class WeeklySummaryService {
         html += `
             </ul>
             <p style="color: #2e7d32; font-size: 14px; margin: 10px 0 0 0;">
-              <em>If any of these students should not be in the course, please remove them from the course under Course Roster and either disable or change the course invite link under Course Settings.</em>
+              <em>If any of these students should not be in the course, please remove them from the course under <a href="${process.env.DOMAIN}/course/${course.id}/settings/roster" style="color: #1b5e20; text-decoration: underline;">Course Roster</a> 
+              and either disable or change the course invite link under <a href="${process.env.DOMAIN}/course/${course.id}/settings" style="color: #1b5e20; text-decoration: underline;">Course Settings</a>.</em>
             </p>
           </div>
         `;
@@ -871,8 +882,12 @@ export class WeeklySummaryService {
 
         // Queue Questions Section
         if (queueStats.totalQuestions > 0) {
+          const queueTitle = queueStats.queueNames.length > 0 
+            ? queueStats.queueNames.join(', ')
+            : 'Office Hours Queue';
+          
           html += `
-            <h3 style="color: #9b59b6; margin-top: 20px;">Office Hours Queue</h3>
+            <h3 style="color: #9b59b6; margin-top: 20px;">${queueTitle}</h3>
             <ul style="line-height: 1.8; color: #34495e;">
               <li><strong>${queueStats.totalQuestions}</strong> questions from <strong>${queueStats.uniqueStudents}</strong> unique student${queueStats.uniqueStudents !== 1 ? 's' : ''}</li>
           `;
