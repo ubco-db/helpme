@@ -10,6 +10,8 @@ import { MailServiceType, Role } from '@koh/common';
 import { MoreThanOrEqual } from 'typeorm';
 import * as Sentry from '@sentry/nestjs';
 import { UserModel } from '../profile/user.entity';
+import { UserSubscriptionModel } from './user-subscriptions.entity';
+import { MailServiceModel } from './mail-services.entity';
 
 interface ChatbotStats {
   totalQuestions: number;
@@ -684,14 +686,6 @@ export class WeeklySummaryService {
   ): RecommendationData[] {
     const recommendations: RecommendationData[] = [];
 
-    // Check for unanswered async questions
-    if (asyncStats.stillNeedHelp > 0) {
-      recommendations.push({
-        type: 'warning',
-        message: `${asyncStats.stillNeedHelp} async question${asyncStats.stillNeedHelp !== 1 ? 's' : ''} still need${asyncStats.stillNeedHelp === 1 ? 's' : ''} attention from staff.`,
-      });
-    }
-
     // Check for high wait times
     if (queueStats.avgWaitTime !== null && queueStats.avgWaitTime > 30) {
       recommendations.push({
@@ -801,7 +795,6 @@ export class WeeklySummaryService {
           <div style="background-color: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
             <h3 style="color: #856404; margin-top: 0;">Consider Archiving This Course</h3>
             <p style="color: #856404; margin-bottom: 0;">
-              No activity in the past 4 weeks. You may want to archive this course if the semester has ended.
               No activity in the past 4 weeks. You may want to <a href="${process.env.DOMAIN}/course/${course.id}/settings" style="color: #856404; text-decoration: underline; font-weight: bold;">archive this course</a> if the semester has ended.
             </p>
           </div>
@@ -826,7 +819,6 @@ export class WeeklySummaryService {
             <ul style="line-height: 1.8; color: #34495e;">
               <li><strong>${chatbotStats.totalQuestions}</strong> questions asked by <strong>${chatbotStats.uniqueStudents}</strong> unique student${chatbotStats.uniqueStudents !== 1 ? 's' : ''}</li>
               <li>Average: <strong>${chatbotStats.avgQuestionsPerStudent.toFixed(1)}</strong> questions per student</li>
-              <li>Most active day: <strong>${chatbotStats.mostActiveDay}</strong></li>
             </ul>
             
             <h4 style="color: #34495e;">Daily Breakdown:</h4>
@@ -984,7 +976,7 @@ export class WeeklySummaryService {
       if (topStudents.length > 0) {
         html += `
           <h3 style="color: #f39c12; margin-top: 20px;">Most Active Students</h3>
-          <p style="color: #7f8c8d; margin-bottom: 10px;">Top students by questions asked this week:</p>
+          <p style="color: #7f8c8d; margin-bottom: 10px;">Top students by queue questions asked this week:</p>
           <ol style="line-height: 1.8; color: #34495e;">
         `;
         
@@ -1009,7 +1001,7 @@ export class WeeklySummaryService {
                 <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Staff Member</th>
                 <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Queue Questions</th>
                 <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Async Questions</th>
-                <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Avg Help Time</th>
+                <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Avg Queue Help Time</th>
               </tr>
             </thead>
             <tbody>
