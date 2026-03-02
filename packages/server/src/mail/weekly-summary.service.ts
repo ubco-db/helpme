@@ -115,6 +115,27 @@ export class WeeklySummaryService {
         const professor = courses[0].user;
 
         try {
+          // Check if professor is subscribed to weekly summaries
+          const mailService = await MailServiceModel.findOne({
+            where: { serviceType: MailServiceType.WEEKLY_COURSE_SUMMARY },
+          });
+
+          if (mailService) {
+            const subscription = await UserSubscriptionModel.findOne({
+              where: {
+                userId: professor.id,
+                serviceId: mailService.id,
+              },
+            });
+
+            if (subscription && !subscription.isSubscribed) {
+              console.log(
+                `Skipping weekly summary for ${professor.email} - user has opted out`,
+              );
+              continue;
+            }
+          }
+
           // Gather statistics for all courses
           const courseStatsArray = [];
           for (const professorCourse of courses) {
@@ -679,14 +700,6 @@ export class WeeklySummaryService {
       });
     }
 
-    // Check for low engagement
-    if (queueStats.totalQuestions > 0 && queueStats.totalQuestions < 5) {
-      recommendations.push({
-        type: 'info',
-        message: 'Queue usage is low. Consider reminding students about office hours availability.',
-      });
-    }
-
     // Check for good performance
     if (queueStats.avgWaitTime !== null && queueStats.avgWaitTime < 10 && queueStats.totalQuestions > 10) {
       recommendations.push({
@@ -789,6 +802,7 @@ export class WeeklySummaryService {
             <h3 style="color: #856404; margin-top: 0;">Consider Archiving This Course</h3>
             <p style="color: #856404; margin-bottom: 0;">
               No activity in the past 4 weeks. You may want to archive this course if the semester has ended.
+              No activity in the past 4 weeks. You may want to <a href="${process.env.DOMAIN}/course/${course.id}/settings" style="color: #856404; text-decoration: underline; font-weight: bold;">archive this course</a> if the semester has ended.
             </p>
           </div>
         `;
@@ -1057,6 +1071,7 @@ export class WeeklySummaryService {
         <p style="color: #95a5a6; font-size: 12px; text-align: center;">
           Weekly summary from HelpMe.<br>
           Manage your email preferences in settings.
+          Manage your email preferences in <a href="${process.env.DOMAIN}/profile" style="color: #7f8c8d; text-decoration: underline;">settings</a>.
         </p>
       </div>
     `;
