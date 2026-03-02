@@ -31,7 +31,9 @@ export class UserCourseModel extends BaseEntity {
   @Column({ nullable: true })
   userId: number;
 
-  @ManyToOne((type) => CourseModel, (course) => course.userCourses)
+  @ManyToOne((type) => CourseModel, (course) => course.userCourses, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'courseId' })
   course: CourseModel;
 
