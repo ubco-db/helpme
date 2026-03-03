@@ -31,9 +31,10 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
     >
       <Card
         classNames={{
-          header: 'text-white bg-[#3C426F] rounded-t-lg',
+          header:
+            'text-white bg-[#3C426F] rounded-t-lg group-hover:underline group-focus:underline group-active:underline',
         }}
-        className="asyncCentreCard my-4 rounded-t-lg"
+        className="asyncCentreCard group my-4 rounded-t-lg"
         title={'Anytime Question Hub'}
         extra={
           unreadCount > 0 && (
