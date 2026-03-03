@@ -16,6 +16,7 @@ import CoursePreference from './CoursePreference'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 import EmailNotifications from './EmailNotifications'
 import UserChatbotHistory from './UserChatbotHistory'
+import AdvancedSettings from './AdvancedSettings'
 
 interface SettingsMenuProps {
   currentSettings: SettingsOptions
@@ -59,6 +60,11 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
           label: 'Chatbot History',
           children: <UserChatbotHistory />,
         },
+        {
+          key: SettingsOptions.ADVANCED,
+          label: 'Advanced',
+          children: <AdvancedSettings />,
+        },
       ]}
     />
   ) : (
@@ -88,16 +94,9 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
           icon: <HistoryOutlined />,
         },
         {
-          key: 'Advanced',
+          key: SettingsOptions.ADVANCED,
           label: 'Advanced',
           icon: <SettingOutlined />,
-          children: [
-            {
-              key: SettingsOptions.ACCESS_TOKENS,
-              label: 'Access Tokens',
-              icon: <KeyOutlined />,
-            },
-          ],
         },
       ]}
     />

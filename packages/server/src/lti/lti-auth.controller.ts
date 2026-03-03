@@ -21,6 +21,7 @@ import {
 import { LtiService } from './lti.service';
 import { LoginService } from '../login/login.service';
 import { UserId } from '../decorators/user.decorator';
+import { UserModel } from 'profile/user.entity';
 
 // LTI Tool can only access the following API routes
 export const restrictPaths = [
@@ -144,17 +145,12 @@ export class LtiAuthController {
     @Body() body: PasswordRequestResetBody,
     @Res() res: Response,
   ): Promise<Response<void>> {
-    res = await this.authService.validateResetPasswordParams(res, body);
+    let user: UserModel = undefined;
+    [res, user] = await this.authService.validateResetPasswordParams(res, body);
     if (res.headersSent) {
       return;
     }
-    const { email, organizationId } = body;
-    return await this.authService.issuePasswordReset(
-      res,
-      email,
-      organizationId,
-      '/lti',
-    );
+    return await this.authService.issuePasswordReset(res, user, '/lti');
   }
 
   @Post('register')
