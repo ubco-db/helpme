@@ -222,6 +222,7 @@ const RosterItem: React.FC<{
           title={
             <span className="mr-0 md:mr-2">
               {item.name}
+              {item.namePronunciation ? ` (${item.namePronunciation})` : ''}
               {item.organizationRole == OrganizationRole.ADMIN && (
                 <Tooltip title={'This user is an organization administrator.'}>
                   <CrownFilled

@@ -196,6 +196,9 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                   <i>{`[${question.location ?? 'Unselected'}] `}</i>
                 )}
                 {question.creator.name}
+                {question.creator.namePronunciation
+                  ? ` (${question.creator.namePronunciation})`
+                  : ''}
               </div>
             )}
 

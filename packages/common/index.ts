@@ -83,6 +83,7 @@ export class User {
   photoURL!: string
   defaultMessage?: string
   sid?: number
+  namePronunciation?: string
   includeDefaultMessage!: boolean
   courses!: UserCourse[]
   desktopNotifsEnabled!: boolean
@@ -200,6 +201,10 @@ export class UserPartial {
   @IsInt()
   @IsOptional()
   sid?: number
+
+  @IsString()
+  @IsOptional()
+  namePronunciation?: string
 
   @IsOptional()
   @IsString()
@@ -1729,6 +1734,10 @@ export class UpdateProfileParams {
 
   @IsString()
   @IsOptional()
+  namePronunciation?: string
+
+  @IsString()
+  @IsOptional()
   defaultMessage?: string
 
   @IsBoolean()
@@ -2591,6 +2600,10 @@ export class AccountRegistrationParams {
   @IsNumber()
   @IsOptional()
   sid?: number
+
+  @IsString()
+  @IsOptional()
+  namePronunciation?: string
 
   @IsString()
   recaptchaToken!: string
