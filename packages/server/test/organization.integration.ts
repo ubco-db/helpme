@@ -3349,7 +3349,7 @@ describe('Organization Integration', () => {
 
     const { supertest, getTestModule } = setupIntegrationTest(
       CourseModule,
-      modifyModule,
+      [modifyModule],
       [MailModule],
     );
 

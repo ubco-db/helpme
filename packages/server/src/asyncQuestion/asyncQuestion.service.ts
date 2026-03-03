@@ -1,4 +1,9 @@
-import { MailServiceType, parseThinkBlock, Role } from '@koh/common';
+import {
+  AddDocumentChunkParams,
+  MailServiceType,
+  parseThinkBlock,
+  Role,
+} from '@koh/common';
 import { Injectable } from '@nestjs/common';
 import { MailService } from 'mail/mail.service';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
@@ -10,10 +15,14 @@ import * as Sentry from '@sentry/nestjs';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 import { CourseSettingsModel } from '../course/course_settings.entity';
 import { SentEmailModel } from '../mail/sent-email.entity';
+import { ChatbotApiService } from '../chatbot/chatbot-api.service';
 
 @Injectable()
 export class AsyncQuestionService {
-  constructor(private mailService: MailService) {}
+  constructor(
+    private readonly mailService: MailService,
+    private readonly chatbotApiService: ChatbotApiService,
+  ) {}
 
   async sendNewCommentOnMyQuestionEmail(
     commenter: UserModel,
@@ -385,6 +394,50 @@ export class AsyncQuestionService {
         { userId: question.creatorId }, // notify ONLY question creator
       )
       .execute();
+  }
+
+  /*
+   */
+  async upsertQAToChatbotChunk(
+    question: AsyncQuestionModel,
+    courseId: number,
+    userToken: string,
+  ) {
+    // Since the name can take up quite a bit of space, no more than 40 characters (show ... if longer)
+    const chunkName = `Previously Asked Anytime Question: ${(question.questionAbstract ?? question.questionText).slice(0, 40)}${(question.questionAbstract ?? question.questionText).length > 40 ? '...' : ''}`;
+    const chunkParams: AddDocumentChunkParams = {
+      documentText: `${this.formatQuestionTextForChatbot(question)}\n\nAnswer: ${question.answerText}`,
+      metadata: {
+        name: chunkName,
+        type: 'inserted_question',
+        asyncQuestionId: question.id,
+        source: `/course/${courseId}/async_centre`,
+        courseId: courseId,
+      },
+    };
+    // Note that because the chunk splitter will split big chunks into multiple,
+    // we must first delete any existing chunks with the async question ID and then re-add them.
+    await this.chatbotApiService.deleteDocumentChunksByAsyncQuestionId(
+      question.id,
+      courseId,
+      userToken,
+    );
+    await this.chatbotApiService.addDocumentChunk(
+      chunkParams,
+      courseId,
+      userToken,
+    );
+  }
+
+  /* Just for formatting the details of the question for sending to the chatbot (for getting image summaries) or for a chunk. 
+  Does stuff like if there's only an abstract, the abstract will just be called "Question" instead of having "Question Abstract" and "Question Text"
+  */
+  formatQuestionTextForChatbot(question: AsyncQuestionModel) {
+    return `${question.questionText ? `Question Abstract: ${question.questionAbstract}` : `Question: ${question.questionAbstract}`}
+  ${question.questionText ? `Question Text: ${question.questionText}` : ''}
+  ${question.questionTypes && question.questionTypes.length > 0 ? `Question Types: ${question.questionTypes.map((questionType) => questionType.name).join(', ')}` : ''}
+  `;
+    // TODO: once images are added, add this: ${`Question Image Descriptions: ${question.images.map((image, idx) => `Image ${idx + 1}: ${image.aiSummary}`).join('\n')}`}
   }
 
   /**
