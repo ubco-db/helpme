@@ -979,7 +979,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                           },
                           {
                             key: '2',
-                            label: 'Load Example Lab Config',
+                            label: 'Load Example Task Lab Config',
                             onClick: () => {
                               const exampleLabConfigString = JSON.stringify(
                                 exampleLabConfig,

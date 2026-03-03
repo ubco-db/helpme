@@ -203,7 +203,7 @@ const CreateQueueModal: React.FC<CreateQueueModalProps> = ({
               onClick={() => confirmLoadConfig('lab')}
               onMouseEnter={() => setHoveredConfig('lab')}
             >
-              Load Example Lab Config
+              Load Example Task Lab Config
             </Button>
           </span>
         }
