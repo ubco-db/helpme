@@ -38,7 +38,7 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
         title={'Anytime Question Hub'}
         extra={
           unreadCount > 0 && (
-            <Tooltip title="The number of questions that have been updated since you last visted the Anytime Question Hub">
+            <Tooltip title="The number of questions that have been updated since you last visited the Anytime Question Hub">
               <div className="mr-8 h-fit text-sm font-normal text-gray-200">
                 <span className="text-lg font-medium">{unreadCount}</span>
                 {` updated`}
