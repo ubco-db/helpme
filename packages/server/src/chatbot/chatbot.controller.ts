@@ -51,6 +51,7 @@ import {
   OrganizationChatbotSettings,
   OrganizationChatbotSettingsDefaults,
   OrganizationRole,
+  NotifyUpdatedChatbotAnswerParams,
   Role,
   UpdateChatbotProviderBody,
   UpdateChatbotQuestionParams,
@@ -378,6 +379,29 @@ export class ChatbotController {
   // }
 
   // resets all chatbot data for the course. Unused
+
+  // staff-only: send notification email to all students who asked this question
+  // Body must include oldAnswer and newAnswer, and can optionally include question changes for context
+  @Post('question/:courseId/:vectorStoreId/notify')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.PROFESSOR, Role.TA)
+  async notifyUpdatedAnswer(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('vectorStoreId') vectorStoreId: string,
+    @Body() body: NotifyUpdatedChatbotAnswerParams,
+    @User({ courses: true }) user: UserModel,
+  ): Promise<{
+    recipients: number;
+    totalRecipients: number;
+    unsubscribedRecipients: number;
+  }> {
+    return await this.chatbotService.notifyUpdatedAnswer(
+      courseId,
+      vectorStoreId,
+      body,
+      user,
+    );
+  }
   // @Get('resetCourse/:courseId')
   // @UseGuards(CourseRolesGuard)
   // @Roles(Role.PROFESSOR, Role.TA)
