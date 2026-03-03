@@ -3,7 +3,10 @@
 import React, {
   HTMLAttributeAnchorTarget,
   useCallback,
+  useEffect,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -68,6 +71,7 @@ const Link = ({
   isSubMenuLink,
   onClick,
   target,
+  isCompactDesktop = false,
 }: {
   ref?: React.Ref<HTMLAnchorElement>
   href: string
@@ -76,6 +80,7 @@ const Link = ({
   isSubMenuLink?: boolean
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void
   target?: HTMLAttributeAnchorTarget
+  isCompactDesktop?: boolean
 }) => {
   const pathname = usePathname()
   const isActive = href === pathname
@@ -89,7 +94,7 @@ const Link = ({
         className={
           (isSubMenuLink
             ? navigationMenuTriggerStyleForSubMenu()
-            : navigationMenuTriggerStyle()) +
+            : cn(navigationMenuTriggerStyle(), isCompactDesktop && '!px-2')) +
           ' ' +
           className
         }
@@ -150,6 +155,10 @@ const NavBar = ({
   isProfilePage = false,
   orientation = 'horizontal',
   isLti = false,
+  isCompactDesktop = false,
+  forceDrawerPresentation = false,
+  className = '',
+  showViewport = true,
 }: {
   userInfo: User
   courseId?: number
@@ -162,13 +171,23 @@ const NavBar = ({
   isProfilePage?: boolean
   orientation?: 'horizontal' | 'vertical'
   isLti?: boolean
+  isCompactDesktop?: boolean
+  forceDrawerPresentation?: boolean
+  className?: string
+  showViewport?: boolean
 }) => {
   const organizationSettings = useOrganizationSettings(
     userInfo?.organization?.orgId ?? -1,
   )
   const router = useRouter()
+  const showDesktopPresentation =
+    orientation === 'horizontal' && !forceDrawerPresentation
+  const showDrawerPresentation =
+    orientation === 'vertical' || forceDrawerPresentation
   const courseFeatures = useCourseFeatures(courseId)
   const role = courseId ? getRoleInCourse(userInfo, courseId) : null
+  const compactTopLevelClass = isCompactDesktop ? '!pl-1.5 !pr-2' : ''
+
   const sortedQueues = useMemo(() => {
     if (!course?.queues) return []
     return sortQueues(course.queues)
@@ -207,40 +226,46 @@ const NavBar = ({
     const coursePrefix = isLti ? '/lti' : '/course'
     const logoutUrl = '/api/v1/logout' + (isLti ? '?lti=true' : '')
     return (
-      <NavigationMenu orientation={orientation}>
+      <NavigationMenu
+        orientation={orientation}
+        className={className}
+        showViewport={showViewport}
+      >
         <NavigationMenuList>
-          <NextLink
-            href={
-              course
-                ? `${coursePrefix}/${courseId}`
-                : isLti
-                  ? '/lti'
-                  : '/courses'
-            }
-            aria-hidden="true"
-            className="hidden md:block"
-            tabIndex={-1}
-            onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
-          >
-            {/* This organization logo is only visible on desktop */}
-            <Image
-              width={48}
-              height={48}
-              className={cn(
-                'h-12 w-full object-contain p-1',
-                isLti ? 'pl-4' : 'pr-4',
-              )}
-              alt="Organization Logo"
-              src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
-            />
-          </NextLink>
+          {showDesktopPresentation && (
+            <NextLink
+              href={
+                course
+                  ? `${coursePrefix}/${courseId}`
+                  : isLti
+                    ? '/lti'
+                    : '/courses'
+              }
+              aria-hidden="true"
+              tabIndex={-1}
+              onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+            >
+              {/* This organization logo is only visible on desktop */}
+              <Image
+                width={48}
+                height={48}
+                className={cn(
+                  'h-12 w-full object-contain p-1',
+                  isLti ? 'pl-4' : 'pr-4',
+                )}
+                alt="Organization Logo"
+                src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
+              />
+            </NextLink>
+          )}
           {course ? (
             <>
               <NavigationMenuItem>
                 <Link
-                  className="!font-bold "
+                  className={cn('!font-bold', compactTopLevelClass)}
                   href={`${coursePrefix}/${courseId}`}
                   onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                  isCompactDesktop={isCompactDesktop}
                 >
                   {/* <House strokeWidth={1.5} className='mr-3' /> */}
                   <HomeOutlined className="mr-3 text-2xl" />
@@ -252,6 +277,8 @@ const NavBar = ({
                   <Link
                     href={`/lti/${course.id}/integration`}
                     onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                    className={compactTopLevelClass}
+                    isCompactDesktop={isCompactDesktop}
                   >
                     <SyncOutlined className="mr-3 text-2xl" />
                     Integration
@@ -264,11 +291,12 @@ const NavBar = ({
                     <NavigationMenuItem>
                       {/* This "NavigationMenuTrigger" is just the "Queues" button */}
                       <NavigationMenuTrigger
-                        className={
+                        className={cn(
+                          compactTopLevelClass,
                           isAQueuePage
                             ? 'md:border-helpmeblue bg-zinc-300/80 md:border-b-2 md:bg-white'
-                            : ''
-                        }
+                            : '',
+                        )}
                         onFocus={setNavigationSubMenuLeftSide}
                         onClick={setNavigationSubMenuLeftSide}
                         onPointerMove={(e) => e.preventDefault()}
@@ -340,6 +368,8 @@ const NavBar = ({
                         onClick={() =>
                           setIsDrawerOpen && setIsDrawerOpen(false)
                         }
+                        className={compactTopLevelClass}
+                        isCompactDesktop={isCompactDesktop}
                       >
                         <MessageCircleQuestion
                           strokeWidth={1.5}
@@ -356,6 +386,8 @@ const NavBar = ({
                         onClick={() =>
                           setIsDrawerOpen && setIsDrawerOpen(false)
                         }
+                        className={compactTopLevelClass}
+                        isCompactDesktop={isCompactDesktop}
                       >
                         <CalendarDays strokeWidth={1.5} className="mr-3" />
                         Schedule
@@ -372,10 +404,12 @@ const NavBar = ({
                       }
                     >
                       <Link
+                        className={compactTopLevelClass}
                         href={`/course/${courseId}/settings${role === Role.TA ? '/edit_questions' : ''}`}
                         onClick={() =>
                           setIsDrawerOpen && setIsDrawerOpen(false)
                         }
+                        isCompactDesktop={isCompactDesktop}
                       >
                         <Settings strokeWidth={1.5} className="mr-3" />
                         Course Settings
@@ -389,6 +423,8 @@ const NavBar = ({
                         onClick={() =>
                           setIsDrawerOpen && setIsDrawerOpen(false)
                         }
+                        className={compactTopLevelClass}
+                        isCompactDesktop={isCompactDesktop}
                       >
                         <LineChart strokeWidth={1.5} className="mr-3" />
                         Insights
@@ -401,6 +437,8 @@ const NavBar = ({
                 <Link
                   href={isLti ? '/lti' : '/courses'}
                   onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                  className={compactTopLevelClass}
+                  isCompactDesktop={isCompactDesktop}
                 >
                   <Undo2 strokeWidth={1.5} className="mr-3" />
                   My Courses
@@ -418,6 +456,7 @@ const NavBar = ({
                       router.back()
                       if (setIsDrawerOpen) setIsDrawerOpen(false)
                     }}
+                    isCompactDesktop={isCompactDesktop}
                   >
                     <Undo2 strokeWidth={1.5} className="mr-3" />
                     Back
@@ -429,6 +468,7 @@ const NavBar = ({
                   href={isLti ? '/lti' : '/courses'}
                   className="md:pl-8"
                   onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                  isCompactDesktop={isCompactDesktop}
                 >
                   My Courses
                 </Link>
@@ -448,6 +488,7 @@ const NavBar = ({
                       )}
                       href="/organization/settings"
                       onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                      isCompactDesktop={isCompactDesktop}
                     >
                       {userInfo?.organization?.organizationRole ===
                       OrganizationRole.PROFESSOR
@@ -467,6 +508,7 @@ const NavBar = ({
                         : '',
                     )}
                     onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                    isCompactDesktop={isCompactDesktop}
                   >
                     Admin Panel
                   </Link>
@@ -475,30 +517,31 @@ const NavBar = ({
             </>
           ) : null}
           {/* DESKTOP ONLY PART OF NAVBAR */}
-          <NavigationMenuItem className="!ml-auto hidden md:block">
-            <NavigationMenuTrigger
-              className={cn(
-                '!pl-4',
-                isProfilePage ? 'md:border-helpmeblue md:border-b-2' : '',
-              )}
-              onFocus={setNavigationSubMenuRightSide}
-              onClick={setNavigationSubMenuRightSide}
-              onPointerMove={(e) => e.preventDefault()}
-              onPointerLeave={(e) => e.preventDefault()}
-            >
-              <SelfAvatar size={40} className="mr-2" />
-              {userInfo?.firstName}
-            </NavigationMenuTrigger>
-            <NavigationMenuContent className="hidden md:flex">
-              <ul className="grid w-max min-w-[200px] grid-cols-1 gap-1 p-2">
-                {!isLti && (
-                  <ListItem key="profile" title="Profile" href="/profile">
-                    {userInfo?.email}
-                  </ListItem>
+          {showDesktopPresentation && (
+            <NavigationMenuItem className="!ml-auto">
+              <NavigationMenuTrigger
+                className={cn(
+                  isCompactDesktop ? '!pl-2 !pr-2' : '!pl-4',
+                  compactTopLevelClass,
+                  isProfilePage ? 'md:border-helpmeblue md:border-b-2' : '',
                 )}
-                {isLti && (
-                  <>
-                    <NavigationMenuItem className="hidden w-full md:block">
+                onFocus={setNavigationSubMenuRightSide}
+                onClick={setNavigationSubMenuRightSide}
+                onPointerMove={(e) => e.preventDefault()}
+                onPointerLeave={(e) => e.preventDefault()}
+              >
+                <SelfAvatar size={40} className="mr-2" />
+                {userInfo?.firstName}
+              </NavigationMenuTrigger>
+              <NavigationMenuContent className="flex">
+                <ul className="grid w-max min-w-[200px] grid-cols-1 gap-1 p-2">
+                  {!isLti && (
+                    <ListItem key="profile" title="Profile" href="/profile">
+                      {userInfo?.email}
+                    </ListItem>
+                  )}
+                  {isLti && (
+                    <NavigationMenuItem className="w-full">
                       <div className="!ml-2 flex flex-col px-2 text-xs text-gray-500">
                         <span className={'flex items-center'}>
                           <MailOutlined className={'mr-2'} />
@@ -506,86 +549,91 @@ const NavBar = ({
                         </span>
                       </div>
                     </NavigationMenuItem>
-                    <div className="-mr-5 block h-0.5 w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
-                  </>
-                )}
-                <ListItem
-                  key="logout"
-                  title="Logout"
-                  titleElement={<span className="text-red-700">Log Out</span>}
-                  href={logoutUrl}
-                ></ListItem>
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          {/* MOBILE ONLY PART OF NAVBAR */}
-          <div className="!mb-2 !mt-auto -mr-5 block w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
-          {!isLti && (
-            <NavigationMenuItem className="md:hidden">
-              <Link
-                href="/profile"
-                className="!pl-0"
-                onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
-              >
-                <SelfAvatar size={40} className="mr-2" />
-                {userInfo?.firstName}
-              </Link>
+                  )}
+                  <ListItem
+                    key="logout"
+                    title="Logout"
+                    titleElement={<span className="text-red-700">Log Out</span>}
+                    href={logoutUrl}
+                  ></ListItem>
+                </ul>
+              </NavigationMenuContent>
             </NavigationMenuItem>
           )}
-          {isLti && (
+          {/* MOBILE ONLY PART OF NAVBAR */}
+          {showDrawerPresentation && (
             <>
-              <NavigationMenuItem className="w-full md:hidden">
-                <div className="!ml-2 flex flex-col gap-2 px-2 text-xs text-gray-500">
-                  <div className="flex items-center">
-                    <SelfAvatar size={20} className="mr-2" />
-                    <span>
-                      {userInfo?.firstName}
-                      {userInfo?.lastName ? ` ${userInfo.lastName}` : ''}
-                    </span>
-                  </div>
-                  <span className={'flex items-center'}>
-                    <MailOutlined
-                      style={{
-                        fontSize: '10px',
-                        paddingLeft: '5px',
-                        paddingRight: '5px',
-                      }}
-                      className={'mr-2'}
+              <div className="!mb-2 !mt-auto -mr-5 block w-[calc(100%+1.25rem)] border-b border-b-zinc-200" />
+              {!isLti && (
+                <NavigationMenuItem>
+                  <Link
+                    href="/profile"
+                    className="!pl-0"
+                    onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                  >
+                    <SelfAvatar size={40} className="mr-2" />
+                    {userInfo?.firstName}
+                  </Link>
+                </NavigationMenuItem>
+              )}
+              {isLti && (
+                <>
+                  <NavigationMenuItem className="w-full">
+                    <div className="!ml-2 flex flex-col gap-2 px-2 text-xs text-gray-500">
+                      <div className="flex items-center">
+                        <SelfAvatar size={20} className="mr-2" />
+                        <span>
+                          {userInfo?.firstName}
+                          {userInfo?.lastName ? ` ${userInfo.lastName}` : ''}
+                        </span>
+                      </div>
+                      <span className={'flex items-center'}>
+                        <MailOutlined
+                          style={{
+                            fontSize: '10px',
+                            paddingLeft: '5px',
+                            paddingRight: '5px',
+                          }}
+                          className={'mr-2'}
+                        />
+                        {userInfo?.email}
+                      </span>
+                    </div>
+                  </NavigationMenuItem>
+                  <div className="-mr-5 block h-0.5 w-[calc(100%+1.25rem)] border-b border-b-zinc-200" />
+                </>
+              )}
+              <NavigationMenuItem className="mb-2">
+                <Popconfirm
+                  title="Are you sure you want to log out?"
+                  onConfirm={() => {
+                    router.push(logoutUrl)
+                    if (setIsDrawerOpen) setIsDrawerOpen(false)
+                  }}
+                  okText="Yes"
+                  cancelText="No"
+                  // this places the Popconfirm just below the Link in the DOM rather than at the very bottom of the DOM (important for accessibility and prevent buttons being clicked underneath the Popconfirm)
+                  getPopupContainer={(trigger) =>
+                    trigger.parentNode as HTMLElement
+                  }
+                >
+                  <Link
+                    href={logoutUrl}
+                    className="text-red-700"
+                    onClick={(e) => {
+                      e.preventDefault()
+                    }}
+                  >
+                    <LogoutOutlined
+                      size={40}
+                      className="mr-2 rotate-180 text-2xl"
                     />
-                    {userInfo?.email}
-                  </span>
-                </div>
+                    Log Out
+                  </Link>
+                </Popconfirm>
               </NavigationMenuItem>
-              <div className="-mr-5 block h-0.5 w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
             </>
           )}
-          <NavigationMenuItem className="mb-2 md:hidden">
-            <Popconfirm
-              title="Are you sure you want to log out?"
-              onConfirm={() => {
-                router.push(logoutUrl)
-                if (setIsDrawerOpen) setIsDrawerOpen(false)
-              }}
-              okText="Yes"
-              cancelText="No"
-              // this places the Popconfirm just below the Link in the DOM rather than at the very bottom of the DOM (important for accessibility and prevent buttons being clicked underneath the Popconfirm)
-              getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
-            >
-              <Link
-                href={logoutUrl}
-                className="text-red-700"
-                onClick={(e) => {
-                  e.preventDefault()
-                }}
-              >
-                <LogoutOutlined
-                  size={40}
-                  className="mr-2 rotate-180 text-2xl"
-                />
-                Log Out
-              </Link>
-            </Popconfirm>
-          </NavigationMenuItem>
         </NavigationMenuList>
       </NavigationMenu>
     )
@@ -595,10 +643,18 @@ const NavBar = ({
 /**
  * Navbar component that is rendered on each page.
  */
+
+type NavMode = 'desktop' | 'compact' | 'drawer'
+
 const HeaderBar: React.FC = () => {
   const { userInfo } = useUserInfo()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const isDesktop = useMediaQuery('(min-width: 768px)')
+  const [navMode, setNavMode] = useState<NavMode>('drawer')
+  const isPhone = useMediaQuery('(max-width: 640px)')
+  const availableWidthRef = useRef<HTMLDivElement>(null)
+  const regularMeasureRef = useRef<HTMLDivElement>(null)
+  const compactMeasureRef = useRef<HTMLDivElement>(null)
+
   // This is not the usual way to get the courseId from the URL
   // (normally you're supposed to use `params` for the page.tsx and then pass it down as a prop).
   // However, doing it this way makes it much easier to add the navbar to layout.tsx.
@@ -633,104 +689,192 @@ const HeaderBar: React.FC = () => {
     ? course?.queues?.find((queue) => queue.id === queueId)?.room
     : ''
 
-  // DESKTOP HEADER
-  return isDesktop ? (
-    <NavBar
-      userInfo={userInfo}
-      courseId={courseId}
-      course={course}
-      isAQueuePage={isAQueuePage}
-      isACourseSettingsPage={isACourseSettingsPage}
-      isAnOrganizationSettingsPage={isAnOrganizationSettingsPage}
-      isAnAdminPanelPage={isAnAdminPanelPage}
-      isProfilePage={isProfilePage}
-      isLti={isLti}
-    />
-  ) : (
-    // MOBILE HEADER AND NAV DRAWER
-    <div className="flex items-center justify-between">
-      <Image
-        width={48}
-        height={48}
-        className="h-12 object-contain p-1"
-        alt="Organization Logo"
-        src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
-      />
-      <div className="flex h-14 grow flex-col items-center justify-center">
-        <h1
-          className={cn(
-            'leading-none',
-            !course?.name
-              ? ''
-              : course.name.length > 35
-                ? 'text-xs'
-                : course.name.length > 30
-                  ? 'text-sm'
-                  : course.name.length > 25
-                    ? 'text-base'
-                    : course.name.length > 20
-                      ? 'text-lg'
-                      : course.name.length > 15
-                        ? 'text-xl'
-                        : '',
-          )}
-        >
-          {isProfilePage ? 'Profile' : course?.name}
-        </h1>
-        {queueRoom && (
-          <h2
-            className={cn(
-              'leading-none text-slate-500',
-              queueRoom.length > 35
-                ? 'text-xs'
-                : queueRoom.length > 30
-                  ? 'text-sm'
-                  : 'text-base',
-            )}
-          >
-            {queueRoom}
-          </h2>
-        )}
+  const updateNavMode = useCallback(() => {
+    if (isPhone) {
+      setNavMode('drawer')
+      return
+    }
+
+    const availableWidth =
+      availableWidthRef.current?.getBoundingClientRect().width ?? 0
+    const regularWidth =
+      regularMeasureRef.current?.getBoundingClientRect().width ?? 0
+    const compactWidth =
+      compactMeasureRef.current?.getBoundingClientRect().width ?? 0
+    const buffer = 24
+
+    if (regularWidth > 0 && regularWidth <= availableWidth - buffer) {
+      setNavMode('desktop')
+      return
+    }
+
+    if (compactWidth > 0 && compactWidth <= availableWidth - buffer) {
+      setNavMode('compact')
+      return
+    }
+
+    setNavMode('drawer')
+  }, [isPhone])
+
+  useLayoutEffect(() => {
+    updateNavMode()
+  }, [updateNavMode, pathname, course, userInfo])
+
+  useEffect(() => {
+    const nodes = [
+      availableWidthRef.current,
+      regularMeasureRef.current,
+      compactMeasureRef.current,
+    ].filter(Boolean) as HTMLElement[]
+
+    if (nodes.length === 0) return
+
+    const observer = new ResizeObserver(() => {
+      updateNavMode()
+    })
+
+    nodes.forEach((node) => observer.observe(node))
+    updateNavMode()
+
+    return () => observer.disconnect()
+  }, [updateNavMode, pathname, course, userInfo])
+
+  return (
+    <div ref={availableWidthRef} className="relative w-full">
+      <div className="pointer-events-none invisible absolute left-0 top-0 -z-10 h-0 overflow-hidden">
+        <div ref={regularMeasureRef} className="w-max">
+          <NavBar
+            userInfo={userInfo}
+            courseId={courseId}
+            course={course}
+            isAQueuePage={isAQueuePage}
+            isACourseSettingsPage={isACourseSettingsPage}
+            isAnOrganizationSettingsPage={isAnOrganizationSettingsPage}
+            isAnAdminPanelPage={isAnAdminPanelPage}
+            isProfilePage={isProfilePage}
+            isLti={isLti}
+            className="w-max"
+            showViewport={false}
+          />
+        </div>
+        <div ref={compactMeasureRef} className="w-max">
+          <NavBar
+            userInfo={userInfo}
+            courseId={courseId}
+            course={course}
+            isAQueuePage={isAQueuePage}
+            isACourseSettingsPage={isACourseSettingsPage}
+            isAnOrganizationSettingsPage={isAnOrganizationSettingsPage}
+            isAnAdminPanelPage={isAnAdminPanelPage}
+            isProfilePage={isProfilePage}
+            isLti={isLti}
+            isCompactDesktop={true}
+            className="w-max"
+            showViewport={false}
+          />
+        </div>
       </div>
-      <Drawer
-        direction="left"
-        open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen}
-      >
-        <DrawerTrigger>
-          <MenuIcon size={40} className="ml-2" />
-        </DrawerTrigger>
-        <DrawerContent aria-description="Drawer for main navigation menu">
-          {/* INSIDE DRAWER */}
-          <div className="flex h-screen flex-col items-start justify-start">
-            <DrawerTitle className="my-1 flex w-full items-center justify-center border-b border-b-zinc-200 bg-white py-1 pr-5">
-              <Image
-                width={48}
-                height={48}
-                className="h-12 object-contain"
-                alt="Organization Logo"
-                src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
-              />
-              <span className="text-2xl font-semibold leading-none">
-                {userInfo?.organization?.organizationName}
-              </span>
-            </DrawerTitle>
-            <NavBar
-              userInfo={userInfo}
-              courseId={courseId}
-              course={course}
-              isAQueuePage={isAQueuePage}
-              isACourseSettingsPage={isACourseSettingsPage}
-              isAnOrganizationSettingsPage={isAnOrganizationSettingsPage}
-              isAnAdminPanelPage={isAnAdminPanelPage}
-              orientation="vertical"
-              isProfilePage={isProfilePage}
-              setIsDrawerOpen={setIsDrawerOpen}
-              isLti={isLti}
-            />
+
+      {navMode === 'drawer' ? (
+        <div className="flex items-center justify-between">
+          <Image
+            width={48}
+            height={48}
+            className="h-12 object-contain p-1"
+            alt="Organization Logo"
+            src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
+          />
+          <div className="flex h-14 grow flex-col items-center justify-center">
+            <h1
+              className={cn(
+                'leading-none',
+                !course?.name
+                  ? ''
+                  : course.name.length > 35
+                    ? 'text-xs'
+                    : course.name.length > 30
+                      ? 'text-sm'
+                      : course.name.length > 25
+                        ? 'text-base'
+                        : course.name.length > 20
+                          ? 'text-lg'
+                          : course.name.length > 15
+                            ? 'text-xl'
+                            : '',
+              )}
+            >
+              {isProfilePage ? 'Profile' : course?.name}
+            </h1>
+            {queueRoom && (
+              <h2
+                className={cn(
+                  'leading-none text-slate-500',
+                  queueRoom.length > 35
+                    ? 'text-xs'
+                    : queueRoom.length > 30
+                      ? 'text-sm'
+                      : 'text-base',
+                )}
+              >
+                {queueRoom}
+              </h2>
+            )}
           </div>
-        </DrawerContent>
-      </Drawer>
+          <Drawer
+            direction="left"
+            open={isDrawerOpen}
+            onOpenChange={setIsDrawerOpen}
+          >
+            <DrawerTrigger>
+              <MenuIcon size={40} className="ml-2" />
+            </DrawerTrigger>
+            <DrawerContent aria-description="Drawer for main navigation menu">
+              {/* INSIDE DRAWER */}
+              <div className="flex h-screen flex-col items-start justify-start">
+                <DrawerTitle className="my-1 flex w-full items-center justify-center border-b border-b-zinc-200 bg-white py-1 pr-5">
+                  <Image
+                    width={48}
+                    height={48}
+                    className="h-12 object-contain"
+                    alt="Organization Logo"
+                    src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
+                  />
+                  <span className="text-2xl font-semibold leading-none">
+                    {userInfo?.organization?.organizationName}
+                  </span>
+                </DrawerTitle>
+                <NavBar
+                  userInfo={userInfo}
+                  courseId={courseId}
+                  course={course}
+                  isAQueuePage={isAQueuePage}
+                  isACourseSettingsPage={isACourseSettingsPage}
+                  isAnOrganizationSettingsPage={isAnOrganizationSettingsPage}
+                  isAnAdminPanelPage={isAnAdminPanelPage}
+                  orientation="vertical"
+                  isProfilePage={isProfilePage}
+                  setIsDrawerOpen={setIsDrawerOpen}
+                  isLti={isLti}
+                  forceDrawerPresentation={true}
+                />
+              </div>
+            </DrawerContent>
+          </Drawer>
+        </div>
+      ) : (
+        <NavBar
+          userInfo={userInfo}
+          courseId={courseId}
+          course={course}
+          isAQueuePage={isAQueuePage}
+          isACourseSettingsPage={isACourseSettingsPage}
+          isAnOrganizationSettingsPage={isAnOrganizationSettingsPage}
+          isAnAdminPanelPage={isAnAdminPanelPage}
+          isProfilePage={isProfilePage}
+          isLti={isLti}
+          isCompactDesktop={navMode === 'compact'}
+        />
+      )}
     </div>
   )
 }
