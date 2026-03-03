@@ -228,6 +228,7 @@ export class WeeklySummaryService {
               });
             } else {
               const recommendations = this.generateRecommendations(
+              const recommendations = await this.generateRecommendations(
                 queueStats,
                 asyncStats,
                 peakHours,
@@ -679,12 +680,39 @@ export class WeeklySummaryService {
   }
 
   private generateRecommendations(
+  private async generateRecommendations(
+    course: CourseModel,
     queueStats: QueueStats,
     asyncStats: AsyncQuestionStats,
     peakHours: PeakHoursData,
     mostActiveDays: MostActiveDaysData,
   ): RecommendationData[] {
+  ): Promise<RecommendationData[]> {
     const recommendations: RecommendationData[] = [];
+
+    if (course.courseSettings?.chatBotEnabled !== false && course.courseSettings?.asyncQueueEnabled === false) {
+      recommendations.push({
+        type: 'info',
+        message: `This course's Chatbot feature is enabled but the Anytime Question feature is disabled. It is strongly recommended to <a href="${process.env.DOMAIN}/course/${course.id}/settings" style="color: #17a2b8; text-decoration: underline; font-weight: bold;">enable the Anytime Questions feature</a> to allow students to get human feedback/discussion from their conversations with the Chatbot.`,
+      });
+    }
+
+    // Check if course has queues but no calendar events with staff assigned
+    if (course.courseSettings?.queueEnabled !== false && queueStats.totalQuestions > 0) {
+      // Find calendar events for this course that have at least one staff member assigned
+      const calendarEventsWithStaff = await CalendarModel.createQueryBuilder('calendar')
+        .innerJoin('calendar.staff', 'staff')
+        .where('calendar.course = :courseId', { courseId: course.id })
+        .getCount();
+
+      if (calendarEventsWithStaff === 0) {
+        recommendations.push({
+          type: 'warning',
+          message: `This course has queues but no <a href="${process.env.DOMAIN}/course/${course.id}/schedule" style="color: #ffc107; text-decoration: underline; font-weight: bold;">calendar events with staff members assigned</a>. 
+          Consider creating calendar events with staff members assigned, as this will allow them to be automatically checked out. Thus, students will not join a queue thinking that there is still an ongoing session when the TA has already left.`,
+        });
+      }
+    }
 
     // Check for high wait times
     if (queueStats.avgWaitTime !== null && queueStats.avgWaitTime > 30) {
@@ -700,22 +728,6 @@ export class WeeklySummaryService {
         type: 'success',
         message: 'Response time is excellent. No recommendations needed.',
       });
-    }
-
-    // Suggest best times for office hours based on activity
-    if (mostActiveDays.mostActiveDay !== 'No activity' && mostActiveDays.byDayOfWeek.some(d => d.count > 0)) {
-      const activeDays = mostActiveDays.byDayOfWeek
-        .filter(d => d.count > 0)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 3)
-        .map(d => d.day);
-      
-      if (activeDays.length > 0) {
-        recommendations.push({
-          type: 'info',
-          message: `Most active day${activeDays.length > 1 ? 's' : ''}: ${activeDays.join(', ')}. Consider adding more office hours on these days.`,
-        });
-      }
     }
 
     return recommendations;
@@ -813,7 +825,7 @@ export class WeeklySummaryService {
         `;
       } else {
         // Chatbot Activity Section
-        if (chatbotStats.totalQuestions > 0) {
+        if (course.courseSettings?.chatBotEnabled !== false && chatbotStats.totalQuestions > 0) {
           html += `
             <h3 style="color: #3498db; margin-top: 0;">Chatbot Activity</h3>
             <ul style="line-height: 1.8; color: #34495e;">
@@ -849,7 +861,7 @@ export class WeeklySummaryService {
         }
 
         // Async Questions Section
-        if (asyncStats.total > 0) {
+        if (course.courseSettings?.asyncQueueEnabled !== false && asyncStats.total > 0) {
           html += `
             <h3 style="color: #e74c3c; margin-top: 20px;">Async Questions</h3>
             <ul style="line-height: 1.8; color: #34495e;">
@@ -879,7 +891,7 @@ export class WeeklySummaryService {
               </div>
             `;
           }
-        } else if (chatbotStats.totalQuestions > 0) {
+        } else if (course.courseSettings?.asyncQueueEnabled !== false && chatbotStats.totalQuestions > 0) {
           html += `
             <h3 style="color: #e74c3c; margin-top: 20px;">Async Questions</h3>
             <p style="color: #7f8c8d;">No async questions this week.</p>
@@ -887,7 +899,7 @@ export class WeeklySummaryService {
         }
 
         // Queue Questions Section
-        if (queueStats.totalQuestions > 0) {
+        if (course.courseSettings?.queueEnabled !== false && queueStats.totalQuestions > 0) {
           const queueTitle = queueStats.queueNames.length > 0 
             ? queueStats.queueNames.join(', ')
             : 'Office Hours Queue';
@@ -916,7 +928,7 @@ export class WeeklySummaryService {
         }
 
         // Most Active Days Section - show if there's any queue activity
-        if (queueStats.totalQuestions > 0 && mostActiveDays.byDayOfWeek.some(d => d.count > 0)) {
+        if (course.courseSettings?.queueEnabled !== false && queueStats.totalQuestions > 0 && mostActiveDays.byDayOfWeek.some(d => d.count > 0)) {
           const totalQuestions = mostActiveDays.byDayOfWeek.reduce((sum, d) => sum + d.count, 0);
           html += `
             <h3 style="color: #16a085; margin-top: 20px;">Most Active Days</h3>
@@ -949,7 +961,6 @@ export class WeeklySummaryService {
         }
 
         // Peak Hours Section - show if there's queue activity and peak hours identified
-        if (queueStats.totalQuestions > 0 && (peakHours.peakHours.length > 0 || peakHours.quietHours.length > 0)) {
           html += `
             <h3 style="color: #e67e22; margin-top: 20px;">Peak Hours</h3>
           `;
@@ -973,7 +984,7 @@ export class WeeklySummaryService {
       }
 
       // Top Active Students Section
-      if (topStudents.length > 0) {
+      if (course.courseSettings?.queueEnabled !== false && topStudents.length > 0) {
         html += `
           <h3 style="color: #f39c12; margin-top: 20px;">Most Active Students</h3>
           <p style="color: #7f8c8d; margin-bottom: 10px;">Top students by queue questions asked this week:</p>
@@ -1062,7 +1073,6 @@ export class WeeklySummaryService {
         <hr style="border: 1px solid #ecf0f1; margin: 30px 0;">
         <p style="color: #95a5a6; font-size: 12px; text-align: center;">
           Weekly summary from HelpMe.<br>
-          Manage your email preferences in settings.
           Manage your email preferences in <a href="${process.env.DOMAIN}/profile" style="color: #7f8c8d; text-decoration: underline;">settings</a>.
         </p>
       </div>
