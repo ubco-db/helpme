@@ -999,7 +999,7 @@ export class CourseController {
     return;
   }
 
-  // Helper function for the SELECT fields 
+  // Helper function for the SELECT fields
   private getCommonSelectFields(tableAlias: string): string {
     return `
       ${tableAlias}.user_id,
@@ -1017,15 +1017,19 @@ export class CourseController {
   @Roles(Role.PROFESSOR, Role.TA)
   async exportToolUsage(
     @Param('id', ParseIntPipe) courseId: number,
-    @Query('includeQueueQuestions', new ParseBoolPipe({ optional: true })) includeQueueQuestions: boolean = true,
-    @Query('includeAnytimeQuestions', new ParseBoolPipe({ optional: true })) includeAnytimeQuestions: boolean = true,
-    @Query('includeChatbotInteractions', new ParseBoolPipe({ optional: true })) includeChatbotInteractions: boolean = true,
-    @Query('groupBy', new ParseEnumPipe(TimeGrouping, { optional: true })) groupBy: TimeGrouping = TimeGrouping.WEEK,
+    @Query('includeQueueQuestions', new ParseBoolPipe({ optional: true }))
+    includeQueueQuestions: boolean = true,
+    @Query('includeAnytimeQuestions', new ParseBoolPipe({ optional: true }))
+    includeAnytimeQuestions: boolean = true,
+    @Query('includeChatbotInteractions', new ParseBoolPipe({ optional: true }))
+    includeChatbotInteractions: boolean = true,
+    @Query('groupBy', new ParseEnumPipe(TimeGrouping, { optional: true }))
+    groupBy: TimeGrouping = TimeGrouping.WEEK,
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
   ): Promise<ToolUsageExportData[]> {
     const isGroupByWeek = groupBy === TimeGrouping.WEEK;
-    
+
     // Check if there are any students in the course before proceeding
     const studentCount = await UserCourseModel.count({
       where: {
@@ -1039,41 +1043,55 @@ export class CourseController {
         'Cannot export tool usage data: No students are enrolled in this course.',
       );
     }
-    
+
     let startDateObj: Date;
     let endDateObj: Date;
-    
+
     if (startDate && endDate) {
       startDateObj = new Date(startDate);
       endDateObj = new Date(endDate);
     } else {
       const dateRangeQuery = `
         WITH all_dates AS (
-          ${includeQueueQuestions ? `
+          ${
+            includeQueueQuestions
+              ? `
             SELECT q."createdAt" as date FROM "question_model" q
             JOIN "queue_model" qu ON q."queueId" = qu.id
             WHERE qu."courseId" = $1
-          ` : ''}
+          `
+              : ''
+          }
           ${includeQueueQuestions && includeAnytimeQuestions ? 'UNION ALL' : ''}
-          ${includeAnytimeQuestions ? `
+          ${
+            includeAnytimeQuestions
+              ? `
             SELECT aq."createdAt" as date FROM "async_question_model" aq
             WHERE aq."courseId" = $1 AND aq.status != 'StudentDeleted'
-          ` : ''}
+          `
+              : ''
+          }
           ${(includeQueueQuestions || includeAnytimeQuestions) && includeChatbotInteractions ? 'UNION ALL' : ''}
-          ${includeChatbotInteractions ? `
+          ${
+            includeChatbotInteractions
+              ? `
             SELECT ci.timestamp as date FROM "chatbot_interactions_model" ci
             WHERE ci.course = $1
-          ` : ''}
+          `
+              : ''
+          }
         )
         SELECT 
           MIN(date) as earliest_date,
           MAX(date) as latest_date
         FROM all_dates
       `;
-      
-      const dateRangeResult = await UserCourseModel.query(dateRangeQuery, [courseId]);
+
+      const dateRangeResult = await UserCourseModel.query(dateRangeQuery, [
+        courseId,
+      ]);
       const dateRange = dateRangeResult[0];
-      
+
       if (dateRange && dateRange.earliest_date && dateRange.latest_date) {
         startDateObj = new Date(dateRange.earliest_date);
         endDateObj = new Date(dateRange.latest_date);
@@ -1085,7 +1103,7 @@ export class CourseController {
 
     try {
       const results = [];
-      
+
       if (includeQueueQuestions) {
         const queueQuery = isGroupByWeek
           ? `
@@ -1173,10 +1191,19 @@ export class CourseController {
             ORDER BY sd."lastName", sd."firstName", sd.period_date
           `;
 
-        const queueResults = await UserCourseModel.query(queueQuery, [courseId, startDateObj, endDateObj]);
-        results.push(...queueResults.map(row => ({ ...row, tool_type: ToolUsageType.QUEUE_QUESTIONS })));
+        const queueResults = await UserCourseModel.query(queueQuery, [
+          courseId,
+          startDateObj,
+          endDateObj,
+        ]);
+        results.push(
+          ...queueResults.map((row) => ({
+            ...row,
+            tool_type: ToolUsageType.QUEUE_QUESTIONS,
+          })),
+        );
       }
-      
+
       if (includeAnytimeQuestions) {
         const anytimeQuery = isGroupByWeek
           ? `
@@ -1264,10 +1291,19 @@ export class CourseController {
             ORDER BY sd."lastName", sd."firstName", sd.period_date
           `;
 
-        const anytimeResults = await UserCourseModel.query(anytimeQuery, [courseId, startDateObj, endDateObj]);
-        results.push(...anytimeResults.map(row => ({ ...row, tool_type: ToolUsageType.ANYTIME_QUESTIONS })));
+        const anytimeResults = await UserCourseModel.query(anytimeQuery, [
+          courseId,
+          startDateObj,
+          endDateObj,
+        ]);
+        results.push(
+          ...anytimeResults.map((row) => ({
+            ...row,
+            tool_type: ToolUsageType.ANYTIME_QUESTIONS,
+          })),
+        );
       }
-      
+
       if (includeChatbotInteractions) {
         const chatbotQuery = isGroupByWeek
           ? `
@@ -1353,19 +1389,29 @@ export class CourseController {
             ORDER BY sd."lastName", sd."firstName", sd.period_date
           `;
 
-        const chatbotResults = await UserCourseModel.query(chatbotQuery, [courseId, startDateObj, endDateObj]);
-        results.push(...chatbotResults.map(row => ({ ...row, tool_type: ToolUsageType.CHATBOT_INTERACTIONS })));
+        const chatbotResults = await UserCourseModel.query(chatbotQuery, [
+          courseId,
+          startDateObj,
+          endDateObj,
+        ]);
+        results.push(
+          ...chatbotResults.map((row) => ({
+            ...row,
+            tool_type: ToolUsageType.CHATBOT_INTERACTIONS,
+          })),
+        );
       }
       // Return JSON data for frontend to handle CSV generation
-      
-      return results;
 
+      return results;
     } catch (error) {
       console.error('Error exporting tool usage:', error);
-      throw new HttpException('Failed to export tool usage data', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Failed to export tool usage data',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
-
 
   @Patch(':id/set_ta_notes/:uid')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)

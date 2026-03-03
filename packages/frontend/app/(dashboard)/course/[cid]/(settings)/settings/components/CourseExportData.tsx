@@ -281,9 +281,7 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
 
         <div className="flex items-center justify-between">
           <span>Export Tool Usage to CSV</span>
-          <Button
-            onClick={() => setToolUsageModalVisible(true)}
-          >
+          <Button onClick={() => setToolUsageModalVisible(true)}>
             <DownloadOutlined />
             Download
           </Button>

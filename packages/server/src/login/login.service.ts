@@ -11,6 +11,7 @@ import { LtiService } from '../lti/lti.service';
 import { ERROR_MESSAGES } from '@koh/common';
 import { CookieOptions, Request, Response } from 'express';
 import { getCookie } from '../common/helpers';
+import { ProfInviteService } from 'course/prof-invite/prof-invite.service';
 
 export type LoginEntryOptions = {
   cookieName?: string;
@@ -27,6 +28,7 @@ export class LoginService {
   constructor(
     private jwtService: JwtService,
     private configService: ConfigService,
+    private profInviteService: ProfInviteService,
   ) {}
 
   async initLoginEnter(
@@ -199,6 +201,8 @@ export class LoginService {
 
     const secureRedirectCookie = getCookie(req, '__SECURE_REDIRECT');
     const queueInviteCookie = getCookie(req, 'queueInviteInfo');
+    const profInviteCookie = getCookie(req, 'profInviteInfo');
+
     const ltiInviteCookie = getCookie(req, '__COURSE_INVITE');
     const ltiIdentityCookie = getCookie(req, '__LTI_IDENTITY');
 
@@ -212,7 +216,16 @@ export class LoginService {
       );
     }
 
-    if (queueInviteCookie && courseService && !redirect) {
+    if (profInviteCookie && !redirect) {
+      await this.profInviteService
+        .acceptProfInviteFromCookie(userId, profInviteCookie)
+        .then((url) => {
+          res.clearCookie('profInviteInfo');
+          return res.status(HttpStatus.TEMPORARY_REDIRECT).send({
+            redirectUri: url,
+          });
+        });
+    } else if (queueInviteCookie && courseService && !redirect) {
       // Ignore queueInviteInfo if there's another redirect queued
       await courseService
         .getQueueInviteRedirectURLandInviteToCourse(queueInviteCookie, userId)

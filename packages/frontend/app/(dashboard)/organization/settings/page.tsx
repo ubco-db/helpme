@@ -28,6 +28,7 @@ import { SemesterManagement } from './components/SemesterManagement'
 import OrganizationSettingSwitch from '@/app/(dashboard)/organization/settings/components/OrganizationSettingSwitch'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
+import { AllProfInvites } from './components/AllProfInvites'
 
 export default function SettingsPage(): ReactNode {
   // Handler to update SSO patterns
@@ -514,6 +515,10 @@ export default function SettingsPage(): ReactNode {
           organizationSemesters={organizationSemesters}
           setOrganizationSemesters={setOrganizationSemesters}
         />
+      )}
+
+      {userInfo.organization?.organizationRole === OrganizationRole.ADMIN && (
+        <AllProfInvites orgId={organization.id} />
       )}
     </div>
   ) : (
