@@ -25,7 +25,7 @@ export class AsyncQuestionModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne((type) => CourseModel)
+  @ManyToOne((type) => CourseModel, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'courseId' })
   @Exclude()
   course: CourseModel;

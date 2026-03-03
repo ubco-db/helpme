@@ -42,7 +42,9 @@ export class EventModel extends BaseEntity {
   @Exclude()
   userId: number;
 
-  @ManyToOne((type) => CourseModel, (course) => course.events)
+  @ManyToOne((type) => CourseModel, (course) => course.events, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'courseId' })
   course: CourseModel;
 

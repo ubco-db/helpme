@@ -1217,6 +1217,14 @@ export class APIClient {
         'PATCH',
         `/api/v1/organization/${organizationId}/update_course_access/${courseId}`,
       ),
+    deleteCourse: async (
+      organizationId: number,
+      courseId: number,
+    ): Promise<void> =>
+      this.req(
+        'DELETE',
+        `/api/v1/organization/${organizationId}/delete_course/${courseId}`,
+      ),
     updateAccess: async (
       organizationId: number,
       userId: number,

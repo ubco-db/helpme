@@ -20,7 +20,7 @@ export class InteractionModel extends BaseEntity {
   @Column()
   timestamp: Date;
 
-  @ManyToOne(() => CourseModel)
+  @ManyToOne(() => CourseModel, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'course' })
   course: CourseModel;
 
