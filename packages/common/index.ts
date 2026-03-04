@@ -1434,6 +1434,10 @@ export class AsyncQuestionComment {
 
   isAnonymous!: boolean
 
+  @IsOptional()
+  endorsedBy: UserPartial | null = null
+  
+
   @Type(() => Date)
   createdAt!: Date
 }
