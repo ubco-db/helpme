@@ -1451,6 +1451,11 @@ export class AsyncQuestionCommentParams {
   isAnonymous?: boolean
 }
 
+export class AsyncQuestionCommentEndorseParams {
+  @IsBoolean()
+  isEndorsed!: boolean
+}
+
 export class QueueChatPartial {
   // Might be useful for frontend insights on chat (after the fact; won't be sent to chat users)
   @IsOptional()
