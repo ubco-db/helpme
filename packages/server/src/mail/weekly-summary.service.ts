@@ -49,8 +49,7 @@ interface QueueStats {
 
 interface NewStudentData {
   id: number;
-  firstName: string;
-  lastName: string;
+  name: string;
   email: string;
   joinedAt: Date;
 }
@@ -78,6 +77,14 @@ interface MostActiveDaysData {
 interface PeakHoursData {
   peakHours: string[];
   quietHours: string[];
+}
+
+interface AsyncQuestionDetailData {
+  id: number;
+  abstract: string;
+  status: string;
+  createdAt: Date;
+  daysAgo: number;
 }
 
 interface RecommendationData {
@@ -186,10 +193,13 @@ export class WeeklySummaryService {
             );
             
             let asyncStats: AsyncQuestionStats;
+            let asyncQuestionsNeedingHelp: AsyncQuestionDetailData[] = [];
             try {
               asyncStats = await this.getAsyncQuestionStats(
                 professorCourse.courseId,
                 lastWeek,
+              );
+                professorCourse.courseId,
               );
             } catch (error) {
               //Return empty stats if there's an error
@@ -201,6 +211,7 @@ export class WeeklySummaryService {
                 withNewComments: 0,
                 avgResponseTime: 0,
               };
+              asyncQuestionsNeedingHelp = [];
             }
 
             let queueStats: QueueStats;
@@ -231,6 +242,7 @@ export class WeeklySummaryService {
                 course: professorCourse.course,
                 chatbotStats,
                 asyncStats,
+                asyncQuestionsNeedingHelp,
                 queueStats,
                 newStudents,
                 topStudents,
@@ -253,6 +265,7 @@ export class WeeklySummaryService {
                 course: professorCourse.course,
                 chatbotStats,
                 asyncStats,
+                asyncQuestionsNeedingHelp,
                 queueStats,
                 newStudents,
                 topStudents,
@@ -357,46 +370,79 @@ export class WeeklySummaryService {
     courseId: number,
     since: Date,
   ): Promise<AsyncQuestionStats> {
-    const questions = (await AsyncQuestionModel.createQueryBuilder('aq')
-      .leftJoinAndSelect('aq.comments', 'comments')
+    try {
+      const questions = (await AsyncQuestionModel.createQueryBuilder('aq')
+        .leftJoinAndSelect('aq.comments', 'comments')
+        .where('aq.courseId = :courseId', { courseId })
+        .andWhere('aq.createdAt >= :since', { since })
+        .getMany()) || [];
+      
+      if (questions.length > 0) {
+        console.log(`[FIRST QUESTION] id=${questions[0].id}, createdAt=${questions[0].createdAt}, status=${questions[0].status}, closedAt=${questions[0].closedAt}`);
+      }
+
+      const total = questions.length;
+      const aiResolved = questions.filter(
+        (q) => q.aiAnswerText && q.status === 'AIAnswered',
+      ).length;
+      const humanAnswered = questions.filter(
+        (q) => q.answerText && q.status === 'HumanAnswered',
+      ).length;
+      const stillNeedHelp = questions.filter((q) => !q.closedAt).length;
+      const withNewComments = questions.filter((q) =>
+        q.comments?.some((c) => c.createdAt >= since),
+      ).length;
+
+      // Calculate average response time for answered questions
+      const answeredQuestions = (questions || []).filter((q) => q && q.closedAt && q.createdAt);
+      const avgResponseTime =
+        answeredQuestions && answeredQuestions.length > 0
+          ? answeredQuestions.reduce(
+              (sum, q) => {
+                const closedTime = q.closedAt.getTime();
+                const createdTime = new Date(q.createdAt).getTime();
+                return sum + (closedTime - createdTime) / (1000 * 60 * 60);
+              },
+              0,
+            ) / answeredQuestions.length
+          : null;
+
+      return {
+        total,
+        aiResolved,
+        humanAnswered,
+        stillNeedHelp,
+        withNewComments,
+        avgResponseTime,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async getAsyncQuestionsNeedingHelp(
+    courseId: number,
+  ): Promise<AsyncQuestionDetailData[]> {
+    console.log(`[ASYNC NEEDING HELP QUERY] courseId=${courseId}`);
+    const questions = await AsyncQuestionModel.createQueryBuilder('aq')
+      .select(['aq.id', 'aq.questionAbstract', 'aq.questionText', 'aq.status', 'aq.createdAt', 'aq.closedAt'])
       .where('aq.courseId = :courseId', { courseId })
-      .andWhere('aq.createdAt >= :since', { since })
-      .getMany()) || [];
+      .andWhere('aq.closedAt IS NULL')
+      .orderBy('aq.createdAt', 'ASC')
+      .getMany();
+    
 
-    const total = questions.length;
-    const aiResolved = questions.filter(
-      (q) => q.aiAnswerText && q.status === 'AIAnswered',
-    ).length;
-    const humanAnswered = questions.filter(
-      (q) => q.answerText && q.status === 'HumanAnswered',
-    ).length;
-    const stillNeedHelp = questions.filter((q) => !q.closedAt).length;
-    const withNewComments = questions.filter((q) =>
-      q.comments?.some((c) => c.createdAt >= since),
-    ).length;
-
-    // Calculate average response time for answered questions
-    const answeredQuestions = questions.filter((q) => q.closedAt && q.createdAt) || [];
-    const avgResponseTime =
-      answeredQuestions.length > 0
-        ? answeredQuestions.reduce(
-            (sum, q) => {
-              const closedTime = q.closedAt.getTime();
-              const createdTime = new Date(q.createdAt).getTime();
-              return sum + (closedTime - createdTime) / (1000 * 60 * 60);
-            },
-            0,
-          ) / answeredQuestions.length
-        : null;
-
-    return {
-      total,
-      aiResolved,
-      humanAnswered,
-      stillNeedHelp,
-      withNewComments,
-      avgResponseTime,
-    };
+    const now = new Date();
+    return questions.map((q) => {
+      const daysAgo = Math.floor((now.getTime() - new Date(q.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+      return {
+        id: q.id,
+        abstract: q.questionAbstract || q.questionText?.substring(0, 100) || '(No content)',
+        status: q.status,
+        createdAt: q.createdAt,
+        daysAgo,
+      };
+    });
   }
 
   private async getQueueStats(
@@ -518,8 +564,7 @@ export class WeeklySummaryService {
 
     return newStudentRecords.map((uc) => ({
       id: uc.user.id,
-      firstName: uc.user.firstName,
-      lastName: uc.user.lastName,
+      name: uc.user.name,
       email: uc.user.email,
       joinedAt: uc.createdAt,
     }));
@@ -744,7 +789,7 @@ export class WeeklySummaryService {
 
     // Process each course
     for (const courseData of courseStatsArray) {
-      const { course, chatbotStats, asyncStats, queueStats, newStudents, topStudents, staffPerformance, mostActiveDays, peakHours, recommendations, suggestArchive } = courseData;
+      const { course, chatbotStats, asyncStats, asyncQuestionsNeedingHelp, queueStats, newStudents, topStudents, staffPerformance, mostActiveDays, peakHours, recommendations, suggestArchive } = courseData;
 
 
       html += `
@@ -765,7 +810,6 @@ export class WeeklySummaryService {
         
         newStudents.forEach((student) => {
           html += `
-              <li><strong>${student.firstName} ${student.lastName}</strong> (${student.email})</li>
           `;
         });
         
@@ -801,6 +845,60 @@ export class WeeklySummaryService {
           <p style="color: #7f8c8d; font-style: italic;">No activity this week.</p>
         `;
       } else {
+        console.log(`[ASYNC SECTION] Building for ${course.name}: total=${asyncStats.total}, needingHelp=${asyncQuestionsNeedingHelp.length}`);
+        html += `
+          <h3 style="color: #e74c3c; margin-top: 20px;">Anytime Questions</h3>
+            <ul style="line-height: 1.8; color: #34495e;">
+              <li>📊 <strong>${asyncStats.total || 0}</strong> total questions</li>
+              <li>✅ <strong style="color: #27ae60;">${asyncStats.aiResolved || 0}</strong> resolved by AI</li>
+              <li>👤 <strong style="color: #3498db;">${asyncStats.humanAnswered || 0}</strong> answered by staff</li>
+              <li>⚠️  <strong style="color: #e74c3c;">${asyncStats.stillNeedHelp || 0}</strong> still need help</li>
+              <li>💬 <strong>${asyncStats.withNewComments || 0}</strong> with new comments this week</li>
+          `;
+
+          if (asyncStats.avgResponseTime !== null) {
+            html += `
+              <li>Average response time: <strong>${asyncStats.avgResponseTime.toFixed(1)}</strong> hours</li>
+            `;
+          }
+
+          html += `
+            </ul>
+          `;
+
+          // Show consolidated list of questions needing help
+          if (asyncQuestionsNeedingHelp.length > 0) {
+            html += `
+              <div style="background-color: #fef5f5; border-left: 4px solid #e74c3c; padding: 15px; margin-top: 15px; border-radius: 3px;">
+                <p style="margin-top: 0; margin-bottom: 10px; color: #c0392b;">
+                  <strong><a href="${process.env.DOMAIN}/course/${course.id}/async_centre" style="color: #c0392b; text-decoration: underline;">Anytime Questions</a> that still need help:</strong>
+                </p>
+                <ul style="margin: 0; padding-left: 20px; line-height: 1.8; color: #34495e;">
+            `;
+
+            asyncQuestionsNeedingHelp.forEach((q) => {
+              const isOld = q.daysAgo >= 7;
+              const style = isOld 
+                ? 'style="color: #c0392b; font-weight: bold;"'
+                : 'style="color: #34495e;"';
+              html += `
+                  <li ${style}>
+                    "${q.abstract}${q.abstract.length === 100 ? '...' : ''}"
+                    <span style="color: #7f8c8d; font-size: 0.9em;">— ${q.daysAgo} day${q.daysAgo !== 1 ? 's' : ''} ago${isOld ? ' ⚠️' : ''}</span>
+                  </li>
+              `;
+            });
+
+            html += `
+                </ul>
+              </div>
+            `;
+          } else if (asyncStats.total === 0) {
+            html += `
+              <p style="color: #7f8c8d;">No anytime questions this week.</p>
+            `;
+          }
+        
         // Chatbot Activity Section
         if (course.courseSettings?.chatBotEnabled !== false && chatbotStats.totalQuestions > 0) {
           html += `
@@ -834,44 +932,6 @@ export class WeeklySummaryService {
 
           html += `
             </table>
-          `;
-        }
-
-        // Async Questions Section
-        if (course.courseSettings?.asyncQueueEnabled !== false && asyncStats.total > 0) {
-          html += `
-            <h3 style="color: #e74c3c; margin-top: 20px;">Async Questions</h3>
-            <ul style="line-height: 1.8; color: #34495e;">
-              <li><strong>${asyncStats.total}</strong> total questions</li>
-              <li><strong style="color: #27ae60;">${asyncStats.aiResolved}</strong> resolved by AI</li>
-              <li><strong style="color: #3498db;">${asyncStats.humanAnswered}</strong> answered by staff</li>
-              <li><strong style="color: #e74c3c;">${asyncStats.stillNeedHelp}</strong> still need help</li>
-              <li><strong>${asyncStats.withNewComments}</strong> with new comments this week</li>
-          `;
-
-          if (asyncStats.avgResponseTime !== null) {
-            html += `
-              <li>Average response time: <strong>${asyncStats.avgResponseTime.toFixed(1)}</strong> hours</li>
-            `;
-          }
-
-          html += `
-            </ul>
-          `;
-
-          if (asyncStats.stillNeedHelp > 0) {
-            html += `
-              <div style="background-color: #fee; border-left: 4px solid #e74c3c; padding: 10px; margin-top: 15px; border-radius: 3px;">
-                <p style="margin: 0; color: #c0392b;">
-                  <strong>${asyncStats.stillNeedHelp}</strong> question${asyncStats.stillNeedHelp !== 1 ? 's' : ''} still need${asyncStats.stillNeedHelp === 1 ? 's' : ''} attention
-                </p>
-              </div>
-            `;
-          }
-        } else if (course.courseSettings?.asyncQueueEnabled !== false && chatbotStats.totalQuestions > 0) {
-          html += `
-            <h3 style="color: #e74c3c; margin-top: 20px;">Async Questions</h3>
-            <p style="color: #7f8c8d;">No async questions this week.</p>
           `;
         }
 
