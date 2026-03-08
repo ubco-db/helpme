@@ -48,7 +48,6 @@ export class WeeklySummaryService {
   // Run every week
   @Cron(CronExpression.EVERY_WEEK) 
   async sendWeeklySummaries() {
-    console.log('Starting weekly summary email job...');
     const startTime = Date.now();
 
     try {
