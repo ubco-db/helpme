@@ -22,6 +22,19 @@ import {
 } from '../insights/insight-objects';
 import { ChartOutputType, GanttChartOutputType, TableOutputType } from '@koh/common';
 import {
+  WeeklySummaryBuilder,
+  ChatbotStats,
+  AsyncQuestionStats,
+  QueueStats,
+  NewStudentData,
+  TopStudentData,
+  StaffPerformanceData,
+  MostActiveDaysData,
+  PeakHoursData,
+  AsyncQuestionDetailData,
+  RecommendationData,
+  CourseStatsData,
+} from './weekly-summary.builder';
 
 
 
