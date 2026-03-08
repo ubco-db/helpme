@@ -12,6 +12,15 @@ import * as Sentry from '@sentry/nestjs';
 import { UserModel } from '../profile/user.entity';
 import { UserSubscriptionModel } from './user-subscriptions.entity';
 import { MailServiceModel } from './mail-services.entity';
+import { CalendarModel } from '../calendar/calendar.entity';
+import { InsightsService } from '../insights/insights.service';
+import {
+  MostActiveStudents,
+  AverageTimesByWeekDay,
+  MostActiveTimes,
+  StaffTotalHelped,
+} from '../insights/insight-objects';
+import { ChartOutputType, GanttChartOutputType, TableOutputType } from '@koh/common';
 
 interface ChatbotStats {
   totalQuestions: number;
@@ -78,10 +87,13 @@ interface RecommendationData {
 
 @Injectable()
 export class WeeklySummaryService {
-  constructor(private mailService: MailService) {}
+  constructor(
+    private mailService: MailService,
+    private insightsService: InsightsService,
+  ) {}
 
   // Run every week
-  @Cron(CronExpression.EVERY_WEEK) 
+  @Cron(CronExpression.EVERY_MINUTE) 
   async sendWeeklySummaries() {
     console.log('Starting weekly summary email job...');
     const startTime = Date.now();
@@ -95,6 +107,7 @@ export class WeeklySummaryService {
         .innerJoinAndSelect('uc.user', 'user')
         .innerJoinAndSelect('uc.course', 'course')
         .leftJoinAndSelect('course.semester', 'semester')
+        .leftJoinAndSelect('course.courseSettings', 'courseSettings')
         .where('uc.role = :role', { role: Role.PROFESSOR })
         .andWhere('course.deletedAt IS NULL')
         .andWhere('course.enabled = :enabled', { enabled: true })
@@ -130,6 +143,7 @@ export class WeeklySummaryService {
               },
             });
 
+            // If subscription exists and isSubscribed is false, skip this professor
             if (subscription && !subscription.isSubscribed) {
               console.log(
                 `Skipping weekly summary for ${professor.email} - user has opted out`,
@@ -227,8 +241,8 @@ export class WeeklySummaryService {
                 suggestArchive: shouldSuggestArchive,
               });
             } else {
-              const recommendations = this.generateRecommendations(
               const recommendations = await this.generateRecommendations(
+                professorCourse.course,
                 queueStats,
                 asyncStats,
                 peakHours,
@@ -516,85 +530,44 @@ export class WeeklySummaryService {
     courseId: number,
     since: Date,
   ): Promise<StaffPerformanceData[]> {
-    // Get queue questions helped by each staff member
-    const queueHelped = await QuestionModel.createQueryBuilder('q')
-      .select('q.taHelpedId', 'staffId')
-      .addSelect('COUNT(q.id)', 'count')
-      .addSelect('AVG(q.helpTime)', 'avgHelpTime')
-      .innerJoin('q.queue', 'queue')
-      .where('queue.courseId = :courseId', { courseId })
-      .andWhere('q.taHelpedId IS NOT NULL')
-      .andWhere('q.createdAt >= :since', { since })
-      .andWhere('q.status = :status', { status: 'Resolved' })
-      .groupBy('q.taHelpedId')
-      .getRawMany();
+    const insight = await this.insightsService.computeOutput({
+      insight: StaffTotalHelped,
+      filters: [
+        { type: 'courseId', courseId },
+        { type: 'timeframe', start: since, end: new Date() },
+      ],
+    });
 
-    // Get async questions helped 
-    const asyncHelped = await AsyncQuestionModel.createQueryBuilder('aq')
-      .select('aq.taHelpedId', 'staffId')
-      .addSelect('COUNT(aq.id)', 'count')
-      .where('aq.courseId = :courseId', { courseId })
-      .andWhere('aq.taHelpedId IS NOT NULL')
-      .andWhere('aq.createdAt >= :since', { since })
-      .andWhere('aq.status = :status', { status: 'HumanAnswered' })
-      .groupBy('aq.taHelpedId')
-      .getRawMany();
-
-    const staffIds = [...new Set([
-      ...queueHelped.map(q => q.staffId),
-      ...asyncHelped.map(a => a.staffId),
-    ])];
-
-    if (staffIds.length === 0) {
-      return [];
-    }
-    const staffNames = await UserModel.createQueryBuilder('u')
-      .select('u.id', 'id')
-      .addSelect("u.firstName || ' ' || u.lastName", 'name')
-      .where('u.id IN (:...ids)', { ids: staffIds })
-      .getRawMany();
-
-    return staffIds.map(staffId => {
-      const queueData = queueHelped.find(q => q.staffId === staffId);
-      const asyncData = asyncHelped.find(a => a.staffId === staffId);
-      const staff = staffNames.find(s => s.id === staffId);
-
-      return {
-        id: staffId,
-        name: staff?.name || `ID ${staffId}`,
-        questionsHelped: parseInt(queueData?.count || '0'),
-        asyncQuestionsHelped: parseInt(asyncData?.count || '0'),
-        avgHelpTime: queueData?.avgHelpTime ? parseFloat(queueData.avgHelpTime) / 60 : null, 
-      };
-    }).sort((a, b) => (b.questionsHelped + b.asyncQuestionsHelped) - (a.questionsHelped + a.asyncQuestionsHelped));
+    const chartData = insight as ChartOutputType;
+    return chartData.data
+      .map((item: any) => ({
+        id: 0, 
+        name: item.staffMember,
+        questionsHelped: parseInt(item.Queue_Questions_Helped || 0),
+        asyncQuestionsHelped: parseInt(item.Anytime_Questions_Helped || 0),
+        avgHelpTime: null, 
+      }))
+      .sort((a, b) => (b.questionsHelped + b.asyncQuestionsHelped) - (a.questionsHelped + a.asyncQuestionsHelped));
   }
 
   private async getTopActiveStudents(
     courseId: number,
     since: Date,
   ): Promise<TopStudentData[]> {
-    // Get top 5 students by queue questions asked
-    const results = await QuestionModel.createQueryBuilder('q')
-      .select('q.creatorId', 'id')
-      .addSelect('u.name', 'name')
-      .addSelect('u.email', 'email')
-      .addSelect('COUNT(*)', 'questionsAsked')
-      .innerJoin('q.queue', 'queue')
-      .innerJoin('q.creator', 'u')
-      .where('queue.courseId = :courseId', { courseId })
-      .andWhere('q.createdAt >= :since', { since })
-      .groupBy('q.creatorId')
-      .addGroupBy('u.name')
-      .addGroupBy('u.email')
-      .orderBy('COUNT(*)', 'DESC')
-      .limit(5)
-      .getRawMany();
+    const insight = await this.insightsService.computeOutput({
+      insight: MostActiveStudents,
+      filters: [
+        { type: 'courseId', courseId },
+        { type: 'timeframe', start: since, end: new Date() },
+      ],
+    });
 
-    return results.map((r) => ({
-      id: r.id,
-      name: r.name || 'Unknown Student',
-      email: r.email,
-      questionsAsked: parseInt(r.questionsAsked),
+    const tableData = insight as TableOutputType;
+    return tableData.data.map((item: any) => ({
+      id: 0, 
+      name: item.studentName,
+      email: '', 
+      questionsAsked: item.questionsAsked,
     }));
   }
 
@@ -603,22 +576,20 @@ export class WeeklySummaryService {
     since: Date,
   ): Promise<MostActiveDaysData> {
     //get question counts by day of week for queue questions
-    const results = await QuestionModel.createQueryBuilder('q')
-      .select("EXTRACT(DOW FROM q.createdAt)", 'dayOfWeek')
-      .addSelect('COUNT(*)', 'count')
-      .innerJoin('q.queue', 'queue')
-      .where('queue.courseId = :courseId', { courseId })
-      .andWhere('q.createdAt >= :since', { since })
-      .groupBy("EXTRACT(DOW FROM q.createdAt)")
-      .getRawMany();
-
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const byDayOfWeek = dayNames.map(day => ({ day, count: 0 }));
-    
-    results.forEach((result) => {
-      const dayIndex = parseInt(result.dayOfWeek);
-      byDayOfWeek[dayIndex].count = parseInt(result.count);
+    const insight = await this.insightsService.computeOutput({
+      insight: AverageTimesByWeekDay,
+      filters: [
+        { type: 'courseId', courseId },
+        { type: 'timeframe', start: since, end: new Date() },
+      ],
     });
+
+    const chartData = insight as ChartOutputType;
+    const byDayOfWeek = chartData.data.map((item: any) => ({
+      day: item.weekday,
+      count: parseInt(item.Total_Time || 0),
+    }));
+
     let mostActiveDay = 'No activity';
     let maxCount = 0;
     //find most active day
@@ -639,54 +610,60 @@ export class WeeklySummaryService {
     courseId: number,
     since: Date,
   ): Promise<PeakHoursData> {
-    //Similar logic to most active days but group by hours
-    const results = await QuestionModel.createQueryBuilder('q')
-      .select("EXTRACT(HOUR FROM q.createdAt)", 'hour')
-      .addSelect('COUNT(*)', 'count')
-      .innerJoin('q.queue', 'queue')
-      .where('queue.courseId = :courseId', { courseId })
-      .andWhere('q.createdAt >= :since', { since })
-      .groupBy("EXTRACT(HOUR FROM q.createdAt)")
-      .getRawMany();
+    const insight = await this.insightsService.computeOutput({
+      insight: MostActiveTimes,
+      filters: [
+        { type: 'courseId', courseId },
+        { type: 'timeframe', start: since, end: new Date() },
+      ],
+    });
 
-    if (results.length === 0) {
+    const ganttData = insight as GanttChartOutputType;
+    
+    if (!ganttData.data || ganttData.data.length === 0) {
       return { peakHours: [], quietHours: [] };
     }
 
-    const totalCount = results.reduce((sum, r) => sum + parseInt(r.count), 0);
-    const avgCount = totalCount / results.length;
+    const timeCountMap = new Map<number, number>();
+    ganttData.data.forEach((item: any) => {
+      const time = parseInt(item.time);
+      const amount = parseInt(item.Amount);
+      timeCountMap.set(time, (timeCountMap.get(time) || 0) + amount);
+    });
+
+    const totalCount = Array.from(timeCountMap.values()).reduce((a, b) => a + b, 0);
+    const avgCount = totalCount / timeCountMap.size;
     const peakHours: string[] = [];
     const quietHours: string[] = [];
 
-    results.forEach((result) => {
-      const hour = parseInt(result.hour);
-      const count = parseInt(result.count);
-      
-      const formatHour = (h: number): string => {
-        if (h === 0) return '12am';
-        if (h < 12) return `${h}am`;
-        if (h === 12) return '12pm';
-        return `${h - 12}pm`;
-      };
+    const formatHour = (minutes: number): string => {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      const suffix = hours < 12 ? 'am' : 'pm';
+      const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+      return `${displayHours}:${mins.toString().padStart(2, '0')}${suffix}`;
+    };
 
-      if (count > avgCount * 1.2) { 
-        peakHours.push(formatHour(hour));
-      } else if (count < avgCount * 0.5 && hour >= 8 && hour <= 22) { 
-        quietHours.push(formatHour(hour));
+    timeCountMap.forEach((count, time) => {
+      if (count > avgCount * 1.2) {
+        peakHours.push(formatHour(time));
+      } else if (count < avgCount * 0.5) {
+        const hour = Math.floor(time / 60);
+        if (hour >= 8 && hour <= 22) {
+          quietHours.push(formatHour(time));
+        }
       }
     });
 
     return { peakHours, quietHours };
   }
 
-  private generateRecommendations(
   private async generateRecommendations(
     course: CourseModel,
     queueStats: QueueStats,
     asyncStats: AsyncQuestionStats,
     peakHours: PeakHoursData,
     mostActiveDays: MostActiveDaysData,
-  ): RecommendationData[] {
   ): Promise<RecommendationData[]> {
     const recommendations: RecommendationData[] = [];
 
@@ -961,6 +938,7 @@ export class WeeklySummaryService {
         }
 
         // Peak Hours Section - show if there's queue activity and peak hours identified
+        if (course.courseSettings?.queueEnabled !== false && queueStats.totalQuestions > 0 && (peakHours.peakHours.length > 0 || peakHours.quietHours.length > 0)) {
           html += `
             <h3 style="color: #e67e22; margin-top: 20px;">Peak Hours</h3>
           `;
