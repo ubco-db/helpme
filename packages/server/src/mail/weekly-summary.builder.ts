@@ -1,6 +1,7 @@
 // HTML Template for the weekly summary email
 
 import { CourseModel } from '../course/course.entity';
+import * as cheerio from 'cheerio';
 
 export interface ChatbotStats {
   totalQuestions: number;
@@ -86,6 +87,30 @@ export interface CourseStatsData {
   recommendations: RecommendationData[];
   suggestArchive: boolean;
 }
+function validateHtml(html: string): void {
+  const originalTags = html.match(/<(?!\/)(?!br|hr|img|input|meta|link|area|base|col|embed|source|track|wbr)([a-zA-Z][a-zA-Z0-9]*)[^>]*(?<!\/)>/g) || [];
+  const closingTags = html.match(/<\/([a-zA-Z][a-zA-Z0-9]*)>/g) || [];
+  
+  const $ = cheerio.load(html, { xmlMode: false }, false);
+  const serialized = $.html();
+  
+  const serializedOpeningTags = serialized.match(/<(?!\/)(?!br|hr|img|input|meta|link|area|base|col|embed|source|track|wbr)([a-zA-Z][a-zA-Z0-9]*)[^>]*(?<!\/)>/g) || [];
+  const serializedClosingTags = serialized.match(/<\/([a-zA-Z][a-zA-Z0-9]*)>/g) || [];
+  
+  const difference = serializedClosingTags.length - closingTags.length;
+  if (closingTags.length !== serializedClosingTags.length) {
+    let errorMsg: string;
+    if (difference > 0) {
+      errorMsg = `Invalid HTML: You have ${difference} unclosed tag(s).`;
+    } else {
+      errorMsg = `Invalid HTML:You have ${Math.abs(difference)} orphaned closing tag(s) without opening tags.`;
+    }
+    throw new Error(errorMsg);
+  }  
+  if (Math.abs(serialized.length - html.length) > Math.max(100, html.length * 0.05)) {
+    throw new Error(`Invalid HTML: Structure significantly modified after parsing.`);
+  }
+}
 
 export class WeeklySummaryBuilder {
   static formatDate(date: Date): string {
@@ -99,23 +124,24 @@ export class WeeklySummaryBuilder {
   static buildHeader(courseStatsArray: CourseStatsData[], weekStartDate: Date): string {
     const weekEndDate = new Date();
     return `
-      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
-        <h1 style="color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px;">
-          HelpMe Weekly Summary
-        </h1>
-        <p style="color: #7f8c8d; font-size: 16px;">
-          Week of ${this.formatDate(weekStartDate)} - ${this.formatDate(weekEndDate)}
-        </p>
-        <p style="color: #34495e; margin-bottom: 30px;">
-          Summary for ${courseStatsArray.length} course${courseStatsArray.length !== 1 ? 's' : ''}
-        </p>
+      <h1 style="color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px;">
+        HelpMe Weekly Summary
+      </h1>
+      <p style="color: #7f8c8d; font-size: 16px;">
+        Week of ${this.formatDate(weekStartDate)} - ${this.formatDate(weekEndDate)}
+      </p>
+      <p style="color: #34495e; margin-bottom: 30px;">
+        Summary for ${courseStatsArray.length} course${courseStatsArray.length !== 1 ? 's' : ''}
+      </p>
     `;
   }
 
-  static buildCourseHeader(course: CourseModel): string {
+  static wrapCourseContent(course: CourseModel, content: string): string {
     return `
       <div style="background-color: #f8f9fa; border-left: 4px solid #3498db; padding: 20px; margin-bottom: 30px; border-radius: 5px;">
         <h2 style="color: #2c3e50; margin-top: 0;">${course.name}</h2>
+        ${content}
+      </div>
     `;
   }
 
@@ -155,8 +181,7 @@ export class WeeklySummaryBuilder {
           No activity in the past 4 weeks. You may want to <a href="${process.env.DOMAIN}/course/${course.id}/settings" style="color: #856404; text-decoration: underline; font-weight: bold;">archive this course</a> if the semester has ended.
         </p>
       </div>
-    </div>
-  `;
+    `;
   }
 
   static buildAsyncQuestionsSection(asyncStats: AsyncQuestionStats, asyncQuestionsNeedingHelp: AsyncQuestionDetailData[], course: CourseModel): string {
@@ -411,18 +436,17 @@ export class WeeklySummaryBuilder {
 
   static buildFooter(): string {
     return `
-      </div>
       <hr style="border: 1px solid #ecf0f1; margin: 30px 0;">
       <p style="color: #95a5a6; font-size: 12px; text-align: center;">
         Weekly summary from HelpMe.<br>
         Manage your email preferences in <a href="${process.env.DOMAIN}/profile" style="color: #7f8c8d; text-decoration: underline;">settings</a>.
       </p>
-    </div>
-  `;
+    `;
   }
 
   static buildConsolidatedEmail(courseStatsArray: CourseStatsData[], weekStartDate: Date): string {
-    let html = this.buildHeader(courseStatsArray, weekStartDate);
+    let emailBody = '';
+    emailBody += this.buildHeader(courseStatsArray, weekStartDate);
 
     for (const courseData of courseStatsArray) {
       const {
@@ -440,33 +464,41 @@ export class WeeklySummaryBuilder {
         suggestArchive,
       } = courseData;
 
-      html += this.buildCourseHeader(course);
-      html += this.buildNewStudentsSection(newStudents, course);
+      let courseBody = '';
+      courseBody += this.buildNewStudentsSection(newStudents, course);
 
       if (suggestArchive) {
-        html += this.buildArchiveSuggestionSection(course);
-        continue;
-      }
-
-      const hasActivity = chatbotStats.totalQuestions > 0 || asyncStats.total > 0 || queueStats.totalQuestions > 0;
-
-      if (!hasActivity) {
-        html += `<p style="color: #7f8c8d; font-style: italic;">No activity this week.</p></div>`;
+        courseBody += this.buildArchiveSuggestionSection(course);
       } else {
-        html += this.buildAsyncQuestionsSection(asyncStats, asyncQuestionsNeedingHelp, course);
-        html += this.buildChatbotActivitySection(chatbotStats);
-        html += this.buildQueueSection(queueStats);
-        html += this.buildMostActiveDaysSection(mostActiveDays, queueStats);
-        html += this.buildPeakHoursSection(peakHours, queueStats);
-        html += this.buildTopStudentsSection(topStudents);
-        html += this.buildStaffPerformanceSection(staffPerformance);
-        html += this.buildRecommendationsSection(recommendations);
-        html += `</div>`;
+        const hasActivity = chatbotStats.totalQuestions > 0 || asyncStats.total > 0 || queueStats.totalQuestions > 0;
+
+        if (!hasActivity) {
+          courseBody += `<p style="color: #7f8c8d; font-style: italic;">No activity this week.</p>`;
+        } else {
+          courseBody += this.buildAsyncQuestionsSection(asyncStats, asyncQuestionsNeedingHelp, course);
+          courseBody += this.buildChatbotActivitySection(chatbotStats);
+          courseBody += this.buildQueueSection(queueStats);
+          courseBody += this.buildMostActiveDaysSection(mostActiveDays, queueStats);
+          courseBody += this.buildPeakHoursSection(peakHours, queueStats);
+          courseBody += this.buildTopStudentsSection(topStudents);
+          courseBody += this.buildStaffPerformanceSection(staffPerformance);
+          courseBody += this.buildRecommendationsSection(recommendations);
+        }
       }
+
+      emailBody += this.wrapCourseContent(course, courseBody);
     }
 
-    html += this.buildFooter();
+    emailBody += this.buildFooter();
 
-    return html;
+    const finalHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+        ${emailBody}
+      </div>
+    `;
+
+    validateHtml(finalHtml);
+
+    return finalHtml;
   }
 }
