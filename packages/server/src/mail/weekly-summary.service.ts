@@ -45,7 +45,6 @@ export class WeeklySummaryService {
     private insightsService: InsightsService,
   ) {}
 
-  // Run every week
   // Run every Monday at 9am
   @Cron('0 0 9 * * 1') 
   async sendWeeklySummaries() {
