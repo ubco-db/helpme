@@ -46,7 +46,8 @@ export class WeeklySummaryService {
   ) {}
 
   // Run every week
-  @Cron(CronExpression.EVERY_WEEK) 
+  // Run every Monday at 9am
+  @Cron('0 0 9 * * 1') 
   async sendWeeklySummaries() {
     const startTime = Date.now();
 
