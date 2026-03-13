@@ -379,7 +379,7 @@ export class WeeklySummaryBuilder {
           <tr style="background-color: #ecf0f1;">
             <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Staff Member</th>
             <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Queue Questions</th>
-            <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Async Questions</th>
+            <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Anytime Questions</th>
             <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Avg Queue Help Time</th>
           </tr>
         </thead>
