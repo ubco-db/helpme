@@ -239,7 +239,6 @@ export class WeeklySummaryBuilder {
       <h3 style="color: #3498db; margin-top: 0;">Chatbot Activity</h3>
       <ul style="line-height: 1.8; color: #34495e;">
         <li><strong>${chatbotStats.totalQuestions}</strong> questions asked by <strong>${chatbotStats.uniqueStudents}</strong> unique student${chatbotStats.uniqueStudents !== 1 ? 's' : ''}</li>
-        <li>Average: <strong>${chatbotStats.avgQuestionsPerStudent.toFixed(1)}</strong> questions per student</li>
       </ul>
       
       <h4 style="color: #34495e;">Daily Breakdown:</h4>
