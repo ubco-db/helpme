@@ -185,6 +185,8 @@ export class WeeklySummaryBuilder {
   }
 
   static buildAsyncQuestionsSection(asyncStats: AsyncQuestionStats, asyncQuestionsNeedingHelp: AsyncQuestionDetailData[], course: CourseModel): string {
+    if (course.courseSettings?.asyncQueueEnabled === false) return '';
+
     let html = `
       <h3 style="color: #e74c3c; margin-top: 20px;">Anytime Questions</h3>
       <ul style="line-height: 1.8; color: #34495e;">
@@ -368,32 +370,34 @@ export class WeeklySummaryBuilder {
     return html;
   }
 
-  static buildStaffPerformanceSection(staffPerformance: StaffPerformanceData[]): string {
+  static buildStaffPerformanceSection(staffPerformance: StaffPerformanceData[], course: CourseModel): string {
     if (staffPerformance.length === 0) return '';
+
+    const queueEnabled = course.courseSettings?.queueEnabled !== false;
+    const asyncEnabled = course.courseSettings?.asyncQueueEnabled !== false;
+
+    let headerRow = `<th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Staff Member</th>`;
+    if (queueEnabled) headerRow += `<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Queue Questions</th>`;
+    if (asyncEnabled) headerRow += `<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Anytime Questions</th>`;
+    if (queueEnabled) headerRow += `<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Avg Queue Help Time</th>`;
 
     let html = `
       <h3 style="color: #8e44ad; margin-top: 20px;">Staff Performance</h3>
       <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
         <thead>
           <tr style="background-color: #ecf0f1;">
-            <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Staff Member</th>
-            <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Queue Questions</th>
-            <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Anytime Questions</th>
-            <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Avg Queue Help Time</th>
+            ${headerRow}
           </tr>
         </thead>
         <tbody>
     `;
 
     staffPerformance.forEach((staff) => {
-      html += `
-        <tr>
-          <td style="padding: 8px; border: 1px solid #ddd;">${staff.name}</td>
-          <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${staff.questionsHelped}</td>
-          <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${staff.asyncQuestionsHelped}</td>
-          <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${staff.avgHelpTime !== null ? staff.avgHelpTime.toFixed(1) + ' min' : 'N/A'}</td>
-        </tr>
-      `;
+      let dataRow = `<td style="padding: 8px; border: 1px solid #ddd;">${staff.name}</td>`;
+      if (queueEnabled) dataRow += `<td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${staff.questionsHelped}</td>`;
+      if (asyncEnabled) dataRow += `<td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${staff.asyncQuestionsHelped}</td>`;
+      if (queueEnabled) dataRow += `<td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${staff.avgHelpTime !== null ? staff.avgHelpTime.toFixed(1) + ' min' : 'N/A'}</td>`;
+      html += `<tr>${dataRow}</tr>`;
     });
 
     html += `
@@ -469,18 +473,25 @@ export class WeeklySummaryBuilder {
       if (suggestArchive) {
         courseBody += this.buildArchiveSuggestionSection(course);
       } else {
-        const hasActivity = chatbotStats.totalQuestions > 0 || asyncStats.total > 0 || queueStats.totalQuestions > 0;
+        const queueEnabled = course.courseSettings?.queueEnabled !== false;
+        const asyncEnabled = course.courseSettings?.asyncQueueEnabled !== false;
+        const chatbotEnabled = course.courseSettings?.chatBotEnabled !== false;
+
+        const hasActivity =
+          (chatbotEnabled && chatbotStats.totalQuestions > 0) ||
+          (asyncEnabled && asyncStats.total > 0) ||
+          (queueEnabled && queueStats.totalQuestions > 0);
 
         if (!hasActivity) {
           courseBody += `<p style="color: #7f8c8d; font-style: italic;">No activity this week.</p>`;
         } else {
-          courseBody += this.buildAsyncQuestionsSection(asyncStats, asyncQuestionsNeedingHelp, course);
-          courseBody += this.buildChatbotActivitySection(chatbotStats);
-          courseBody += this.buildQueueSection(queueStats);
-          courseBody += this.buildMostActiveDaysSection(mostActiveDays, queueStats);
-          courseBody += this.buildPeakHoursSection(peakHours, queueStats);
-          courseBody += this.buildTopStudentsSection(topStudents);
-          courseBody += this.buildStaffPerformanceSection(staffPerformance);
+          if (asyncEnabled) courseBody += this.buildAsyncQuestionsSection(asyncStats, asyncQuestionsNeedingHelp, course);
+          if (chatbotEnabled) courseBody += this.buildChatbotActivitySection(chatbotStats);
+          if (queueEnabled) courseBody += this.buildQueueSection(queueStats);
+          if (queueEnabled) courseBody += this.buildMostActiveDaysSection(mostActiveDays, queueStats);
+          if (queueEnabled) courseBody += this.buildPeakHoursSection(peakHours, queueStats);
+          if (queueEnabled) courseBody += this.buildTopStudentsSection(topStudents);
+          courseBody += this.buildStaffPerformanceSection(staffPerformance, course);
           courseBody += this.buildRecommendationsSection(recommendations);
         }
       }
