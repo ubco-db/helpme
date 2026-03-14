@@ -370,7 +370,7 @@ export class WeeklySummaryBuilder {
     let headerRow = `<th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Staff Member</th>`;
     if (queueEnabled) headerRow += `<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Queue Questions</th>`;
     if (asyncEnabled) headerRow += `<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Anytime Questions</th>`;
-    if (queueEnabled) headerRow += `<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Avg Help Time</th>`;
+    if (queueEnabled) headerRow += `<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Avg Queue Help Time</th>`;
 
     let html = `
       <h3 style="color: #8e44ad; margin-top: 20px;">Staff Performance</h3>
