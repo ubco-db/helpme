@@ -314,7 +314,7 @@ export class WeeklySummaryBuilder {
     const totalQuestions = mostActiveDays.byDayOfWeek.reduce((sum, d) => sum + d.count, 0);
 
     let html = `
-      <h3 style="color: #16a085; margin-top: 20px;">Most Active Days</h3>
+      <h3 style="color: #16a085; margin-top: 20px;">Queue Activity</h3>
       <p style="color: #7f8c8d; margin-bottom: 10px;">Queue activity by day of the week:</p>
     `;
 
