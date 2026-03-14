@@ -16,7 +16,6 @@ import { CalendarModel } from '../calendar/calendar.entity';
 import { InsightsService } from '../insights/insights.service';
 import {
   MostActiveStudents,
-  AverageTimesByWeekDay,
   MostActiveTimes,
   StaffTotalHelped,
 } from '../insights/insight-objects';
@@ -242,6 +241,10 @@ export class WeeklySummaryService {
           emailsSent++;
         } catch (error) {
           emailsFailed++;
+          console.error(
+            `[WeeklySummary] Failed to send email for professor ${professorId} (${courses.length} courses):`,
+            error,
+          );
           Sentry.captureException(error, {
             extra: {
               professorId,
@@ -547,18 +550,31 @@ export class WeeklySummaryService {
     since: Date,
   ): Promise<MostActiveDaysData> {
     //get question counts by day of week for queue questions
-    const insight = await this.insightsService.computeOutput({
-      insight: AverageTimesByWeekDay,
-      filters: [
-        { type: 'courseId', courseId },
-        { type: 'timeframe', start: since, end: new Date() },
-      ],
+    const questions = await QuestionModel.createQueryBuilder('q')
+      .innerJoin('q.queue', 'queue')
+      .where('queue.courseId = :courseId', { courseId })
+      .andWhere('q.createdAt >= :since', { since })
+      .getMany();
+
+    const dayNames = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
+    const dayCounts = new Array(7).fill(0);
+
+    questions.forEach((q) => {
+      const dayOfWeek = new Date(q.createdAt).getDay();
+      dayCounts[dayOfWeek]++;
     });
 
-    const chartData = insight as ChartOutputType;
-    const byDayOfWeek = chartData.data.map((item: any) => ({
-      day: item.weekday,
-      count: parseInt(item.Total_Time || 0),
+    const byDayOfWeek = dayNames.map((day, index) => ({
+      day,
+      count: dayCounts[index],
     }));
 
     let mostActiveDay = 'No activity';
@@ -615,16 +631,28 @@ export class WeeklySummaryService {
       return `${displayHours}:${mins.toString().padStart(2, '0')}${suffix}`;
     };
 
-    timeCountMap.forEach((count, time) => {
-      if (count > avgCount * 1.2) {
-        peakHours.push(formatHour(time));
-      } else if (count < avgCount * 0.5) {
-        const hour = Math.floor(time / 60);
-        if (hour >= 8 && hour <= 22) {
-          quietHours.push(formatHour(time));
+    const sortedTimes = Array.from(timeCountMap.entries())
+      .sort((a, b) => b[1] - a[1]);
+
+    const maxCount = sortedTimes[0][1];
+    const minCount = sortedTimes[sortedTimes.length - 1][1];
+
+    if (maxCount > minCount) {
+      sortedTimes.forEach(([time, count]) => {
+        if (count > avgCount) {
+          peakHours.push(formatHour(time));
+        } else if (count < avgCount) {
+          const hour = Math.floor(time / 60);
+          if (hour >= 8 && hour <= 22) {
+            quietHours.push(formatHour(time));
+          }
         }
-      }
-    });
+      });
+    } else {
+      sortedTimes.forEach(([time]) => {
+        peakHours.push(formatHour(time));
+      });
+    }
 
     return { peakHours, quietHours };
   }
@@ -666,7 +694,7 @@ export class WeeklySummaryService {
     if (queueStats.avgWaitTime !== null && queueStats.avgWaitTime > 30) {
       recommendations.push({
         type: 'warning',
-        message: `Average wait time is ${queueStats.avgWaitTime.toFixed(1)} minutes. Consider adding more office hours${peakHours.peakHours.length > 0 ? ` during peak times (${peakHours.peakHours.slice(0, 3).join(', ')})` : ''}.`,
+        message: `Average wait time is ${queueStats.avgWaitTime.toFixed(1)} minutes. Consider having longer queue sessions or add additional staff, if possible.`,
       });
     }
 

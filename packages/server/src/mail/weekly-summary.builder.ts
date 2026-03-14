@@ -164,8 +164,10 @@ export class WeeklySummaryBuilder {
     html += `
         </ul>
         <p style="color: #2e7d32; font-size: 14px; margin: 10px 0 0 0;">
-          <em>If any of these students should not be in the course, please remove them from the course under <a href="${process.env.DOMAIN}/course/${course.id}/settings/roster" style="color: #1b5e20; text-decoration: underline;">Course Roster</a> 
-          and either disable or change the course invite link under <a href="${process.env.DOMAIN}/course/${course.id}/settings" style="color: #1b5e20; text-decoration: underline;">Course Settings</a>.</em>
+          <span style="font-style: italic;">If any of these students should not be in the course, please remove them from the course under 
+          <a href="${process.env.DOMAIN}/course/${course.id}/settings/roster" style="color: #1b5e20; text-decoration: underline;">Course Roster</a> 
+          and either disable or change the course invite link under 
+          <a href="${process.env.DOMAIN}/course/${course.id}/settings" style="color: #1b5e20; text-decoration: underline;">Course Settings</a>.</span>
         </p>
       </div>
     `;
@@ -245,6 +247,7 @@ export class WeeklySummaryBuilder {
       
       <h4 style="color: #34495e;">Daily Breakdown:</h4>
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <tbody>
     `;
 
     chatbotStats.byDayOfWeek.forEach((dayData) => {
@@ -262,8 +265,7 @@ export class WeeklySummaryBuilder {
       }
     });
 
-    html += `</table>`;
-
+    html += `</tbody></table>`; 
     return html;
   }
 
@@ -300,6 +302,7 @@ export class WeeklySummaryBuilder {
       <h3 style="color: #16a085; margin-top: 20px;">Most Active Days</h3>
       <p style="color: #7f8c8d; margin-bottom: 10px;">Queue activity by day of the week:</p>
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <tbody>
     `;
 
     mostActiveDays.byDayOfWeek.forEach((dayData) => {
@@ -319,8 +322,8 @@ export class WeeklySummaryBuilder {
     });
 
     html += `
+        </tbody>
       </table>
-      <p style="color: #16a085; font-size: 14px; margin: 0;"><strong>Busiest day:</strong> ${mostActiveDays.mostActiveDay}</p>
     `;
 
     return html;
@@ -354,8 +357,7 @@ export class WeeklySummaryBuilder {
     if (topStudents.length === 0) return '';
 
     let html = `
-      <h3 style="color: #f39c12; margin-top: 20px;">Most Active Students</h3>
-      <p style="color: #7f8c8d; margin-bottom: 10px;">Top students by queue questions asked this week:</p>
+      <h3 style="color: #f39c12; margin-top: 20px;">Most Queue Questions</h3>
       <ol style="line-height: 1.8; color: #34495e;">
     `;
 
