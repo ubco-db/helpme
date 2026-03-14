@@ -234,36 +234,53 @@ export class WeeklySummaryBuilder {
     return html;
   }
 
-  static buildChatbotActivitySection(chatbotStats: ChatbotStats): string {
-    if (chatbotStats.totalQuestions === 0) return '';
-
+  private static buildDayOfWeekBarChart(
+    dayData: { day: string; count: number }[],
+    totalQuestions: number,
+    barColor: string,
+    highlightDay?: string,
+  ): string {
     let html = `
-      <h3 style="color: #3498db; margin-top: 0;">Chatbot Activity</h3>
-      <ul style="line-height: 1.8; color: #34495e;">
-        <li><strong>${chatbotStats.totalQuestions}</strong> questions asked by <strong>${chatbotStats.uniqueStudents}</strong> unique student${chatbotStats.uniqueStudents !== 1 ? 's' : ''}</li>
-      </ul>
-      
-      <h4 style="color: #34495e;">Daily Breakdown:</h4>
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
         <tbody>
     `;
 
-    chatbotStats.byDayOfWeek.forEach((dayData) => {
-      if (dayData.count > 0) {
-        const barWidth = Math.max((dayData.count / chatbotStats.totalQuestions) * 100, 5);
-        html += `
-          <tr>
-            <td style="padding: 5px; width: 100px; color: #34495e;">${dayData.day}:</td>
-            <td style="padding: 5px;">
-              <div style="background-color: #3498db; height: 20px; width: ${barWidth}%; display: inline-block; border-radius: 3px;"></div>
-              <span style="margin-left: 10px; color: #34495e;">${dayData.count}</span>
-            </td>
-          </tr>
-        `;
-      }
+    dayData.forEach((day) => {
+      const barWidth = day.count > 0 ? Math.max((day.count / totalQuestions) * 100, 5) : 0;
+      const isHighlighted = highlightDay && day.day === highlightDay;
+      html += `
+        <tr>
+          <td style="padding: 5px; width: 100px; color: #34495e; font-weight: ${isHighlighted ? 'bold' : 'normal'};">${day.day}:</td>
+          <td style="padding: 5px;">
+            ${barWidth > 0 ? `<div style="background-color: ${isHighlighted ? barColor : '#95a5a6'}; height: 20px; width: ${barWidth}%; display: inline-block; border-radius: 3px;"></div>` : ''}
+            <span style="margin-left: ${barWidth > 0 ? '10px' : '0'}; color: ${day.count > 0 ? '#34495e' : '#bdc3c7'}; font-weight: ${isHighlighted ? 'bold' : 'normal'};">${day.count}</span>
+          </td>
+        </tr>
+      `;
     });
 
-    html += `</tbody></table>`; 
+    html += `</tbody></table>`;
+    return html;
+  }
+
+  static buildChatbotActivitySection(chatbotStats: ChatbotStats): string {
+    if (chatbotStats.totalQuestions === 0) return '';
+
+    let html = `
+      <h3 style="color: #3498db; margin-top: 20px;">Chatbot Activity</h3>
+      <ul style="line-height: 1.8; color: #34495e;">
+        <li><strong>${chatbotStats.totalQuestions}</strong> questions asked by <strong>${chatbotStats.uniqueStudents}</strong> unique student${chatbotStats.uniqueStudents !== 1 ? 's' : ''}</li>
+      </ul>
+      <p style="color: #7f8c8d; margin-bottom: 10px;">Chatbot usage by day of the week:</p>
+    `;
+
+    html += this.buildDayOfWeekBarChart(
+      chatbotStats.byDayOfWeek,
+      chatbotStats.totalQuestions,
+      '#3498db',
+      chatbotStats.mostActiveDay,
+    );
+
     return html;
   }
 
@@ -299,30 +316,14 @@ export class WeeklySummaryBuilder {
     let html = `
       <h3 style="color: #16a085; margin-top: 20px;">Most Active Days</h3>
       <p style="color: #7f8c8d; margin-bottom: 10px;">Queue activity by day of the week:</p>
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-        <tbody>
     `;
 
-    mostActiveDays.byDayOfWeek.forEach((dayData) => {
-      if (dayData.count > 0) {
-        const barWidth = Math.max((dayData.count / totalQuestions) * 100, 5);
-        const isMostActive = dayData.day === mostActiveDays.mostActiveDay;
-        html += `
-          <tr>
-            <td style="padding: 5px; width: 100px; color: #34495e; font-weight: ${isMostActive ? 'bold' : 'normal'};">${dayData.day}:</td>
-            <td style="padding: 5px;">
-              <div style="background-color: ${isMostActive ? '#16a085' : '#95a5a6'}; height: 20px; width: ${barWidth}%; display: inline-block; border-radius: 3px;"></div>
-              <span style="margin-left: 10px; color: #34495e; font-weight: ${isMostActive ? 'bold' : 'normal'};">${dayData.count}</span>
-            </td>
-          </tr>
-        `;
-      }
-    });
-
-    html += `
-        </tbody>
-      </table>
-    `;
+    html += this.buildDayOfWeekBarChart(
+      mostActiveDays.byDayOfWeek,
+      totalQuestions,
+      '#16a085',
+      mostActiveDays.mostActiveDay,
+    );
 
     return html;
   }
