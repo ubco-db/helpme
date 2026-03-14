@@ -6,7 +6,7 @@ import { InteractionModel } from '../chatbot/interaction.entity';
 import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
 import { QuestionModel } from '../question/question.entity';
 import { CourseModel } from '../course/course.entity';
-import { MailServiceType, Role } from '@koh/common';
+import { MailServiceType, Role, asyncQuestionStatus } from '@koh/common';
 import { MoreThanOrEqual } from 'typeorm';
 import * as Sentry from '@sentry/nestjs';
 import { UserModel } from '../profile/user.entity';
@@ -18,6 +18,7 @@ import {
   MostActiveStudents,
   MostActiveTimes,
   StaffTotalHelped,
+  StaffEfficiency,
 } from '../insights/insight-objects';
 import { ChartOutputType, GanttChartOutputType, TableOutputType } from '@koh/common';
 import {
@@ -76,7 +77,114 @@ export class WeeklySummaryService {
       let emailsSent = 0;
       let emailsFailed = 0;
 
-      // Process each professor with all their courses
+      // Pre-calculated statistics for each course to avoid repeating the same calculations when multiple professors have the same course
+      const courseStatsCache = new Map<number, CourseStatsData>();
+      const uniqueCourseEntries = new Map<number, { courseId: number; course: CourseModel }>();
+      for (const courses of professorMap.values()) {
+        for (const pc of courses) {
+          if (!uniqueCourseEntries.has(pc.courseId)) {
+            uniqueCourseEntries.set(pc.courseId, { courseId: pc.courseId, course: pc.course });
+          }
+        }
+      }
+
+      for (const [courseId, { course }] of uniqueCourseEntries.entries()) {
+        try {
+          const chatbotStats = await this.getChatbotStats(courseId, lastWeek);
+          const newStudents = await this.getNewStudents(courseId, lastWeek);
+          const topStudents = await this.getTopActiveStudents(courseId, lastWeek);
+          const staffPerformance = await this.getStaffPerformance(courseId, lastWeek);
+          const mostActiveDays = await this.getMostActiveDays(courseId, lastWeek);
+          const peakHours = await this.getPeakHours(courseId, lastWeek);
+
+          let asyncStats: AsyncQuestionStats;
+          let asyncQuestionsNeedingHelp: AsyncQuestionDetailData[] = [];
+          try {
+            asyncStats = await this.getAsyncQuestionStats(courseId, lastWeek);
+            asyncQuestionsNeedingHelp = await this.getAsyncQuestionsNeedingHelp(courseId);
+          } catch (error) {
+            console.error(
+              `[WeeklySummary] Failed to get async question stats for course ${courseId}:`,
+              error,
+            );
+            Sentry.captureException(error, {
+              extra: { courseId, section: 'asyncQuestionStats' },
+            });
+            asyncStats = {
+              total: 0,
+              aiResolved: 0,
+              humanAnswered: 0,
+              stillNeedHelp: 0,
+              withNewComments: 0,
+              avgResponseTime: 0,
+            };
+            asyncQuestionsNeedingHelp = [];
+          }
+
+          let queueStats: QueueStats;
+          try {
+            queueStats = await this.getQueueStats(courseId, lastWeek);
+          } catch (error) {
+            console.error(
+              `[WeeklySummary] Failed to get queue stats for course ${courseId}:`,
+              error,
+            );
+            Sentry.captureException(error, {
+              extra: { courseId, section: 'queueStats' },
+            });
+            queueStats = {
+              totalQuestions: 0,
+              uniqueStudents: 0,
+              avgWaitTime: null,
+              avgHelpTime: null,
+              queueNames: [],
+            };
+          }
+
+          const hasActivity =
+            chatbotStats.totalQuestions > 0 || asyncStats.total > 0 || queueStats.totalQuestions > 0;
+
+          let recommendations: RecommendationData[] = [];
+          let suggestArchive = false;
+
+          if (!hasActivity) {
+            suggestArchive = await this.shouldSuggestArchiving(course);
+          } else {
+            recommendations = await this.generateRecommendations(
+              course,
+              queueStats,
+              asyncStats,
+              peakHours,
+              mostActiveDays,
+            );
+          }
+
+          courseStatsCache.set(courseId, {
+            course,
+            chatbotStats,
+            asyncStats,
+            asyncQuestionsNeedingHelp,
+            queueStats,
+            newStudents,
+            topStudents,
+            staffPerformance,
+            mostActiveDays,
+            peakHours,
+            recommendations,
+            suggestArchive,
+          });
+        } catch (error) {
+          console.error(
+            `[WeeklySummary] Failed to compute stats for course ${courseId}:`,
+            error,
+          );
+          Sentry.captureException(error, {
+            extra: { courseId, section: 'courseStatsComputation' },
+          });
+        }
+      }
+
+      // Send emails to each professor, reusing pre-calculated course statistics
       for (const [professorId, courses] of professorMap.entries()) {
         const professor = courses[0].user;
 
@@ -100,123 +208,17 @@ export class WeeklySummaryService {
             }
           }
 
-          // Gather statistics for all courses
-          const courseStatsArray = [];
+          // Look up pre-computed stats for each of this professor's courses
+          const courseStatsArray: CourseStatsData[] = [];
           for (const professorCourse of courses) {
-            const chatbotStats = await this.getChatbotStats(
-              professorCourse.courseId,
-              lastWeek,
-            );
-            
-            const newStudents = await this.getNewStudents(
-              professorCourse.courseId,
-              lastWeek,
-            );
-            
-            const topStudents = await this.getTopActiveStudents(
-              professorCourse.courseId,
-              lastWeek,
-            );
-            
-            const staffPerformance = await this.getStaffPerformance(
-              professorCourse.courseId,
-              lastWeek,
-            );
-            
-            const mostActiveDays = await this.getMostActiveDays(
-              professorCourse.courseId,
-              lastWeek,
-            );
-            
-            const peakHours = await this.getPeakHours(
-              professorCourse.courseId,
-              lastWeek,
-            );
-            
-            let asyncStats: AsyncQuestionStats;
-            let asyncQuestionsNeedingHelp: AsyncQuestionDetailData[] = [];
-            try {
-              asyncStats = await this.getAsyncQuestionStats(
-                professorCourse.courseId,
-                lastWeek,
-              );
-              asyncQuestionsNeedingHelp = await this.getAsyncQuestionsNeedingHelp(
-                professorCourse.courseId,
-              );
-            } catch (error) {
-              //Return empty stats if there's an error
-              asyncStats = {
-                total: 0,
-                aiResolved: 0,
-                humanAnswered: 0,
-                stillNeedHelp: 0,
-                withNewComments: 0,
-                avgResponseTime: 0,
-              };
-              asyncQuestionsNeedingHelp = [];
+            const cached = courseStatsCache.get(professorCourse.courseId);
+            if (cached) {
+              courseStatsArray.push(cached);
             }
+          }
 
-            let queueStats: QueueStats;
-            try {
-              queueStats = await this.getQueueStats(
-                professorCourse.courseId,
-                lastWeek,
-              );
-            } catch (error) {
-              queueStats = {
-                totalQuestions: 0,
-                uniqueStudents: 0,
-                avgWaitTime: null,
-                avgHelpTime: null,
-                queueNames: [],
-              };
-            }
-
-            const hasActivity =
-              chatbotStats.totalQuestions > 0 || asyncStats.total > 0 || queueStats.totalQuestions > 0;
-            //If no activity, should suggest archiving
-            if (!hasActivity) {
-              const shouldSuggestArchive = await this.shouldSuggestArchiving(
-                professorCourse.course,
-              );
-              courseStatsArray.push({
-                course: professorCourse.course,
-                chatbotStats,
-                asyncStats,
-                asyncQuestionsNeedingHelp,
-                queueStats,
-                newStudents,
-                topStudents,
-                staffPerformance,
-                mostActiveDays,
-                peakHours,
-                recommendations: [],
-                suggestArchive: shouldSuggestArchive,
-              });
-            } else {
-              const recommendations = await this.generateRecommendations(
-                professorCourse.course,
-                queueStats,
-                asyncStats,
-                peakHours,
-                mostActiveDays,
-              );
-              
-              courseStatsArray.push({
-                course: professorCourse.course,
-                chatbotStats,
-                asyncStats,
-                asyncQuestionsNeedingHelp,
-                queueStats,
-                newStudents,
-                topStudents,
-                staffPerformance,
-                mostActiveDays,
-                peakHours,
-                recommendations,
-                suggestArchive: false,
-              });
-            }
+          if (courseStatsArray.length === 0) {
+            continue;
           }
 
           //Build consolidated email with all courses
@@ -225,7 +227,6 @@ export class WeeklySummaryService {
             lastWeek,
           );
 
-          const courseNames = courses.map((c) => c.course.name).join(', ');
           const subject =
             courses.length === 1
               ? `HelpMe Weekly Summary: ${courses[0].course.name} - Week of ${this.formatDate(lastWeek)}`
@@ -249,15 +250,30 @@ export class WeeklySummaryService {
             extra: {
               professorId,
               courseCount: courses.length,
+              courseIds: courses.map((c) => c.courseId),
             },
           });
         }
       }
 
       const duration = Date.now() - startTime;
+      const durationSeconds = (duration / 1000).toFixed(1);
 
+      console.log(
+        `[WeeklySummary] Sent ${emailsSent} emails (${emailsFailed} failed) for Weekly Summary cron job. Took ${durationSeconds}s.`,
+      );
 
+      if (duration > 60000) {
+        Sentry.captureMessage(
+          `Weekly Summary cron job took ${durationSeconds}s to complete (${emailsSent} sent, ${emailsFailed} failed)`,
+          'warning',
+        );
+      }
     } catch (error) {
+      console.error(
+        `[WeeklySummary] Fatal error in sendWeeklySummaries:`,
+        error,
+      );
       Sentry.captureException(error);
     }
   }
@@ -305,51 +321,47 @@ export class WeeklySummaryService {
     courseId: number,
     since: Date,
   ): Promise<AsyncQuestionStats> {
-    try {
-      const questions = (await AsyncQuestionModel.createQueryBuilder('aq')
-        .leftJoinAndSelect('aq.comments', 'comments')
-        .where('aq.courseId = :courseId', { courseId })
-        .andWhere('aq.createdAt >= :since', { since })
-        .getMany()) || [];
-    
+    const questions = (await AsyncQuestionModel.createQueryBuilder('aq')
+      .leftJoinAndSelect('aq.comments', 'comments')
+      .where('aq.courseId = :courseId', { courseId })
+      .andWhere('aq.createdAt >= :since', { since })
+      .getMany()) || [];
 
-      const total = questions.length;
-      const aiResolved = questions.filter(
-        (q) => q.aiAnswerText && q.status === 'AIAnswered',
-      ).length;
-      const humanAnswered = questions.filter(
-        (q) => q.answerText && q.status === 'HumanAnswered',
-      ).length;
-      const stillNeedHelp = questions.filter((q) => !q.closedAt).length;
-      const withNewComments = questions.filter((q) =>
-        q.comments?.some((c) => c.createdAt >= since),
-      ).length;
+    const total = questions.length;
+    const aiResolved = questions.filter(
+      (q) => q.aiAnswerText && q.status === asyncQuestionStatus.AIAnswered,
+    ).length;
+    const humanAnswered = questions.filter(
+      (q) => q.answerText && q.status === asyncQuestionStatus.HumanAnswered,
+    ).length;
+    const stillNeedHelp = questions.filter(
+      (q) => q.status === asyncQuestionStatus.AIAnswered || q.status === asyncQuestionStatus.AIAnsweredNeedsAttention,
+    ).length;
+    const withNewComments = questions.filter((q) =>
+      q.comments?.some((c) => c.createdAt >= since),
+    ).length;
 
-      // Calculate average response time for answered questions
-      const answeredQuestions = (questions || []).filter((q) => q && q.closedAt && q.createdAt);
-      const avgResponseTime =
-        answeredQuestions && answeredQuestions.length > 0
-          ? answeredQuestions.reduce(
-              (sum, q) => {
-                const closedTime = q.closedAt.getTime();
-                const createdTime = new Date(q.createdAt).getTime();
-                return sum + (closedTime - createdTime) / (1000 * 60 * 60);
-              },
-              0,
-            ) / answeredQuestions.length
-          : null;
+    const answeredQuestions = (questions || []).filter((q) => q && q.closedAt && q.createdAt);
+    const avgResponseTime =
+      answeredQuestions && answeredQuestions.length > 0
+        ? answeredQuestions.reduce(
+            (sum, q) => {
+              const closedTime = q.closedAt.getTime();
+              const createdTime = new Date(q.createdAt).getTime();
+              return sum + (closedTime - createdTime) / (1000 * 60 * 60);
+            },
+            0,
+          ) / answeredQuestions.length
+        : null;
 
-      return {
-        total,
-        aiResolved,
-        humanAnswered,
-        stillNeedHelp,
-        withNewComments,
-        avgResponseTime,
-      };
-    } catch (error) {
-      throw error;
-    }
+    return {
+      total,
+      aiResolved,
+      humanAnswered,
+      stillNeedHelp,
+      withNewComments,
+      avgResponseTime,
+    };
   }
 
   private async getAsyncQuestionsNeedingHelp(
@@ -358,7 +370,7 @@ export class WeeklySummaryService {
     const questions = await AsyncQuestionModel.createQueryBuilder('aq')
       .select(['aq.id', 'aq.questionAbstract', 'aq.questionText', 'aq.status', 'aq.createdAt', 'aq.closedAt'])
       .where('aq.courseId = :courseId', { courseId })
-      .andWhere('aq.closedAt IS NULL')
+      .andWhere('aq.status IN (:...statuses)', { statuses: [asyncQuestionStatus.AIAnswered, asyncQuestionStatus.AIAnsweredNeedsAttention] })
       .orderBy('aq.createdAt', 'ASC')
       .getMany();
     
@@ -504,23 +516,42 @@ export class WeeklySummaryService {
     courseId: number,
     since: Date,
   ): Promise<StaffPerformanceData[]> {
-    const insight = await this.insightsService.computeOutput({
+    const filters = [
+      { type: 'courseId' as const, courseId },
+      { type: 'timeframe' as const, start: since, end: new Date() },
+    ];
+
+    const totalHelpedInsight = await this.insightsService.computeOutput({
       insight: StaffTotalHelped,
-      filters: [
-        { type: 'courseId', courseId },
-        { type: 'timeframe', start: since, end: new Date() },
-      ],
+      filters,
     });
 
-    const chartData = insight as ChartOutputType;
-    return chartData.data
-      .map((item: any) => ({
-        id: 0, 
-        name: item.staffMember,
-        questionsHelped: parseInt(item.Queue_Questions_Helped || 0),
-        asyncQuestionsHelped: parseInt(item.Anytime_Questions_Helped || 0),
-        avgHelpTime: null, 
-      }))
+    const efficiencyInsight = await this.insightsService.computeOutput({
+      insight: StaffEfficiency,
+      filters,
+    });
+
+    const totalHelpedData = (totalHelpedInsight as ChartOutputType).data;
+    const efficiencyData = (efficiencyInsight as ChartOutputType).data;
+
+    const efficiencyMap = new Map<string, { avgHelpTime: number }>();
+    efficiencyData.forEach((item: any) => {
+      efficiencyMap.set(item.staffMember, {
+        avgHelpTime: parseFloat(item.Average_Help_Time),
+      });
+    });
+
+    return totalHelpedData
+      .map((item: any) => {
+        const efficiency = efficiencyMap.get(item.staffMember);
+        return {
+          id: 0,
+          name: item.staffMember,
+          questionsHelped: parseInt(item.Queue_Questions_Helped || 0),
+          asyncQuestionsHelped: parseInt(item.Anytime_Questions_Helped || 0),
+          avgHelpTime: efficiency?.avgHelpTime ?? null,
+        };
+      })
       .sort((a, b) => (b.questionsHelped + b.asyncQuestionsHelped) - (a.questionsHelped + a.asyncQuestionsHelped));
   }
 
@@ -608,7 +639,7 @@ export class WeeklySummaryService {
     const ganttData = insight as GanttChartOutputType;
     
     if (!ganttData.data || ganttData.data.length === 0) {
-      return { peakHours: [], quietHours: [] };
+      return { peakHours: [] };
     }
 
     const timeCountMap = new Map<number, number>();
@@ -621,7 +652,6 @@ export class WeeklySummaryService {
     const totalCount = Array.from(timeCountMap.values()).reduce((a, b) => a + b, 0);
     const avgCount = totalCount / timeCountMap.size;
     const peakHours: string[] = [];
-    const quietHours: string[] = [];
 
     const formatHour = (minutes: number): string => {
       const hours = Math.floor(minutes / 60);
@@ -641,11 +671,6 @@ export class WeeklySummaryService {
       sortedTimes.forEach(([time, count]) => {
         if (count > avgCount) {
           peakHours.push(formatHour(time));
-        } else if (count < avgCount) {
-          const hour = Math.floor(time / 60);
-          if (hour >= 8 && hour <= 22) {
-            quietHours.push(formatHour(time));
-          }
         }
       });
     } else {
@@ -654,7 +679,7 @@ export class WeeklySummaryService {
       });
     }
 
-    return { peakHours, quietHours };
+    return { peakHours };
   }
 
   private async generateRecommendations(

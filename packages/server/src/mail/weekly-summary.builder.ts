@@ -57,7 +57,6 @@ export interface MostActiveDaysData {
 
 export interface PeakHoursData {
   peakHours: string[];
-  quietHours: string[];
 }
 
 export interface AsyncQuestionDetailData {
@@ -103,7 +102,7 @@ function validateHtml(html: string): void {
     if (difference > 0) {
       errorMsg = `Invalid HTML: You have ${difference} unclosed tag(s).`;
     } else {
-      errorMsg = `Invalid HTML:You have ${Math.abs(difference)} orphaned closing tag(s) without opening tags.`;
+      errorMsg = `Invalid HTML: You have ${Math.abs(difference)} orphaned closing tag(s) without opening tags.`;
     }
     throw new Error(errorMsg);
   }  
@@ -111,7 +110,6 @@ function validateHtml(html: string): void {
     throw new Error(`Invalid HTML: Structure significantly modified after parsing.`);
   }
 }
-
 export class WeeklySummaryBuilder {
   static formatDate(date: Date): string {
     return date.toLocaleDateString('en-US', {
@@ -330,25 +328,15 @@ export class WeeklySummaryBuilder {
   }
 
   static buildPeakHoursSection(peakHours: PeakHoursData, queueStats: QueueStats): string {
-    if (queueStats.totalQuestions === 0 || (peakHours.peakHours.length === 0 && peakHours.quietHours.length === 0)) return '';
+    if (queueStats.totalQuestions === 0 || peakHours.peakHours.length === 0) return '';
 
     let html = `<h3 style="color: #e67e22; margin-top: 20px;">Peak Hours</h3>`;
 
-    if (peakHours.peakHours.length > 0) {
-      html += `
-        <p style="color: #34495e; margin-bottom: 10px;">
-          <strong>Busiest times:</strong> <span style="color: #e67e22;">${peakHours.peakHours.join(', ')}</span>
-        </p>
-      `;
-    }
-
-    if (peakHours.quietHours.length > 0) {
-      html += `
-        <p style="color: #34495e; margin-top: 5px;">
-          <strong>Quieter times:</strong> <span style="color: #7f8c8d;">${peakHours.quietHours.join(', ')}</span>
-        </p>
-      `;
-    }
+    html += `
+      <p style="color: #34495e; margin-bottom: 10px;">
+        <strong>Busiest times:</strong> <span style="color: #e67e22;">${peakHours.peakHours.join(', ')}</span>
+      </p>
+    `;
 
     return html;
   }
@@ -381,7 +369,7 @@ export class WeeklySummaryBuilder {
     let headerRow = `<th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Staff Member</th>`;
     if (queueEnabled) headerRow += `<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Queue Questions</th>`;
     if (asyncEnabled) headerRow += `<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Anytime Questions</th>`;
-    if (queueEnabled) headerRow += `<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Avg Queue Help Time</th>`;
+    if (queueEnabled) headerRow += `<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Avg Help Time</th>`;
 
     let html = `
       <h3 style="color: #8e44ad; margin-top: 20px;">Staff Performance</h3>
