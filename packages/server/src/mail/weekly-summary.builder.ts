@@ -18,6 +18,8 @@ export interface AsyncQuestionStats {
   stillNeedHelp: number;
   withNewComments: number;
   avgResponseTime: number | null;
+  byDayOfWeek: { day: string; count: number }[];
+  mostActiveDay: string;
 }
 
 export interface QueueStats {
@@ -202,6 +204,16 @@ export class WeeklySummaryBuilder {
     }
 
     html += `</ul>`;
+
+    if (asyncStats.total > 0 && asyncStats.byDayOfWeek.some((d) => d.count > 0)) {
+      html += `<p style="color: #7f8c8d; margin-bottom: 10px;">Anytime question activity by day of the week:</p>`;
+      html += this.buildDayOfWeekBarChart(
+        asyncStats.byDayOfWeek,
+        asyncStats.total,
+        '#e74c3c',
+        asyncStats.mostActiveDay,
+      );
+    }
 
     if (asyncQuestionsNeedingHelp.length > 0) {
       html += `

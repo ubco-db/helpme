@@ -117,6 +117,8 @@ export class WeeklySummaryService {
               stillNeedHelp: 0,
               withNewComments: 0,
               avgResponseTime: 0,
+              byDayOfWeek: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day) => ({ day, count: 0 })),
+              mostActiveDay: 'N/A',
             };
             asyncQuestionsNeedingHelp = [];
           }
@@ -354,6 +356,23 @@ export class WeeklySummaryService {
           ) / answeredQuestions.length
         : null;
 
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayCounts = new Array(7).fill(0);
+    questions.forEach((q) => {
+      const dayOfWeek = new Date(q.createdAt).getDay();
+      dayCounts[dayOfWeek]++;
+    });
+    const byDayOfWeek = dayNames.map((day, index) => ({ day, count: dayCounts[index] }));
+
+    let mostActiveDay = 'No activity';
+    let maxCount = 0;
+    byDayOfWeek.forEach((d) => {
+      if (d.count > maxCount) {
+        maxCount = d.count;
+        mostActiveDay = d.day;
+      }
+    });
+
     return {
       total,
       aiResolved,
@@ -361,6 +380,8 @@ export class WeeklySummaryService {
       stillNeedHelp,
       withNewComments,
       avgResponseTime,
+      byDayOfWeek,
+      mostActiveDay,
     };
   }
 
