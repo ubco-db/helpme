@@ -45,8 +45,8 @@ export class WeeklySummaryService {
     private insightsService: InsightsService,
   ) {}
 
-  // Run every Monday at 9am
-  @Cron('0 0 0 * * 1') 
+  // Run every Monday at midnight
+  @Cron('0 0 0 * * 1')  
   async sendWeeklySummaries() {
     const startTime = Date.now();
 
@@ -329,7 +329,7 @@ export class WeeklySummaryService {
 
     const total = questions.length;
     const aiResolved = questions.filter(
-      (q) => q.aiAnswerText && q.status === asyncQuestionStatus.AIAnswered,
+      (q) => q.aiAnswerText && q.status === asyncQuestionStatus.AIAnsweredResolved,
     ).length;
     const humanAnswered = questions.filter(
       (q) => q.answerText && q.status === asyncQuestionStatus.HumanAnswered,
