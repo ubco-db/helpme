@@ -8,6 +8,12 @@ const NavigationContext = React.createContext<{
   orientation?: 'vertical' | 'horizontal'
 }>({})
 
+type NavigationMenuProps = React.ComponentPropsWithoutRef<
+  typeof NavigationMenuPrimitive.Root
+> & {
+  showViewport?: boolean
+}
+
 /**
  * This is a shadcn navigation menu component. It is mostly the same as the default except with darker hover styles as well as more padding on its elements.
  * It also has custom styles for the submenu (i.e. the "Queues" tab) and support for vertical orientation
@@ -16,8 +22,8 @@ const NavigationContext = React.createContext<{
  */
 const NavigationMenu = React.forwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Root>
->(({ className, children, ...props }, ref) => (
+  NavigationMenuProps
+>(({ className, children, showViewport = true, ...props }, ref) => (
   <NavigationContext.Provider value={{ orientation: props.orientation }}>
     <NavigationMenuPrimitive.Root
       ref={ref}
@@ -32,7 +38,7 @@ const NavigationMenu = React.forwardRef<
       {...props}
     >
       {children}
-      <NavigationMenuViewport />
+      {showViewport && <NavigationMenuViewport />}
     </NavigationMenuPrimitive.Root>
   </NavigationContext.Provider>
 ))
