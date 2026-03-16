@@ -55,7 +55,7 @@ const DrawerContent = React.forwardRef<
           (!direction || direction === 'bottom') &&
             'inset-x-0 bottom-0 mt-24 rounded-t-[10px]',
           direction === 'left' &&
-            'left-0 top-0 h-full w-[60vw] max-w-80 rounded-r-[10px]',
+            'left-0 top-0 max-h-[100dvh] w-[60vw] max-w-80 overflow-y-auto overflow-x-hidden rounded-r-[10px]',
           className,
         )}
         style={{

@@ -3,7 +3,6 @@
 import React, {
   HTMLAttributeAnchorTarget,
   useCallback,
-  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -20,6 +19,7 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
   navigationMenuTriggerStyleForSubMenu,
+  useNavigationOrientation,
 } from '@/app/components/ui/navigation-menu'
 import NextLink from 'next/link'
 import { SelfAvatar } from './UserAvatar'
@@ -83,6 +83,7 @@ const Link = ({
   isCompactDesktop?: boolean
 }) => {
   const pathname = usePathname()
+  const { orientation } = useNavigationOrientation()
   const isActive = href === pathname
   const isLogout = href.startsWith('/api/v1/logout')
 
@@ -91,13 +92,13 @@ const Link = ({
       <NextLink
         href={href}
         prefetch={isLogout ? false : undefined}
-        className={
-          (isSubMenuLink
+        className={cn(
+          isSubMenuLink
             ? navigationMenuTriggerStyleForSubMenu()
-            : cn(navigationMenuTriggerStyle(), isCompactDesktop && '!px-2')) +
-          ' ' +
-          className
-        }
+            : navigationMenuTriggerStyle(orientation),
+          isCompactDesktop && '!px-2',
+          className,
+        )}
         onClick={onClick}
         target={target}
       >
@@ -180,18 +181,28 @@ const NavBar = ({
     userInfo?.organization?.orgId ?? -1,
   )
   const router = useRouter()
-  const showDesktopPresentation =
-    orientation === 'horizontal' && !forceDrawerPresentation
   const showDrawerPresentation =
     orientation === 'vertical' || forceDrawerPresentation
   const courseFeatures = useCourseFeatures(courseId)
   const role = courseId ? getRoleInCourse(userInfo, courseId) : null
   const compactTopLevelClass = isCompactDesktop ? '!pl-1.5 !pr-2' : ''
-
+  const drawerTopLevelItemClass = showDrawerPresentation ? 'w-full' : ''
+  const horizontalInsetClass = !showDrawerPresentation ? 'md:pl-8' : ''
+  const horizontalInsetImportantClass = !showDrawerPresentation
+    ? '!md:pl-8'
+    : ''
+  const selectedNavItemClass =
+    'bg-zinc-300/80 hover:bg-zinc-300/80 focus:bg-zinc-300/80'
   const sortedQueues = useMemo(() => {
     if (!course?.queues) return []
     return sortQueues(course.queues)
   }, [course?.queues])
+  const queueDropdownListClass = showDrawerPresentation
+    ? `grid w-full gap-1 p-4 ${sortedQueues.length > 6 ? 'grid-cols-2' : 'grid-cols-1'}`
+    : `grid gap-1 p-4 md:grid-cols-2 lg:w-[600px] lg:gap-2 ${sortedQueues.length > 6 ? 'w-[95vw] grid-cols-2' : 'w-[60vw]'}`
+  const emptyQueueStateClass = showDrawerPresentation
+    ? 'w-full p-4 text-center text-sm text-gray-500'
+    : `w-[60vw] p-4 text-center text-sm text-gray-500 ${role === Role.PROFESSOR ? 'lg:w-[600px]' : 'lg:w-[400px]'}`
 
   // This is to move the "Queues" and "Profile" submenu to show on the left or right side (there is only one component, so it needs to be moved around like this)
   const setNavigationSubMenuRightSide = useCallback(() => {
@@ -232,7 +243,7 @@ const NavBar = ({
         showViewport={showViewport}
       >
         <NavigationMenuList>
-          {showDesktopPresentation && (
+          {!showDrawerPresentation && (
             <NextLink
               href={
                 course
@@ -260,7 +271,7 @@ const NavBar = ({
           )}
           {course ? (
             <>
-              <NavigationMenuItem>
+              <NavigationMenuItem className={drawerTopLevelItemClass}>
                 <Link
                   className={cn('!font-bold', compactTopLevelClass)}
                   href={`${coursePrefix}/${courseId}`}
@@ -273,7 +284,7 @@ const NavBar = ({
                 </Link>
               </NavigationMenuItem>
               {isLti && [Role.PROFESSOR].includes(role ?? Role.STUDENT) && (
-                <NavigationMenuItem>
+                <NavigationMenuItem className={drawerTopLevelItemClass}>
                   <Link
                     href={`/lti/${course.id}/integration`}
                     onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
@@ -288,14 +299,12 @@ const NavBar = ({
               {!isLti && (
                 <>
                   {courseFeatures?.queueEnabled && (
-                    <NavigationMenuItem>
+                    <NavigationMenuItem className={drawerTopLevelItemClass}>
                       {/* This "NavigationMenuTrigger" is just the "Queues" button */}
                       <NavigationMenuTrigger
                         className={cn(
                           compactTopLevelClass,
-                          isAQueuePage
-                            ? 'md:border-helpmeblue bg-zinc-300/80 md:border-b-2 md:bg-white'
-                            : '',
+                          isAQueuePage && selectedNavItemClass,
                         )}
                         onFocus={setNavigationSubMenuLeftSide}
                         onClick={setNavigationSubMenuLeftSide}
@@ -308,9 +317,7 @@ const NavBar = ({
                       <NavigationMenuContent>
                         {/* On mobile, if there are more than 6 queues, put the queue list into two columns */}
                         {sortedQueues.length > 0 ? (
-                          <ul
-                            className={`grid gap-1 p-4 md:grid-cols-2 lg:w-[600px] lg:gap-2 ${sortedQueues.length > 6 ? 'w-[95vw] grid-cols-2' : 'w-[60vw]'}`}
-                          >
+                          <ul className={queueDropdownListClass}>
                             {sortedQueues.map((queue) => (
                               <ListItem
                                 key={queue.id}
@@ -329,9 +336,7 @@ const NavBar = ({
                             ))}
                           </ul>
                         ) : (
-                          <div
-                            className={`w-[60vw] p-4 text-center text-sm text-gray-500 ${role === Role.PROFESSOR ? 'lg:w-[600px]' : 'lg:w-[400px]'}`}
-                          >
+                          <div className={emptyQueueStateClass}>
                             <p>There are no queues in this course</p>
                             {role === Role.PROFESSOR && (
                               <p>
@@ -362,7 +367,7 @@ const NavBar = ({
                     </NavigationMenuItem>
                   )}
                   {courseFeatures?.asyncQueueEnabled && (
-                    <NavigationMenuItem>
+                    <NavigationMenuItem className={drawerTopLevelItemClass}>
                       <Link
                         href={`/course/${courseId}/async_centre`}
                         onClick={() =>
@@ -380,7 +385,7 @@ const NavBar = ({
                     </NavigationMenuItem>
                   )}
                   {courseFeatures?.queueEnabled && (
-                    <NavigationMenuItem>
+                    <NavigationMenuItem className={drawerTopLevelItemClass}>
                       <Link
                         href={`/course/${courseId}/schedule`}
                         onClick={() =>
@@ -395,16 +400,12 @@ const NavBar = ({
                     </NavigationMenuItem>
                   )}
                   {(role === Role.TA || role === Role.PROFESSOR) && (
-                    <NavigationMenuItem
-                      className={
-                        isACourseSettingsPage
-                          ? // the hover:border-none is because the inner link has a hover effect that adds another border
-                            'md:border-helpmeblue bg-zinc-300/80 md:border-b-2 md:bg-white md:hover:border-none md:focus:border-none'
-                          : ''
-                      }
-                    >
+                    <NavigationMenuItem className={drawerTopLevelItemClass}>
                       <Link
-                        className={compactTopLevelClass}
+                        className={cn(
+                          compactTopLevelClass,
+                          isACourseSettingsPage && selectedNavItemClass,
+                        )}
                         href={`/course/${courseId}/settings${role === Role.TA ? '/edit_questions' : ''}`}
                         onClick={() =>
                           setIsDrawerOpen && setIsDrawerOpen(false)
@@ -417,7 +418,7 @@ const NavBar = ({
                     </NavigationMenuItem>
                   )}
                   {role === Role.PROFESSOR && (
-                    <NavigationMenuItem>
+                    <NavigationMenuItem className={drawerTopLevelItemClass}>
                       <Link
                         href={`/course/${courseId}/insights`}
                         onClick={() =>
@@ -433,7 +434,7 @@ const NavBar = ({
                   )}
                 </>
               )}
-              <NavigationMenuItem>
+              <NavigationMenuItem className={drawerTopLevelItemClass}>
                 <Link
                   href={isLti ? '/lti' : '/courses'}
                   onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
@@ -451,7 +452,7 @@ const NavBar = ({
                 <NavigationMenuItem>
                   <Link
                     href=""
-                    className="md:pl-8"
+                    className={horizontalInsetClass}
                     onClick={() => {
                       router.back()
                       if (setIsDrawerOpen) setIsDrawerOpen(false)
@@ -466,7 +467,7 @@ const NavBar = ({
               <NavigationMenuItem>
                 <Link
                   href={isLti ? '/lti' : '/courses'}
-                  className="md:pl-8"
+                  className={horizontalInsetClass}
                   onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
                   isCompactDesktop={isCompactDesktop}
                 >
@@ -481,10 +482,8 @@ const NavBar = ({
                   <NavigationMenuItem>
                     <Link
                       className={cn(
-                        '!md:pl-8',
-                        isAnOrganizationSettingsPage
-                          ? 'md:border-helpmeblue md:border-b-2'
-                          : '',
+                        horizontalInsetImportantClass,
+                        isAnOrganizationSettingsPage && selectedNavItemClass,
                       )}
                       href="/organization/settings"
                       onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
@@ -502,10 +501,8 @@ const NavBar = ({
                   <Link
                     href="/admin"
                     className={cn(
-                      'md:pl-8',
-                      isAnAdminPanelPage
-                        ? 'md:border-helpmeblue md:border-b-2'
-                        : '',
+                      horizontalInsetClass,
+                      isAnAdminPanelPage && selectedNavItemClass,
                     )}
                     onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
                     isCompactDesktop={isCompactDesktop}
@@ -517,13 +514,13 @@ const NavBar = ({
             </>
           ) : null}
           {/* DESKTOP ONLY PART OF NAVBAR */}
-          {showDesktopPresentation && (
+          {!showDrawerPresentation && (
             <NavigationMenuItem className="!ml-auto">
               <NavigationMenuTrigger
                 className={cn(
                   isCompactDesktop ? '!pl-2 !pr-2' : '!pl-4',
                   compactTopLevelClass,
-                  isProfilePage ? 'md:border-helpmeblue md:border-b-2' : '',
+                  isProfilePage && selectedNavItemClass,
                 )}
                 onFocus={setNavigationSubMenuRightSide}
                 onClick={setNavigationSubMenuRightSide}
@@ -562,8 +559,8 @@ const NavBar = ({
           )}
           {/* MOBILE ONLY PART OF NAVBAR */}
           {showDrawerPresentation && (
-            <>
-              <div className="!mb-2 !mt-auto -mr-5 block w-[calc(100%+1.25rem)] border-b border-b-zinc-200" />
+            <div className="mt-auto w-full pt-3">
+              <div className="-mx-5 mb-2 block w-[calc(100%+2.5rem)] border-b border-b-zinc-200" />
               {!isLti && (
                 <NavigationMenuItem>
                   <Link
@@ -600,7 +597,7 @@ const NavBar = ({
                       </span>
                     </div>
                   </NavigationMenuItem>
-                  <div className="-mr-5 block h-0.5 w-[calc(100%+1.25rem)] border-b border-b-zinc-200" />
+                  <div className="-mx-5 block h-0.5 w-[calc(100%+2.5rem)] border-b border-b-zinc-200" />
                 </>
               )}
               <NavigationMenuItem className="mb-2">
@@ -632,7 +629,7 @@ const NavBar = ({
                   </Link>
                 </Popconfirm>
               </NavigationMenuItem>
-            </>
+            </div>
           )}
         </NavigationMenuList>
       </NavigationMenu>
@@ -650,7 +647,7 @@ const HeaderBar: React.FC = () => {
   const { userInfo } = useUserInfo()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [navMode, setNavMode] = useState<NavMode>('drawer')
-  const isPhone = useMediaQuery('(max-width: 640px)')
+  const isPhone = useMediaQuery('(max-width: 768px)')
   const availableWidthRef = useRef<HTMLDivElement>(null)
   const regularMeasureRef = useRef<HTMLDivElement>(null)
   const compactMeasureRef = useRef<HTMLDivElement>(null)
@@ -716,32 +713,37 @@ const HeaderBar: React.FC = () => {
     setNavMode('drawer')
   }, [isPhone])
 
+  // Recalculate nav mode before paint based on the measured widths of the
+  // available space plus the regular/compact hidden navbars. Those measured
+  // widths change when route/course/user state changes which top-level nav
+  // items exist (organization vs course, professor vs TA vs student, queue
+  // features on/off, etc.), so observing the measurement nodes lets us react
+  // without depending on a larger arbitrary dependency list here.
   useLayoutEffect(() => {
-    updateNavMode()
-  }, [updateNavMode, pathname, course, userInfo])
-
-  useEffect(() => {
     const nodes = [
       availableWidthRef.current,
       regularMeasureRef.current,
       compactMeasureRef.current,
     ].filter(Boolean) as HTMLElement[]
 
-    if (nodes.length === 0) return
-
     const observer = new ResizeObserver(() => {
       updateNavMode()
     })
 
-    nodes.forEach((node) => observer.observe(node))
     updateNavMode()
+    nodes.forEach((node) => observer.observe(node))
 
     return () => observer.disconnect()
-  }, [updateNavMode, pathname, course, userInfo])
+  }, [updateNavMode])
 
   return (
     <div ref={availableWidthRef} className="relative w-full">
-      <div className="pointer-events-none invisible absolute left-0 top-0 -z-10 h-0 overflow-hidden">
+      {/* These hidden navbars are only used for width measurement. One renders
+      the regular desktop nav and the other renders the compact desktop nav so
+      we can choose the visible presentation. Below the md breakpoint we force
+      drawer mode, which keeps CSS/mobile shrinking from affecting these
+      desktop-width measurements. */}
+      <div className="pointer-events-none invisible absolute left-0 top-0 -z-10 h-0 w-0 overflow-hidden">
         <div ref={regularMeasureRef} className="w-max">
           <NavBar
             userInfo={userInfo}
@@ -830,7 +832,7 @@ const HeaderBar: React.FC = () => {
             </DrawerTrigger>
             <DrawerContent aria-description="Drawer for main navigation menu">
               {/* INSIDE DRAWER */}
-              <div className="flex h-screen flex-col items-start justify-start">
+              <div className="flex flex-col items-start justify-start">
                 <DrawerTitle className="my-1 flex w-full items-center justify-center border-b border-b-zinc-200 bg-white py-1 pr-5">
                   <Image
                     width={48}
