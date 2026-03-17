@@ -559,8 +559,8 @@ const NavBar = ({
           )}
           {/* MOBILE ONLY PART OF NAVBAR */}
           {showDrawerPresentation && (
-            <div className="mt-auto w-full pt-3">
-              <div className="-mx-5 mb-2 block w-[calc(100%+2.5rem)] border-b border-b-zinc-200" />
+            <>
+              <div className="-mx-5 !mt-auto mb-2 block w-[calc(100%+2.5rem)] border-b border-b-zinc-200" />
               {!isLti && (
                 <NavigationMenuItem>
                   <Link
@@ -629,7 +629,7 @@ const NavBar = ({
                   </Link>
                 </Popconfirm>
               </NavigationMenuItem>
-            </div>
+            </>
           )}
         </NavigationMenuList>
       </NavigationMenu>
@@ -832,7 +832,7 @@ const HeaderBar: React.FC = () => {
             </DrawerTrigger>
             <DrawerContent aria-description="Drawer for main navigation menu">
               {/* INSIDE DRAWER */}
-              <div className="flex flex-col items-start justify-start">
+              <div className="flex min-h-[100dvh] flex-col items-start justify-start">
                 <DrawerTitle className="my-1 flex w-full items-center justify-center border-b border-b-zinc-200 bg-white py-1 pr-5">
                   <Image
                     width={48}
