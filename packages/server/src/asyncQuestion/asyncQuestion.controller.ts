@@ -1,6 +1,7 @@
 import {
   AsyncCreator,
   AsyncQuestion,
+  AsyncQuestionCommentEndorseParams,
   AsyncQuestionCommentParams,
   AsyncQuestionParams,
   asyncQuestionStatus,
@@ -113,6 +114,7 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'comments.endorsedBy',
       ],
     });
 
@@ -181,6 +183,7 @@ export class asyncQuestionController {
           'comments',
           'comments.creator',
           'comments.creator.courses',
+          'comments.endorsedBy',
         ],
       });
 
@@ -220,6 +223,7 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'comments.endorsedBy',
       ],
     });
 
@@ -338,6 +342,7 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'comments.endorsedBy',
       ],
     });
 
@@ -507,6 +512,7 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'comments.endorsedBy',
       ],
     });
 
@@ -566,6 +572,70 @@ export class asyncQuestionController {
       } as AsyncCreator as unknown as UserModel;
     }
     res.status(HttpStatus.CREATED).send(comments);
+  }
+
+  @Patch('comment/:qid/:commentId/endorse')
+  @UseGuards(AsyncQuestionRolesGuard)
+  @Roles(Role.TA, Role.PROFESSOR)
+  async endorseComment(
+    @Param('qid', ParseIntPipe) qid: number,
+    @Param('commentId', ParseIntPipe) commentId: number,
+    @Body() body: AsyncQuestionCommentEndorseParams,
+    @User() user: UserModel,
+    @Res() res: Response,
+  ): Promise<Response> {
+    const question = await AsyncQuestionModel.findOne({
+      where: { id: qid },
+    });
+
+    if (!question) {
+      res
+        .status(HttpStatus.NOT_FOUND)
+        .send({ message: ERROR_MESSAGES.questionController.notFound });
+      return;
+    }
+
+    const comment = await AsyncQuestionCommentModel.findOne({
+      where: { id: commentId, questionId: qid },
+    });
+
+    if (!comment) {
+      res.status(HttpStatus.NOT_FOUND).send({
+        message:
+          ERROR_MESSAGES.asyncQuestionController.comments.commentNotFound,
+      });
+      return;
+    }
+
+    comment.endorsedById = body.isEndorsed ? user.id : null;
+    await comment.save();
+
+    const updatedQuestion = await AsyncQuestionModel.findOne({
+      where: { id: qid },
+      relations: [
+        'creator',
+        'taHelped',
+        'votes',
+        'comments',
+        'comments.creator',
+        'comments.creator.courses',
+        'comments.endorsedBy',
+      ],
+    });
+
+    await this.redisQueueService.updateAsyncQuestion(
+      `c:${question.courseId}:aq`,
+      updatedQuestion,
+    );
+
+    const endorsedComment = updatedQuestion.comments.find(
+      (c) => c.id === commentId,
+    );
+    const endorsedBy = endorsedComment?.endorsedBy
+      ? pick(endorsedComment.endorsedBy, ['id', 'name', 'photoURL'])
+      : null;
+
+    res.status(HttpStatus.OK).send({ endorsedBy });
   }
 
   @Patch('comment/:qid/:commentId')
@@ -637,6 +707,7 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'comments.endorsedBy',
       ],
     });
 
@@ -727,6 +798,7 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'comments.endorsedBy',
       ],
     });
 
@@ -774,6 +846,7 @@ export class asyncQuestionController {
           'comments',
           'comments.creator',
           'comments.creator.courses',
+          'comments.endorsedBy',
         ],
         order: {
           createdAt: 'DESC',
@@ -909,6 +982,14 @@ export class asyncQuestionController {
                 } as AsyncCreator as unknown as UserModel);
 
           delete temp.creatorId;
+
+          temp.endorsedBy = comment.endorsedBy
+            ? (pick(comment.endorsedBy, [
+                'id',
+                'name',
+                'photoURL',
+              ]) as unknown as UserModel)
+            : null;
 
           return temp as unknown as AsyncQuestionCommentModel;
         });
