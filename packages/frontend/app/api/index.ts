@@ -4,6 +4,7 @@ import {
   AddDocumentChunkParams,
   AllStudentAssignmentProgress,
   AsyncQuestionComment,
+  AsyncQuestionCommentEndorseParams,
   AsyncQuestionCommentParams,
   AsyncQuestionParams,
   BatchCourseCloneAttributes,
@@ -113,6 +114,7 @@ import {
   UBCOuserParam,
   UnreadAsyncQuestionResponse,
   UpdateAsyncQuestions,
+  UserPartial,
   UpdateChatbotProviderBody,
   UpdateChatbotQuestionParams,
   UpdateDocumentChunkParams,
@@ -872,6 +874,17 @@ export class APIClient {
       this.req(
         'PATCH',
         `/api/v1/asyncQuestions/comment/${questionId}/${commentId}`,
+        undefined,
+        body,
+      ),
+    endorseComment: async (
+      questionId: number,
+      commentId: number,
+      body: AsyncQuestionCommentEndorseParams,
+    ): Promise<{ endorsedBy: UserPartial | null }> =>
+      this.req(
+        'PATCH',
+        `/api/v1/asyncQuestions/comment/${questionId}/${commentId}/endorse`,
         undefined,
         body,
       ),
