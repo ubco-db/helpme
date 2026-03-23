@@ -976,6 +976,114 @@ describe('AsyncQuestion Integration', () => {
     });
   });
 
+  describe('PATCH /asyncQuestions/comment/:qid/:commentId/endorse', () => {
+    it('TA can endorse a comment', async () => {
+      const comment = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'Student comment to endorse',
+      });
+      await supertest({ userId: TAuser.id })
+        .patch(
+          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}/endorse`,
+        )
+        .send({ isEndorsed: true })
+        .expect(200)
+        .then((response) => {
+          expect(response.body.endorsedBy).toEqual(
+            expect.objectContaining({
+              id: TAuser.id,
+              name: expect.any(String),
+            }),
+          );
+        });
+      const updated = await AsyncQuestionCommentModel.findOne({
+        where: { id: comment.id },
+      });
+      expect(updated.endorsedById).toBe(TAuser.id);
+    });
+
+    it('TA can un-endorse a comment', async () => {
+      const comment = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'Already endorsed comment',
+        endorsedById: TAuser.id,
+      });
+      await supertest({ userId: TAuser.id })
+        .patch(
+          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}/endorse`,
+        )
+        .send({ isEndorsed: false })
+        .expect(200)
+        .then((response) => {
+          expect(response.body.endorsedBy).toBeNull();
+        });
+      const updated = await AsyncQuestionCommentModel.findOne({
+        where: { id: comment.id },
+      });
+      expect(updated.endorsedById).toBeNull();
+    });
+
+    it('Student cannot endorse a comment', async () => {
+      const comment = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'Student comment',
+      });
+      await supertest({ userId: studentUser.id })
+        .patch(
+          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}/endorse`,
+        )
+        .send({ isEndorsed: true })
+        .expect(403);
+    });
+
+    it('returns 404 for non-existent question', async () => {
+      const comment = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'Student comment',
+      });
+      await supertest({ userId: TAuser.id })
+        .patch(
+          `/asyncQuestions/comment/99999/${comment.id}/endorse`,
+        )
+        .send({ isEndorsed: true })
+        .expect(404);
+    });
+
+    it('returns 404 for non-existent comment', async () => {
+      await supertest({ userId: TAuser.id })
+        .patch(
+          `/asyncQuestions/comment/${asyncQuestion.id}/99999/endorse`,
+        )
+        .send({ isEndorsed: true })
+        .expect(404);
+    });
+
+    it('prevents users outside this course from endorsing comments', async () => {
+      const otherCourse = await CourseFactory.create();
+      const otherUser = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: otherUser,
+        course: otherCourse,
+        role: Role.TA,
+      });
+      const comment = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'Student comment',
+      });
+      await supertest({ userId: otherUser.id })
+        .patch(
+          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}/endorse`,
+        )
+        .send({ isEndorsed: true })
+        .expect(404);
+    });
+  });
+
   describe('GET /asyncQuestions/:courseId', () => {
     let asyncQuestion2: AsyncQuestionModel;
     let asyncQuestion3: AsyncQuestionModel;
