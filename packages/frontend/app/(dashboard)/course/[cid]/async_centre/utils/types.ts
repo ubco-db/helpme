@@ -1,4 +1,4 @@
-import { AsyncCreator, Role } from '@koh/common'
+import { AsyncCreator, Role, UserPartial } from '@koh/common'
 import { Action } from '../components/AsyncQuestionCardUIReducer'
 
 export type CommentAuthorType = Role | 'you' | 'author'
@@ -17,4 +17,6 @@ export interface CommentProps {
   showStudents: boolean
   datetime: React.ReactNode
   numOtherComments: number
+  endorsedBy: UserPartial | null
+  onEndorseSuccess: (endorsedBy: UserPartial | null) => void
 }
