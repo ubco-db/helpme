@@ -1188,6 +1188,28 @@ describe('AsyncQuestion Integration', () => {
         ]),
       );
     });
+    it('should include endorsedBy in comments when a comment is endorsed', async () => {
+      const comment = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'endorsed comment',
+        endorsedById: TAuser.id,
+      });
+      const response = await supertest({ userId: TAuser.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      const questions: AsyncQuestion[] = response.body.questions;
+      const q = questions.find((q) => q.id === asyncQuestion.id);
+      const c = q.comments.find((c) => c.id === comment.id);
+      expect(c.endorsedBy).toEqual(
+        expect.objectContaining({
+          id: TAuser.id,
+          name: expect.any(String),
+        }),
+      );
+      expect(c).not.toHaveProperty('endorsedById');
+    });
     it('should include the votes in the response', async () => {
       const vote1 = await VotesFactory.create({
         question: asyncQuestion,
