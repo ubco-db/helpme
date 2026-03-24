@@ -982,6 +982,7 @@ export class asyncQuestionController {
                 } as AsyncCreator as unknown as UserModel);
 
           delete temp.creatorId;
+          delete temp.endorsedById;
 
           temp.endorsedBy = comment.endorsedBy
             ? (pick(comment.endorsedBy, [
