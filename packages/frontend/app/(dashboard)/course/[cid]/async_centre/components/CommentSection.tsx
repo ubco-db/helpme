@@ -425,6 +425,11 @@ function generateCommentProps(
       showStudents,
       dispatchUIStateChange,
       numOtherComments: otherUserComments.length,
+      endorsedBy: comment.endorsedBy ?? null,
+      onEndorseSuccess: (endorsedBy) => {
+        comment.endorsedBy = endorsedBy
+        regenerateComments(!regenerateCommentsFlag)
+      },
     })
   }
 
