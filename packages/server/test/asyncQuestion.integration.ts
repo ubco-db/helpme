@@ -994,6 +994,7 @@ describe('AsyncQuestion Integration', () => {
             expect.objectContaining({
               id: TAuser.id,
               name: expect.any(String),
+              role: Role.TA,
             }),
           );
         });
@@ -1206,6 +1207,7 @@ describe('AsyncQuestion Integration', () => {
         expect.objectContaining({
           id: TAuser.id,
           name: expect.any(String),
+          role: Role.TA,
         }),
       );
       expect(c).not.toHaveProperty('endorsedById');
