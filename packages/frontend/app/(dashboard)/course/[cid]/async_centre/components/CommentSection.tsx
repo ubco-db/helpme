@@ -381,8 +381,13 @@ function generateCommentProps(
   regenerateComments: (flag: boolean) => void,
   regenerateCommentsFlag: boolean,
 ): CommentProps[] | undefined {
-  // first sort the comments by createdAt DESC (so oldest comments appear first)
-  comments.sort((a, b) => moment(a.createdAt).diff(moment(b.createdAt)))
+  // Sort endorsed comments to the top, then by createdAt ascending (oldest first)
+  comments.sort((a, b) => {
+    const aEndorsed = a.endorsedBy ? 1 : 0
+    const bEndorsed = b.endorsedBy ? 1 : 0
+    if (aEndorsed !== bEndorsed) return bEndorsed - aEndorsed
+    return moment(a.createdAt).diff(moment(b.createdAt))
+  })
 
   const newComments: CommentProps[] = []
   for (const comment of comments) {
