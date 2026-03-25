@@ -1435,7 +1435,7 @@ export class AsyncQuestionComment {
   isAnonymous!: boolean
 
   @IsOptional()
-  endorsedBy: UserPartial | null = null
+  endorsedBy: (UserPartial & { role?: Role }) | null = null
   
 
   @Type(() => Date)
