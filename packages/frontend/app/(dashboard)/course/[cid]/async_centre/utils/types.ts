@@ -3,6 +3,8 @@ import { Action } from '../components/AsyncQuestionCardUIReducer'
 
 export type CommentAuthorType = Role | 'you' | 'author'
 
+export type EndorserInfo = UserPartial & { role?: Role }
+
 export interface CommentProps {
   commentId: number
   questionId: number
@@ -17,6 +19,6 @@ export interface CommentProps {
   showStudents: boolean
   datetime: React.ReactNode
   numOtherComments: number
-  endorsedBy: UserPartial | null
-  onEndorseSuccess: (endorsedBy: UserPartial | null) => void
+  endorsedBy: EndorserInfo | null
+  onEndorseSuccess: (endorsedBy: EndorserInfo | null) => void
 }
