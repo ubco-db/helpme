@@ -881,7 +881,7 @@ export class APIClient {
       questionId: number,
       commentId: number,
       body: AsyncQuestionCommentEndorseParams,
-    ): Promise<{ endorsedBy: UserPartial | null }> =>
+    ): Promise<{ endorsedBy: (UserPartial & { role?: Role }) | null }> =>
       this.req(
         'PATCH',
         `/api/v1/asyncQuestions/comment/${questionId}/${commentId}/endorse`,
