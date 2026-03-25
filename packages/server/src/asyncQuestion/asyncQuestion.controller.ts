@@ -115,6 +115,7 @@ export class asyncQuestionController {
         'comments.creator',
         'comments.creator.courses',
         'comments.endorsedBy',
+        'comments.endorsedBy.courses',
       ],
     });
 
@@ -184,6 +185,7 @@ export class asyncQuestionController {
           'comments.creator',
           'comments.creator.courses',
           'comments.endorsedBy',
+        'comments.endorsedBy.courses',
         ],
       });
 
@@ -224,6 +226,7 @@ export class asyncQuestionController {
         'comments.creator',
         'comments.creator.courses',
         'comments.endorsedBy',
+        'comments.endorsedBy.courses',
       ],
     });
 
@@ -343,6 +346,7 @@ export class asyncQuestionController {
         'comments.creator',
         'comments.creator.courses',
         'comments.endorsedBy',
+        'comments.endorsedBy.courses',
       ],
     });
 
@@ -513,6 +517,7 @@ export class asyncQuestionController {
         'comments.creator',
         'comments.creator.courses',
         'comments.endorsedBy',
+        'comments.endorsedBy.courses',
       ],
     });
 
@@ -620,6 +625,7 @@ export class asyncQuestionController {
         'comments.creator',
         'comments.creator.courses',
         'comments.endorsedBy',
+        'comments.endorsedBy.courses',
       ],
     });
 
@@ -632,7 +638,13 @@ export class asyncQuestionController {
       (c) => c.id === commentId,
     );
     const endorsedBy = endorsedComment?.endorsedBy
-      ? pick(endorsedComment.endorsedBy, ['id', 'name', 'photoURL'])
+      ? {
+          ...pick(endorsedComment.endorsedBy, ['id', 'name', 'photoURL']),
+          role:
+            endorsedComment.endorsedBy.courses?.find(
+              (c) => c.courseId === question.courseId,
+            )?.role || Role.TA,
+        }
       : null;
 
     res.status(HttpStatus.OK).send({ endorsedBy });
@@ -708,6 +720,7 @@ export class asyncQuestionController {
         'comments.creator',
         'comments.creator.courses',
         'comments.endorsedBy',
+        'comments.endorsedBy.courses',
       ],
     });
 
@@ -799,6 +812,7 @@ export class asyncQuestionController {
         'comments.creator',
         'comments.creator.courses',
         'comments.endorsedBy',
+        'comments.endorsedBy.courses',
       ],
     });
 
@@ -847,6 +861,7 @@ export class asyncQuestionController {
           'comments.creator',
           'comments.creator.courses',
           'comments.endorsedBy',
+        'comments.endorsedBy.courses',
         ],
         order: {
           createdAt: 'DESC',
@@ -985,11 +1000,13 @@ export class asyncQuestionController {
           delete temp.endorsedById;
 
           temp.endorsedBy = comment.endorsedBy
-            ? (pick(comment.endorsedBy, [
-                'id',
-                'name',
-                'photoURL',
-              ]) as unknown as UserModel)
+            ? ({
+                ...pick(comment.endorsedBy, ['id', 'name', 'photoURL']),
+                role:
+                  comment.endorsedBy.courses?.find(
+                    (c) => c.courseId === question.courseId,
+                  )?.role || Role.TA,
+              } as unknown as UserModel)
             : null;
 
           return temp as unknown as AsyncQuestionCommentModel;
