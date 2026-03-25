@@ -326,20 +326,6 @@ const Comment: React.FC<CommentProps> = ({
           )}
         </div>
 
-        {/* Endorsed badge */}
-        {endorsedBy && (
-          <div className="mt-1 inline-flex items-center gap-1 rounded-md bg-green-50 px-2 py-0.5 text-sm font-semibold text-green-700">
-            <CheckCircleOutlined />
-            <span>
-              Endorsed by{' '}
-              {endorsedBy.role === Role.PROFESSOR
-                ? 'Instructor'
-                : 'TA'}{' '}
-              ({endorsedBy.name})
-            </span>
-          </div>
-        )}
-
         {/* Comment body */}
         {!isEditing ? (
           <div className="childrenMarkdownFormatted">
@@ -355,6 +341,20 @@ const Comment: React.FC<CommentProps> = ({
               setNewContent(e.target.value)
             }}
           />
+        )}
+
+        {/* Endorsed badge */}
+        {endorsedBy && (
+          <div className="mt-2 inline-flex items-center gap-1 rounded-md bg-green-50 px-2 py-0.5 text-sm font-semibold text-green-700">
+            <CheckCircleOutlined />
+            <span>
+              Endorsed by{' '}
+              {endorsedBy.role === Role.PROFESSOR
+                ? 'Instructor'
+                : 'TA'}{' '}
+              ({endorsedBy.name})
+            </span>
+          </div>
         )}
       </div>
 
