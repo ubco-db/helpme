@@ -328,9 +328,15 @@ const Comment: React.FC<CommentProps> = ({
 
         {/* Endorsed badge */}
         {endorsedBy && (
-          <div className="mt-1 flex items-center gap-1 text-xs font-medium text-green-600">
+          <div className="mt-1 inline-flex items-center gap-1 rounded-md bg-green-50 px-2 py-0.5 text-sm font-semibold text-green-700">
             <CheckCircleOutlined />
-            <span>Endorsed by {endorsedBy.name}</span>
+            <span>
+              Endorsed by{' '}
+              {endorsedBy.role === Role.PROFESSOR
+                ? 'Instructor'
+                : 'TA'}{' '}
+              ({endorsedBy.name})
+            </span>
           </div>
         )}
 
