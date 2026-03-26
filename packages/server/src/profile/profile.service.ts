@@ -36,8 +36,9 @@ export class ProfileService {
       ? user.courses
           .filter(
             (userCourse) =>
-              userCourse?.course?.enabled ||
-              userCourse?.role === Role.PROFESSOR,
+              !userCourse?.course?.deletedAt &&
+              (userCourse?.course?.enabled ||
+                userCourse?.role === Role.PROFESSOR),
           )
           .map((userCourse) => {
             return {
