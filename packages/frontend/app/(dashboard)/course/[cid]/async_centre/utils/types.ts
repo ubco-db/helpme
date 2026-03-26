@@ -20,5 +20,5 @@ export interface CommentProps {
   datetime: React.ReactNode
   numOtherComments: number
   endorsedBy: EndorserInfo | null
-  onEndorseSuccess: (endorsedBy: EndorserInfo | null) => void
+  onEndorseSuccess: () => void
 }

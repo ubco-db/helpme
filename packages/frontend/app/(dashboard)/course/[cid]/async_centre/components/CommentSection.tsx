@@ -33,6 +33,7 @@ interface CommentSectionProps {
   showStudents: boolean
   className?: string
   defaultAnonymousSetting: boolean
+  mutateAsyncQuestions: () => void
 }
 
 const CommentSection: React.FC<CommentSectionProps> = ({
@@ -44,6 +45,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   showStudents,
   className,
   defaultAnonymousSetting,
+  mutateAsyncQuestions,
 }) => {
   const [commentInputValue, setCommentInputValue] = useState('')
   const [isPostCommentLoading, setIsPostCommentLoading] = useState(false)
@@ -72,6 +74,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       dispatchUIStateChange,
       regenerateComments,
       regenerateCommentsFlag,
+      mutateAsyncQuestions,
     )
   }, [
     question.id,
@@ -82,6 +85,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     dispatchUIStateChange,
     regenerateCommentsFlag,
     defaultAnonymousSetting,
+    mutateAsyncQuestions,
   ])
 
   const anonymityOverwriteCount = useMemo(
@@ -380,6 +384,7 @@ function generateCommentProps(
   dispatchUIStateChange: (action: Action) => void,
   regenerateComments: (flag: boolean) => void,
   regenerateCommentsFlag: boolean,
+  mutateAsyncQuestions: () => void,
 ): CommentProps[] | undefined {
   // Sort endorsed comments to the top, then by createdAt ascending (oldest first)
   comments.sort((a, b) => {
@@ -431,9 +436,8 @@ function generateCommentProps(
       dispatchUIStateChange,
       numOtherComments: otherUserComments.length,
       endorsedBy: comment.endorsedBy ?? null,
-      onEndorseSuccess: (endorsedBy) => {
-        comment.endorsedBy = endorsedBy
-        regenerateComments(!regenerateCommentsFlag)
+      onEndorseSuccess: () => {
+        mutateAsyncQuestions()
       },
     })
   }

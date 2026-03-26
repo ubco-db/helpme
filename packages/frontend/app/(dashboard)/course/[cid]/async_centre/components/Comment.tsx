@@ -304,7 +304,7 @@ const Comment: React.FC<CommentProps> = ({
                       isEndorsed: !endorsedBy,
                     })
                     .then((res) => {
-                      onEndorseSuccess(res.endorsedBy)
+                      onEndorseSuccess()
                       message.success(
                         res.endorsedBy
                           ? 'Comment endorsed'
