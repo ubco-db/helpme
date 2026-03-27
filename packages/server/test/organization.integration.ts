@@ -8,6 +8,7 @@ import {
   OrganizationFactory,
   OrganizationSettingsFactory,
   OrganizationUserFactory,
+  QueueFactory,
   SemesterFactory,
   UserCourseFactory,
   UserFactory,
@@ -32,6 +33,7 @@ import { ChatTokenModel } from 'chatbot/chat-token.entity';
 import { CourseService } from 'course/course.service';
 import { CourseModule } from 'course/course.module';
 import { MailModule } from 'mail/mail.module';
+import { QueueModel } from 'queue/queue.entity';
 
 describe('Organization Integration', () => {
   const { supertest, getTestModule } = setupIntegrationTest(
@@ -2796,6 +2798,88 @@ describe('Organization Integration', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Profile picture deleted');
+    });
+  });
+
+  describe('DELETE /organization/:oid/delete_course/:cid', () => {
+    it('should return 403 when user is not an org admin', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: user.id,
+        organizationId: organization.id,
+        role: OrganizationRole.PROFESSOR,
+      }).save();
+
+      const response = await supertest({ userId: user.id }).delete(
+        `/organization/${organization.id}/delete_course/${course.id}`,
+      );
+
+      expect(response.status).toBe(403);
+    });
+
+    it('should return 200 and delete course when user is an org admin', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      await OrganizationUserModel.create({
+        userId: user.id,
+        organizationId: organization.id,
+        role: OrganizationRole.ADMIN,
+      }).save();
+
+      const response = await supertest({ userId: user.id }).delete(
+        `/organization/${organization.id}/delete_course/${course.id}`,
+      );
+
+      expect(response.status).toBe(200);
+
+      const deletedCourse = await CourseModel.findOne({
+        where: { id: course.id },
+      });
+      expect(deletedCourse).toBeNull();
+    });
+
+    it('should cascade delete related entities when course is deleted', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const course = await CourseFactory.create();
+
+      // create related entities that should be deleted when course is deleted because of cascade
+      const queue = await QueueFactory.create({ course });
+      const userCourse = await UserCourseFactory.create({ course, user });
+
+      await OrganizationUserModel.create({
+        userId: user.id,
+        organizationId: organization.id,
+        role: OrganizationRole.ADMIN,
+      }).save();
+
+      expect(
+        await QueueModel.findOne({ where: { id: queue.id } }),
+      ).not.toBeNull();
+      expect(
+        await UserCourseModel.findOne({ where: { id: userCourse.id } }),
+      ).not.toBeNull();
+
+      const response = await supertest({ userId: user.id }).delete(
+        `/organization/${organization.id}/delete_course/${course.id}`,
+      );
+
+      expect(response.status).toBe(200);
+
+      // verify course is deleted and related entities are also deleted from cascade
+      expect(
+        await CourseModel.findOne({ where: { id: course.id } }),
+      ).toBeNull();
+
+      expect(await QueueModel.findOne({ where: { id: queue.id } })).toBeNull();
+      expect(
+        await UserCourseModel.findOne({ where: { id: userCourse.id } }),
+      ).toBeNull();
     });
   });
 

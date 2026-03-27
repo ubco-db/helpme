@@ -644,6 +644,30 @@ export class OrganizationController {
       });
   }
 
+  // For permanently deleting a course
+  @Delete(':oid/delete_course/:cid')
+  @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
+  @OrgRoles(OrganizationRole.ADMIN)
+  async deleteCourse(
+    @Res() res: Response,
+    @Param('oid', ParseIntPipe) oid: number,
+    @Param('cid', ParseIntPipe) cid: number,
+  ): Promise<Response<void>> {
+    const course = await CourseModel.findOne({ where: { id: cid } });
+
+    if (!course) {
+      return res.status(HttpStatus.NOT_FOUND).send({
+        message: ERROR_MESSAGES.courseController.courseNotFound,
+      });
+    }
+
+    await course.remove();
+
+    return res.status(HttpStatus.OK).send({
+      message: 'Course deleted successfully',
+    });
+  }
+
   @Get(':oid/get_course/:cid')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrgOrCourseRolesGuard)
   @CourseRoles(Role.PROFESSOR, Role.TA)

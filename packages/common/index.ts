@@ -83,6 +83,7 @@ export class User {
   photoURL!: string
   defaultMessage?: string
   sid?: number
+  namePronunciation?: string
   includeDefaultMessage!: boolean
   courses!: UserCourse[]
   desktopNotifsEnabled!: boolean
@@ -200,6 +201,10 @@ export class UserPartial {
   @IsInt()
   @IsOptional()
   sid?: number
+
+  @IsString()
+  @IsOptional()
+  namePronunciation?: string
 
   @IsOptional()
   @IsString()
@@ -352,6 +357,7 @@ export enum MailServiceType {
   ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST = 'async_question_new_comment_on_others_post',
   COURSE_CLONE_SUMMARY = 'course_clone_summary',
   ADMIN_NOTICE = 'admin_notice', // currently used for all prof invite admin emails. Just wanted something generic for it.
+  WEEKLY_COURSE_SUMMARY= 'weekly_course_summary',
 }
 /**
  * Represents one of three possible user roles in a course.
@@ -1780,6 +1786,10 @@ export class UpdateProfileParams {
 
   @IsString()
   @IsOptional()
+  namePronunciation?: string
+
+  @IsString()
+  @IsOptional()
   defaultMessage?: string
 
   @IsBoolean()
@@ -2648,6 +2658,10 @@ export class AccountRegistrationParams {
   @IsNumber()
   @IsOptional()
   sid?: number
+
+  @IsString()
+  @IsOptional()
+  namePronunciation?: string
 
   @IsString()
   recaptchaToken!: string
