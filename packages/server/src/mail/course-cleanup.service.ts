@@ -9,13 +9,14 @@ import { ChatbotDocPdfModel } from '../chatbot/chatbot-doc-pdf.entity';
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 import { UserSubscriptionModel } from './user-subscriptions.entity';
 import { MailServiceModel } from './mail-services.entity';
+import { CourseCleanupEmailBuilder } from './course-cleanup-email.builder';
 
 @Injectable()
 export class CourseCleanupService {
   constructor(private mailService: MailService) {}
 
- // @Cron('0 0 0 1 * *')
- @Cron(CronExpression.EVERY_MINUTE)
+ @Cron('0 0 0 1 * *')
+ // @Cron(CronExpression.EVERY_MINUTE)
   async sendCleanupNotifications(): Promise<void> {
     try {
       console.log('[CourseCleanup] Starting cleanup notification job…');
@@ -57,7 +58,7 @@ export class CourseCleanupService {
             day: 'numeric',
           });
 
-          const emailHtml = this.buildNotificationEmail(
+          const emailHtml = CourseCleanupEmailBuilder.buildNotificationEmail(
             courses,
             formattedDate,
           );
@@ -94,8 +95,8 @@ export class CourseCleanupService {
     }
   }
 
-  //@Cron('0 0 0 15 * *')
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron('0 0 0 15 * *')
+  // @Cron(CronExpression.EVERY_MINUTE)
   async archiveEndedCourses(): Promise<void> {
     try {
       console.log('[CourseCleanup] Starting archival job…');
@@ -217,55 +218,5 @@ export class CourseCleanupService {
     console.log(
       `[CourseCleanup] Archived course ${course.id} (${course.name}).`,
     );
-  }
-  private buildNotificationEmail(
-    courses: CourseModel[],
-    archiveDateStr: string,
-  ): string {
-    const courseListHtml = courses
-      .map(
-        (c) =>
-          `<li style="margin-bottom: 6px;">
-            <a href="${process.env.DOMAIN}/course/${c.id}/settings" style="color: #1a73e8; text-decoration: underline; font-weight: 600;">${c.name}</a>
-            ${c.semester ? ` <span style="color: #888;">(${c.semester.name})</span>` : ''}
-          </li>`,
-      )
-      .join('');
-
-    return `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; max-width: 640px; margin: 0 auto; color: #333;">
-        <div style="background: linear-gradient(135deg, #1a73e8, #174ea6); padding: 24px 32px; border-radius: 8px 8px 0 0;">
-          <h1 style="color: #fff; margin: 0; font-size: 22px;">Course Cleanup Notice</h1>
-        </div>
-
-        <div style="padding: 24px 32px; background: #fff; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 8px 8px;">
-          <p style="font-size: 15px; line-height: 1.6;">
-            The following course${courses.length > 1 ? 's are' : ' is'} assigned to a semester that has ended and will be <strong>automatically archived on ${archiveDateStr}</strong>:
-          </p>
-
-          <ul style="padding-left: 20px; margin: 16px 0;">
-            ${courseListHtml}
-          </ul>
-
-          <div style="background: #fff8e1; border-left: 4px solid #ffc107; padding: 14px 18px; margin: 20px 0; border-radius: 4px;">
-            <strong style="color: #856404;">On the archive date, the following will happen automatically:</strong>
-            <ul style="margin-top: 8px; padding-left: 18px; color: #856404;">
-              <li>All uploaded chatbot documents will be deleted (to save server space — chatbot questions are still saved)</li>
-              <li>Any data downloaded from Canvas will be removed</li>
-              <li>The Canvas/LMS integration will be severed</li>
-              <li>The course will be marked as archived</li>
-            </ul>
-          </div>
-
-          <p style="font-size: 15px; line-height: 1.6;">
-            <strong>To prevent this</strong>, simply re-assign the course to a semester that has not yet ended before ${archiveDateStr}.
-          </p>
-
-          <p style="font-size: 13px; color: #888; margin-top: 24px; border-top: 1px solid #eee; padding-top: 16px;">
-            This is an automated cleanup process. If this course has ended and is not being used anymore, you can safely disregard this email.
-          </p>
-        </div>
-      </div>
-    `;
   }
 }
