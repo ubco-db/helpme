@@ -188,21 +188,12 @@ const NavBar = ({
   const compactTopLevelClass = isCompactDesktop ? '!pl-1.5 !pr-2' : ''
   const drawerTopLevelItemClass = showDrawerPresentation ? 'w-full' : ''
   const horizontalInsetClass = !showDrawerPresentation ? 'md:pl-8' : ''
-  const horizontalInsetImportantClass = !showDrawerPresentation
-    ? '!md:pl-8'
-    : ''
   const selectedNavItemClass =
     'bg-zinc-300/80 hover:bg-zinc-300/80 focus:bg-zinc-300/80'
   const sortedQueues = useMemo(() => {
     if (!course?.queues) return []
     return sortQueues(course.queues)
   }, [course?.queues])
-  const queueDropdownListClass = showDrawerPresentation
-    ? `grid w-full gap-1 p-4 ${sortedQueues.length > 6 ? 'grid-cols-2' : 'grid-cols-1'}`
-    : `grid gap-1 p-4 md:grid-cols-2 lg:w-[600px] lg:gap-2 ${sortedQueues.length > 6 ? 'w-[95vw] grid-cols-2' : 'w-[60vw]'}`
-  const emptyQueueStateClass = showDrawerPresentation
-    ? 'w-full p-4 text-center text-sm text-gray-500'
-    : `w-[60vw] p-4 text-center text-sm text-gray-500 ${role === Role.PROFESSOR ? 'lg:w-[600px]' : 'lg:w-[400px]'}`
 
   // This is to move the "Queues" and "Profile" submenu to show on the left or right side (there is only one component, so it needs to be moved around like this)
   const setNavigationSubMenuRightSide = useCallback(() => {
@@ -317,7 +308,22 @@ const NavBar = ({
                       <NavigationMenuContent>
                         {/* On mobile, if there are more than 6 queues, put the queue list into two columns */}
                         {sortedQueues.length > 0 ? (
-                          <ul className={queueDropdownListClass}>
+                          <ul
+                            className={cn(
+                              'grid gap-1 p-4',
+                              showDrawerPresentation
+                                ? 'w-full'
+                                : 'md:grid-cols-2 lg:w-[600px] lg:gap-2',
+                              sortedQueues.length > 6
+                                ? 'grid-cols-2'
+                                : showDrawerPresentation
+                                  ? 'grid-cols-1'
+                                  : 'w-[60vw]',
+                              !showDrawerPresentation &&
+                                sortedQueues.length > 6 &&
+                                'w-[95vw]',
+                            )}
+                          >
                             {sortedQueues.map((queue) => (
                               <ListItem
                                 key={queue.id}
@@ -336,7 +342,16 @@ const NavBar = ({
                             ))}
                           </ul>
                         ) : (
-                          <div className={emptyQueueStateClass}>
+                          <div
+                            className={cn(
+                              'p-4 text-center text-sm text-gray-500',
+                              showDrawerPresentation
+                                ? 'w-full'
+                                : role === Role.PROFESSOR
+                                  ? 'w-[60vw] lg:w-[600px]'
+                                  : 'w-[60vw] lg:w-[400px]',
+                            )}
+                          >
                             <p>There are no queues in this course</p>
                             {role === Role.PROFESSOR && (
                               <p>
@@ -482,7 +497,7 @@ const NavBar = ({
                   <NavigationMenuItem>
                     <Link
                       className={cn(
-                        horizontalInsetImportantClass,
+                        !showDrawerPresentation && '!md:pl-8',
                         isAnOrganizationSettingsPage && selectedNavItemClass,
                       )}
                       href="/organization/settings"
