@@ -8,11 +8,12 @@ import { MailerService } from './mailer.service';
 import { WeeklySummaryService } from './weekly-summary.service';
 import { CourseCleanupService } from './course-cleanup.service';
 import { InsightsModule } from '../insights/insights.module';
+import { RedisProfileModule } from '../redisProfile/redis-profile.module';
 
 @Global()
 @Module({
   controllers: [MailController, MailServicesController],
-  imports: [ConfigModule, InsightsModule],
+  imports: [ConfigModule, InsightsModule, RedisProfileModule],
   providers: [MailService, MailerService, WeeklySummaryService, CourseCleanupService],
   exports: [MailService],
 })

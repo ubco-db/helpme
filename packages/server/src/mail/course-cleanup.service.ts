@@ -10,10 +10,14 @@ import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegratio
 import { UserSubscriptionModel } from './user-subscriptions.entity';
 import { MailServiceModel } from './mail-services.entity';
 import { CourseCleanupEmailBuilder } from './course-cleanup-email.builder';
+import { RedisProfileService } from '../redisProfile/redis-profile.service';
 
 @Injectable()
 export class CourseCleanupService {
-  constructor(private mailService: MailService) {}
+  constructor(
+    private mailService: MailService,
+    private redisProfileService: RedisProfileService,
+  ) {}
 
  @Cron('0 0 0 1 * *')
  // @Cron(CronExpression.EVERY_MINUTE)
@@ -101,7 +105,8 @@ export class CourseCleanupService {
     try {
       console.log('[CourseCleanup] Starting archival job…');
 
-      const coursesToArchive = await this.getCoursesOnEndedSemesters();
+      const coursesToArchive = await this.getCoursesReadyForArchival();
+      console.log(`[CourseCleanup] Found ${coursesToArchive.length} courses ready for archival:`, coursesToArchive.map(c => ({ id: c.id, name: c.name, semesterEndDate: c.semester?.endDate })));
 
       if (coursesToArchive.length === 0) {
         console.log('[CourseCleanup] No courses to archive. Skipping.');
@@ -110,11 +115,14 @@ export class CourseCleanupService {
 
       let archived = 0;
       let failed = 0;
+      const successfullyArchivedCourses: CourseModel[] = [];
 
       for (const course of coursesToArchive) {
         try {
+          console.log(`[CourseCleanup] Archiving course ${course.id} (${course.name}) - semester ended: ${course.semester?.endDate}`);
           await this.archiveCourse(course);
           archived++;
+          successfullyArchivedCourses.push(course);
         } catch (error) {
           failed++;
           console.error(
@@ -125,6 +133,11 @@ export class CourseCleanupService {
             extra: { courseId: course.id, courseName: course.name },
           });
         }
+      }
+
+      // Send confirmation emails for successfully archived courses
+      if (successfullyArchivedCourses.length > 0) {
+        await this.sendArchivalConfirmationEmails(successfullyArchivedCourses);
       }
 
       console.log(
@@ -148,6 +161,26 @@ export class CourseCleanupService {
       .andWhere('course.enabled = :enabled', { enabled: true })
       .andWhere('semester.endDate IS NOT NULL')
       .andWhere('semester.endDate < :now', { now })
+      .andWhere('semester.endDate > :minDate', { minDate })
+      .getMany();
+  }
+
+  private async getCoursesReadyForArchival(): Promise<CourseModel[]> {
+    const now = new Date();
+    const minDate = new Date('2023-01-01');
+    
+    // Only archive courses that ended more than 2 weeks ago to ensure notification time
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    
+    console.log(`[CourseCleanup] Archival criteria: courses ended before ${twoWeeksAgo.toISOString()} and after ${minDate.toISOString()}`);
+
+    return CourseModel.createQueryBuilder('course')
+      .innerJoinAndSelect('course.semester', 'semester')
+      .where('course.deletedAt IS NULL')
+      .andWhere('course.enabled = :enabled', { enabled: true })
+      .andWhere('semester.endDate IS NOT NULL')
+      .andWhere('semester.endDate < :twoWeeksAgo', { twoWeeksAgo })
       .andWhere('semester.endDate > :minDate', { minDate })
       .getMany();
   }
@@ -185,6 +218,76 @@ export class CourseCleanupService {
 
     return map;
   }
+  private async sendArchivalConfirmationEmails(
+    archivedCourses: CourseModel[],
+  ): Promise<void> {
+    try {
+      console.log(
+        '[CourseCleanup] Sending archival confirmation emails…',
+      );
+
+      // Group courses by professor
+      const professorCourseMap = await this.groupCoursesByProfessor(
+        archivedCourses.map((c) => c.id),
+      );
+
+      // Calculate the warning date (1st of current month)
+      const warningDate = new Date();
+      warningDate.setDate(1);
+      const formattedWarningDate = warningDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+
+      let emailsSent = 0;
+      let emailsFailed = 0;
+
+      for (const [professorId, { professor, courses }] of professorCourseMap) {
+        try {
+          if (await this.isUnsubscribed(professorId)) continue;
+
+          const emailHtml = CourseCleanupEmailBuilder.buildConfirmationEmail(
+            courses,
+            formattedWarningDate,
+          );
+
+          const subject = courses.length === 1 
+            ? `HelpMe: Course "${courses[0].name}" archived`
+            : `HelpMe: ${courses.length} courses archived`;
+
+          await this.mailService.sendEmail({
+            receiverOrReceivers: professor.email,
+            type: MailServiceType.COURSE_CLEANUP_NOTIFICATION,
+            subject,
+            content: emailHtml,
+          });
+
+          emailsSent++;
+        } catch (error) {
+          emailsFailed++;
+          console.error(
+            `[CourseCleanup] Failed to send confirmation email to professor ${professorId}:`,
+            error,
+          );
+          Sentry.captureException(error, {
+            extra: { professorId, phase: 'confirmation' },
+          });
+        }
+      }
+
+      console.log(
+        `[CourseCleanup] Confirmation emails complete. Sent ${emailsSent}, failed ${emailsFailed}.`,
+      );
+    } catch (error) {
+      console.error(
+        '[CourseCleanup] Fatal error in sendArchivalConfirmationEmails:',
+        error,
+      );
+      Sentry.captureException(error);
+    }
+  }
+
   private async isUnsubscribed(professorId: number): Promise<boolean> {
     const mailService = await MailServiceModel.findOne({
       where: { serviceType: MailServiceType.COURSE_CLEANUP_NOTIFICATION },
@@ -198,6 +301,11 @@ export class CourseCleanupService {
     return subscription?.isSubscribed === false;
   }
   private async archiveCourse(course: CourseModel): Promise<void> {
+    const usersInCourse = await UserCourseModel.find({
+      where: { courseId: course.id },
+      select: ['userId'],
+    });
+
     const deletedDocs = await ChatbotDocPdfModel.delete({
       courseId: course.id,
     });
@@ -215,8 +323,19 @@ export class CourseCleanupService {
     }
 
     await CourseModel.softRemove(course);
+    for (const userCourse of usersInCourse) {
+      try {
+        await this.redisProfileService.deleteProfile(`u:${userCourse.userId}`);
+      } catch (error) {
+        console.warn(
+          `[CourseCleanup] Failed to clear cache for user ${userCourse.userId}:`,
+          error,
+        );
+      }
+    }
+
     console.log(
-      `[CourseCleanup] Archived course ${course.id} (${course.name}).`,
+      `[CourseCleanup] Archived course ${course.id} (${course.name}) and cleared cache for ${usersInCourse.length} users.`,
     );
   }
 }
