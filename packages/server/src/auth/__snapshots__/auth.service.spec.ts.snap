@@ -15,6 +15,7 @@ UserModel {
   "includeDefaultMessage": true,
   "lastName": "Doe",
   "name": "John Doe",
+  "namePronunciation": null,
   "organizationUser": OrganizationUserModel {
     "id": 1,
     "organizationId": 2,
@@ -44,6 +45,7 @@ UserModel {
   "includeDefaultMessage": true,
   "lastName": "Doe",
   "name": "John Doe",
+  "namePronunciation": null,
   "organizationUser": OrganizationUserModel {
     "id": 1,
     "organizationId": 2,

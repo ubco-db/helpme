@@ -12,6 +12,7 @@ import { Card, message, Tooltip } from 'antd'
 import { useEffect, useState } from 'react'
 import EditCourseForm from './EditCourseForm'
 import ArchiveCourse from './ArchiveCourse'
+import DeleteCourse from './DeleteCourse'
 import { useRouter } from 'next/navigation'
 import CourseInviteCode from './CourseInviteCode'
 import CourseFeaturesForm from './CourseFeaturesForm'
@@ -167,6 +168,16 @@ const EditCourse: React.FC<EditCourseProps> = ({
             organization={organization}
             fetchCourseData={fetchCourseData}
           />
+          {userInfo.organization?.organizationRole ===
+            OrganizationRole.ADMIN && (
+            <>
+              <hr className="my-4" />
+              <DeleteCourse
+                courseData={courseData}
+                organization={organization}
+              />
+            </>
+          )}
         </Card>
       </div>
     </>

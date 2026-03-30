@@ -32,7 +32,9 @@ export class QueueModel extends BaseEntity {
   @CreateDateColumn({ type: 'timestamptz', nullable: true })
   createdAt: Date;
 
-  @ManyToOne((type) => CourseModel, (course) => course.queues)
+  @ManyToOne((type) => CourseModel, (course) => course.queues, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'courseId' })
   course: CourseModel;
 

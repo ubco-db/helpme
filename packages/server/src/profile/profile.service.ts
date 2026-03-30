@@ -70,6 +70,7 @@ export class ProfileService {
       'sid',
       'firstName',
       'lastName',
+      'namePronunciation',
       'photoURL',
       'defaultMessage',
       'includeDefaultMessage',

@@ -8,5 +8,6 @@ import { InsightsController } from './insights.controller';
   controllers: [InsightsController],
   imports: [CacheModule.register()],
   providers: [InsightsCommand, InsightsService],
+  exports: [InsightsService],
 })
 export class InsightsModule {}
