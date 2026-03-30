@@ -185,7 +185,7 @@ export class asyncQuestionController {
           'comments.creator',
           'comments.creator.courses',
           'comments.endorsedBy',
-        'comments.endorsedBy.courses',
+          'comments.endorsedBy.courses',
         ],
       });
 
@@ -494,17 +494,17 @@ export class asyncQuestionController {
       createdAt: new Date(),
     }).save();
 
-    const otherComments = await AsyncQuestionCommentModel.find({
+    const myOtherComments = await AsyncQuestionCommentModel.find({
       where: {
         creatorId: user.id,
         questionId: qid,
         id: Not(comment.id),
       },
     });
-    const originalAnons = otherComments.map((c) => c.isAnonymous);
-    otherComments.forEach((oc) => (oc.isAnonymous = comment.isAnonymous));
+    const originalAnons = myOtherComments.map((c) => c.isAnonymous);
+    myOtherComments.forEach((oc) => (oc.isAnonymous = comment.isAnonymous));
     await AsyncQuestionCommentModel.save(
-      otherComments.filter((v, i) => originalAnons[i] != v.isAnonymous),
+      myOtherComments.filter((v, i) => originalAnons[i] != v.isAnonymous),
     );
 
     const updatedQuestion = await AsyncQuestionModel.findOne({
@@ -565,7 +565,7 @@ export class asyncQuestionController {
     }
 
     // only put necessary info for the response's creator (otherwise it would send the password hash and a bunch of other unnecessary info)
-    const comments = [comment, ...otherComments];
+    const comments = [comment, ...myOtherComments];
     for (const c of comments) {
       c.creator = {
         id: user.id,
@@ -861,7 +861,7 @@ export class asyncQuestionController {
           'comments.creator',
           'comments.creator.courses',
           'comments.endorsedBy',
-        'comments.endorsedBy.courses',
+          'comments.endorsedBy.courses',
         ],
         order: {
           createdAt: 'DESC',

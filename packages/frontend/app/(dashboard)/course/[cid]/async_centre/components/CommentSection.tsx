@@ -121,25 +121,27 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               ? (question.isAnonymous ?? defaultAnonymousSetting)
               : isAnonymous,
       })
-      .then((comments) => {
+      .then((myComments) => {
         dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
         message.success('Comment posted successfully')
-        comments.forEach((c) => {
+        myComments.forEach((c) => {
           if (c.creator) {
             c.creator.courseRole = userCourseRole
           }
         })
-        const ids = comments.map((c) => c.id)
+        const ids = myComments.map((c) => c.id)
         question.comments.forEach((c) => {
-          if (!ids.includes(c.id)) return
-          c.isAnonymous = comments[0].isAnonymous
+          if (!ids.includes(c.id)) return // if for some reason they don't match
+          c.isAnonymous = myComments[0].isAnonymous // the anonymity of all of them now match the new one
         })
-        question.comments.push(comments[0])
-        setIsPostCommentLoading(false)
+        question.comments.push(myComments[0])
         regenerateComments(!regenerateCommentsFlag)
       })
       .catch((e) => {
         message.error('Failed to post reply: ' + getErrorMessage(e))
+      })
+      .finally(() => {
+        setIsPostCommentLoading(false)
       })
   }
 
