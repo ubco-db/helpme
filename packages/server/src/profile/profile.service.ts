@@ -99,8 +99,6 @@ export class ProfileService {
       'orgId',
       'organizationName',
       'organizationDescription',
-      'organizationLogoUrl',
-      'organizationBannerUrl',
       'organizationRole',
     ]);
 
@@ -154,11 +152,13 @@ export class ProfileService {
 
   private deletePreviousImage(filePath: string): void {
     try {
+      // TODO: maybe for safety we shouldn't assume that the user's photoURL is always going to be safe
       fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, filePath));
     } catch (e) {
       console.error(
-        `Error deleting previous picture at: ${filePath}\n` +
-          `Perhaps the file was already deleted or the database is out of sync with the uploads directory.\n` +
+        `Error deleting previous picture at: ${filePath}\n. Error:` +
+          e +
+          `\nPerhaps the file was already deleted or the database is out of sync with the uploads directory.\n` +
           `Will remove this entry from the database and continue.`,
       );
     }
