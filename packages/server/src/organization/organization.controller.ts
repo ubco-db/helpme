@@ -8,6 +8,7 @@ import {
   HttpException,
   HttpStatus,
   Param,
+  ParseFilePipeBuilder,
   ParseIntPipe,
   Patch,
   Post,
@@ -766,7 +767,18 @@ export class OrganizationController {
     }),
   )
   async uploadBanner(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          // Note that nestjs filetypevalidator comes with mime type and magic number validation build in
+          fileType: 'jpg|jpeg|png|gif|avif|webp',
+        })
+        .addMaxSizeValidator({
+          maxSize: 5 * 1024 * 1024, // 5MB limit per file
+        })
+        .build(),
+    )
+    file: Express.Multer.File,
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
@@ -852,7 +864,18 @@ export class OrganizationController {
     }),
   )
   async uploadLogo(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          // Note that nestjs filetypevalidator comes with mime type and magic number validation build in
+          fileType: 'jpg|jpeg|png|gif|avif|webp',
+        })
+        .addMaxSizeValidator({
+          maxSize: 5 * 1024 * 1024, // 5MB limit per file
+        })
+        .build(),
+    )
+    file: Express.Multer.File,
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {

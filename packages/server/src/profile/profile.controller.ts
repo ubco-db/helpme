@@ -11,6 +11,7 @@ import {
   HttpException,
   HttpStatus,
   Param,
+  ParseFilePipeBuilder,
   Patch,
   Post,
   Req,
@@ -121,40 +122,29 @@ export class ProfileController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
-      limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit per file
-      },
-      fileFilter: (req, file, cb) => {
-        // Check mimetype
-        if (!file.mimetype.startsWith('image/')) {
-          cb(new Error('Only image files are allowed'), false);
-          return;
-        }
-        // Check file extension
-        const allowedExtensions = [
-          '.jpg',
-          '.jpeg',
-          '.png',
-          '.gif',
-          '.webp',
-          '.bmp',
-          '.svg',
-          '.tiff',
-          '.gif',
-        ];
-        const fileExt = file.originalname
-          .toLowerCase()
-          .substring(file.originalname.lastIndexOf('.'));
-        if (!allowedExtensions.includes(fileExt)) {
-          cb(new Error('Only image files are allowed'), false);
-          return;
-        }
-        cb(null, true);
-      },
     }),
   )
   async uploadImage(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          // Note that nestjs filetypevalidator comes with mime type and magic number validation build in
+          fileType: 'jpg|jpeg|png|gif|avif|webp',
+        })
+        .addMaxSizeValidator({
+          maxSize: 5 * 1024 * 1024, // 5MB limit per file
+        })
+        .build({
+          // TIL about status code 422 (https://beeceptor.com/docs/concepts/400-vs-422/#example-use-cases)
+          // Apparently 422 is supposed to be like validation failures (request failed the business logic)
+          // while 400 is supposed to be for like malformed requests (invalid json, headers).
+          // So nearly all areas we currently have 400 would need to be replaced with 422
+          // since nest.js already covers all the stuff like malformed requests, bad headers, etc.
+          // This probably isn't worth the effort of changing, but it is interesting!
+          // errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY
+        }),
+    )
+    file: Express.Multer.File,
     @User() user: UserModel,
     @Res() response: Response,
   ): Promise<void> {
