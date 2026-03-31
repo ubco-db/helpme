@@ -89,7 +89,7 @@ const SidebarNavigation: React.FC = () => {
             }))}
           />
         </div>
-        <div className="hidden md:col-span-2 md:block">
+        <div className="hidden md:col-span-3 md:block lg:col-span-2">
           <nav className="rounded bg-white shadow-md">
             {items.map((item) => {
               return (

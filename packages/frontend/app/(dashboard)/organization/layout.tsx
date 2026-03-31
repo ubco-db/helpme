@@ -15,7 +15,7 @@ export default function OrganizationLayout({
       <h2>My Organization</h2>
       <div className="mt-5 gap-8 space-y-3 md:grid md:grid-cols-10 md:space-y-0">
         <SidebarNavigation />
-        <div className="md:col-span-8">{children}</div>
+        <div className="md:col-span-7 lg:col-span-8">{children}</div>
       </div>
     </div>
   )
