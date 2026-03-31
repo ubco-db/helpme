@@ -1,4 +1,30 @@
 import { CourseModel } from '../course/course.entity';
+import * as cheerio from 'cheerio';
+
+function validateHtml(html: string): void {
+  const originalTags = html.match(/<(?!\/)(?!br|hr|img|input|meta|link|area|base|col|embed|source|track|wbr)([a-zA-Z][a-zA-Z0-9]*)[^>]*(?<!\/>)/g) || [];
+  const closingTags = html.match(/<\/([a-zA-Z][a-zA-Z0-9]*)>/g) || [];
+  
+  const $ = cheerio.load(html, { xmlMode: false }, false);
+  const serialized = $.html();
+  
+  const serializedOpeningTags = serialized.match(/<(?!\/)(?!br|hr|img|input|meta|link|area|base|col|embed|source|track|wbr)([a-zA-Z][a-zA-Z0-9]*)[^>]*(?<!\/>)/g) || [];
+  const serializedClosingTags = serialized.match(/<\/([a-zA-Z][a-zA-Z0-9]*)>/g) || [];
+  
+  const difference = serializedClosingTags.length - closingTags.length;
+  if (closingTags.length !== serializedClosingTags.length) {
+    let errorMsg: string;
+    if (difference > 0) {
+      errorMsg = `Invalid HTML: You have ${difference} unclosed tag(s).`;
+    } else {
+      errorMsg = `Invalid HTML: You have ${Math.abs(difference)} orphaned closing tag(s) without opening tags.`;
+    }
+    throw new Error(errorMsg);
+  }  
+  if (Math.abs(serialized.length - html.length) > Math.max(100, html.length * 0.05)) {
+    throw new Error(`Invalid HTML: Structure significantly modified after parsing.`);
+  }
+}
 
 export class CourseCleanupEmailBuilder {
   static buildNotificationEmail(
@@ -12,35 +38,33 @@ export class CourseCleanupEmailBuilder {
       </div>
     `;
     
+    validateHtml(emailBody);
     return emailBody;
   }
 
-
   static buildConfirmationEmail(
     courses: CourseModel[],
-    warningDateStr: string,
+    archivalDateStr: string,
   ): string {
     const emailBody = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; max-width: 640px; margin: 0 auto; color: #333;">
         ${this.buildConfirmationHeader()}
-        ${this.buildConfirmationContent(courses, warningDateStr)}
+        ${this.buildConfirmationContent(courses, archivalDateStr)}
       </div>
     `;
     
+    validateHtml(emailBody);
     return emailBody;
   }
-   */
+
   private static buildHeader(): string {
     return `
       <div style="background: linear-gradient(135deg, #1a73e8, #174ea6); padding: 24px 32px; border-radius: 8px 8px 0 0;">
-        <h1 style="color: #fff; margin: 0; font-size: 22px;">Course Cleanup Notice</h1>
+        <h1 style="color: #fff; margin: 0; font-size: 22px;">WARNING: Course Cleanup Notice</h1>
       </div>
     `;
   }
 
-  /**
-   * Build the main content section
-   */
   private static buildContent(courses: CourseModel[], archiveDateStr: string): string {
     return `
       <div style="padding: 24px 32px; background: #fff; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 8px 8px;">
@@ -53,9 +77,6 @@ export class CourseCleanupEmailBuilder {
     `;
   }
 
-  /**
-   * Build the introductory text
-   */
   private static buildIntroText(courses: CourseModel[], archiveDateStr: string): string {
     return `
       <p style="font-size: 15px; line-height: 1.6;">
@@ -64,9 +85,6 @@ export class CourseCleanupEmailBuilder {
     `;
   }
 
-  /**
-   * Build the list of courses to be archived
-   */
   private static buildCourseList(courses: CourseModel[]): string {
     const courseListHtml = courses
       .map(
@@ -85,9 +103,6 @@ export class CourseCleanupEmailBuilder {
     `;
   }
 
-  /**
-   * Build the warning box explaining what will happen
-   */
   private static buildWarningBox(): string {
     return `
       <div style="background: #fff8e1; border-left: 4px solid #ffc107; padding: 14px 18px; margin: 20px 0; border-radius: 4px;">
@@ -102,9 +117,6 @@ export class CourseCleanupEmailBuilder {
     `;
   }
 
-  /**
-   * Build the text explaining how to prevent archiving
-   */
   private static buildPreventionText(archiveDateStr: string): string {
     return `
       <p style="font-size: 15px; line-height: 1.6;">
@@ -113,9 +125,6 @@ export class CourseCleanupEmailBuilder {
     `;
   }
 
-  /**
-   * Build the footer with disclaimer
-   */
   private static buildFooter(): string {
     return `
       <p style="font-size: 13px; color: #888; margin-top: 24px; border-top: 1px solid #eee; padding-top: 16px;">
@@ -124,24 +133,18 @@ export class CourseCleanupEmailBuilder {
     `;
   }
 
-  /**
-   * Build the header section for confirmation email
-   */
   private static buildConfirmationHeader(): string {
     return `
-      <div style="background: linear-gradient(135deg, #388e3c, #2e7d32); padding: 24px 32px; border-radius: 8px 8px 0 0;">
+      <div style="background: linear-gradient(135deg, #1a73e8, #174ea6); padding: 24px 32px; border-radius: 8px 8px 0 0;">
         <h1 style="color: #fff; margin: 0; font-size: 22px;">Course Archival Completed</h1>
       </div>
     `;
   }
 
-  /**
-   * Build the main content section for confirmation email
-   */
-  private static buildConfirmationContent(courses: CourseModel[], warningDateStr: string): string {
+  private static buildConfirmationContent(courses: CourseModel[], archivalDateStr: string): string {
     return `
       <div style="padding: 24px 32px; background: #fff; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 8px 8px;">
-        ${this.buildConfirmationIntroText(courses, warningDateStr)}
+        ${this.buildConfirmationIntroText(courses, archivalDateStr)}
         ${this.buildConfirmationCourseList(courses)}
         ${this.buildUndoWarning()}
         ${this.buildConfirmationFooter()}
@@ -149,28 +152,22 @@ export class CourseCleanupEmailBuilder {
     `;
   }
 
-  /**
-   * Build the introductory text for confirmation email
-   */
-  private static buildConfirmationIntroText(courses: CourseModel[], warningDateStr: string): string {
+  private static buildConfirmationIntroText(courses: CourseModel[], archivalDateStr: string): string {
     const courseText = courses.length === 1 ? 'course' : 'courses';
     const hasHave = courses.length === 1 ? 'has' : 'have';
     
     return `
       <p style="font-size: 15px; line-height: 1.6;">
-        Following the warning email sent on <strong>${warningDateStr}</strong>, the ${courseText} listed below ${hasHave} been archived:
+        The following ${courseText} ${hasHave} been successfully archived on <strong>${archivalDateStr}</strong>:
       </p>
     `;
   }
 
-  /**
-   * Build the list of archived courses
-   */
   private static buildConfirmationCourseList(courses: CourseModel[]): string {
     const courseListHtml = courses
       .map(
         (c) =>
-          `<li style="margin-bottom: 6px; color: #388e3c; font-weight: 600;">
+          `<li style="margin-bottom: 6px; color: #1a73e8; font-weight: 600;">
             ${c.name}
             ${c.semester ? ` <span style="color: #888; font-weight: normal;">(${c.semester.name})</span>` : ''}
           </li>`,
@@ -184,23 +181,17 @@ export class CourseCleanupEmailBuilder {
     `;
   }
 
-  /**
-   * Build the undo warning box
-   */
+
   private static buildUndoWarning(): string {
     return `
       <div style="background: #ffebee; border-left: 4px solid #d32f2f; padding: 14px 18px; margin: 20px 0; border-radius: 4px;">
-        <strong style="color: #c62828;">⚠️ This action cannot be undone.</strong>
+        <strong style="color: #c62828;">This action cannot be undone.</strong>
         <p style="margin: 8px 0 0 0; color: #c62828;">
           All course data, chatbot documents, and LMS integrations have been permanently removed.
         </p>
       </div>
     `;
   }
-
-  /**
-   * Build the footer for confirmation email
-   */
   private static buildConfirmationFooter(): string {
     return `
       <p style="font-size: 15px; line-height: 1.6; color: #666;">

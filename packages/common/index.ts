@@ -358,6 +358,7 @@ export enum MailServiceType {
   COURSE_CLONE_SUMMARY = 'course_clone_summary',
   WEEKLY_COURSE_SUMMARY= 'weekly_course_summary',
   COURSE_CLEANUP_NOTIFICATION = 'course_cleanup_notification',
+  COURSE_CLEANUP_CONFIRMATION = 'COURSE_CLEANUP_CONFIRMATION',
 }
 /**
  * Represents one of three possible user roles in a course.
