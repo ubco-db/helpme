@@ -1,5 +1,6 @@
 import SidebarNavigation from './components/SidebarNavigation'
 import { Metadata } from 'next'
+import { ReactNode } from 'react'
 
 export const metadata: Metadata = {
   title: 'HelpMe | Organization Panel',
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
 export default function OrganizationLayout({
   children, // will be a page or nested layout
 }: {
-  children: React.ReactNode
+  children: ReactNode
 }) {
   return (
     <div className="mt-2">
