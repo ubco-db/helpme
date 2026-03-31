@@ -10,7 +10,8 @@ import {
   TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons'
-import { usePathname } from 'next/navigation'
+import { Select } from 'antd'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/app/utils/generalUtils'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -63,6 +64,7 @@ const items = [
 
 const SidebarNavigation: React.FC = () => {
   const pathname = usePathname()
+  const router = useRouter()
   const { userInfo } = useUserInfo()
 
   if (
@@ -70,29 +72,47 @@ const SidebarNavigation: React.FC = () => {
     userInfo.organization.organizationRole === OrganizationRole.ADMIN
   ) {
     return (
-      <div className="md:col-span-2">
-        <nav className="rounded bg-white shadow-md">
-          {items.map((item) => {
-            return (
-              <Link href={item.url} key={item.key}>
-                <div
-                  className={cn(
-                    'flex cursor-pointer items-center justify-between rounded bg-white p-4 hover:bg-gray-200 focus:bg-gray-200',
-                    pathname === item.url
-                      ? 'bg-[#e6f7ff] text-[#1890ff]'
-                      : 'text-black',
-                  )}
-                >
-                  <div className="flex items-center">
-                    {item.icon}
-                    <span className="ml-4">{item.label}</span>
+      <>
+        <div className="md:hidden">
+          <Select
+            value={items.find((item) => item.url === pathname)?.key}
+            onChange={(value) => {
+              const nextItem = items.find((item) => item.key === value)
+              if (nextItem) {
+                router.push(nextItem.url)
+              }
+            }}
+            className="w-full"
+            options={items.map((item) => ({
+              value: item.key,
+              label: item.label,
+            }))}
+          />
+        </div>
+        <div className="hidden md:col-span-2 md:block">
+          <nav className="rounded bg-white shadow-md">
+            {items.map((item) => {
+              return (
+                <Link href={item.url} key={item.key}>
+                  <div
+                    className={cn(
+                      'flex cursor-pointer items-center justify-between rounded bg-white p-4 hover:bg-gray-200 focus:bg-gray-200',
+                      pathname === item.url
+                        ? 'bg-[#e6f7ff] text-[#1890ff]'
+                        : 'text-black',
+                    )}
+                  >
+                    <div className="flex items-center">
+                      {item.icon}
+                      <span className="ml-4">{item.label}</span>
+                    </div>
                   </div>
-                </div>
-              </Link>
-            )
-          })}
-        </nav>
-      </div>
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
+      </>
     )
   } else {
     // This is just to create a gap to center the content
