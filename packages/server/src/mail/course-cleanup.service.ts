@@ -25,6 +25,7 @@ export class CourseCleanupService {
       console.log('[CourseCleanup] Starting cleanup notification job…');
       console.log('[CourseCleanup] Starting warning email job…');
 
+      const coursesToWarn = await this.getCoursesNeedingWarningEmails();
 
       if (coursesToWarn.length === 0) {
         console.log(
