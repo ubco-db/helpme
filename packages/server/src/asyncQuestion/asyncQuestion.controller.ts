@@ -564,19 +564,38 @@ export class asyncQuestionController {
       );
     }
 
-    // only put necessary info for the response's creator (otherwise it would send the password hash and a bunch of other unnecessary info)
-    const comments = [comment, ...myOtherComments];
-    for (const c of comments) {
-      c.creator = {
-        id: user.id,
-        name: user.name,
-        colour: nameToRGB(Math.abs(user.id - qid).toString()),
-        anonId: this.asyncQuestionService.getAnonId(user.id, qid),
-        photoURL: user.photoURL,
-        isAuthor: comment.creator.id === question.creatorId,
-      } as AsyncCreator as unknown as UserModel;
-    }
-    res.status(HttpStatus.CREATED).send(comments);
+    // Build response from updatedQuestion.comments which has all relations loaded (endorsedBy.courses, etc.)
+    // This ensures endorsedBy is properly formatted (role derived, endorsedById stripped) and avoids leaking internal fields.
+    const updatedCommentMap = new Map(
+      updatedQuestion.comments.map((c) => [c.id, c]),
+    );
+    const formattedComments = [comment.id, ...myOtherComments.map((c) => c.id)]
+      .map((id) => updatedCommentMap.get(id))
+      .filter(Boolean)
+      .map((c) => {
+        const temp = { ...c } as any;
+        delete temp.endorsedById;
+        // only put necessary info for the response's creator (otherwise it would send the password hash and a bunch of other unnecessary info)
+        temp.creator = {
+          id: user.id,
+          name: user.name,
+          colour: nameToRGB(Math.abs(user.id - qid).toString()),
+          anonId: this.asyncQuestionService.getAnonId(user.id, qid),
+          photoURL: user.photoURL,
+          isAuthor: c.creatorId === question.creatorId,
+        } as AsyncCreator as unknown as UserModel;
+        temp.endorsedBy = c.endorsedBy
+          ? ({
+              ...pick(c.endorsedBy, ['id', 'name', 'photoURL']),
+              role:
+                c.endorsedBy.courses?.find(
+                  (course) => course.courseId === question.courseId,
+                )?.role || Role.TA,
+            } as unknown as UserModel)
+          : null;
+        return temp;
+      });
+    res.status(HttpStatus.CREATED).send(formattedComments);
   }
 
   @Patch('comment/:qid/:commentId/endorse')
@@ -742,7 +761,36 @@ export class asyncQuestionController {
       otherComments.filter((v, i) => originalAnons[i] != v.isAnonymous),
     );
 
-    res.status(HttpStatus.OK).send([comment, otherComments]);
+    // Build response from updatedQuestion.comments to ensure endorsedBy is properly formatted and endorsedById is stripped
+    const updatedCommentMap = new Map(
+      updatedQuestion.comments.map((c) => [c.id, c]),
+    );
+    const formattedComments = [comment.id, ...otherComments.map((c) => c.id)]
+      .map((id) => updatedCommentMap.get(id))
+      .filter(Boolean)
+      .map((c) => {
+        const temp = { ...c } as any;
+        delete temp.endorsedById;
+        temp.creator = {
+          id: c.creator.id,
+          name: c.creator.name,
+          colour: nameToRGB(Math.abs(c.creatorId - qid).toString()),
+          anonId: this.asyncQuestionService.getAnonId(c.creatorId, qid),
+          photoURL: c.creator.photoURL,
+          isAuthor: c.creatorId === question.creatorId,
+        } as AsyncCreator as unknown as UserModel;
+        temp.endorsedBy = c.endorsedBy
+          ? ({
+              ...pick(c.endorsedBy, ['id', 'name', 'photoURL']),
+              role:
+                c.endorsedBy.courses?.find(
+                  (course) => course.courseId === question.courseId,
+                )?.role || Role.TA,
+            } as unknown as UserModel)
+          : null;
+        return temp;
+      });
+    res.status(HttpStatus.OK).send(formattedComments);
   }
 
   @Delete('comment/:qid/:commentId')
