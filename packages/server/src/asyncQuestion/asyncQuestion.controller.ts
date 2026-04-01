@@ -184,8 +184,6 @@ export class asyncQuestionController {
           'comments',
           'comments.creator',
           'comments.creator.courses',
-          'comments.endorsedBy',
-          'comments.endorsedBy.courses',
         ],
       });
 
@@ -323,6 +321,10 @@ export class asyncQuestionController {
     }
     delete question.taHelped;
     delete question.votes;
+    question.comments?.forEach((c) => {
+      delete (c as any).endorsedBy;
+      delete (c as any).endorsedById;
+    });
 
     return question;
   }
@@ -448,6 +450,10 @@ export class asyncQuestionController {
 
     delete question.taHelped;
     delete question.votes;
+    question.comments?.forEach((c) => {
+      delete (c as any).endorsedBy;
+      delete (c as any).endorsedById;
+    });
 
     return question;
   }
