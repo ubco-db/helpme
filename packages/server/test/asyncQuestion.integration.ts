@@ -103,6 +103,7 @@ describe('AsyncQuestion Integration', () => {
 
       const createdQuestion = await AsyncQuestionModel.findOne({
         where: { courseId: course.id, creatorId: studentUser.id, questionText: 'text' },
+        order: { id: 'DESC' },
       });
       expect(createdQuestion).not.toBeNull();
       expect(createdQuestion.status).toBe(asyncQuestionStatus.AIAnswered);
@@ -123,6 +124,7 @@ describe('AsyncQuestion Integration', () => {
 
       const createdQuestion = await AsyncQuestionModel.findOne({
         where: { courseId: course.id, creatorId: TAuser.id, questionText: 'text' },
+        order: { id: 'DESC' },
       });
       expect(createdQuestion).not.toBeNull();
       expect(createdQuestion.status).toBe(asyncQuestionStatus.AIAnswered);
