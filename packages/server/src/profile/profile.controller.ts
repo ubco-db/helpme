@@ -7,11 +7,14 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpException,
   HttpStatus,
+  NotFoundException,
   Param,
   ParseFilePipeBuilder,
+  ParseIntPipe,
   Patch,
   Post,
   Req,
@@ -32,6 +35,7 @@ import { ProfileService } from './profile.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { minutes, SkipThrottle, Throttle } from '@nestjs/throttler';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
+import * as Sentry from '@sentry/nestjs';
 
 @Controller('profile')
 export class ProfileController {
@@ -163,14 +167,55 @@ export class ProfileController {
     }
   }
 
-  @Get('/get_picture/:photoURL')
+  @Get('/get_pfp/:requestUserId/:photoURL')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-  async getImage(
+  async getProfilePicture(
+    @Param('requestUserId', ParseIntPipe) requestUserId: number,
+    // note that we do NOT supply a user-supplied path into `fs`, we're just using this
+    // as an identifier so the browser doesn't cache old pfps
+    // Technically, this is bad because having the frontend handle (and send requests) the with something that directly maps to the backend's file system
+    // will allow people to get hints to figure out how the backend works, that will be solved another day (when we change where photos are kept, ideally in the database).
     @Param('photoURL') photoURL: string,
+    @User({ organizationUser: true, courses: true }) requester: UserModel,
     @Res() res: Response,
   ): Promise<void> {
+    const requestee = await UserModel.findOne({
+      relations: {
+        organizationUser: true,
+        courses: true,
+      },
+      where: { id: requestUserId },
+    });
+    if (!requestee) {
+      throw new NotFoundException('User not found');
+    }
+    if (!requestee.photoURL) {
+      throw new NotFoundException('User has no profile picture');
+    }
+    if (requestee.photoURL !== photoURL) {
+      throw new NotFoundException(
+        "Provided photo URL does not match the user's current photo URL. Perhaps they have updated their photo?",
+      );
+    }
+
+    const canView = await this.profileService.canViewProfilePicture(
+      requester,
+      requestee,
+    );
+
+    if (!canView) {
+      // log in sentry since this ideally shouldn't happen
+      Sentry.captureException(
+        new Error(
+          `User ${requester.id} tried to access profile picture of ${requestee.id} but was denied`,
+        ),
+      );
+      throw new ForbiddenException(
+        'You do not have permission to view this profile picture.',
+      );
+    }
     fs.stat(
-      path.join(process.env.UPLOAD_LOCATION, photoURL),
+      path.join(process.env.UPLOAD_LOCATION, requestee.photoURL),
       async (err, stats) => {
         if (err) {
           return res
@@ -180,7 +225,7 @@ export class ProfileController {
         if (stats) {
           res.set('Content-Type', 'image/webp');
           res.sendFile(
-            photoURL,
+            requestee.photoURL,
             { root: process.env.UPLOAD_LOCATION },
             (sendFileError) => {
               if (sendFileError) {

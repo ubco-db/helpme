@@ -164,6 +164,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
     userId === question.creatorId ? 'you' : Role.STUDENT,
   )
 
+  // Note that this logic is also in asyncQuestion.service.ts
   const questionIsPublic =
     (courseFeatures?.asyncCentreAuthorPublic ?? false)
       ? (question.staffSetVisible == null && question.authorSetVisible) ||
@@ -246,6 +247,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                         ? question.creator.photoURL
                         : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${anonAnimal}.png`
                     }
+                    userId={question.creator.id}
                     anonymous
                     onClick={(e) => {
                       if (isStaff) {
@@ -268,6 +270,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                         ? question.creator.photoURL
                         : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${anonAnimal}.png`
                     }
+                    userId={question.creator.id}
                     anonymous
                     onClick={(e) => {
                       if (isStaff) {

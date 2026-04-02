@@ -184,6 +184,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
           className="flex-shrink-0"
           username={ta.name}
           photoURL={ta.photoURL}
+          userId={ta.id}
         />
         <div className="ml-2 flex-grow">
           <Row justify="space-between">

@@ -134,6 +134,7 @@ const Comment: React.FC<CommentProps> = ({
                 ? author.photoURL
                 : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${anonAnimal}.png`
             }
+            userId={author.id}
             anonymous
             onClick={(e) => {
               if (
@@ -167,6 +168,7 @@ const Comment: React.FC<CommentProps> = ({
                 ? author.photoURL
                 : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${anonAnimal}.png`
             }
+            userId={author.id}
             anonymous
             onClick={(e) => {
               if (

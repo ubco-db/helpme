@@ -160,7 +160,11 @@ const LMSRosterTable: React.FC<LMSRosterTableProps> = ({
         </div>
         <List.Item.Meta
           avatar={
-            <UserAvatar photoURL={item.photoURL} username={item.name ?? ''} />
+            <UserAvatar
+              photoURL={item.photoURL}
+              userId={item.id}
+              username={item.name ?? ''}
+            />
           }
           title={
             <span className="mr-2">
