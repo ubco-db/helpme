@@ -977,16 +977,7 @@ describe('AsyncQuestion Integration', () => {
           `/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}/endorse`,
         )
         .send({ isEndorsed: true })
-        .expect(200)
-        .then((response) => {
-          expect(response.body.endorsedBy).toEqual(
-            expect.objectContaining({
-              id: TAuser.id,
-              name: expect.any(String),
-              role: Role.TA,
-            }),
-          );
-        });
+        .expect(200);
       const updated = await AsyncQuestionCommentModel.findOne({
         where: { id: comment.id },
       });
@@ -1005,10 +996,7 @@ describe('AsyncQuestion Integration', () => {
           `/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}/endorse`,
         )
         .send({ isEndorsed: false })
-        .expect(200)
-        .then((response) => {
-          expect(response.body.endorsedBy).toBeNull();
-        });
+        .expect(200);
       const updated = await AsyncQuestionCommentModel.findOne({
         where: { id: comment.id },
       });

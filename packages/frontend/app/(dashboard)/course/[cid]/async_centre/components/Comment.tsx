@@ -303,12 +303,10 @@ const Comment: React.FC<CommentProps> = ({
                     .endorseComment(questionId, commentId, {
                       isEndorsed: !endorsedBy,
                     })
-                    .then((res) => {
+                    .then(() => {
                       onEndorseSuccess()
                       message.success(
-                        res.endorsedBy
-                          ? 'Comment endorsed'
-                          : 'Endorsement removed',
+                        !endorsedBy ? 'Comment endorsed' : 'Endorsement removed',
                       )
                     })
                     .catch((e) => {

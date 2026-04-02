@@ -634,20 +634,7 @@ export class asyncQuestionController {
       updatedQuestion,
     );
 
-    const endorsedComment = updatedQuestion.comments.find(
-      (c) => c.id === commentId,
-    );
-    const endorsedBy = endorsedComment?.endorsedBy
-      ? {
-          ...pick(endorsedComment.endorsedBy, ['id', 'name', 'photoURL']),
-          role:
-            endorsedComment.endorsedBy.courses?.find(
-              (c) => c.courseId === question.courseId,
-            )?.role || Role.TA,
-        }
-      : null;
-
-    res.status(HttpStatus.OK).send({ endorsedBy });
+    res.status(HttpStatus.OK).send();
   }
 
   @Patch('comment/:qid/:commentId')
