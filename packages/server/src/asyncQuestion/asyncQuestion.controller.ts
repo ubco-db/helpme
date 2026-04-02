@@ -177,14 +177,7 @@ export class asyncQuestionController {
           courseId: cid,
           id: question.id,
         },
-        relations: [
-          'creator',
-          'taHelped',
-          'votes',
-          'comments',
-          'comments.creator',
-          'comments.creator.courses',
-        ],
+        relations: ['creator', 'taHelped', 'votes'],
       });
 
       await this.redisQueueService.addAsyncQuestion(`c:${cid}:aq`, newQuestion);
@@ -322,6 +315,8 @@ export class asyncQuestionController {
     delete question.taHelped;
     delete question.votes;
     question.comments?.forEach((c) => {
+      delete (c as any).creator;
+      delete (c as any).creatorId;
       delete (c as any).endorsedBy;
       delete (c as any).endorsedById;
     });
@@ -451,6 +446,8 @@ export class asyncQuestionController {
     delete question.taHelped;
     delete question.votes;
     question.comments?.forEach((c) => {
+      delete (c as any).creator;
+      delete (c as any).creatorId;
       delete (c as any).endorsedBy;
       delete (c as any).endorsedById;
     });
