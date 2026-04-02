@@ -3,7 +3,6 @@ import {
   AsyncQuestion,
   AsyncQuestionCommentEndorseParams,
   AsyncQuestionCommentParams,
-  AsyncQuestionParams,
   asyncQuestionStatus,
   CreateAsyncQuestions,
   ERROR_MESSAGES,
@@ -189,7 +188,7 @@ export class asyncQuestionController {
         await this.asyncQuestionService.sendNeedsAttentionEmail(question);
       }
 
-      res.status(HttpStatus.CREATED).send(newQuestion);
+      res.status(HttpStatus.CREATED).send();
       return;
     } catch (err) {
       console.error(err);
@@ -207,7 +206,7 @@ export class asyncQuestionController {
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
     @UserId() userId: number,
-  ): Promise<AsyncQuestionParams> {
+  ): Promise<void> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: questionId },
       relations: [
@@ -312,16 +311,6 @@ export class asyncQuestionController {
         updatedQuestion,
       );
     }
-    delete question.taHelped;
-    delete question.votes;
-    question.comments?.forEach((c) => {
-      delete (c as any).creator;
-      delete (c as any).creatorId;
-      delete (c as any).endorsedBy;
-      delete (c as any).endorsedById;
-    });
-
-    return question;
   }
 
   // check that verified equals true and something changed
@@ -332,7 +321,7 @@ export class asyncQuestionController {
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
     @UserId() userId: number,
-  ): Promise<AsyncQuestionParams> {
+  ): Promise<void> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: questionId },
       relations: [
@@ -442,17 +431,6 @@ export class asyncQuestionController {
         updatedQuestion,
       );
     }
-
-    delete question.taHelped;
-    delete question.votes;
-    question.comments?.forEach((c) => {
-      delete (c as any).creator;
-      delete (c as any).creatorId;
-      delete (c as any).endorsedBy;
-      delete (c as any).endorsedById;
-    });
-
-    return question;
   }
 
   @Post('comment/:qid')
