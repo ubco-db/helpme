@@ -158,7 +158,7 @@ export class ProfileController {
         user,
       );
       response
-        .status(200)
+        .status(201)
         .send({ message: 'Image uploaded successfully', fileName });
     } catch (error) {
       response
@@ -270,9 +270,10 @@ export class ProfileController {
         .status(HttpStatus.OK)
         .send({ message: 'Changelogs read successfully' });
     } catch (error) {
+      console.error(error);
       return res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .send({ message: 'Error reading changelogs' });
+        .send({ message: 'Error reading changelog' });
     }
   }
 
