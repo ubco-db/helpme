@@ -297,7 +297,7 @@ async archiveEndedCourses(): Promise<void> {
   private async archiveCourse(course: CourseModel): Promise<void> {
     const usersInCourse = await UserCourseModel.find({
       where: { courseId: course.id },
-      select: ['userId'],
+      select: { userId: true },
     });
 
     await ChatbotDocPdfModel.delete({
