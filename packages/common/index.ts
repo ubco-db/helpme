@@ -436,6 +436,7 @@ export interface SourceDocument {
     courseId?: string
     fromLMS?: boolean
     apiDocId?: number
+    asyncQuestionId?: number // inserted async questions only
   }
   type?: string
   // TODO: is it content or pageContent? since this file uses both. EDIT: It seems to be both/either. Gross.
@@ -496,6 +497,7 @@ export interface AddDocumentChunkParams {
     name: string
     type: string
     source?: string
+    asyncQuestionId?: number
     loc?: Loc
     id?: string
     courseId?: number
@@ -1408,6 +1410,14 @@ export class AsyncQuestionParams {
   @IsOptional()
   @IsInt()
   votesSum?: number
+
+  @IsOptional()
+  @IsBoolean()
+  saveToChatbot?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  refreshAIAnswer?: boolean
 }
 export class AsyncQuestionVotes {
   @IsOptional()
@@ -4005,6 +4015,8 @@ export interface ToolUsageExportData {
 export const ERROR_MESSAGES = {
   common: {
     pageOutOfBounds: "Can't retrieve out of bounds page.",
+    noDiskSpace:
+      'There is not enough disk space left to store an image (<1GB). Please immediately contact your course staff and let them know. They will contact the HelpMe team as soon as possible.',
   },
   questionService: {
     getDBClient: 'Error getting DB client',
@@ -4295,8 +4307,6 @@ export const ERROR_MESSAGES = {
     noProfilePicture: "User doesn't have a profile picture",
     noCoursesToDelete: "User doesn't have any courses to delete",
     emailInUse: 'Email is already in use',
-    noDiskSpace:
-      'There is no disk space left to store an image. Please immediately contact your course staff and let them know. They will contact the HelpMe team as soon as possible.',
   },
   alertController: {
     duplicateAlert: 'This alert has already been sent',

@@ -4,6 +4,7 @@ import { UserModel } from 'profile/user.entity';
 import {
   AsyncQuestionCommentFactory,
   AsyncQuestionFactory,
+  ChatTokenFactory,
   CourseFactory,
   CourseSettingsFactory,
   QuestionTypeFactory,
@@ -11,7 +12,12 @@ import {
   UserFactory,
   VotesFactory,
 } from './util/factories';
-import { overrideRedisQueue, setupIntegrationTest } from './util/testUtils';
+import {
+  mockChatbotService,
+  overrideChatbotService,
+  overrideRedisQueue,
+  setupIntegrationTest,
+} from './util/testUtils';
 import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
 import { AsyncQuestion, asyncQuestionStatus, Role } from '@koh/common';
 import { AsyncQuestionVotesModel } from 'asyncQuestion/asyncQuestionVotes.entity';
@@ -19,10 +25,10 @@ import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.en
 import { AsyncQuestionCommentModel } from '../src/asyncQuestion/asyncQuestionComment.entity';
 
 describe('AsyncQuestion Integration', () => {
-  const { supertest } = setupIntegrationTest(
-    asyncQuestionModule,
+  const { supertest } = setupIntegrationTest(asyncQuestionModule, [
     overrideRedisQueue,
-  );
+    overrideChatbotService,
+  ]);
 
   let course: CourseModel;
   let TAuser: UserModel;
@@ -59,6 +65,9 @@ describe('AsyncQuestion Integration', () => {
       user: TAuser,
       course,
       role: Role.TA,
+    });
+    await ChatTokenFactory.create({
+      user: TAuser,
     });
     await UserCourseFactory.create({
       user: studentUser,
@@ -226,6 +235,64 @@ describe('AsyncQuestion Integration', () => {
           );
           expect(response.body.status).toBe(asyncQuestionStatus.HumanAnswered);
         });
+    });
+    it('will insert the Q&A as new chatbot chunks if saveToChatbot is true (just checks if it calls the right chatbot endpoints)', async () => {
+      await supertest({ userId: TAuser.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({
+          questionAbstract: 'new abstract',
+          questionText: 'new text',
+          answerText: 'new answer',
+          saveToChatbot: true,
+        })
+        .expect(200)
+        .then((response) => {
+          expect(response.body).toHaveProperty(
+            'questionAbstract',
+            'new abstract',
+          );
+          expect(response.body).toHaveProperty('questionText', 'new text');
+          expect(response.body).toHaveProperty('answerText', 'new answer');
+        });
+      expect(
+        mockChatbotService.deleteDocumentChunksByAsyncQuestionId,
+      ).toHaveBeenCalledWith(
+        asyncQuestion.id,
+        course.id,
+        expect.any(String), // userToken
+      );
+      expect(mockChatbotService.addDocumentChunk).toHaveBeenCalledWith(
+        expect.objectContaining({
+          documentText: expect.stringMatching(
+            /(?=.*new abstract)(?=.*new text)(?=.*new answer)/s,
+          ), // all three must appear in documentText
+        }),
+        course.id,
+        expect.any(String), // userToken
+      );
+    });
+    it('will NOT call chatbot methods if saveToChatbot is false (or not provided)', async () => {
+      await supertest({ userId: TAuser.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({
+          questionAbstract: 'new abstract',
+          questionText: 'new text',
+          answerText: 'new answer',
+          // saveToChatbot is not set (defaults to false/undefined)
+        })
+        .expect(200)
+        .then((response) => {
+          expect(response.body).toHaveProperty(
+            'questionAbstract',
+            'new abstract',
+          );
+          expect(response.body).toHaveProperty('questionText', 'new text');
+          expect(response.body).toHaveProperty('answerText', 'new answer');
+        });
+      expect(mockChatbotService.addDocumentChunk).not.toHaveBeenCalled();
+      expect(
+        mockChatbotService.deleteDocumentChunksByAsyncQuestionId,
+      ).not.toHaveBeenCalled();
     });
   });
 
