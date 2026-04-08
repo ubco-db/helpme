@@ -260,6 +260,25 @@ Here's the issue on antd's github: https://github.com/ant-design/ant-design/issu
   padding: 0 !important;
 }
 
+@media (min-width: 768px) and (max-width: 800px) {
+  .ta-checkin-calendar .fc .fc-toolbar {
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .ta-checkin-calendar .fc .fc-toolbar-chunk {
+    display: flex;
+    width: auto;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .ta-checkin-calendar .fc .fc-toolbar-title {
+    font-size: 1.125rem;
+  }
+}
+
 /* Fixes an issue with question tag element editor popover not having vertical form item styles rather than horizontal (which started happening in a random antd update).
   Not a super pretty fix, probably should be looked at in the future if there's a nicer way to get around this.
 */
