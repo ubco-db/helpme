@@ -56,6 +56,7 @@ import * as crypto from 'crypto';
 import { UserLtiIdentityModel } from '../lti/user_lti_identity.entity';
 import { LtiIdentityTokenModel } from '../lti/lti_identity_token.entity';
 import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
+import { IframeQuestionModel } from '../iframe-question/iframe-question.entity';
 
 /* Has all of our factories and initializes them with the db dataSource.
   If you want to use one of these factories, import it from factories.ts instead.
@@ -113,6 +114,7 @@ export class FactoryService {
   public UserLtiIdentityFactory: Factory<UserLtiIdentityModel>;
   public LtiIdentityTokenFactory: Factory<LtiIdentityTokenModel>;
   public QueueStaffFactory: Factory<QueueStaffModel>;
+  public IframeQuestionFactory: Factory<IframeQuestionModel>;
 
   constructor(dataSource: DataSource) {
     this.UserFactory = new Factory(UserModel, dataSource)
@@ -449,5 +451,10 @@ export class FactoryService {
       .attr('issuer', 'canvas.instructure.com')
       .attr('ltiUserId', '1')
       .sequence('code', () => crypto.randomBytes(32).toString('hex'));
+
+    this.IframeQuestionFactory = new Factory(IframeQuestionModel, dataSource)
+      .assocOne('course', this.CourseFactory)
+      .attr('questionText', 'Sample iframe question')
+      .attr('criteriaText', null);
   }
 }
