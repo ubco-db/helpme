@@ -356,7 +356,7 @@ export enum MailServiceType {
   ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST = 'async_question_new_comment_on_my_post',
   ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST = 'async_question_new_comment_on_others_post',
   COURSE_CLONE_SUMMARY = 'course_clone_summary',
-  WEEKLY_COURSE_SUMMARY= 'weekly_course_summary',
+  WEEKLY_COURSE_SUMMARY = 'weekly_course_summary',
 }
 /**
  * Represents one of three possible user roles in a course.
@@ -488,6 +488,24 @@ export interface ChatbotAskSuggestedParams {
   question: string
   responseText: string
   vectorStoreId: string
+}
+
+export interface IframeQuestion {
+  id: number
+  createdAt: Date
+  courseId: number
+  questionText: string
+  criteriaText: string | null
+}
+
+export interface CreateIframeQuestionParams {
+  questionText: string
+  criteriaText?: string
+}
+
+export interface UpdateIframeQuestionParams {
+  questionText?: string
+  criteriaText?: string
 }
 
 export interface AddDocumentChunkParams {

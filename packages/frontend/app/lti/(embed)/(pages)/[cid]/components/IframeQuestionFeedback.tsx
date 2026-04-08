@@ -7,18 +7,21 @@ import { getErrorMessage } from '@/app/utils/generalUtils'
 
 const { TextArea } = Input
 
-export interface SelfAssessmentQuestionFeedbackProps {
+export interface IframeQuestionFeedbackProps {
   courseId: number
-  /** The question text - displayed to the student and sent to the AI for context */
-  questionText?: string
+  questionText: string
+  criteriaText?: string | null
   placeholder?: string
 }
 
-export default function SelfAssessmentQuestionFeedback({
+// the form that students use in the iframe
+// shows the question, text area, submit button, and then the ai feedback
+export default function IframeQuestionFeedback({
   courseId,
   questionText,
+  criteriaText,
   placeholder = 'Type your response here...',
-}: SelfAssessmentQuestionFeedbackProps): React.ReactElement {
+}: IframeQuestionFeedbackProps): React.ReactElement {
   const [inputText, setInputText] = useState('')
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -36,11 +39,14 @@ export default function SelfAssessmentQuestionFeedback({
     setIsLoading(true)
 
     try {
-      // Include question context so the AI can evaluate the answer
-      const query = questionText?.trim()
-        ? `Question: ${questionText.trim()}\n\nStudent's response: ${trimmed}`
-        : trimmed
+      // build the query with question + criteria + student response so the ai has full context
+      let query = `Question: ${questionText}\n\n`
+      if (criteriaText?.trim()) {
+        query += `Criteria: ${criteriaText.trim()}\n\n`
+      }
+      query += `Student's response: ${trimmed}`
 
+      // calls POST /api/v1/chatbot/query/:courseId
       const response = await API.chatbot.studentsOrStaff.queryChatbot(
         courseId,
         { query, type: 'default' },
@@ -57,9 +63,7 @@ export default function SelfAssessmentQuestionFeedback({
 
   return (
     <div className="flex w-full max-w-2xl flex-col gap-4">
-      {questionText && (
-        <p className="text-sm font-medium text-zinc-700">{questionText}</p>
-      )}
+      <p className="text-sm font-medium text-zinc-700">{questionText}</p>
 
       <TextArea
         value={inputText}

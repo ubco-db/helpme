@@ -2,6 +2,7 @@
 
 import {
   BellOutlined,
+  BlockOutlined,
   DownloadOutlined,
   LinkOutlined,
   QrcodeOutlined,
@@ -27,6 +28,7 @@ enum CourseAdminOptions {
   CHATBOT_SETTINGS = 'CHATBOT_SETTINGS',
   CHATBOT_KNOWLEDGE_BASE = 'CHATBOT_KNOWLEDGE_BASE',
   CHATBOT_QUESTIONS = 'CHATBOT_QUESTIONS',
+  IFRAME_QUESTIONS = 'IFRAME_QUESTIONS',
 }
 
 type CourseSettingsManyProps = {
@@ -76,6 +78,9 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       case CourseAdminOptions.CHATBOT_QUESTIONS:
         router.push(`${basePath}/chatbot_questions`)
         break
+      case CourseAdminOptions.IFRAME_QUESTIONS:
+        router.push(`${basePath}/iframe_questions`)
+        break
     }
   }
 
@@ -120,6 +125,14 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       key: CourseAdminOptions.CHATBOT_QUESTIONS,
       icon: <RobotOutlined />,
       label: 'Edit Chatbot Questions',
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: CourseAdminOptions.IFRAME_QUESTIONS,
+      icon: <BlockOutlined />,
+      label: 'Iframe Questions',
     },
   ]
 

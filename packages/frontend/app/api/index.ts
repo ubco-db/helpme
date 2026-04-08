@@ -28,6 +28,7 @@ import {
   CreateAlertResponse,
   CreateAsyncQuestions,
   CreateChatbotProviderBody,
+  CreateIframeQuestionParams,
   CreateLLMTypeBody,
   CreateLtiPlatform,
   CreateOrganizationChatbotSettingsBody,
@@ -46,6 +47,7 @@ import {
   GetCourseUserInfoResponse,
   GetInsightOutputResponse,
   GetInteractionsAndQuestionsResponse,
+  IframeQuestion,
   GetLimitedCourseResponse,
   GetOrganizationResponse,
   GetOrganizationUserResponse,
@@ -117,6 +119,7 @@ import {
   UpdateChatbotQuestionParams,
   UpdateDocumentChunkParams,
   UpdateLLMTypeBody,
+  UpdateIframeQuestionParams,
   UpdateLtiPlatform,
   UpdateOrganizationCourseDetailsParams,
   UpdateOrganizationDetailsParams,
@@ -1618,6 +1621,34 @@ export class APIClient {
       checkRegistration: async (id: string): Promise<LtiPlatform> =>
         this.req('GET', `/api/v1/lti/platform/${id}/registration`),
     },
+  }
+
+  iframeQuestion = {
+    create: async (
+      courseId: number,
+      body: CreateIframeQuestionParams,
+    ): Promise<IframeQuestion> =>
+      this.req('POST', `/api/v1/iframe-question/${courseId}`, undefined, body),
+    getAll: async (courseId: number): Promise<IframeQuestion[]> =>
+      this.req('GET', `/api/v1/iframe-question/${courseId}`),
+    getOne: async (
+      courseId: number,
+      questionId: number,
+    ): Promise<IframeQuestion> =>
+      this.req('GET', `/api/v1/iframe-question/${courseId}/${questionId}`),
+    update: async (
+      courseId: number,
+      questionId: number,
+      body: UpdateIframeQuestionParams,
+    ): Promise<IframeQuestion> =>
+      this.req(
+        'PATCH',
+        `/api/v1/iframe-question/${courseId}/${questionId}`,
+        undefined,
+        body,
+      ),
+    delete: async (courseId: number, questionId: number): Promise<void> =>
+      this.req('DELETE', `/api/v1/iframe-question/${courseId}/${questionId}`),
   }
 }
 
