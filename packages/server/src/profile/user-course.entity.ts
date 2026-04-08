@@ -59,4 +59,7 @@ export class UserCourseModel extends BaseEntity {
 
   @Column({ nullable: true, default: true })
   favourited: boolean;
+
+  @Column({ type: 'integer', default: 0 })
+  endorsedCommentCount: number;
 }
