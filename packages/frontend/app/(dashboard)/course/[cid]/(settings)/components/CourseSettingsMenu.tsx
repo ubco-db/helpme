@@ -11,10 +11,12 @@ import {
   TableOutlined,
 } from '@ant-design/icons'
 import { CourseSettingsResponse, Role } from '@koh/common'
-import { Menu, MenuProps } from 'antd'
+import { Menu, MenuProps, Select } from 'antd'
 import { usePathname, useRouter } from 'next/navigation'
+import { ReactNode } from 'react'
 
 type MenuItem = Required<MenuProps>['items'][number]
+type MenuOption = { key: string; label: ReactNode }
 
 enum CourseAdminOptions {
   CHECK_IN = 'CHECK_IN',
@@ -87,6 +89,8 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
     ]
   }
 
+  const currentMenuItem = handleCurrentMenuItem()
+
   const baseMenuItems: MenuItem[] = [
     {
       key: CourseAdminOptions.QUEUE_INVITES,
@@ -154,13 +158,34 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       ? [...professorMenuItems, ...baseMenuItems]
       : baseMenuItems
 
+  const mobileOptions = menuItems
+    .filter((item): item is MenuOption => {
+      return (
+        !!item && item.type !== 'divider' && 'key' in item && 'label' in item
+      )
+    })
+    .map((item) => ({
+      value: item.key,
+      label: item.label,
+    }))
+
   return (
-    <Menu
-      defaultSelectedKeys={[handleCurrentMenuItem()]}
-      onClick={(item) => handleMenuClick(item)}
-      className="bg-[#f8f9fb]"
-      items={menuItems}
-    />
+    <>
+      <div className="md:hidden">
+        <Select
+          value={currentMenuItem}
+          onChange={(value) => handleMenuClick({ key: value })}
+          className="w-full"
+          options={mobileOptions}
+        />
+      </div>
+      <Menu
+        selectedKeys={[currentMenuItem]}
+        onClick={(item) => handleMenuClick(item)}
+        className="hidden bg-[#f8f9fb] md:block"
+        items={menuItems}
+      />
+    </>
   )
 }
 

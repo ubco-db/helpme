@@ -28,15 +28,26 @@ export default async function Layout(props: {
   const courseFeatures = await courseApi.getCourseFeatures(cid)
 
   return (
-    <div className="mb-10 mt-2 flex flex-col space-y-3 md:flex-row md:space-x-3 md:space-y-0">
-      <CourseSettingsMenu
-        courseRole={courseRole}
-        courseFeatures={courseFeatures}
-        courseId={cid}
-      />
-      <AddChatbot courseId={cid}>
-        <div className="flex-1">{children}</div>
-      </AddChatbot>
+    <div className="mb-10 mt-2">
+      <div className="md:hidden">
+        <CourseSettingsMenu
+          courseRole={courseRole}
+          courseFeatures={courseFeatures}
+          courseId={cid}
+        />
+      </div>
+      <div className="mt-3 flex flex-col md:mt-0 md:flex-row md:space-x-3">
+        <div className="hidden md:block">
+          <CourseSettingsMenu
+            courseRole={courseRole}
+            courseFeatures={courseFeatures}
+            courseId={cid}
+          />
+        </div>
+        <AddChatbot courseId={cid}>
+          <div className="flex-1">{children}</div>
+        </AddChatbot>
+      </div>
     </div>
   )
 }
