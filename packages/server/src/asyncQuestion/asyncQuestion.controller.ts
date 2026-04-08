@@ -176,7 +176,16 @@ export class asyncQuestionController {
           courseId: cid,
           id: question.id,
         },
-        relations: ['creator', 'taHelped', 'votes'],
+        relations: [
+          'creator',
+          'taHelped',
+          'votes',
+          'comments',
+          'comments.creator',
+          'comments.creator.courses',
+          'comments.endorsedBy',
+          'comments.endorsedBy.courses',
+        ],
       });
 
       await this.redisQueueService.addAsyncQuestion(`c:${cid}:aq`, newQuestion);
