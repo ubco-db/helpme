@@ -4,8 +4,8 @@ import {
   AddDocumentChunkParams,
   AllStudentAssignmentProgress,
   AsyncQuestionComment,
+  AsyncQuestionCommentEndorseParams,
   AsyncQuestionCommentParams,
-  AsyncQuestionParams,
   BatchCourseCloneAttributes,
   Calendar,
   ChatbotAskParams,
@@ -113,6 +113,7 @@ import {
   UBCOuserParam,
   UnreadAsyncQuestionResponse,
   UpdateAsyncQuestions,
+  UserPartial,
   UpdateChatbotProviderBody,
   UpdateChatbotQuestionParams,
   UpdateDocumentChunkParams,
@@ -812,25 +813,25 @@ export class APIClient {
   asyncQuestions = {
     get: async (cid: number): Promise<GetAsyncQuestionsResponse> =>
       this.req('GET', `/api/v1/asyncQuestions/${cid}`, undefined),
-    create: async (body: CreateAsyncQuestions, cid: number) =>
+    create: async (body: CreateAsyncQuestions, cid: number): Promise<void> =>
       this.req(
         'POST',
         `/api/v1/asyncQuestions/${cid}`,
-        AsyncQuestionParams,
+        undefined,
         body,
       ),
-    studentUpdate: async (qid: number, body: UpdateAsyncQuestions) =>
+    studentUpdate: async (qid: number, body: UpdateAsyncQuestions): Promise<void> =>
       this.req(
         'PATCH',
         `/api/v1/asyncQuestions/student/${qid}`,
-        AsyncQuestionParams,
+        undefined,
         body,
       ),
-    facultyUpdate: async (qid: number, body: UpdateAsyncQuestions) =>
+    facultyUpdate: async (qid: number, body: UpdateAsyncQuestions): Promise<void> =>
       this.req(
         'PATCH',
         `/api/v1/asyncQuestions/faculty/${qid}`,
-        AsyncQuestionParams,
+        undefined,
         body,
       ),
     vote: async (
@@ -872,6 +873,17 @@ export class APIClient {
       this.req(
         'PATCH',
         `/api/v1/asyncQuestions/comment/${questionId}/${commentId}`,
+        undefined,
+        body,
+      ),
+    endorseComment: async (
+      questionId: number,
+      commentId: number,
+      body: AsyncQuestionCommentEndorseParams,
+    ): Promise<void> =>
+      this.req(
+        'PATCH',
+        `/api/v1/asyncQuestions/comment/${questionId}/${commentId}/endorse`,
         undefined,
         body,
       ),

@@ -7,6 +7,8 @@ import {
   CheckCircleOutlined,
   DeleteOutlined,
   EditOutlined,
+  LikeOutlined,
+  LikeFilled,
   MoreOutlined,
   StopOutlined,
   WarningOutlined,
@@ -59,6 +61,8 @@ const Comment: React.FC<CommentProps> = ({
   IAmStaff,
   showStudents,
   numOtherComments,
+  endorsedBy,
+  onEndorseSuccess,
 }) => {
   const { userInfo } = useUserInfo()
   const [deleteLoading, setDeleteLoading] = useState(false)
@@ -67,6 +71,7 @@ const Comment: React.FC<CommentProps> = ({
   // Form state that stores the edited comment content
   const [newContent, setNewContent] = useState(content)
   const [editLoading, setEditLoading] = useState(false)
+  const [endorseLoading, setEndorseLoading] = useState(false)
 
   const [isUserShown, setIsUserShown] = useState(
     (IAmStaff && showStudents) || !isAnonymous,
@@ -277,6 +282,46 @@ const Comment: React.FC<CommentProps> = ({
 
           {/* Datetime */}
           <span className="text-xs italic text-gray-500">{datetime}</span>
+
+          {/* Endorse button (staff only) */}
+          {IAmStaff && !isEditing && (
+            <Tooltip
+              title={endorsedBy ? 'Remove endorsement' : 'Endorse this comment'}
+            >
+              <Button
+                className={cn(
+                  'ml-2 h-auto border-none p-0 shadow-none',
+                  endorsedBy ? 'text-green-600' : 'text-gray-400',
+                )}
+                type="text"
+                size="small"
+                loading={endorseLoading}
+                onClick={async (e) => {
+                  e.stopPropagation()
+                  setEndorseLoading(true)
+                  await API.asyncQuestions
+                    .endorseComment(questionId, commentId, {
+                      isEndorsed: !endorsedBy,
+                    })
+                    .then(() => {
+                      onEndorseSuccess()
+                      message.success(
+                        !endorsedBy ? 'Comment endorsed' : 'Endorsement removed',
+                      )
+                    })
+                    .catch((e) => {
+                      message.error(
+                        'Failed to endorse comment: ' + getErrorMessage(e),
+                      )
+                    })
+                    .finally(() => {
+                      setEndorseLoading(false)
+                    })
+                }}
+                icon={endorsedBy ? <LikeFilled /> : <LikeOutlined />}
+              />
+            </Tooltip>
+          )}
         </div>
 
         {/* Comment body */}
@@ -294,6 +339,20 @@ const Comment: React.FC<CommentProps> = ({
               setNewContent(e.target.value)
             }}
           />
+        )}
+
+        {/* Endorsed badge */}
+        {endorsedBy && (
+          <div className="mt-2 inline-flex items-center gap-1 rounded-md bg-green-50 px-2 py-0.5 text-sm font-semibold text-green-700">
+            <CheckCircleOutlined />
+            <span>
+              Endorsed by{' '}
+              {endorsedBy.role === Role.PROFESSOR
+                ? 'Instructor'
+                : 'TA'}{' '}
+              ({endorsedBy.name})
+            </span>
+          </div>
         )}
       </div>
 
