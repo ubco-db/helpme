@@ -417,7 +417,6 @@ function generateCommentProps(
       onEditSuccess: (newCommentText, newCommentAnonymous) => {
         // update the comment content
         comment.commentText = newCommentText
-        comment.endorsedBy = null
         comment.isAnonymous =
           IAmStaff && !comment.creator.isAuthor
             ? false

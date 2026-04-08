@@ -693,7 +693,6 @@ export class asyncQuestionController {
     }
 
     comment.commentText = body.commentText;
-    comment.endorsedById = null;
 
     const isStaff = courseRole == Role.TA || courseRole == Role.PROFESSOR;
     const isAuthor = userId == question.creatorId;
