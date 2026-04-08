@@ -35,6 +35,10 @@
       - [Event Subscribers](#event-subscribers)
   - [Known Quirks when Developing](#known-quirks-when-developing)
 - [History](#history)
+  - [Contributors (by commit count, not including merges)](#contributors-by-commit-count-not-including-merges)
+    - [Chatbot Repo](#chatbot-repo)
+    - [Current HelpMe Repo](#current-helpme-repo)
+    - [Old HelpMe Repo](#old-helpme-repo)
 - [TODO](#todo)
   - [For the whole project](#for-the-whole-project)
   - [For this document](#for-this-document)
@@ -473,6 +477,100 @@ During the 2024 Summer, a massive undertaking was done to refactor and re-write 
 [2025-04] Finally updated the typeorm version from 0.2.x to 0.3.x. You can now rely on typeorm documentation and it will be accurate (doing this also fixes a 9.7 critical vulnerability and allows us to start running migrations on prod)
 
 [2025-05] Upgraded from Next.js v14 to v15. The most notable advantage of this is it now uses the React 19 compiler, making useCallback and useMemo not really necessary, plus other free performance gains. Also started using turbopack for dev for faster compile times (making it easier to manually test). Though production build still uses webpack since sentry does not support it yet.
+
+## Contributors (by commit count, not including merges)
+
+Commit count obviously is gonna be kinda innacurate for getting an exact idea of how much someone put into the project (since commits vary wildly in how much is put into them, also changing based on the person's commit habits), but it can give a rough idea. I think the cool part of how many different people worked on it.
+
+Command being ran: `git shortlog -sn --no-merges`
+
+### Chatbot Repo
+
+- 67  bhunt02
+- 46  wskksw 
+- 43  Adam Fipke
+- 23  JasonR24
+-  3  Akshat-Kalra
+-  2  Bridgette Hunt
+-  2  Dmytro Zhuravel
+-  2  Karel Joshua Harjono
+-  2  Patrick Ma
+
+### Current HelpMe Repo 
+(last updated 2026-04-08)
+
+- 1031  Adam Fipke
+-  279  bhunt02
+-  180  Patrick Ma
+-   84  wskksw
+-   66  kjassani
+-   65  mahigangal
+-   63  MithishR
+-   49  patrickma6199
+-   41  Akshat-Kalra
+-   32  Dima Zhuravel
+-   29  ribhavsharma
+-   22  frasermuller
+-   21  Eneshjakhar
+-   20  Akshat
+-   20  Bridgette Hunt
+-   10  Mithish
+-    9  Dmytro Zhuravel
+-    6  karelharjono
+-    3  Ramon Lawrence
+-    3  ribhav sharma
+-    2  FabianLCH
+-    2  root
+-    1  Ferdinand
+
+### Old HelpMe Repo
+
+Most of these contributors are from the original Khoury College people.
+
+- 601  dajinchu
+- 460  willstenzel
+- 407  NEUDitao
+- 217  Stanley Liu
+- 154  Iris
+- 148  Danish Farooq
+- 100  aislinblack
+-  87  Adam Fipke
+-  81  Da-Jin Chu
+-  72  Neel Bhalla
+-  69  Dima Zhuravel
+-  68  wskksw
+-  62  kevin wang
+-  59  Ferdinand
+-  59  tiingweii-shii
+-  58  ofloody
+-  50  brianyyang
+-  33  wstenzel
+-  32  sumitde22
+-  27  meebs
+-  25  JasonR24
+-  22  Alex Takayama
+-  20  Nicole Danuwidjaja
+-  12  dependabot[bot]
+-  11  IrisLiu-00
+-  10  Vera
+-   9  dfarooq610
+-   8  Vera Kong
+-   7  Juan Tavera
+-   7  Will Stenzel
+-   5  Ferdinand Haaben
+-   5  Olivia Floody
+-   4  ashdawngary
+-   3  Dmytro Zhuravel
+-   3  Eddy Li
+-   3  VKong6019
+-   2  Edward Li
+-   2  Isabel B
+-   2  liustanley
+-   2  nicoledanuwidjaja
+-   1  Hussain Khalil
+-   1  bugsalexander
+-   1  ethan-leba
+
 
 # TODO
 
