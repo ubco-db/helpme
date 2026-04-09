@@ -596,29 +596,21 @@ export class asyncQuestionController {
     @Param('commentId', ParseIntPipe) commentId: number,
     @Body() body: AsyncQuestionCommentEndorseParams,
     @User() user: UserModel,
-    @Res() res: Response,
-  ): Promise<Response> {
+  ): Promise<void> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: qid },
     });
-
     if (!question) {
-      res
-        .status(HttpStatus.NOT_FOUND)
-        .send({ message: ERROR_MESSAGES.questionController.notFound });
-      return;
+      throw new NotFoundException(ERROR_MESSAGES.questionController.notFound);
     }
 
     const comment = await AsyncQuestionCommentModel.findOne({
       where: { id: commentId, questionId: qid },
     });
-
     if (!comment) {
-      res.status(HttpStatus.NOT_FOUND).send({
-        message:
-          ERROR_MESSAGES.asyncQuestionController.comments.commentNotFound,
-      });
-      return;
+      throw new NotFoundException(
+        ERROR_MESSAGES.asyncQuestionController.comments.commentNotFound,
+      );
     }
 
     comment.endorsedById = body.isEndorsed ? user.id : null;
@@ -642,8 +634,6 @@ export class asyncQuestionController {
       `c:${question.courseId}:aq`,
       updatedQuestion,
     );
-
-    res.status(HttpStatus.OK).send();
   }
 
   @Patch('comment/:qid/:commentId')
@@ -777,16 +767,12 @@ export class asyncQuestionController {
     @Param('qid', ParseIntPipe) qid: number,
     @Param('commentId', ParseIntPipe) commentId: number,
     @UserId() userId: number,
-    @Res() res: Response,
-  ): Promise<Response> {
+  ): Promise<void> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: qid },
     });
     if (!question) {
-      res
-        .status(HttpStatus.NOT_FOUND)
-        .send({ message: ERROR_MESSAGES.questionController.notFound });
-      return;
+      throw new NotFoundException(ERROR_MESSAGES.questionController.notFound);
     }
 
     const userCourse = await UserCourseModel.findOne({
@@ -803,13 +789,10 @@ export class asyncQuestionController {
     const comment = await AsyncQuestionCommentModel.findOne({
       where: { id: commentId, questionId: qid },
     });
-
     if (!comment) {
-      res.status(HttpStatus.NOT_FOUND).send({
-        message:
-          ERROR_MESSAGES.asyncQuestionController.comments.commentNotFound,
-      });
-      return;
+      throw new NotFoundException(
+        ERROR_MESSAGES.asyncQuestionController.comments.commentNotFound,
+      );
     }
 
     // staff can delete anyone's comments. students can only delete their own comments
@@ -818,11 +801,9 @@ export class asyncQuestionController {
       userCourse.role !== Role.PROFESSOR &&
       userCourse.role !== Role.TA
     ) {
-      res.status(HttpStatus.FORBIDDEN).send({
-        message:
-          ERROR_MESSAGES.asyncQuestionController.comments.forbiddenDelete,
-      });
-      return;
+      throw new ForbiddenException(
+        ERROR_MESSAGES.asyncQuestionController.comments.forbiddenDelete,
+      );
     }
 
     await comment.remove();
@@ -845,8 +826,6 @@ export class asyncQuestionController {
       `c:${question.courseId}:aq`,
       updatedQuestion,
     );
-
-    res.status(HttpStatus.OK).send({ message: 'Comment deleted' });
   }
 
   @Get(':courseId')
