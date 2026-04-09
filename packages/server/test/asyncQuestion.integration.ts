@@ -17,9 +17,10 @@ import { AsyncQuestion, asyncQuestionStatus, Role } from '@koh/common';
 import { AsyncQuestionVotesModel } from 'asyncQuestion/asyncQuestionVotes.entity';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 import { AsyncQuestionCommentModel } from '../src/asyncQuestion/asyncQuestionComment.entity';
+import { AsyncQuestionService } from '../src/asyncQuestion/asyncQuestion.service';
 
 describe('AsyncQuestion Integration', () => {
-  const { supertest } = setupIntegrationTest(
+  const { supertest, getTestModule } = setupIntegrationTest(
     asyncQuestionModule,
     overrideRedisQueue,
   );
@@ -1059,6 +1060,78 @@ describe('AsyncQuestion Integration', () => {
         )
         .send({ isEndorsed: true })
         .expect(404);
+    });
+  });
+
+  describe('AsyncQuestionService.getEndorsedCountByCourse', () => {
+    it('returns empty map when no comments are endorsed', async () => {
+      await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'unendorsed comment',
+      });
+      const service = getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
+      const result = await service.getEndorsedCountByCourse(course.id);
+      expect(result.size).toBe(0);
+    });
+
+    it('counts endorsed comments per user', async () => {
+      await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'endorsed comment 1',
+        endorsedById: TAuser.id,
+      });
+      await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'endorsed comment 2',
+        endorsedById: TAuser.id,
+      });
+      await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser2,
+        commentText: 'endorsed comment from student2',
+        endorsedById: TAuser.id,
+      });
+      const service = getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
+      const result = await service.getEndorsedCountByCourse(course.id);
+      expect(result.get(studentUser.id)).toBe(2);
+      expect(result.get(studentUser2.id)).toBe(1);
+    });
+
+    it('does not count unendorsed comments', async () => {
+      await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'endorsed',
+        endorsedById: TAuser.id,
+      });
+      await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'not endorsed',
+      });
+      const service = getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
+      const result = await service.getEndorsedCountByCourse(course.id);
+      expect(result.get(studentUser.id)).toBe(1);
+    });
+
+    it('does not count endorsed comments from other courses', async () => {
+      const otherCourse = await CourseFactory.create();
+      const otherQuestion = await AsyncQuestionFactory.create({
+        creator: studentUser,
+        course: otherCourse,
+      });
+      await AsyncQuestionCommentFactory.create({
+        question: otherQuestion,
+        creator: studentUser,
+        commentText: 'endorsed in other course',
+        endorsedById: TAuser.id,
+      });
+      const service = getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
+      const result = await service.getEndorsedCountByCourse(course.id);
+      expect(result.size).toBe(0);
     });
   });
 
