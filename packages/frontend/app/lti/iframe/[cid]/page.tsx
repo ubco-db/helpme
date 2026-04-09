@@ -1,41 +1,41 @@
 'use client'
 
-import { ReactElement, useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { ReactElement, useEffect, useMemo, useState } from 'react'
+import { useParams, useSearchParams } from 'next/navigation'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { useLtiCourse } from '@/app/contexts/LtiCourseContext'
-import IframeQuestionFeedback from '../components/IframeQuestionFeedback'
+import IframeQuestionFeedback from '@/app/lti/(embed)/(pages)/[cid]/components/IframeQuestionFeedback'
 import { IframeQuestion } from '@koh/common'
 import { API } from '@/app/api'
 
-// this page gets loaded in the canvas iframe
-// it reads the question id from the url (like ?q=3)
-// fetches the question + criteria from the backend
-// then shows the form widget
-
 export default function IframePage(): ReactElement {
-  const { courseId, course, courseFeatures } = useLtiCourse()
   const searchParams = useSearchParams()
-
-  const questionId = searchParams.get('q')
-
+  const routeParams = useParams<{ cid: string }>()
   const [question, setQuestion] = useState<IframeQuestion | null>(null)
   const [loadingQuestion, setLoadingQuestion] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const courseId = useMemo(
+    () => Number(routeParams?.cid ?? NaN),
+    [routeParams?.cid],
+  )
+
+  const questionId = searchParams.get('q')
 
   useEffect(() => {
     if (!questionId) {
       setLoadingQuestion(false)
       return
     }
+
     const qId = Number(questionId)
-    if (isNaN(qId)) {
-      setError('Invalid question ID')
+    if (isNaN(qId) || isNaN(courseId)) {
+      setError('Invalid course or question ID')
       setLoadingQuestion(false)
       return
     }
+
     API.iframeQuestion
-      .getOne(courseId, qId)
+      .getOnePublic(courseId, qId)
       .then((q) => setQuestion(q))
       .catch(() =>
         setError('Could not load question. It may have been deleted.'),
@@ -43,14 +43,13 @@ export default function IframePage(): ReactElement {
       .finally(() => setLoadingQuestion(false))
   }, [courseId, questionId])
 
-  // wait for course data to load
-  if (!course || !courseFeatures || loadingQuestion) {
+  if (loadingQuestion) {
     return <CenteredSpinner tip="Loading..." />
   }
 
   if (!questionId) {
     return (
-      <div className="mt-3 flex h-[50vh] flex-col items-center justify-center">
+      <div className="flex min-h-32 flex-col items-center justify-center px-3 py-2">
         <p className="text-zinc-600">
           No question specified. The iframe URL should include a question ID
           (e.g. ?q=3).
@@ -61,30 +60,19 @@ export default function IframePage(): ReactElement {
 
   if (error || !question) {
     return (
-      <div className="mt-3 flex h-[50vh] flex-col items-center justify-center">
+      <div className="flex min-h-32 flex-col items-center justify-center px-3 py-2">
         <p className="text-zinc-600">{error || 'Question not found.'}</p>
-      </div>
-    )
-  }
-
-  // chatbot needs to be enabled for ai feedback to work
-  if (!courseFeatures.chatBotEnabled) {
-    return (
-      <div className="mt-3 flex h-[50vh] flex-col items-center justify-center">
-        <p className="text-zinc-600">
-          AI feedback is not available for this course. The chatbot must be
-          enabled by your instructor.
-        </p>
       </div>
     )
   }
 
   return (
     <>
-      <title>{`HelpMe | ${course.name} - Self-Assessment`}</title>
-      <div className="mt-3 flex flex-col items-center px-4 py-4">
+      <title>{`HelpMe | Iframe Question`}</title>
+      <div className="flex w-full flex-col items-stretch px-2 py-1">
         <IframeQuestionFeedback
           courseId={courseId}
+          questionId={question.id}
           questionText={question.questionText}
           criteriaText={question.criteriaText}
         />

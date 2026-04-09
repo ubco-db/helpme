@@ -119,12 +119,12 @@ export default function IframeQuestionsPage(
 
   const getIframeUrl = (q: IframeQuestion) => {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    return `${origin}/lti/${courseId}/iframe?q=${q.id}`
+    return `${origin}/lti/iframe/${courseId}?q=${q.id}`
   }
 
   const copyIframeUrl = (q: IframeQuestion) => {
     const url = getIframeUrl(q)
-    const embedCode = `<iframe src="${url}" width="100%" height="600" frameborder="0" allowfullscreen></iframe>`
+    const embedCode = `<iframe src="${url}" width="100%" height="300" frameborder="0" scrolling="no" style="border:0;"></iframe>`
     navigator.clipboard.writeText(embedCode)
     message.success('Embed code copied to clipboard')
   }

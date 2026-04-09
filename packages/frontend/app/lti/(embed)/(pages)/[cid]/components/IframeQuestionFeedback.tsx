@@ -9,6 +9,7 @@ const { TextArea } = Input
 
 export interface IframeQuestionFeedbackProps {
   courseId: number
+  questionId: number
   questionText: string
   criteriaText?: string | null
   placeholder?: string
@@ -18,8 +19,8 @@ export interface IframeQuestionFeedbackProps {
 // shows the question, text area, submit button, and then the ai feedback
 export default function IframeQuestionFeedback({
   courseId,
+  questionId,
   questionText,
-  criteriaText,
   placeholder = 'Type your response here...',
 }: IframeQuestionFeedbackProps): React.ReactElement {
   const [inputText, setInputText] = useState('')
@@ -39,19 +40,12 @@ export default function IframeQuestionFeedback({
     setIsLoading(true)
 
     try {
-      // build the query with question + criteria + student response so the ai has full context
-      let query = `Question: ${questionText}\n\n`
-      if (criteriaText?.trim()) {
-        query += `Criteria: ${criteriaText.trim()}\n\n`
-      }
-      query += `Student's response: ${trimmed}`
-
-      // calls POST /api/v1/chatbot/query/:courseId
-      const response = await API.chatbot.studentsOrStaff.queryChatbot(
+      const response = await API.iframeQuestion.getFeedbackPublic(
         courseId,
-        { query, type: 'default' },
+        questionId,
+        trimmed,
       )
-      setFeedback(response)
+      setFeedback(response.feedback)
     } catch (err) {
       const errMsg = getErrorMessage(err)
       setError(typeof errMsg === 'string' ? errMsg : 'Failed to get feedback.')
@@ -62,14 +56,14 @@ export default function IframeQuestionFeedback({
   }
 
   return (
-    <div className="flex w-full max-w-2xl flex-col gap-4">
+    <div className="flex w-full flex-col gap-2">
       <p className="text-sm font-medium text-zinc-700">{questionText}</p>
 
       <TextArea
         value={inputText}
         onChange={(e) => setInputText(e.target.value)}
         placeholder={placeholder}
-        rows={5}
+        rows={3}
         disabled={isLoading}
         className="resize-none"
       />

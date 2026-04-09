@@ -1636,6 +1636,25 @@ export class APIClient {
       questionId: number,
     ): Promise<IframeQuestion> =>
       this.req('GET', `/api/v1/iframe-question/${courseId}/${questionId}`),
+    getOnePublic: async (
+      courseId: number,
+      questionId: number,
+    ): Promise<IframeQuestion> =>
+      this.req(
+        'GET',
+        `/api/v1/iframe-question/public/${courseId}/${questionId}`,
+      ),
+    getFeedbackPublic: async (
+      courseId: number,
+      questionId: number,
+      responseText: string,
+    ): Promise<{ feedback: string }> =>
+      this.req(
+        'POST',
+        `/api/v1/iframe-question/public/${courseId}/${questionId}/feedback`,
+        undefined,
+        { responseText },
+      ),
     update: async (
       courseId: number,
       questionId: number,
