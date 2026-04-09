@@ -10,10 +10,14 @@ import * as Sentry from '@sentry/nestjs';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 import { CourseSettingsModel } from '../course/course_settings.entity';
 import { SentEmailModel } from '../mail/sent-email.entity';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class AsyncQuestionService {
-  constructor(private mailService: MailService) {}
+  constructor(
+    private mailService: MailService,
+    private dataSource: DataSource,
+  ) {}
 
   async sendNewCommentOnMyQuestionEmail(
     commenter: UserModel,
@@ -411,5 +415,21 @@ export class AsyncQuestionService {
           asyncQuestion.authorSetVisible) ||
           asyncQuestion.staffSetVisible
       : asyncQuestion.staffSetVisible;
+  }
+
+  /**
+   * Returns a map of userId -> number of staff-endorsed comments for that user
+   * in the given course. Uses a single aggregate query rather than a stored counter.
+   */
+  async getEndorsedCountByCourse(courseId: number): Promise<Map<number, number>> {
+    const rows = await this.dataSource
+      .createQueryBuilder(AsyncQuestionCommentModel, 'c')
+      .innerJoin('c.question', 'q', 'q.courseId = :courseId', { courseId })
+      .select('c.creatorId', 'creatorId')
+      .addSelect('COUNT(*)', 'count')
+      .where('c.endorsedById IS NOT NULL')
+      .groupBy('c.creatorId')
+      .getRawMany<{ creatorId: number; count: string }>();
+    return new Map(rows.map((r) => [r.creatorId, parseInt(r.count, 10)]));
   }
 }
