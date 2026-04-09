@@ -41,7 +41,7 @@ import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { AsyncQuestionRolesGuard } from 'guards/async-question-roles.guard';
 import { pick } from 'lodash';
 import { UserModel } from 'profile/user.entity';
-import { DataSource, Not } from 'typeorm';
+import { Not } from 'typeorm';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { AsyncQuestionService } from './asyncQuestion.service';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
@@ -55,7 +55,6 @@ export class asyncQuestionController {
     private readonly redisQueueService: RedisQueueService,
     private readonly appConfig: ApplicationConfigService,
     private readonly asyncQuestionService: AsyncQuestionService,
-    private readonly dataSource: DataSource,
   ) {}
 
   @Post('vote/:qid/:vote')
@@ -610,61 +609,20 @@ export class asyncQuestionController {
       return;
     }
 
-    const found = await this.dataSource.transaction(async (manager) => {
-      const comment = await manager.findOne(AsyncQuestionCommentModel, {
-        where: { id: commentId, questionId: qid },
-        lock: { mode: 'pessimistic_write' },
-      });
-      if (!comment) return false;
-
-      const wasEndorsed = comment.endorsedById !== null;
-      comment.endorsedById = body.isEndorsed ? user.id : null;
-      await manager.save(comment);
-
-      if (!wasEndorsed && body.isEndorsed) {
-        const result = await manager
-          .createQueryBuilder()
-          .update(UserCourseModel)
-          .set({ endorsedCommentCount: () => '"endorsedCommentCount" + 1' })
-          .where('userId = :userId AND courseId = :courseId', {
-            userId: comment.creatorId,
-            courseId: question.courseId,
-          })
-          .execute();
-        if (result.affected > 1) {
-          throw new Error(
-            `endorseComment: expected at most 1 affected row, got ${result.affected}`,
-          );
-        }
-      } else if (wasEndorsed && !body.isEndorsed) {
-        const result = await manager
-          .createQueryBuilder()
-          .update(UserCourseModel)
-          .set({
-            endorsedCommentCount: () =>
-              'GREATEST("endorsedCommentCount" - 1, 0)',
-          })
-          .where('userId = :userId AND courseId = :courseId', {
-            userId: comment.creatorId,
-            courseId: question.courseId,
-          })
-          .execute();
-        if (result.affected > 1) {
-          throw new Error(
-            `endorseComment: expected at most 1 affected row, got ${result.affected}`,
-          );
-        }
-      }
-      return true;
+    const comment = await AsyncQuestionCommentModel.findOne({
+      where: { id: commentId, questionId: qid },
     });
 
-    if (!found) {
+    if (!comment) {
       res.status(HttpStatus.NOT_FOUND).send({
         message:
           ERROR_MESSAGES.asyncQuestionController.comments.commentNotFound,
       });
       return;
     }
+
+    comment.endorsedById = body.isEndorsed ? user.id : null;
+    await comment.save();
 
     const updatedQuestion = await AsyncQuestionModel.findOne({
       where: { id: qid },
@@ -867,43 +825,7 @@ export class asyncQuestionController {
       return;
     }
 
-    const found = await this.dataSource.transaction(async (manager) => {
-      const lockedComment = await manager.findOne(AsyncQuestionCommentModel, {
-        where: { id: commentId, questionId: qid },
-        lock: { mode: 'pessimistic_write' },
-      });
-      if (!lockedComment) return false;
-
-      if (lockedComment.endorsedById !== null) {
-        const result = await manager
-          .createQueryBuilder()
-          .update(UserCourseModel)
-          .set({
-            endorsedCommentCount: () =>
-              'GREATEST("endorsedCommentCount" - 1, 0)',
-          })
-          .where('userId = :userId AND courseId = :courseId', {
-            userId: lockedComment.creatorId,
-            courseId: question.courseId,
-          })
-          .execute();
-        if (result.affected > 1) {
-          throw new Error(
-            `deleteComment: expected at most 1 affected row, got ${result.affected}`,
-          );
-        }
-      }
-      await manager.remove(lockedComment);
-      return true;
-    });
-
-    if (!found) {
-      res.status(HttpStatus.NOT_FOUND).send({
-        message:
-          ERROR_MESSAGES.asyncQuestionController.comments.commentNotFound,
-      });
-      return;
-    }
+    await comment.remove();
 
     const updatedQuestion = await AsyncQuestionModel.findOne({
       where: { id: qid },

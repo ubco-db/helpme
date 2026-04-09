@@ -17,7 +17,6 @@ import { AsyncQuestion, asyncQuestionStatus, Role } from '@koh/common';
 import { AsyncQuestionVotesModel } from 'asyncQuestion/asyncQuestionVotes.entity';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 import { AsyncQuestionCommentModel } from '../src/asyncQuestion/asyncQuestionComment.entity';
-import { UserCourseModel } from '../src/profile/user-course.entity';
 
 describe('AsyncQuestion Integration', () => {
   const { supertest } = setupIntegrationTest(
@@ -964,41 +963,6 @@ describe('AsyncQuestion Integration', () => {
         .delete(`/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}`)
         .expect(404);
     });
-
-    it('deleting an endorsed comment decrements endorsedCommentCount', async () => {
-      const comment = await AsyncQuestionCommentFactory.create({
-        question: asyncQuestion,
-        creator: studentUser,
-        commentText: 'Endorsed comment to delete',
-        endorsedById: TAuser.id,
-      });
-      await UserCourseModel.update(
-        { userId: studentUser.id, courseId: course.id },
-        { endorsedCommentCount: 1 },
-      );
-      await supertest({ userId: TAuser.id })
-        .delete(`/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}`)
-        .expect(200);
-      const userCourse = await UserCourseModel.findOne({
-        where: { userId: studentUser.id, courseId: course.id },
-      });
-      expect(userCourse.endorsedCommentCount).toBe(0);
-    });
-
-    it('deleting an unendorsed comment does not change endorsedCommentCount', async () => {
-      const comment = await AsyncQuestionCommentFactory.create({
-        question: asyncQuestion,
-        creator: studentUser,
-        commentText: 'Unendorsed comment to delete',
-      });
-      await supertest({ userId: studentUser.id })
-        .delete(`/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}`)
-        .expect(200);
-      const userCourse = await UserCourseModel.findOne({
-        where: { userId: studentUser.id, courseId: course.id },
-      });
-      expect(userCourse.endorsedCommentCount).toBe(0);
-    });
   });
 
   describe('PATCH /asyncQuestions/comment/:qid/:commentId/endorse', () => {
@@ -1095,88 +1059,6 @@ describe('AsyncQuestion Integration', () => {
         )
         .send({ isEndorsed: true })
         .expect(404);
-    });
-
-    it('endorsing a comment increments endorsedCommentCount for the creator', async () => {
-      const comment = await AsyncQuestionCommentFactory.create({
-        question: asyncQuestion,
-        creator: studentUser,
-        commentText: 'Student comment',
-      });
-      await supertest({ userId: TAuser.id })
-        .patch(
-          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}/endorse`,
-        )
-        .send({ isEndorsed: true })
-        .expect(200);
-      const userCourse = await UserCourseModel.findOne({
-        where: { userId: studentUser.id, courseId: course.id },
-      });
-      expect(userCourse.endorsedCommentCount).toBe(1);
-    });
-
-    it('un-endorsing a comment decrements endorsedCommentCount for the creator', async () => {
-      const comment = await AsyncQuestionCommentFactory.create({
-        question: asyncQuestion,
-        creator: studentUser,
-        commentText: 'Already endorsed comment',
-        endorsedById: TAuser.id,
-      });
-      await UserCourseModel.update(
-        { userId: studentUser.id, courseId: course.id },
-        { endorsedCommentCount: 1 },
-      );
-      await supertest({ userId: TAuser.id })
-        .patch(
-          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}/endorse`,
-        )
-        .send({ isEndorsed: false })
-        .expect(200);
-      const userCourse = await UserCourseModel.findOne({
-        where: { userId: studentUser.id, courseId: course.id },
-      });
-      expect(userCourse.endorsedCommentCount).toBe(0);
-    });
-
-    it('endorsing an already-endorsed comment does not change endorsedCommentCount', async () => {
-      const comment = await AsyncQuestionCommentFactory.create({
-        question: asyncQuestion,
-        creator: studentUser,
-        commentText: 'Already endorsed comment',
-        endorsedById: TAuser.id,
-      });
-      await UserCourseModel.update(
-        { userId: studentUser.id, courseId: course.id },
-        { endorsedCommentCount: 1 },
-      );
-      await supertest({ userId: TAuser.id })
-        .patch(
-          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}/endorse`,
-        )
-        .send({ isEndorsed: true })
-        .expect(200);
-      const userCourse = await UserCourseModel.findOne({
-        where: { userId: studentUser.id, courseId: course.id },
-      });
-      expect(userCourse.endorsedCommentCount).toBe(1);
-    });
-
-    it('un-endorsing an already-unendorsed comment does not change endorsedCommentCount', async () => {
-      const comment = await AsyncQuestionCommentFactory.create({
-        question: asyncQuestion,
-        creator: studentUser,
-        commentText: 'Not endorsed comment',
-      });
-      await supertest({ userId: TAuser.id })
-        .patch(
-          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}/endorse`,
-        )
-        .send({ isEndorsed: false })
-        .expect(200);
-      const userCourse = await UserCourseModel.findOne({
-        where: { userId: studentUser.id, courseId: course.id },
-      });
-      expect(userCourse.endorsedCommentCount).toBe(0);
     });
   });
 
