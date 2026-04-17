@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ClassSerializerInterceptor,
   Controller,
   Delete,
   Get,
@@ -10,14 +11,20 @@ import {
   Post,
   UseGuards,
   UseInterceptors,
-  ClassSerializerInterceptor,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CourseRolesGuard } from '../guards/course-roles.guard';
 import { Roles } from '../decorators/roles.decorator';
-import { Role } from '@koh/common';
+import {
+  CreateIframeQuestionParams,
+  IframeQuestionFeedbackParams,
+  IframeQuestionFeedbackResponse,
+  Role,
+  UpdateIframeQuestionParams,
+} from '@koh/common';
 import { IframeQuestionService } from './iframe-question.service';
 import { ChatbotApiService } from '../chatbot/chatbot-api.service';
+import { minutes, Throttle } from '@nestjs/throttler';
 
 @Controller('iframe-question')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -33,7 +40,7 @@ export class IframeQuestionController {
   @Roles(Role.TA, Role.PROFESSOR)
   async create(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() body: { questionText: string; criteriaText?: string },
+    @Body() body: CreateIframeQuestionParams,
   ) {
     return await this.iframeQuestionService.create(
       courseId,
@@ -71,12 +78,13 @@ export class IframeQuestionController {
   }
 
   // public feedback endpoint for embedded iframe usage (no login required)
+  @Throttle({ default: { limit: 10, ttl: minutes(5) } })
   @Post('public/:courseId/:questionId/feedback')
   async getFeedbackPublic(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
-    @Body() body: { responseText?: string },
-  ): Promise<{ feedback: string }> {
+    @Body() body: IframeQuestionFeedbackParams,
+  ): Promise<IframeQuestionFeedbackResponse> {
     const responseText = body.responseText?.trim();
     if (!responseText) {
       throw new BadRequestException('responseText is required');
@@ -107,7 +115,7 @@ export class IframeQuestionController {
   async update(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
-    @Body() body: { questionText?: string; criteriaText?: string },
+    @Body() body: UpdateIframeQuestionParams,
   ) {
     return await this.iframeQuestionService.update(
       courseId,

@@ -495,17 +495,37 @@ export interface IframeQuestion {
   createdAt: Date
   courseId: number
   questionText: string
-  criteriaText: string | null
+  criteriaText: string
 }
 
-export interface CreateIframeQuestionParams {
-  questionText: string
-  criteriaText?: string
+export class CreateIframeQuestionParams {
+  @IsString()
+  @IsNotEmpty()
+  questionText!: string
+
+  @IsString()
+  @IsNotEmpty()
+  criteriaText!: string
 }
 
-export interface UpdateIframeQuestionParams {
-  questionText?: string
-  criteriaText?: string
+export class UpdateIframeQuestionParams {
+  @IsString()
+  @IsNotEmpty()
+  questionText!: string
+
+  @IsString()
+  @IsNotEmpty()
+  criteriaText!: string
+}
+
+export class IframeQuestionFeedbackParams {
+  @IsString()
+  responseText!: string
+}
+
+export class IframeQuestionFeedbackResponse {
+  @IsString()
+  feedback!: string
 }
 
 export interface AddDocumentChunkParams {

@@ -48,6 +48,7 @@ import {
   GetInsightOutputResponse,
   GetInteractionsAndQuestionsResponse,
   IframeQuestion,
+  IframeQuestionFeedbackResponse,
   GetLimitedCourseResponse,
   GetOrganizationResponse,
   GetOrganizationUserResponse,
@@ -1648,7 +1649,7 @@ export class APIClient {
       courseId: number,
       questionId: number,
       responseText: string,
-    ): Promise<{ feedback: string }> =>
+    ): Promise<IframeQuestionFeedbackResponse> =>
       this.req(
         'POST',
         `/api/v1/iframe-question/public/${courseId}/${questionId}/feedback`,

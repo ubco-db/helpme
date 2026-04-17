@@ -37,19 +37,17 @@ describe('IframeQuestion Integration', () => {
       expect(res.body.courseId).toEqual(course.id);
     });
 
-    it('creates a question without criteria', async () => {
+    it('returns 400 when creating without criteria', async () => {
       const course = await CourseFactory.create();
       const ta = await TACourseFactory.create({
         course,
         user: await UserFactory.create(),
       });
 
-      const res = await supertest({ userId: ta.userId })
+      await supertest({ userId: ta.userId })
         .post(`/iframe-question/${course.id}`)
         .send({ questionText: 'No criteria' })
-        .expect(201);
-
-      expect(res.body.criteriaText).toBeNull();
+        .expect(400);
     });
   });
 
@@ -155,6 +153,62 @@ describe('IframeQuestion Integration', () => {
     });
   });
 
+  describe('GET /iframe-question/public/:courseId/:questionId', () => {
+    it('allows unauthenticated users to fetch a single question', async () => {
+      const course = await CourseFactory.create();
+      const question = await IframeQuestionFactory.create({
+        course,
+        questionText: 'Public question',
+      });
+
+      const res = await supertest()
+        .get(`/iframe-question/public/${course.id}/${question.id}`)
+        .expect(200);
+
+      expect(res.body.questionText).toEqual('Public question');
+    });
+
+    it('returns 404 for a nonexistent public question', async () => {
+      const course = await CourseFactory.create();
+
+      await supertest()
+        .get(`/iframe-question/public/${course.id}/999`)
+        .expect(404);
+    });
+  });
+
+  describe('POST /iframe-question/public/:courseId/:questionId/feedback', () => {
+    it('returns 400 when responseText is missing', async () => {
+      const course = await CourseFactory.create();
+      const question = await IframeQuestionFactory.create({ course });
+
+      await supertest()
+        .post(`/iframe-question/public/${course.id}/${question.id}/feedback`)
+        .send({})
+        .expect(400);
+    });
+
+    it('returns 400 when responseText is not a string', async () => {
+      const course = await CourseFactory.create();
+      const question = await IframeQuestionFactory.create({ course });
+
+      await supertest()
+        .post(`/iframe-question/public/${course.id}/${question.id}/feedback`)
+        .send({ responseText: 123 })
+        .expect(400);
+    });
+
+    it('returns 400 when responseText is only whitespace', async () => {
+      const course = await CourseFactory.create();
+      const question = await IframeQuestionFactory.create({ course });
+
+      await supertest()
+        .post(`/iframe-question/public/${course.id}/${question.id}/feedback`)
+        .send({ responseText: '   ' })
+        .expect(400);
+    });
+  });
+
   describe('PATCH /iframe-question/:courseId/:questionId', () => {
     it('returns 403 when a student tries to update', async () => {
       const course = await CourseFactory.create();
@@ -166,7 +220,7 @@ describe('IframeQuestion Integration', () => {
 
       await supertest({ userId: student.userId })
         .patch(`/iframe-question/${course.id}/${question.id}`)
-        .send({ questionText: 'Nope' })
+        .send({ questionText: 'Nope', criteriaText: 'Nope' })
         .expect(403);
     });
 
@@ -183,10 +237,28 @@ describe('IframeQuestion Integration', () => {
 
       const res = await supertest({ userId: ta.userId })
         .patch(`/iframe-question/${course.id}/${question.id}`)
-        .send({ questionText: 'Updated' })
+        .send({ questionText: 'Updated', criteriaText: 'Updated criteria' })
         .expect(200);
 
       expect(res.body.questionText).toEqual('Updated');
+      expect(res.body.criteriaText).toEqual('Updated criteria');
+    });
+
+    it('returns 400 when updating without criteria', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course,
+        user: await UserFactory.create(),
+      });
+      const question = await IframeQuestionFactory.create({
+        course,
+        questionText: 'Original',
+      });
+
+      await supertest({ userId: ta.userId })
+        .patch(`/iframe-question/${course.id}/${question.id}`)
+        .send({ questionText: 'Updated' })
+        .expect(400);
     });
   });
 

@@ -11,7 +11,6 @@ export interface IframeQuestionFeedbackProps {
   courseId: number
   questionId: number
   questionText: string
-  criteriaText?: string | null
   placeholder?: string
 }
 
@@ -47,6 +46,14 @@ export default function IframeQuestionFeedback({
       )
       setFeedback(response.feedback)
     } catch (err) {
+      if ((err as any)?.response?.status === 429) {
+        const rateLimitMessage =
+          'Too many attempts. Please wait a few minutes before requesting more feedback.'
+        setError(rateLimitMessage)
+        message.warning(rateLimitMessage)
+        return
+      }
+
       const errMsg = getErrorMessage(err)
       setError(typeof errMsg === 'string' ? errMsg : 'Failed to get feedback.')
       message.error('Something went wrong. Please try again.')

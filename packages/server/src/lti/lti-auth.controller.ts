@@ -32,8 +32,6 @@ export const restrictPaths = [
   'r^\\/api\\/v1\\/semesters\\/[0-9]+$',
   'r^\\/api\\/v1\\/chatbot\\/ask\\/[0-9]+$',
   'r^\\/api\\/v1\\/chatbot\\/askSuggested\\/[0-9]+$',
-  'r^\\/api\\/v1\\/chatbot\\/query\\/[0-9]+$',
-  'r^\\/api\\/v1\\/iframe-question\\/[0-9]+\\/[0-9]+$',
   'r^\\/api\\/v1\\/lms.*$',
   'r^\\/api\\/v1\\/lti\\/auth.*$',
   'r^\\/api\\/v1\\/organization\\/[0-9]+\\/settings$',

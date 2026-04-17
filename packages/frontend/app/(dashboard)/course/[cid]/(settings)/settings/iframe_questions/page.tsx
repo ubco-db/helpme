@@ -17,7 +17,6 @@ import {
   Popconfirm,
   Table,
   Space,
-  Typography,
 } from 'antd'
 import {
   DeleteOutlined,
@@ -30,7 +29,6 @@ import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 
 const { TextArea } = Input
-const { Text } = Typography
 
 interface IframeQuestionsPageProps {
   params: Promise<{ cid: string }>
@@ -77,7 +75,7 @@ export default function IframeQuestionsPage(
   const openEditModal = (q: IframeQuestion) => {
     setEditingQuestion(q)
     setQuestionText(q.questionText)
-    setCriteriaText(q.criteriaText || '')
+    setCriteriaText(q.criteriaText)
     setModalOpen(true)
   }
 
@@ -86,17 +84,21 @@ export default function IframeQuestionsPage(
       message.warning('Question text is required')
       return
     }
+    if (!criteriaText.trim()) {
+      message.warning('Criteria is required')
+      return
+    }
     try {
       if (editingQuestion) {
         await API.iframeQuestion.update(courseId, editingQuestion.id, {
           questionText: questionText.trim(),
-          criteriaText: criteriaText.trim() || undefined,
+          criteriaText: criteriaText.trim(),
         })
         message.success('Question updated')
       } else {
         await API.iframeQuestion.create(courseId, {
           questionText: questionText.trim(),
-          criteriaText: criteriaText.trim() || undefined,
+          criteriaText: criteriaText.trim(),
         })
         message.success('Question created')
       }
@@ -141,8 +143,6 @@ export default function IframeQuestionsPage(
       dataIndex: 'criteriaText',
       key: 'criteriaText',
       ellipsis: true,
-      render: (text: string | null) =>
-        text || <Text type="secondary">None</Text>,
     },
     {
       title: 'Iframe Link',
@@ -232,18 +232,18 @@ export default function IframeQuestionsPage(
             />
           </div>
           <div>
-            <label className="mb-1 block font-medium">
-              Criteria <span className="text-gray-400">(optional)</span>
-            </label>
+            <label className="mb-1 block font-medium">Criteria</label>
             <TextArea
               value={criteriaText}
               onChange={(e) => setCriteriaText(e.target.value)}
               rows={3}
               placeholder="e.g. The response should reference at least two specific themes and provide personal examples."
             />
-            <p className="mt-1 text-xs text-gray-400">
-              Criteria will be included in the AI prompt when giving feedback on
-              student responses.
+            <p className="mt-1 text-xs font-medium text-red-500">
+              Important: The AI prompt uses only the Question Text and Criteria
+              you enter here. Nothing else is included. Course prompt, HelpMe
+              system prompt, and chatbot knowledge base are not used for iframe
+              feedback.
             </p>
           </div>
         </div>

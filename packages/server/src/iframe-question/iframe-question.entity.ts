@@ -29,8 +29,7 @@ export class IframeQuestionModel extends BaseEntity {
   @Column({ type: 'text' })
   questionText: string;
 
-  // criteria that the AI uses to evaluate the student's response
-  // if empty, the course-level default criteria can apply
-  @Column({ type: 'text', nullable: true })
+  // criteria included in the prompt for feedback generation
+  @Column({ type: 'text' })
   criteriaText: string;
 }

@@ -758,6 +758,8 @@ export class SeedController {
       courseId: course1.id,
       questionText:
         'Did you complete all tasks for this week? Describe any challenges you faced.',
+      criteriaText:
+        'The response should mention completed tasks and describe at least one challenge.',
     }).save();
 
     return 'Data successfully seeded';

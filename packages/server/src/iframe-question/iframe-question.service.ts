@@ -6,12 +6,12 @@ export class IframeQuestionService {
   async create(
     courseId: number,
     questionText: string,
-    criteriaText?: string,
+    criteriaText: string,
   ): Promise<IframeQuestionModel> {
     const question = IframeQuestionModel.create({
       courseId,
       questionText,
-      criteriaText: criteriaText || null,
+      criteriaText,
     });
     return await question.save();
   }
@@ -39,16 +39,12 @@ export class IframeQuestionService {
   async update(
     courseId: number,
     questionId: number,
-    questionText?: string,
-    criteriaText?: string,
+    questionText: string,
+    criteriaText: string,
   ): Promise<IframeQuestionModel> {
     const question = await this.findOne(courseId, questionId);
-    if (questionText !== undefined) {
-      question.questionText = questionText;
-    }
-    if (criteriaText !== undefined) {
-      question.criteriaText = criteriaText;
-    }
+    question.questionText = questionText;
+    question.criteriaText = criteriaText;
     return await question.save();
   }
 

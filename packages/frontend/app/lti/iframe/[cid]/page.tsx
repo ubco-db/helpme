@@ -52,7 +52,9 @@ export default function IframePage(): ReactElement {
       <div className="flex min-h-32 flex-col items-center justify-center px-3 py-2">
         <p className="text-zinc-600">
           No question specified. The iframe URL should include a question ID
-          (e.g. ?q=3).
+          (e.g. ?q=3). If possible, try refreshing the page after copying any
+          important work elsewhere, and let your professor know if this keeps
+          happening.
         </p>
       </div>
     )
@@ -61,7 +63,9 @@ export default function IframePage(): ReactElement {
   if (error || !question) {
     return (
       <div className="flex min-h-32 flex-col items-center justify-center px-3 py-2">
-        <p className="text-zinc-600">{error || 'Question not found.'}</p>
+        <p className="text-zinc-600">
+          {error || 'Question not found.'} Please let your professor know.
+        </p>
       </div>
     )
   }
@@ -74,7 +78,6 @@ export default function IframePage(): ReactElement {
           courseId={courseId}
           questionId={question.id}
           questionText={question.questionText}
-          criteriaText={question.criteriaText}
         />
       </div>
     </>

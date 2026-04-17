@@ -455,6 +455,6 @@ export class FactoryService {
     this.IframeQuestionFactory = new Factory(IframeQuestionModel, dataSource)
       .assocOne('course', this.CourseFactory)
       .attr('questionText', 'Sample iframe question')
-      .attr('criteriaText', null);
+      .attr('criteriaText', 'Sample criteria');
   }
 }
