@@ -49,11 +49,18 @@ const UserAccessTokens: React.FC = () => {
     <div className={'flex flex-col gap-12'}>
       <Card
         title="Learning Management System Access Tokens"
-        classNames={{ body: 'flex flex-col gap-4', title: 'text-wrap' }}
+        classNames={{ body: 'flex flex-col gap-3 py-2', title: 'text-wrap' }}
       >
         <p>
-          These are access tokens generated for learning management systems your
-          organization is integrated with. You can invalidate them at any time.
+          These are access tokens generated for LMSs (e.g. Canvas) that your
+          organization is integrated with. You can use this page to
+          manage/invalidate them.
+        </p>
+        <p>
+          These keys are used to connect your HelpMe courses with the LMS&apos;s
+          courses. If you&apos;re looking to manage or add an integration for an
+          individual course, please visit the LMS Integrations page under Course
+          Settings for your course in HelpMe.
         </p>
         <List
           className="flex flex-col gap-2 p-2"
