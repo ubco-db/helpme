@@ -10,8 +10,8 @@ const AsyncCentreInfoColumn: React.FC<AsyncCentreInfoColumnProps> = ({
   buttons,
 }) => {
   return (
-    <div className="relative flex flex-shrink-0 flex-col pb-3 md:mt-8 md:w-72 md:pb-7">
-      <h1 className="mb-4 flex justify-center overflow-visible whitespace-nowrap text-2xl font-bold text-[#212934] md:mb-8">
+    <div className="relative flex flex-shrink-0 flex-col pb-3 lg:mt-8 lg:w-72 lg:pb-7">
+      <h1 className="mb-4 flex justify-center overflow-visible text-center text-2xl font-bold text-[#212934] lg:mb-8 lg:whitespace-nowrap">
         Anytime Question Hub
         <Tooltip
           title={
