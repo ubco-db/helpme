@@ -90,7 +90,7 @@ const InsightGanttChartComponent: React.FC<InsightGanttChartComponentProps> = ({
         <div className={'text-md font-bold md:text-lg'}>{insight.title}</div>
         {filterContent}
         {chartData.length > 0 ? (
-          <div className={'mt-4 p-4'}>{chartRender}</div>
+          <div className={'mt-4 overflow-x-auto p-4'}>{chartRender}</div>
         ) : (
           <div className="mx-auto mt-8 w-full p-4">
             <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
@@ -103,7 +103,7 @@ const InsightGanttChartComponent: React.FC<InsightGanttChartComponentProps> = ({
     <InsightCard title={insight.title} description={insight.description}>
       {filterContent}
       {chartData.length > 0 ? (
-        <div className={'mt-4 p-4'}>{chartRender}</div>
+        <div className={'mt-4 overflow-x-auto p-4'}>{chartRender}</div>
       ) : (
         <div className="mx-auto mt-8 w-full p-4">
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />

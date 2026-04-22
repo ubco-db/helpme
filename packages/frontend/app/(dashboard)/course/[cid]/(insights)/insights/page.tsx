@@ -139,7 +139,7 @@ export default function InsightsPage() {
     <>
       <InsightsPageMenu category={category} setCategory={setCategory} />
       <InsightContextProvider courseId={courseId}>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           {category == 'Dashboard' && (
             <DashboardPresetComponent
               courseId={courseId}
@@ -151,12 +151,12 @@ export default function InsightsPage() {
             />
           )}
           <div
-            className={'flex flex-1 p-5'}
+            className={'flex min-w-0 flex-1 p-5'}
             style={{
               paddingTop: category == 'Dashboard' ? '2.25rem' : undefined,
             }}
           >
-            <div className={'flex flex-1 flex-row flex-wrap gap-4'}>
+            <div className={'flex min-w-0 flex-1 flex-row flex-wrap gap-4'}>
               {category == 'Dashboard' ? (
                 <>
                   {(dashboardInsights != undefined &&
