@@ -79,7 +79,7 @@ export class CourseCleanupEmailBuilder {
           <strong>To prevent this</strong>, simply update the course's semester to one that has not yet ended before ${archiveDateStr}.
         </p>
         <p style="font-size: 13px; color: #888; margin-top: 24px; border-top: 1px solid #eee; padding-top: 16px;">
-          This is an automated cleanup process. If this course has ended and is no longer in use, you can safely disregard this email.
+          This is an automated cleanup process. <strong>If this course has ended and is no longer in use, you can safely disregard this email</strong>.
         </p>
       </div>
     `;
