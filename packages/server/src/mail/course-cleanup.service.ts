@@ -10,15 +10,37 @@ import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegratio
 import { UserSubscriptionModel } from './user-subscriptions.entity';
 import { MailServiceModel } from './mail-services.entity';
 import { CourseCleanupEmailBuilder } from './course-cleanup-email.builder';
+import { SentEmailModel } from './sent-email.entity';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
+import { CourseService } from '../course/course.service';
 
 @Injectable()
 export class CourseCleanupService {
   constructor(
     private mailService: MailService,
     private redisProfileService: RedisProfileService,
+    private courseService: CourseService,
   ) {}
 
+ private testPhase = 0;
+
+@Cron('* * * * *') // every minute
+async runTestPhase(): Promise<void> {
+  this.testPhase++;
+
+  if (this.testPhase === 1) {
+    console.log('[TEST] Phase 1: Warning email');
+    await this.sendWarningEmails();
+  } else if (this.testPhase === 2) {
+    console.log('[TEST] Phase 2: Final warning email');
+    await this.sendFinalWarningEmails();
+  } else if (this.testPhase === 3) {
+    console.log('[TEST] Phase 3: Archival');
+    await this.archiveEndedCourses();
+    this.testPhase = 0;
+  }
+
+}
 @Cron('0 0 0 1 * *') // 1st of every month - initial warning emails
   async sendWarningEmails(): Promise<void> {
     try {
@@ -30,7 +52,6 @@ export class CourseCleanupService {
         return;
       }
 
-      // Group courses by professor
       const professorCourseMap = await this.groupCoursesByProfessor(
         coursesToWarn.map((c) => c.id),
         coursesToWarn,
@@ -48,13 +69,13 @@ export class CourseCleanupService {
 
       for (const [professorId, { professor, courses }] of professorCourseMap) {
         try {
-          if (await this.isUnsubscribed(professorId, MailServiceType.COURSE_CLEANUP_NOTIFICATION)) continue;
-
           await this.mailService.sendEmail({
             receiverOrReceivers: professor.email,
             type: MailServiceType.COURSE_CLEANUP_NOTIFICATION,
             subject: CourseCleanupEmailBuilder.buildNotificationSubject(courses, formattedArchiveDate),
             content: CourseCleanupEmailBuilder.buildNotificationEmail(courses, formattedArchiveDate),
+            track: true,
+            metadata: { courseIds: courses.map((c) => c.id), phase: 'warning' },
           });
           emailsSent++;
         } catch (error) {
@@ -97,13 +118,13 @@ export class CourseCleanupService {
 
       for (const [professorId, { professor, courses }] of professorCourseMap) {
         try {
-          if (await this.isUnsubscribed(professorId, MailServiceType.COURSE_CLEANUP_NOTIFICATION)) continue;
-
           await this.mailService.sendEmail({
             receiverOrReceivers: professor.email,
             type: MailServiceType.COURSE_CLEANUP_NOTIFICATION,
             subject: CourseCleanupEmailBuilder.buildFinalWarningSubject(courses),
             content: CourseCleanupEmailBuilder.buildFinalWarningEmail(courses, formattedArchiveDate),
+            track: true,
+            metadata: { courseIds: courses.map((c) => c.id), phase: 'final_warning' },
           });
           emailsSent++;
         } catch (error) {
@@ -120,7 +141,7 @@ export class CourseCleanupService {
     }
   }
 
-  @Cron('0 0 0 15 * *') // 15th of  month - archival without email
+  @Cron('0 0 0 15 * *') // 15th of month - archival (only for notified courses)
   async archiveEndedCourses(): Promise<void> {
     try {
       console.log('[CourseCleanup] Starting archival job…');
@@ -131,10 +152,31 @@ export class CourseCleanupService {
         return;
       }
 
+      const cleanupEmails = await SentEmailModel.find({
+        where: { serviceType: MailServiceType.COURSE_CLEANUP_NOTIFICATION },
+      });
+
+      const notifiedCourseIds = new Set<number>();
+      for (const email of cleanupEmails) {
+        const courseIds = (email.metadata as { courseIds?: number[] })?.courseIds;
+        if (courseIds) {
+          for (const id of courseIds) notifiedCourseIds.add(id);
+        }
+      }
+
+      const notifiedCourses = coursesToArchive.filter((c) => notifiedCourseIds.has(c.id));
+      const skippedCourses = coursesToArchive.filter((c) => !notifiedCourseIds.has(c.id));
+
+      if (skippedCourses.length > 0) {
+        console.warn(
+          `[CourseCleanup] Skipping ${skippedCourses.length} course(s) that were never notified: ${skippedCourses.map((c) => `${c.name} (ID: ${c.id})`).join(', ')}`,
+        );
+      }
+
       let archived = 0;
       let failed = 0;
 
-      for (const course of coursesToArchive) {
+      for (const course of notifiedCourses) {
         try {
           await this.archiveCourse(course);
           archived++;
@@ -145,7 +187,13 @@ export class CourseCleanupService {
         }
       }
 
-      console.log(`[CourseCleanup] Archival phase complete. Archived ${archived}, failed ${failed}.`);
+      // Clean up tracked emails since archival is done
+      if (cleanupEmails.length > 0) {
+        await SentEmailModel.remove(cleanupEmails);
+        console.log(`[CourseCleanup] Cleaned up ${cleanupEmails.length} tracked notification email(s).`);
+      }
+
+      console.log(`[CourseCleanup] Archival phase complete. Archived ${archived}, failed ${failed}, skipped ${skippedCourses.length} (not notified).`);
     } catch (error) {
       console.error('[CourseCleanup] Fatal error in archiveEndedCourses:', error);
       Sentry.captureException(error);
@@ -160,7 +208,7 @@ export class CourseCleanupService {
       .innerJoinAndSelect('course.semester', 'semester')
       .leftJoinAndSelect('course.lmsIntegration', 'lmsIntegration')
       .leftJoinAndSelect('lmsIntegration.orgIntegration', 'orgIntegration')
-      .leftJoinAndSelect('course.chatbot_doc_pdfs', 'chatbot_doc_pdfs')
+      .loadRelationCountAndMap('course.chatbotDocCount', 'course.chatbot_doc_pdfs')
       .where('course.deletedAt IS NULL')
       .andWhere('course.enabled = :enabled', { enabled: true })
       .andWhere('semester.endDate IS NOT NULL')
@@ -171,18 +219,20 @@ export class CourseCleanupService {
 
   private async getCoursesReadyForArchival(): Promise<CourseModel[]> {
     const minDate = new Date('2023-01-01');
-    // Only archive courses that ended more than 2 weeks ago to ensure notification time
     const twoWeeksAgo = new Date();
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
     return CourseModel.createQueryBuilder('course')
       .innerJoinAndSelect('course.semester', 'semester')
       .leftJoinAndSelect('course.lmsIntegration', 'lmsIntegration')
       .leftJoinAndSelect('lmsIntegration.orgIntegration', 'orgIntegration')
-      .leftJoinAndSelect('course.chatbot_doc_pdfs', 'chatbot_doc_pdfs')
+      .loadRelationCountAndMap('course.chatbotDocCount', 'course.chatbot_doc_pdfs')
       .where('course.deletedAt IS NULL')
       .andWhere('course.enabled = :enabled', { enabled: true })
       .andWhere('semester.endDate IS NOT NULL')
-      .andWhere('semester.endDate < :twoWeeksAgo', { twoWeeksAgo })
+      // .andWhere('semester.endDate < :twoWeeksAgo', { twoWeeksAgo })
+      .andWhere('semester.endDate < :oneDayAgo', { oneDayAgo })
       .andWhere('semester.endDate > :minDate', { minDate })
       .getMany();
   }
@@ -234,15 +284,20 @@ export class CourseCleanupService {
   }
 
   private async archiveCourse(course: CourseModel): Promise<void> {
+    // Get users for cache invalidation
     const usersInCourse = await UserCourseModel.find({
       where: { courseId: course.id },
       select: { userId: true },
     });
 
-    await ChatbotDocPdfModel.delete({ courseId: course.id });
-    await LMSCourseIntegrationModel.delete({ courseId: course.id });
-    await CourseModel.softRemove(course);
+    // Use CourseService to handle the actual archival with cleanup options
+    await this.courseService.archiveCourse(course, {
+      deleteChatbotDocs: true,
+      deleteLMSIntegration: true,
+      permanentlyDelete: true, 
+    });
 
+    // Clear user caches
     for (const userCourse of usersInCourse) {
       try {
         await this.redisProfileService.deleteProfile(`u:${userCourse.userId}`);
