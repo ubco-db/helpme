@@ -357,6 +357,8 @@ export enum MailServiceType {
   ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST = 'async_question_new_comment_on_others_post',
   COURSE_CLONE_SUMMARY = 'course_clone_summary',
   WEEKLY_COURSE_SUMMARY= 'weekly_course_summary',
+  COURSE_CLEANUP_NOTIFICATION = 'course_cleanup_notification',
+  COURSE_CLEANUP_CONFIRMATION = 'COURSE_CLEANUP_CONFIRMATION',
 }
 /**
  * Represents one of three possible user roles in a course.
@@ -2660,6 +2662,20 @@ export class EditCourseInfoParams {
 
   @IsOptional()
   isCourseInviteEnabled?: boolean
+}
+
+export class ArchiveCourseParams {
+  @IsBoolean()
+  @IsOptional()
+  deleteChatbotDocs?: boolean = true
+
+  @IsBoolean()
+  @IsOptional()
+  deleteLMSIntegration?: boolean = true
+
+  @IsBoolean()
+  @IsOptional()
+  permanentlyDelete?: boolean = false
 }
 
 export enum antdTagColor {

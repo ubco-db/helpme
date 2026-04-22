@@ -21,6 +21,7 @@ import {
 import { UserModel } from 'profile/user.entity';
 import { Response } from 'express';
 import {
+  ArchiveCourseParams,
   BatchCourseCloneAttributes,
   COURSE_TIMEZONES,
   CourseResponse,
@@ -615,6 +616,7 @@ export class OrganizationController {
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
     @Param('cid', ParseIntPipe) cid: number,
+    @Body() archiveOptions?: ArchiveCourseParams,
   ): Promise<Response<void>> {
     const courseInfo: OrganizationCourseResponse =
       await this.organizationService.getOrganizationCourse(oid, cid);
@@ -625,20 +627,32 @@ export class OrganizationController {
       });
     }
 
-    courseInfo.course.enabled = !courseInfo.course.enabled;
-
-    await courseInfo.course
-      .save()
-      .then(() => {
+    if (courseInfo.course.enabled) {
+      try {
+        await this.courseService.archiveCourse(courseInfo.course, archiveOptions || {});
         return res.status(HttpStatus.OK).send({
-          message: 'Course access updated',
+          message: 'Course archived successfully',
         });
-      })
-      .catch((err) => {
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
         return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
-          message: err,
+          message: errorMessage,
         });
-      });
+      }
+    } else {
+      courseInfo.course.enabled = true;
+      try {
+        await courseInfo.course.save();
+        return res.status(HttpStatus.OK).send({
+          message: 'Course un-archived successfully',
+        });
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+          message: errorMessage,
+        });
+      }
+    }
   }
 
   // For permanently deleting a course
