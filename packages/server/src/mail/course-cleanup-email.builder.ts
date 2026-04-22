@@ -1,23 +1,5 @@
 import { CourseModel } from '../course/course.entity';
-import * as cheerio from 'cheerio';
-
-function validateHtml(html: string): void {
-  const closingTags = html.match(/<\/([a-zA-Z][a-zA-Z0-9]*)>/g) || [];
-  const $ = cheerio.load(html, { xmlMode: false }, false);
-  const serialized = $.html();
-  const serializedClosingTags = serialized.match(/<\/([a-zA-Z][a-zA-Z0-9]*)>/g) || [];
-  const difference = serializedClosingTags.length - closingTags.length;
-  if (closingTags.length !== serializedClosingTags.length) {
-    throw new Error(
-      difference > 0
-        ? `Invalid HTML: You have ${difference} unclosed tag(s).`
-        : `Invalid HTML: You have ${Math.abs(difference)} orphaned closing tag(s) without opening tags.`,
-    );
-  }
-  if (Math.abs(serialized.length - html.length) > Math.max(100, html.length * 0.05)) {
-    throw new Error(`Invalid HTML: Structure significantly modified after parsing.`);
-  }
-}
+import { validateHtml } from './email.utils';
 
 export class CourseCleanupEmailBuilder {
   static readonly WARNING_CRON = '0 0 0 1 * *';        // 1st of every month
@@ -113,7 +95,7 @@ export class CourseCleanupEmailBuilder {
     bgColor: string,
     borderColor: string,
   ): string {
-    const hasDocuments = course.chatbot_doc_pdfs && course.chatbot_doc_pdfs.length > 0;
+    const hasDocuments = (course as any).chatbotDocCount > 0;
     const lmsIntegration = course.lmsIntegration;
     const lmsName = lmsIntegration?.orgIntegration?.apiPlatform || 'LMS';
 

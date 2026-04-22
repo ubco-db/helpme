@@ -9,11 +9,17 @@ import { WeeklySummaryService } from './weekly-summary.service';
 import { CourseCleanupService } from './course-cleanup.service';
 import { InsightsModule } from '../insights/insights.module';
 import { RedisProfileModule } from '../redisProfile/redis-profile.module';
+import { forwardRef } from '@nestjs/common';
 
 @Global()
 @Module({
   controllers: [MailController, MailServicesController],
-  imports: [ConfigModule, InsightsModule, RedisProfileModule],
+  imports: [
+    ConfigModule,
+    InsightsModule,
+    RedisProfileModule,
+    forwardRef(() => require('../course/course.module').CourseModule),
+  ],
   providers: [MailService, MailerService, WeeklySummaryService, CourseCleanupService],
   exports: [MailService],
 })
