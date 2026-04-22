@@ -58,6 +58,7 @@ import { LtiCourseInviteModel } from './src/lti/lti-course-invite.entity';
 import { AuthStateModel } from './src/auth/auth-state.entity';
 import { LtiIdentityTokenModel } from './src/lti/lti_identity_token.entity';
 import { UserLtiIdentityModel } from './src/lti/user_lti_identity.entity';
+import { IframeQuestionModel } from './src/iframe-question/iframe-question.entity';
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
   config();
@@ -143,6 +144,7 @@ const typeorm: DataSourceOptions = {
     AuthStateModel,
     UserLtiIdentityModel,
     LtiIdentityTokenModel,
+    IframeQuestionModel,
   ],
   logging:
     process.env.NODE_ENV !== 'production'

@@ -23,11 +23,12 @@ const publicPages: string[] = [
   '/lti/register*',
   '/lti/failed*',
   '/lti/password*',
+  '/lti/iframe/*',
 ]
 
 const isPublicPage = (url: string) => {
   return publicPages.some((page) => {
-    const regex = new RegExp(`^${page.replace('*', '.*')}$`)
+    const regex = new RegExp(`^${page.replaceAll('*', '.*')}$`)
     return regex.test(url)
   })
 }
