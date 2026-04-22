@@ -64,9 +64,9 @@ const InsightsMenu: React.FC<InsightsMenuProps> = ({
         value={category}
         onChange={(value) => setCategory(value)}
         className="w-full lg:hidden"
-        options={insightsMenuItems.map((item) => ({
-          value: item?.key as InsightCategory,
-          label: item?.label as string,
+        options={InsightCategories.map((item) => ({
+          value: item,
+          label: item.replace(/_/g, ' '),
         }))}
       />
       <Menu
