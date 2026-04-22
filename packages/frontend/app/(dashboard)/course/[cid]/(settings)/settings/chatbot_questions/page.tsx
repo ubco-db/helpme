@@ -484,8 +484,8 @@ export default function ChatbotQuestions(
           deleteQuestion={deleteQuestion}
         />
       )}
-      <div className="flex w-full items-center justify-between">
-        <div className="flex-1">
+      <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0 flex-1">
           <h3 className="m-0 p-0 text-4xl font-bold text-gray-900">
             View Chatbot Questions
           </h3>
@@ -493,10 +493,10 @@ export default function ChatbotQuestions(
             View and manage the questions being asked of your chatbot
           </h4>
         </div>
-        <div className="flex flex-grow flex-col items-center gap-2 md:flex-row">
+        <div className="flex w-full min-w-0 flex-col items-center gap-2 md:flex-row lg:w-auto">
           <ChatbotHelpTooltip forPage="edit_chatbot_questions" />
           <Input
-            className="flex-1"
+            className="w-full lg:min-w-64"
             placeholder={'Search question or answer...'}
             value={search}
             onChange={(e) => {
@@ -509,19 +509,42 @@ export default function ChatbotQuestions(
         </div>
       </div>
       <Divider className="my-3" />
-      <Table
-        columns={columns}
-        bordered
-        size="small"
-        dataSource={filteredQuestions}
-        loading={filteredQuestions.length === 0 && dataLoading}
-        expandable={{
-          expandedRowKeys: expandedRowKeys,
-          expandIcon: ({ expanded, record }) =>
-            !record.children ? null : !record.children[0].children ? (
-              expanded ? (
+      <div className="max-w-full overflow-x-auto">
+        <Table
+          columns={columns}
+          bordered
+          size="small"
+          dataSource={filteredQuestions}
+          loading={filteredQuestions.length === 0 && dataLoading}
+          scroll={{ x: 'max-content' }}
+          expandable={{
+            expandedRowKeys: expandedRowKeys,
+            expandIcon: ({ expanded, record }) =>
+              !record.children ? null : !record.children[0].children ? (
+                expanded ? (
+                  <button
+                    className=" ant-table-row-expand-icon ant-table-row-expand-icon-expanded bg-sky-100"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleRowExpand(record)
+                    }}
+                    aria-expanded="true"
+                  />
+                ) : (
+                  <Tooltip title="Show the full conversation the student had">
+                    <button
+                      className="ant-table-row-expand-icon ant-table-row-expand-icon-collapsed bg-sky-100"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleRowExpand(record)
+                      }}
+                      aria-expanded="false"
+                    />
+                  </Tooltip>
+                )
+              ) : expanded ? (
                 <button
-                  className=" ant-table-row-expand-icon ant-table-row-expand-icon-expanded bg-sky-100"
+                  className="ant-table-row-expand-icon ant-table-row-expand-icon-expanded bg-sky-200"
                   onClick={(e) => {
                     e.stopPropagation()
                     handleRowExpand(record)
@@ -529,9 +552,9 @@ export default function ChatbotQuestions(
                   aria-expanded="true"
                 />
               ) : (
-                <Tooltip title="Show the full conversation the student had">
+                <Tooltip title="Show all conversations of 2 or more messages that have this question">
                   <button
-                    className="ant-table-row-expand-icon ant-table-row-expand-icon-collapsed bg-sky-100"
+                    className="ant-table-row-expand-icon ant-table-row-expand-icon-collapsed bg-sky-200"
                     onClick={(e) => {
                       e.stopPropagation()
                       handleRowExpand(record)
@@ -539,30 +562,10 @@ export default function ChatbotQuestions(
                     aria-expanded="false"
                   />
                 </Tooltip>
-              )
-            ) : expanded ? (
-              <button
-                className="ant-table-row-expand-icon ant-table-row-expand-icon-expanded bg-sky-200"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleRowExpand(record)
-                }}
-                aria-expanded="true"
-              />
-            ) : (
-              <Tooltip title="Show all conversations of 2 or more messages that have this question">
-                <button
-                  className="ant-table-row-expand-icon ant-table-row-expand-icon-collapsed bg-sky-200"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleRowExpand(record)
-                  }}
-                  aria-expanded="false"
-                />
-              </Tooltip>
-            ),
-        }}
-      />
+              ),
+          }}
+        />
+      </div>
     </div>
   )
 }
