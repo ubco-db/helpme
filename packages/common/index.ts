@@ -2655,6 +2655,20 @@ export class EditCourseInfoParams {
   isCourseInviteEnabled?: boolean
 }
 
+export class ArchiveCourseParams {
+  @IsBoolean()
+  @IsOptional()
+  deleteChatbotDocs?: boolean = true
+
+  @IsBoolean()
+  @IsOptional()
+  deleteLMSIntegration?: boolean = true
+
+  @IsBoolean()
+  @IsOptional()
+  permanentlyDelete?: boolean = false
+}
+
 export enum antdTagColor {
   blue = 'blue',
   gold = 'gold',
