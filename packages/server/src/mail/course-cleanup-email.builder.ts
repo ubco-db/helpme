@@ -58,7 +58,7 @@ export class CourseCleanupEmailBuilder {
         </p>
         ${courses.map((c) => this.buildCourseActionsSummary(c, '#856404', '#fff8e1', '#ffc107')).join('')}
         <p style="font-size: 15px; line-height: 1.6;">
-          <strong>To prevent this</strong>, simply update the course's semester to one that has not yet ended before ${archiveDateStr}.
+          <strong>If you want to prevent this</strong>, simply update the course's semester to an active semester (one that has not yet ended before ${archiveDateStr}).
         </p>
         <p style="font-size: 13px; color: #888; margin-top: 24px; border-top: 1px solid #eee; padding-top: 16px;">
           This is an automated cleanup process. <strong>If this course has ended and is no longer in use, you can safely disregard this email</strong>.
