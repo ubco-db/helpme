@@ -491,22 +491,24 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
 
   return (
     <Form form={form} component={false}>
-      <Table
-        components={{
-          body: {
-            cell: EditableCell,
-          },
-        }}
-        bordered
-        dataSource={data}
-        size="small"
-        columns={mergedColumns}
-        rowClassName="editable-row"
-        pagination={{
-          onChange: cancelEdit,
-          pageSize: 20,
-        }}
-      />
+      <div className="max-w-full overflow-x-auto">
+        <Table
+          components={{
+            body: {
+              cell: EditableCell,
+            },
+          }}
+          bordered
+          dataSource={data}
+          size="small"
+          columns={mergedColumns}
+          rowClassName="editable-row"
+          pagination={{
+            onChange: cancelEdit,
+            pageSize: 20,
+          }}
+        />
+      </div>
     </Form>
   )
 }
