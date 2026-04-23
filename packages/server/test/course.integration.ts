@@ -2346,7 +2346,7 @@ describe('Course Integration', () => {
       expect(updatedTa.TANotes).not.toEqual('This is a test note');
     });
   });
-describe('GET /courses/:id/export-tool-usage', () => {
+  describe('GET /courses/:id/export-tool-usage', () => {
     it('should return 400 when no students are enrolled in the course', async () => {
       const course = await CourseFactory.create();
       const professor = await UserFactory.create();
@@ -2710,243 +2710,245 @@ describe('GET /courses/:id/export-tool-usage', () => {
       expect(Number(anytimeData[0]?.count)).toBe(1); // Should only count the non-deleted one
     });
 
-  describe('POST /courses/:courseId/clone_course', () => {
-    const modifyModule = (builder) => {
-      return builder.overrideProvider(CourseService).useValue({
-        cloneCourse: jest
-          .fn()
-          .mockImplementation((courseId, userId, body, token) => {
-            return Promise.resolve({
-              course: {
-                id: courseId,
-                name: 'Test Sample Course',
-                semesterId: 1,
-                enabled: true,
-                sectionGroupName: '001',
-              },
-              role: Role.PROFESSOR,
-              favourited: true,
-            } as UserCourse);
-          }),
-      });
-    };
-
-    const { supertest, getTestModule } = setupIntegrationTest(
-      CourseModule,
-      modifyModule,
-      [MailModule],
-    );
-
-    it('should return 401 if user is not authenticated', async () => {
-      await supertest().post('/courses/1/clone_course').expect(401);
-    });
-
-    it('should return 401 if user is professor and professors disallowed from creating courses', async () => {
-      const professor = await UserFactory.create({ chat_token: null });
-      const course = await CourseFactory.create();
-      const organization = await OrganizationFactory.create();
-      await OrganizationSettingsFactory.create({
-        organizationId: organization.id,
-        organization,
-        allowProfCourseCreate: false,
-      });
-
-      await OrganizationUserFactory.create({
-        organizationUser: professor,
-        organization: organization,
-        role: OrganizationRole.PROFESSOR,
-      });
-
-      await OrganizationCourseFactory.create({
-        course: course,
-        organization: organization,
-      });
-
-      await UserCourseFactory.create({
-        user: professor,
-        role: Role.PROFESSOR,
-        course,
-      });
-
-      await supertest({ userId: professor.id })
-        .post(`/courses/${course.id}/clone_course`)
-        .send({
-          name: 'Cloned Course',
-          semesterId: 1,
-        })
-        .expect(401);
-    });
-
-    it('should return 404 if user has no chat token', async () => {
-      const professor = await UserFactory.create({ chat_token: null });
-      const course = await CourseFactory.create();
-      const organization = await OrganizationFactory.create();
-
-      await OrganizationUserFactory.create({
-        organizationUser: professor,
-        organization: organization,
-      });
-
-      await OrganizationCourseFactory.create({
-        course: course,
-        organization: organization,
-      });
-
-      await UserCourseFactory.create({
-        user: professor,
-        role: Role.PROFESSOR,
-        course,
-      });
-
-      // capture console.error
-      const consoleError = jest.spyOn(console, 'error').mockImplementation();
-
-      await supertest({ userId: professor.id })
-        .post(`/courses/${course.id}/clone_course`)
-        .send({
-          name: 'Cloned Course',
-          semesterId: 1,
-        })
-        .expect(404);
-
-      expect(consoleError).toHaveBeenCalledWith(
-        ERROR_MESSAGES.profileController.accountNotAvailable,
-      );
-      consoleError.mockRestore();
-    });
-
-    it('should return 403 if user is not a professor of the course', async () => {
-      const student = await UserFactory.create();
-      const chatToken = await ChatTokenFactory.create({ user: student });
-      student.chat_token = chatToken;
-      await student.save();
-
-      const organization = await OrganizationFactory.create();
-
-      await OrganizationUserFactory.create({
-        organizationUser: student,
-        organization: organization,
-      });
-
-      const course = await CourseFactory.create();
-      await OrganizationCourseFactory.create({
-        course: course,
-        organization: organization,
-      });
-      await UserCourseFactory.create({
-        user: student,
-        role: Role.STUDENT,
-        course,
-      });
-
-      await supertest({ userId: student.id })
-        .post(`/courses/${course.id}/clone_course`)
-        .send({
-          name: 'Cloned Course',
-          semesterId: 1,
-        })
-        .expect(403);
-    });
-
-    it('should return 201 and call cloneCourse with the right params when user is a professor', async () => {
-      const professor = await UserFactory.create();
-      const chatToken = await ChatTokenFactory.create({ user: professor });
-      professor.chat_token = chatToken;
-      await professor.save();
-
-      const organization = await OrganizationFactory.create();
-
-      await OrganizationUserFactory.create({
-        organizationUser: professor,
-        organization: organization,
-      });
-
-      const course = await CourseFactory.create();
-      await OrganizationCourseFactory.create({
-        course: course,
-        organization: organization,
-      });
-      await UserCourseFactory.create({
-        user: professor,
-        role: Role.PROFESSOR,
-        course,
-      });
-
-      const cloneParams = {
-        name: 'Cloned Course',
-        semesterId: 1,
+    describe('POST /courses/:courseId/clone_course', () => {
+      const modifyModule = (builder) => {
+        return builder.overrideProvider(CourseService).useValue({
+          cloneCourse: jest
+            .fn()
+            .mockImplementation((courseId, userId, body, token) => {
+              return Promise.resolve({
+                course: {
+                  id: courseId,
+                  name: 'Test Sample Course',
+                  semesterId: 1,
+                  enabled: true,
+                  sectionGroupName: '001',
+                },
+                role: Role.PROFESSOR,
+                favourited: true,
+              } as UserCourse);
+            }),
+        });
       };
 
-      const response = await supertest({ userId: professor.id })
-        .post(`/courses/${course.id}/clone_course`)
-        .send(cloneParams)
-        .expect(201);
-
-      const module = getTestModule();
-      const courseService = module.get<CourseService>(CourseService);
-
-      expect(courseService.cloneCourse).toHaveBeenCalledWith(
-        course.id,
-        professor.id,
-        cloneParams,
-        chatToken.token,
+      const { supertest, getTestModule } = setupIntegrationTest(
+        CourseModule,
+        modifyModule,
+        [MailModule],
       );
 
-      expect(response.body).toEqual({
-        course: {
-          id: course.id,
-          name: 'Test Sample Course',
+      it('should return 401 if user is not authenticated', async () => {
+        await supertest().post('/courses/1/clone_course').expect(401);
+      });
+
+      it('should return 401 if user is professor and professors disallowed from creating courses', async () => {
+        const professor = await UserFactory.create({ chat_token: null });
+        const course = await CourseFactory.create();
+        const organization = await OrganizationFactory.create();
+        await OrganizationSettingsFactory.create({
+          organizationId: organization.id,
+          organization,
+          allowProfCourseCreate: false,
+        });
+
+        await OrganizationUserFactory.create({
+          organizationUser: professor,
+          organization: organization,
+          role: OrganizationRole.PROFESSOR,
+        });
+
+        await OrganizationCourseFactory.create({
+          course: course,
+          organization: organization,
+        });
+
+        await UserCourseFactory.create({
+          user: professor,
+          role: Role.PROFESSOR,
+          course,
+        });
+
+        await supertest({ userId: professor.id })
+          .post(`/courses/${course.id}/clone_course`)
+          .send({
+            name: 'Cloned Course',
+            semesterId: 1,
+          })
+          .expect(401);
+      });
+
+      it('should return 404 if user has no chat token', async () => {
+        const professor = await UserFactory.create({ chat_token: null });
+        const course = await CourseFactory.create();
+        const organization = await OrganizationFactory.create();
+
+        await OrganizationUserFactory.create({
+          organizationUser: professor,
+          organization: organization,
+        });
+
+        await OrganizationCourseFactory.create({
+          course: course,
+          organization: organization,
+        });
+
+        await UserCourseFactory.create({
+          user: professor,
+          role: Role.PROFESSOR,
+          course,
+        });
+
+        // capture console.error
+        const consoleError = jest.spyOn(console, 'error').mockImplementation();
+
+        await supertest({ userId: professor.id })
+          .post(`/courses/${course.id}/clone_course`)
+          .send({
+            name: 'Cloned Course',
+            semesterId: 1,
+          })
+          .expect(404);
+
+        expect(consoleError).toHaveBeenCalledWith(
+          ERROR_MESSAGES.profileController.accountNotAvailable,
+        );
+        consoleError.mockRestore();
+      });
+
+      it('should return 403 if user is not a professor of the course', async () => {
+        const student = await UserFactory.create();
+        const chatToken = await ChatTokenFactory.create({ user: student });
+        student.chat_token = chatToken;
+        await student.save();
+
+        const organization = await OrganizationFactory.create();
+
+        await OrganizationUserFactory.create({
+          organizationUser: student,
+          organization: organization,
+        });
+
+        const course = await CourseFactory.create();
+        await OrganizationCourseFactory.create({
+          course: course,
+          organization: organization,
+        });
+        await UserCourseFactory.create({
+          user: student,
+          role: Role.STUDENT,
+          course,
+        });
+
+        await supertest({ userId: student.id })
+          .post(`/courses/${course.id}/clone_course`)
+          .send({
+            name: 'Cloned Course',
+            semesterId: 1,
+          })
+          .expect(403);
+      });
+
+      it('should return 201 and call cloneCourse with the right params when user is a professor', async () => {
+        const professor = await UserFactory.create();
+        const chatToken = await ChatTokenFactory.create({ user: professor });
+        professor.chat_token = chatToken;
+        await professor.save();
+
+        const organization = await OrganizationFactory.create();
+
+        await OrganizationUserFactory.create({
+          organizationUser: professor,
+          organization: organization,
+        });
+
+        const course = await CourseFactory.create();
+        await OrganizationCourseFactory.create({
+          course: course,
+          organization: organization,
+        });
+        await UserCourseFactory.create({
+          user: professor,
+          role: Role.PROFESSOR,
+          course,
+        });
+
+        const cloneParams = {
+          name: 'Cloned Course',
           semesterId: 1,
-          enabled: true,
-          sectionGroupName: '001',
-        },
-        role: Role.PROFESSOR,
-        favourited: true,
+        };
+
+        const response = await supertest({ userId: professor.id })
+          .post(`/courses/${course.id}/clone_course`)
+          .send(cloneParams)
+          .expect(201);
+
+        const module = getTestModule();
+        const courseService = module.get<CourseService>(CourseService);
+
+        expect(courseService.cloneCourse).toHaveBeenCalledWith(
+          course.id,
+          professor.id,
+          cloneParams,
+          chatToken.token,
+        );
+
+        expect(response.body).toEqual({
+          course: {
+            id: course.id,
+            name: 'Test Sample Course',
+            semesterId: 1,
+            enabled: true,
+            sectionGroupName: '001',
+          },
+          role: Role.PROFESSOR,
+          favourited: true,
+        });
+      });
+
+      it('should return 201 when organization admin calls the endpoint', async () => {
+        const adminUser = await UserFactory.create();
+        adminUser.chat_token = await ChatTokenFactory.create({
+          user: adminUser,
+        });
+        await adminUser.save();
+
+        const organization = await OrganizationFactory.create();
+        await OrganizationUserFactory.create({
+          organizationUser: adminUser,
+          organization: organization,
+          role: OrganizationRole.ADMIN,
+        });
+
+        const course = await CourseFactory.create();
+        await OrganizationCourseFactory.create({
+          course: course,
+          organization: organization,
+        });
+
+        const cloneParams = {
+          name: 'Cloned Course',
+          semesterId: 1,
+        };
+
+        const response = await supertest({ userId: adminUser.id })
+          .post(`/courses/${course.id}/clone_course`)
+          .send(cloneParams)
+          .expect(201);
+
+        expect(response.body).toEqual({
+          course: {
+            id: course.id,
+            name: 'Test Sample Course',
+            semesterId: 1,
+            enabled: true,
+            sectionGroupName: '001',
+          },
+          role: Role.PROFESSOR,
+          favourited: true,
+        });
       });
     });
 
-    it('should return 201 when organization admin calls the endpoint', async () => {
-      const adminUser = await UserFactory.create();
-      adminUser.chat_token = await ChatTokenFactory.create({ user: adminUser });
-      await adminUser.save();
-
-      const organization = await OrganizationFactory.create();
-      await OrganizationUserFactory.create({
-        organizationUser: adminUser,
-        organization: organization,
-        role: OrganizationRole.ADMIN,
-      });
-
-      const course = await CourseFactory.create();
-      await OrganizationCourseFactory.create({
-        course: course,
-        organization: organization,
-      });
-
-      const cloneParams = {
-        name: 'Cloned Course',
-        semesterId: 1,
-      };
-
-      const response = await supertest({ userId: adminUser.id })
-        .post(`/courses/${course.id}/clone_course`)
-        .send(cloneParams)
-        .expect(201);
-
-      expect(response.body).toEqual({
-        course: {
-          id: course.id,
-          name: 'Test Sample Course',
-          semesterId: 1,
-          enabled: true,
-          sectionGroupName: '001',
-        },
-        role: Role.PROFESSOR,
-        favourited: true,
-      });
-    });
-  });
-
-  // WARNING: DO NOT put any test suites BELOW clone_course integration tests because they modify the DB connection
+    // WARNING: DO NOT put any test suites BELOW clone_course integration tests because they modify the DB connection
   });
 });

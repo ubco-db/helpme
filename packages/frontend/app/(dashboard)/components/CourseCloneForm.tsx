@@ -1,23 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import {
-  Checkbox,
-  Form,
-  FormInstance,
-  Input,
-  message,
-  Select,
-  Tag,
-  Tooltip,
-} from 'antd'
-import {
-  GetOrganizationResponse,
-  OrganizationProfessor,
-  OrganizationRole,
-} from '@koh/common'
+import { Checkbox, Form, FormInstance, Input, message, Select } from 'antd'
+import { GetOrganizationResponse, OrganizationProfessor } from '@koh/common'
 import { API } from '@/app/api'
 import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
+import ProfessorSelector from './ProfessorSelector'
 
 type CourseCloneFormProps = {
   form: FormInstance
@@ -71,59 +59,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           className="flex-1"
           required
         >
-          <Select
-            mode="multiple"
-            placeholder="Select professors"
-            showSearch
-            optionFilterProp="label"
-            options={professors.map((prof: OrganizationProfessor) => ({
-              key: prof.organizationUser.id,
-              label: prof.organizationUser.name,
-              value: prof.organizationUser.id,
-            }))}
-            filterSort={(optionA, optionB) =>
-              (optionA?.label ?? '')
-                .toLowerCase()
-                .localeCompare((optionB?.label ?? '').toLowerCase())
-            }
-            notFoundContent="There seems to be no professors available. This is likely a server error."
-            tagRender={(props) => {
-              const { label, value, closable, onClose } = props
-              const onPreventMouseDown = (
-                event: React.MouseEvent<HTMLSpanElement>,
-              ) => {
-                event.preventDefault()
-                event.stopPropagation()
-              }
-              // find the professor with the given id and see if they have lacksProfOrgRole
-              const match = professors.find(
-                (prof) => prof.organizationUser.id === value,
-              )
-              const lacksProfOrgRole = ![
-                OrganizationRole.ADMIN,
-                OrganizationRole.PROFESSOR,
-              ].includes(match?.trueRole ?? OrganizationRole.MEMBER)
-              return (
-                <Tooltip
-                  title={
-                    lacksProfOrgRole
-                      ? 'This user lacks the Professor role in this organization, meaning they cannot create their own courses.'
-                      : ''
-                  }
-                >
-                  <Tag
-                    color={lacksProfOrgRole ? 'orange' : 'blue'}
-                    onMouseDown={onPreventMouseDown}
-                    closable={closable}
-                    onClose={onClose}
-                    style={{ marginInlineEnd: 4 }}
-                  >
-                    {label}
-                  </Tag>
-                </Tooltip>
-              )
-            }}
-          />
+          <ProfessorSelector professors={professors} />
         </Form.Item>
       )}
       <Form.Item

@@ -18,7 +18,11 @@ export function useCourse(cid: number | null): {
   error?: GetCourseError
 } {
   const key = cid ? `/api/v1/courses/${cid}` : null
-  const { data: course, mutate: mutateCourse, error } = useSWR(key, async () => {
+  const {
+    data: course,
+    mutate: mutateCourse,
+    error,
+  } = useSWR(key, async () => {
     if (cid === null) {
       // this should never throw since the key will be null
       throw new Error('cid is somehow null in useCourse')

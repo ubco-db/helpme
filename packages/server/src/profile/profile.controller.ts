@@ -241,7 +241,7 @@ export class ProfileController {
     }
   }
 
-  // Only 5 calls allowed in 5 minutes
+  // only 5 calls allowed in 5 minutes
   @Throttle({ default: { limit: 5, ttl: minutes(5) } })
   @Delete('/clear_cache')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
