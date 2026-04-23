@@ -338,7 +338,6 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
               This is due to some changes to react and @types/react, and the component
               packages have not been updated to fix these issues.
             */}
-            {/* @ts-expect-error Server Component */}
             <Highlighter
               highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
               searchWords={[searchText]}
@@ -491,22 +490,24 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
 
   return (
     <Form form={form} component={false}>
-      <Table
-        components={{
-          body: {
-            cell: EditableCell,
-          },
-        }}
-        bordered
-        dataSource={data}
-        size="small"
-        columns={mergedColumns}
-        rowClassName="editable-row"
-        pagination={{
-          onChange: cancelEdit,
-          pageSize: 20,
-        }}
-      />
+      <div className="max-w-[calc(100vw-2rem)] overflow-x-auto md:max-w-[calc(100vw-18rem)]">
+        <Table
+          components={{
+            body: {
+              cell: EditableCell,
+            },
+          }}
+          bordered
+          dataSource={data}
+          size="small"
+          columns={mergedColumns}
+          rowClassName="editable-row"
+          pagination={{
+            onChange: cancelEdit,
+            pageSize: 20,
+          }}
+        />
+      </div>
     </Form>
   )
 }

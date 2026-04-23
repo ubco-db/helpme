@@ -29,7 +29,9 @@ export default async function Layout(props: {
       <div className="mt-2 flex flex-col">
         <title>HelpMe | Course Insights</title>
         <h1 className="mb-2 hidden md:block">Course Insights</h1>
-        <div className="flex flex-1 flex-row">{children}</div>
+        <div className="flex min-w-0 flex-1 flex-col lg:flex-row">
+          {children}
+        </div>
       </div>
     </AddChatbot>
   )
