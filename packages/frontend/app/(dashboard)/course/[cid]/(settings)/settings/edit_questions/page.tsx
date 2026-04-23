@@ -490,7 +490,7 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
 
   return (
     <Form form={form} component={false}>
-      <div className="max-w-full overflow-x-auto">
+      <div className="max-w-[calc(100vw-2rem)] overflow-x-auto md:max-w-[calc(100vw-18rem)]">
         <Table
           components={{
             body: {

@@ -509,7 +509,7 @@ export default function ChatbotQuestions(
         </div>
       </div>
       <Divider className="my-3" />
-      <div className="max-w-full overflow-x-auto">
+      <div className="max-w-[calc(100vw-2rem)] overflow-x-auto md:max-w-[calc(100vw-18rem)]">
         <Table
           columns={columns}
           bordered

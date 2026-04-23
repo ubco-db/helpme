@@ -123,9 +123,9 @@ export default function QueueInvitesPage(
     return (
       <div className="md:mt-3">
         <title>{`HelpMe | Editing ${course.name} Queue Invites`}</title>
-        <div className="flex flex-col items-center justify-between gap-2 lg:flex-row">
+        <div className="flex min-w-0 flex-col items-center justify-between gap-2 xl:flex-row">
           <h1>Queue Invites</h1>
-          <div className="flex w-full flex-col items-center justify-center gap-2 rounded bg-white p-3 shadow-sm sm:w-auto lg:flex-row">
+          <div className="flex w-full min-w-0 flex-col items-center justify-center gap-2 rounded bg-white p-3 shadow-sm sm:w-auto xl:flex-row">
             {course.queues && course.queues.length > 0 && (
               <>
                 <Select
