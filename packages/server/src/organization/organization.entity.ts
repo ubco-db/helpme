@@ -33,9 +33,11 @@ export class OrganizationModel extends BaseEntity {
   @Column('text', { nullable: true })
   description: string;
 
+  @Exclude()
   @Column('text', { nullable: true })
   logoUrl: string;
 
+  @Exclude()
   @Column('text', { nullable: true })
   bannerUrl: string;
 

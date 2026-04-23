@@ -217,7 +217,11 @@ const RosterItem: React.FC<{
       <Row className="flex w-full items-center justify-between">
         <List.Item.Meta
           avatar={
-            <UserAvatar photoURL={item.photoURL} username={item.name ?? ''} />
+            <UserAvatar
+              photoURL={item.photoURL}
+              userId={item.id}
+              username={item.name ?? ''}
+            />
           }
           title={
             <span className="mr-0 lg:mr-2">

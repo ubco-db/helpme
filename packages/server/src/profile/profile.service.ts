@@ -3,6 +3,7 @@ import {
   DesktopNotifPartial,
   ERROR_MESSAGES,
   GetProfileResponse,
+  OrganizationRole,
   Role,
   UpdateProfileParams,
   User,
@@ -22,6 +23,10 @@ import * as checkDiskSpaceModule from 'check-disk-space';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as sharpModule from 'sharp';
+import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
+import { CourseSettingsModel } from 'course/course_settings.entity';
+import { AsyncQuestionCommentModel } from 'asyncQuestion/asyncQuestionComment.entity';
+import { AsyncQuestionService } from 'asyncQuestion/asyncQuestion.service';
 
 const checkDiskSpace =
   (checkDiskSpaceModule as any).default || checkDiskSpaceModule;
@@ -29,7 +34,10 @@ const sharp = (sharpModule as any).default || sharpModule;
 
 @Injectable()
 export class ProfileService {
-  constructor(private organizationService: OrganizationService) {}
+  constructor(
+    private organizationService: OrganizationService,
+    private asyncQuestionService: AsyncQuestionService,
+  ) {}
 
   async getProfile(user: UserModel): Promise<User> {
     const courses = user.courses
@@ -99,8 +107,6 @@ export class ProfileService {
       'orgId',
       'organizationName',
       'organizationDescription',
-      'organizationLogoUrl',
-      'organizationBannerUrl',
       'organizationRole',
     ]);
 
@@ -154,11 +160,13 @@ export class ProfileService {
 
   private deletePreviousImage(filePath: string): void {
     try {
+      // TODO: maybe for safety we shouldn't assume that the user's photoURL is always going to be safe
       fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, filePath));
     } catch (e) {
       console.error(
-        `Error deleting previous picture at: ${filePath}\n` +
-          `Perhaps the file was already deleted or the database is out of sync with the uploads directory.\n` +
+        `Error deleting previous picture at: ${filePath}\n. Error:` +
+          e +
+          `\nPerhaps the file was already deleted or the database is out of sync with the uploads directory.\n` +
           `Will remove this entry from the database and continue.`,
       );
     }
@@ -230,5 +238,112 @@ export class ProfileService {
         'Error deleting profile picture. The file may not exist.',
       );
     }
+  }
+
+  async canViewProfilePicture(
+    requester: UserModel,
+    requestee: UserModel,
+  ): Promise<boolean> {
+    //// Permission checks - try to save less common/more performance intensive things last
+    // If the user is requesting their own profile picture
+    if (requester.id === requestee.id) {
+      return true;
+    }
+    // If requester is admin inside the same org, they can see all
+    if (
+      requester.organizationUser.role === OrganizationRole.ADMIN &&
+      requester.organizationUser.organizationId ===
+        requestee.organizationUser.organizationId
+    ) {
+      return true;
+    }
+    // If requestee is a professor or admin, anyone in org can view
+    if (
+      (requestee.organizationUser.role === OrganizationRole.PROFESSOR ||
+        requestee.organizationUser.role === OrganizationRole.ADMIN) &&
+      requester.organizationUser.organizationId ===
+        requestee.organizationUser.organizationId
+    ) {
+      return true;
+    }
+    const sameCourses = requester.courses.reduce<
+      { requesterRole: Role; requesteeRole: Role; courseId: number }[]
+    >((acc, requesterCourse) => {
+      const matchingCourse = requestee.courses.find(
+        (course) => course.courseId === requesterCourse.courseId,
+      );
+      if (matchingCourse) {
+        acc.push({
+          requesterRole: requesterCourse.role,
+          requesteeRole: matchingCourse.role,
+          courseId: requesterCourse.courseId,
+        });
+      }
+      return acc;
+    }, []);
+    // If both in same course:
+    if (sameCourses.length > 0) {
+      for (const uc of sameCourses) {
+        // course staff can view everyone in the course
+        if (
+          uc.requesterRole === Role.PROFESSOR ||
+          uc.requesterRole === Role.TA
+        ) {
+          return true;
+        }
+        // everyone in the course can view the course staff
+        if (
+          uc.requesteeRole === Role.PROFESSOR ||
+          uc.requesteeRole === Role.TA
+        ) {
+          return true;
+        }
+        // In the case where it's student to student, only allow it in specific cases
+        // Case 1: requestee has Anytime question isAnonymous: false and is visible
+        const nonAnonRequesteeAsyncQuestions = await AsyncQuestionModel.find({
+          where: {
+            creatorId: requestee.id,
+            courseId: uc.courseId,
+            isAnonymous: false,
+          },
+        });
+        if (nonAnonRequesteeAsyncQuestions.length > 0) {
+          const courseSettings = await CourseSettingsModel.findOne({
+            where: {
+              courseId: uc.courseId,
+            },
+          });
+          for (const question of nonAnonRequesteeAsyncQuestions) {
+            if (
+              await this.asyncQuestionService.isVisible(
+                question,
+                courseSettings,
+              )
+            ) {
+              return true;
+            }
+          }
+        }
+        // Case 2: requestee has a comment where isAnonymous: false
+        const nonAnonRequesteeCommentsCount =
+          await AsyncQuestionCommentModel.count({
+            where: {
+              creatorId: requestee.id,
+              question: {
+                courseId: uc.courseId,
+              },
+              isAnonymous: false,
+            },
+            relations: {
+              question: true,
+            },
+          });
+        if (nonAnonRequesteeCommentsCount > 0) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 }

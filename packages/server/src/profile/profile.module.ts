@@ -13,6 +13,8 @@ import { ProfileService } from './profile.service';
 import { ProfileSubscriber } from './profile.subscriber';
 import { UserCourseSubscriber } from './user-course.subscriber';
 import { UserTokenSubscriber } from './user-token.subscriber';
+import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
+import { AsyncQuestionService } from 'asyncQuestion/asyncQuestion.service';
 
 @Module({
   imports: [
@@ -28,6 +30,7 @@ import { UserTokenSubscriber } from './user-token.subscriber';
       }),
     }),
     OrganizationModule,
+    asyncQuestionModule,
   ],
   controllers: [ProfileController],
   providers: [
@@ -37,6 +40,7 @@ import { UserTokenSubscriber } from './user-token.subscriber';
     ProfileSubscriber,
     UserCourseSubscriber,
     UserTokenSubscriber,
+    AsyncQuestionService,
   ],
   exports: [ProfileService, RedisProfileService],
 })

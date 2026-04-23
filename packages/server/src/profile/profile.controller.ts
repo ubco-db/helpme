@@ -7,10 +7,14 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpException,
   HttpStatus,
+  NotFoundException,
   Param,
+  ParseFilePipeBuilder,
+  ParseIntPipe,
   Patch,
   Post,
   Req,
@@ -31,6 +35,7 @@ import { ProfileService } from './profile.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { minutes, SkipThrottle, Throttle } from '@nestjs/throttler';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
+import * as Sentry from '@sentry/nestjs';
 
 @Controller('profile')
 export class ProfileController {
@@ -121,40 +126,29 @@ export class ProfileController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
-      limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit per file
-      },
-      fileFilter: (req, file, cb) => {
-        // Check mimetype
-        if (!file.mimetype.startsWith('image/')) {
-          cb(new Error('Only image files are allowed'), false);
-          return;
-        }
-        // Check file extension
-        const allowedExtensions = [
-          '.jpg',
-          '.jpeg',
-          '.png',
-          '.gif',
-          '.webp',
-          '.bmp',
-          '.svg',
-          '.tiff',
-          '.gif',
-        ];
-        const fileExt = file.originalname
-          .toLowerCase()
-          .substring(file.originalname.lastIndexOf('.'));
-        if (!allowedExtensions.includes(fileExt)) {
-          cb(new Error('Only image files are allowed'), false);
-          return;
-        }
-        cb(null, true);
-      },
     }),
   )
   async uploadImage(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          // Note that nestjs filetypevalidator comes with mime type and magic number validation build in
+          fileType: 'jpg|jpeg|png|gif|avif|webp',
+        })
+        .addMaxSizeValidator({
+          maxSize: 5 * 1024 * 1024, // 5MB limit per file
+        })
+        .build({
+          // TIL about status code 422 (https://beeceptor.com/docs/concepts/400-vs-422/#example-use-cases)
+          // Apparently 422 is supposed to be like validation failures (request failed the business logic)
+          // while 400 is supposed to be for like malformed requests (invalid json, headers).
+          // So nearly all areas we currently have 400 would need to be replaced with 422
+          // since nest.js already covers all the stuff like malformed requests, bad headers, etc.
+          // This probably isn't worth the effort of changing, but it is interesting!
+          // errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY
+        }),
+    )
+    file: Express.Multer.File,
     @User() user: UserModel,
     @Res() response: Response,
   ): Promise<void> {
@@ -164,7 +158,7 @@ export class ProfileController {
         user,
       );
       response
-        .status(200)
+        .status(201)
         .send({ message: 'Image uploaded successfully', fileName });
     } catch (error) {
       response
@@ -173,14 +167,55 @@ export class ProfileController {
     }
   }
 
-  @Get('/get_picture/:photoURL')
+  @Get('/get_pfp/:requestUserId/:photoURL')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
-  async getImage(
+  async getProfilePicture(
+    @Param('requestUserId', ParseIntPipe) requestUserId: number,
+    // note that we do NOT supply a user-supplied path into `fs`, we're just using this
+    // as an identifier so the browser doesn't cache old pfps
+    // Technically, this is bad because having the frontend handle (and send requests) the with something that directly maps to the backend's file system
+    // will allow people to get hints to figure out how the backend works, that will be solved another day (when we change where photos are kept, ideally in the database).
     @Param('photoURL') photoURL: string,
+    @User({ organizationUser: true, courses: true }) requester: UserModel,
     @Res() res: Response,
   ): Promise<void> {
+    const requestee = await UserModel.findOne({
+      relations: {
+        organizationUser: true,
+        courses: true,
+      },
+      where: { id: requestUserId },
+    });
+    if (!requestee) {
+      throw new NotFoundException('User not found');
+    }
+    if (!requestee.photoURL) {
+      throw new NotFoundException('User has no profile picture');
+    }
+    if (requestee.photoURL !== photoURL) {
+      throw new NotFoundException(
+        "Provided photo URL does not match the user's current photo URL. Perhaps they have updated their photo?",
+      );
+    }
+
+    const canView = await this.profileService.canViewProfilePicture(
+      requester,
+      requestee,
+    );
+
+    if (!canView) {
+      // log in sentry since this ideally shouldn't happen
+      Sentry.captureException(
+        new Error(
+          `User ${requester.id} tried to access profile picture of ${requestee.id} but was denied`,
+        ),
+      );
+      throw new ForbiddenException(
+        'You do not have permission to view this profile picture.',
+      );
+    }
     fs.stat(
-      path.join(process.env.UPLOAD_LOCATION, photoURL),
+      path.join(process.env.UPLOAD_LOCATION, requestee.photoURL),
       async (err, stats) => {
         if (err) {
           return res
@@ -190,7 +225,7 @@ export class ProfileController {
         if (stats) {
           res.set('Content-Type', 'image/webp');
           res.sendFile(
-            photoURL,
+            requestee.photoURL,
             { root: process.env.UPLOAD_LOCATION },
             (sendFileError) => {
               if (sendFileError) {
@@ -235,9 +270,10 @@ export class ProfileController {
         .status(HttpStatus.OK)
         .send({ message: 'Changelogs read successfully' });
     } catch (error) {
+      console.error(error);
       return res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .send({ message: 'Error reading changelogs' });
+        .send({ message: 'Error reading changelog' });
     }
   }
 

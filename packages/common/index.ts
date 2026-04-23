@@ -118,14 +118,6 @@ export class OrganizationResponse {
 
   @IsString()
   @IsOptional()
-  logoUrl?: string
-
-  @IsString()
-  @IsOptional()
-  bannerUrl?: string
-
-  @IsString()
-  @IsOptional()
   websiteUrl?: string
 
   @IsBoolean()
@@ -356,7 +348,7 @@ export enum MailServiceType {
   ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST = 'async_question_new_comment_on_my_post',
   ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST = 'async_question_new_comment_on_others_post',
   COURSE_CLONE_SUMMARY = 'course_clone_summary',
-  WEEKLY_COURSE_SUMMARY= 'weekly_course_summary',
+  WEEKLY_COURSE_SUMMARY = 'weekly_course_summary',
 }
 /**
  * Represents one of three possible user roles in a course.
@@ -1758,8 +1750,6 @@ export class UpdateProfileParams {
 export class OrganizationPartial {
   id!: number
   name!: string
-  logoUrl?: string
-  bannerUrl?: string
   websiteUrl?: string
   ssoEnabled?: boolean
   ssoUrl?: string
@@ -1771,8 +1761,6 @@ export class OrganizationUserPartial {
   orgId!: number
   organizationName?: string
   organizationDescription?: string
-  organizationLogoUrl?: string
-  organizationBannerUrl?: string
   organizationRole?: string
 }
 

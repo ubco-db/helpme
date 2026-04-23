@@ -4,7 +4,7 @@ import { Button, Modal, Upload, message } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
 import React, { useCallback, useState } from 'react'
 import Cropper from 'react-easy-crop'
-import { getCroppedImg } from '@/app/utils/generalUtils'
+import { getCroppedImg, getErrorMessage } from '@/app/utils/generalUtils'
 
 interface ImageCropperModalProps {
   isOpen: boolean
@@ -59,12 +59,16 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
   // MIME types that are compatible as inputs with the sharp library in the backend
   const viableFileTypes = [
     'image/jpeg',
+    'image/jpg',
     'image/png',
-    'image/webp',
-    'image/avif',
     'image/gif',
-    'image/svg+xml',
+    'image/avif',
+    'image/webp',
     'image/tiff',
+    // despite our backend not allowing svg, for some reason it works fine when our frontend uploads it.
+    // I think it might have to do with the cropper. The cropper might be converting it to another file type and just
+    // disguising it as a svg but our backend only looks at the magic bytes (which is what the file really is).
+    'image/svg+xml',
   ]
 
   const beforeUpload = (file: any): boolean => {
@@ -72,7 +76,7 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
 
     if (!isValidMimeType) {
       message.error(
-        'Only the following image formats are supported: JPEG/JPG, PNG, WEBP, AVIF, GIF, SVG, and TIFF.',
+        'Only the following image formats are supported: JPEG/JPG, PNG, GIF, AVIF, WEBP, TIFF, and SVG.',
       )
     }
 
@@ -119,7 +123,7 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
         message.error(`${fileName} file upload failed: ${data.message}`)
       }
     } catch (error) {
-      message.error(`Error uploading ${fileName}. Please try again.`)
+      message.error(`Error uploading ${fileName}: ${getErrorMessage(error)}`)
     } finally {
       setUploading(false) // Reset the upload state regardless of success or error
       onCancel() // Close the modal
@@ -150,7 +154,7 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
         className="mb-2"
         showUploadList={false}
         maxCount={1}
-        accept=".jpg,.jpeg,.png,.webp,.avif,.gif,.svg,.tiff"
+        accept=".jpg,.jpeg,.png,.webp,.avif,.gif,.tiff,.svg"
       >
         <Button className="min-w-[85vw] py-5 lg:min-w-[30vw]">
           <UploadOutlined />

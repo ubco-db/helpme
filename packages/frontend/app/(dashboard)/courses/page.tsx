@@ -52,7 +52,7 @@ export default function CoursesPage(): ReactElement {
       <title>HelpMe | My Courses</title>
       <OrganizationCard>
         <Image
-          src={`/api/v1/organization/${userInfo?.organization?.orgId}/get_logo/${userInfo?.organization?.organizationLogoUrl}`}
+          src={`/api/v1/organization/${userInfo?.organization?.orgId}/get_logo`}
           className="mr-2 max-h-20 object-contain object-center p-1 md:max-h-80"
           alt="Organization Logo"
           width={80}

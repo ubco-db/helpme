@@ -78,8 +78,6 @@ export class OrganizationUserPartial {
   orgId!: number
   organizationName!: string
   organizationDescription!: string
-  organizationLogoUrl!: string
-  organizationBannerUrl!: string
   organizationRole!: string
 }
 

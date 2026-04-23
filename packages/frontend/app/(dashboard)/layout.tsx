@@ -120,7 +120,7 @@ const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
           <ChatbotContextProvider>
             {pathname === '/courses' && (
               <Image
-                src={`/api/v1/organization/${profile.organization.orgId}/get_banner/${profile.organization.organizationBannerUrl}`}
+                src={`/api/v1/organization/${profile.organization.orgId}/get_banner`}
                 alt="Organization Banner"
                 className="h-[15vh] w-full object-cover object-center md:h-[20vh]"
                 width={100}

@@ -388,15 +388,13 @@ export default function LoginPage() {
                   prefetch={false}
                 >
                   <Button className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left">
-                    {organization.logoUrl && (
-                      <Image
-                        src={`/api/v1/organization/${organization.id}/get_logo/${organization.logoUrl}`}
-                        loading="lazy"
-                        alt="Org Logo"
-                        width={24}
-                        height={24}
-                      />
-                    )}
+                    <Image
+                      src={`/api/v1/organization/${organization.id}/get_logo`}
+                      loading="lazy"
+                      alt="Org Logo"
+                      width={24}
+                      height={24}
+                    />
                     <div className="flex flex-col items-center justify-center">
                       <div className="font-semibold">
                         Continue with {organization.name}

@@ -282,6 +282,7 @@ const UserItem: React.FC<{ user: OrgUser; isMobile: boolean }> = ({
       >
         <UserAvatar
           photoURL={user.photoUrl ?? undefined}
+          userId={user.userId}
           colour={'#8A8A8A'}
           username={name == 'Deleted User' ? '' : name}
         />

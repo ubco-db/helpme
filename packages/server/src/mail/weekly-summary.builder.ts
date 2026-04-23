@@ -89,15 +89,22 @@ export interface CourseStatsData {
   suggestArchive: boolean;
 }
 function validateHtml(html: string): void {
-  const originalTags = html.match(/<(?!\/)(?!br|hr|img|input|meta|link|area|base|col|embed|source|track|wbr)([a-zA-Z][a-zA-Z0-9]*)[^>]*(?<!\/)>/g) || [];
+  const originalTags =
+    html.match(
+      /<(?!\/)(?!br|hr|img|input|meta|link|area|base|col|embed|source|track|wbr)([a-zA-Z][a-zA-Z0-9]*)[^>]*(?<!\/)>/g,
+    ) || [];
   const closingTags = html.match(/<\/([a-zA-Z][a-zA-Z0-9]*)>/g) || [];
-  
+
   const $ = cheerio.load(html, { xmlMode: false }, false);
   const serialized = $.html();
-  
-  const serializedOpeningTags = serialized.match(/<(?!\/)(?!br|hr|img|input|meta|link|area|base|col|embed|source|track|wbr)([a-zA-Z][a-zA-Z0-9]*)[^>]*(?<!\/)>/g) || [];
-  const serializedClosingTags = serialized.match(/<\/([a-zA-Z][a-zA-Z0-9]*)>/g) || [];
-  
+
+  const serializedOpeningTags =
+    serialized.match(
+      /<(?!\/)(?!br|hr|img|input|meta|link|area|base|col|embed|source|track|wbr)([a-zA-Z][a-zA-Z0-9]*)[^>]*(?<!\/)>/g,
+    ) || [];
+  const serializedClosingTags =
+    serialized.match(/<\/([a-zA-Z][a-zA-Z0-9]*)>/g) || [];
+
   const difference = serializedClosingTags.length - closingTags.length;
   if (closingTags.length !== serializedClosingTags.length) {
     let errorMsg: string;
@@ -107,9 +114,14 @@ function validateHtml(html: string): void {
       errorMsg = `Invalid HTML: You have ${Math.abs(difference)} orphaned closing tag(s) without opening tags.`;
     }
     throw new Error(errorMsg);
-  }  
-  if (Math.abs(serialized.length - html.length) > Math.max(100, html.length * 0.05)) {
-    throw new Error(`Invalid HTML: Structure significantly modified after parsing.`);
+  }
+  if (
+    Math.abs(serialized.length - html.length) >
+    Math.max(100, html.length * 0.05)
+  ) {
+    throw new Error(
+      `Invalid HTML: Structure significantly modified after parsing.`,
+    );
   }
 }
 export class WeeklySummaryBuilder {
@@ -121,7 +133,10 @@ export class WeeklySummaryBuilder {
     });
   }
 
-  static buildHeader(courseStatsArray: CourseStatsData[], weekStartDate: Date): string {
+  static buildHeader(
+    courseStatsArray: CourseStatsData[],
+    weekStartDate: Date,
+  ): string {
     const weekEndDate = new Date();
     return `
       <h1 style="color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px;">
@@ -145,7 +160,10 @@ export class WeeklySummaryBuilder {
     `;
   }
 
-  static buildNewStudentsSection(newStudents: NewStudentData[], course: CourseModel): string {
+  static buildNewStudentsSection(
+    newStudents: NewStudentData[],
+    course: CourseModel,
+  ): string {
     if (newStudents.length === 0) return '';
 
     let html = `
@@ -186,7 +204,11 @@ export class WeeklySummaryBuilder {
     `;
   }
 
-  static buildAsyncQuestionsSection(asyncStats: AsyncQuestionStats, asyncQuestionsNeedingHelp: AsyncQuestionDetailData[], course: CourseModel): string {
+  static buildAsyncQuestionsSection(
+    asyncStats: AsyncQuestionStats,
+    asyncQuestionsNeedingHelp: AsyncQuestionDetailData[],
+    course: CourseModel,
+  ): string {
     if (course.courseSettings?.asyncQueueEnabled === false) return '';
 
     let html = `
@@ -205,7 +227,10 @@ export class WeeklySummaryBuilder {
 
     html += `</ul>`;
 
-    if (asyncStats.total > 0 && asyncStats.byDayOfWeek.some((d) => d.count > 0)) {
+    if (
+      asyncStats.total > 0 &&
+      asyncStats.byDayOfWeek.some((d) => d.count > 0)
+    ) {
       html += `<p style="color: #7f8c8d; margin-bottom: 10px;">Anytime question activity by day of the week:</p>`;
       html += this.buildDayOfWeekBarChart(
         asyncStats.byDayOfWeek,
@@ -226,7 +251,9 @@ export class WeeklySummaryBuilder {
 
       asyncQuestionsNeedingHelp.forEach((q) => {
         const isOld = q.daysAgo >= 7;
-        const style = isOld ? 'style="color: #c0392b; font-weight: bold;"' : 'style="color: #34495e;"';
+        const style = isOld
+          ? 'style="color: #c0392b; font-weight: bold;"'
+          : 'style="color: #34495e;"';
         html += `
           <li ${style}>
             "${q.abstract}${q.abstract.length === 100 ? '...' : ''}"
@@ -258,7 +285,8 @@ export class WeeklySummaryBuilder {
     `;
 
     dayData.forEach((day) => {
-      const barWidth = day.count > 0 ? Math.max((day.count / totalQuestions) * 100, 5) : 0;
+      const barWidth =
+        day.count > 0 ? Math.max((day.count / totalQuestions) * 100, 5) : 0;
       const isHighlighted = highlightDay && day.day === highlightDay;
       html += `
         <tr>
@@ -299,7 +327,10 @@ export class WeeklySummaryBuilder {
   static buildQueueSection(queueStats: QueueStats): string {
     if (queueStats.totalQuestions === 0) return '';
 
-    const queueTitle = queueStats.queueNames.length > 0 ? queueStats.queueNames.join(', ') : 'Office Hours Queue';
+    const queueTitle =
+      queueStats.queueNames.length > 0
+        ? queueStats.queueNames.join(', ')
+        : 'Office Hours Queue';
 
     let html = `
       <h3 style="color: #9b59b6; margin-top: 20px;">${queueTitle}</h3>
@@ -320,10 +351,20 @@ export class WeeklySummaryBuilder {
     return html;
   }
 
-  static buildMostActiveDaysSection(mostActiveDays: MostActiveDaysData, queueStats: QueueStats): string {
-    if (queueStats.totalQuestions === 0 || !mostActiveDays.byDayOfWeek.some((d) => d.count > 0)) return '';
+  static buildMostActiveDaysSection(
+    mostActiveDays: MostActiveDaysData,
+    queueStats: QueueStats,
+  ): string {
+    if (
+      queueStats.totalQuestions === 0 ||
+      !mostActiveDays.byDayOfWeek.some((d) => d.count > 0)
+    )
+      return '';
 
-    const totalQuestions = mostActiveDays.byDayOfWeek.reduce((sum, d) => sum + d.count, 0);
+    const totalQuestions = mostActiveDays.byDayOfWeek.reduce(
+      (sum, d) => sum + d.count,
+      0,
+    );
 
     let html = `
       <h3 style="color: #16a085; margin-top: 20px;">Queue Activity</h3>
@@ -340,8 +381,12 @@ export class WeeklySummaryBuilder {
     return html;
   }
 
-  static buildPeakHoursSection(peakHours: PeakHoursData, queueStats: QueueStats): string {
-    if (queueStats.totalQuestions === 0 || peakHours.peakHours.length === 0) return '';
+  static buildPeakHoursSection(
+    peakHours: PeakHoursData,
+    queueStats: QueueStats,
+  ): string {
+    if (queueStats.totalQuestions === 0 || peakHours.peakHours.length === 0)
+      return '';
 
     let html = `<h3 style="color: #e67e22; margin-top: 20px;">Peak Hours</h3>`;
 
@@ -373,16 +418,22 @@ export class WeeklySummaryBuilder {
     return html;
   }
 
-  static buildStaffPerformanceSection(staffPerformance: StaffPerformanceData[], course: CourseModel): string {
+  static buildStaffPerformanceSection(
+    staffPerformance: StaffPerformanceData[],
+    course: CourseModel,
+  ): string {
     if (staffPerformance.length === 0) return '';
 
     const queueEnabled = course.courseSettings?.queueEnabled !== false;
     const asyncEnabled = course.courseSettings?.asyncQueueEnabled !== false;
 
     let headerRow = `<th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Staff Member</th>`;
-    if (queueEnabled) headerRow += `<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Queue Questions</th>`;
-    if (asyncEnabled) headerRow += `<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Anytime Questions</th>`;
-    if (queueEnabled) headerRow += `<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Avg Queue Help Time</th>`;
+    if (queueEnabled)
+      headerRow += `<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Queue Questions</th>`;
+    if (asyncEnabled)
+      headerRow += `<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Anytime Questions</th>`;
+    if (queueEnabled)
+      headerRow += `<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Avg Queue Help Time</th>`;
 
     let html = `
       <h3 style="color: #8e44ad; margin-top: 20px;">Staff Performance</h3>
@@ -397,9 +448,12 @@ export class WeeklySummaryBuilder {
 
     staffPerformance.forEach((staff) => {
       let dataRow = `<td style="padding: 8px; border: 1px solid #ddd;">${staff.name}</td>`;
-      if (queueEnabled) dataRow += `<td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${staff.questionsHelped}</td>`;
-      if (asyncEnabled) dataRow += `<td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${staff.asyncQuestionsHelped}</td>`;
-      if (queueEnabled) dataRow += `<td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${staff.avgHelpTime !== null ? staff.avgHelpTime.toFixed(1) + ' min' : 'N/A'}</td>`;
+      if (queueEnabled)
+        dataRow += `<td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${staff.questionsHelped}</td>`;
+      if (asyncEnabled)
+        dataRow += `<td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${staff.asyncQuestionsHelped}</td>`;
+      if (queueEnabled)
+        dataRow += `<td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${staff.avgHelpTime !== null ? staff.avgHelpTime.toFixed(1) + ' min' : 'N/A'}</td>`;
       html += `<tr>${dataRow}</tr>`;
     });
 
@@ -411,7 +465,9 @@ export class WeeklySummaryBuilder {
     return html;
   }
 
-  static buildRecommendationsSection(recommendations: RecommendationData[]): string {
+  static buildRecommendationsSection(
+    recommendations: RecommendationData[],
+  ): string {
     if (recommendations.length === 0) return '';
 
     let html = `<h3 style="color: #2980b9; margin-top: 20px;">Recommendations</h3>`;
@@ -450,7 +506,10 @@ export class WeeklySummaryBuilder {
     `;
   }
 
-  static buildConsolidatedEmail(courseStatsArray: CourseStatsData[], weekStartDate: Date): string {
+  static buildConsolidatedEmail(
+    courseStatsArray: CourseStatsData[],
+    weekStartDate: Date,
+  ): string {
     let emailBody = '';
     emailBody += this.buildHeader(courseStatsArray, weekStartDate);
 
@@ -488,13 +547,28 @@ export class WeeklySummaryBuilder {
         if (!hasActivity) {
           courseBody += `<p style="color: #7f8c8d; font-style: italic;">No activity this week.</p>`;
         } else {
-          if (asyncEnabled) courseBody += this.buildAsyncQuestionsSection(asyncStats, asyncQuestionsNeedingHelp, course);
-          if (chatbotEnabled) courseBody += this.buildChatbotActivitySection(chatbotStats);
+          if (asyncEnabled)
+            courseBody += this.buildAsyncQuestionsSection(
+              asyncStats,
+              asyncQuestionsNeedingHelp,
+              course,
+            );
+          if (chatbotEnabled)
+            courseBody += this.buildChatbotActivitySection(chatbotStats);
           if (queueEnabled) courseBody += this.buildQueueSection(queueStats);
-          if (queueEnabled) courseBody += this.buildMostActiveDaysSection(mostActiveDays, queueStats);
-          if (queueEnabled) courseBody += this.buildPeakHoursSection(peakHours, queueStats);
-          if (queueEnabled) courseBody += this.buildTopStudentsSection(topStudents);
-          courseBody += this.buildStaffPerformanceSection(staffPerformance, course);
+          if (queueEnabled)
+            courseBody += this.buildMostActiveDaysSection(
+              mostActiveDays,
+              queueStats,
+            );
+          if (queueEnabled)
+            courseBody += this.buildPeakHoursSection(peakHours, queueStats);
+          if (queueEnabled)
+            courseBody += this.buildTopStudentsSection(topStudents);
+          courseBody += this.buildStaffPerformanceSection(
+            staffPerformance,
+            course,
+          );
           courseBody += this.buildRecommendationsSection(recommendations);
         }
       }
