@@ -359,7 +359,7 @@ export default function AsyncCentrePage(
     return <CenteredSpinner tip="Loading Questions..." />
   } else {
     return (
-      <div className="flex h-full flex-1 flex-col lg:flex-row">
+      <div className="flex h-full min-w-0 flex-1 flex-col xl:flex-row">
         <title>{`HelpMe | ${userInfo.courses.find((e) => e.course.id === courseId)?.course.name ?? ''} - Anytime Questions`}</title>
         <AsyncCentreInfoColumn
           buttons={
@@ -372,7 +372,7 @@ export default function AsyncCentrePage(
                     Settings
                   </EditQueueButton>
                   <Checkbox
-                    className="text-lg lg:mb-4 lg:mt-2"
+                    className="text-lg xl:mb-4 xl:mt-2"
                     checked={showStudents}
                     onChange={(e) => setShowStudents(e.target.checked)}
                   >
@@ -403,14 +403,16 @@ export default function AsyncCentrePage(
             </>
           }
         />
-        <VerticalDivider />
-        <div className="flex min-w-0 flex-grow flex-col lg:mt-4">
+        <div className="hidden xl:block">
+          <VerticalDivider />
+        </div>
+        <div className="flex min-w-0 flex-grow flex-col xl:mt-4">
           {/* Filters on DESKTOP ONLY */}
-          <div className="mb-4 hidden items-center gap-x-4 lg:flex">
-            <h3 className="hidden flex-shrink-0 text-lg font-bold lg:block">
+          <div className="mb-4 hidden items-center gap-x-4 xl:flex">
+            <h3 className="hidden flex-shrink-0 text-lg font-bold xl:block">
               Filter Questions
             </h3>
-            <div className="hidden min-w-0 flex-grow items-center gap-x-4 lg:flex">
+            <div className="hidden min-w-0 flex-grow items-center gap-x-4 xl:flex">
               <RenderQuestionStatusFilter />
               {isStaff && <RenderVisibleFilter />}
               {!isStaff && <RenderCreatorFilter />}
@@ -433,7 +435,7 @@ export default function AsyncCentrePage(
             {/* Filters on MOBILE ONLY */}
             <Popover
               title="Filter Questions"
-              className="lg:hidden"
+              className="xl:hidden"
               content={
                 <div className="flex flex-col gap-y-3">
                   <RenderQuestionStatusFilter />
