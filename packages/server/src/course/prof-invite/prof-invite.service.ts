@@ -25,7 +25,7 @@ export class ProfInviteService {
   async createProfInvite(
     orgId: number,
     courseId: number,
-    adminUserId: number,
+    creatorId: number,
     maxUses?: number,
     expiresAt?: Date,
     makeOrgProf?: boolean,
@@ -33,7 +33,7 @@ export class ProfInviteService {
     return await ProfInviteModel.create({
       orgId,
       courseId,
-      adminUserId,
+      creatorId,
       code: randomBytes(6).toString('hex'), // 12 character long string. Could go longer but the invite url will look more gross
       // if no expiresAt is provided, set it to 7 days from now
       expiresAt: expiresAt ?? new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
@@ -84,7 +84,7 @@ export class ProfInviteService {
       where: { id: profInviteId },
       relations: {
         course: true,
-        adminUser: {
+        creator: {
           organizationUser: true,
         },
       },
@@ -135,7 +135,7 @@ export class ProfInviteService {
           profInviteCode,
         );
         this.mailService.sendEmail({
-          receiverOrReceivers: profInvite.adminUser.email,
+          receiverOrReceivers: profInvite.creator.email,
           type: MailServiceType.ADMIN_NOTICE,
           subject: email.subject,
           content: email.content,
@@ -153,7 +153,7 @@ export class ProfInviteService {
           profInviteCode,
         );
         this.mailService.sendEmail({
-          receiverOrReceivers: profInvite.adminUser.email,
+          receiverOrReceivers: profInvite.creator.email,
           type: MailServiceType.ADMIN_NOTICE,
           subject: email.subject,
           content: email.content,
@@ -173,7 +173,7 @@ export class ProfInviteService {
           profInviteCode,
         );
         this.mailService.sendEmail({
-          receiverOrReceivers: profInvite.adminUser.email,
+          receiverOrReceivers: profInvite.creator.email,
           type: MailServiceType.ADMIN_NOTICE,
           subject: email.subject,
           content: email.content,
@@ -194,7 +194,7 @@ export class ProfInviteService {
           profInviteCode,
         );
         this.mailService.sendEmail({
-          receiverOrReceivers: profInvite.adminUser.email,
+          receiverOrReceivers: profInvite.creator.email,
           type: MailServiceType.ADMIN_NOTICE,
           subject: email.subject,
           content: email.content,
@@ -225,14 +225,14 @@ export class ProfInviteService {
           role: Role.PROFESSOR,
         }).save();
 
-        if (user.id !== profInvite.adminUserId) {
+        if (user.id !== profInvite.creatorId) {
           const email = this.constructAdminAcceptedEmail(
             user,
             profInvite,
             profInviteCode,
           );
           this.mailService.sendEmail({
-            receiverOrReceivers: profInvite.adminUser.email,
+            receiverOrReceivers: profInvite.creator.email,
             type: MailServiceType.ADMIN_NOTICE,
             subject: email.subject,
             content: email.content,
@@ -269,7 +269,7 @@ export class ProfInviteService {
         user.organizationUser.organizationId,
         OrganizationRole.MEMBER,
         OrganizationRole.PROFESSOR,
-        profInvite.adminUser.organizationUser.id,
+        profInvite.creator.organizationUser.id,
         user.organizationUser.id,
         OrgRoleChangeReason.acceptedProfInvite,
       );
@@ -283,7 +283,7 @@ export class ProfInviteService {
       remainingUses,
     );
     this.mailService.sendEmail({
-      receiverOrReceivers: profInvite.adminUser.email,
+      receiverOrReceivers: profInvite.creator.email,
       type: MailServiceType.ADMIN_NOTICE,
       subject: email.subject,
       content: email.content,

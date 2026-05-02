@@ -8,7 +8,7 @@ import {
   Role,
   User,
 } from '@koh/common'
-import { Card, message, Tooltip } from 'antd'
+import { Card, Divider, message, Tooltip } from 'antd'
 import { useEffect, useState } from 'react'
 import EditCourseForm from './EditCourseForm'
 import ArchiveCourse from './ArchiveCourse'
@@ -103,10 +103,6 @@ const EditCourse: React.FC<EditCourseProps> = ({
           </Card>
         )}
 
-        {user.organization?.organizationRole === OrganizationRole.ADMIN && (
-          <ProfInvites courseData={courseData} />
-        )}
-
         {isUserInCourse && (
           <Card
             variant="outlined"
@@ -145,6 +141,12 @@ const EditCourse: React.FC<EditCourseProps> = ({
               courseData={courseData}
             />
           </Card>
+        )}
+
+        {(user.organization?.organizationRole === OrganizationRole.ADMIN ||
+          user.organization?.organizationRole ===
+            OrganizationRole.PROFESSOR) && (
+          <ProfInvites courseData={courseData} />
         )}
 
         {checkCourseCreatePermissions(userInfo, organizationSettings) && (

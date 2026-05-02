@@ -66,12 +66,12 @@ export class ProfInviteModel extends BaseEntity {
   makeOrgProf: boolean;
 
   @Column()
-  adminUserId: number;
+  creatorId: number;
 
   // To keep track of what admin created the invite (useful for sending them an email when the invite is used)
   @ManyToOne((type) => UserModel, (user) => user.createdProfInvites, {
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'adminUserId' })
-  adminUser: UserModel;
+  @JoinColumn({ name: 'creatorId' })
+  creator: UserModel;
 }

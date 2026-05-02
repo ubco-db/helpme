@@ -127,7 +127,7 @@ describe('ProfInviteService', () => {
         where: { id },
         relations: {
           course: true,
-          adminUser: {
+          creator: {
             organizationUser: true,
           },
         },

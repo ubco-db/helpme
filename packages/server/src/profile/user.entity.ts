@@ -184,7 +184,7 @@ export class UserModel extends BaseEntity {
   @OneToMany(() => UserLtiIdentityModel, (identity) => identity.user)
   ltiIdentities: UserLtiIdentityModel[];
 
-  @OneToMany((type) => ProfInviteModel, (profInvite) => profInvite.adminUser)
+  @OneToMany((type) => ProfInviteModel, (profInvite) => profInvite.creator)
   @Exclude()
   createdProfInvites: ProfInviteModel[];
 }

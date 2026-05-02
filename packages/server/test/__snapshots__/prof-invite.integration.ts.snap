@@ -3,7 +3,7 @@
 exports[`ProfInvite Integration GET /prof_invites/all/:orgId Does NOT return invites from other organizations 1`] = `
 [
   {
-    "adminUser": {
+    "creator": {
       "email": "admin@a.com",
       "id": 1,
       "name": "User Person",
@@ -27,7 +27,7 @@ exports[`ProfInvite Integration GET /prof_invites/all/:orgId List Filtering: Fil
 {
   "allInvites": [
     {
-      "adminUser": {
+      "creator": {
         "email": "admin@a.com",
         "id": 1,
         "name": "User Person",
@@ -45,7 +45,7 @@ exports[`ProfInvite Integration GET /prof_invites/all/:orgId List Filtering: Fil
       "usesUsed": 0,
     },
     {
-      "adminUser": {
+      "creator": {
         "email": "admin@a.com",
         "id": 1,
         "name": "User Person",
@@ -65,7 +65,7 @@ exports[`ProfInvite Integration GET /prof_invites/all/:orgId List Filtering: Fil
   ],
   "filteredInvites": [
     {
-      "adminUser": {
+      "creator": {
         "email": "admin@a.com",
         "id": 1,
         "name": "User Person",
@@ -89,7 +89,7 @@ exports[`ProfInvite Integration GET /prof_invites/all/:orgId List Filtering: Fil
 exports[`ProfInvite Integration GET /prof_invites/all/:orgId Retrieves invites 1`] = `
 [
   {
-    "adminUser": {
+    "creator": {
       "email": "admin@a.com",
       "id": 1,
       "name": "User Person",
@@ -111,7 +111,7 @@ exports[`ProfInvite Integration GET /prof_invites/all/:orgId Retrieves invites 1
 
 exports[`ProfInvite Integration POST /prof_invites/:orgId Creates an invite and returns it 1`] = `
 {
-  "adminUser": {
+  "creator": {
     "email": "admin@a.com",
     "id": 1,
     "name": "User Person",

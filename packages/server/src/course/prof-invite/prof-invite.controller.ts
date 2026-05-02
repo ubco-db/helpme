@@ -34,7 +34,7 @@ export class ProfInviteController {
 
   @Get('all/:orgId')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrganizationRolesGuard)
-  @Roles(OrganizationRole.ADMIN)
+  @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async getAllProfInvites(
     @Param('orgId', ParseIntPipe) orgId: number,
     // Providing courseId will get all prof invites for the course, otherwise it's all invites for the org
@@ -51,13 +51,13 @@ export class ProfInviteController {
 
     const profInvites = await ProfInviteModel.find({
       where: { orgId, courseId },
-      relations: { course: true, adminUser: true },
+      relations: { course: true, creator: true },
       select: {
         course: {
           id: true,
           name: true,
         },
-        adminUser: {
+        creator: {
           id: true,
           name: true,
           email: true,
@@ -76,7 +76,7 @@ export class ProfInviteController {
 
   @Post(':orgId')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrganizationRolesGuard)
-  @Roles(OrganizationRole.ADMIN)
+  @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async createProfInvite(
     @Param('orgId', ParseIntPipe) orgId: number,
     @UserId() userId: number,
@@ -92,13 +92,13 @@ export class ProfInviteController {
     );
     const profInviteResponse = await ProfInviteModel.findOne({
       where: { id: newProfInvite.id },
-      relations: { course: true, adminUser: true },
+      relations: { course: true, creator: true },
       select: {
         course: {
           id: true,
           name: true,
         },
-        adminUser: {
+        creator: {
           id: true,
           name: true,
           email: true,
@@ -118,7 +118,7 @@ export class ProfInviteController {
   // assumed that this is mostly used to correct accidentally created invites rather than have all invites deleted
   @Delete(':orgId/:piid')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrganizationRolesGuard)
-  @Roles(OrganizationRole.ADMIN)
+  @Roles(OrganizationRole.ADMIN, OrganizationRole.PROFESSOR)
   async deleteProfInvite(
     @Param('orgId', ParseIntPipe) orgId: number,
     @Param('piid', ParseIntPipe) piid: number,

@@ -38,8 +38,10 @@ describe('ProfInvite Integration', () => {
 
   let adminUser: UserModel; // Admin of Org A
   let memberUser: UserModel; // Member of Org A
+  let profUser: UserModel; // Professor of Org A
   let outsiderUser: UserModel; // Random user
   let otherOrgAdmin: UserModel; // Admin of Org B
+  let otherOrgProf: UserModel; // Professor of Org B
 
   let orgA: OrganizationModel;
   let orgB: OrganizationModel;
@@ -57,8 +59,10 @@ describe('ProfInvite Integration', () => {
 
     adminUser = await UserFactory.create({ email: 'admin@a.com' });
     memberUser = await UserFactory.create({ email: 'member@a.com' });
+    profUser = await UserFactory.create({ email: 'prof@a.com' });
     outsiderUser = await UserFactory.create({ email: 'out@side.com' });
     otherOrgAdmin = await UserFactory.create({ email: 'admin@b.com' });
+    otherOrgProf = await UserFactory.create({ email: 'prof@b.com' });
 
     orgA = await OrganizationFactory.create({ name: 'Org A' });
     orgB = await OrganizationFactory.create({ name: 'Org B' });
@@ -74,9 +78,19 @@ describe('ProfInvite Integration', () => {
       role: OrganizationRole.MEMBER,
     });
     await OrganizationUserFactory.create({
+      organizationUser: profUser,
+      organization: orgA,
+      role: OrganizationRole.PROFESSOR,
+    });
+    await OrganizationUserFactory.create({
       organizationUser: otherOrgAdmin,
       organization: orgB,
       role: OrganizationRole.ADMIN,
+    });
+    await OrganizationUserFactory.create({
+      organizationUser: otherOrgProf,
+      organization: orgB,
+      role: OrganizationRole.PROFESSOR,
     });
 
     courseA = await CourseFactory.create({
@@ -147,9 +161,18 @@ describe('ProfInvite Integration', () => {
             .expect(401);
         },
       );
+      it.each(endpoints)(
+        '$desc: Professor of Org B cannot access Org A',
+        async ({ method, path, data }) => {
+          await supertest({ userId: otherOrgProf.id })
+            [method](path())
+            .send(typeof data === 'function' ? data() : data)
+            .expect(401);
+        },
+      );
     });
 
-    describe('Org Admin Access', () => {
+    describe('Org Admin & Prof Access', () => {
       it('Admin of Org A CAN access these endpoints', async () => {
         await supertest({ userId: adminUser.id })
           .get(`/prof_invites/all/${orgA.id}`)
@@ -165,6 +188,24 @@ describe('ProfInvite Integration', () => {
           .expect(201);
 
         await supertest({ userId: adminUser.id })
+          .delete(`/prof_invites/${orgA.id}/${inviteA.id}`)
+          .expect(200);
+      });
+      it('Professor of Org A CAN access these endpoints', async () => {
+        await supertest({ userId: profUser.id })
+          .get(`/prof_invites/all/${orgA.id}`)
+          .expect(200);
+
+        // (Need valid payload to avoid 400/500, but 201 proves auth worked)
+        await supertest({ userId: profUser.id })
+          .post(`/prof_invites/${orgA.id}`)
+          .send({
+            courseId: courseA.id,
+            orgId: orgA.id,
+          })
+          .expect(201);
+
+        await supertest({ userId: profUser.id })
           .delete(`/prof_invites/${orgA.id}/${inviteA.id}`)
           .expect(200);
       });
@@ -321,7 +362,7 @@ describe('ProfInvite Integration', () => {
         relations: {
           // needs extra relations for email construction
           course: true,
-          adminUser: {
+          creator: {
             organizationUser: true,
           },
         },
@@ -356,7 +397,7 @@ describe('ProfInvite Integration', () => {
         where: { id: inviteA.id },
         relations: {
           course: true,
-          adminUser: {
+          creator: {
             organizationUser: true,
           },
         },

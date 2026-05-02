@@ -68,17 +68,17 @@ export const AllProfInvites: React.FC<AllProfInvitesProps> = ({ orgId }) => {
       children: [
         {
           title: 'Name',
-          dataIndex: ['adminUser', 'name'],
-          key: 'adminUserName',
-          sorter: (a, b) => a.adminUser.name.localeCompare(b.adminUser.name),
+          dataIndex: ['creator', 'name'],
+          key: 'creatorName',
+          sorter: (a, b) => a.creator.name.localeCompare(b.creator.name),
           render: (text: string, record) => (
-            <Tooltip title={record.adminUser.email}>{text}</Tooltip>
+            <Tooltip title={record.creator.email}>{text}</Tooltip>
           ),
         },
         {
           title: 'id',
-          dataIndex: ['adminUser', 'id'],
-          key: 'adminUserId',
+          dataIndex: ['creator', 'id'],
+          key: 'creatorId',
           minWidth: 20,
         },
       ],

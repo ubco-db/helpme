@@ -63,8 +63,11 @@ const ProfInvites: React.FC<ProfInvitesProps> = ({ courseData }) => {
     searchParams.get('show-create-prof-notice') === 'true'
 
   const fetchProfInvites = async () => {
-    if (userInfo.organization?.organizationRole !== OrganizationRole.ADMIN) {
-      return // shouldn't be necessary since the component is only rendered if the user is an admin but just in case
+    if (
+      userInfo.organization?.organizationRole !== OrganizationRole.ADMIN &&
+      userInfo.organization?.organizationRole !== OrganizationRole.PROFESSOR
+    ) {
+      return // shouldn't be necessary since the component is only rendered if the user is an admin or prof but just in case
     }
     if (courseData.organizationId && courseData.courseId) {
       await API.profInvites
@@ -141,10 +144,10 @@ const ProfInvites: React.FC<ProfInvitesProps> = ({ courseData }) => {
         className={showCreateProfNotice ? 'glowy' : ''}
         title={
           <div className="flex items-center justify-start gap-3">
-            <h3>Professor Invites (Admin Only)</h3>
+            <h3>Professor Invites</h3>
             <div className="text-gray-500">
               <Tooltip
-                title={`For creating temporary invite links that will automatically promote the user to professor when accepted`}
+                title={`For creating temporary invite links that will automatically promote the user to professor when accepted. Useful if you're creating this course for someone else.`}
               >
                 Help <QuestionCircleOutlined />
               </Tooltip>
@@ -173,7 +176,7 @@ const ProfInvites: React.FC<ProfInvitesProps> = ({ courseData }) => {
               name="makeOrgProf"
               valuePropName="checked"
               label="Make Org Prof"
-              tooltip="If checked, will also make the user an organization-level professor too."
+              tooltip="If checked, will also make the user an organization-level professor too (allowing them to create their own courses)."
             >
               <Checkbox />
             </Form.Item>
@@ -362,9 +365,9 @@ const ProfInviteItem: React.FC<{
           <Tooltip
             title={
               <div className="flex flex-col gap-1">
-                <div>Admin: {profInvite.adminUser.name}</div>
-                <div>Email: {profInvite.adminUser.email}</div>
-                <div>UserID: {profInvite.adminUser.id}</div>
+                <div>Creator: {profInvite.creator.name}</div>
+                <div>Email: {profInvite.creator.email}</div>
+                <div>UserID: {profInvite.creator.id}</div>
                 <div>
                   Created At:{' '}
                   {dayjs(profInvite.createdAt).format('YYYY-MM-DD hh:mm A')}
@@ -375,7 +378,7 @@ const ProfInviteItem: React.FC<{
           >
             <div>
               <div className="text-zinc-500">
-                Created By: {profInvite.adminUser.name}{' '}
+                Created By: {profInvite.creator.name}{' '}
                 {dayjs(profInvite.createdAt).fromNow()}
               </div>
             </div>

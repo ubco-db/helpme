@@ -5,7 +5,7 @@ export class ProfInvites1767133750779 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "prof_invite_model" ("id" SERIAL NOT NULL, "orgId" integer NOT NULL, "courseId" integer NOT NULL, "maxUses" integer NOT NULL DEFAULT '1', "usesUsed" integer NOT NULL DEFAULT '0', "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "expiresAt" TIMESTAMP WITH TIME ZONE NOT NULL, "code" text NOT NULL, "makeOrgProf" boolean NOT NULL DEFAULT true, "adminUserId" integer NOT NULL, CONSTRAINT "PK_1ad5cda8130f1593ecd1fb3c7b1" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "prof_invite_model" ("id" SERIAL NOT NULL, "orgId" integer NOT NULL, "courseId" integer NOT NULL, "maxUses" integer NOT NULL DEFAULT '1', "usesUsed" integer NOT NULL DEFAULT '0', "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "expiresAt" TIMESTAMP WITH TIME ZONE NOT NULL, "code" text NOT NULL, "makeOrgProf" boolean NOT NULL DEFAULT true, "creatorUserId" integer NOT NULL, CONSTRAINT "PK_1ad5cda8130f1593ecd1fb3c7b1" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `ALTER TYPE "public"."organization_role_history_model_rolechangereason_enum" RENAME TO "organization_role_history_model_rolechangereason_enum_old"`,
