@@ -98,12 +98,6 @@ const EditCourse: React.FC<EditCourseProps> = ({
         />
 
         {isUserInCourse && (
-          <Card variant="outlined" title="Course Features">
-            <CourseFeaturesForm courseData={courseData} />
-          </Card>
-        )}
-
-        {isUserInCourse && (
           <Card
             variant="outlined"
             title={
@@ -140,6 +134,12 @@ const EditCourse: React.FC<EditCourseProps> = ({
               fetchCourseData={fetchCourseData}
               courseData={courseData}
             />
+          </Card>
+        )}
+
+        {isUserInCourse && (
+          <Card variant="outlined" title="Course Features">
+            <CourseFeaturesForm courseData={courseData} />
           </Card>
         )}
 
