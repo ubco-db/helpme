@@ -143,6 +143,8 @@ const EditCourse: React.FC<EditCourseProps> = ({
           </Card>
         )}
 
+        <Divider>Advanced</Divider>
+
         {(user.organization?.organizationRole === OrganizationRole.ADMIN ||
           user.organization?.organizationRole ===
             OrganizationRole.PROFESSOR) && (
