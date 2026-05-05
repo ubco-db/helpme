@@ -7,9 +7,7 @@ export function useAsyncQuestions(
 ): [
   GetAsyncQuestionsResponse | undefined,
   (
-    data?:
-      | GetAsyncQuestionsResponse
-      | Promise<GetAsyncQuestionsResponse>,
+    data?: GetAsyncQuestionsResponse | Promise<GetAsyncQuestionsResponse>,
     shouldRevalidate?: boolean,
   ) => Promise<GetAsyncQuestionsResponse | undefined>,
 ] {
