@@ -219,11 +219,13 @@ export class LoginService {
     if (profInviteCookie && !redirect) {
       await this.profInviteService
         .acceptProfInviteFromCookie(userId, profInviteCookie)
-        .then((url) => {
+        .then((urlWithParams) => {
           res.clearCookie('profInviteInfo');
-          return res.status(HttpStatus.TEMPORARY_REDIRECT).send({
-            redirectUri: url,
-          });
+          redirectUrl = urlWithParams;
+          // since it already has query params, clear queryParams so we don't end up with a weird situation with multiple
+          for (const [key] of queryParams) {
+            queryParams.delete(key);
+          }
         });
     } else if (queueInviteCookie && courseService && !redirect) {
       // Ignore queueInviteInfo if there's another redirect queued
