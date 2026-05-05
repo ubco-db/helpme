@@ -222,7 +222,7 @@ describe('ProfInvite Integration', () => {
       const invite = res.body[0];
       expect(invite).toHaveProperty('code');
       expect(invite.course.name).toBe('Course A');
-      expect(invite.adminUser.email).toBe('admin@a.com');
+      expect(invite.creator.email).toBe('admin@a.com');
 
       expect(invite).not.toHaveProperty('organization');
 

@@ -3,17 +3,17 @@
 exports[`ProfInvite Integration GET /prof_invites/all/:orgId Does NOT return invites from other organizations 1`] = `
 [
   {
-    "creator": {
-      "email": "admin@a.com",
-      "id": 1,
-      "name": "User Person",
-    },
     "code": Any<String>,
     "course": {
       "id": 1,
       "name": "Course A",
     },
     "createdAt": Any<String>,
+    "creator": {
+      "email": "admin@a.com",
+      "id": 1,
+      "name": "User Person",
+    },
     "expiresAt": Any<String>,
     "id": 1,
     "makeOrgProf": true,
@@ -27,17 +27,17 @@ exports[`ProfInvite Integration GET /prof_invites/all/:orgId List Filtering: Fil
 {
   "allInvites": [
     {
-      "creator": {
-        "email": "admin@a.com",
-        "id": 1,
-        "name": "User Person",
-      },
       "code": Any<String>,
       "course": {
         "id": 2,
         "name": "Course B",
       },
       "createdAt": Any<String>,
+      "creator": {
+        "email": "admin@a.com",
+        "id": 1,
+        "name": "User Person",
+      },
       "expiresAt": Any<String>,
       "id": 2,
       "makeOrgProf": true,
@@ -45,17 +45,17 @@ exports[`ProfInvite Integration GET /prof_invites/all/:orgId List Filtering: Fil
       "usesUsed": 0,
     },
     {
-      "creator": {
-        "email": "admin@a.com",
-        "id": 1,
-        "name": "User Person",
-      },
       "code": Any<String>,
       "course": {
         "id": 1,
         "name": "Course A",
       },
       "createdAt": Any<String>,
+      "creator": {
+        "email": "admin@a.com",
+        "id": 1,
+        "name": "User Person",
+      },
       "expiresAt": Any<String>,
       "id": 1,
       "makeOrgProf": true,
@@ -65,17 +65,17 @@ exports[`ProfInvite Integration GET /prof_invites/all/:orgId List Filtering: Fil
   ],
   "filteredInvites": [
     {
-      "creator": {
-        "email": "admin@a.com",
-        "id": 1,
-        "name": "User Person",
-      },
       "code": Any<String>,
       "course": {
         "id": 2,
         "name": "Course B",
       },
       "createdAt": Any<String>,
+      "creator": {
+        "email": "admin@a.com",
+        "id": 1,
+        "name": "User Person",
+      },
       "expiresAt": Any<String>,
       "id": 2,
       "makeOrgProf": true,
@@ -89,17 +89,17 @@ exports[`ProfInvite Integration GET /prof_invites/all/:orgId List Filtering: Fil
 exports[`ProfInvite Integration GET /prof_invites/all/:orgId Retrieves invites 1`] = `
 [
   {
-    "creator": {
-      "email": "admin@a.com",
-      "id": 1,
-      "name": "User Person",
-    },
     "code": Any<String>,
     "course": {
       "id": 1,
       "name": "Course A",
     },
     "createdAt": Any<String>,
+    "creator": {
+      "email": "admin@a.com",
+      "id": 1,
+      "name": "User Person",
+    },
     "expiresAt": Any<String>,
     "id": 1,
     "makeOrgProf": true,
@@ -111,17 +111,17 @@ exports[`ProfInvite Integration GET /prof_invites/all/:orgId Retrieves invites 1
 
 exports[`ProfInvite Integration POST /prof_invites/:orgId Creates an invite and returns it 1`] = `
 {
-  "creator": {
-    "email": "admin@a.com",
-    "id": 1,
-    "name": "User Person",
-  },
   "code": Any<String>,
   "course": {
     "id": 1,
     "name": "Course A",
   },
   "createdAt": Any<String>,
+  "creator": {
+    "email": "admin@a.com",
+    "id": 1,
+    "name": "User Person",
+  },
   "expiresAt": Any<String>,
   "id": 2,
   "makeOrgProf": false,
