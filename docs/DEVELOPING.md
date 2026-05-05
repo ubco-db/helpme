@@ -116,9 +116,13 @@ If you change an entity, you MUST run `yarn migration:generate ./migration/your-
 
 ### Adding an API Route
 
-1. Add its request body and response types in `common`
-2. Add routes to the NestJS server in `server` (using the `common` types) (to do this, read the NestJS docs, or refer to the wiki written in the future :P )
-3. Add client functions in `frontend/app/api` calling the endpoint (using the `common` types)
+1. Create two classes inside `common/index.ts`. One that represents the request body and one that represents the response. Use class-validator decorators for each attribute (see other classes in the file for examples), since without them the request body won't get validated (!!!) and the response won't get fully deserialized/validated (not as important, but nice if working with dates).
+2. Create the endpoint in the corresponding `.controller.ts` file (use another route for example) with the correct guards (e.g. CourseRolesGuard, JwtAuthGuard, EmailVerifiedGuard). This endpoint's return type and request body should be what you defined in previous step. This endpoint usually should be small and should just call the functions you make in the corresponding `.service.ts` file (see `queue-invite.controller.ts` and `queue-invite.service.ts` for example).
+3. Add a function inside `frontend/app/api/index.ts` which calls the endpoint you just made, also using the class types defined in step 1. 
+
+Now, you can just `await API.myendpoint().then((responseBody) => {do something}).catch((e) => {message.error(getErrorMessage(e))})` anywhere on the frontend.
+
+More information can be found in [NEWDEVS](/docs/NEWDEVS_STARTHERE.md)
 
 ### Testing
 
