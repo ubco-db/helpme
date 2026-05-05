@@ -305,7 +305,7 @@ export class ProfInviteService {
     return `
       <div style="display: flex; flex-direction: column; gap: 4px;">
         <p>View the course (Note that this link won't work if you're not already in the course): <a href="${process.env.DOMAIN}/course/${profInvite.courseId}">${process.env.DOMAIN}/course/${profInvite.courseId}</a></p>
-        <p>You are receiving this email because you are the admin who created the prof invite.</p>
+        <p>You are receiving this email because you are the one who created the prof invite.</p>
         <p><b>Full Prof Invite Details:</b></p>
         <table style="border-collapse: collapse; margin-top: 8px;">
           <tr>
@@ -356,7 +356,7 @@ export class ProfInviteService {
     profInviteCode: string,
   ): { subject: string; content: string } {
     return {
-      subject: `HelpMe (Admin) - Prof Invite for ${profInvite.course.name} Could Not Be Accepted: Needs Manual Promotion`,
+      subject: `HelpMe - Prof Invite for ${profInvite.course.name} Could Not Be Accepted: Needs Manual Promotion`,
       content: `<p style="margin-bottom: 4px;">A user attempted to accept the professor invite for ${profInvite.course.name} <b>but they are already in the course as a student or TA</b>. In this case, you must promote them manually. Or, in case this was the result of a leaked invite, you should delete the old prof invite and create a new one.</p>
           ${this.getCommonEmailBodyUserInfo(user)}
           ${this.getCommonEmailBody(profInvite, profInviteCode)}`,
@@ -369,7 +369,7 @@ export class ProfInviteService {
     profInviteCode: string,
   ): { subject: string; content: string } {
     return {
-      subject: `HelpMe (Admin) - User Attempted to Accept Already-Used Prof Invite for ${profInvite.course.name}`,
+      subject: `HelpMe - User Attempted to Accept Already-Used Prof Invite for ${profInvite.course.name}`,
       content: `<p style="margin-bottom: 4px;">A user attempted to accept a professor invite for ${profInvite.course.name} <b>but the prof invite is already used</b>. They were notified as such but the invite was not accepted. </p>
           <p style="margin-bottom: 4px;">In this case, you should verify the acceptee was who you were expecting and then email them a new prof invite (since the prof might've logged in with two different accounts). OR investigate if this link was leaked somewhere.</p>
           ${this.getCommonEmailBodyUserInfo(user)}
@@ -383,7 +383,7 @@ export class ProfInviteService {
     profInviteCode: string,
   ): { subject: string; content: string } {
     return {
-      subject: `HelpMe (Admin) - User Attempted to Accept Expired Prof Invite for ${profInvite.course.name}`,
+      subject: `HelpMe - User Attempted to Accept Expired Prof Invite for ${profInvite.course.name}`,
       content: `<p style="margin-bottom: 4px;">A user attempted to accept a professor invite for ${profInvite.course.name} <b>but the prof invite is expired</b>. They were notified as such but the invite was not accepted. </p>
           <p style="margin-bottom: 4px;">In this case, you should verify the acceptee was who you were expecting and then email them a new prof invite (since the prof might've forgotten). OR investigate if this link was leaked somewhere.</p>
           ${this.getCommonEmailBodyUserInfo(user)}
@@ -397,7 +397,7 @@ export class ProfInviteService {
     profInviteCode: string,
   ): { subject: string; content: string } {
     return {
-      subject: `HelpMe (Admin) - User Attempted to Accept Prof Invite for ${profInvite.course.name} With Wrong Invite Code`,
+      subject: `HelpMe - User Attempted to Accept Prof Invite for ${profInvite.course.name} With Wrong Invite Code`,
       content: `<p style="margin-bottom: 4px;">A user attempted to accept a professor invite for ${profInvite.course.name} <b>but the invite code was incorrect</b>. They were notified as such but the invite was not accepted. </p>
           <p style="margin-bottom: 4px;">In this case, it is either a problem with the system or someone malicious. Please verify the acceptee details to see who is trying to access this and address it accordingly.</p>
           ${this.getCommonEmailBodyUserInfo(user)}
@@ -411,7 +411,7 @@ export class ProfInviteService {
     profInviteCode: string,
   ): { subject: string; content: string } {
     return {
-      subject: `HelpMe (Admin) - Another Admin Accepted Your Prof Invite for ${profInvite.course.name} (Not Consumed)`,
+      subject: `HelpMe - Another Admin Accepted Your Prof Invite for ${profInvite.course.name} (Not Consumed)`,
       content: `<p style="margin-bottom: 4px;">An admin accepted your professor invite and has been added to ${profInvite.course.name} as a professor. Because they were an admin, the invite was not consumed (they were also notified of this).</p>
             <p style="margin-bottom: 4px;">In this case, if the user you were trying to invite to the course <i>was</i> the admin, you should not do this since it is expected the admin adds themselves to the course (you should also delete the prof invite in this case). Otherwise, you can disregard this email.</p>
             ${this.getCommonEmailBodyUserInfo(user)}
@@ -426,7 +426,7 @@ export class ProfInviteService {
     remainingUses: number,
   ): { subject: string; content: string } {
     return {
-      subject: `HelpMe (Admin) - ${user.name} Accepted Your Prof Invite for ${profInvite.course.name}${remainingUses > 0 ? ` (${remainingUses} Uses Remaining)` : ' (Consumed)'}`,
+      subject: `HelpMe - ${user.name} Accepted Your Prof Invite for ${profInvite.course.name}${remainingUses > 0 ? ` (${remainingUses} Uses Remaining)` : ' (Consumed)'}`,
       content: `<p style="margin-bottom: 4px;">${user.name} accepted your professor invite and has been added to ${profInvite.course.name} as a professor.</p>
       <p style="margin-bottom: 4px;">Doing so has consumed the professor invite, and there are ${remainingUses} uses remaining.</p>
       ${profInvite.makeOrgProf && user.organizationUser.role === OrganizationRole.MEMBER ? `<p style="margin-bottom: 4px;">Because makeOrgProf was true (and they were not already an org prof), the user was also made into an organization professor.</p>` : ''}
