@@ -130,7 +130,13 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
 
   return (
     <>
-      <Card variant="outlined" title="Edit Course">
+      <Card
+        variant="outlined"
+        title="Edit Course"
+        classNames={{
+          body: 'p-2 md:p-4 lg:p-6',
+        }}
+      >
         <Form
           form={formGeneral}
           layout="vertical"

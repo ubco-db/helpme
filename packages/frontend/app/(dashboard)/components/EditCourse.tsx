@@ -100,6 +100,9 @@ const EditCourse: React.FC<EditCourseProps> = ({
         {isUserInCourse && (
           <Card
             variant="outlined"
+            classNames={{
+              body: 'p-2 md:p-4 lg:p-6',
+            }}
             title={
               <div className="flex items-center justify-start gap-3">
                 <h3>Course Invite Link</h3>
@@ -138,7 +141,13 @@ const EditCourse: React.FC<EditCourseProps> = ({
         )}
 
         {isUserInCourse && (
-          <Card variant="outlined" title="Course Features">
+          <Card
+            variant="outlined"
+            title="Course Features"
+            classNames={{
+              body: 'flex justify-center p-2 md:p-4 lg:p-6',
+            }}
+          >
             <CourseFeaturesForm courseData={courseData} />
           </Card>
         )}

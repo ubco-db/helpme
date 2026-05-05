@@ -144,7 +144,7 @@ const ProfInvites: React.FC<ProfInvitesProps> = ({ courseData }) => {
         className={showCreateProfNotice ? 'glowy' : ''}
         title={
           <div className="flex items-center justify-start gap-3">
-            <h3>Professor Invites</h3>
+            <h3 id="professor-invites">Professor Invites</h3>
             <div className="text-gray-500">
               <Tooltip
                 title={`For creating temporary invite links that will automatically promote the user to professor when accepted. Useful if you're creating this course for someone else.`}
