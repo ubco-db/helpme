@@ -87,6 +87,7 @@ const QueueInviteListItem: React.FC<QueueInviteProps> = ({
             <div className="flex items-center gap-2">
               <Link
                 target="_blank"
+                prefetch={false}
                 href={`/qi/${queueInvite.queueId}?c=${encodeBase64(queueInvite.inviteCode)}`}
               >
                 {inviteURL}
