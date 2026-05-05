@@ -1046,7 +1046,7 @@ export class APIClient {
   }
 
   queueInvites = {
-    create: async (queueId: number): Promise<void> =>
+    create: async (queueId: number): Promise<string> =>
       this.req('POST', `/api/v1/queueInvites/${queueId}`),
     delete: async (queueId: number): Promise<void> =>
       this.req('DELETE', `/api/v1/queueInvites/${queueId}`),
