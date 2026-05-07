@@ -107,7 +107,9 @@ export class ChatbotApiService {
   async queryChatbot(
     query: string,
     userToken: string, // Passing UserToken to the chatbot, but should be ignored for this endpoint.
-    type: 'default' | 'abstract' = 'default',
+    type: 'default' | 'abstract' | 'feedback' = 'default',
+    params?: Record<string,any>,
+    courseId?: number
   ): Promise<string> {
     const resp: { answer: string } = await this.request(
       'POST',
@@ -116,6 +118,8 @@ export class ChatbotApiService {
       {
         query,
         type,
+        params,
+        courseId
       },
       undefined,
       type === 'abstract' ? 5000 : undefined, // 5s timeout for abstract queries

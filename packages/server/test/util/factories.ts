@@ -48,7 +48,7 @@ export let UserLtiIdentityFactory: FactoryService['UserLtiIdentityFactory'];
 export let LtiIdentityTokenFactory: FactoryService['LtiIdentityTokenFactory'];
 
 export let QueueStaffFactory: FactoryService['QueueStaffFactory'];
-export let IframeQuestionFactory: FactoryService['IframeQuestionFactory'];
+export let IFrameQuestionFactory: FactoryService['IFrameQuestionFactory'];
 // We keep a helper so that in the test setup, once we have the real service,
 // we can “wire up” these variables.
 export function initFactoriesFromService(service: FactoryService) {
@@ -98,5 +98,5 @@ export function initFactoriesFromService(service: FactoryService) {
   UserLtiIdentityFactory = service.UserLtiIdentityFactory;
   LtiIdentityTokenFactory = service.LtiIdentityTokenFactory;
   QueueStaffFactory = service.QueueStaffFactory;
-  IframeQuestionFactory = service.IframeQuestionFactory;
+  IFrameQuestionFactory = service.IFrameQuestionFactory;
 }

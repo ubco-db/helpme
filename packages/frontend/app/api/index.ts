@@ -28,7 +28,7 @@ import {
   CreateAlertResponse,
   CreateAsyncQuestions,
   CreateChatbotProviderBody,
-  CreateIframeQuestionParams,
+  CreateIFrameQuestionParams,
   CreateLLMTypeBody,
   CreateLtiPlatform,
   CreateOrganizationChatbotSettingsBody,
@@ -47,8 +47,8 @@ import {
   GetCourseUserInfoResponse,
   GetInsightOutputResponse,
   GetInteractionsAndQuestionsResponse,
-  IframeQuestion,
-  IframeQuestionFeedbackResponse,
+  IFrameQuestion,
+  IFrameQuestionFeedbackResponse,
   GetLimitedCourseResponse,
   GetOrganizationResponse,
   GetOrganizationUserResponse,
@@ -87,7 +87,6 @@ import {
   OrganizationRoleHistoryResponse,
   OrganizationSettingsResponse,
   OrganizationStatsResponse,
-  OrgUser,
   PasswordRequestResetBody,
   PasswordRequestResetWithTokenBody,
   PreDeterminedQuestion,
@@ -120,7 +119,7 @@ import {
   UpdateChatbotQuestionParams,
   UpdateDocumentChunkParams,
   UpdateLLMTypeBody,
-  UpdateIframeQuestionParams,
+  UpdateIFrameQuestionParams,
   UpdateLtiPlatform,
   UpdateOrganizationCourseDetailsParams,
   UpdateOrganizationDetailsParams,
@@ -1584,6 +1583,7 @@ export class APIClient {
 
   lti = {
     auth: {
+      check: async (): Promise<boolean> => this.req('GET', '/api/v1/lti/auth/check'),
       shibboleth: (organizationId: any) =>
         `/api/v1/lti/auth/shibboleth/${organizationId}`,
       requestPasswordReset: async (
@@ -1622,53 +1622,44 @@ export class APIClient {
       checkRegistration: async (id: string): Promise<LtiPlatform> =>
         this.req('GET', `/api/v1/lti/platform/${id}/registration`),
     },
-  }
-
-  iframeQuestion = {
-    create: async (
-      courseId: number,
-      body: CreateIframeQuestionParams,
-    ): Promise<IframeQuestion> =>
-      this.req('POST', `/api/v1/iframe-question/${courseId}`, undefined, body),
-    getAll: async (courseId: number): Promise<IframeQuestion[]> =>
-      this.req('GET', `/api/v1/iframe-question/${courseId}`),
-    getOne: async (
-      courseId: number,
-      questionId: number,
-    ): Promise<IframeQuestion> =>
-      this.req('GET', `/api/v1/iframe-question/${courseId}/${questionId}`),
-    getOnePublic: async (
-      courseId: number,
-      questionId: number,
-    ): Promise<IframeQuestion> =>
-      this.req(
-        'GET',
-        `/api/v1/iframe-question/public/${courseId}/${questionId}`,
-      ),
-    getFeedbackPublic: async (
-      courseId: number,
-      questionId: number,
-      responseText: string,
-    ): Promise<IframeQuestionFeedbackResponse> =>
-      this.req(
-        'POST',
-        `/api/v1/iframe-question/public/${courseId}/${questionId}/feedback`,
-        undefined,
-        { responseText },
-      ),
-    update: async (
-      courseId: number,
-      questionId: number,
-      body: UpdateIframeQuestionParams,
-    ): Promise<IframeQuestion> =>
-      this.req(
-        'PATCH',
-        `/api/v1/iframe-question/${courseId}/${questionId}`,
-        undefined,
-        body,
-      ),
-    delete: async (courseId: number, questionId: number): Promise<void> =>
-      this.req('DELETE', `/api/v1/iframe-question/${courseId}/${questionId}`),
+    iframeQuestion: {
+      create: async (
+        courseId: number,
+        body: CreateIFrameQuestionParams,
+      ): Promise<IFrameQuestion> =>
+        this.req('POST', `/api/v1/lti/iframe-question/${courseId}`, undefined, body),
+      getAll: async (courseId: number): Promise<IFrameQuestion[]> =>
+        this.req('GET', `/api/v1/lti/iframe-question/${courseId}`),
+      getOne: async (
+        courseId: number,
+        questionId: number,
+      ): Promise<IFrameQuestion> =>
+        this.req('GET', `/api/v1/lti/iframe-question/${courseId}/${questionId}`),
+      getFeedback: async (
+        courseId: number,
+        questionId: number,
+        responseText: string,
+      ): Promise<IFrameQuestionFeedbackResponse> =>
+        this.req(
+          'POST',
+          `/api/v1/lti/iframe-question/${courseId}/${questionId}/feedback`,
+          undefined,
+          { responseText },
+        ),
+      update: async (
+        courseId: number,
+        questionId: number,
+        body: UpdateIFrameQuestionParams,
+      ): Promise<IFrameQuestion> =>
+        this.req(
+          'PATCH',
+          `/api/v1/lti/iframe-question/${courseId}/${questionId}`,
+          undefined,
+          body,
+        ),
+      delete: async (courseId: number, questionId: number): Promise<void> =>
+        this.req('DELETE', `/api/v1/lti/iframe-question/${courseId}/${questionId}`),
+    }
   }
 }
 

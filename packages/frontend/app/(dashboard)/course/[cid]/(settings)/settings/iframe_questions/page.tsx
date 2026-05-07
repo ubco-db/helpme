@@ -11,9 +11,7 @@ import {
 import {
   Button,
   Card,
-  Input,
   message,
-  Modal,
   Popconfirm,
   Table,
   Space,
@@ -24,35 +22,31 @@ import {
   EditOutlined,
   PlusOutlined,
 } from '@ant-design/icons'
-import { IframeQuestion } from '@koh/common'
+import { IFrameQuestion } from '@koh/common'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import UpsertIFrameQuestionModal
+  from '@/app/(dashboard)/course/[cid]/(settings)/settings/components/UpsertIFrameQuestionModal'
 
-const { TextArea } = Input
-
-interface IframeQuestionsPageProps {
+interface IFrameQuestionsPageProps {
   params: Promise<{ cid: string }>
 }
 
-export default function IframeQuestionsPage(
-  props: IframeQuestionsPageProps,
+export default function IFrameQuestionsPage(
+  props: IFrameQuestionsPageProps,
 ): ReactElement {
   const params = use(props.params)
   const courseId = useMemo(() => Number(params.cid), [params.cid])
 
-  const [questions, setQuestions] = useState<IframeQuestion[]>([])
+  const [questions, setQuestions] = useState<IFrameQuestion[]>([])
   const [loading, setLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
-  const [editingQuestion, setEditingQuestion] = useState<IframeQuestion | null>(
-    null,
-  )
-  const [questionText, setQuestionText] = useState('')
-  const [criteriaText, setCriteriaText] = useState('')
-
+  const [editingQuestion, setEditingQuestion] = useState<IFrameQuestion | undefined>(undefined)
+  
   const fetchQuestions = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await API.iframeQuestion.getAll(courseId)
+      const data = await API.lti.iframeQuestion.getAll(courseId)
       setQuestions(data)
     } catch (err) {
       message.error(`Failed to load questions: ${getErrorMessage(err)}`)
@@ -62,71 +56,37 @@ export default function IframeQuestionsPage(
   }, [courseId])
 
   useEffect(() => {
-    fetchQuestions()
+    fetchQuestions().then()
   }, [fetchQuestions])
 
   const openCreateModal = () => {
-    setEditingQuestion(null)
-    setQuestionText('')
-    setCriteriaText('')
+    setEditingQuestion(undefined)
     setModalOpen(true)
   }
 
-  const openEditModal = (q: IframeQuestion) => {
+  const openEditModal = (q: IFrameQuestion) => {
     setEditingQuestion(q)
-    setQuestionText(q.questionText)
-    setCriteriaText(q.criteriaText)
     setModalOpen(true)
   }
 
-  const handleSave = async () => {
-    if (!questionText.trim()) {
-      message.warning('Question text is required')
-      return
-    }
-    if (!criteriaText.trim()) {
-      message.warning('Criteria is required')
-      return
-    }
+  const handleDelete = async (q: IFrameQuestion) => {
     try {
-      if (editingQuestion) {
-        await API.iframeQuestion.update(courseId, editingQuestion.id, {
-          questionText: questionText.trim(),
-          criteriaText: criteriaText.trim(),
-        })
-        message.success('Question updated')
-      } else {
-        await API.iframeQuestion.create(courseId, {
-          questionText: questionText.trim(),
-          criteriaText: criteriaText.trim(),
-        })
-        message.success('Question created')
-      }
-      setModalOpen(false)
-      fetchQuestions()
-    } catch (err) {
-      message.error(`Failed to save question: ${getErrorMessage(err)}`)
-    }
-  }
-
-  const handleDelete = async (q: IframeQuestion) => {
-    try {
-      await API.iframeQuestion.delete(courseId, q.id)
-      message.success('Question deleted')
+      await API.lti.iframeQuestion.delete(courseId, q.id)
+      message.success('Successfully deleted question!')
       fetchQuestions()
     } catch (err) {
       message.error(`Failed to delete question: ${getErrorMessage(err)}`)
     }
   }
 
-  const getIframeUrl = (q: IframeQuestion) => {
+  const getIFrameUrl = (q: IFrameQuestion) => {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    return `${origin}/lti/iframe/${courseId}?q=${q.id}`
+    return `${origin}/lti/iframe/${courseId}/${q.id}`
   }
 
-  const copyIframeUrl = (q: IframeQuestion) => {
-    const url = getIframeUrl(q)
-    const embedCode = `<iframe src="${url}" width="100%" height="300" frameborder="0" scrolling="no" style="border:0;"></iframe>`
+  const copyIFrameUrl = (q: IFrameQuestion) => {
+    const url = getIFrameUrl(q)
+    const embedCode = `<iframe src="${url}" width="100%" height="300" style="border:0;"></iframe>`
     navigator.clipboard.writeText(embedCode)
     message.success('Embed code copied to clipboard')
   }
@@ -145,14 +105,20 @@ export default function IframeQuestionsPage(
       ellipsis: true,
     },
     {
-      title: 'Iframe Link',
+      title: 'Additional Instructions',
+      dataIndex: 'instructions',
+      key: 'instructions',
+      ellipsis: true,
+    },
+    {
+      title: 'IFrame Link',
       key: 'link',
       width: 120,
-      render: (_: any, record: IframeQuestion) => (
+      render: (_: any, record: IFrameQuestion) => (
         <Button
           icon={<CopyOutlined />}
           size="small"
-          onClick={() => copyIframeUrl(record)}
+          onClick={() => copyIFrameUrl(record)}
         >
           Copy Link
         </Button>
@@ -162,7 +128,7 @@ export default function IframeQuestionsPage(
       title: 'Actions',
       key: 'actions',
       width: 100,
-      render: (_: any, record: IframeQuestion) => (
+      render: (_: any, record: IFrameQuestion) => (
         <Space>
           <Button
             icon={<EditOutlined />}
@@ -185,7 +151,7 @@ export default function IframeQuestionsPage(
 
   return (
     <Card
-      title="Iframe Questions"
+      title="IFrame Questions"
       classNames={{
         body: 'p-1 md:p-8',
       }}
@@ -211,43 +177,16 @@ export default function IframeQuestionsPage(
         loading={loading}
         pagination={false}
         locale={{
-          emptyText: 'No iframe questions yet. Create one to get started.',
+          emptyText: 'There have been no IFrame questions created for this course yet!',
         }}
       />
-      <Modal
-        title={editingQuestion ? 'Edit Question' : 'Create Question'}
+      <UpsertIFrameQuestionModal
+        courseId={courseId}
         open={modalOpen}
-        onOk={handleSave}
-        onCancel={() => setModalOpen(false)}
-        okText={editingQuestion ? 'Save' : 'Create'}
-      >
-        <div className="space-y-4 pt-2">
-          <div>
-            <label className="mb-1 block font-medium">Question Text</label>
-            <TextArea
-              value={questionText}
-              onChange={(e) => setQuestionText(e.target.value)}
-              rows={3}
-              placeholder="e.g. Reflect on how the themes in this week's reading relate to your own experience."
-            />
-          </div>
-          <div>
-            <label className="mb-1 block font-medium">Criteria</label>
-            <TextArea
-              value={criteriaText}
-              onChange={(e) => setCriteriaText(e.target.value)}
-              rows={3}
-              placeholder="e.g. The response should reference at least two specific themes and provide personal examples."
-            />
-            <p className="mt-1 text-xs font-medium text-red-500">
-              Important: The AI prompt uses only the Question Text and Criteria
-              you enter here. Nothing else is included. Course prompt, HelpMe
-              system prompt, and chatbot knowledge base are not used for iframe
-              feedback.
-            </p>
-          </div>
-        </div>
-      </Modal>
+        setOpen={setModalOpen}
+        editingQuestion={editingQuestion}
+        onSaveCallback={() => fetchQuestions()}
+      />
     </Card>
   )
 }

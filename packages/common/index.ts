@@ -490,15 +490,16 @@ export interface ChatbotAskSuggestedParams {
   vectorStoreId: string
 }
 
-export interface IframeQuestion {
+export interface IFrameQuestion {
   id: number
   createdAt: Date
   courseId: number
   questionText: string
   criteriaText: string
+  instructions?: string,
 }
 
-export class CreateIframeQuestionParams {
+export class CreateIFrameQuestionParams {
   @IsString()
   @IsNotEmpty()
   questionText!: string
@@ -506,9 +507,13 @@ export class CreateIframeQuestionParams {
   @IsString()
   @IsNotEmpty()
   criteriaText!: string
+
+  @IsString()
+  @IsOptional()
+  instructions?: string
 }
 
-export class UpdateIframeQuestionParams {
+export class UpdateIFrameQuestionParams {
   @IsString()
   @IsNotEmpty()
   questionText!: string
@@ -516,14 +521,18 @@ export class UpdateIframeQuestionParams {
   @IsString()
   @IsNotEmpty()
   criteriaText!: string
+
+  @IsString()
+  @IsOptional()
+  instructions?: string
 }
 
-export class IframeQuestionFeedbackParams {
+export class IFrameQuestionFeedbackParams {
   @IsString()
   responseText!: string
 }
 
-export class IframeQuestionFeedbackResponse {
+export class IFrameQuestionFeedbackResponse {
   @IsString()
   feedback!: string
 }

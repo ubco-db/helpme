@@ -132,7 +132,7 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
     {
       key: CourseAdminOptions.IFRAME_QUESTIONS,
       icon: <BlockOutlined />,
-      label: 'Iframe Questions',
+      label: 'IFrame Questions',
     },
   ]
 

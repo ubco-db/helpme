@@ -38,7 +38,7 @@ import { LmsIntegrationModule } from './lmsIntegration/lmsIntegration.module';
 import { BaseExceptionFilter } from 'exception_filters/generic-exception.filter';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { LtiModule } from './lti/lti.module';
-import { IframeQuestionModule } from './iframe-question/iframe-question.module';
+import { IFrameQuestionModule } from './lti/iframe-question/iframe-question.module';
 
 @Module({
   imports: [
@@ -109,7 +109,7 @@ import { IframeQuestionModule } from './iframe-question/iframe-question.module';
     ]),
     LmsIntegrationModule,
     LtiModule,
-    IframeQuestionModule,
+    IFrameQuestionModule,
   ],
   providers: [
     {

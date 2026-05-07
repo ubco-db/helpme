@@ -91,6 +91,8 @@ export async function middleware(
 ): Promise<NextResponse<unknown>> {
   const { url, nextUrl, cookies } = request
 
+  console.log(`[${new Date().toISOString()}] ${request.method} ${nextUrl}`)
+
   const isPublicPageRequested = isPublicPage(nextUrl.pathname)
 
   const isPublicFileRequested = isPublicFile(nextUrl.pathname)
@@ -339,10 +341,11 @@ export async function middleware(
     }
   }
 
-  // Case: User has auth token and tries to access a public page that isn't /invite or /lti or /qi or /error_pages
+  // Case: User has auth token and tries to access a public page that isn't /invite or /lti/iframe or /qi or /error_pages
   if (
     isPublicPageRequested &&
     hasToken &&
+    !nextUrl.pathname.startsWith('/lti/iframe') &&
     !nextUrl.pathname.startsWith('/invite') &&
     !nextUrl.pathname.startsWith('/qi/') &&
     !nextUrl.pathname.startsWith('/error_pages')

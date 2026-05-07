@@ -12,48 +12,33 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { CourseRolesGuard } from '../guards/course-roles.guard';
-import { Roles } from '../decorators/roles.decorator';
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { CourseRolesGuard } from '../../guards/course-roles.guard';
+import { Roles } from '../../decorators/roles.decorator';
 import {
-  CreateIframeQuestionParams,
-  IframeQuestionFeedbackParams,
-  IframeQuestionFeedbackResponse,
+  CreateIFrameQuestionParams,
+  IFrameQuestionFeedbackParams,
+  IFrameQuestionFeedbackResponse,
   Role,
-  UpdateIframeQuestionParams,
+  UpdateIFrameQuestionParams,
 } from '@koh/common';
-import { IframeQuestionService } from './iframe-question.service';
-import { ChatbotApiService } from '../chatbot/chatbot-api.service';
-import { minutes, Throttle } from '@nestjs/throttler';
+import { IFrameQuestionService } from './iframe-question.service';
+import { ChatbotApiService } from '../../chatbot/chatbot-api.service';
+import { IFrameQuestionModel } from './iframe-question.entity'
 
-@Controller('iframe-question')
+@Controller('lti/iframe-question')
 @UseInterceptors(ClassSerializerInterceptor)
-export class IframeQuestionController {
+export class IFrameQuestionController {
   constructor(
-    private iframeQuestionService: IframeQuestionService,
+    private iframeQuestionService: IFrameQuestionService,
     private chatbotApiService: ChatbotApiService,
   ) {}
-
-  // prof/TA creates a new question
-  @Post(':courseId')
-  @UseGuards(JwtAuthGuard, CourseRolesGuard)
-  @Roles(Role.TA, Role.PROFESSOR)
-  async create(
-    @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() body: CreateIframeQuestionParams,
-  ) {
-    return await this.iframeQuestionService.create(
-      courseId,
-      body.questionText,
-      body.criteriaText,
-    );
-  }
 
   // prof/TA lists all questions for a course
   @Get(':courseId')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
-  async findAll(@Param('courseId', ParseIntPipe) courseId: number) {
+  async findAll(@Param('courseId', ParseIntPipe) courseId: number): Promise<IFrameQuestionModel[]> {
     return await this.iframeQuestionService.findAllForCourse(courseId);
   }
 
@@ -64,30 +49,22 @@ export class IframeQuestionController {
   async findOne(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
-  ) {
-    return await this.iframeQuestionService.findOne(courseId, questionId);
-  }
-
-  // public read endpoint for embedded iframe usage (no login required)
-  @Get('public/:courseId/:questionId')
-  async findOnePublic(
-    @Param('courseId', ParseIntPipe) courseId: number,
-    @Param('questionId', ParseIntPipe) questionId: number,
-  ) {
+  ): Promise<IFrameQuestionModel> {
     return await this.iframeQuestionService.findOne(courseId, questionId);
   }
 
   // public feedback endpoint for embedded iframe usage (no login required)
-  @Throttle({ default: { limit: 10, ttl: minutes(5) } })
-  @Post('public/:courseId/:questionId/feedback')
-  async getFeedbackPublic(
+  @Post(':courseId/:questionId/feedback')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
+  async getFeedback(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
-    @Body() body: IframeQuestionFeedbackParams,
-  ): Promise<IframeQuestionFeedbackResponse> {
+    @Body() body: IFrameQuestionFeedbackParams,
+  ): Promise<IFrameQuestionFeedbackResponse> {
     const responseText = body.responseText?.trim();
     if (!responseText) {
-      throw new BadRequestException('responseText is required');
+      throw new BadRequestException('Input is required');
     }
 
     const question = await this.iframeQuestionService.findOne(
@@ -103,9 +80,29 @@ export class IframeQuestionController {
     const feedback = await this.chatbotApiService.queryChatbot(
       query,
       '',
-      'default',
+      'feedback',
+      {
+        question: question.questionText,
+        criteria: question.criteriaText,
+        instructions: question.instructions,
+      },
+      courseId
     );
     return { feedback };
+  }
+
+  // prof/TA creates a new question
+  @Post(':courseId')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.TA, Role.PROFESSOR)
+  async create(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Body() body: CreateIFrameQuestionParams,
+  ): Promise<IFrameQuestionModel> {
+    return await this.iframeQuestionService.upsert(
+      courseId,
+      body,
+    );
   }
 
   // prof/TA updates a question
@@ -115,13 +112,12 @@ export class IframeQuestionController {
   async update(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
-    @Body() body: UpdateIframeQuestionParams,
-  ) {
-    return await this.iframeQuestionService.update(
+    @Body() body: UpdateIFrameQuestionParams,
+  ): Promise<IFrameQuestionModel>  {
+    return await this.iframeQuestionService.upsert(
       courseId,
+      body,
       questionId,
-      body.questionText,
-      body.criteriaText,
     );
   }
 
@@ -132,8 +128,7 @@ export class IframeQuestionController {
   async delete(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
-  ) {
-    await this.iframeQuestionService.delete(courseId, questionId);
-    return { message: 'Question deleted' };
+  ): Promise<void> {
+    await this.iframeQuestionService.delete(questionId);
   }
 }

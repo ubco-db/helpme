@@ -7,7 +7,7 @@ import { getErrorMessage } from '@/app/utils/generalUtils'
 
 const { TextArea } = Input
 
-export interface IframeQuestionFeedbackProps {
+export interface IFrameQuestionFeedbackProps {
   courseId: number
   questionId: number
   questionText: string
@@ -16,12 +16,12 @@ export interface IframeQuestionFeedbackProps {
 
 // the form that students use in the iframe
 // shows the question, text area, submit button, and then the ai feedback
-export default function IframeQuestionFeedback({
+export default function IFrameQuestionFeedback({
   courseId,
   questionId,
   questionText,
   placeholder = 'Type your response here...',
-}: IframeQuestionFeedbackProps): React.ReactElement {
+}: IFrameQuestionFeedbackProps): React.ReactElement {
   const [inputText, setInputText] = useState('')
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -39,7 +39,7 @@ export default function IframeQuestionFeedback({
     setIsLoading(true)
 
     try {
-      const response = await API.iframeQuestion.getFeedbackPublic(
+      const response = await API.lti.iframeQuestion.getFeedback(
         courseId,
         questionId,
         trimmed,

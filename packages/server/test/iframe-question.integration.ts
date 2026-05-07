@@ -1,16 +1,16 @@
-import { IframeQuestionModule } from '../src/iframe-question/iframe-question.module';
-import { IframeQuestionModel } from '../src/iframe-question/iframe-question.entity';
+import { IFrameQuestionModule } from '../src/lti/iframe-question/iframe-question.module';
+import { IFrameQuestionModel } from '../src/lti/iframe-question/iframe-question.entity';
 import {
   CourseFactory,
-  IframeQuestionFactory,
+  IFrameQuestionFactory,
   StudentCourseFactory,
   TACourseFactory,
   UserFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 
-describe('IframeQuestion Integration', () => {
-  const { supertest } = setupIntegrationTest(IframeQuestionModule);
+describe('IFrameQuestion Integration', () => {
+  const { supertest } = setupIntegrationTest(IFrameQuestionModule);
 
   describe('POST /iframe-question/:courseId', () => {
     it('returns 401 when not logged in', async () => {
@@ -71,8 +71,8 @@ describe('IframeQuestion Integration', () => {
         user: await UserFactory.create(),
       });
 
-      await IframeQuestionFactory.create({ course, questionText: 'Q1' });
-      await IframeQuestionFactory.create({ course, questionText: 'Q2' });
+      await IFrameQuestionFactory.create({ course, questionText: 'Q1' });
+      await IFrameQuestionFactory.create({ course, questionText: 'Q2' });
 
       const res = await supertest({ userId: ta.userId })
         .get(`/iframe-question/${course.id}`)
@@ -89,11 +89,11 @@ describe('IframeQuestion Integration', () => {
         user: await UserFactory.create(),
       });
 
-      await IframeQuestionFactory.create({
+      await IFrameQuestionFactory.create({
         course: course1,
         questionText: 'Mine',
       });
-      await IframeQuestionFactory.create({
+      await IFrameQuestionFactory.create({
         course: course2,
         questionText: 'Not mine',
       });
@@ -114,7 +114,7 @@ describe('IframeQuestion Integration', () => {
         course,
         user: await UserFactory.create(),
       });
-      const question = await IframeQuestionFactory.create({
+      const question = await IFrameQuestionFactory.create({
         course,
         questionText: 'Student visible',
       });
@@ -145,7 +145,7 @@ describe('IframeQuestion Integration', () => {
         course: course1,
         user: await UserFactory.create(),
       });
-      const question = await IframeQuestionFactory.create({ course: course2 });
+      const question = await IFrameQuestionFactory.create({ course: course2 });
 
       await supertest({ userId: student.userId })
         .get(`/iframe-question/${course1.id}/${question.id}`)
@@ -156,7 +156,7 @@ describe('IframeQuestion Integration', () => {
   describe('GET /iframe-question/public/:courseId/:questionId', () => {
     it('allows unauthenticated users to fetch a single question', async () => {
       const course = await CourseFactory.create();
-      const question = await IframeQuestionFactory.create({
+      const question = await IFrameQuestionFactory.create({
         course,
         questionText: 'Public question',
       });
@@ -180,7 +180,7 @@ describe('IframeQuestion Integration', () => {
   describe('POST /iframe-question/public/:courseId/:questionId/feedback', () => {
     it('returns 400 when responseText is missing', async () => {
       const course = await CourseFactory.create();
-      const question = await IframeQuestionFactory.create({ course });
+      const question = await IFrameQuestionFactory.create({ course });
 
       await supertest()
         .post(`/iframe-question/public/${course.id}/${question.id}/feedback`)
@@ -190,7 +190,7 @@ describe('IframeQuestion Integration', () => {
 
     it('returns 400 when responseText is not a string', async () => {
       const course = await CourseFactory.create();
-      const question = await IframeQuestionFactory.create({ course });
+      const question = await IFrameQuestionFactory.create({ course });
 
       await supertest()
         .post(`/iframe-question/public/${course.id}/${question.id}/feedback`)
@@ -200,7 +200,7 @@ describe('IframeQuestion Integration', () => {
 
     it('returns 400 when responseText is only whitespace', async () => {
       const course = await CourseFactory.create();
-      const question = await IframeQuestionFactory.create({ course });
+      const question = await IFrameQuestionFactory.create({ course });
 
       await supertest()
         .post(`/iframe-question/public/${course.id}/${question.id}/feedback`)
@@ -216,7 +216,7 @@ describe('IframeQuestion Integration', () => {
         course,
         user: await UserFactory.create(),
       });
-      const question = await IframeQuestionFactory.create({ course });
+      const question = await IFrameQuestionFactory.create({ course });
 
       await supertest({ userId: student.userId })
         .patch(`/iframe-question/${course.id}/${question.id}`)
@@ -230,7 +230,7 @@ describe('IframeQuestion Integration', () => {
         course,
         user: await UserFactory.create(),
       });
-      const question = await IframeQuestionFactory.create({
+      const question = await IFrameQuestionFactory.create({
         course,
         questionText: 'Original',
       });
@@ -250,7 +250,7 @@ describe('IframeQuestion Integration', () => {
         course,
         user: await UserFactory.create(),
       });
-      const question = await IframeQuestionFactory.create({
+      const question = await IFrameQuestionFactory.create({
         course,
         questionText: 'Original',
       });
@@ -269,7 +269,7 @@ describe('IframeQuestion Integration', () => {
         course,
         user: await UserFactory.create(),
       });
-      const question = await IframeQuestionFactory.create({ course });
+      const question = await IFrameQuestionFactory.create({ course });
 
       await supertest({ userId: student.userId })
         .delete(`/iframe-question/${course.id}/${question.id}`)
@@ -282,13 +282,13 @@ describe('IframeQuestion Integration', () => {
         course,
         user: await UserFactory.create(),
       });
-      const question = await IframeQuestionFactory.create({ course });
+      const question = await IFrameQuestionFactory.create({ course });
 
       await supertest({ userId: ta.userId })
         .delete(`/iframe-question/${course.id}/${question.id}`)
         .expect(200);
 
-      const deleted = await IframeQuestionModel.findOne({
+      const deleted = await IFrameQuestionModel.findOne({
         where: { id: question.id },
       });
       expect(deleted).toBeNull();

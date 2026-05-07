@@ -1,5 +1,4 @@
 import {
-  asyncQuestionStatus,
   MailServiceType,
   OrganizationRole,
   QueueConfig,
@@ -39,7 +38,7 @@ import { CalendarModel } from '../calendar/calendar.entity';
 import { LMSAnnouncementModel } from 'lmsIntegration/lmsAnnouncement.entity';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 import { QueueChatsModel } from 'queueChats/queue-chats.entity';
-import { IframeQuestionModel } from 'iframe-question/iframe-question.entity';
+import { IFrameQuestionModel } from 'lti/iframe-question/iframe-question.entity';
 import { DataSource } from 'typeorm';
 import { FactoryService } from 'factory/factory.service';
 
@@ -152,7 +151,7 @@ export class SeedController {
     await this.seedService.deleteAll(ChatbotQuestionModel);
     await this.seedService.deleteAll(InteractionModel);
     await this.seedService.deleteAll(ChatTokenModel);
-    await this.seedService.deleteAll(IframeQuestionModel);
+    await this.seedService.deleteAll(IFrameQuestionModel);
     await this.seedService.deleteAll(UserTokenModel);
     await this.seedService.deleteAll(UserModel);
     await this.seedService.deleteAll(CourseModel);
@@ -621,6 +620,7 @@ export class SeedController {
       queue: queue1,
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const questionType3 = await this.factoryService.QuestionTypeFactory.create({
       cid: course2.id,
       queue: queue2,
@@ -747,14 +747,14 @@ export class SeedController {
     });
 
     // seed some iframe questions for course1
-    await IframeQuestionModel.create({
+    await IFrameQuestionModel.create({
       courseId: course1.id,
       questionText:
         "Reflect on how the themes in this week's reading relate to your own experience.",
       criteriaText:
         'The response should reference at least two specific themes and provide personal examples.',
     }).save();
-    await IframeQuestionModel.create({
+    await IFrameQuestionModel.create({
       courseId: course1.id,
       questionText:
         'Did you complete all tasks for this week? Describe any challenges you faced.',

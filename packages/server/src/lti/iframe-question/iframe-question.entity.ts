@@ -7,11 +7,11 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { CourseModel } from '../course/course.entity';
+import { CourseModel } from '../../course/course.entity';
 import { Exclude } from 'class-transformer';
 
 @Entity('iframe_question_model')
-export class IframeQuestionModel extends BaseEntity {
+export class IFrameQuestionModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -32,4 +32,8 @@ export class IframeQuestionModel extends BaseEntity {
   // criteria included in the prompt for feedback generation
   @Column({ type: 'text' })
   criteriaText: string;
+
+  // instructions included in the prompt for feedback generation
+  @Column({ type: 'text', nullable: true })
+  instructions?: string;
 }
