@@ -103,7 +103,7 @@ export class AuthController {
       this.courseService,
     );
     res.status(200).send({ redirectUrl });
-    return;
+    return; // doing return { redirectUrl } didn't seem to work for some reason? The request would never finish on frontend
   }
 
   @Get('/password/reset/validate/:token')

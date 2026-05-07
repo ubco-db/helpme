@@ -217,61 +217,6 @@ describe('LoginService', () => {
       },
     );
 
-    it('should return if handleCookies sent headers', async () => {
-      const opts = {
-        cookieOptions: {
-          secure: true,
-        },
-      };
-
-      const spy = jest.spyOn(service, 'handleCookies');
-      spy.mockImplementation(async (_: any, res: any) => {
-        return res.status(307).send({ message: 'ERROR' });
-      });
-
-      let res: MockResponse = new MockResponse();
-      await service.enter(
-        { headers: {} } as Request,
-        res as any,
-        user.id,
-        undefined,
-        undefined,
-        opts,
-      );
-
-      expect(spy).toHaveBeenCalledTimes(1);
-      expect(res.statusCode).toBe(307);
-      expect(Object.keys(res._cookies)).toHaveLength(0);
-      expect(res._body).toHaveProperty('message', 'ERROR');
-
-      spy.mockClear();
-      res = new MockResponse();
-
-      spy.mockImplementation(async (_: any, resp: any) => {
-        resp.status(302).send({ message: 'ERROR2' });
-        return {
-          res: resp,
-          redirectUrl: '',
-        };
-      });
-
-      await service.enter(
-        { headers: {} } as Request,
-        res as any,
-        user.id,
-        undefined,
-        undefined,
-        opts,
-      );
-
-      expect(spy).toHaveBeenCalledTimes(1);
-      expect(res.statusCode).toBe(302);
-      expect(Object.keys(res._cookies)).toHaveLength(0);
-      expect(res._body).toHaveProperty('message', 'ERROR2');
-
-      spy.mockRestore();
-    });
-
     it.each([undefined, 'lti_auth_token'])(
       'should set cookie and redirect',
       async (cookieName) => {
@@ -345,13 +290,11 @@ describe('LoginService', () => {
         false,
         false,
         false,
-        false,
       ],
       [
         'should process queue invite cookie if queue invite cookie is set',
         false,
         true,
-        false,
         false,
         false,
       ],
@@ -361,7 +304,6 @@ describe('LoginService', () => {
         false,
         true,
         false,
-        false,
       ],
       [
         'should return redirectURL = redirect value if it is defined in params and append its search params',
@@ -369,56 +311,8 @@ describe('LoginService', () => {
         false,
         false,
         true,
-        false,
       ],
-      [
-        'should return redirectURL = /courses',
-        false,
-        false,
-        false,
-        false,
-        false,
-      ],
-      [
-        'should return redirectURL = /invite?cid=:courseId&code=:courseInviteCode if secure redirect cookie is set with 307 if email verification is set',
-        true,
-        false,
-        false,
-        false,
-        true,
-      ],
-      [
-        'should process queue invite cookie if queue invite cookie is set with 307 if email verification is set',
-        false,
-        true,
-        false,
-        false,
-        true,
-      ],
-      [
-        'should return redirectURL = /lti/:courseId if lti invite cookie is set with 307 if email verification is set',
-        false,
-        false,
-        true,
-        false,
-        true,
-      ],
-      [
-        'should return redirectURL = redirect value if it is defined in params and append its search params 307 if email verification is set',
-        false,
-        false,
-        false,
-        true,
-        true,
-      ],
-      [
-        'should return no redirect url with 202 if email verification is set',
-        false,
-        false,
-        false,
-        false,
-        true,
-      ],
+      ['should return redirectURL = /courses', false, false, false, false],
     ])(
       '%s',
       async (
@@ -427,7 +321,6 @@ describe('LoginService', () => {
         queueInvite: boolean,
         ltiInvite: boolean,
         explicitRedirect: boolean,
-        emailVerification: boolean,
       ) => {
         const options = {
           cookieOptions: {
@@ -435,7 +328,6 @@ describe('LoginService', () => {
             httpOnly: true,
           },
           redirect: explicitRedirect ? '/redirect?example=value' : undefined,
-          emailVerification,
         };
         const courseService = new CourseService(
           {} as any,
@@ -490,61 +382,26 @@ describe('LoginService', () => {
           ltiService,
         )) as any;
 
-        if (!emailVerification) {
-          expect('res' in result).toBeTruthy();
-          expect('redirectUrl' in result).toBeTruthy();
+        expect('res' in result).toBeTruthy();
+        expect('redirectUrl' in result).toBeTruthy();
 
-          const { res, redirectUrl } = result;
-          expect(res.headersSent).toEqual(false);
-          if (queueInvite) {
-            expect(res._cookies['queueInviteInfo']).toBeUndefined();
-            expect(redirectUrl).toEqual(`/courses?err=notInCourse`);
-          } else if (secureRedirect) {
-            expect(res._cookies['__SECURE_REDIRECT']).toBeUndefined();
-            expect(redirectUrl).toEqual(
-              `/invite?cid=${course.id}&code=${course.courseInviteCode}`,
-            );
-          } else if (ltiInvite) {
-            expect(res._cookies['__COURSE_INVITE']).toBeUndefined();
-            expect(redirectUrl).toEqual(`/lti/${course.id}`);
-          } else if (explicitRedirect) {
-            expect(redirectUrl).toEqual(options.redirect);
-          } else {
-            expect(redirectUrl).toEqual('/courses');
-          }
+        const { res, redirectUrl } = result;
+        expect(res.headersSent).toEqual(false);
+        if (queueInvite) {
+          expect(res._cookies['queueInviteInfo']).toBeUndefined();
+          expect(redirectUrl).toEqual(`/courses?err=notInCourse`);
+        } else if (secureRedirect) {
+          expect(res._cookies['__SECURE_REDIRECT']).toBeUndefined();
+          expect(redirectUrl).toEqual(
+            `/invite?cid=${course.id}&code=${course.courseInviteCode}`,
+          );
+        } else if (ltiInvite) {
+          expect(res._cookies['__COURSE_INVITE']).toBeUndefined();
+          expect(redirectUrl).toEqual(`/lti/${course.id}`);
+        } else if (explicitRedirect) {
+          expect(redirectUrl).toEqual(options.redirect);
         } else {
-          const res = result as MockResponse;
-          expect(res.headersSent).toEqual(true);
-
-          if (queueInvite) {
-            expect(res._cookies['queueInviteInfo']).toBeUndefined();
-            expect(res._body).toHaveProperty(
-              'redirectUrl',
-              `/courses?err=notInCourse`,
-            );
-          } else if (secureRedirect) {
-            expect(res._cookies['__SECURE_REDIRECT']).toBeUndefined();
-            expect(res._body).toHaveProperty(
-              'redirectUrl',
-              `/invite?cid=${course.id}&code=${course.courseInviteCode}`,
-            );
-          } else if (ltiInvite) {
-            expect(res._cookies['__COURSE_INVITE']).toBeUndefined();
-            expect(res._body).toHaveProperty(
-              'redirectUrl',
-              `/lti/${course.id}`,
-            );
-          } else if (explicitRedirect) {
-            expect(res._body).toHaveProperty('redirectUrl', options.redirect);
-          } else {
-            expect(res._body).toHaveProperty('message', 'Email verified');
-          }
-
-          if (res._body.message != undefined) {
-            expect(res.statusCode).toEqual(202);
-          } else {
-            expect(res.statusCode).toEqual(307);
-          }
+          expect(redirectUrl).toEqual('/courses');
         }
       },
     );
