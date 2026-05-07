@@ -4,7 +4,7 @@ import {
   ERROR_MESSAGES,
   OrganizationRole,
   OrgRoleChangeReason,
-  RegistrationTokenDetails,
+  ValidateEmailTokenRequest,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -300,10 +300,9 @@ export class AuthService {
   }
 
   async verifyRegistrationToken(
-    res: Response,
     userId: number,
-    registrationTokenDetails: RegistrationTokenDetails,
-  ): Promise<Response | number> {
+    registrationTokenDetails: ValidateEmailTokenRequest,
+  ): Promise<void> {
     const { token } = registrationTokenDetails;
 
     const emailToken = await UserTokenModel.findOne({
@@ -315,22 +314,20 @@ export class AuthService {
           id: userId,
         },
       },
-      relations: ['user'],
+      relations: { user: true },
     });
 
     if (!emailToken) {
-      return res.status(HttpStatus.BAD_REQUEST).send({
-        message: 'Verification code was not found or it is not valid',
-      });
+      throw new BadRequestException(
+        'Verification code was not found or it is not valid',
+      );
     }
 
     if (
       (Date.now() - emailToken.createdAt.getTime()) / 1000 >
       emailToken.expiresInSeconds
     ) {
-      return res.status(HttpStatus.BAD_REQUEST).send({
-        message: 'Verification code has expired',
-      });
+      throw new BadRequestException('Verification code has expired');
     }
 
     emailToken.token_action = TokenAction.ACTION_COMPLETE;
@@ -338,7 +335,7 @@ export class AuthService {
     await emailToken.user.save();
     await emailToken.save();
 
-    return userId;
+    return;
   }
 
   async validateRegistrationParams(

@@ -519,23 +519,23 @@ describe('LoginService', () => {
           if (queueInvite) {
             expect(res._cookies['queueInviteInfo']).toBeUndefined();
             expect(res._body).toHaveProperty(
-              'redirectUri',
+              'redirectUrl',
               `/courses?err=notInCourse`,
             );
           } else if (secureRedirect) {
             expect(res._cookies['__SECURE_REDIRECT']).toBeUndefined();
             expect(res._body).toHaveProperty(
-              'redirectUri',
+              'redirectUrl',
               `/invite?cid=${course.id}&code=${course.courseInviteCode}`,
             );
           } else if (ltiInvite) {
             expect(res._cookies['__COURSE_INVITE']).toBeUndefined();
             expect(res._body).toHaveProperty(
-              'redirectUri',
+              'redirectUrl',
               `/lti/${course.id}`,
             );
           } else if (explicitRedirect) {
-            expect(res._body).toHaveProperty('redirectUri', options.redirect);
+            expect(res._body).toHaveProperty('redirectUrl', options.redirect);
           } else {
             expect(res._body).toHaveProperty('message', 'Email verified');
           }

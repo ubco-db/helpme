@@ -18,7 +18,8 @@ import {
   AccountRegistrationParams,
   PasswordRequestResetBody,
   PasswordRequestResetWithTokenBody,
-  RegistrationTokenDetails,
+  ValidateEmailTokenRequest,
+  ValidateEmailTokenResponse,
 } from '@koh/common';
 import {
   TokenAction,
@@ -32,6 +33,11 @@ import { LoginService } from '../login/login.service';
 import { UserId } from '../decorators/user.decorator';
 import { UserModel } from 'profile/user.entity';
 
+/* IMPORTANT: Note that there are many endpoints in lti-auth.controller.ts that are essentially the same
+endpoints as the ones here.
+
+So if you edit any endpoints here, you may also want to edit the ones in lti-auth.controller.ts
+*/
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -77,32 +83,27 @@ export class AuthController {
     @Res() res: Response,
     @Req() req: Request,
     @UserId() userId: number,
-    @Body() registrationTokenDetails: RegistrationTokenDetails,
-  ): Promise<Response<void>> {
-    const result = await this.authService.verifyRegistrationToken(
-      res,
+    @Body() registrationTokenDetails: ValidateEmailTokenRequest,
+  ): Promise<ValidateEmailTokenResponse> {
+    await this.authService.verifyRegistrationToken(
       userId,
       registrationTokenDetails,
     );
 
-    // If non-number was returned, the verification failed
-    if (typeof result != 'number') {
-      return;
-    }
-
-    return (await this.loginService.handleCookies(
+    const { redirectUrl } = await this.loginService.handleCookies(
       req,
       res,
-      result,
+      userId,
       {
         cookieOptions: {
           httpOnly: true,
           secure: this.isSecure(),
         },
-        emailVerification: true,
       },
       this.courseService,
-    )) as Response;
+    );
+    res.status(200).send({ redirectUrl });
+    return;
   }
 
   @Get('/password/reset/validate/:token')
