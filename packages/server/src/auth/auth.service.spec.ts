@@ -40,7 +40,11 @@ import { LoginService } from '../login/login.service';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { OrganizationModel } from '../organization/organization.entity';
-import { HttpStatus, MethodNotAllowedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpStatus,
+  MethodNotAllowedException,
+} from '@nestjs/common';
 import { TokenAction, UserTokenModel } from '../profile/user-token.entity';
 import * as crypto from 'crypto';
 import * as request from 'superagent';
@@ -688,43 +692,45 @@ describe('AuthService', () => {
     });
 
     it('should return 400 if verification code not found', async () => {
-      const res = new MockResponse() as any;
-      const result = await service.verifyRegistrationToken(res, user.id, {
-        token: 'abcdefg',
-      });
-      expect(result instanceof Response).toBeTruthy();
-      expect(res.statusCode).toEqual(400);
-      expect(res._body).toHaveProperty(
-        'message',
-        'Verification code was not found or it is not valid',
-      );
+      await expect(
+        service.verifyRegistrationToken(user.id, {
+          token: 'abcdefg',
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      await expect(
+        service.verifyRegistrationToken(user.id, {
+          token: 'abcdefg',
+        }),
+      ).rejects.toThrow('Verification code was not found or it is not valid');
     });
 
     it('should return 400 if verification code has expired', async () => {
-      const token = await UserTokenModel.save({
+      const expiredToken = await UserTokenModel.save({
         user: user,
         token: crypto.randomBytes(32).toString('hex'),
         expiresInSeconds: 0,
       });
-      const res = new MockResponse() as any;
-      const result = await service.verifyRegistrationToken(res, user.id, {
-        token: token.token,
-      });
-      expect(result instanceof Response).toBeTruthy();
-      expect(res.statusCode).toEqual(400);
-      expect(res._body).toHaveProperty(
-        'message',
-        'Verification code has expired',
-      );
+
+      await expect(
+        service.verifyRegistrationToken(user.id, {
+          token: expiredToken.token,
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      await expect(
+        service.verifyRegistrationToken(user.id, {
+          token: expiredToken.token,
+        }),
+      ).rejects.toThrow('Verification code has expired');
     });
 
     it('should verify user account and set token to action complete', async () => {
-      const res = new MockResponse() as any;
-      const result = await service.verifyRegistrationToken(res, user.id, {
-        token: token.token,
-      });
-      expect(typeof result).toEqual('number');
-      expect(result).toEqual(user.id);
+      await expect(
+        service.verifyRegistrationToken(user.id, {
+          token: token.token,
+        }),
+      ).resolves.not.toThrow();
 
       const updatedToken = await UserTokenModel.findOne({
         where: { id: token.id },
