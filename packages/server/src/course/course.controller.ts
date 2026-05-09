@@ -918,6 +918,8 @@ export class CourseController {
       asyncCentreDefaultAnonymous:
         courseSettings?.asyncCentreDefaultAnonymous ?? true,
       asyncCentreAuthorPublic: courseSettings?.asyncCentreAuthorPublic ?? false,
+      essayEvaluationEnabled:
+        courseSettings?.essayEvaluationEnabled ?? false,
       settingsFound: !!courseSettings, // !! converts truthy/falsy into true/false
     });
 

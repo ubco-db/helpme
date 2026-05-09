@@ -685,6 +685,26 @@ export class APIClient {
       courseId: number,
     ): Promise<CourseSettingsResponse> =>
       this.req('GET', `/api/v1/courses/${courseId}/features`),
+    extractEssayText: async (
+      courseId: number,
+      file: File,
+    ): Promise<{ essay_text: string; filename: string }> => {
+      const formData = new FormData()
+      formData.append('file', file)
+      return this.req(
+        'POST',
+        `/api/v1/courses/${courseId}/essay-feedback/extract-text`,
+        undefined,
+        formData,
+      )
+    },
+    generateEssayFeedback: async (
+      courseId: number,
+      essay_text: string,
+    ): Promise<Record<string, unknown>> =>
+      this.req('POST', `/api/v1/courses/${courseId}/essay-feedback`, undefined, {
+        essay_text,
+      }),
     getAllStudentsNotInQueue: async (
       courseId: number,
       withATaskQuestion?: boolean,
