@@ -154,10 +154,10 @@ export class APIClient {
   }
 
   /**
-   * Send HTTP and return data, optionally serialized with class-transformer (helpful for Date serialization)
+   * Send HTTP and return data, optionally deserialized with class-transformer (helpful for Date deserialization)
    * @param method HTTP method
    * @param url URL to send req to
-   * @param responseClass Class with class-transformer decorators to serialize response to
+   * @param responseClass Class with class-transformer decorators to deserialize response to
    * @param body body to send with req
    * @param params any query parameters to include in req URL
    */
