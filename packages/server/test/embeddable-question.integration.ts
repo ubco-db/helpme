@@ -4,10 +4,13 @@ import {
   CourseFactory,
   EmbeddableQuestionFactory,
   StudentCourseFactory,
-  TACourseFactory,
+  TACourseFactory, UserCourseFactory,
   UserFactory,
-} from './util/factories';
+} from './util/factories'
 import { setupIntegrationTest } from './util/testUtils';
+import { ERROR_MESSAGES, Role } from '@koh/common'
+import { pick } from 'lodash'
+import { ChatbotApiService } from '../src/chatbot/chatbot-api.service'
 
 describe('EmbeddableQuestion Integration', () => {
   const { supertest } = setupIntegrationTest(EmbeddableQuestionModule);
@@ -17,6 +20,37 @@ describe('EmbeddableQuestion Integration', () => {
       await supertest().post('/lti/embeddable-question/1').expect(401);
     });
 
+    it('returns 404 when user is not in course and attempts to access route', async () => {
+      const u = await UserFactory.create();
+      const c = await CourseFactory.create();
+
+      await supertest({ userId: u.id })
+        .post(`/lti/embeddable-question/${c.id}`)
+        .send({
+          questionText: 'What did you learn?',
+          criteriaText: 'Be specific',
+        })
+        .expect(404)
+        .then(res => expect(res.body.message).toEqual(ERROR_MESSAGES.roleGuard.notInCourse));
+    });
+
+    it('returns 403 when student attempts to access route', async () => {
+      const c = await CourseFactory.create();
+      const u = await StudentCourseFactory.create({
+        course: c,
+        user: await UserFactory.create(),
+      });
+
+      await supertest({ userId: u.userId })
+        .post(`/lti/embeddable-question/${c.id}`)
+        .send({
+          questionText: 'What did you learn?',
+          criteriaText: 'Be specific',
+        })
+        .expect(403)
+        .then(res => expect(res.body.message).toEqual(ERROR_MESSAGES.roleGuard.mustBeRoleToAccess([Role.TA,Role.PROFESSOR])));
+    });
+
     it('creates a question with text and criteria', async () => {
       const course = await CourseFactory.create();
       const ta = await TACourseFactory.create({
@@ -24,17 +58,18 @@ describe('EmbeddableQuestion Integration', () => {
         user: await UserFactory.create(),
       });
 
-      const res = await supertest({ userId: ta.userId })
+      await supertest({ userId: ta.userId })
         .post(`/lti/embeddable-question/${course.id}`)
         .send({
           questionText: 'What did you learn?',
           criteriaText: 'Be specific',
         })
-        .expect(201);
-
-      expect(res.body.questionText).toEqual('What did you learn?');
-      expect(res.body.criteriaText).toEqual('Be specific');
-      expect(res.body.courseId).toEqual(course.id);
+        .expect(201)
+        .then(res => {
+          expect(res.body.questionText).toEqual('What did you learn?');
+          expect(res.body.criteriaText).toEqual('Be specific');
+          expect(res.body.courseId).toEqual(course.id);
+        });
     });
 
     it('returns 400 when creating without criteria', async () => {
@@ -47,6 +82,19 @@ describe('EmbeddableQuestion Integration', () => {
       await supertest({ userId: ta.userId })
         .post(`/lti/embeddable-question/${course.id}`)
         .send({ questionText: 'No criteria' })
+        .expect(400);
+    });
+
+    it('returns 400 when creating without question', async () => {
+      const course = await CourseFactory.create();
+      const ta = await TACourseFactory.create({
+        course,
+        user: await UserFactory.create(),
+      });
+
+      await supertest({ userId: ta.userId })
+        .post(`/lti/embeddable-question/${course.id}`)
+        .send({ criteriaText: 'No question' })
         .expect(400);
     });
   });
@@ -71,8 +119,7 @@ describe('EmbeddableQuestion Integration', () => {
         user: await UserFactory.create(),
       });
 
-      await EmbeddableQuestionFactory.create({ course, questionText: 'Q1' });
-      await EmbeddableQuestionFactory.create({ course, questionText: 'Q2' });
+      await EmbeddableQuestionFactory.createList(2,{ course });
 
       const res = await supertest({ userId: ta.userId })
         .get(`/lti/embeddable-question/${course.id}`)
@@ -108,22 +155,33 @@ describe('EmbeddableQuestion Integration', () => {
   });
 
   describe('GET /lti/embeddable-question/:courseId/:questionId', () => {
-    it('allows a student to fetch a single question', async () => {
+    it('returns 404 if user is not a member of the course', async () => {
+      const u = await UserFactory.create();
+      const c = await CourseFactory.create();
+      const q = await EmbeddableQuestionFactory.create({ course: c });
+      await supertest({ userId: u.id })
+        .get(`/lti/embeddable-question/${c.id}/${q.id}`)
+        .expect(404)
+        .then(res => expect(res.body.message).toEqual(ERROR_MESSAGES.roleGuard.notInCourse));
+    });
+
+    it.each([Role.STUDENT,Role.TA,Role.PROFESSOR])('allows a %s to retrieve a question', async (role) => {
       const course = await CourseFactory.create();
-      const student = await StudentCourseFactory.create({
-        course,
+      const u = await UserCourseFactory.create({
         user: await UserFactory.create(),
-      });
+        course,
+        role,
+      })
+
       const question = await EmbeddableQuestionFactory.create({
         course,
-        questionText: 'Student visible',
+        questionText: 'Sample',
       });
 
-      const res = await supertest({ userId: student.userId })
+      await supertest({ userId: u.userId })
         .get(`/lti/embeddable-question/${course.id}/${question.id}`)
-        .expect(200);
-
-      expect(res.body.questionText).toEqual('Student visible');
+        .expect(200)
+        .then(res =>  expect(pick(res.body,['criteriaText','questionText','instructions'])).toEqual(pick(question,'criteriaText','questionText','instructions')));
     });
 
     it('returns 404 for a nonexistent question', async () => {
@@ -135,81 +193,116 @@ describe('EmbeddableQuestion Integration', () => {
 
       await supertest({ userId: student.userId })
         .get(`/lti/embeddable-question/${course.id}/999`)
-        .expect(404);
-    });
-
-    it('returns 404 when question belongs to a different course', async () => {
-      const course1 = await CourseFactory.create();
-      const course2 = await CourseFactory.create();
-      const student = await StudentCourseFactory.create({
-        course: course1,
-        user: await UserFactory.create(),
-      });
-      const question = await EmbeddableQuestionFactory.create({ course: course2 });
-
-      await supertest({ userId: student.userId })
-        .get(`/lti/embeddable-question/${course1.id}/${question.id}`)
-        .expect(404);
+        .expect(404)
+        .then(res => expect(res.body.message).toEqual(ERROR_MESSAGES.embeddableQuestionController.notFound));
     });
   });
 
-  describe('GET /lti/embeddable-question/public/:courseId/:questionId', () => {
-    it('allows unauthenticated users to fetch a single question', async () => {
-      const course = await CourseFactory.create();
-      const question = await EmbeddableQuestionFactory.create({
-        course,
-        questionText: 'Public question',
-      });
-
-      const res = await supertest()
-        .get(`/lti/embeddable-question/public/${course.id}/${question.id}`)
-        .expect(200);
-
-      expect(res.body.questionText).toEqual('Public question');
-    });
-
-    it('returns 404 for a nonexistent public question', async () => {
-      const course = await CourseFactory.create();
-
-      await supertest()
-        .get(`/lti/embeddable-question/public/${course.id}/999`)
-        .expect(404);
-    });
-  });
-
-  describe('POST /lti/embeddable-question/public/:courseId/:questionId/feedback', () => {
-    it('returns 400 when responseText is missing', async () => {
+  describe('POST /lti/embeddable-question/:courseId/:questionId/feedback', () => {
+    it('returns 401 if user is not authorized', async () => {
       const course = await CourseFactory.create();
       const question = await EmbeddableQuestionFactory.create({ course });
-
       await supertest()
-        .post(`/lti/embeddable-question/public/${course.id}/${question.id}/feedback`)
+        .post(`/lti/embeddable-question/${course.id}/${question.id}/feedback`)
+        .send()
+        .expect(401);
+    });
+
+    it('returns 404 if user is not in course', async () => {
+      const user = await UserFactory.create();
+      const course = await CourseFactory.create();
+      const question = await EmbeddableQuestionFactory.create({ course });
+      await supertest({ userId: user.id })
+        .post(`/lti/embeddable-question/${course.id}/${question.id}/feedback`)
+        .send()
+        .expect(404)
+        .then(res => expect(res.body.message).toEqual(ERROR_MESSAGES.roleGuard.notInCourse));
+    });
+
+    it('returns 400 when responseText is missing', async () => {
+      const course = await CourseFactory.create();
+      const user = await UserCourseFactory.create({
+        course,
+        user: await UserFactory.create(),
+      });
+      const question = await EmbeddableQuestionFactory.create({ course });
+
+      await supertest({ userId: user.id })
+        .post(`/lti/embeddable-question/${course.id}/${question.id}/feedback`)
         .send({})
         .expect(400);
     });
 
     it('returns 400 when responseText is not a string', async () => {
       const course = await CourseFactory.create();
+      const user = await UserCourseFactory.create({
+        course,
+        user: await UserFactory.create(),
+      });
       const question = await EmbeddableQuestionFactory.create({ course });
 
-      await supertest()
-        .post(`/lti/embeddable-question/public/${course.id}/${question.id}/feedback`)
+      await supertest({ userId: user.id })
+        .post(`/lti/embeddable-question/${course.id}/${question.id}/feedback`)
         .send({ responseText: 123 })
         .expect(400);
     });
 
     it('returns 400 when responseText is only whitespace', async () => {
       const course = await CourseFactory.create();
+      const user = await UserCourseFactory.create({
+        course,
+        user: await UserFactory.create(),
+      });
       const question = await EmbeddableQuestionFactory.create({ course });
 
-      await supertest()
-        .post(`/lti/embeddable-question/public/${course.id}/${question.id}/feedback`)
+      await supertest({ userId: user.id })
+        .post(`/lti/embeddable-question/${course.id}/${question.id}/feedback`)
         .send({ responseText: '   ' })
         .expect(400);
+    });
+
+    it('returns a response otherwise', async () => {
+      const course = await CourseFactory.create();
+      const user = await UserCourseFactory.create({
+        course,
+        user: await UserFactory.create(),
+      });
+      const question = await EmbeddableQuestionFactory.create({ course });
+
+      const querySpy = jest.spyOn(ChatbotApiService.prototype,'queryChatbot')
+      querySpy.mockResolvedValue('feedback')
+
+      await supertest({ userId: user.id })
+        .post(`/lti/embeddable-question/${course.id}/${question.id}/feedback`)
+        .send({ responseText: 'response' })
+        .expect(201)
+        .then(res => expect(res.body).toEqual({ feedback: 'feedback' }));
+
+      querySpy.mockClear();
     });
   });
 
   describe('PATCH /lti/embeddable-question/:courseId/:questionId', () => {
+    it('returns 401 if user is not logged in', async () => {
+      const course = await CourseFactory.create();
+      const question = await EmbeddableQuestionFactory.create({ course });
+      await supertest()
+        .patch(`/lti/embeddable-question/${course.id}/${question.id}`)
+        .send()
+        .expect(401);
+    });
+
+    it('returns 404 if user is not in course', async () => {
+      const user = await UserFactory.create();
+      const course = await CourseFactory.create();
+      const question = await EmbeddableQuestionFactory.create({ course });
+      await supertest({ userId: user.id })
+        .patch(`/lti/embeddable-question/${course.id}/${question.id}`)
+        .send()
+        .expect(404)
+        .then(res => expect(res.body.message).toEqual(ERROR_MESSAGES.roleGuard.notInCourse));
+    });
+
     it('returns 403 when a student tries to update', async () => {
       const course = await CourseFactory.create();
       const student = await StudentCourseFactory.create({
@@ -235,13 +328,14 @@ describe('EmbeddableQuestion Integration', () => {
         questionText: 'Original',
       });
 
-      const res = await supertest({ userId: ta.userId })
+      await supertest({ userId: ta.userId })
         .patch(`/lti/embeddable-question/${course.id}/${question.id}`)
         .send({ questionText: 'Updated', criteriaText: 'Updated criteria' })
-        .expect(200);
-
-      expect(res.body.questionText).toEqual('Updated');
-      expect(res.body.criteriaText).toEqual('Updated criteria');
+        .expect(200)
+        .then((res) => {
+          expect(res.body.questionText).toEqual('Updated');
+          expect(res.body.criteriaText).toEqual('Updated criteria');
+        });
     });
 
     it('returns 400 when updating without criteria', async () => {
@@ -263,6 +357,26 @@ describe('EmbeddableQuestion Integration', () => {
   });
 
   describe('DELETE /lti/embeddable-question/:courseId/:questionId', () => {
+    it('returns 401 if user is not logged in', async () => {
+      const course = await CourseFactory.create();
+      const question = await EmbeddableQuestionFactory.create({ course });
+      await supertest()
+        .delete(`/lti/embeddable-question/${course.id}/${question.id}`)
+        .send()
+        .expect(401);
+    });
+
+    it('returns 404 if user is not in course', async () => {
+      const user = await UserFactory.create();
+      const course = await CourseFactory.create();
+      const question = await EmbeddableQuestionFactory.create({ course });
+      await supertest({ userId: user.id })
+        .delete(`/lti/embeddable-question/${course.id}/${question.id}`)
+        .send()
+        .expect(404)
+        .then(res => expect(res.body.message).toEqual(ERROR_MESSAGES.roleGuard.notInCourse));
+    });
+
     it('returns 403 when a student tries to delete', async () => {
       const course = await CourseFactory.create();
       const student = await StudentCourseFactory.create({
@@ -292,18 +406,6 @@ describe('EmbeddableQuestion Integration', () => {
         where: { id: question.id },
       });
       expect(deleted).toBeNull();
-    });
-
-    it('returns 404 for a nonexistent question', async () => {
-      const course = await CourseFactory.create();
-      const ta = await TACourseFactory.create({
-        course,
-        user: await UserFactory.create(),
-      });
-
-      await supertest({ userId: ta.userId })
-        .delete(`/lti/embeddable-question/${course.id}/999`)
-        .expect(404);
     });
   });
 });

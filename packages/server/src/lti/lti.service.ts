@@ -92,9 +92,18 @@ export class LtiService {
     userId: number,
     signedToken: string,
   ): Promise<boolean> {
-    const token = this.jwtService.verify<{
+    type LtiIdentityToken = {
       code: string;
-    }>(signedToken);
+    }
+    let token: LtiIdentityToken;
+    try {
+      token = this.jwtService.verify<LtiIdentityToken>(signedToken);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch(_) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.ltiService.invalidIdentityJwt,
+      );
+    }
 
     if (!token || !token.code) {
       throw new BadRequestException(
@@ -169,10 +178,19 @@ export class LtiService {
   }
 
   async checkCourseInvite(userId: number, code: string) {
-    const token = this.jwtService.verify<{
+    type CourseInviteToken = {
       courseId: number;
       inviteCode: string;
-    }>(code);
+    }
+    let token: CourseInviteToken;
+    try {
+      token = this.jwtService.verify<CourseInviteToken>(code);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch(_) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.ltiService.invalidInviteJwt,
+      );
+    }
 
     if (
       !token ||

@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { EmbeddableQuestionModel } from './embeddable-question.entity';
-import { CreateEmbeddableQuestionParams, UpdateEmbeddableQuestionParams } from '@koh/common'
+import { CreateEmbeddableQuestionParams, ERROR_MESSAGES, UpdateEmbeddableQuestionParams } from '@koh/common'
 import { DeepPartial } from 'typeorm'
 
 @Injectable()
 export class EmbeddableQuestionService {
+  /**
+   * Finds all embeddable question instances for a given course
+   * @param courseId
+   */
   async findAllForCourse(courseId: number): Promise<EmbeddableQuestionModel[]> {
     return await EmbeddableQuestionModel.find({
       where: { courseId },
@@ -12,19 +16,28 @@ export class EmbeddableQuestionService {
     });
   }
 
+  /**
+   * Finds one embeddable question instance based on its ID
+   * @param questionId
+   */
   async findOne(
-    courseId: number,
     questionId: number,
   ): Promise<EmbeddableQuestionModel> {
     const question = await EmbeddableQuestionModel.findOne({
-      where: { id: questionId, courseId },
+      where: { id: questionId },
     });
     if (!question) {
-      throw new NotFoundException('Question not found');
+      throw new NotFoundException(ERROR_MESSAGES.embeddableQuestionController.notFound);
     }
     return question;
   }
 
+  /**
+   * Performs an insert/update operation depending on passed parameters for an embeddable question
+   * @param courseId
+   * @param params Parameters to update/create an embeddable question
+   * @param questionId (Optional) Used to determine whether operation is an update/insert (if question ID exists in DB)
+   */
   async upsert(
     courseId: number,
     params: CreateEmbeddableQuestionParams | UpdateEmbeddableQuestionParams,
@@ -38,6 +51,10 @@ export class EmbeddableQuestionService {
     return await question.save();
   }
 
+  /**
+   * Deletes the embeddable question with the given ID, if any
+   * @param questionId
+   */
   async delete(questionId: number): Promise<void> {
     await EmbeddableQuestionModel.delete({
       id: questionId

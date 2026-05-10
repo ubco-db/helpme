@@ -34,7 +34,10 @@ export class EmbeddableQuestionController {
     private chatbotApiService: ChatbotApiService,
   ) {}
 
-  // prof/TA lists all questions for a course
+  /**
+   * Lists all embeddable questions for a course, accessible to professor/TA role only
+   * @param courseId
+   */
   @Get(':courseId')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
@@ -42,7 +45,11 @@ export class EmbeddableQuestionController {
     return await this.embeddableQuestionService.findAllForCourse(courseId);
   }
 
-  // anyone in the course can get a single question (authenticated)
+  /**
+   * Retrieves a single question from a course. Accessible to all course roles.
+   * @param courseId
+   * @param questionId
+   */
   @Get(':courseId/:questionId')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
@@ -50,9 +57,15 @@ export class EmbeddableQuestionController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
   ): Promise<EmbeddableQuestionModel> {
-    return await this.embeddableQuestionService.findOne(courseId, questionId);
+    return await this.embeddableQuestionService.findOne(questionId);
   }
 
+  /**
+   * Calls upon chatbot service to generate feedback for a student's response to a given embeddable question.
+   * @param courseId
+   * @param questionId
+   * @param body Contains the student response.
+   */
   @Post(':courseId/:questionId/feedback')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
@@ -67,17 +80,11 @@ export class EmbeddableQuestionController {
     }
 
     const question = await this.embeddableQuestionService.findOne(
-      courseId,
       questionId,
     );
-    let query = `Question: ${question.questionText}\n\n`;
-    if (question.criteriaText?.trim()) {
-      query += `Criteria: ${question.criteriaText.trim()}\n\n`;
-    }
-    query += `Student's response: ${responseText}`;
 
     const feedback = await this.chatbotApiService.queryChatbot(
-      query,
+      responseText,
       '',
       'feedback',
       {
@@ -90,7 +97,11 @@ export class EmbeddableQuestionController {
     return { feedback };
   }
 
-  // prof/TA creates a new question
+  /**
+   * For creating a new embeddable question. Accessible to TA and Professor roles only.
+   * @param courseId
+   * @param body Parameters for creating the embeddable question.
+   */
   @Post(':courseId')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
@@ -104,7 +115,12 @@ export class EmbeddableQuestionController {
     );
   }
 
-  // prof/TA updates a question
+  /**
+   * For updating an new embeddable question. Accessible to TA and Professor roles only.
+   * @param courseId
+   * @param questionId
+   * @param body Parameters for updating the embeddable question.
+   */
   @Patch(':courseId/:questionId')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
@@ -120,7 +136,11 @@ export class EmbeddableQuestionController {
     );
   }
 
-  // prof/TA deletes a question
+  /**
+   * For deleting an embeddable question. Accessible to TA and Professor roles only.
+   * @param courseId
+   * @param questionId
+   */
   @Delete(':courseId/:questionId')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)

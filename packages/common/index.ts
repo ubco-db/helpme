@@ -4438,4 +4438,7 @@ export const ERROR_MESSAGES = {
     notAllowedToDeleteSemester: (role: OrganizationRole) =>
       `Members with role ${role} are not allowed to delete semesters`,
   },
+  embeddableQuestionController: {
+    notFound: 'Question not found.'
+  }
 }
