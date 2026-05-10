@@ -15,15 +15,8 @@ export default function IFrameQuestionPage(): ReactElement {
   const [error, setError] = useState<string | null>(null)
   const [isChecking, setIsChecking] = useState<boolean>(false)
 
-  const courseId = useMemo(
-    () => Number(routeParams?.cid ?? NaN),
-    [routeParams?.cid],
-  )
-
-  const questionId = useMemo(
-    () => Number(routeParams?.qid ?? NaN),
-    [routeParams?.qid],
-  )
+  const courseId = Number(routeParams.cid)
+  const questionId = Number(routeParams.qid)
 
   useEffect(() => {
     let interval: any, checking = false;
