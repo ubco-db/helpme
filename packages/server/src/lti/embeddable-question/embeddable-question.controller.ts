@@ -16,21 +16,21 @@ import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { CourseRolesGuard } from '../../guards/course-roles.guard';
 import { Roles } from '../../decorators/roles.decorator';
 import {
-  CreateIFrameQuestionParams,
-  IFrameQuestionFeedbackParams,
-  IFrameQuestionFeedbackResponse,
+  CreateEmbeddableQuestionParams,
+  EmbeddableQuestionFeedbackParams,
+  EmbeddableQuestionFeedbackResponse,
   Role,
-  UpdateIFrameQuestionParams,
+  UpdateEmbeddableQuestionParams,
 } from '@koh/common';
-import { IFrameQuestionService } from './iframe-question.service';
+import { EmbeddableQuestionService } from './embeddable-question.service';
 import { ChatbotApiService } from '../../chatbot/chatbot-api.service';
-import { IFrameQuestionModel } from './iframe-question.entity'
+import { EmbeddableQuestionModel } from './embeddable-question.entity'
 
-@Controller('lti/iframe-question')
+@Controller('lti/embeddable-question')
 @UseInterceptors(ClassSerializerInterceptor)
-export class IFrameQuestionController {
+export class EmbeddableQuestionController {
   constructor(
-    private iframeQuestionService: IFrameQuestionService,
+    private embeddableQuestionService: EmbeddableQuestionService,
     private chatbotApiService: ChatbotApiService,
   ) {}
 
@@ -38,8 +38,8 @@ export class IFrameQuestionController {
   @Get(':courseId')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
-  async findAll(@Param('courseId', ParseIntPipe) courseId: number): Promise<IFrameQuestionModel[]> {
-    return await this.iframeQuestionService.findAllForCourse(courseId);
+  async findAll(@Param('courseId', ParseIntPipe) courseId: number): Promise<EmbeddableQuestionModel[]> {
+    return await this.embeddableQuestionService.findAllForCourse(courseId);
   }
 
   // anyone in the course can get a single question (authenticated)
@@ -49,25 +49,24 @@ export class IFrameQuestionController {
   async findOne(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
-  ): Promise<IFrameQuestionModel> {
-    return await this.iframeQuestionService.findOne(courseId, questionId);
+  ): Promise<EmbeddableQuestionModel> {
+    return await this.embeddableQuestionService.findOne(courseId, questionId);
   }
 
-  // public feedback endpoint for embedded iframe usage (no login required)
   @Post(':courseId/:questionId/feedback')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async getFeedback(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
-    @Body() body: IFrameQuestionFeedbackParams,
-  ): Promise<IFrameQuestionFeedbackResponse> {
+    @Body() body: EmbeddableQuestionFeedbackParams,
+  ): Promise<EmbeddableQuestionFeedbackResponse> {
     const responseText = body.responseText?.trim();
     if (!responseText) {
       throw new BadRequestException('Input is required');
     }
 
-    const question = await this.iframeQuestionService.findOne(
+    const question = await this.embeddableQuestionService.findOne(
       courseId,
       questionId,
     );
@@ -97,9 +96,9 @@ export class IFrameQuestionController {
   @Roles(Role.TA, Role.PROFESSOR)
   async create(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() body: CreateIFrameQuestionParams,
-  ): Promise<IFrameQuestionModel> {
-    return await this.iframeQuestionService.upsert(
+    @Body() body: CreateEmbeddableQuestionParams,
+  ): Promise<EmbeddableQuestionModel> {
+    return await this.embeddableQuestionService.upsert(
       courseId,
       body,
     );
@@ -112,9 +111,9 @@ export class IFrameQuestionController {
   async update(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
-    @Body() body: UpdateIFrameQuestionParams,
-  ): Promise<IFrameQuestionModel>  {
-    return await this.iframeQuestionService.upsert(
+    @Body() body: UpdateEmbeddableQuestionParams,
+  ): Promise<EmbeddableQuestionModel>  {
+    return await this.embeddableQuestionService.upsert(
       courseId,
       body,
       questionId,
@@ -129,6 +128,6 @@ export class IFrameQuestionController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
   ): Promise<void> {
-    await this.iframeQuestionService.delete(questionId);
+    await this.embeddableQuestionService.delete(questionId);
   }
 }

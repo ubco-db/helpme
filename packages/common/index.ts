@@ -490,7 +490,7 @@ export interface ChatbotAskSuggestedParams {
   vectorStoreId: string
 }
 
-export interface IFrameQuestion {
+export interface EmbeddableQuestion {
   id: number
   createdAt: Date
   courseId: number
@@ -499,7 +499,7 @@ export interface IFrameQuestion {
   instructions?: string,
 }
 
-export class CreateIFrameQuestionParams {
+export class CreateEmbeddableQuestionParams {
   @IsString()
   @IsNotEmpty()
   questionText!: string
@@ -513,7 +513,7 @@ export class CreateIFrameQuestionParams {
   instructions?: string
 }
 
-export class UpdateIFrameQuestionParams {
+export class UpdateEmbeddableQuestionParams {
   @IsString()
   @IsNotEmpty()
   questionText!: string
@@ -527,12 +527,12 @@ export class UpdateIFrameQuestionParams {
   instructions?: string
 }
 
-export class IFrameQuestionFeedbackParams {
+export class EmbeddableQuestionFeedbackParams {
   @IsString()
   responseText!: string
 }
 
-export class IFrameQuestionFeedbackResponse {
+export class EmbeddableQuestionFeedbackResponse {
   @IsString()
   feedback!: string
 }

@@ -43,7 +43,7 @@ export class LoginService {
       throw new UnauthorizedException();
     }
 
-    const payload = this.jwtService.decode(token) as { userId: number };
+    const payload = this.jwtService.verify(token) as { userId: number };
     await this.enter(
       req,
       res,

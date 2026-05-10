@@ -22,31 +22,31 @@ import {
   EditOutlined,
   PlusOutlined,
 } from '@ant-design/icons'
-import { IFrameQuestion } from '@koh/common'
+import { EmbeddableQuestion } from '@koh/common'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import UpsertIFrameQuestionModal
-  from '@/app/(dashboard)/course/[cid]/(settings)/settings/components/UpsertIFrameQuestionModal'
+import UpsertEmbeddableQuestionModal
+  from '@/app/(dashboard)/course/[cid]/(settings)/settings/embeddable_questions/components/UpsertEmbeddableQuestionModal'
 
-interface IFrameQuestionsPageProps {
+interface EmbeddableQuestionsPageProps {
   params: Promise<{ cid: string }>
 }
 
-export default function IFrameQuestionsPage(
-  props: IFrameQuestionsPageProps,
+export default function EmbeddableQuestionsPage(
+  props: EmbeddableQuestionsPageProps,
 ): ReactElement {
   const params = use(props.params)
   const courseId = useMemo(() => Number(params.cid), [params.cid])
 
-  const [questions, setQuestions] = useState<IFrameQuestion[]>([])
+  const [questions, setQuestions] = useState<EmbeddableQuestion[]>([])
   const [loading, setLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
-  const [editingQuestion, setEditingQuestion] = useState<IFrameQuestion | undefined>(undefined)
+  const [editingQuestion, setEditingQuestion] = useState<EmbeddableQuestion | undefined>(undefined)
   
   const fetchQuestions = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await API.lti.iframeQuestion.getAll(courseId)
+      const data = await API.lti.embeddableQuestion.getAll(courseId)
       setQuestions(data)
     } catch (err) {
       message.error(`Failed to load questions: ${getErrorMessage(err)}`)
@@ -64,14 +64,14 @@ export default function IFrameQuestionsPage(
     setModalOpen(true)
   }
 
-  const openEditModal = (q: IFrameQuestion) => {
+  const openEditModal = (q: EmbeddableQuestion) => {
     setEditingQuestion(q)
     setModalOpen(true)
   }
 
-  const handleDelete = async (q: IFrameQuestion) => {
+  const handleDelete = async (q: EmbeddableQuestion) => {
     try {
-      await API.lti.iframeQuestion.delete(courseId, q.id)
+      await API.lti.embeddableQuestion.delete(courseId, q.id)
       message.success('Successfully deleted question!')
       fetchQuestions()
     } catch (err) {
@@ -79,12 +79,12 @@ export default function IFrameQuestionsPage(
     }
   }
 
-  const getIFrameUrl = (q: IFrameQuestion) => {
+  const getIFrameUrl = (q: EmbeddableQuestion) => {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    return `${origin}/lti/iframe/${courseId}/${q.id}`
+    return `${origin}/lti/embeddable-question/${courseId}/${q.id}`
   }
 
-  const copyIFrameUrl = (q: IFrameQuestion) => {
+  const copyIFrameUrl = (q: EmbeddableQuestion) => {
     const url = getIFrameUrl(q)
     const embedCode = `<iframe src="${url}" width="100%" height="300" style="border:0;"></iframe>`
     navigator.clipboard.writeText(embedCode)
@@ -114,7 +114,7 @@ export default function IFrameQuestionsPage(
       title: 'IFrame Link',
       key: 'link',
       width: 120,
-      render: (_: any, record: IFrameQuestion) => (
+      render: (_: any, record: EmbeddableQuestion) => (
         <Button
           icon={<CopyOutlined />}
           size="small"
@@ -128,7 +128,7 @@ export default function IFrameQuestionsPage(
       title: 'Actions',
       key: 'actions',
       width: 100,
-      render: (_: any, record: IFrameQuestion) => (
+      render: (_: any, record: EmbeddableQuestion) => (
         <Space>
           <Button
             icon={<EditOutlined />}
@@ -151,7 +151,7 @@ export default function IFrameQuestionsPage(
 
   return (
     <Card
-      title="IFrame Questions"
+      title="Embeddable Questions"
       classNames={{
         body: 'p-1 md:p-8',
       }}
@@ -177,10 +177,10 @@ export default function IFrameQuestionsPage(
         loading={loading}
         pagination={false}
         locale={{
-          emptyText: 'There have been no IFrame questions created for this course yet!',
+          emptyText: 'There have been no embeddable questions created for this course yet!',
         }}
       />
-      <UpsertIFrameQuestionModal
+      <UpsertEmbeddableQuestionModal
         courseId={courseId}
         open={modalOpen}
         setOpen={setModalOpen}

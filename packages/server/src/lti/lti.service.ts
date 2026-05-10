@@ -92,7 +92,7 @@ export class LtiService {
     userId: number,
     signedToken: string,
   ): Promise<boolean> {
-    const token = this.jwtService.decode<{
+    const token = this.jwtService.verify<{
       code: string;
     }>(signedToken);
 
@@ -169,7 +169,7 @@ export class LtiService {
   }
 
   async checkCourseInvite(userId: number, code: string) {
-    const token = this.jwtService.decode<{
+    const token = this.jwtService.verify<{
       courseId: number;
       inviteCode: string;
     }>(code);

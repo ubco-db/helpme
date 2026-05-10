@@ -1,15 +1,17 @@
 'use client'
 
-import { ReactElement, useEffect, useMemo, useState } from 'react'
+import React, { ReactElement, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
-import IFrameQuestionFeedback from '@/app/lti/iframe/[cid]/[qid]/components/IFrameQuestionFeedback'
-import { IFrameQuestion } from '@koh/common'
+import EmbeddableQuestionFeedback from '@/app/lti/embeddable-question/[cid]/[qid]/components/EmbeddableQuestionFeedback'
+import { EmbeddableQuestion, isProd } from '@koh/common'
 import { API } from '@/app/api'
+import { Button, Image } from 'antd'
+import { ImageIcon } from 'lucide-react'
 
-export default function IFrameQuestionPage(): ReactElement {
+export default function EmbeddableQuestionPage(): ReactElement {
   const routeParams = useParams<{ cid: string, qid: string }>()
-  const [question, setQuestion] = useState<IFrameQuestion | null>(null)
+  const [question, setQuestion] = useState<EmbeddableQuestion | null>(null)
   const [loadingQuestion, setLoadingQuestion] = useState(true)
   const [isAuthorized, setIsAuthorized] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -59,7 +61,7 @@ export default function IFrameQuestionPage(): ReactElement {
       return
     }
 
-    API.lti.iframeQuestion
+    API.lti.embeddableQuestion
       .getOne(courseId, qId)
       .then((q) => setQuestion(q))
       .catch(() =>
@@ -77,6 +79,27 @@ export default function IFrameQuestionPage(): ReactElement {
           link to launch the tool should be visible in your Canvas course&#39;s navigation bar.
           Contact your professor if this keeps happening after launching HelpMe.
         </p>
+        <p className="text-zinc-600">
+          Alternatively, launch HelpMe in a new tab via the button below and log in:
+        </p>
+        <Button
+          type={'default'}
+          target={'_blank'}
+          icon={
+            <span className={'flex justify-center items-center'}>
+              <Image
+                src={'/helpme_logo_small.png'}
+                width={16}
+                height={16}
+                alt={'LTI'}
+                preview={false}
+              />
+            </span>
+          }
+          href={`${process.env.NEXT_PUBLIC_HOST_PROTOCOL}://${process.env.NEXT_PUBLIC_HOSTNAME}${isProd() ? '' : `:${process.env.NEXT_PUBLIC_DEV_PORT}`}/login`}
+        >
+          Launch HelpMe
+        </Button>
         {isChecking && (
           <CenteredSpinner tip="Checking authentication state..." />
         )}
@@ -113,9 +136,9 @@ export default function IFrameQuestionPage(): ReactElement {
 
   return (
     <>
-      <title>{`HelpMe | IFrame Question`}</title>
+      <title>{`HelpMe | Embeddable Question`}</title>
       <div className="flex w-full flex-col items-stretch px-2 py-1">
-        <IFrameQuestionFeedback
+        <EmbeddableQuestionFeedback
           courseId={courseId}
           questionId={question.id}
           questionText={question.questionText}

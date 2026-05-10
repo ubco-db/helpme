@@ -214,7 +214,7 @@ export default class LtiMiddleware {
         method: 'ALL',
       },
       {
-        route: /\/iframe-question.*/,
+        route: /\/embeddable-question.*/,
         method: 'ALL',
       },
       {

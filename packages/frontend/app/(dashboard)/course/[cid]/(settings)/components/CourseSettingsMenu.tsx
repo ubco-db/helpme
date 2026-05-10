@@ -28,7 +28,7 @@ enum CourseAdminOptions {
   CHATBOT_SETTINGS = 'CHATBOT_SETTINGS',
   CHATBOT_KNOWLEDGE_BASE = 'CHATBOT_KNOWLEDGE_BASE',
   CHATBOT_QUESTIONS = 'CHATBOT_QUESTIONS',
-  IFRAME_QUESTIONS = 'IFRAME_QUESTIONS',
+  EMBEDDABLE_QUESTIONS = 'EMBEDDABLE_QUESTIONS',
 }
 
 type CourseSettingsManyProps = {
@@ -78,8 +78,8 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       case CourseAdminOptions.CHATBOT_QUESTIONS:
         router.push(`${basePath}/chatbot_questions`)
         break
-      case CourseAdminOptions.IFRAME_QUESTIONS:
-        router.push(`${basePath}/iframe_questions`)
+      case CourseAdminOptions.EMBEDDABLE_QUESTIONS:
+        router.push(`${basePath}/embeddable_questions`)
         break
     }
   }
@@ -130,9 +130,9 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       type: 'divider',
     },
     {
-      key: CourseAdminOptions.IFRAME_QUESTIONS,
+      key: CourseAdminOptions.EMBEDDABLE_QUESTIONS,
       icon: <BlockOutlined />,
-      label: 'IFrame Questions',
+      label: 'Embeddable Questions',
     },
   ]
 

@@ -1,20 +1,20 @@
-import { IFrameQuestionModule } from '../src/lti/iframe-question/iframe-question.module';
-import { IFrameQuestionModel } from '../src/lti/iframe-question/iframe-question.entity';
+import { EmbeddableQuestionModule } from '../src/lti/embeddable-question/embeddable-question.module';
+import { EmbeddableQuestionModel } from '../src/lti/embeddable-question/embeddable-question.entity';
 import {
   CourseFactory,
-  IFrameQuestionFactory,
+  EmbeddableQuestionFactory,
   StudentCourseFactory,
   TACourseFactory,
   UserFactory,
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 
-describe('IFrameQuestion Integration', () => {
-  const { supertest } = setupIntegrationTest(IFrameQuestionModule);
+describe('EmbeddableQuestion Integration', () => {
+  const { supertest } = setupIntegrationTest(EmbeddableQuestionModule);
 
-  describe('POST /iframe-question/:courseId', () => {
+  describe('POST /lti/embeddable-question/:courseId', () => {
     it('returns 401 when not logged in', async () => {
-      await supertest().post('/iframe-question/1').expect(401);
+      await supertest().post('/lti/embeddable-question/1').expect(401);
     });
 
     it('creates a question with text and criteria', async () => {
@@ -25,7 +25,7 @@ describe('IFrameQuestion Integration', () => {
       });
 
       const res = await supertest({ userId: ta.userId })
-        .post(`/iframe-question/${course.id}`)
+        .post(`/lti/embeddable-question/${course.id}`)
         .send({
           questionText: 'What did you learn?',
           criteriaText: 'Be specific',
@@ -45,13 +45,13 @@ describe('IFrameQuestion Integration', () => {
       });
 
       await supertest({ userId: ta.userId })
-        .post(`/iframe-question/${course.id}`)
+        .post(`/lti/embeddable-question/${course.id}`)
         .send({ questionText: 'No criteria' })
         .expect(400);
     });
   });
 
-  describe('GET /iframe-question/:courseId', () => {
+  describe('GET /lti/embeddable-question/:courseId', () => {
     it('returns 403 when a student tries to list questions', async () => {
       const course = await CourseFactory.create();
       const student = await StudentCourseFactory.create({
@@ -60,7 +60,7 @@ describe('IFrameQuestion Integration', () => {
       });
 
       await supertest({ userId: student.userId })
-        .get(`/iframe-question/${course.id}`)
+        .get(`/lti/embeddable-question/${course.id}`)
         .expect(403);
     });
 
@@ -71,11 +71,11 @@ describe('IFrameQuestion Integration', () => {
         user: await UserFactory.create(),
       });
 
-      await IFrameQuestionFactory.create({ course, questionText: 'Q1' });
-      await IFrameQuestionFactory.create({ course, questionText: 'Q2' });
+      await EmbeddableQuestionFactory.create({ course, questionText: 'Q1' });
+      await EmbeddableQuestionFactory.create({ course, questionText: 'Q2' });
 
       const res = await supertest({ userId: ta.userId })
-        .get(`/iframe-question/${course.id}`)
+        .get(`/lti/embeddable-question/${course.id}`)
         .expect(200);
 
       expect(res.body).toHaveLength(2);
@@ -89,17 +89,17 @@ describe('IFrameQuestion Integration', () => {
         user: await UserFactory.create(),
       });
 
-      await IFrameQuestionFactory.create({
+      await EmbeddableQuestionFactory.create({
         course: course1,
         questionText: 'Mine',
       });
-      await IFrameQuestionFactory.create({
+      await EmbeddableQuestionFactory.create({
         course: course2,
         questionText: 'Not mine',
       });
 
       const res = await supertest({ userId: ta.userId })
-        .get(`/iframe-question/${course1.id}`)
+        .get(`/lti/embeddable-question/${course1.id}`)
         .expect(200);
 
       expect(res.body).toHaveLength(1);
@@ -107,20 +107,20 @@ describe('IFrameQuestion Integration', () => {
     });
   });
 
-  describe('GET /iframe-question/:courseId/:questionId', () => {
+  describe('GET /lti/embeddable-question/:courseId/:questionId', () => {
     it('allows a student to fetch a single question', async () => {
       const course = await CourseFactory.create();
       const student = await StudentCourseFactory.create({
         course,
         user: await UserFactory.create(),
       });
-      const question = await IFrameQuestionFactory.create({
+      const question = await EmbeddableQuestionFactory.create({
         course,
         questionText: 'Student visible',
       });
 
       const res = await supertest({ userId: student.userId })
-        .get(`/iframe-question/${course.id}/${question.id}`)
+        .get(`/lti/embeddable-question/${course.id}/${question.id}`)
         .expect(200);
 
       expect(res.body.questionText).toEqual('Student visible');
@@ -134,7 +134,7 @@ describe('IFrameQuestion Integration', () => {
       });
 
       await supertest({ userId: student.userId })
-        .get(`/iframe-question/${course.id}/999`)
+        .get(`/lti/embeddable-question/${course.id}/999`)
         .expect(404);
     });
 
@@ -145,24 +145,24 @@ describe('IFrameQuestion Integration', () => {
         course: course1,
         user: await UserFactory.create(),
       });
-      const question = await IFrameQuestionFactory.create({ course: course2 });
+      const question = await EmbeddableQuestionFactory.create({ course: course2 });
 
       await supertest({ userId: student.userId })
-        .get(`/iframe-question/${course1.id}/${question.id}`)
+        .get(`/lti/embeddable-question/${course1.id}/${question.id}`)
         .expect(404);
     });
   });
 
-  describe('GET /iframe-question/public/:courseId/:questionId', () => {
+  describe('GET /lti/embeddable-question/public/:courseId/:questionId', () => {
     it('allows unauthenticated users to fetch a single question', async () => {
       const course = await CourseFactory.create();
-      const question = await IFrameQuestionFactory.create({
+      const question = await EmbeddableQuestionFactory.create({
         course,
         questionText: 'Public question',
       });
 
       const res = await supertest()
-        .get(`/iframe-question/public/${course.id}/${question.id}`)
+        .get(`/lti/embeddable-question/public/${course.id}/${question.id}`)
         .expect(200);
 
       expect(res.body.questionText).toEqual('Public question');
@@ -172,54 +172,54 @@ describe('IFrameQuestion Integration', () => {
       const course = await CourseFactory.create();
 
       await supertest()
-        .get(`/iframe-question/public/${course.id}/999`)
+        .get(`/lti/embeddable-question/public/${course.id}/999`)
         .expect(404);
     });
   });
 
-  describe('POST /iframe-question/public/:courseId/:questionId/feedback', () => {
+  describe('POST /lti/embeddable-question/public/:courseId/:questionId/feedback', () => {
     it('returns 400 when responseText is missing', async () => {
       const course = await CourseFactory.create();
-      const question = await IFrameQuestionFactory.create({ course });
+      const question = await EmbeddableQuestionFactory.create({ course });
 
       await supertest()
-        .post(`/iframe-question/public/${course.id}/${question.id}/feedback`)
+        .post(`/lti/embeddable-question/public/${course.id}/${question.id}/feedback`)
         .send({})
         .expect(400);
     });
 
     it('returns 400 when responseText is not a string', async () => {
       const course = await CourseFactory.create();
-      const question = await IFrameQuestionFactory.create({ course });
+      const question = await EmbeddableQuestionFactory.create({ course });
 
       await supertest()
-        .post(`/iframe-question/public/${course.id}/${question.id}/feedback`)
+        .post(`/lti/embeddable-question/public/${course.id}/${question.id}/feedback`)
         .send({ responseText: 123 })
         .expect(400);
     });
 
     it('returns 400 when responseText is only whitespace', async () => {
       const course = await CourseFactory.create();
-      const question = await IFrameQuestionFactory.create({ course });
+      const question = await EmbeddableQuestionFactory.create({ course });
 
       await supertest()
-        .post(`/iframe-question/public/${course.id}/${question.id}/feedback`)
+        .post(`/lti/embeddable-question/public/${course.id}/${question.id}/feedback`)
         .send({ responseText: '   ' })
         .expect(400);
     });
   });
 
-  describe('PATCH /iframe-question/:courseId/:questionId', () => {
+  describe('PATCH /lti/embeddable-question/:courseId/:questionId', () => {
     it('returns 403 when a student tries to update', async () => {
       const course = await CourseFactory.create();
       const student = await StudentCourseFactory.create({
         course,
         user: await UserFactory.create(),
       });
-      const question = await IFrameQuestionFactory.create({ course });
+      const question = await EmbeddableQuestionFactory.create({ course });
 
       await supertest({ userId: student.userId })
-        .patch(`/iframe-question/${course.id}/${question.id}`)
+        .patch(`/lti/embeddable-question/${course.id}/${question.id}`)
         .send({ questionText: 'Nope', criteriaText: 'Nope' })
         .expect(403);
     });
@@ -230,13 +230,13 @@ describe('IFrameQuestion Integration', () => {
         course,
         user: await UserFactory.create(),
       });
-      const question = await IFrameQuestionFactory.create({
+      const question = await EmbeddableQuestionFactory.create({
         course,
         questionText: 'Original',
       });
 
       const res = await supertest({ userId: ta.userId })
-        .patch(`/iframe-question/${course.id}/${question.id}`)
+        .patch(`/lti/embeddable-question/${course.id}/${question.id}`)
         .send({ questionText: 'Updated', criteriaText: 'Updated criteria' })
         .expect(200);
 
@@ -250,29 +250,29 @@ describe('IFrameQuestion Integration', () => {
         course,
         user: await UserFactory.create(),
       });
-      const question = await IFrameQuestionFactory.create({
+      const question = await EmbeddableQuestionFactory.create({
         course,
         questionText: 'Original',
       });
 
       await supertest({ userId: ta.userId })
-        .patch(`/iframe-question/${course.id}/${question.id}`)
+        .patch(`/lti/embeddable-question/${course.id}/${question.id}`)
         .send({ questionText: 'Updated' })
         .expect(400);
     });
   });
 
-  describe('DELETE /iframe-question/:courseId/:questionId', () => {
+  describe('DELETE /lti/embeddable-question/:courseId/:questionId', () => {
     it('returns 403 when a student tries to delete', async () => {
       const course = await CourseFactory.create();
       const student = await StudentCourseFactory.create({
         course,
         user: await UserFactory.create(),
       });
-      const question = await IFrameQuestionFactory.create({ course });
+      const question = await EmbeddableQuestionFactory.create({ course });
 
       await supertest({ userId: student.userId })
-        .delete(`/iframe-question/${course.id}/${question.id}`)
+        .delete(`/lti/embeddable-question/${course.id}/${question.id}`)
         .expect(403);
     });
 
@@ -282,13 +282,13 @@ describe('IFrameQuestion Integration', () => {
         course,
         user: await UserFactory.create(),
       });
-      const question = await IFrameQuestionFactory.create({ course });
+      const question = await EmbeddableQuestionFactory.create({ course });
 
       await supertest({ userId: ta.userId })
-        .delete(`/iframe-question/${course.id}/${question.id}`)
+        .delete(`/lti/embeddable-question/${course.id}/${question.id}`)
         .expect(200);
 
-      const deleted = await IFrameQuestionModel.findOne({
+      const deleted = await EmbeddableQuestionModel.findOne({
         where: { id: question.id },
       });
       expect(deleted).toBeNull();
@@ -302,7 +302,7 @@ describe('IFrameQuestion Integration', () => {
       });
 
       await supertest({ userId: ta.userId })
-        .delete(`/iframe-question/${course.id}/999`)
+        .delete(`/lti/embeddable-question/${course.id}/999`)
         .expect(404);
     });
   });

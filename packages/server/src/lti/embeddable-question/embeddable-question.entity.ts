@@ -10,8 +10,8 @@ import {
 import { CourseModel } from '../../course/course.entity';
 import { Exclude } from 'class-transformer';
 
-@Entity('iframe_question_model')
-export class IFrameQuestionModel extends BaseEntity {
+@Entity('embeddable_question_model')
+export class EmbeddableQuestionModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 

@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react'
 
-export default function IFrameLayout({ children }: { children: ReactNode }) {
+export default function EmbeddableQuestionLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <style>{`

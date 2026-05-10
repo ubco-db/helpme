@@ -35,7 +35,7 @@ export const restrictPaths = [
   'r^\\/api\\/v1\\/chatbot\\/askSuggested\\/[0-9]+$',
   'r^\\/api\\/v1\\/lms.*$',
   'r^\\/api\\/v1\\/lti\\/auth.*$',
-  'r^\\/api\\/v1\\/lti\\/iframe-question/[0-9]+/.*$',
+  'r^\\/api\\/v1\\/lti\\/embeddable-question/[0-9]+/.*$',
   'r^\\/api\\/v1\\/organization\\/[0-9]+\\/settings$',
 ];
 

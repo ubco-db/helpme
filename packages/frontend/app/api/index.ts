@@ -28,7 +28,7 @@ import {
   CreateAlertResponse,
   CreateAsyncQuestions,
   CreateChatbotProviderBody,
-  CreateIFrameQuestionParams,
+  CreateEmbeddableQuestionParams,
   CreateLLMTypeBody,
   CreateLtiPlatform,
   CreateOrganizationChatbotSettingsBody,
@@ -47,8 +47,8 @@ import {
   GetCourseUserInfoResponse,
   GetInsightOutputResponse,
   GetInteractionsAndQuestionsResponse,
-  IFrameQuestion,
-  IFrameQuestionFeedbackResponse,
+  EmbeddableQuestion,
+  EmbeddableQuestionFeedbackResponse,
   GetLimitedCourseResponse,
   GetOrganizationResponse,
   GetOrganizationUserResponse,
@@ -119,7 +119,7 @@ import {
   UpdateChatbotQuestionParams,
   UpdateDocumentChunkParams,
   UpdateLLMTypeBody,
-  UpdateIFrameQuestionParams,
+  UpdateEmbeddableQuestionParams,
   UpdateLtiPlatform,
   UpdateOrganizationCourseDetailsParams,
   UpdateOrganizationDetailsParams,
@@ -1622,43 +1622,43 @@ export class APIClient {
       checkRegistration: async (id: string): Promise<LtiPlatform> =>
         this.req('GET', `/api/v1/lti/platform/${id}/registration`),
     },
-    iframeQuestion: {
+    embeddableQuestion: {
       create: async (
         courseId: number,
-        body: CreateIFrameQuestionParams,
-      ): Promise<IFrameQuestion> =>
-        this.req('POST', `/api/v1/lti/iframe-question/${courseId}`, undefined, body),
-      getAll: async (courseId: number): Promise<IFrameQuestion[]> =>
-        this.req('GET', `/api/v1/lti/iframe-question/${courseId}`),
+        body: CreateEmbeddableQuestionParams,
+      ): Promise<EmbeddableQuestion> =>
+        this.req('POST', `/api/v1/lti/embeddable-question/${courseId}`, undefined, body),
+      getAll: async (courseId: number): Promise<EmbeddableQuestion[]> =>
+        this.req('GET', `/api/v1/lti/embeddable-question/${courseId}`),
       getOne: async (
         courseId: number,
         questionId: number,
-      ): Promise<IFrameQuestion> =>
-        this.req('GET', `/api/v1/lti/iframe-question/${courseId}/${questionId}`),
+      ): Promise<EmbeddableQuestion> =>
+        this.req('GET', `/api/v1/lti/embeddable-question/${courseId}/${questionId}`),
       getFeedback: async (
         courseId: number,
         questionId: number,
         responseText: string,
-      ): Promise<IFrameQuestionFeedbackResponse> =>
+      ): Promise<EmbeddableQuestionFeedbackResponse> =>
         this.req(
           'POST',
-          `/api/v1/lti/iframe-question/${courseId}/${questionId}/feedback`,
+          `/api/v1/lti/embeddable-question/${courseId}/${questionId}/feedback`,
           undefined,
           { responseText },
         ),
       update: async (
         courseId: number,
         questionId: number,
-        body: UpdateIFrameQuestionParams,
-      ): Promise<IFrameQuestion> =>
+        body: UpdateEmbeddableQuestionParams,
+      ): Promise<EmbeddableQuestion> =>
         this.req(
           'PATCH',
-          `/api/v1/lti/iframe-question/${courseId}/${questionId}`,
+          `/api/v1/lti/embeddable-question/${courseId}/${questionId}`,
           undefined,
           body,
         ),
       delete: async (courseId: number, questionId: number): Promise<void> =>
-        this.req('DELETE', `/api/v1/lti/iframe-question/${courseId}/${questionId}`),
+        this.req('DELETE', `/api/v1/lti/embeddable-question/${courseId}/${questionId}`),
     }
   }
 }
