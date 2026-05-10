@@ -119,7 +119,7 @@ const UpsertIFrameQuestionModal: React.FC<UpsertIFrameQuestionModalProps> = ({
                 Note on AI Prompting
               </span>
             }
-            description={`Unlike the course chatbot, the prompt used to instruct the AI when generating feedback uses only the Question Text, Criteria and Instructions (if any) you enter here. Nothing else is included. The course prompt, HelpMe system prompt, and chatbot knowledge base are not used when generating feedback.`}
+            description={`Unlike the course chatbot, the prompt used to instruct the AI when generating feedback uses only the Submission and the Question Text, Criteria, and any additional Instructions you enter here. The Course Prompt and Chatbot Knowledge Base are not used when generating feedback (but this may be a separate feature in the future).`}
           />
           <Form.Item
             name="criteriaText"
