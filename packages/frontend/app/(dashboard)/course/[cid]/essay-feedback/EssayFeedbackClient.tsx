@@ -6,8 +6,6 @@ import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { Alert, Button, Input, Typography, message } from 'antd'
 import {
-  useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -26,11 +24,11 @@ import {
   type ViewerState,
 } from './essayFeedbackInteractions'
 import {
-  renderEssayMarkup,
-  renderSidebarCards,
-  renderSummary,
-} from './essayFeedbackRenderHtml'
-import type { FeedbackResponse } from './essayFeedbackTypes'
+  EssayBody,
+  FeedbackCards,
+  FeedbackSummary,
+} from './EssayFeedbackViewer'
+import type { EssayFeedbackResponse } from '@koh/common'
 import './essay-feedback.css'
 
 const { TextArea } = Input
@@ -57,61 +55,19 @@ export default function EssayFeedbackClient(props: {
 
   const [essayText, setEssayText] = useState('')
   const [loadedFilename, setLoadedFilename] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<FeedbackResponse | null>(null)
+  const [feedback, setFeedback] = useState<EssayFeedbackResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [statusErr, setStatusErr] = useState<string | null>(null)
   const [viewerState, setViewerState] = useState<ViewerState>(
     initialViewerState,
   )
 
-  const essayBodyRef = useRef<HTMLDivElement>(null)
-  const sidebarRef = useRef<HTMLDivElement>(null)
   const dragDepth = useRef(0)
 
   const filtered = useMemo(() => {
     if (!feedback) return []
     return filterAnnotations(feedback.annotations, viewerState)
   }, [feedback, viewerState])
-
-  const essayHtml = useMemo(() => {
-    if (!feedback) return ''
-    return renderEssayMarkup(feedback.essay.paragraphs, filtered)
-  }, [feedback, filtered])
-
-  const sidebarHtml = useMemo(() => {
-    if (!feedback) return ''
-    return viewerState.currentTab === 'annotations'
-      ? renderSidebarCards(filtered)
-      : renderSummary(feedback.overall_feedback)
-  }, [feedback, filtered, viewerState.currentTab])
-
-  useEffect(() => {
-    const roots = [essayBodyRef.current, sidebarRef.current].filter(Boolean)
-    roots.forEach((root) => {
-      root
-        ?.querySelectorAll('.hl.is-active, .annotation-pin.is-active, .feedback-card.is-active')
-        .forEach((n) => n.classList.remove('is-active'))
-    })
-    const id = viewerState.activeAnnotationId
-    if (id === null) return
-    roots.forEach((root) => {
-      root?.querySelectorAll(`[data-id="${id}"]`).forEach((n) => {
-        n.classList.add('is-active')
-      })
-    })
-  }, [essayHtml, sidebarHtml, viewerState.activeAnnotationId])
-
-  const onDelegatedClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      const el = (e.target as HTMLElement).closest('[data-id]')
-      if (!el) return
-      const raw = el.getAttribute('data-id')
-      const id = Number(raw)
-      if (!Number.isFinite(id)) return
-      setViewerState((s) => activate(s, id))
-    },
-    [],
-  )
 
   const loadFile = async (file: File) => {
     setStatusErr(null)
@@ -148,7 +104,7 @@ export default function EssayFeedbackClient(props: {
     setStatusErr(null)
     try {
       const raw = await API.course.generateEssayFeedback(courseId, trimmed)
-      setFeedback(raw as FeedbackResponse)
+      setFeedback(raw)
       setViewerState(initialViewerState)
       message.success('Feedback generated.')
     } catch (err) {
@@ -195,12 +151,11 @@ export default function EssayFeedbackClient(props: {
           <div className="layout">
             <div className="pdf-panel">
               <div className="paper">
-                <div
-                  ref={essayBodyRef}
-                  className="essay-body"
-                  onClick={onDelegatedClick}
-                  // eslint-disable-next-line react/no-danger
-                  dangerouslySetInnerHTML={{ __html: essayHtml }}
+                <EssayBody
+                  paragraphs={feedback.essay.paragraphs}
+                  annotations={filtered}
+                  activeAnnotationId={viewerState.activeAnnotationId}
+                  onActivate={(id) => setViewerState((s) => activate(s, id))}
                 />
               </div>
             </div>
@@ -276,13 +231,17 @@ export default function EssayFeedbackClient(props: {
                   </>
                 )}
               </div>
-              <div
-                ref={sidebarRef}
-                className="feedback-cards"
-                onClick={onDelegatedClick}
-                // eslint-disable-next-line react/no-danger
-                dangerouslySetInnerHTML={{ __html: sidebarHtml }}
-              />
+              <div className="feedback-cards">
+                {viewerState.currentTab === 'annotations' ? (
+                  <FeedbackCards
+                    annotations={filtered}
+                    activeAnnotationId={viewerState.activeAnnotationId}
+                    onActivate={(id) => setViewerState((s) => activate(s, id))}
+                  />
+                ) : (
+                  <FeedbackSummary overall={feedback.overall_feedback} />
+                )}
+              </div>
             </div>
           </div>
         </div>

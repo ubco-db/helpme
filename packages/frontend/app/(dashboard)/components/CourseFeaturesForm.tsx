@@ -40,6 +40,14 @@ const CourseFeaturesForm: React.FC<CourseFeaturesFormProps> = ({
         />
 
         <CourseFeatureSwitch
+          featureName="essayEvaluationEnabled"
+          defaultChecked={courseFeatures.essayEvaluationEnabled}
+          title="Essay Evaluation"
+          description="This feature allows course members to generate essay feedback using the configured chatbot provider for this course."
+          courseId={courseId}
+        />
+
+        <CourseFeatureSwitch
           featureName="queueEnabled"
           defaultChecked={courseFeatures.queueEnabled}
           title="Queues"

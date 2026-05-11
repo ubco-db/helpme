@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import type { FeedbackResponse, Paragraph } from '../types/feedback-response';
+import type {
+  EssayFeedbackParagraph,
+  EssayFeedbackResponse,
+} from '@koh/common';
 
 const citationSchema = z.object({
   type: z.enum(['rubric', 'course_material']),
@@ -50,9 +53,9 @@ const feedbackSchema = z.object({
 });
 
 function normalizeFeedback(
-  feedback: FeedbackResponse,
-  paragraphs: Paragraph[],
-): FeedbackResponse {
+  feedback: EssayFeedbackResponse,
+  paragraphs: EssayFeedbackParagraph[],
+): EssayFeedbackResponse {
   const paragraphById = new Map(
     paragraphs.map((item) => [item.id.toLowerCase(), item.text] as const),
   );
@@ -85,11 +88,11 @@ function normalizeFeedback(
 
 export function validateFeedbackResponse(
   raw: unknown,
-  paragraphs: Paragraph[],
-): FeedbackResponse {
+  paragraphs: EssayFeedbackParagraph[],
+): EssayFeedbackResponse {
   const parsed = feedbackSchema.safeParse(raw);
   if (!parsed.success) {
     throw new Error(`Feedback schema validation failed: ${parsed.error.message}`);
   }
-  return normalizeFeedback(parsed.data as FeedbackResponse, paragraphs);
+  return normalizeFeedback(parsed.data as EssayFeedbackResponse, paragraphs);
 }

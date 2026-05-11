@@ -1,6 +1,6 @@
-import type { Paragraph } from '../types/feedback-response';
+import type { EssayFeedbackParagraph } from '@koh/common';
 
-export function parseEssay(essayText: string): Paragraph[] {
+export function parseEssay(essayText: string): EssayFeedbackParagraph[] {
   const normalized = essayText.trim();
   if (!normalized) {
     throw new Error('essay_text cannot be empty.');
@@ -16,7 +16,9 @@ export function parseEssay(essayText: string): Paragraph[] {
     }));
 }
 
-export function formatParagraphsForPrompt(paragraphs: Paragraph[]): string {
+export function formatParagraphsForPrompt(
+  paragraphs: EssayFeedbackParagraph[],
+): string {
   return paragraphs
     .map((item, index) => `P${index + 1}: ${item.text}`)
     .join('\n');

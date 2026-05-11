@@ -14,6 +14,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  MinLength,
   ValidateNested,
 } from 'class-validator'
 import 'reflect-metadata'
@@ -2950,6 +2951,9 @@ export class CourseSettingsResponse {
   @IsBoolean()
   asyncCentreAuthorPublic!: boolean
 
+  @IsBoolean()
+  essayEvaluationEnabled!: boolean
+
   @IsOptional()
   @IsBoolean()
   settingsFound?: boolean = true //this is mostly just for debugging purposes by viewing network responses
@@ -2968,6 +2972,7 @@ export const validFeatures = [
   'asyncCentreAIAnswers',
   'asyncCentreDefaultAnonymous',
   'asyncCentreAuthorPublic',
+  'essayEvaluationEnabled',
 ]
 
 export class CourseSettingsRequestBody {
@@ -2980,6 +2985,144 @@ export class CourseSettingsRequestBody {
   static isValidFeature(feature: string): boolean {
     return validFeatures.includes(feature)
   }
+}
+
+export type EssayFeedbackFunctionDimension =
+  | 'content'
+  | 'interpersonal'
+  | 'organization'
+export type EssayFeedbackLinguisticLevel = 'text' | 'section' | 'clause_word'
+export type EssayFeedbackSeverity = 'low' | 'medium' | 'high'
+export type EssayFeedbackCitationType = 'rubric' | 'course_material'
+
+export class EssayFeedbackRequest {
+  @IsString()
+  @MinLength(1)
+  essay_text!: string
+}
+
+export class EssayFeedbackExtractTextResponse {
+  @IsString()
+  essay_text!: string
+
+  @IsString()
+  filename!: string
+}
+
+export class EssayFeedbackParagraph {
+  @IsString()
+  id!: string
+
+  @IsString()
+  text!: string
+}
+
+export class EssayFeedbackEssay {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EssayFeedbackParagraph)
+  paragraphs!: EssayFeedbackParagraph[]
+}
+
+export class EssayFeedbackCitation {
+  @IsIn(['rubric', 'course_material'])
+  type!: EssayFeedbackCitationType
+
+  @IsString()
+  label!: string
+
+  @IsOptional()
+  @IsString()
+  url!: string | null
+}
+
+export class EssayFeedbackEvidence {
+  @IsString()
+  quote!: string
+
+  @IsString()
+  reason!: string
+}
+
+export class EssayFeedbackAnnotation {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  paragraph_id!: string
+
+  @IsInt()
+  char_start!: number
+
+  @IsInt()
+  char_end!: number
+
+  @IsIn(['content', 'interpersonal', 'organization'])
+  function!: EssayFeedbackFunctionDimension
+
+  @IsIn(['text', 'section', 'clause_word'])
+  level!: EssayFeedbackLinguisticLevel
+
+  @IsString()
+  issue_type!: string
+
+  @IsIn(['low', 'medium', 'high'])
+  severity!: EssayFeedbackSeverity
+
+  @ValidateNested()
+  @Type(() => EssayFeedbackEvidence)
+  evidence!: EssayFeedbackEvidence
+
+  @IsString()
+  feedback!: string
+
+  @IsString()
+  revision_guidance!: string
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EssayFeedbackCitation)
+  citations!: EssayFeedbackCitation[]
+}
+
+export class EssayFeedbackOverallFeedback {
+  @IsString()
+  summary!: string
+
+  @IsArray()
+  @Type(() => String)
+  priority_issues!: string[]
+
+  @IsArray()
+  @Type(() => String)
+  next_steps!: string[]
+
+  @IsArray()
+  @Type(() => String)
+  reflection_questions!: string[]
+}
+
+export class EssayFeedbackResponse {
+  @IsOptional()
+  @IsString()
+  submission_id!: string | null
+
+  @IsOptional()
+  @IsString()
+  created_at!: string | null
+
+  @ValidateNested()
+  @Type(() => EssayFeedbackEssay)
+  essay!: EssayFeedbackEssay
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EssayFeedbackAnnotation)
+  annotations!: EssayFeedbackAnnotation[]
+
+  @ValidateNested()
+  @Type(() => EssayFeedbackOverallFeedback)
+  overall_feedback!: EssayFeedbackOverallFeedback
 }
 
 export class OrganizationSettingsResponse {

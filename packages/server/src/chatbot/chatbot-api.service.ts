@@ -6,6 +6,8 @@ import {
   ChatbotSettings,
   ChatbotSettingsMetadata,
   ChatbotSettingsUpdateParams,
+  EssayFeedbackParagraph,
+  EssayFeedbackResponse,
   UpdateChatbotQuestionParams,
   UpdateDocumentAggregateParams,
   UpdateDocumentChunkParams,
@@ -121,6 +123,18 @@ export class ChatbotApiService {
       type === 'abstract' ? 5000 : undefined, // 5s timeout for abstract queries
     );
     return resp.answer;
+  }
+
+  async generateEssayFeedback(
+    courseId: number,
+    essayText: string,
+    paragraphs: EssayFeedbackParagraph[],
+    userToken: string,
+  ): Promise<EssayFeedbackResponse> {
+    return this.request('POST', `essay-feedback/${courseId}`, userToken, {
+      essay_text: essayText,
+      paragraphs,
+    });
   }
 
   async getModels(userToken: string) {

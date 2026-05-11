@@ -22,6 +22,7 @@ import { useChatbotContext } from './components/chatbot/ChatbotProvider'
 import Chatbot from './components/chatbot/Chatbot'
 import { useRouter } from 'next/navigation'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import Link from 'next/link'
 
 type CoursePageProps = {
   params: Promise<{ cid: string }>
@@ -166,6 +167,17 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                       skipLinkTarget == 'async-centre' ? 'skip-link-target' : ''
                     }
                   />
+                )}
+
+                {courseFeatures.essayEvaluationEnabled && (
+                  <Row>
+                    <Link
+                      href={`/course/${cid}/essay-feedback`}
+                      className="mx-auto mb-4 w-full rounded-md border border-neutral-200 bg-white p-4 text-center shadow-sm transition hover:border-blue-400 hover:text-blue-600"
+                    >
+                      Essay Feedback
+                    </Link>
+                  </Row>
                 )}
 
                 {role === Role.TA ||

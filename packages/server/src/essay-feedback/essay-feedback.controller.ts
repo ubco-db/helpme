@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Param,
   ParseIntPipe,
   Post,
@@ -10,13 +11,19 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Role } from '@koh/common';
+import {
+  EssayFeedbackExtractTextResponse,
+  EssayFeedbackRequest,
+  EssayFeedbackResponse,
+  Role,
+} from '@koh/common';
 import { Roles } from '../decorators/roles.decorator';
 import { CourseRolesGuard } from '../guards/course-roles.guard';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { EssayFeedbackService } from './essay-feedback.service';
-import { EssayFeedbackRequestDto } from './dto/essay-feedback-request.dto';
+import { User } from '../decorators/user.decorator';
+import { UserModel } from '../profile/user.entity';
 
 const TEN_MB = 10 * 1024 * 1024;
 
@@ -35,7 +42,7 @@ export class EssayFeedbackController {
   async extractText(
     @Param('courseId', ParseIntPipe) courseId: number,
     @UploadedFile() file: Express.Multer.File,
-  ): Promise<{ essay_text: string; filename: string }> {
+  ): Promise<EssayFeedbackExtractTextResponse> {
     if (!file?.buffer) {
       throw new BadRequestException('No file uploaded.');
     }
@@ -47,8 +54,16 @@ export class EssayFeedbackController {
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async generateFeedback(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() body: EssayFeedbackRequestDto,
-  ) {
-    return this.essayFeedbackService.generateFeedback(courseId, body.essay_text);
+    @Body() body: EssayFeedbackRequest,
+    @User({ chat_token: true }) user: UserModel,
+  ): Promise<EssayFeedbackResponse> {
+    if (!user.chat_token) {
+      throw new ForbiddenException('User does not have a chatbot token.');
+    }
+    return this.essayFeedbackService.generateFeedback(
+      courseId,
+      body.essay_text,
+      user.chat_token.token,
+    );
   }
 }

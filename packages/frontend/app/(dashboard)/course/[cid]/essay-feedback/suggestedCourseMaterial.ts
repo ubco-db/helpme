@@ -1,35 +1,11 @@
 /**
- * Suggested course material for essay feedback annotations — aligned with LLED_bot_MVP behaviour.
- * Prefer API-provided course_material citations; otherwise use function × level fallback filenames.
+ * Suggested course material for essay feedback annotations.
+ * Prefer API-provided course_material citations from the chatbot service.
  */
 
-import type { Annotation, Citation, FunctionDimension, LinguisticLevel } from './essayFeedbackTypes'
+import type { Annotation, Citation } from './essayFeedbackTypes'
 
-/** Exact filenames from curriculum mapping (do not alter). */
-const FALLBACK_BY_FUNCTION_AND_LEVEL: Record<
-  FunctionDimension,
-  Record<LinguisticLevel, string>
-> = {
-  content: {
-    text: 'LLED200 Academic Writing_ Representing Content V.5 2025.docx',
-    section: 'LLED200 Week 4 Definitions 2025.pptx',
-    clause_word:
-      'LLED200 Academic Writing_ Representing Content V.5 2025.docx',
-  },
-  interpersonal: {
-    text: 'Unit 3  Interpersonal Positioning & Citation v.03 July 9 2015.docx',
-    section:
-      'Unit 3  Interpersonal Positioning & Citation v.03 July 9 2015.docx',
-    clause_word:
-      'Hedging & Boosting in Research Writing in the Field of Artificial Intelligence.docx',
-  },
-  organization: {
-    text: 'Description_Model_Holocene Epoch_LLED 200_outline & clause analysis.docx',
-    section: 'Unit 6 Logic and Cohesion TEACHERS NOTES  v.03 July 9.docx',
-    clause_word:
-      'LLED200 Task Theme-New Organization in Academic Writing.docx',
-  },
-}
+const DEFAULT_MATERIAL_LABEL = 'Course materials uploaded to this course'
 
 export interface SuggestedCourseMaterialSource {
   label: string
@@ -62,7 +38,5 @@ export function getSuggestedCourseMaterialSource(
     }
   }
 
-  const label =
-    FALLBACK_BY_FUNCTION_AND_LEVEL[annotation.function][annotation.level]
-  return { label, url: null }
+  return { label: DEFAULT_MATERIAL_LABEL, url: null }
 }

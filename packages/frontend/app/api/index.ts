@@ -37,6 +37,9 @@ import {
   DesktopNotifBody,
   DesktopNotifPartial,
   EditCourseInfoParams,
+  EssayFeedbackExtractTextResponse,
+  EssayFeedbackRequest,
+  EssayFeedbackResponse,
   ExtraTAStatus,
   GetAlertsResponse,
   GetAsyncQuestionsResponse,
@@ -688,7 +691,7 @@ export class APIClient {
     extractEssayText: async (
       courseId: number,
       file: File,
-    ): Promise<{ essay_text: string; filename: string }> => {
+    ): Promise<EssayFeedbackExtractTextResponse> => {
       const formData = new FormData()
       formData.append('file', file)
       return this.req(
@@ -701,10 +704,10 @@ export class APIClient {
     generateEssayFeedback: async (
       courseId: number,
       essay_text: string,
-    ): Promise<Record<string, unknown>> =>
+    ): Promise<EssayFeedbackResponse> =>
       this.req('POST', `/api/v1/courses/${courseId}/essay-feedback`, undefined, {
         essay_text,
-      }),
+      } satisfies EssayFeedbackRequest),
     getAllStudentsNotInQueue: async (
       courseId: number,
       withATaskQuestion?: boolean,
