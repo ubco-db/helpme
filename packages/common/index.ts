@@ -490,16 +490,47 @@ export interface ChatbotAskSuggestedParams {
   vectorStoreId: string
 }
 
-export interface EmbeddableQuestion {
-  id: number
-  createdAt: Date
-  courseId: number
-  questionText: string
-  criteriaText: string
-  instructions?: string,
+export class EmbeddableQuestion {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @IsDate()
+  @Type(() => Date)
+  createdAt!: Date
+
+  @IsDate()
+  @IsOptional()
+  @Type(() => Date)
+  availableFrom?: Date
+
+  @IsDate()
+  @IsOptional()
+  @Type(() => Date)
+  availableUntil?: Date
+
+  @IsInt()
+  courseId!: number
+
+  @IsString()
+  questionText!: string
+
+  @IsString()
+  criteriaText!: string
+
+  @IsString()
+  @IsOptional()
+  instructions?: string
 }
 
 export class CreateEmbeddableQuestionParams {
+  @IsString()
+  @IsOptional()
+  name?: string
+
   @IsString()
   @IsNotEmpty()
   questionText!: string
@@ -507,6 +538,16 @@ export class CreateEmbeddableQuestionParams {
   @IsString()
   @IsNotEmpty()
   criteriaText!: string
+
+  @IsDate()
+  @IsOptional()
+  @Type(() => Date)
+  availableFrom?: Date
+
+  @IsDate()
+  @IsOptional()
+  @Type(() => Date)
+  availableUntil?: Date
 
   @IsString()
   @IsOptional()
@@ -515,12 +556,26 @@ export class CreateEmbeddableQuestionParams {
 
 export class UpdateEmbeddableQuestionParams {
   @IsString()
+  @IsOptional()
+  name?: string
+
+  @IsString()
   @IsNotEmpty()
   questionText!: string
 
   @IsString()
   @IsNotEmpty()
   criteriaText!: string
+
+  @IsDate()
+  @IsOptional()
+  @Type(() => Date)
+  availableFrom?: Date
+
+  @IsDate()
+  @IsOptional()
+  @Type(() => Date)
+  availableUntil?: Date
 
   @IsString()
   @IsOptional()
@@ -532,9 +587,54 @@ export class EmbeddableQuestionFeedbackParams {
   responseText!: string
 }
 
+export class UpdateEmbeddableFeedbackParams {
+  @IsNumber()
+  humanGrade!: number;
+}
+
 export class EmbeddableQuestionFeedbackResponse {
   @IsString()
   feedback!: string
+
+  @IsNumber()
+  @IsOptional()
+  grade?: number
+}
+
+export class EmbeddableQuestionFeedback {
+  @IsInt()
+  id!: number
+
+  @IsDate()
+  createdAt!: Date
+
+  @IsString()
+  submission!: string
+
+  @IsString()
+  aiFeedback!: string
+
+  @IsNumber()
+  @IsOptional()
+  aiGrade?: number
+
+  @IsNumber()
+  @IsOptional()
+  humanGrade?: number
+
+  @IsInt()
+  questionId!: number
+
+  @IsInstance(EmbeddableQuestion)
+  @IsOptional()
+  embeddableQuestion?: EmbeddableQuestion
+
+  @IsInt()
+  userId!: number
+
+  @IsInstance(UserPartial)
+  @IsOptional()
+  user?: UserPartial
 }
 
 export interface AddDocumentChunkParams {
@@ -4439,6 +4539,9 @@ export const ERROR_MESSAGES = {
       `Members with role ${role} are not allowed to delete semesters`,
   },
   embeddableQuestionController: {
-    notFound: 'Question not found.'
+    notFound: 'Question not found.',
+    feedbackNotFound: 'Feedback not found.',
+    notAvailableYet: 'This question is not available to receive feedback for yet.',
+    noLongerAvailable: 'This question can no longer receive feedback.',
   }
 }

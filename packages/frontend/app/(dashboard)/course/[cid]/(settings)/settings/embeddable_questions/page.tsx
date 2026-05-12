@@ -1,32 +1,14 @@
 'use client'
 
-import {
-  ReactElement,
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react'
-import {
-  Button,
-  Card,
-  message,
-  Popconfirm,
-  Table,
-  Space,
-} from 'antd'
-import {
-  DeleteOutlined,
-  CopyOutlined,
-  EditOutlined,
-  PlusOutlined,
-} from '@ant-design/icons'
+import { ReactElement, use, useCallback, useEffect, useMemo, useState } from 'react'
+import { Button, Card, message, Popconfirm, Space, Table } from 'antd'
+import { CopyOutlined, DeleteOutlined, EditOutlined, EyeOutlined, PlusOutlined } from '@ant-design/icons'
 import { EmbeddableQuestion } from '@koh/common'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import UpsertEmbeddableQuestionModal
   from '@/app/(dashboard)/course/[cid]/(settings)/settings/embeddable_questions/components/UpsertEmbeddableQuestionModal'
+import ExpandableText from '@/app/components/ExpandableText'
 
 interface EmbeddableQuestionsPageProps {
   params: Promise<{ cid: string }>
@@ -93,35 +75,81 @@ export default function EmbeddableQuestionsPage(
 
   const columns = [
     {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      render: (name: string, record: EmbeddableQuestion) => (
+        <b>{name ?? `Question ${questions.findIndex(r => r.id === record.id) + 1}`}</b>
+      )
+    },
+    {
       title: 'Question',
       dataIndex: 'questionText',
       key: 'questionText',
-      ellipsis: true,
+      render: (text: string) => (
+        <ExpandableText maxRows={3}>
+          {text}
+        </ExpandableText>
+      )
     },
     {
       title: 'Criteria',
       dataIndex: 'criteriaText',
       key: 'criteriaText',
-      ellipsis: true,
+      render: (text: string) => (
+        <ExpandableText maxRows={3}>
+          {text}
+        </ExpandableText>
+      )
     },
     {
       title: 'Additional Instructions',
       dataIndex: 'instructions',
       key: 'instructions',
-      ellipsis: true,
+      render: (text: string) => (
+        <ExpandableText maxRows={3}>
+          {text}
+        </ExpandableText>
+      )
+    },
+    {
+      title: 'Opens',
+      dataIndex: 'availableFrom',
+      width: 40,
+      render: (time?: Date) => (
+        <span>{time != undefined ? new Date(time).toString() : 'Always'}</span>
+      )
+    },
+    {
+      title: 'Closes',
+      dataIndex: 'availableUntil',
+      width: 40,
+      render: (time?: Date) => (
+        <span>{time != undefined ? new Date(time).toString() : 'Never'}</span>
+      )
     },
     {
       title: 'IFrame Link',
       key: 'link',
       width: 120,
       render: (_: any, record: EmbeddableQuestion) => (
-        <Button
-          icon={<CopyOutlined />}
-          size="small"
-          onClick={() => copyIFrameUrl(record)}
-        >
-          Copy Link
-        </Button>
+        <div className={'flex flex-col'}>
+          <Button
+            icon={<CopyOutlined />}
+            size="small"
+            onClick={() => copyIFrameUrl(record)}
+          >
+            Copy Link
+          </Button>
+          <Button
+            icon={<EyeOutlined/>}
+            size="small"
+            href={getIFrameUrl(record)}
+            target={'_blank'}
+          >
+            Preview
+          </Button>
+        </div>
       ),
     },
     {
@@ -150,36 +178,7 @@ export default function EmbeddableQuestionsPage(
   ]
 
   return (
-    <Card
-      title="Embeddable Questions"
-      classNames={{
-        body: 'p-1 md:p-8',
-      }}
-      extra={
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={openCreateModal}
-        >
-          Create Question
-        </Button>
-      }
-    >
-      <p className="mb-4 text-gray-500">
-        Create questions that can be embedded as iframes in Canvas or other LMS
-        platforms. Students will see the question and can submit a response to
-        get AI feedback.
-      </p>
-      <Table
-        dataSource={questions}
-        columns={columns}
-        rowKey="id"
-        loading={loading}
-        pagination={false}
-        locale={{
-          emptyText: 'There have been no embeddable questions created for this course yet!',
-        }}
-      />
+    <>
       <UpsertEmbeddableQuestionModal
         courseId={courseId}
         open={modalOpen}
@@ -187,6 +186,37 @@ export default function EmbeddableQuestionsPage(
         editingQuestion={editingQuestion}
         onSaveCallback={() => fetchQuestions()}
       />
-    </Card>
+      <Card
+        title="Embeddable Questions"
+        classNames={{
+          body: 'p-1 md:p-8',
+        }}
+        extra={
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={openCreateModal}
+          >
+            Create Question
+          </Button>
+        }
+      >
+        <p className="mb-4 text-gray-500">
+          Create questions that can be embedded as iframes in Canvas or other LMS
+          platforms. Students will see the question and can submit a response to
+          get AI feedback.
+        </p>
+        <Table
+          dataSource={questions}
+          columns={columns}
+          rowKey="id"
+          loading={loading}
+          pagination={false}
+          locale={{
+            emptyText: 'There have been no embeddable questions created for this course yet!',
+          }}
+        />
+      </Card>
+    </>
   )
 }

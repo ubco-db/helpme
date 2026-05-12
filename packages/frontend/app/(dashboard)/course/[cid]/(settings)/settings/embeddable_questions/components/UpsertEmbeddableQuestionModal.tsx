@@ -1,13 +1,11 @@
-import { Modal, Input, Tooltip, Form, Alert, message } from 'antd'
-import { SetStateAction, useEffect, useState } from 'react'
+import { Alert, DatePicker, Form, Input, message, Modal, Tooltip } from 'antd'
+import { SetStateAction, useMemo, useState } from 'react'
 import { InfoCircleOutlined } from '@ant-design/icons'
 import { EmbeddableQuestion } from '@koh/common'
 import { pick } from 'lodash'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import {
-  EmbeddableQuestionFeedbackProps
-} from '@/app/lti/embeddable-question/[cid]/[qid]/components/EmbeddableQuestionFeedback'
+import dayjs from 'dayjs'
 
 type UpsertEmbeddableQuestionModalProps = {
   courseId: number,
@@ -18,9 +16,12 @@ type UpsertEmbeddableQuestionModalProps = {
 }
 
 type EmbeddableQuestionForm = {
-  questionText?: string,
-  criteriaText?: string,
-  instructions?: string,
+  name?: string
+  availableFrom?: Date
+  availableUntil?: Date
+  questionText: string
+  criteriaText: string
+  instructions?: string
 }
 
 const UpsertEmbeddableQuestionModal: React.FC<UpsertEmbeddableQuestionModalProps> = ({
@@ -38,21 +39,26 @@ const UpsertEmbeddableQuestionModal: React.FC<UpsertEmbeddableQuestionModalProps
     setIsLoading(true)
 
     try {
-      Object.keys(values).forEach((k) => {
-        (values as any)[k] = (values as any)[k]?.trim() ?? undefined
-        if (typeof (values as any)[k] === 'string' && !(values as any)[k]) (values as any)[k] = null
+      const sanitized: Record<string,any> = pick(values,['questionText','criteriaText','instructions','name','availableUntil','availableFrom'])
+      Object.keys(sanitized).forEach((k) => {
+        if (['questionText','criteriaText','instructions','name'].includes(k)) {
+          sanitized[k] = sanitized[k]?.trim() ?? undefined
+          if (typeof sanitized[k] === 'string' && !sanitized[k]) sanitized[k] = null
+        } else {
+          if (sanitized[k] === undefined) sanitized[k] = null
+          else sanitized[k] = sanitized[k].toDate()
+        }
       })
+      values = sanitized as any
+
       if (editingQuestion) {
-        await API.lti.embeddableQuestion.update(courseId, editingQuestion.id, {
-          ...values,
-        } as any)
+        await API.lti.embeddableQuestion.update(courseId, editingQuestion.id, values)
         message.success('Successfully updated question!')
       } else {
-        await API.lti.embeddableQuestion.create(courseId, {
-          ...values,
-        } as any)
+        await API.lti.embeddableQuestion.create(courseId, values)
         message.success('Successfully created question!')
       }
+
       setOpen(false)
       onSaveCallback()
     } catch (err) {
@@ -61,6 +67,14 @@ const UpsertEmbeddableQuestionModal: React.FC<UpsertEmbeddableQuestionModalProps
       setIsLoading(false)
     }
   }
+
+  const defaults = useMemo(() => {
+    if (!editingQuestion) return undefined
+    const values = pick(editingQuestion,['name','availableFrom','availableUntil','questionText','criteriaText','instructions'])
+    if (values.availableFrom) values.availableFrom = dayjs(values.availableFrom) as any
+    if (values.availableUntil) values.availableUntil = dayjs(values.availableUntil) as any
+    return values
+  }, [editingQuestion])
 
   return (
     <Modal
@@ -75,7 +89,7 @@ const UpsertEmbeddableQuestionModal: React.FC<UpsertEmbeddableQuestionModalProps
           clearOnDestroy
           form={form}
           onFinish={(values) => handleSave(values)}
-          initialValues={editingQuestion ? pick(editingQuestion,['questionText','criteriaText','instructions']) : undefined}
+          initialValues={defaults}
           layout="vertical"
         >
           {dom}
@@ -84,10 +98,54 @@ const UpsertEmbeddableQuestionModal: React.FC<UpsertEmbeddableQuestionModalProps
     >
       <div className={'flex flex-col'}>
         <Form.Item
+          name="name"
+          label={
+            <div className={'flex w-full'}>
+              <Tooltip title="(Optional) A custom name/identifier for the question so it can be easily identified in a list.">
+                Name <InfoCircleOutlined />
+              </Tooltip>
+            </div>
+          }
+        >
+          <Input placeholder={'e.g., Assignment 1 Q1'}/>
+        </Form.Item>
+        <div className={'grid grid-cols-2 gap-4'}>
+          <Form.Item
+            name={'availableFrom'}
+            label={
+              <div className={'flex w-full'}>
+                <Tooltip title="(Optional) When this question will be available for student interaction.">
+                  Available From <InfoCircleOutlined />
+                </Tooltip>
+              </div>
+            }
+            getValueProps={(i) => ({ value: i !== undefined ? dayjs(i) : undefined })}
+          >
+            <DatePicker
+              showTime
+            />
+          </Form.Item>
+          <Form.Item
+            name={'availableUntil'}
+            label={
+              <div className={'flex w-full'}>
+                <Tooltip title="(Optional) When this question will stop being available for student interaction.">
+                  Available From <InfoCircleOutlined />
+                </Tooltip>
+              </div>
+            }
+            getValueProps={(i) => ({ value: i !== undefined ? dayjs(i) : undefined })}
+          >
+            <DatePicker
+              showTime
+            />
+          </Form.Item>
+        </div>
+        <Form.Item
           name="questionText"
           label={
             <div className={'flex w-full'}>
-              <Tooltip title="The question that students should submit an answer to.">
+            <Tooltip title="The question that students should submit an answer to.">
                 Question <InfoCircleOutlined />
               </Tooltip>
             </div>

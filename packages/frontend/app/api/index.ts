@@ -38,6 +38,9 @@ import {
   DesktopNotifBody,
   DesktopNotifPartial,
   EditCourseInfoParams,
+  EmbeddableQuestion,
+  EmbeddableQuestionFeedback,
+  EmbeddableQuestionFeedbackResponse,
   ExtraTAStatus,
   GetAlertsResponse,
   GetAsyncQuestionsResponse,
@@ -47,11 +50,10 @@ import {
   GetCourseUserInfoResponse,
   GetInsightOutputResponse,
   GetInteractionsAndQuestionsResponse,
-  EmbeddableQuestion,
-  EmbeddableQuestionFeedbackResponse,
   GetLimitedCourseResponse,
   GetOrganizationResponse,
   GetOrganizationUserResponse,
+  GetOrganizationUsersPaginatedResponse,
   GetProfileResponse,
   GetQueueChatResponse,
   GetQueueChatsResponse,
@@ -118,8 +120,9 @@ import {
   UpdateChatbotProviderBody,
   UpdateChatbotQuestionParams,
   UpdateDocumentChunkParams,
-  UpdateLLMTypeBody,
+  UpdateEmbeddableFeedbackParams,
   UpdateEmbeddableQuestionParams,
+  UpdateLLMTypeBody,
   UpdateLtiPlatform,
   UpdateOrganizationCourseDetailsParams,
   UpdateOrganizationDetailsParams,
@@ -140,7 +143,6 @@ import * as Sentry from '@sentry/nextjs'
 import { SetStateAction } from 'react'
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { GetOrganizationUsersPaginatedResponse } from '@koh/common'
 
 // Return type of array item, if T is an array
 type ItemIfArray<T> = T extends (infer I)[] ? I : T
@@ -1659,6 +1661,28 @@ export class APIClient {
         ),
       delete: async (courseId: number, questionId: number): Promise<void> =>
         this.req('DELETE', `/api/v1/lti/embeddable-question/${courseId}/${questionId}`),
+      getAnswers: async (courseId: number, questionId: number, userIds?: number[]): Promise<EmbeddableQuestionFeedback[]> => {
+        const searchParams = new URLSearchParams();
+        if (userIds && userIds.length > 0)
+          userIds.forEach((uid) => searchParams.append('users',uid.toString()))
+
+        return await this.req(
+          'GET',
+          `/api/v1/lti/embeddable-question/${courseId}/${questionId}/answers${Object.keys(searchParams).length > 0 ? `?${searchParams.toString()}` : ''}`
+        )
+      },
+      updateAnswer: async (courseId: number, questionId: number, feedbackId: number, body: UpdateEmbeddableFeedbackParams) =>
+        await this.req(
+          'PATCH',
+          `/api/v1/lti/embeddable-question/${courseId}/${questionId}/answers/${feedbackId}`,
+          undefined,
+          body,
+        ),
+      deleteAnswer: async (courseId: number, questionId: number, feedbackId: number) =>
+        await this.req(
+          'DELETE',
+          `/api/v1/lti/embeddable-question/${courseId}/${questionId}/answers/${feedbackId}`,
+        ),
     }
   }
 }

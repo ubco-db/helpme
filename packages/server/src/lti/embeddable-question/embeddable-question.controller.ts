@@ -6,32 +6,35 @@ import {
   Delete,
   Get,
   Param,
+  ParseArrayPipe,
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
   UseInterceptors,
-} from '@nestjs/common';
-import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
-import { CourseRolesGuard } from '../../guards/course-roles.guard';
-import { Roles } from '../../decorators/roles.decorator';
+} from '@nestjs/common'
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard'
+import { CourseRolesGuard } from '../../guards/course-roles.guard'
+import { Roles } from '../../decorators/roles.decorator'
 import {
   CreateEmbeddableQuestionParams,
+  EmbeddableQuestionFeedback,
   EmbeddableQuestionFeedbackParams,
   EmbeddableQuestionFeedbackResponse,
   Role,
+  UpdateEmbeddableFeedbackParams,
   UpdateEmbeddableQuestionParams,
-} from '@koh/common';
-import { EmbeddableQuestionService } from './embeddable-question.service';
-import { ChatbotApiService } from '../../chatbot/chatbot-api.service';
+} from '@koh/common'
+import { EmbeddableQuestionService } from './embeddable-question.service'
 import { EmbeddableQuestionModel } from './embeddable-question.entity'
+import { UserId } from '../../decorators/user.decorator'
 
 @Controller('lti/embeddable-question')
 @UseInterceptors(ClassSerializerInterceptor)
 export class EmbeddableQuestionController {
   constructor(
     private embeddableQuestionService: EmbeddableQuestionService,
-    private chatbotApiService: ChatbotApiService,
   ) {}
 
   /**
@@ -65,6 +68,7 @@ export class EmbeddableQuestionController {
    * @param courseId
    * @param questionId
    * @param body Contains the student response.
+   * @param userId User who is prompting for feedback
    */
   @Post(':courseId/:questionId/feedback')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
@@ -73,28 +77,24 @@ export class EmbeddableQuestionController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: EmbeddableQuestionFeedbackParams,
+    @UserId() userId: number,
   ): Promise<EmbeddableQuestionFeedbackResponse> {
     const responseText = body.responseText?.trim();
     if (!responseText) {
       throw new BadRequestException('Input is required');
     }
 
-    const question = await this.embeddableQuestionService.findOne(
+    const feedback = await this.embeddableQuestionService.getFeedback(
+      responseText,
       questionId,
+      courseId,
+      userId
     );
 
-    const feedback = await this.chatbotApiService.queryChatbot(
-      responseText,
-      '',
-      'feedback',
-      {
-        question: question.questionText,
-        criteria: question.criteriaText,
-        instructions: question.instructions,
-      },
-      courseId
-    );
-    return { feedback };
+    return {
+      feedback: feedback.aiFeedback,
+      grade: feedback.aiGrade,
+    }
   }
 
   /**
@@ -150,4 +150,57 @@ export class EmbeddableQuestionController {
   ): Promise<void> {
     await this.embeddableQuestionService.delete(questionId);
   }
+
+  /**
+   * For retrieving feedback from a given editable question. Accessible to TA and Professor roles only.
+   * @param courseId
+   * @param questionId
+   * @param users For filtering to specific group of users
+   */
+  @Get(':courseId/:questionId/answers')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.TA, Role.PROFESSOR)
+  async getAnswers(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('questionId', ParseIntPipe) questionId: number,
+    @Query('users', new ParseArrayPipe({ items: Number, optional: true })) users?: number[],
+  ): Promise<EmbeddableQuestionFeedback[]> {
+    return await this.embeddableQuestionService.getAnswers(questionId, users)
+  }
+
+  @Patch(':courseId/:questionId/answers/:answerId')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.TA, Role.PROFESSOR)
+  async updateAnswer(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('questionId', ParseIntPipe) questionId: number,
+    @Param('answerId', ParseIntPipe) answerId: number,
+    @Body() body: UpdateEmbeddableFeedbackParams
+  ): Promise<void> {
+    await this.embeddableQuestionService.updateAnswer(answerId,body);
+  }
+
+  @Delete(':courseId/:questionId/answers/:answerId')
+  @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  @Roles(Role.TA, Role.PROFESSOR)
+  async deleteAnswer(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('questionId', ParseIntPipe) questionId: number,
+    @Param('answerId', ParseIntPipe) answerId: number,
+  ): Promise<void> {
+    await this.embeddableQuestionService.deleteAnswer(answerId);
+  }
+
+  // @Get(':courseId/export')
+  // @UseGuards(JwtAuthGuard, CourseRolesGuard)
+  // @Roles(Role.TA, Role.PROFESSOR)
+  // async exportAnswers(
+  //   @Res() response,
+  //   @Param('courseId', ParseIntPipe) courseId: number,
+  //   @Query('q', new ParseArrayPipe({ items: Number, optional: true })) questions?: number[],
+  //   @Query('u', new ParseArrayPipe({ items: Number, optional: true })) users?: number[],
+  //   @Query('latestOnly', ParseBoolPipe) latestOnly?: boolean
+  // ): Promise<any> {
+  //
+  // }
 }

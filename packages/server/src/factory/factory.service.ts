@@ -1,4 +1,4 @@
-import { QuestionGroupModel } from 'question/question-group.entity';
+import { QuestionGroupModel } from 'question/question-group.entity'
 import {
   AlertType,
   asyncQuestionStatus,
@@ -8,55 +8,58 @@ import {
   MailServiceType,
   OrganizationRole,
   Role,
-} from '@koh/common';
-import { AlertModel } from '../alerts/alerts.entity';
-import { EventModel, EventType } from 'profile/event-model.entity';
-import { Factory } from 'typeorm-factory';
-import { CourseModel } from '../course/course.entity';
-import { SemesterModel } from '../semester/semester.entity';
-import { UserCourseModel } from '../profile/user-course.entity';
-import { UserModel } from '../profile/user.entity';
-import { QuestionModel } from '../question/question.entity';
-import { QueueModel } from '../queue/queue.entity';
-import { OrganizationModel } from '../organization/organization.entity';
-import { InteractionModel } from '../chatbot/interaction.entity';
-import { OrganizationCourseModel } from '../organization/organization-course.entity';
-import { QuestionTypeModel } from '../questionType/question-type.entity';
-import { OrganizationUserModel } from '../organization/organization-user.entity';
-import { CourseSettingsModel } from '../course/course_settings.entity';
-import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
-import { AsyncQuestionVotesModel } from '../asyncQuestion/asyncQuestionVotes.entity';
-import { ChatTokenModel } from '../chatbot/chat-token.entity';
-import { MailServiceModel } from '../mail/mail-services.entity';
-import { UserSubscriptionModel } from '../mail/user-subscriptions.entity';
-import { v4 } from 'uuid';
-import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity';
-import { CalendarModel } from '../calendar/calendar.entity';
-import { QueueInviteModel } from '../queue/queue-invite.entity';
-import { InsightDashboardModel } from '../insights/dashboard.entity';
-import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
-import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
-import { LMSAssignmentModel } from '../lmsIntegration/lmsAssignment.entity';
-import { CalendarStaffModel } from '../calendar/calendar-staff.entity';
-import { AsyncQuestionCommentModel } from '../asyncQuestion/asyncQuestionComment.entity';
-import { QueueChatsModel } from '../queueChats/queue-chats.entity';
-import { DataSource } from 'typeorm';
-import { Injectable } from '@nestjs/common';
-import { OrganizationSettingsModel } from '../organization/organization_settings.entity';
-import { OrganizationChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/organization-chatbot-settings.entity';
-import { LLMTypeModel } from '../chatbot/chatbot-infrastructure-models/llm-type.entity';
-import { ChatbotProviderModel } from '../chatbot/chatbot-infrastructure-models/chatbot-provider.entity';
-import { CourseChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
-import { SentEmailModel } from '../mail/sent-email.entity';
-import { LMSAuthStateModel } from '../lmsIntegration/lms-auth-state.entity';
-import { LMSAccessTokenModel } from '../lmsIntegration/lms-access-token.entity';
-import { LtiCourseInviteModel } from '../lti/lti-course-invite.entity';
-import { AuthStateModel } from '../auth/auth-state.entity';
-import * as crypto from 'crypto';
-import { UserLtiIdentityModel } from '../lti/user_lti_identity.entity';
-import { LtiIdentityTokenModel } from '../lti/lti_identity_token.entity';
-import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
-import { EmbeddableQuestionModel } from '../lti/embeddable-question/embeddable-question.entity';
+} from '@koh/common'
+import { AlertModel } from '../alerts/alerts.entity'
+import { EventModel, EventType } from 'profile/event-model.entity'
+import { Factory } from 'typeorm-factory'
+import { CourseModel } from '../course/course.entity'
+import { SemesterModel } from '../semester/semester.entity'
+import { UserCourseModel } from '../profile/user-course.entity'
+import { UserModel } from '../profile/user.entity'
+import { QuestionModel } from '../question/question.entity'
+import { QueueModel } from '../queue/queue.entity'
+import { OrganizationModel } from '../organization/organization.entity'
+import { InteractionModel } from '../chatbot/interaction.entity'
+import { OrganizationCourseModel } from '../organization/organization-course.entity'
+import { QuestionTypeModel } from '../questionType/question-type.entity'
+import { OrganizationUserModel } from '../organization/organization-user.entity'
+import { CourseSettingsModel } from '../course/course_settings.entity'
+import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity'
+import { AsyncQuestionVotesModel } from '../asyncQuestion/asyncQuestionVotes.entity'
+import { ChatTokenModel } from '../chatbot/chat-token.entity'
+import { MailServiceModel } from '../mail/mail-services.entity'
+import { UserSubscriptionModel } from '../mail/user-subscriptions.entity'
+import { v4 } from 'uuid'
+import { StudentTaskProgressModel } from '../studentTaskProgress/studentTaskProgress.entity'
+import { CalendarModel } from '../calendar/calendar.entity'
+import { QueueInviteModel } from '../queue/queue-invite.entity'
+import { InsightDashboardModel } from '../insights/dashboard.entity'
+import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity'
+import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity'
+import { LMSAssignmentModel } from '../lmsIntegration/lmsAssignment.entity'
+import { CalendarStaffModel } from '../calendar/calendar-staff.entity'
+import { AsyncQuestionCommentModel } from '../asyncQuestion/asyncQuestionComment.entity'
+import { QueueChatsModel } from '../queueChats/queue-chats.entity'
+import { DataSource } from 'typeorm'
+import { Injectable } from '@nestjs/common'
+import { OrganizationSettingsModel } from '../organization/organization_settings.entity'
+import {
+  OrganizationChatbotSettingsModel,
+} from '../chatbot/chatbot-infrastructure-models/organization-chatbot-settings.entity'
+import { LLMTypeModel } from '../chatbot/chatbot-infrastructure-models/llm-type.entity'
+import { ChatbotProviderModel } from '../chatbot/chatbot-infrastructure-models/chatbot-provider.entity'
+import { CourseChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity'
+import { SentEmailModel } from '../mail/sent-email.entity'
+import { LMSAuthStateModel } from '../lmsIntegration/lms-auth-state.entity'
+import { LMSAccessTokenModel } from '../lmsIntegration/lms-access-token.entity'
+import { LtiCourseInviteModel } from '../lti/lti-course-invite.entity'
+import { AuthStateModel } from '../auth/auth-state.entity'
+import * as crypto from 'crypto'
+import { UserLtiIdentityModel } from '../lti/user_lti_identity.entity'
+import { LtiIdentityTokenModel } from '../lti/lti_identity_token.entity'
+import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity'
+import { EmbeddableQuestionModel } from '../lti/embeddable-question/embeddable-question.entity'
+import { EmbeddableFeedbackModel } from '../lti/embeddable-question/embeddable-feedback.entity'
 
 /* Has all of our factories and initializes them with the db dataSource.
   If you want to use one of these factories, import it from factories.ts instead.
@@ -115,6 +118,7 @@ export class FactoryService {
   public LtiIdentityTokenFactory: Factory<LtiIdentityTokenModel>;
   public QueueStaffFactory: Factory<QueueStaffModel>;
   public EmbeddableQuestionFactory: Factory<EmbeddableQuestionModel>;
+  public EmbeddableFeedbackFactory: Factory<EmbeddableFeedbackModel>;
 
   constructor(dataSource: DataSource) {
     this.UserFactory = new Factory(UserModel, dataSource)
@@ -456,5 +460,11 @@ export class FactoryService {
       .assocOne('course', this.CourseFactory)
       .attr('questionText', 'Sample embeddable question')
       .attr('criteriaText', 'Sample criteria');
+
+    this.EmbeddableFeedbackFactory = new Factory(EmbeddableFeedbackModel, dataSource)
+      .assocOne('user', this.UserFactory)
+      .assocOne('embeddableQuestion', this.EmbeddableQuestionFactory)
+      .attr('submission', 'Sample submission')
+      .attr('aiFeedback', 'Sample feedback')
   }
 }

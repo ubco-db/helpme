@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Alert, Button, Input, message, Spin } from 'antd'
+import { Alert, Button, Input, message, Progress, Spin } from 'antd'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 
@@ -24,6 +24,7 @@ export default function EmbeddableQuestionFeedback({
 }: EmbeddableQuestionFeedbackProps): React.ReactElement {
   const [inputText, setInputText] = useState('')
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [grade, setGrade] = useState<number>()
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -45,6 +46,7 @@ export default function EmbeddableQuestionFeedback({
         trimmed,
       )
       setFeedback(response.feedback)
+      setGrade(response.grade)
     } catch (err) {
       if ((err as any)?.response?.status === 429) {
         const rateLimitMessage =
@@ -105,8 +107,15 @@ export default function EmbeddableQuestionFeedback({
       {feedback && !isLoading && (
         <div className="flex flex-col gap-1">
           <p className="text-sm font-medium text-zinc-700">Feedback</p>
-          <div className="whitespace-pre-wrap rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-800">
-            {feedback}
+          <div className={'flex gap-2'}>
+            <div className="whitespace-pre-wrap rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-800 w-full">
+              {feedback}
+            </div>
+            {grade != undefined && (
+              <div className={'w-1/8'}>
+                <Progress type="circle" showInfo percent={grade ? grade : 0} />
+              </div>
+            )}
           </div>
         </div>
       )}

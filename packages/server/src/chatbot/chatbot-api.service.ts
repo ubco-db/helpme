@@ -9,9 +9,9 @@ import {
   UpdateChatbotQuestionParams,
   UpdateDocumentAggregateParams,
   UpdateDocumentChunkParams,
-} from '@koh/common';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+} from '@koh/common'
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 
 @Injectable()
 /* This is a list of all endpoints from the chatbot repo.
@@ -107,7 +107,7 @@ export class ChatbotApiService {
   async queryChatbot(
     query: string,
     userToken: string, // Passing UserToken to the chatbot, but should be ignored for this endpoint.
-    type: 'default' | 'abstract' | 'feedback' = 'default',
+    type: 'default' | 'abstract' | 'feedback' | 'grade' = 'default',
     params?: Record<string,any>,
     courseId?: number
   ): Promise<string> {
