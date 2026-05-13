@@ -1224,10 +1224,17 @@ export class APIClient {
     updateCourseAccess: async (
       organizationId: number,
       courseId: number,
+      archiveOptions?: {
+        deleteChatbotDocs?: boolean;
+        deleteLMSIntegration?: boolean;
+        permanentlyDelete?: boolean;
+      },
     ): Promise<void> =>
       this.req(
         'PATCH',
         `/api/v1/organization/${organizationId}/update_course_access/${courseId}`,
+        undefined,
+        archiveOptions,
       ),
     deleteCourse: async (
       organizationId: number,

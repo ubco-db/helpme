@@ -2,6 +2,7 @@
 
 import { CourseModel } from '../course/course.entity';
 import * as cheerio from 'cheerio';
+import { validateHtml } from './email.utils';
 
 export interface ChatbotStats {
   totalQuestions: number;
@@ -88,30 +89,9 @@ export interface CourseStatsData {
   recommendations: RecommendationData[];
   suggestArchive: boolean;
 }
-function validateHtml(html: string): void {
-  const originalTags = html.match(/<(?!\/)(?!br|hr|img|input|meta|link|area|base|col|embed|source|track|wbr)([a-zA-Z][a-zA-Z0-9]*)[^>]*(?<!\/)>/g) || [];
-  const closingTags = html.match(/<\/([a-zA-Z][a-zA-Z0-9]*)>/g) || [];
   
-  const $ = cheerio.load(html, { xmlMode: false }, false);
-  const serialized = $.html();
-  
-  const serializedOpeningTags = serialized.match(/<(?!\/)(?!br|hr|img|input|meta|link|area|base|col|embed|source|track|wbr)([a-zA-Z][a-zA-Z0-9]*)[^>]*(?<!\/)>/g) || [];
-  const serializedClosingTags = serialized.match(/<\/([a-zA-Z][a-zA-Z0-9]*)>/g) || [];
-  
-  const difference = serializedClosingTags.length - closingTags.length;
-  if (closingTags.length !== serializedClosingTags.length) {
-    let errorMsg: string;
-    if (difference > 0) {
-      errorMsg = `Invalid HTML: You have ${difference} unclosed tag(s).`;
-    } else {
-      errorMsg = `Invalid HTML: You have ${Math.abs(difference)} orphaned closing tag(s) without opening tags.`;
-    }
-    throw new Error(errorMsg);
-  }  
-  if (Math.abs(serialized.length - html.length) > Math.max(100, html.length * 0.05)) {
-    throw new Error(`Invalid HTML: Structure significantly modified after parsing.`);
-  }
-}
+
+
 export class WeeklySummaryBuilder {
   static formatDate(date: Date): string {
     return date.toLocaleDateString('en-US', {
