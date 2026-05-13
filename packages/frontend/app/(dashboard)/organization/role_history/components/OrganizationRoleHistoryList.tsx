@@ -2,6 +2,7 @@ import { Badge, Col, Input, List, Pagination, Row, Select, Tooltip } from 'antd'
 import {
   DateRangeType,
   OrganizationRole,
+  OrgRoleChangeReason,
   OrgRoleHistory,
   OrgUser,
 } from '@koh/common'
@@ -349,8 +350,14 @@ const RoleChangeItem: React.FC<{
               <Col span={4} className={'flex justify-center'}>
                 <UserItem user={item.byUser} isMobile={isMobile} />
               </Col>
-              <Col span={4} className={'flex justify-center'}>
+              <Col span={4} className={'flex flex-col justify-center'}>
                 <p className={'text-center'}> changed role of </p>
+                {item.changeReason ===
+                  OrgRoleChangeReason.acceptedProfInvite && (
+                  <p className={'text-center text-zinc-500'}>
+                    (by prof invite)
+                  </p>
+                )}
               </Col>
               <Col span={4} className={'flex justify-center'}>
                 <UserItem user={item.toUser} isMobile={isMobile} />
@@ -405,8 +412,14 @@ const RoleChangeItem: React.FC<{
                 <Row className={'flex justify-center'}>
                   <UserItem user={item.byUser} isMobile={isMobile} />
                 </Row>
-                <Row className={'flex justify-center'}>
+                <Row className={'flex items-center justify-center'}>
                   <ArrowBigDown />
+                  {item.changeReason ===
+                    OrgRoleChangeReason.acceptedProfInvite && (
+                    <p className={'text-center text-xs text-zinc-600'}>
+                      (prof invite)
+                    </p>
+                  )}
                 </Row>
                 <Row className={'flex justify-center'}>
                   <UserItem user={item.toUser} isMobile={isMobile} />
