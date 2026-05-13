@@ -214,6 +214,10 @@ export default class LtiMiddleware {
         method: 'ALL',
       },
       {
+        route: /\/embeddable-question.*/,
+        method: 'ALL',
+      },
+      {
         route: /\/auth.*/,
         method: 'ALL',
       },

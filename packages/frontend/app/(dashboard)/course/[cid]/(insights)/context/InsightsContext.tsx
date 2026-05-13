@@ -12,7 +12,7 @@ type InsightContextType = {
     page: number
     setPage: (n: number) => void
     search: string
-    setSearch: (s: string) => void
+    setSearch: (s?: string) => void
   }
   staffDetails?: {
     staff: UserPartial[]
@@ -20,7 +20,7 @@ type InsightContextType = {
     page: number
     setPage: (n: number) => void
     search: string
-    setSearch: (s: string) => void
+    setSearch: (s?: string) => void
   }
   queueDetails?: QueuePartial[]
 }
@@ -86,7 +86,7 @@ const InsightContextProvider: React.FC<{
           page: page,
           setPage: setPage,
           search: search,
-          setSearch: (s: string) => {
+          setSearch: (s?: string) => {
             if (s == undefined) {
               setSearch('')
             } else {
@@ -100,7 +100,7 @@ const InsightContextProvider: React.FC<{
           page: staffPage,
           setPage: setStaffPage,
           search: staffSearch,
-          setSearch: (s: string) => {
+          setSearch: (s?: string) => {
             if (s == undefined) {
               setStaffSearch('')
             } else {

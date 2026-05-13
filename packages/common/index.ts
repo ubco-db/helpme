@@ -356,7 +356,7 @@ export enum MailServiceType {
   ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST = 'async_question_new_comment_on_my_post',
   ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST = 'async_question_new_comment_on_others_post',
   COURSE_CLONE_SUMMARY = 'course_clone_summary',
-  WEEKLY_COURSE_SUMMARY= 'weekly_course_summary',
+  WEEKLY_COURSE_SUMMARY = 'weekly_course_summary',
 }
 /**
  * Represents one of three possible user roles in a course.
@@ -488,6 +488,153 @@ export interface ChatbotAskSuggestedParams {
   question: string
   responseText: string
   vectorStoreId: string
+}
+
+export class EmbeddableQuestion {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @IsDate()
+  @Type(() => Date)
+  createdAt!: Date
+
+  @IsDate()
+  @IsOptional()
+  @Type(() => Date)
+  availableFrom?: Date
+
+  @IsDate()
+  @IsOptional()
+  @Type(() => Date)
+  availableUntil?: Date
+
+  @IsInt()
+  courseId!: number
+
+  @IsString()
+  questionText!: string
+
+  @IsString()
+  criteriaText!: string
+
+  @IsString()
+  @IsOptional()
+  instructions?: string
+}
+
+export class CreateEmbeddableQuestionParams {
+  @IsString()
+  @IsOptional()
+  name?: string
+
+  @IsString()
+  @IsNotEmpty()
+  questionText!: string
+
+  @IsString()
+  @IsNotEmpty()
+  criteriaText!: string
+
+  @IsDate()
+  @IsOptional()
+  @Type(() => Date)
+  availableFrom?: Date
+
+  @IsDate()
+  @IsOptional()
+  @Type(() => Date)
+  availableUntil?: Date
+
+  @IsString()
+  @IsOptional()
+  instructions?: string
+}
+
+export class UpdateEmbeddableQuestionParams {
+  @IsString()
+  @IsOptional()
+  name?: string
+
+  @IsString()
+  @IsNotEmpty()
+  questionText!: string
+
+  @IsString()
+  @IsNotEmpty()
+  criteriaText!: string
+
+  @IsDate()
+  @IsOptional()
+  @Type(() => Date)
+  availableFrom?: Date
+
+  @IsDate()
+  @IsOptional()
+  @Type(() => Date)
+  availableUntil?: Date
+
+  @IsString()
+  @IsOptional()
+  instructions?: string
+}
+
+export class EmbeddableQuestionFeedbackParams {
+  @IsString()
+  responseText!: string
+}
+
+export class UpdateEmbeddableFeedbackParams {
+  @IsNumber()
+  humanGrade!: number;
+}
+
+export class EmbeddableQuestionFeedbackResponse {
+  @IsString()
+  feedback!: string
+
+  @IsNumber()
+  @IsOptional()
+  grade?: number
+}
+
+export class EmbeddableQuestionFeedback {
+  @IsInt()
+  id!: number
+
+  @IsDate()
+  createdAt!: Date
+
+  @IsString()
+  submission!: string
+
+  @IsString()
+  aiFeedback!: string
+
+  @IsNumber()
+  @IsOptional()
+  aiGrade?: number
+
+  @IsNumber()
+  @IsOptional()
+  humanGrade?: number
+
+  @IsInt()
+  questionId!: number
+
+  @IsInstance(EmbeddableQuestion)
+  @IsOptional()
+  embeddableQuestion?: EmbeddableQuestion
+
+  @IsInt()
+  userId!: number
+
+  @IsInstance(UserPartial)
+  @IsOptional()
+  user?: UserPartial
 }
 
 export interface AddDocumentChunkParams {
@@ -4400,4 +4547,10 @@ export const ERROR_MESSAGES = {
     notAllowedToDeleteSemester: (role: OrganizationRole) =>
       `Members with role ${role} are not allowed to delete semesters`,
   },
+  embeddableQuestionController: {
+    notFound: 'Question not found.',
+    feedbackNotFound: 'Feedback not found.',
+    notAvailableYet: 'This question is not available to receive feedback for yet.',
+    noLongerAvailable: 'This question can no longer receive feedback.',
+  }
 }

@@ -2,6 +2,7 @@
 
 import {
   BellOutlined,
+  BookOutlined,
   DownloadOutlined,
   LinkOutlined,
   QrcodeOutlined,
@@ -29,6 +30,8 @@ enum CourseAdminOptions {
   CHATBOT_SETTINGS = 'CHATBOT_SETTINGS',
   CHATBOT_KNOWLEDGE_BASE = 'CHATBOT_KNOWLEDGE_BASE',
   CHATBOT_QUESTIONS = 'CHATBOT_QUESTIONS',
+  EMBEDDABLE_QUESTIONS = 'EMBEDDABLE_QUESTIONS',
+  EMBEDDABLE_QUESTIONS_ANSWERS = 'EMBEDDABLE_QUESTIONS_ANSWERS'
 }
 
 type CourseSettingsManyProps = {
@@ -78,6 +81,12 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       case CourseAdminOptions.CHATBOT_QUESTIONS:
         router.push(`${basePath}/chatbot_questions`)
         break
+      case CourseAdminOptions.EMBEDDABLE_QUESTIONS:
+        router.push(`${basePath}/embeddable_questions`)
+        break
+      case CourseAdminOptions.EMBEDDABLE_QUESTIONS_ANSWERS:
+        router.push(`${basePath}/embeddable_questions_answers`)
+        break
     }
   }
 
@@ -125,6 +134,19 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       icon: <RobotOutlined />,
       label: 'Edit Chatbot Questions',
     },
+    {
+      type: 'divider',
+    },
+    {
+      key: CourseAdminOptions.EMBEDDABLE_QUESTIONS,
+      icon: <BookOutlined />,
+      label: 'Embeddable Questions',
+    },
+    {
+      key: CourseAdminOptions.EMBEDDABLE_QUESTIONS_ANSWERS,
+      icon: <BookOutlined />,
+      label: 'Embeddable Question Answers',
+    }
   ]
 
   const professorMenuItems: MenuItem[] = [

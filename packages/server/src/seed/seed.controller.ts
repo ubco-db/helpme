@@ -1,5 +1,4 @@
 import {
-  asyncQuestionStatus,
   MailServiceType,
   OrganizationRole,
   QueueConfig,
@@ -39,6 +38,7 @@ import { CalendarModel } from '../calendar/calendar.entity';
 import { LMSAnnouncementModel } from 'lmsIntegration/lmsAnnouncement.entity';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 import { QueueChatsModel } from 'queueChats/queue-chats.entity';
+import { EmbeddableQuestionModel } from 'lti/embeddable-question/embeddable-question.entity';
 import { DataSource } from 'typeorm';
 import { FactoryService } from 'factory/factory.service';
 
@@ -151,6 +151,7 @@ export class SeedController {
     await this.seedService.deleteAll(ChatbotQuestionModel);
     await this.seedService.deleteAll(InteractionModel);
     await this.seedService.deleteAll(ChatTokenModel);
+    await this.seedService.deleteAll(EmbeddableQuestionModel);
     await this.seedService.deleteAll(UserTokenModel);
     await this.seedService.deleteAll(UserModel);
     await this.seedService.deleteAll(CourseModel);
@@ -619,6 +620,7 @@ export class SeedController {
       queue: queue1,
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const questionType3 = await this.factoryService.QuestionTypeFactory.create({
       cid: course2.id,
       queue: queue2,
@@ -743,6 +745,22 @@ export class SeedController {
       createdAt: new Date(Date.now() - 1500000),
       questionTypes: [questionType2],
     });
+
+    // seed some embeddable questions for course1
+    await EmbeddableQuestionModel.create({
+      courseId: course1.id,
+      questionText:
+        "Reflect on how the themes in this week's reading relate to your own experience.",
+      criteriaText:
+        'The response should reference at least two specific themes and provide personal examples.',
+    }).save();
+    await EmbeddableQuestionModel.create({
+      courseId: course1.id,
+      questionText:
+        'Did you complete all tasks for this week? Describe any challenges you faced.',
+      criteriaText:
+        'The response should mention completed tasks and describe at least one challenge.',
+    }).save();
 
     return 'Data successfully seeded';
   }

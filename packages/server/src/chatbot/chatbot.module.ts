@@ -12,6 +12,7 @@ import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConne
   controllers: [ChatbotController],
   imports: [CacheModule.register(), ChatbotDataSourceModule],
   providers: [ChatbotService, ChatbotApiService, ChatbotSettingsSubscriber],
+  exports: [ChatbotApiService],
 })
 export class ChatbotModule {
   static forRoot(connectionOptions: PostgresConnectionOptions) {

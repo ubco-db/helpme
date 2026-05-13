@@ -226,6 +226,7 @@ function useLtiMessenger(
     message_id: string
   }) => void,
 ): LtiMessengerType {
+  const isEmbedded = window.self !== window.top
   const [keyMap, setKeyMap] = useState<Record<string, string>>({})
   const [capabilities, setCapabilities] = useState<SupportedMessages[]>()
   const [pageContent, setPageContent] = useState<string>()
@@ -248,31 +249,40 @@ function useLtiMessenger(
   }
 
   useEffect(() => {
+    if (!isEmbedded) return
     postMessage(window, 'lti.capabilities', undefined, lti_storage_target)
     postMessage(window, 'lti.getPageSettings', undefined, lti_storage_target)
     postMessage(window, 'lti.getPageContent', undefined, lti_storage_target)
     postMessage(window, 'lti.fetchWindowSize', undefined, lti_storage_target)
-  }, [window, lti_storage_target])
+  }, [window, lti_storage_target, isEmbedded])
 
   useEffect(() => {
-    if (windowSize) {
+    if (windowSize && isEmbedded) {
+      const offsetTop = windowSize.offset?.top ?? 0
       postMessage(window, 'lti.frameResize', {
-        height: windowSize.height - windowSize.offset.top,
+        height: Math.max(windowSize.height - offsetTop, 200),
       })
     }
-  }, [window, windowSize])
+  }, [window, windowSize, isEmbedded])
 
   const listeningFunction = useCallback(
     (event: MessageEvent) => {
-      const data = JSON.parse(JSON.stringify(event.data))
+      if (!isEmbedded) return
+
+      const data =
+        event.data && typeof event.data === 'object' ? event.data : undefined
+      if (!data) return
+
       if (data.error) {
         console.error(
-          `Error returned from postMessage: ${event.data.error.code}: ${event.data.error.message}`,
+          `Error returned from postMessage: ${String(data.error.code)}: ${String(data.error.message)}`,
         )
         return
       }
 
-      const subject = data.subject as string
+      const subject = data.subject as string | undefined
+      if (!subject) return
+      if (!subject.includes('.response')) return
       const original = subject.substring(
         0,
         subject.indexOf('.response'),
@@ -316,7 +326,7 @@ function useLtiMessenger(
           break
       }
     },
-    [keyMap, onGetDataResponse, onPutDataResponse],
+    [keyMap, onGetDataResponse, onPutDataResponse, isEmbedded],
   )
 
   useEffect(() => {

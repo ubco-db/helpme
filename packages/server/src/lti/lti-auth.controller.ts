@@ -22,6 +22,7 @@ import { LtiService } from './lti.service';
 import { LoginService } from '../login/login.service';
 import { UserId } from '../decorators/user.decorator';
 import { UserModel } from 'profile/user.entity';
+import { EmailVerifiedGuard } from '../guards/email-verified.guard'
 
 // LTI Tool can only access the following API routes
 export const restrictPaths = [
@@ -34,6 +35,7 @@ export const restrictPaths = [
   'r^\\/api\\/v1\\/chatbot\\/askSuggested\\/[0-9]+$',
   'r^\\/api\\/v1\\/lms.*$',
   'r^\\/api\\/v1\\/lti\\/auth.*$',
+  'r^\\/api\\/v1\\/lti\\/embeddable-question/[0-9]+/.*$',
   'r^\\/api\\/v1\\/organization\\/[0-9]+\\/settings$',
 ];
 
@@ -44,6 +46,13 @@ export class LtiAuthController {
     private authService: AuthService,
     private loginService: LoginService,
   ) {}
+
+  // Method used to proxy the JwtAuthGuard to ensure that a token is possessed
+  @Get('/check')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  async ltiAuthCheck(): Promise<boolean> {
+    return true;
+  }
 
   @Get('/entry')
   async loginEnter(
