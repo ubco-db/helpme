@@ -112,7 +112,7 @@ export default function TACheckInCheckOutTimes(
         >
           <Spin />
         </div>
-        <div className="mb-5 text-sm">
+        <div className="ta-checkin-calendar mb-5 text-sm">
           <FullCalendar
             selectable={false}
             editable={false}

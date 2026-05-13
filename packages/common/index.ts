@@ -1427,6 +1427,9 @@ export class AsyncQuestionComment {
 
   isAnonymous!: boolean
 
+  @IsOptional()
+  endorsedBy: (UserPartial & { role?: Role }) | null = null
+
   @Type(() => Date)
   createdAt!: Date
 }
@@ -1438,6 +1441,11 @@ export class AsyncQuestionCommentParams {
   @IsOptional()
   @IsBoolean()
   isAnonymous?: boolean
+}
+
+export class AsyncQuestionCommentEndorseParams {
+  @IsBoolean()
+  isEndorsed!: boolean
 }
 
 export class QueueChatPartial {

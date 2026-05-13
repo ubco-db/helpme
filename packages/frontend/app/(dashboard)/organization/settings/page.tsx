@@ -444,7 +444,11 @@ export default function SettingsPage(): ReactNode {
               {organization?.ssoEnabled && (
                 <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
                   <Col xs={{ span: 24 }}>
-                    <Form.Item label="SSO Email Pattern(s)" colon={false}>
+                    <Form.Item
+                      label="SSO Email Pattern(s)"
+                      colon={false}
+                      tooltip="Regex expressions must start with an 'r'. They will be case-insensitive. Consider asking an AI to help you create a regex to match your organization's email, but usually something simple like r@.*ubc will work."
+                    >
                       <Form.List name="ssoEmailPatterns">
                         {(fields, { add, remove }) => (
                           <>
@@ -469,7 +473,7 @@ export default function SettingsPage(): ReactNode {
                                     },
                                   ]}
                                 >
-                                  <Input placeholder="e.g. r^.*@ubc\.ca$ or @example.com" />
+                                  <Input placeholder="e.g. r@.*ubc or @example.com" />
                                 </Form.Item>
                                 <Button
                                   type="link"

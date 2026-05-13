@@ -43,4 +43,11 @@ export class AsyncQuestionCommentModel extends BaseEntity {
   @Column()
   @Exclude()
   questionId: number;
+
+  @ManyToOne(() => UserModel, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'endorsedById' })
+  endorsedBy: UserModel | null;
+
+  @Column({ nullable: true })
+  endorsedById: number | null;
 }
