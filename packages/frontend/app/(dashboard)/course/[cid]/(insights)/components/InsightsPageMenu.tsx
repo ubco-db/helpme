@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Menu, MenuProps } from 'antd'
+import { Menu, MenuProps, Select } from 'antd'
 import {
   AreaChartOutlined,
   DashboardOutlined,
@@ -60,10 +60,19 @@ const InsightsMenu: React.FC<InsightsMenuProps> = ({
 
   return (
     <div className="mt-2">
+      <Select
+        value={category}
+        onChange={(value) => setCategory(value)}
+        className="w-full lg:hidden"
+        options={InsightCategories.map((item) => ({
+          value: item,
+          label: item.replace(/_/g, ' '),
+        }))}
+      />
       <Menu
-        defaultSelectedKeys={[category]}
+        selectedKeys={[category]}
         onClick={(item) => handleInsightsClick(item)}
-        className="bg-[#f8f9fb]"
+        className="hidden bg-[#f8f9fb] lg:block"
         items={insightsMenuItems}
       />
     </div>

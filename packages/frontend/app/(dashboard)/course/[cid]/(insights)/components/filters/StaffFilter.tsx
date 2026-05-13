@@ -88,9 +88,11 @@ const StaffFilter: React.FC<StaffFilterProps> = ({
           </div>
         </Modal>
         <FilterWrapper title={'Filter Staff'}>
-          <Button onClick={() => setModalOpen(true)}>
-            Selected Staff (
-            {selectedStaff.length == 0 ? 'All' : selectedStaff.length})
+          <Button className="max-w-full" onClick={() => setModalOpen(true)}>
+            <span className="block truncate">
+              Selected Staff (
+              {selectedStaff.length == 0 ? 'All' : selectedStaff.length})
+            </span>
             <DownOutlined color={'@White 65%'} />
           </Button>
         </FilterWrapper>

@@ -4,7 +4,7 @@ const FilterWrapper: React.FC<{ title: string; children: React.ReactNode }> = ({
   children,
 }) => {
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex min-w-0 flex-col items-center">
       <b>{title}</b>
       {children}
     </div>

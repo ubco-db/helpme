@@ -36,7 +36,7 @@ export default async function Layout(props: {
           courseId={cid}
         />
       </div>
-      <div className="mt-3 flex flex-col md:mt-0 md:flex-row md:space-x-3">
+      <div className="mt-3 flex min-w-0 flex-col md:mt-0 md:flex-row md:space-x-3">
         <div className="hidden md:block">
           <CourseSettingsMenu
             courseRole={courseRole}
@@ -45,7 +45,7 @@ export default async function Layout(props: {
           />
         </div>
         <AddChatbot courseId={cid}>
-          <div className="flex-1">{children}</div>
+          <div className="min-w-0 flex-1">{children}</div>
         </AddChatbot>
       </div>
     </div>

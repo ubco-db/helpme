@@ -79,9 +79,11 @@ const QueueFilter: React.FC<QueueFilterProps> = ({
           </div>
         </Modal>
         <FilterWrapper title={'Filter Queues'}>
-          <Button onClick={() => setModalOpen(true)}>
-            Selected Queues (
-            {selectedQueues.length == 0 ? 'All' : selectedQueues.length})
+          <Button className="max-w-full" onClick={() => setModalOpen(true)}>
+            <span className="block truncate">
+              Selected Queues (
+              {selectedQueues.length == 0 ? 'All' : selectedQueues.length})
+            </span>
             <DownOutlined color={'@White 65%'} />
           </Button>
         </FilterWrapper>

@@ -156,7 +156,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
 
     return (
       filterOptions.length > 0 && (
-        <div className="mt-2 flex flex-row justify-end gap-4">
+        <div className="mt-2 grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:flex lg:flex-row lg:justify-end">
           {filterOptions}
         </div>
       )
@@ -222,7 +222,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
               0 ? (
                 <div
                   className={
-                    'grid w-full grid-cols-3 items-center justify-center gap-2'
+                    'grid w-full grid-cols-1 items-center justify-center gap-2 lg:grid-cols-3'
                   }
                 >
                   {(insightOutput.output as MultipleGanttChartOutputType).map(

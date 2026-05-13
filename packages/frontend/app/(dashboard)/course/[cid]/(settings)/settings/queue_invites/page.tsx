@@ -123,9 +123,9 @@ export default function QueueInvitesPage(
     return (
       <div className="md:mt-3">
         <title>{`HelpMe | Editing ${course.name} Queue Invites`}</title>
-        <div className="flex flex-col items-center justify-between md:flex-row">
+        <div className="flex min-w-0 flex-col items-center justify-between gap-2 xl:flex-row">
           <h1>Queue Invites</h1>
-          <div className="flex flex-col items-center justify-center gap-2 rounded bg-white p-3 shadow-sm md:flex-row">
+          <div className="flex w-full min-w-0 flex-col items-center justify-center gap-2 rounded bg-white p-3 shadow-sm sm:w-auto xl:flex-row">
             {course.queues && course.queues.length > 0 && (
               <>
                 <Select
@@ -139,7 +139,7 @@ export default function QueueInvitesPage(
                         : undefined
                   }
                   disabled={selectableQueues.length === 0}
-                  className="w-80"
+                  className="w-full sm:w-80"
                   onChange={(value) => setSelectedQueueId(value)}
                   options={selectableQueues.map((queue) => ({
                     value: queue.id.toString(),
@@ -150,7 +150,7 @@ export default function QueueInvitesPage(
                 <Select
                   placeholder="Preset"
                   value={selectedPreset}
-                  className="w-36"
+                  className="w-full sm:w-36"
                   onChange={(value) => setSelectedPreset(value)}
                   options={[
                     { value: 'Default', label: 'Default Preset' },
