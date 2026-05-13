@@ -1246,7 +1246,11 @@ describe('Question Integration', () => {
             name: ta.name,
           },
         })
-        .expect(400);
+        .expect(200); // the taHelped should have gotten dropped automatically
+
+      // fetch the question from the DB to make sure it wasn't updated
+      const question = await QuestionModel.findOne({ where: { id: q.id } });
+      expect(question.taHelped).toBeUndefined();
     });
     it('PATCH status to helping as student not allowed', async () => {
       const course = await CourseFactory.create();
