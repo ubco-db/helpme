@@ -161,6 +161,7 @@ export class ProfileService {
   private deletePreviousImage(filePath: string): void {
     try {
       // TODO: maybe for safety we shouldn't assume that the user's photoURL is always going to be safe
+      // Though once we start storing pfps inside the database, we won't need to worry about this since we can just delete it from the DB
       fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, filePath));
     } catch (e) {
       console.error(
