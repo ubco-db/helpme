@@ -53,15 +53,9 @@ export class QueueInviteController {
   @Roles(Role.TA, Role.PROFESSOR)
   async createQueueInvite(
     @Param('queueId', ParseIntPipe) queueId: number,
-    @Res() res: Response,
-  ): Promise<Response<void>> {
-    try {
-      await this.queueService.createQueueInvite(queueId);
-      res.status(HttpStatus.CREATED).send();
-      return;
-    } catch (err) {
-      throw err;
-    }
+  ): Promise<string> {
+    const inviteModel = await this.queueService.createQueueInvite(queueId);
+    return inviteModel.inviteCode;
   }
 
   /**
