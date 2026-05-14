@@ -30,8 +30,6 @@ export interface FlattenedOrganizationResponse {
   orgId: number;
   organizationName: string;
   organizationDescription: string;
-  organizationLogoUrl: string;
-  organizationBannerUrl: string;
   organizationRole: string;
 }
 
@@ -334,8 +332,6 @@ export class OrganizationService {
       orgId: organizationUser.organization.id,
       organizationName: organizationUser.organization.name,
       organizationDescription: organizationUser.organization.description,
-      organizationLogoUrl: organizationUser.organization.logoUrl,
-      organizationBannerUrl: organizationUser.organization.bannerUrl,
       organizationRole: organizationUser.role,
     };
 

@@ -146,6 +146,7 @@ const QueueCard: React.FC<QueueCardProps> = ({
                   size={48}
                   photoURL={staffMember.photoURL}
                   username={staffMember.name}
+                  userId={staffMember.id}
                 />
               </Tooltip>
             ))}

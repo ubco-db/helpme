@@ -294,7 +294,7 @@ export default function SettingsPage(): ReactNode {
                           width={300}
                           height={300}
                           alt="Organization Logo"
-                          src={`/api/v1/organization/${organization?.id}/get_logo/${organization?.logoUrl}`}
+                          src={`/api/v1/organization/${organization?.id}/get_logo`}
                         />
                       </Row>
                       <Row>
@@ -348,7 +348,7 @@ export default function SettingsPage(): ReactNode {
                           width={300}
                           height={300}
                           alt="Organization Banner"
-                          src={`/api/v1/organization/${organization?.id}/get_banner/${organization?.bannerUrl}`}
+                          src={`/api/v1/organization/${organization?.id}/get_banner`}
                         />
                       </Row>
                       <Row>

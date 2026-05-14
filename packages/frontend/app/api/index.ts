@@ -814,20 +814,21 @@ export class APIClient {
     get: async (cid: number): Promise<GetAsyncQuestionsResponse> =>
       this.req('GET', `/api/v1/asyncQuestions/${cid}`, undefined),
     create: async (body: CreateAsyncQuestions, cid: number): Promise<void> =>
-      this.req(
-        'POST',
-        `/api/v1/asyncQuestions/${cid}`,
-        undefined,
-        body,
-      ),
-    studentUpdate: async (qid: number, body: UpdateAsyncQuestions): Promise<void> =>
+      this.req('POST', `/api/v1/asyncQuestions/${cid}`, undefined, body),
+    studentUpdate: async (
+      qid: number,
+      body: UpdateAsyncQuestions,
+    ): Promise<void> =>
       this.req(
         'PATCH',
         `/api/v1/asyncQuestions/student/${qid}`,
         undefined,
         body,
       ),
-    facultyUpdate: async (qid: number, body: UpdateAsyncQuestions): Promise<void> =>
+    facultyUpdate: async (
+      qid: number,
+      body: UpdateAsyncQuestions,
+    ): Promise<void> =>
       this.req(
         'PATCH',
         `/api/v1/asyncQuestions/faculty/${qid}`,

@@ -17,6 +17,7 @@
       - [Endpoints](#endpoints)
         - [Guards and `@Roles`](#guards-and-roles)
         - [`@User` and `@UserId` decorators](#user-and-userid-decorators)
+        - [File Uploads](#file-uploads)
         - [Gotchas while naming your endpoint - Routing mismatches](#gotchas-while-naming-your-endpoint---routing-mismatches)
         - [Endpoints that change their behavior based on role](#endpoints-that-change-their-behavior-based-on-role)
         - [Why some endpoints have `@Res` and some don't](#why-some-endpoints-have-res-and-some-dont)
@@ -197,6 +198,44 @@ This guard (as well as others) will interact with the `@Roles` decorator, which 
 Want the user details of the user that called the endpoint? Add a `@User` as one of the parameters to the controller function.
 
 If you only need the userId of the user that called the endpoint, use the `@UserId` parameter instead as it won't perform a database query.
+
+##### File Uploads
+
+If your endpoint requires a file upload from the user, please use Nest.js's ParseFilePipeBuilder, like so:
+
+```ts
+  // Only 10 calls allowed in 1 minute
+  @Throttle({ default: { limit: 10, ttl: minutes(1) } })
+  @Post('/upload_picture')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+    }),
+  )
+  async uploadImage(
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          // Note that nestjs filetypevalidator comes with mime type and magic number validation build in
+          fileType: 'jpg|jpeg|png|gif|avif|webp',
+        })
+        .addMaxSizeValidator({
+          maxSize: 5 * 1024 * 1024, // 5MB limit per file
+        })
+        .build(),
+    )
+    file: Express.Multer.File,
+    @User() user: UserModel,
+    @Res() response: Response,
+  ): Promise<void> {
+    ...
+  }
+```
+
+Note the following:
+- Using `@Throttle()`. All of our endpoints are throttled with a global 30 calls per second. Obviously, someone trying to upload 30 files/sec would quickly result in server overload. So add a more restrictive throttle. 
+- `@UploadedFile()` with `@ParseFilePipeBuilder` with `addFileTypeValidator` and `addMaxSizeValidator`. Using these will cover like 90% of use cases where you need file upload from user. 
 
 ##### Gotchas while naming your endpoint - Routing mismatches
 

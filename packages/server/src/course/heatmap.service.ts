@@ -9,6 +9,8 @@ import { EventModel } from '../profile/event-model.entity';
 import { Command, Positional } from 'nestjs-command';
 import { inRange, mean, range } from 'lodash';
 import 'moment-timezone';
+// idk why tests seem to fail if you do the traditional import moment from moment
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 import moment = require('moment');
 
 function arrayRotate(arr, count) {
