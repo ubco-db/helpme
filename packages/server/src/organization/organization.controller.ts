@@ -709,21 +709,24 @@ export class OrganizationController {
     if (!organization) {
       throw new NotFoundException(`Organization not found`);
     }
-    fs.stat(
-      path.join(process.env.UPLOAD_LOCATION, organization.bannerUrl),
-      async (err, stats) => {
-        if (stats) {
-          res.set('Content-Type', 'image/webp');
-          res.sendFile(organization.bannerUrl, {
-            root: process.env.UPLOAD_LOCATION,
-          });
-        } else {
-          throw new NotFoundException(
-            `Banner image for ${organization.name} not found`,
-          );
-        }
-      },
-    );
+    if (!organization.bannerUrl) {
+      throw new NotFoundException(
+        `No banner image set for ${organization.name}`,
+      );
+    }
+    try {
+      await fs.promises.stat(
+        path.join(process.env.UPLOAD_LOCATION, organization.bannerUrl),
+      );
+      res.set('Content-Type', 'image/webp');
+      res.sendFile(organization.bannerUrl, {
+        root: process.env.UPLOAD_LOCATION,
+      });
+    } catch {
+      throw new NotFoundException(
+        `Banner image for ${organization.name} not found`,
+      );
+    }
   }
 
   // Uses no guards as this is a public endpoint (so it shows up on login page)
@@ -740,21 +743,22 @@ export class OrganizationController {
     if (!organization) {
       throw new NotFoundException(`Organization not found`);
     }
-    fs.stat(
-      path.join(process.env.UPLOAD_LOCATION, organization.logoUrl),
-      async (err, stats) => {
-        if (stats) {
-          res.set('Content-Type', 'image/webp');
-          res.sendFile(organization.logoUrl, {
-            root: process.env.UPLOAD_LOCATION,
-          });
-        } else {
-          throw new NotFoundException(
-            `Logo image for ${organization.name} not found`,
-          );
-        }
-      },
-    );
+    if (!organization.logoUrl) {
+      throw new NotFoundException(`No logo image set for ${organization.name}`);
+    }
+    try {
+      await fs.promises.stat(
+        path.join(process.env.UPLOAD_LOCATION, organization.logoUrl),
+      );
+      res.set('Content-Type', 'image/webp');
+      res.sendFile(organization.logoUrl, {
+        root: process.env.UPLOAD_LOCATION,
+      });
+    } catch {
+      throw new NotFoundException(
+        `Logo image for ${organization.name} not found`,
+      );
+    }
   }
 
   @Post(':oid/upload_banner')

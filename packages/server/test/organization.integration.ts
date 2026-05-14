@@ -1954,10 +1954,7 @@ describe('Organization Integration', () => {
       const file = Buffer.from([]);
       const fileName = 'test.png';
 
-      await fs.writeFileSync(
-        `${process.env.UPLOAD_LOCATION}/${fileName}`,
-        file,
-      );
+      fs.writeFileSync(`${process.env.UPLOAD_LOCATION}/${fileName}`, file);
 
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create({
@@ -1970,7 +1967,7 @@ describe('Organization Integration', () => {
 
       expect(res.status).toBe(200);
 
-      await fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, fileName));
+      fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, fileName));
     });
 
     it('should return 404 when image is not found', async () => {
@@ -1995,10 +1992,7 @@ describe('Organization Integration', () => {
       const file = Buffer.from([]);
       const fileName = 'test.png';
 
-      await fs.writeFileSync(
-        `${process.env.UPLOAD_LOCATION}/${fileName}`,
-        file,
-      );
+      fs.writeFileSync(`${process.env.UPLOAD_LOCATION}/${fileName}`, file);
 
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create({
@@ -2016,7 +2010,7 @@ describe('Organization Integration', () => {
 
       expect(res.status).toBe(200);
 
-      await fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, fileName));
+      fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, fileName));
     });
   });
 
