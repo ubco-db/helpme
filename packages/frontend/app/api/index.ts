@@ -41,7 +41,6 @@ import {
   EssayFeedbackRequest,
   EssayFeedbackResponse,
   ExtraTAStatus,
-  FeedbackResponse,
   GetAlertsResponse,
   GetAsyncQuestionsResponse,
   GetAvailableModelsBody,
@@ -692,11 +691,7 @@ export class APIClient {
     extractAssignmentText: async (
       courseId: number,
       file: File,
-<<<<<<< Updated upstream
     ): Promise<EssayFeedbackExtractTextResponse> => {
-=======
-    ): Promise<{ assignment_text: string; filename: string }> => {
->>>>>>> Stashed changes
       const formData = new FormData()
       formData.append('file', file)
       return this.req(
@@ -708,22 +703,39 @@ export class APIClient {
     },
     generateAssignmentFeedback: async (
       courseId: number,
-<<<<<<< Updated upstream
       essay_text: string,
     ): Promise<EssayFeedbackResponse> =>
-      this.req('POST', `/api/v1/courses/${courseId}/essay-feedback`, undefined, {
-        essay_text,
-      } satisfies EssayFeedbackRequest),
-=======
-      assignment_text: string,
-    ): Promise<FeedbackResponse> =>
       this.req(
         'POST',
         `/api/v1/courses/${courseId}/assignment-feedback`,
-        FeedbackResponse,
-        { assignment_text },
+        undefined,
+        { essay_text } satisfies EssayFeedbackRequest,
       ),
->>>>>>> Stashed changes
+    /** @deprecated Prefer extractAssignmentText */
+    extractEssayText: async (
+      courseId: number,
+      file: File,
+    ): Promise<EssayFeedbackExtractTextResponse> => {
+      const formData = new FormData()
+      formData.append('file', file)
+      return this.req(
+        'POST',
+        `/api/v1/courses/${courseId}/assignment-feedback/extract-text`,
+        undefined,
+        formData,
+      )
+    },
+    /** @deprecated Prefer generateAssignmentFeedback */
+    generateEssayFeedback: async (
+      courseId: number,
+      essay_text: string,
+    ): Promise<EssayFeedbackResponse> =>
+      this.req(
+        'POST',
+        `/api/v1/courses/${courseId}/assignment-feedback`,
+        undefined,
+        { essay_text } satisfies EssayFeedbackRequest,
+      ),
     getAllStudentsNotInQueue: async (
       courseId: number,
       withATaskQuestion?: boolean,

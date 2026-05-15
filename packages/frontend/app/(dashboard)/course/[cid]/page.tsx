@@ -6,14 +6,11 @@ import { ReactElement, useEffect, useMemo, useState, use } from 'react'
 import QueueCard from './components/QueueCard'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { getRoleInCourse } from '@/app/utils/generalUtils'
+import { getRoleInCourse, getErrorMessage } from '@/app/utils/generalUtils'
 import { useCourse } from '@/app/hooks/useCourse'
 import CreateQueueModal from './components/CreateQueueModal'
 import AsyncCentreCard from './components/AsyncCentreCard'
-<<<<<<< Updated upstream
-=======
 import AssignmentFeedbackStartCard from './components/AssignmentFeedbackStartCard'
->>>>>>> Stashed changes
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import CoursePageCheckInButton from './components/CoursePageCheckInButton'
 import PopularTimes from './components/popularTimes/PopularTimes'
@@ -25,8 +22,6 @@ import StudentSchedulePanel from './schedule/components/StudentSchedulePanel'
 import { useChatbotContext } from './components/chatbot/ChatbotProvider'
 import Chatbot from './components/chatbot/Chatbot'
 import { useRouter } from 'next/navigation'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import Link from 'next/link'
 
 type CoursePageProps = {
   params: Promise<{ cid: string }>
@@ -173,20 +168,8 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                   />
                 )}
 
-<<<<<<< Updated upstream
-                {courseFeatures.essayEvaluationEnabled && (
-                  <Row>
-                    <Link
-                      href={`/course/${cid}/essay-feedback`}
-                      className="mx-auto mb-4 w-full rounded-md border border-neutral-200 bg-white p-4 text-center shadow-sm transition hover:border-blue-400 hover:text-blue-600"
-                    >
-                      Essay Feedback
-                    </Link>
-                  </Row>
-=======
                 {courseFeatures.assignmentEvaluationEnabled && (
                   <AssignmentFeedbackStartCard cid={cid} />
->>>>>>> Stashed changes
                 )}
 
                 {role === Role.TA ||
@@ -270,14 +253,11 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
         )) || (
             // only show if only the chatbot is enabled
             <div className="mt-3 flex h-[100vh] flex-col items-center justify-items-end">
-<<<<<<< Updated upstream
-=======
               {courseFeatures.assignmentEvaluationEnabled && (
                 <div className="w-full max-w-3xl px-4 pb-4">
                   <AssignmentFeedbackStartCard cid={cid} />
                 </div>
               )}
->>>>>>> Stashed changes
               <Chatbot
                 key={cid}
                 cid={cid}

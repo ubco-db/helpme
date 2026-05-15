@@ -16,7 +16,7 @@ const AssignmentFeedbackStartCard: React.FC<AssignmentFeedbackStartCardProps> = 
     <Card
       classNames={{ header: 'text-white rounded-t-lg bg-[#0c6b6e]' }}
       className="my-4 rounded-t-lg border border-[#ddd9d1] shadow-md"
-      title="Assignment / report feedback"
+      title="Assignment feedback"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-md italic text-neutral-600">

@@ -5,7 +5,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { CourseSettingsModel } from '../course/course_settings.entity';
-<<<<<<< Updated upstream
+import { ChatbotApiService } from '../chatbot/chatbot-api.service';
+import { buildPromptMessages, type PromptMessage } from './lib/prompt-builder';
 import { extractTextFromBuffer } from './lib/file-extractor';
 import { parseEssay } from './lib/essay-parser';
 import { validateFeedbackResponse } from './lib/feedback-validator';
@@ -13,43 +14,25 @@ import type {
   EssayFeedbackExtractTextResponse,
   EssayFeedbackResponse,
 } from '@koh/common';
-import { ChatbotApiService } from '../chatbot/chatbot-api.service';
-=======
-import { ChatbotApiService } from '../chatbot/chatbot-api.service';
-import { buildPromptMessages, type PromptMessage } from './lib/prompt-builder';
-import { extractTextFromBuffer } from './lib/file-extractor';
-import { parseEssay } from './lib/essay-parser';
-import { validateFeedbackResponse } from './lib/feedback-validator';
-import type { FeedbackResponse } from './types/feedback-response';
->>>>>>> Stashed changes
 
 @Injectable()
 export class EssayFeedbackService {
   private readonly logger = new Logger(EssayFeedbackService.name);
 
-<<<<<<< Updated upstream
   constructor(private readonly chatbotApiService: ChatbotApiService) {}
-=======
-  constructor(private readonly chatbotApi: ChatbotApiService) {}
->>>>>>> Stashed changes
 
   async extractText(
     courseId: number,
     file: Express.Multer.File,
-<<<<<<< Updated upstream
   ): Promise<EssayFeedbackExtractTextResponse> {
-    await this.assertEssayEvaluationEnabled(courseId);
-=======
-  ): Promise<{ assignment_text: string; filename: string }> {
     await this.assertAssignmentEvaluationEnabled(courseId);
->>>>>>> Stashed changes
     try {
-      const assignment_text = await extractTextFromBuffer(
+      const essay_text = await extractTextFromBuffer(
         file.buffer,
         file.mimetype || 'application/octet-stream',
         file.originalname,
       );
-      return { assignment_text, filename: file.originalname };
+      return { essay_text, filename: file.originalname };
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Failed to extract text.';
@@ -59,42 +42,20 @@ export class EssayFeedbackService {
 
   async generateFeedback(
     courseId: number,
-<<<<<<< Updated upstream
     essayText: string,
-    userToken: string,
   ): Promise<EssayFeedbackResponse> {
-    await this.assertEssayEvaluationEnabled(courseId);
-    const paragraphs = parseEssay(essayText);
-=======
-    assignmentText: string,
-  ): Promise<FeedbackResponse> {
     await this.assertAssignmentEvaluationEnabled(courseId);
-    const paragraphs = parseEssay(assignmentText);
+    const paragraphs = parseEssay(essayText);
     const messages = buildPromptMessages(paragraphs);
->>>>>>> Stashed changes
 
     let raw: unknown;
     try {
-      raw = await this.chatbotApiService.generateEssayFeedback(
-        courseId,
-        essayText,
-        paragraphs,
-        userToken,
-      );
+      raw = await this.invokeLlm(courseId, messages);
     } catch (firstErr) {
       this.logger.warn(
-<<<<<<< Updated upstream
-        `Essay feedback chatbot request first attempt failed: ${firstErr}`,
-      );
-      raw = await this.chatbotApiService.generateEssayFeedback(
-        courseId,
-        essayText,
-        paragraphs,
-        userToken,
-=======
         `Assignment feedback LLM first attempt failed: ${firstErr}`,
->>>>>>> Stashed changes
       );
+      raw = await this.invokeLlm(courseId, messages);
     }
 
     try {
@@ -118,8 +79,6 @@ export class EssayFeedbackService {
       );
     }
   }
-<<<<<<< Updated upstream
-=======
 
   /**
    * Sends the prompt to the chatbot service's `/chatbot/query` endpoint with
@@ -139,14 +98,14 @@ export class EssayFeedbackService {
 
     let raw: string;
     try {
-      raw = await this.chatbotApi.queryChatbotForCourse(
+      raw = await this.chatbotApiService.queryChatbotForCourse(
         flattened,
         courseId,
         'default',
       );
     } catch (firstErr) {
       this.logger.warn(`chatbot /query failed once: ${String(firstErr)}`);
-      raw = await this.chatbotApi.queryChatbotForCourse(
+      raw = await this.chatbotApiService.queryChatbotForCourse(
         flattened,
         courseId,
         'default',
@@ -167,7 +126,7 @@ export class EssayFeedbackService {
         'Output ONLY a single valid JSON object now. ' +
         'Start the response with `{` and end with `}`. ' +
         'Do NOT include markdown code fences or any prose.';
-      const retry = await this.chatbotApi.queryChatbotForCourse(
+      const retry = await this.chatbotApiService.queryChatbotForCourse(
         stricter,
         courseId,
         'default',
@@ -203,7 +162,7 @@ export class EssayFeedbackService {
     }
 
     let cleaned = text
-      .replace(/<think>[\s\S]*?<\/think>/gi, '')
+      .replace(/<think>[\s\S]*?<\/redacted_thinking>/gi, '')
       .replace(/^\s*```(?:json)?\s*/i, '')
       .replace(/\s*```\s*$/i, '')
       .trim();
@@ -224,5 +183,4 @@ export class EssayFeedbackService {
       throw new BadRequestException('Chatbot returned non-JSON content.');
     }
   }
->>>>>>> Stashed changes
 }

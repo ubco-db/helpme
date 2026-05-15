@@ -30,7 +30,7 @@ import {
   renderSidebarCards,
   renderSummary,
 } from './assignmentFeedbackRenderHtml'
-import type { FeedbackResponse } from './assignmentFeedbackTypes'
+import type { EssayFeedbackResponse } from '@koh/common'
 import './assignment-feedback.css'
 
 const { TextArea } = Input
@@ -57,7 +57,7 @@ export default function AssignmentFeedbackClient(props: {
 
   const [assignmentText, setAssignmentText] = useState('')
   const [loadedFilename, setLoadedFilename] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<FeedbackResponse | null>(null)
+  const [feedback, setFeedback] = useState<EssayFeedbackResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [statusErr, setStatusErr] = useState<string | null>(null)
   const [viewerState, setViewerState] = useState<ViewerState>(
@@ -129,7 +129,7 @@ export default function AssignmentFeedbackClient(props: {
         setAssignmentText(text)
       } else {
         const res = await API.course.extractAssignmentText(courseId, file)
-        setAssignmentText(res.assignment_text.trim())
+        setAssignmentText(res.essay_text.trim())
       }
       setLoadedFilename(file.name)
     } catch (err) {
@@ -293,7 +293,7 @@ export default function AssignmentFeedbackClient(props: {
   return (
     <div className="assignment-fb-scope mx-auto max-w-3xl px-4 py-8">
       <Typography.Title level={3} className="!mb-2">
-        Assignment / report feedback
+        Assignment feedback
       </Typography.Title>
       <Typography.Paragraph type="secondary" className="!mb-6">
         Upload a file or paste your Descriptive Report. The model configured for

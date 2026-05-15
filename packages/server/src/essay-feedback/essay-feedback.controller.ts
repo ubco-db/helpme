@@ -2,7 +2,6 @@ import {
   BadRequestException,
   Body,
   Controller,
-  ForbiddenException,
   Param,
   ParseIntPipe,
   Post,
@@ -22,8 +21,6 @@ import { CourseRolesGuard } from '../guards/course-roles.guard';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { EssayFeedbackService } from './essay-feedback.service';
-import { User } from '../decorators/user.decorator';
-import { UserModel } from '../profile/user.entity';
 
 const TEN_MB = 10 * 1024 * 1024;
 
@@ -42,11 +39,7 @@ export class EssayFeedbackController {
   async extractText(
     @Param('courseId', ParseIntPipe) courseId: number,
     @UploadedFile() file: Express.Multer.File,
-<<<<<<< Updated upstream
   ): Promise<EssayFeedbackExtractTextResponse> {
-=======
-  ): Promise<{ assignment_text: string; filename: string }> {
->>>>>>> Stashed changes
     if (!file?.buffer) {
       throw new BadRequestException('No file uploaded.');
     }
@@ -58,24 +51,11 @@ export class EssayFeedbackController {
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async generateFeedback(
     @Param('courseId', ParseIntPipe) courseId: number,
-<<<<<<< Updated upstream
     @Body() body: EssayFeedbackRequest,
-    @User({ chat_token: true }) user: UserModel,
   ): Promise<EssayFeedbackResponse> {
-    if (!user.chat_token) {
-      throw new ForbiddenException('User does not have a chatbot token.');
-    }
     return this.essayFeedbackService.generateFeedback(
       courseId,
       body.essay_text,
-      user.chat_token.token,
-=======
-    @Body() body: EssayFeedbackRequestDto,
-  ) {
-    return this.essayFeedbackService.generateFeedback(
-      courseId,
-      body.assignment_text,
->>>>>>> Stashed changes
     );
   }
 }

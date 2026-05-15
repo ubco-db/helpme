@@ -6,11 +6,7 @@
   "private": true,
   "scripts": {
     "prebuild": "rimraf dist",
-<<<<<<< Updated upstream
-    "build": "nest build --webpack --webpackPath webpack.config.js && npm run sentry:sourcemaps",
-=======
     "build": "nest build --webpack --webpackPath webpack.config.js && node copy-assignment-feedback-assets.cjs && npm run sentry:sourcemaps",
->>>>>>> Stashed changes
     "build:dev": "nest build --webpack --webpackPath webpack.config.js",
     "dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider TYPEORM_LOGGING=true nest build --webpack --webpackPath webpack-hmr.config.js",
     "dev:debug": "nest start --debug --watch",
