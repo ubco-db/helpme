@@ -29,8 +29,10 @@ export class ChatbotApiService {
   private readonly chatbotApiKey: string;
 
   constructor(private configService: ConfigService) {
-    // this.chatbotApiUrl = this.configService.get<string>('CHATBOT_API_URL');
-    this.chatbotApiUrl = 'http://localhost:3003/chat';
+    const configuredUrl = this.configService
+      .get<string>('CHATBOT_API_URL')
+      ?.trim();
+    this.chatbotApiUrl = configuredUrl || 'http://localhost:3003/chat';
     this.chatbotApiKey = this.configService.get<string>('CHATBOT_API_KEY');
   }
 
@@ -63,8 +65,10 @@ export class ChatbotApiService {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'HMS-API-KEY': this.chatbotApiKey,
-        HMS_API_TOKEN: userToken,
       };
+      if (userToken && userToken.length > 0) {
+        headers.HMS_API_TOKEN = userToken;
+      }
 
       const response = await fetch(url, {
         method,
@@ -125,6 +129,7 @@ export class ChatbotApiService {
     return resp.answer;
   }
 
+<<<<<<< Updated upstream
   async generateEssayFeedback(
     courseId: number,
     essayText: string,
@@ -135,6 +140,26 @@ export class ChatbotApiService {
       essay_text: essayText,
       paragraphs,
     });
+=======
+  /**
+   * Calls the chatbot `POST /chatbot/query` endpoint with a `courseId`, so the
+   * chatbot routes the prompt through the course's generatorLLM (the same LLM
+   * configured in Chatbot Settings for that course). No user token is required
+   * by the chatbot's `/query` route, so this method intentionally omits it.
+   */
+  async queryChatbotForCourse(
+    query: string,
+    courseId: number,
+    type: 'default' | 'abstract' = 'default',
+  ): Promise<string> {
+    const resp: { answer: string } = await this.request(
+      'POST',
+      `chatbot/query`,
+      '',
+      { query, type, courseId },
+    );
+    return resp.answer;
+>>>>>>> Stashed changes
   }
 
   async getModels(userToken: string) {

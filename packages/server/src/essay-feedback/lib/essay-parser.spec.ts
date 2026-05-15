@@ -10,6 +10,6 @@ describe('parseEssay', () => {
   });
 
   it('throws on empty input', () => {
-    expect(() => parseEssay('   ')).toThrow();
+    expect(() => parseEssay('   ')).toThrow('assignment_text cannot be empty.');
   });
 });

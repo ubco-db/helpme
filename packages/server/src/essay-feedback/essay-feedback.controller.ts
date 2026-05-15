@@ -31,7 +31,7 @@ const TEN_MB = 10 * 1024 * 1024;
 export class EssayFeedbackController {
   constructor(private readonly essayFeedbackService: EssayFeedbackService) {}
 
-  @Post(':courseId/essay-feedback/extract-text')
+  @Post(':courseId/assignment-feedback/extract-text')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   @UseInterceptors(
@@ -42,18 +42,23 @@ export class EssayFeedbackController {
   async extractText(
     @Param('courseId', ParseIntPipe) courseId: number,
     @UploadedFile() file: Express.Multer.File,
+<<<<<<< Updated upstream
   ): Promise<EssayFeedbackExtractTextResponse> {
+=======
+  ): Promise<{ assignment_text: string; filename: string }> {
+>>>>>>> Stashed changes
     if (!file?.buffer) {
       throw new BadRequestException('No file uploaded.');
     }
     return this.essayFeedbackService.extractText(courseId, file);
   }
 
-  @Post(':courseId/essay-feedback')
+  @Post(':courseId/assignment-feedback')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async generateFeedback(
     @Param('courseId', ParseIntPipe) courseId: number,
+<<<<<<< Updated upstream
     @Body() body: EssayFeedbackRequest,
     @User({ chat_token: true }) user: UserModel,
   ): Promise<EssayFeedbackResponse> {
@@ -64,6 +69,13 @@ export class EssayFeedbackController {
       courseId,
       body.essay_text,
       user.chat_token.token,
+=======
+    @Body() body: EssayFeedbackRequestDto,
+  ) {
+    return this.essayFeedbackService.generateFeedback(
+      courseId,
+      body.assignment_text,
+>>>>>>> Stashed changes
     );
   }
 }

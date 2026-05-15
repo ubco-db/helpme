@@ -635,6 +635,11 @@ export class CourseService {
           clonedSettings.scheduleOnFrontPage = origSettings.scheduleOnFrontPage;
           clonedSettings.asyncCentreAIAnswers =
             origSettings.asyncCentreAIAnswers;
+<<<<<<< Updated upstream
+=======
+          clonedSettings.assignmentEvaluationEnabled =
+            origSettings.assignmentEvaluationEnabled;
+>>>>>>> Stashed changes
         }
         await manager.save(clonedSettings);
       } else {

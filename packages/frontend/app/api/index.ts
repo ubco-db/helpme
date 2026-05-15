@@ -41,6 +41,7 @@ import {
   EssayFeedbackRequest,
   EssayFeedbackResponse,
   ExtraTAStatus,
+  FeedbackResponse,
   GetAlertsResponse,
   GetAsyncQuestionsResponse,
   GetAvailableModelsBody,
@@ -688,26 +689,41 @@ export class APIClient {
       courseId: number,
     ): Promise<CourseSettingsResponse> =>
       this.req('GET', `/api/v1/courses/${courseId}/features`),
-    extractEssayText: async (
+    extractAssignmentText: async (
       courseId: number,
       file: File,
+<<<<<<< Updated upstream
     ): Promise<EssayFeedbackExtractTextResponse> => {
+=======
+    ): Promise<{ assignment_text: string; filename: string }> => {
+>>>>>>> Stashed changes
       const formData = new FormData()
       formData.append('file', file)
       return this.req(
         'POST',
-        `/api/v1/courses/${courseId}/essay-feedback/extract-text`,
+        `/api/v1/courses/${courseId}/assignment-feedback/extract-text`,
         undefined,
         formData,
       )
     },
-    generateEssayFeedback: async (
+    generateAssignmentFeedback: async (
       courseId: number,
+<<<<<<< Updated upstream
       essay_text: string,
     ): Promise<EssayFeedbackResponse> =>
       this.req('POST', `/api/v1/courses/${courseId}/essay-feedback`, undefined, {
         essay_text,
       } satisfies EssayFeedbackRequest),
+=======
+      assignment_text: string,
+    ): Promise<FeedbackResponse> =>
+      this.req(
+        'POST',
+        `/api/v1/courses/${courseId}/assignment-feedback`,
+        FeedbackResponse,
+        { assignment_text },
+      ),
+>>>>>>> Stashed changes
     getAllStudentsNotInQueue: async (
       courseId: number,
       withATaskQuestion?: boolean,

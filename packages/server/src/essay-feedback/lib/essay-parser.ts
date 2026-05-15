@@ -3,7 +3,7 @@ import type { EssayFeedbackParagraph } from '@koh/common';
 export function parseEssay(essayText: string): EssayFeedbackParagraph[] {
   const normalized = essayText.trim();
   if (!normalized) {
-    throw new Error('essay_text cannot be empty.');
+    throw new Error('assignment_text cannot be empty.');
   }
 
   return normalized

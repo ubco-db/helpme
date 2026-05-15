@@ -45,5 +45,5 @@ export class CourseSettingsModel extends BaseEntity {
   asyncCentreAuthorPublic: boolean;
 
   @Column('boolean', { default: false })
-  essayEvaluationEnabled: boolean;
+  assignmentEvaluationEnabled: boolean;
 }

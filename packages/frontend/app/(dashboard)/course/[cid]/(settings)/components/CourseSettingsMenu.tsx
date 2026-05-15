@@ -29,6 +29,10 @@ enum CourseAdminOptions {
   CHATBOT_SETTINGS = 'CHATBOT_SETTINGS',
   CHATBOT_KNOWLEDGE_BASE = 'CHATBOT_KNOWLEDGE_BASE',
   CHATBOT_QUESTIONS = 'CHATBOT_QUESTIONS',
+<<<<<<< Updated upstream
+=======
+  ASSIGNMENT_EVALUATION = 'ASSIGNMENT_EVALUATION',
+>>>>>>> Stashed changes
 }
 
 type CourseSettingsManyProps = {
@@ -78,6 +82,12 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       case CourseAdminOptions.CHATBOT_QUESTIONS:
         router.push(`${basePath}/chatbot_questions`)
         break
+<<<<<<< Updated upstream
+=======
+      case CourseAdminOptions.ASSIGNMENT_EVALUATION:
+        router.push(`${basePath}/assignment_evaluation`)
+        break
+>>>>>>> Stashed changes
     }
   }
 
@@ -125,6 +135,14 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       icon: <RobotOutlined />,
       label: 'Edit Chatbot Questions',
     },
+<<<<<<< Updated upstream
+=======
+    {
+      key: CourseAdminOptions.ASSIGNMENT_EVALUATION,
+      icon: <RobotOutlined />,
+      label: 'Chatbot · Assignment evaluation',
+    },
+>>>>>>> Stashed changes
   ]
 
   const professorMenuItems: MenuItem[] = [
