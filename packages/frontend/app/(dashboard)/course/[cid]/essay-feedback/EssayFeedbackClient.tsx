@@ -120,14 +120,14 @@ export default function EssayFeedbackClient(props: {
     return <CenteredSpinner tip="Loading..." />
   }
 
-  if (!features.essayEvaluationEnabled) {
+  if (!features.assignmentEvaluationEnabled) {
     return (
       <div className="p-6">
         <Alert
           type="warning"
           showIcon
-          message="Essay evaluation is not enabled for this course."
-          description="Ask your instructor to enable it under Course settings → Chatbot · Essay evaluation."
+          message="Assignment evaluation is not enabled for this course."
+          description="Ask your instructor to enable it under Course settings → Chatbot · Assignment evaluation."
         />
       </div>
     )

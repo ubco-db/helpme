@@ -1853,7 +1853,7 @@ describe('Course Integration', () => {
       // ENABLE ESSAY EVALUATION
       resp = await supertest({ userId: professor.id })
         .patch(`/courses/${course.id}/features`)
-        .send({ value: true, feature: 'essayEvaluationEnabled' });
+        .send({ value: true, feature: 'assignmentEvaluationEnabled' });
 
       expect(resp.status).toBe(200);
 
@@ -1861,7 +1861,7 @@ describe('Course Integration', () => {
         where: { courseId: course.id },
       });
 
-      expect(updatedCourseSettings.essayEvaluationEnabled).toEqual(true);
+      expect(updatedCourseSettings.assignmentEvaluationEnabled).toEqual(true);
     });
   });
 
@@ -1902,7 +1902,7 @@ describe('Course Integration', () => {
         asyncCentreAIAnswers: true,
         asyncCentreAuthorPublic: false,
         asyncCentreDefaultAnonymous: true,
-        essayEvaluationEnabled: false,
+        assignmentEvaluationEnabled: false,
         scheduleOnFrontPage: false,
         settingsFound: false,
       });
@@ -1938,7 +1938,7 @@ describe('Course Integration', () => {
         asyncCentreAIAnswers: false,
         asyncCentreDefaultAnonymous: false,
         asyncCentreAuthorPublic: false,
-        essayEvaluationEnabled: false,
+        assignmentEvaluationEnabled: false,
         scheduleOnFrontPage: true,
         settingsFound: true,
       });

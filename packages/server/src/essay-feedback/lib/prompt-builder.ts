@@ -1,4 +1,4 @@
-import type { Paragraph } from '../types/feedback-response';
+import type { EssayFeedbackParagraph } from '@koh/common';
 import { formatParagraphsForPrompt } from './essay-parser';
 import { loadEssayFeedbackSystemPrompt } from './prompt-loader';
 
@@ -7,7 +7,9 @@ export interface PromptMessage {
   content: string;
 }
 
-export function buildPromptMessages(paragraphs: Paragraph[]): PromptMessage[] {
+export function buildPromptMessages(
+  paragraphs: EssayFeedbackParagraph[],
+): PromptMessage[] {
   const systemPrompt = loadEssayFeedbackSystemPrompt();
   const assignmentWithParagraphIds = formatParagraphsForPrompt(paragraphs);
   return [
