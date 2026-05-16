@@ -6,13 +6,11 @@ import {
   ChatbotSettings,
   ChatbotSettingsMetadata,
   ChatbotSettingsUpdateParams,
-  EssayFeedbackParagraph,
-  EssayFeedbackResponse,
   UpdateChatbotQuestionParams,
   UpdateDocumentAggregateParams,
   UpdateDocumentChunkParams,
 } from '@koh/common';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -25,6 +23,7 @@ import { ConfigService } from '@nestjs/config';
     the CHATBOT_API_KEY in the chatbot repo.
 */
 export class ChatbotApiService {
+  private readonly logger = new Logger(ChatbotApiService.name);
   private readonly chatbotApiUrl: string;
   private readonly chatbotApiKey: string;
 
@@ -34,6 +33,28 @@ export class ChatbotApiService {
       ?.trim();
     this.chatbotApiUrl = configuredUrl || 'http://localhost:3003/chat';
     this.chatbotApiKey = this.configService.get<string>('CHATBOT_API_KEY');
+  }
+
+  /** Parse chatbot error bodies that may be JSON `{ error }` or plain text / HTML. */
+  private async throwHttpFromChatbotFailure(
+    response: Response,
+    fallbackMessage: string,
+  ): Promise<never> {
+    const text = await response.text();
+    let message = fallbackMessage;
+    try {
+      const parsed = JSON.parse(text) as { error?: string };
+      if (parsed?.error && typeof parsed.error === 'string') {
+        message = parsed.error;
+      } else if (text.trim()) {
+        message = text.trim().slice(0, 500);
+      }
+    } catch {
+      if (text.trim()) {
+        message = text.trim().slice(0, 500);
+      }
+    }
+    throw new HttpException(message, response.status);
   }
 
   /**
@@ -78,10 +99,9 @@ export class ChatbotApiService {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new HttpException(
-          error.error || 'Error from chatbot service',
-          response.status,
+        await this.throwHttpFromChatbotFailure(
+          response,
+          'Error from chatbot service',
         );
       }
 
@@ -90,6 +110,11 @@ export class ChatbotApiService {
       if (error instanceof HttpException) {
         throw error;
       }
+      const detail =
+        error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `Chatbot request failed (${method} ${this.chatbotApiUrl}/${endpoint}): ${detail}`,
+      );
       throw new HttpException(
         'Failed to connect to chatbot service',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -129,18 +154,6 @@ export class ChatbotApiService {
     return resp.answer;
   }
 
-<<<<<<< Updated upstream
-  async generateEssayFeedback(
-    courseId: number,
-    essayText: string,
-    paragraphs: EssayFeedbackParagraph[],
-    userToken: string,
-  ): Promise<EssayFeedbackResponse> {
-    return this.request('POST', `essay-feedback/${courseId}`, userToken, {
-      essay_text: essayText,
-      paragraphs,
-    });
-=======
   /**
    * Calls the chatbot `POST /chatbot/query` endpoint with a `courseId`, so the
    * chatbot routes the prompt through the course's generatorLLM (the same LLM
@@ -159,7 +172,6 @@ export class ChatbotApiService {
       { query, type, courseId },
     );
     return resp.answer;
->>>>>>> Stashed changes
   }
 
   async getModels(userToken: string) {
@@ -371,10 +383,9 @@ export class ChatbotApiService {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new HttpException(
-          error.error || 'Error from chatbot service',
-          response.status,
+        await this.throwHttpFromChatbotFailure(
+          response,
+          'Error from chatbot service',
         );
       }
 
@@ -440,12 +451,9 @@ export class ChatbotApiService {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        console.error('Error for url', url);
-        console.error(response);
-        throw new HttpException(
-          error.error || 'Failed to upload LMS file buffer',
-          response.status,
+        await this.throwHttpFromChatbotFailure(
+          response,
+          'Failed to upload LMS file buffer',
         );
       }
 

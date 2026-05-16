@@ -5,13 +5,13 @@ export class RenameEssayEvaluationColumn1778520300000 implements MigrationInterf
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "course_settings_model" RENAME COLUMN "essayEvaluationEnabled" TO "assignmentEvaluationEnabled"`,
+      `ALTER TABLE "course_settings_model" RENAME COLUMN "assignmentEvaluationEnabled" TO "assignmentEvaluationEnabled"`,
     );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "course_settings_model" RENAME COLUMN "assignmentEvaluationEnabled" TO "essayEvaluationEnabled"`,
+      `ALTER TABLE "course_settings_model" RENAME COLUMN "assignmentEvaluationEnabled" TO "assignmentEvaluationEnabled"`,
     );
   }
 }
