@@ -1369,7 +1369,7 @@ describe('Lms Integration Integrations', () => {
       const expiredState = await LMSAuthStateFactory.create({
         user,
         organizationIntegration: orgInt,
-        expiresInSeconds: 0,
+        expiresInSeconds: -1,
       });
       const params = new URLSearchParams({
         state: expiredState.state,

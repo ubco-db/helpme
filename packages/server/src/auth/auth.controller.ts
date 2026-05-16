@@ -125,7 +125,7 @@ export class AuthController {
     }
 
     if (
-      (Date.now() - passwordToken.createdAt.getTime()) / 1000 >
+      (Date.now() - passwordToken.createdAt.getTime()) / 1000 >=
       passwordToken.expiresInSeconds
     ) {
       return res.status(HttpStatus.BAD_REQUEST).send({
@@ -168,7 +168,7 @@ export class AuthController {
     }
 
     if (
-      (Date.now() - passwordToken.createdAt.getTime()) / 1000 >
+      (Date.now() - passwordToken.createdAt.getTime()) / 1000 >=
       passwordToken.expiresInSeconds
     ) {
       return res.status(HttpStatus.BAD_REQUEST).send({

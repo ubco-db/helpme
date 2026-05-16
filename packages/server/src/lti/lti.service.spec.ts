@@ -160,7 +160,7 @@ describe('LtiService', () => {
     it('should return false if the token is expired', async () => {
       const tokenModel = await LtiIdentityTokenFactory.create({
         createdAt: new Date(Date.now() - 1000),
-        expiresInSeconds: 0,
+        expiresInSeconds: -1,
       });
       const token = jwtService.sign({
         code: tokenModel.code,
@@ -348,7 +348,7 @@ describe('LtiService', () => {
         course,
         email: user.email,
         createdAt: new Date(Date.now() - 1000),
-        expiresInSeconds: 0,
+        expiresInSeconds: -1,
       });
       const token = jwtService.sign({
         courseId: course.id,

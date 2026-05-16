@@ -1,6 +1,7 @@
 {
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
+  "setupFiles": ["<rootDir>/setup/jest-env.ts"],
   "testEnvironment": "node",
   "testRegex": ".integration.ts$",
   "transform": {
