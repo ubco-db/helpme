@@ -5,14 +5,7 @@ import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { Alert, Button, Input, Typography, message } from 'antd'
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  use,
-} from 'react'
+import { useCallback, useMemo, useRef, useState, use } from 'react'
 import { FUNCTION_LABELS, LEVEL_LABELS } from './assignmentFeedbackConstants'
 import {
   activate,
@@ -25,11 +18,8 @@ import {
   type LevelFilter,
   type ViewerState,
 } from './assignmentFeedbackInteractions'
-import {
-  renderAssignmentMarkup,
-  renderSidebarCards,
-  renderSummary,
-} from './assignmentFeedbackRenderHtml'
+import AssignmentBodyView from './components/AssignmentBodyView'
+import FeedbackSidebarPanel from './components/FeedbackSidebarPanel'
 import type { EssayFeedbackResponse } from '@koh/common'
 import './assignment-feedback.css'
 
@@ -64,8 +54,6 @@ export default function AssignmentFeedbackClient(props: {
     initialViewerState,
   )
 
-  const assignmentBodyRef = useRef<HTMLDivElement>(null)
-  const sidebarRef = useRef<HTMLDivElement>(null)
   const dragDepth = useRef(0)
 
   const filtered = useMemo(() => {
@@ -73,45 +61,9 @@ export default function AssignmentFeedbackClient(props: {
     return filterAnnotations(feedback.annotations, viewerState)
   }, [feedback, viewerState])
 
-  const assignmentHtml = useMemo(() => {
-    if (!feedback) return ''
-    return renderAssignmentMarkup(feedback.essay.paragraphs, filtered)
-  }, [feedback, filtered])
-
-  const sidebarHtml = useMemo(() => {
-    if (!feedback) return ''
-    return viewerState.currentTab === 'annotations'
-      ? renderSidebarCards(filtered)
-      : renderSummary(feedback.overall_feedback)
-  }, [feedback, filtered, viewerState.currentTab])
-
-  useEffect(() => {
-    const roots = [assignmentBodyRef.current, sidebarRef.current].filter(Boolean)
-    roots.forEach((root) => {
-      root
-        ?.querySelectorAll('.hl.is-active, .annotation-pin.is-active, .feedback-card.is-active')
-        .forEach((n) => n.classList.remove('is-active'))
-    })
-    const id = viewerState.activeAnnotationId
-    if (id === null) return
-    roots.forEach((root) => {
-      root?.querySelectorAll(`[data-id="${id}"]`).forEach((n) => {
-        n.classList.add('is-active')
-      })
-    })
-  }, [assignmentHtml, sidebarHtml, viewerState.activeAnnotationId])
-
-  const onDelegatedClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      const el = (e.target as HTMLElement).closest('[data-id]')
-      if (!el) return
-      const raw = el.getAttribute('data-id')
-      const id = Number(raw)
-      if (!Number.isFinite(id)) return
-      setViewerState((s) => activate(s, id))
-    },
-    [],
-  )
+  const handleActivate = useCallback((id: number) => {
+    setViewerState((s) => activate(s, id))
+  }, [])
 
   const loadFile = async (file: File) => {
     setStatusErr(null)
@@ -195,13 +147,14 @@ export default function AssignmentFeedbackClient(props: {
           <div className="layout">
             <div className="pdf-panel">
               <div className="paper">
-                <div
-                  ref={assignmentBodyRef}
-                  className="assignment-body"
-                  onClick={onDelegatedClick}
-                  // eslint-disable-next-line react/no-danger
-                  dangerouslySetInnerHTML={{ __html: assignmentHtml }}
-                />
+                <div className="assignment-body">
+                  <AssignmentBodyView
+                    paragraphs={feedback.essay.paragraphs}
+                    annotations={filtered}
+                    activeAnnotationId={viewerState.activeAnnotationId}
+                    onActivate={handleActivate}
+                  />
+                </div>
               </div>
             </div>
             <div className="feedback-panel">
@@ -276,13 +229,15 @@ export default function AssignmentFeedbackClient(props: {
                   </>
                 )}
               </div>
-              <div
-                ref={sidebarRef}
-                className="feedback-cards"
-                onClick={onDelegatedClick}
-                // eslint-disable-next-line react/no-danger
-                dangerouslySetInnerHTML={{ __html: sidebarHtml }}
-              />
+              <div className="feedback-cards">
+                <FeedbackSidebarPanel
+                  tab={viewerState.currentTab}
+                  annotations={filtered}
+                  overallFeedback={feedback.overall_feedback}
+                  activeAnnotationId={viewerState.activeAnnotationId}
+                  onActivate={handleActivate}
+                />
+              </div>
             </div>
           </div>
         </div>
