@@ -54,6 +54,7 @@ const FooterBar: React.FC = () => {
           )}
         </a>
         <ChangeLogModal
+          userInfo={userInfo}
           isOpen={isChangelogOpen}
           setIsOpen={setIsChangelogOpen}
           onClose={IReadTheChangelog}

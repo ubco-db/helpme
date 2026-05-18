@@ -23,17 +23,18 @@ export default function Home(): ReactElement {
         <p className="text-1xl m-3 my-5 ">Course Help System</p>
         <ul className="list-disc pl-4 text-left md:pl-0">
           <li className="m-2">
-            <b>Course Chatbot</b> for real-time answers about course content
-            (Professor-customizable)
+            A professor-customizable <b>Course Chatbot</b> for their students to
+            use. Features Canvas integrations for automatic course document
+            upload and an embedded Chatbot inside Canvas
           </li>
           <li className="m-2">
             <b>Queueing system</b> for Online/In-Person/Hybrid office hours or
             labs
           </li>
           <li className="m-2">
-            <b>Anytime Questions</b> - An &quot;Email 2.0&quot; where students
-            first get a chatbot answer and can then decide if they are satisfied
-            or still need more help
+            <b>Anytime Questions</b> - A discussion board/email replacement
+            where students first get a chatbot answer and can then decide if
+            they are satisfied or still need more help
           </li>
           <li className="m-2">
             Primarily developed by students at UBC to help make course

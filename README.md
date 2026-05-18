@@ -9,10 +9,10 @@ Main features:
 - **Anytime Questions** that allow students to ask questions outside of labs or office hours 
   - The questions are initially answered by AI, which can then be reviewed and edited by instructors and TAs (great for large courses with lots of TAs since any TA can answer)
   - Instructors and TAs can then make the question public to allow other students to see it (good for commonly asked questions)
-  - Basically like an Email 2.0
+  - Basically a (default anonymous) discussion board with an course-relevant AI response 
 - Built for UBC but **supports other organizations** (for more information, contact Ramon Lawrence ramon.lawrence@ubc.ca)
 
-Note: the new Chatbot feature has been integrated through a different API service that is not part of this queue system. 
+Note: the new Chatbot feature has been integrated through a different API service that is not part of this queue system. It has its own private repo. If you're looking to contribute in tasks related to the chatbot, you will need permission to access the repo.
 
 ## Installation
 The easiest way to spin up the system is through Docker.

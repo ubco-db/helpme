@@ -1,29 +1,30 @@
 import { Modal } from 'antd'
 import { useEffect, useState } from 'react'
 import MarkdownCustom from './Markdown'
-import { useUserInfo } from '../contexts/userContext'
-import { OrganizationRole, Role } from '@koh/common'
+import { OrganizationRole, User } from '@koh/common'
 import CenteredSpinner from './CenteredSpinner'
 
 interface ChangeLogModalProps {
+  userInfo?: User
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
   onClose?: () => void
 }
 
 const ChangeLogModal: React.FC<ChangeLogModalProps> = ({
+  userInfo,
   isOpen,
   setIsOpen,
   onClose,
 }) => {
-  const { userInfo } = useUserInfo()
   const [currentChangeLog, setCurrentChangeLog] = useState<string>('')
 
   useEffect(() => {
     // make the changelog auto-open for admins and professors who haven't read it yet
     // (note: some profs may have the admin role, hence why we check for both)
     if (
-      !userInfo?.readChangeLog &&
+      userInfo &&
+      !userInfo.readChangeLog &&
       (userInfo.organization?.organizationRole === OrganizationRole.ADMIN ||
         userInfo.organization?.organizationRole === OrganizationRole.PROFESSOR)
     ) {
