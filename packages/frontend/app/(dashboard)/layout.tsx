@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { UserInfoProvider } from '../contexts/userContext'
 import { User } from '@koh/common'
 import { fetchUserDetails } from '@/app/api'
@@ -29,6 +29,41 @@ const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
   const pathname = usePathname()
   const router = useRouter()
   const URLSegments = pathname.split('/')
+
+  const shouldExpand = useMemo(() => {
+    const expandPages: Record<number,string | RegExp>[] = [
+      {
+        5: 'answers',
+        4: 'embeddable_questions',
+      },
+      {
+        5: 'answers',
+        4: 'embeddable_assessments',
+      },
+      {
+        4: 'edit_questions',
+      },
+      {
+        4: 'chatbot_questions',
+      }
+    ]
+
+    let expand = false;
+    for (const config of expandPages) {
+      let passed = true;
+      for (const index of Object.keys(config).map((v) => parseInt(v))) {
+        if (URLSegments[index] !== config[index]) {
+          passed = false;
+          break;
+        }
+      }
+      if (passed) {
+        expand = true;
+        break;
+      }
+    }
+    return expand
+  }, [URLSegments])
 
   useEffect(() => {
     fetchUserDetails(setProfile, setErrorGettingUser, router, pathname)
@@ -128,8 +163,7 @@ const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
               />
             )}
             {/* On certain pages (like pages with big tables), we want to let the width take up the whole page */}
-            {URLSegments[4] === 'edit_questions' ||
-            URLSegments[4] === 'chatbot_questions' ? (
+            {shouldExpand ? (
               <div className="p-1">{children}</div>
             ) : (
               <StandardPageContainer className="flex-grow">

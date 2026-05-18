@@ -1,46 +1,41 @@
-import {
-  MailServiceType,
-  OrganizationRole,
-  QueueConfig,
-  Role,
-} from '@koh/common';
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { AlertModel } from 'alerts/alerts.entity';
-import { DesktopNotifModel } from 'notification/desktop-notif.entity';
-import { EventModel, EventType } from 'profile/event-model.entity';
-import { UserCourseModel } from 'profile/user-course.entity';
-import { UserModel } from 'profile/user.entity';
-import { QuestionGroupModel } from 'question/question-group.entity';
-import { SemesterModel } from 'semester/semester.entity';
-import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
-import { OrganizationModel } from 'organization/organization.entity';
-import * as bcrypt from 'bcrypt';
-import { CourseModel } from '../course/course.entity';
-import { NonProductionGuard } from '../guards/non-production.guard';
-import { QuestionModel } from '../question/question.entity';
-import { QueueModel } from '../queue/queue.entity';
-import { SeedService } from './seed.service';
-import { OrganizationCourseModel } from 'organization/organization-course.entity';
-import { OrganizationUserModel } from 'organization/organization-user.entity';
-import { CourseSettingsModel } from '../course/course_settings.entity';
-import { QuestionTypeModel } from 'questionType/question-type.entity';
-import { InteractionModel } from 'chatbot/interaction.entity';
-import { ChatbotQuestionModel } from 'chatbot/question.entity';
-import { ChatTokenModel } from 'chatbot/chat-token.entity';
-import { MailServiceModel } from 'mail/mail-services.entity';
-import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
-import { UserTokenModel } from 'profile/user-token.entity';
-import { InsightDashboardModel } from '../insights/dashboard.entity';
-import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
-import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
-import { LMSAssignmentModel } from '../lmsIntegration/lmsAssignment.entity';
-import { CalendarModel } from '../calendar/calendar.entity';
-import { LMSAnnouncementModel } from 'lmsIntegration/lmsAnnouncement.entity';
-import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
-import { QueueChatsModel } from 'queueChats/queue-chats.entity';
-import { EmbeddableQuestionModel } from 'lti/embeddable-question/embeddable-question.entity';
-import { DataSource } from 'typeorm';
-import { FactoryService } from 'factory/factory.service';
+import { MailServiceType, OrganizationRole, QueueConfig, Role } from '@koh/common'
+import { Controller, Get, UseGuards } from '@nestjs/common'
+import { AlertModel } from 'alerts/alerts.entity'
+import { DesktopNotifModel } from 'notification/desktop-notif.entity'
+import { EventModel, EventType } from 'profile/event-model.entity'
+import { UserCourseModel } from 'profile/user-course.entity'
+import { UserModel } from 'profile/user.entity'
+import { QuestionGroupModel } from 'question/question-group.entity'
+import { SemesterModel } from 'semester/semester.entity'
+import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity'
+import { OrganizationModel } from 'organization/organization.entity'
+import * as bcrypt from 'bcrypt'
+import { CourseModel } from '../course/course.entity'
+import { NonProductionGuard } from '../guards/non-production.guard'
+import { QuestionModel } from '../question/question.entity'
+import { QueueModel } from '../queue/queue.entity'
+import { SeedService } from './seed.service'
+import { OrganizationCourseModel } from 'organization/organization-course.entity'
+import { OrganizationUserModel } from 'organization/organization-user.entity'
+import { CourseSettingsModel } from '../course/course_settings.entity'
+import { QuestionTypeModel } from 'questionType/question-type.entity'
+import { InteractionModel } from 'chatbot/interaction.entity'
+import { ChatbotQuestionModel } from 'chatbot/question.entity'
+import { ChatTokenModel } from 'chatbot/chat-token.entity'
+import { MailServiceModel } from 'mail/mail-services.entity'
+import { UserSubscriptionModel } from 'mail/user-subscriptions.entity'
+import { UserTokenModel } from 'profile/user-token.entity'
+import { InsightDashboardModel } from '../insights/dashboard.entity'
+import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity'
+import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity'
+import { LMSAssignmentModel } from '../lmsIntegration/lmsAssignment.entity'
+import { CalendarModel } from '../calendar/calendar.entity'
+import { LMSAnnouncementModel } from 'lmsIntegration/lmsAnnouncement.entity'
+import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity'
+import { QueueChatsModel } from 'queueChats/queue-chats.entity'
+import { EmbeddableQuestionModel } from 'lti/embeddable/question/embeddable-question.entity'
+import { DataSource } from 'typeorm'
+import { FactoryService } from 'factory/factory.service'
 
 const exampleConfig = {
   fifo_queue_view_enabled: true,

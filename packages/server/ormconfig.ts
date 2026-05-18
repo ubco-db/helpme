@@ -60,8 +60,15 @@ import { LtiCourseInviteModel } from './src/lti/lti-course-invite.entity'
 import { AuthStateModel } from './src/auth/auth-state.entity'
 import { LtiIdentityTokenModel } from './src/lti/lti_identity_token.entity'
 import { UserLtiIdentityModel } from './src/lti/user_lti_identity.entity'
-import { EmbeddableQuestionModel } from './src/lti/embeddable-question/embeddable-question.entity'
-import { EmbeddableFeedbackModel } from './src/lti/embeddable-question/embeddable-feedback.entity'
+import { EmbeddableQuestionModel } from './src/lti/embeddable/question/embeddable-question.entity'
+import { EmbeddableQuestionFeedbackModel } from './src/lti/embeddable/question/embeddable-question-feedback.entity'
+import { EmbeddableAssignmentModel } from './src/lti/embeddable/assignment/embeddable-assignment.entity'
+import {
+  EmbeddableAssignmentQuestionModel,
+} from './src/lti/embeddable/assignment/embeddable-assignment-question.entity'
+import {
+  EmbeddableAssignmentFeedbackModel,
+} from './src/lti/embeddable/assignment/embeddable-assignment-feedback.entity'
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
   config();
@@ -148,7 +155,10 @@ const typeorm: DataSourceOptions = {
     UserLtiIdentityModel,
     LtiIdentityTokenModel,
     EmbeddableQuestionModel,
-    EmbeddableFeedbackModel,
+    EmbeddableQuestionFeedbackModel,
+    EmbeddableAssignmentModel,
+    EmbeddableAssignmentQuestionModel,
+    EmbeddableAssignmentFeedbackModel,
   ],
   logging:
     process.env.NODE_ENV !== 'production'

@@ -1,27 +1,12 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  ParseIntPipe,
-  Post,
-  Query,
-  Req,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
-import { AuthService } from '../auth/auth.service';
-import { Request, Response } from 'express';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import {
-  AccountRegistrationParams,
-  PasswordRequestResetBody,
-  RegistrationTokenDetails,
-} from '@koh/common';
-import { LtiService } from './lti.service';
-import { LoginService } from '../login/login.service';
-import { UserId } from '../decorators/user.decorator';
-import { UserModel } from 'profile/user.entity';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, Req, Res, UseGuards } from '@nestjs/common'
+import { AuthService } from '../auth/auth.service'
+import { Request, Response } from 'express'
+import { JwtAuthGuard } from '../guards/jwt-auth.guard'
+import { AccountRegistrationParams, PasswordRequestResetBody, RegistrationTokenDetails } from '@koh/common'
+import { LtiService } from './lti.service'
+import { LoginService } from '../login/login.service'
+import { UserId } from '../decorators/user.decorator'
+import { UserModel } from 'profile/user.entity'
 import { EmailVerifiedGuard } from '../guards/email-verified.guard'
 
 // LTI Tool can only access the following API routes
@@ -35,7 +20,8 @@ export const restrictPaths = [
   'r^\\/api\\/v1\\/chatbot\\/askSuggested\\/[0-9]+$',
   'r^\\/api\\/v1\\/lms.*$',
   'r^\\/api\\/v1\\/lti\\/auth.*$',
-  'r^\\/api\\/v1\\/lti\\/embeddable-question/[0-9]+/.*$',
+  'r^\\/api\\/v1\\/lti\\/embeddable-question/[0-9]+.*$',
+  'r^\\/api\\/v1\\/lti\\/embeddable-assignment/[0-9]+.*$',
   'r^\\/api\\/v1\\/organization\\/[0-9]+\\/settings$',
 ];
 

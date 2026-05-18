@@ -1,12 +1,8 @@
-import { HttpException, INestApplication } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { DataSource } from 'typeorm';
-import {
-  NextFunction,
-  Request as ExpressRequest,
-  Response as ExpressResponse,
-} from 'express';
-import { isProd } from '@koh/common';
+import { HttpException, INestApplication } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import { DataSource } from 'typeorm'
+import { NextFunction, Request as ExpressRequest, Response as ExpressResponse } from 'express'
+import { isProd } from '@koh/common'
 import {
   Database,
   Debug,
@@ -16,9 +12,9 @@ import {
   PlatformModel,
   Provider,
   register,
-} from '@bhunt02/lti-typescript';
-import { JwtService } from '@nestjs/jwt';
-import { LtiService } from './lti.service';
+} from '@bhunt02/lti-typescript'
+import { JwtService } from '@nestjs/jwt'
+import { LtiService } from './lti.service'
 
 const dynRegScopes = [
   'https://purl.imsglobal.org/spec/lti-reg/scope/registration',
@@ -215,6 +211,10 @@ export default class LtiMiddleware {
       },
       {
         route: /\/embeddable-question.*/,
+        method: 'ALL',
+      },
+      {
+        route: /\/embeddable-assignment.*/,
         method: 'ALL',
       },
       {

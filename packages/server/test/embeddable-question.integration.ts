@@ -1,13 +1,14 @@
-import { EmbeddableQuestionModule } from '../src/lti/embeddable-question/embeddable-question.module';
-import { EmbeddableQuestionModel } from '../src/lti/embeddable-question/embeddable-question.entity';
+import { EmbeddableQuestionModule } from '../src/lti/embeddable-question/question/embeddable-question.module'
+import { EmbeddableQuestionModel } from '../src/lti/embeddable-question/question/embeddable-question.entity'
 import {
   CourseFactory,
   EmbeddableQuestionFactory,
   StudentCourseFactory,
-  TACourseFactory, UserCourseFactory,
+  TACourseFactory,
+  UserCourseFactory,
   UserFactory,
 } from './util/factories'
-import { setupIntegrationTest } from './util/testUtils';
+import { setupIntegrationTest } from './util/testUtils'
 import { ERROR_MESSAGES, Role } from '@koh/common'
 import { pick } from 'lodash'
 import { ChatbotApiService } from '../src/chatbot/chatbot-api.service'

@@ -526,7 +526,51 @@ export class EmbeddableQuestion {
   instructions?: string
 }
 
-export class CreateEmbeddableQuestionParams {
+export class EmbeddableAssignmentQuestion {
+  @IsInt()
+  assignmentId!: number
+
+  @IsInt()
+  questionId!: number
+
+  @IsInt()
+  order!: number
+
+  @IsInstance(EmbeddableQuestion)
+  question!: EmbeddableQuestion
+}
+
+export class EmbeddableAssignment {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  name!: string;
+
+  @IsDate()
+  @Type(() => Date)
+  createdAt!: Date
+
+  @IsDate()
+  @IsOptional()
+  @Type(() => Date)
+  availableFrom?: Date
+
+  @IsDate()
+  @IsOptional()
+  @Type(() => Date)
+  availableUntil?: Date
+
+  @IsInt()
+  courseId!: number
+
+  @IsArray()
+  @Type(() => EmbeddableAssignmentQuestion)
+  @ValidateNested({ each: true })
+  questions!: EmbeddableAssignmentQuestion[]
+}
+
+export class UpsertEmbeddableQuestionParams {
   @IsString()
   @IsOptional()
   name?: string
@@ -554,18 +598,23 @@ export class CreateEmbeddableQuestionParams {
   instructions?: string
 }
 
-export class UpdateEmbeddableQuestionParams {
-  @IsString()
+export class UpsertEmbeddableAssignmentQuestionParams {
+  @IsInt()
   @IsOptional()
-  name?: string
+  questionId?: number
 
+  @IsInt()
+  order!: number
+
+  @Type(() => UpsertEmbeddableQuestionParams)
+  @IsOptional()
+  createParams?: UpsertEmbeddableQuestionParams
+}
+
+export class UpsertEmbeddableAssignmentParams {
   @IsString()
   @IsNotEmpty()
-  questionText!: string
-
-  @IsString()
-  @IsNotEmpty()
-  criteriaText!: string
+  name!: string
 
   @IsDate()
   @IsOptional()
@@ -577,9 +626,10 @@ export class UpdateEmbeddableQuestionParams {
   @Type(() => Date)
   availableUntil?: Date
 
-  @IsString()
-  @IsOptional()
-  instructions?: string
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UpsertEmbeddableAssignmentQuestionParams)
+  questions!: UpsertEmbeddableAssignmentQuestionParams[]
 }
 
 export class EmbeddableQuestionFeedbackParams {
@@ -590,6 +640,10 @@ export class EmbeddableQuestionFeedbackParams {
 export class UpdateEmbeddableFeedbackParams {
   @IsNumber()
   humanGrade!: number;
+
+  @IsString()
+  @IsOptional()
+  humanFeedback?: string;
 }
 
 export class EmbeddableQuestionFeedbackResponse {
@@ -601,7 +655,7 @@ export class EmbeddableQuestionFeedbackResponse {
   grade?: number
 }
 
-export class EmbeddableQuestionFeedback {
+export class EmbeddableFeedback {
   @IsInt()
   id!: number
 
@@ -622,12 +676,12 @@ export class EmbeddableQuestionFeedback {
   @IsOptional()
   humanGrade?: number
 
+  @IsString()
+  @IsOptional()
+  humanFeedback?: string
+
   @IsInt()
   questionId!: number
-
-  @IsInstance(EmbeddableQuestion)
-  @IsOptional()
-  embeddableQuestion?: EmbeddableQuestion
 
   @IsInt()
   userId!: number
@@ -635,6 +689,30 @@ export class EmbeddableQuestionFeedback {
   @IsInstance(UserPartial)
   @IsOptional()
   user?: UserPartial
+}
+
+export class EmbeddableAssignmentFeedback extends EmbeddableFeedback {
+  @IsInt()
+  assignmentId!: number
+}
+
+export class ExportEmbeddableResults {
+  @IsBoolean()
+  includeNonSubmitters!: boolean
+
+  @IsBoolean()
+  includeAiFeedback!: boolean
+}
+
+export class ExportEmbeddableQuestionResultsParams extends ExportEmbeddableResults {
+  @IsArray()
+  @Type(() => Number)
+  questions!: number[]
+}
+
+export class ExportEmbeddableAssignmentResultsParams extends ExportEmbeddableResults {
+  @IsInt()
+  assignmentId!: number
 }
 
 export interface AddDocumentChunkParams {
@@ -4538,10 +4616,11 @@ export const ERROR_MESSAGES = {
     notAllowedToDeleteSemester: (role: OrganizationRole) =>
       `Members with role ${role} are not allowed to delete semesters`,
   },
-  embeddableQuestionController: {
+  embeddableModule: {
     notFound: 'Question not found.',
+    assignmentNotFound: 'Assessment not found',
     feedbackNotFound: 'Feedback not found.',
-    notAvailableYet: 'This question is not available to receive feedback for yet.',
-    noLongerAvailable: 'This question can no longer receive feedback.',
+    notAvailableYet: 'This assessment/question is not available to receive feedback for yet.',
+    noLongerAvailable: 'This assessment/question can no longer receive feedback.',
   }
 }

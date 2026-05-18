@@ -4,12 +4,14 @@ import {
   BellOutlined,
   BookOutlined,
   DownloadOutlined,
+  FolderOpenOutlined,
   LinkOutlined,
   QrcodeOutlined,
   RobotOutlined,
   ScheduleOutlined,
   SettingOutlined,
   TableOutlined,
+  UnorderedListOutlined,
 } from '@ant-design/icons'
 import { CourseSettingsResponse, Role } from '@koh/common'
 import { Menu, MenuProps } from 'antd'
@@ -29,7 +31,37 @@ enum CourseAdminOptions {
   CHATBOT_KNOWLEDGE_BASE = 'CHATBOT_KNOWLEDGE_BASE',
   CHATBOT_QUESTIONS = 'CHATBOT_QUESTIONS',
   EMBEDDABLE_QUESTIONS = 'EMBEDDABLE_QUESTIONS',
-  EMBEDDABLE_QUESTIONS_ANSWERS = 'EMBEDDABLE_QUESTIONS_ANSWERS'
+  EMBEDDABLE_ASSESSMENTS = 'EMBEDDABLE_ASSESSMENTS',
+  EMBEDDABLE_QUESTIONS_ANSWERS = 'EMBEDDABLE_QUESTIONS_ANSWERS',
+  EMBEDDABLE_ASSESSMENTS_ANSWERS = 'EMBEDDABLE_ASSESSMENTS_ANSWERS',
+}
+
+enum SubMenus {
+  EMBEDDABLE_QUESTIONS_MENU = 'EMBEDDABLE_QUESTIONS_MENU',
+  EMBEDDABLE_ASSESSMENTS_MENU = 'EMBEDDABLE_ASSESSMENTS_MENU',
+}
+
+const SubMenuMap: Record<keyof typeof SubMenus, CourseAdminOptions[]> = {
+  [SubMenus.EMBEDDABLE_ASSESSMENTS_MENU]: [
+    CourseAdminOptions.EMBEDDABLE_ASSESSMENTS,
+    CourseAdminOptions.EMBEDDABLE_ASSESSMENTS_ANSWERS,
+  ],
+  [SubMenus.EMBEDDABLE_QUESTIONS_MENU]: [
+    CourseAdminOptions.EMBEDDABLE_QUESTIONS,
+    CourseAdminOptions.EMBEDDABLE_QUESTIONS_ANSWERS,
+  ]
+}
+
+type NestedType = Record<string,Record<number,string>>
+const nested: NestedType  = {
+  [CourseAdminOptions.EMBEDDABLE_QUESTIONS_ANSWERS]: {
+    5: 'answers',
+    4: 'embeddable_questions',
+  },
+  [CourseAdminOptions.EMBEDDABLE_ASSESSMENTS_ANSWERS]: {
+    5: 'answers',
+    4: 'embeddable_questions',
+  },
 }
 
 type CourseSettingsManyProps = {
@@ -83,13 +115,59 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
         router.push(`${basePath}/embeddable_questions`)
         break
       case CourseAdminOptions.EMBEDDABLE_QUESTIONS_ANSWERS:
-        router.push(`${basePath}/embeddable_questions_answers`)
+        router.push(`${basePath}/embeddable_questions/answers`)
+        break
+      case CourseAdminOptions.EMBEDDABLE_ASSESSMENTS:
+        router.push(`${basePath}/embeddable_assessments`)
+        break
+      case CourseAdminOptions.EMBEDDABLE_ASSESSMENTS_ANSWERS:
+        router.push(`${basePath}/embeddable_assessments/answers`)
         break
     }
   }
 
+  const getNested = (path: string[]) => {
+    let nestedPass;
+    for (const enumItem of Object.keys(nested).map(v => v as unknown as CourseAdminOptions)) {
+      const entry = nested[enumItem];
+      let pass = true;
+      for (const index of Object.keys(entry).map(v => parseInt(v))) {
+        if (path[index] !== entry[index]) {
+          pass = false;
+          break;
+        }
+      }
+      if (pass) {
+        nestedPass = enumItem;
+        break;
+      }
+    }
+    if (nestedPass)
+      return nestedPass;
+  }
+
+  const handleCurrentSubMenu = () => {
+    const path = pathname.split('/')
+
+    const enumValue = handleCurrentMenuItem()
+
+    let pass
+    for (const enumItem of Object.keys(SubMenuMap).map(v => v as unknown as SubMenus)) {
+      if (SubMenuMap[enumItem].includes(enumValue)) {
+        pass = enumItem;
+        break;
+      }
+    }
+
+    return [pass as unknown as string]
+  }
+
   const handleCurrentMenuItem = () => {
     const path = pathname.split('/')
+
+    const nested = getNested(path)
+    if (nested)
+      return nested
 
     return CourseAdminOptions[
       path[path.length - 1].toUpperCase() as keyof typeof CourseAdminOptions
@@ -134,14 +212,38 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       type: 'divider',
     },
     {
-      key: CourseAdminOptions.EMBEDDABLE_QUESTIONS,
+      key: SubMenus.EMBEDDABLE_QUESTIONS_MENU,
       icon: <BookOutlined />,
       label: 'Embeddable Questions',
+      children: [
+        {
+          key: CourseAdminOptions.EMBEDDABLE_QUESTIONS,
+          icon: <UnorderedListOutlined />,
+          label: 'Manage',
+        },
+        {
+          key: CourseAdminOptions.EMBEDDABLE_QUESTIONS_ANSWERS,
+          icon: <FolderOpenOutlined />,
+          label: 'Answers'
+        }
+      ]
     },
     {
-      key: CourseAdminOptions.EMBEDDABLE_QUESTIONS_ANSWERS,
+      key: SubMenus.EMBEDDABLE_ASSESSMENTS_MENU,
       icon: <BookOutlined />,
-      label: 'Embeddable Question Answers',
+      label: 'Embeddable Assignments',
+      children: [
+        {
+          key: CourseAdminOptions.EMBEDDABLE_ASSESSMENTS,
+          icon: <UnorderedListOutlined />,
+          label: 'Manage',
+        },
+        {
+          key: CourseAdminOptions.EMBEDDABLE_ASSESSMENTS_ANSWERS,
+          icon: <FolderOpenOutlined />,
+          label: 'Answers'
+        }
+      ]
     }
   ]
 
@@ -178,10 +280,12 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
 
   return (
     <Menu
+      defaultOpenKeys={handleCurrentSubMenu()}
       defaultSelectedKeys={[handleCurrentMenuItem()]}
       onClick={(item) => handleMenuClick(item)}
       className="bg-[#f8f9fb]"
       items={menuItems}
+      mode={'inline'}
     />
   )
 }

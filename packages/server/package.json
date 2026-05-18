@@ -108,6 +108,7 @@
     "res": "^0.4.0",
     "rxjs": "^7.1.0",
     "sharp": "^0.33.5",
+    "exceljs": "^4.4.0",
     "sonner": "^2.0.2",
     "source-map-support": "^0.5.19",
     "superagent": "^8.1.2",

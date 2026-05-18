@@ -28,7 +28,6 @@ import {
   CreateAlertResponse,
   CreateAsyncQuestions,
   CreateChatbotProviderBody,
-  CreateEmbeddableQuestionParams,
   CreateLLMTypeBody,
   CreateLtiPlatform,
   CreateOrganizationChatbotSettingsBody,
@@ -38,9 +37,11 @@ import {
   DesktopNotifBody,
   DesktopNotifPartial,
   EditCourseInfoParams,
+  EmbeddableAssignment,
+  EmbeddableFeedback,
   EmbeddableQuestion,
-  EmbeddableQuestionFeedback,
   EmbeddableQuestionFeedbackResponse,
+  ExportEmbeddableQuestionResultsParams,
   ExtraTAStatus,
   GetAlertsResponse,
   GetAsyncQuestionsResponse,
@@ -121,7 +122,6 @@ import {
   UpdateChatbotQuestionParams,
   UpdateDocumentChunkParams,
   UpdateEmbeddableFeedbackParams,
-  UpdateEmbeddableQuestionParams,
   UpdateLLMTypeBody,
   UpdateLtiPlatform,
   UpdateOrganizationCourseDetailsParams,
@@ -132,6 +132,8 @@ import {
   UpdateQuestionResponse,
   UpdateQueueParams,
   UpsertCourseChatbotSettings,
+  UpsertEmbeddableAssignmentParams,
+  UpsertEmbeddableQuestionParams,
   UpsertLMSCourseParams,
   UpsertLMSOrganizationParams,
   UserMailSubscription,
@@ -206,6 +208,61 @@ export class APIClient {
       data: body,
       params,
       headers,
+    })
+  }
+
+  private async fetch<T>(
+    method: Method,
+    url: string,
+    responseClass?: ClassType<ItemIfArray<T>>,
+    body?: any,
+    params?: any,
+  ): Promise<T>
+  private async fetch<T>(
+    method: Method,
+    url: string,
+    responseClass?: ClassType<T>,
+    body?: any,
+    params?: any,
+  ): Promise<T> {
+    const headers = new Headers()
+    if (this.authToken) {
+      headers.set('cookie',this.authToken)
+    }
+    headers.set('content-type','application/json')
+    const uri = params ? `${url}?${new URLSearchParams(params).toString()}` : url
+    const res = await fetch(uri, {
+      method,
+      body: JSON.stringify(body),
+      headers
+    })
+      .then(async (res) => {
+        const json = await res.json()
+        if (res.status >= 400) throw json
+        return json
+      })
+
+    return responseClass ? plainToClass(responseClass, res) : res
+  }
+
+  private async fetchFull(
+    method: Method,
+    url: string,
+    body?: any,
+    params?: any,
+  ): Promise<Response> {
+    const headers = new Headers()
+    if (this.authToken) {
+      headers.set('cookie',this.authToken)
+    }
+    headers.set('content-type','application/json')
+    const search = params ? new URLSearchParams(params) : undefined
+    const uri = search && Object.keys(search).length > 0 ? `${url}?${search.toString()}` : url
+
+    return await fetch(uri, {
+      method,
+      body: JSON.stringify(body),
+      headers
     })
   }
 
@@ -1627,7 +1684,7 @@ export class APIClient {
     embeddableQuestion: {
       create: async (
         courseId: number,
-        body: CreateEmbeddableQuestionParams,
+        body: UpsertEmbeddableQuestionParams,
       ): Promise<EmbeddableQuestion> =>
         this.req('POST', `/api/v1/lti/embeddable-question/${courseId}`, undefined, body),
       getAll: async (courseId: number): Promise<EmbeddableQuestion[]> =>
@@ -1651,7 +1708,7 @@ export class APIClient {
       update: async (
         courseId: number,
         questionId: number,
-        body: UpdateEmbeddableQuestionParams,
+        body: UpsertEmbeddableQuestionParams,
       ): Promise<EmbeddableQuestion> =>
         this.req(
           'PATCH',
@@ -1661,28 +1718,93 @@ export class APIClient {
         ),
       delete: async (courseId: number, questionId: number): Promise<void> =>
         this.req('DELETE', `/api/v1/lti/embeddable-question/${courseId}/${questionId}`),
-      getAnswers: async (courseId: number, questionId: number, userIds?: number[]): Promise<EmbeddableQuestionFeedback[]> => {
+      getAnswers: async (courseId: number, questionId: number, userIds?: number[]): Promise<EmbeddableFeedback[]> => {
         const searchParams = new URLSearchParams();
         if (userIds && userIds.length > 0)
           userIds.forEach((uid) => searchParams.append('users',uid.toString()))
 
         return await this.req(
           'GET',
-          `/api/v1/lti/embeddable-question/${courseId}/${questionId}/answers${Object.keys(searchParams).length > 0 ? `?${searchParams.toString()}` : ''}`
+          `/api/v1/lti/embeddable-question/${courseId}/answers/${questionId}${Object.keys(searchParams).length > 0 ? `?${searchParams.toString()}` : ''}`
         )
       },
-      updateAnswer: async (courseId: number, questionId: number, feedbackId: number, body: UpdateEmbeddableFeedbackParams) =>
+      updateAnswer: async (courseId: number, feedbackId: number, body: UpdateEmbeddableFeedbackParams): Promise<EmbeddableFeedback> =>
         await this.req(
           'PATCH',
-          `/api/v1/lti/embeddable-question/${courseId}/${questionId}/answers/${feedbackId}`,
+          `/api/v1/lti/embeddable-question/${courseId}/answers/${feedbackId}`,
           undefined,
           body,
         ),
-      deleteAnswer: async (courseId: number, questionId: number, feedbackId: number) =>
+      deleteAnswer: async (courseId: number, feedbackId: number): Promise<void> =>
         await this.req(
           'DELETE',
-          `/api/v1/lti/embeddable-question/${courseId}/${questionId}/answers/${feedbackId}`,
+          `/api/v1/lti/embeddable-question/${courseId}/answers/${feedbackId}`,
         ),
+      exportResults: async (courseId: number, body: ExportEmbeddableQuestionResultsParams): Promise<Response> =>
+        await this.fetchFull('POST',`/api/v1/lti/embeddable-question/${courseId}/export`,body),
+      assignment: {
+        create: async (
+          courseId: number,
+          body: UpsertEmbeddableAssignmentParams,
+        ): Promise<EmbeddableAssignment> =>
+          this.req('POST', `/api/v1/lti/embeddable-assignment/${courseId}`, undefined, body),
+        getAll: async (courseId: number): Promise<EmbeddableAssignment[]> =>
+          this.req('GET', `/api/v1/lti/embeddable-assignment/${courseId}`),
+        getOne: async (
+          courseId: number,
+          assignmentId: number,
+        ): Promise<EmbeddableAssignment> =>
+          this.req('GET', `/api/v1/lti/embeddable-assignment/${courseId}/${assignmentId}`),
+        getFeedback: async (
+          courseId: number,
+          assignmentId: number,
+          questionId: number,
+          responseText: string,
+        ): Promise<EmbeddableQuestionFeedbackResponse> =>
+          this.req(
+            'POST',
+            `/api/v1/lti/embeddable-assignment/${courseId}/${assignmentId}/${questionId}/feedback`,
+            undefined,
+            { responseText },
+          ),
+        update: async (
+          courseId: number,
+          assignmentId: number,
+          body: UpsertEmbeddableAssignmentParams,
+        ): Promise<EmbeddableQuestion> =>
+          this.req(
+            'PATCH',
+            `/api/v1/lti/embeddable-assignment/${courseId}/${assignmentId}`,
+            undefined,
+            body,
+          ),
+        delete: async (courseId: number, assignmentId: number): Promise<void> =>
+          this.req('DELETE', `/api/v1/lti/embeddable-assignment/${courseId}/${assignmentId}`),
+        getAnswers: async (courseId: number, assignmentId: number, userIds?: number[]): Promise<EmbeddableFeedback[]> => {
+          const searchParams = new URLSearchParams();
+          if (userIds && userIds.length > 0)
+            userIds.forEach((uid) => searchParams.append('users',uid.toString()))
+
+          return await this.req(
+            'GET',
+            `/api/v1/lti/embeddable-assignment/${courseId}/answers/${assignmentId}${Object.keys(searchParams).length > 0 ? `?${searchParams.toString()}` : ''}`
+          )
+        },
+        updateAnswer: async (courseId: number, feedbackId: number, body: UpdateEmbeddableFeedbackParams): Promise<EmbeddableFeedback> =>
+          await this.req(
+            'PATCH',
+            `/api/v1/lti/embeddable-assignment/${courseId}/answers/${feedbackId}`,
+            undefined,
+            body,
+          ),
+        deleteAnswer: async (courseId: number, feedbackId: number): Promise<void> =>
+          await this.req(
+            'DELETE',
+            `/api/v1/lti/embeddable-assignment/${courseId}/answers/${feedbackId}`,
+          ),
+        exportResults: async (courseId: number, body: ExportEmbeddableQuestionResultsParams): Promise<Response> =>
+          await this.fetchFull('POST',`/api/v1/lti/embeddable-assignment/${courseId}/export`,body),
+      }
     }
   }
 }

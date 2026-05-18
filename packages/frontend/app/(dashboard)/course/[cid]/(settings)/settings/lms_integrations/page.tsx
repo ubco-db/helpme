@@ -26,23 +26,20 @@ import {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
-  LMSQuiz,
-  LMSQuizAccessLevel,
   SupportedLMSFileTypes,
 } from '@koh/common'
 import { API } from '@/app/api'
-import UpsertIntegrationModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/UpsertIntegrationModal'
-import LMSRosterTable from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSRosterTable'
+import UpsertIntegrationModal
+  from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/UpsertIntegrationModal'
+import LMSRosterTable
+  from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSRosterTable'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
 import { useCourseLmsIntegration } from '@/app/hooks/useCourseLmsIntegration'
-import LMSDocumentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSDocumentList'
-import LMSQuizDocumentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSQuizDocumentList'
-import {
-  DeleteOutlined,
-  EditOutlined,
-  LoadingOutlined,
-  SyncOutlined,
-} from '@ant-design/icons'
+import LMSDocumentList
+  from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSDocumentList'
+import LMSQuizDocumentList
+  from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSQuizDocumentList'
+import { DeleteOutlined, EditOutlined, LoadingOutlined, SyncOutlined } from '@ant-design/icons'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
@@ -56,7 +53,6 @@ export default function CourseLMSIntegrationPage(props: {
 }) {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const pathname = usePathname()
 
   const { userInfo } = useUserInfo()
   const params = use(props.params)
@@ -149,16 +145,16 @@ export default function CourseLMSIntegrationPage(props: {
 
     if (success_msg) {
       message.success(success_msg, 3).then(() => {
-        router.push(pathname)
+        router.push(pathName)
       })
     } else if (error_msg) {
       message.error(error_msg, 3).then(() => {
-        router.push(pathname)
+        router.push(pathName)
       })
     } else {
-      router.push(pathname)
+      router.push(pathName)
     }
-  }, [pathname, router, searchParams])
+  }, [pathName, router, searchParams])
 
   useEffect(() => {
     if (integration?.selectedResourceTypes) {

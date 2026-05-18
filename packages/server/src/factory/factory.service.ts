@@ -58,8 +58,11 @@ import * as crypto from 'crypto'
 import { UserLtiIdentityModel } from '../lti/user_lti_identity.entity'
 import { LtiIdentityTokenModel } from '../lti/lti_identity_token.entity'
 import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity'
-import { EmbeddableQuestionModel } from '../lti/embeddable-question/embeddable-question.entity'
-import { EmbeddableFeedbackModel } from '../lti/embeddable-question/embeddable-feedback.entity'
+import { EmbeddableQuestionModel } from '../lti/embeddable/question/embeddable-question.entity'
+import { EmbeddableQuestionFeedbackModel } from '../lti/embeddable/question/embeddable-question-feedback.entity'
+import { EmbeddableAssignmentModel } from '../lti/embeddable/assignment/embeddable-assignment.entity'
+import { EmbeddableAssignmentQuestionModel } from '../lti/embeddable/assignment/embeddable-assignment-question.entity'
+import { EmbeddableAssignmentFeedbackModel } from '../lti/embeddable/assignment/embeddable-assignment-feedback.entity'
 
 /* Has all of our factories and initializes them with the db dataSource.
   If you want to use one of these factories, import it from factories.ts instead.
@@ -118,7 +121,10 @@ export class FactoryService {
   public LtiIdentityTokenFactory: Factory<LtiIdentityTokenModel>;
   public QueueStaffFactory: Factory<QueueStaffModel>;
   public EmbeddableQuestionFactory: Factory<EmbeddableQuestionModel>;
-  public EmbeddableFeedbackFactory: Factory<EmbeddableFeedbackModel>;
+  public EmbeddableQuestionFeedbackFactory: Factory<EmbeddableQuestionFeedbackModel>;
+  public EmbeddableAssignmentFactory: Factory<EmbeddableAssignmentModel>;
+  public EmbeddableAssignmentQuestionFactory: Factory<EmbeddableAssignmentQuestionModel>;
+  public EmbeddableAssignmentFeedbackFactory: Factory<EmbeddableAssignmentFeedbackModel>;
 
   constructor(dataSource: DataSource) {
     this.UserFactory = new Factory(UserModel, dataSource)
@@ -461,9 +467,24 @@ export class FactoryService {
       .attr('questionText', 'Sample embeddable question')
       .attr('criteriaText', 'Sample criteria');
 
-    this.EmbeddableFeedbackFactory = new Factory(EmbeddableFeedbackModel, dataSource)
+    this.EmbeddableQuestionFeedbackFactory = new Factory(EmbeddableQuestionFeedbackModel, dataSource)
       .assocOne('user', this.UserFactory)
       .assocOne('embeddableQuestion', this.EmbeddableQuestionFactory)
+      .attr('submission', 'Sample submission')
+      .attr('aiFeedback', 'Sample feedback')
+
+    this.EmbeddableAssignmentFactory = new Factory(EmbeddableAssignmentModel, dataSource)
+      .assocOne('course', this.CourseFactory)
+      .attr('name', 'Assignment');
+
+    this.EmbeddableAssignmentQuestionFactory = new Factory(EmbeddableAssignmentQuestionModel, dataSource)
+      .assocOne('question', this.EmbeddableQuestionFactory)
+      .assocOne('assignment', this.EmbeddableAssignmentFactory)
+      .sequence('order', (n) => n+1)
+
+    this.EmbeddableAssignmentFeedbackFactory = new Factory(EmbeddableAssignmentFeedbackModel, dataSource)
+      .assocOne('user', this.UserFactory)
+      .assocOne('assignmentQuestion', this.EmbeddableAssignmentQuestionFactory)
       .attr('submission', 'Sample submission')
       .attr('aiFeedback', 'Sample feedback')
   }
