@@ -29,6 +29,7 @@ enum CourseAdminOptions {
   CHATBOT_SETTINGS = 'CHATBOT_SETTINGS',
   CHATBOT_KNOWLEDGE_BASE = 'CHATBOT_KNOWLEDGE_BASE',
   CHATBOT_QUESTIONS = 'CHATBOT_QUESTIONS',
+  ASSIGNMENT_EVALUATION = 'ASSIGNMENT_EVALUATION',
 }
 
 type CourseSettingsManyProps = {
@@ -78,6 +79,9 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       case CourseAdminOptions.CHATBOT_QUESTIONS:
         router.push(`${basePath}/chatbot_questions`)
         break
+      case CourseAdminOptions.ASSIGNMENT_EVALUATION:
+        router.push(`${basePath}/assignment_evaluation`)
+        break
     }
   }
 
@@ -124,6 +128,11 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       key: CourseAdminOptions.CHATBOT_QUESTIONS,
       icon: <RobotOutlined />,
       label: 'Edit Chatbot Questions',
+    },
+    {
+      key: CourseAdminOptions.ASSIGNMENT_EVALUATION,
+      icon: <RobotOutlined />,
+      label: 'Chatbot · Assignment evaluation',
     },
   ]
 

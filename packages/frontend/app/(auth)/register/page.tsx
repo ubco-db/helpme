@@ -213,7 +213,6 @@ export default function RegisterPage(props: {
               This is due to some changes to react and @types/react, and the component
               packages have not been updated to fix these issues.
               */}
-                {/* @ts-expect-error Server Component */}
                 <ReCAPTCHA
                   ref={recaptchaRef}
                   size="invisible"

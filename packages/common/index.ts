@@ -14,6 +14,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  MinLength,
   ValidateNested,
 } from 'class-validator'
 import 'reflect-metadata'
@@ -2922,6 +2923,160 @@ export type UserMailSubscription = {
   isSubscribed: boolean
 }
 
+/** Assignment feedback API — JSON field `essay` matches LLED_bot_MVP shared/schema.ts */
+export type AssignmentFeedbackFunctionDimension =
+  | 'content'
+  | 'interpersonal'
+  | 'organization'
+
+export type AssignmentFeedbackLinguisticLevel =
+  | 'text'
+  | 'section'
+  | 'clause_word'
+
+export type AssignmentFeedbackSeverity = 'low' | 'medium' | 'high'
+
+export class AssignmentFeedbackParagraph {
+  @IsString()
+  id!: string
+
+  @IsString()
+  text!: string
+
+  constructor(init?: Partial<AssignmentFeedbackParagraph>) {
+    Object.assign(this, init)
+  }
+}
+
+export class AssignmentFeedbackEssayPayload {
+  @ValidateNested({ each: true })
+  @Type(() => AssignmentFeedbackParagraph)
+  paragraphs!: AssignmentFeedbackParagraph[]
+
+  constructor(init?: Partial<AssignmentFeedbackEssayPayload>) {
+    Object.assign(this, init)
+  }
+}
+
+export class AssignmentFeedbackCitation {
+  @IsIn(['rubric', 'course_material'])
+  type!: 'rubric' | 'course_material'
+
+  @IsString()
+  label!: string
+
+  @IsOptional()
+  @IsString()
+  url?: string | null
+
+  constructor(init?: Partial<AssignmentFeedbackCitation>) {
+    Object.assign(this, init)
+  }
+}
+
+export class AssignmentFeedbackEvidence {
+  @IsString()
+  quote!: string
+
+  @IsString()
+  reason!: string
+
+  constructor(init?: Partial<AssignmentFeedbackEvidence>) {
+    Object.assign(this, init)
+  }
+}
+
+export class AssignmentFeedbackAnnotation {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  paragraph_id!: string
+
+  @IsInt()
+  char_start!: number
+
+  @IsInt()
+  char_end!: number
+
+  @IsIn(['content', 'interpersonal', 'organization'])
+  function!: AssignmentFeedbackFunctionDimension
+
+  @IsIn(['text', 'section', 'clause_word'])
+  level!: AssignmentFeedbackLinguisticLevel
+
+  @IsString()
+  issue_type!: string
+
+  @IsIn(['low', 'medium', 'high'])
+  severity!: AssignmentFeedbackSeverity
+
+  @ValidateNested()
+  @Type(() => AssignmentFeedbackEvidence)
+  evidence!: AssignmentFeedbackEvidence
+
+  @IsString()
+  feedback!: string
+
+  @IsString()
+  revision_guidance!: string
+
+  @ValidateNested({ each: true })
+  @Type(() => AssignmentFeedbackCitation)
+  citations!: AssignmentFeedbackCitation[]
+
+  constructor(init?: Partial<AssignmentFeedbackAnnotation>) {
+    Object.assign(this, init)
+  }
+}
+
+export class AssignmentFeedbackOverallFeedback {
+  @IsString()
+  summary!: string
+
+  @IsArray()
+  @IsString({ each: true })
+  priority_issues!: string[]
+
+  @IsArray()
+  @IsString({ each: true })
+  next_steps!: string[]
+
+  @IsArray()
+  @IsString({ each: true })
+  reflection_questions!: string[]
+
+  constructor(init?: Partial<AssignmentFeedbackOverallFeedback>) {
+    Object.assign(this, init)
+  }
+}
+
+export class FeedbackResponse {
+  @IsOptional()
+  @IsString()
+  submission_id!: string | null
+
+  @IsOptional()
+  @IsString()
+  created_at!: string | null
+
+  @ValidateNested()
+  @Type(() => AssignmentFeedbackEssayPayload)
+  essay!: AssignmentFeedbackEssayPayload
+
+  @ValidateNested({ each: true })
+  @Type(() => AssignmentFeedbackAnnotation)
+  annotations!: AssignmentFeedbackAnnotation[]
+
+  @ValidateNested()
+  @Type(() => AssignmentFeedbackOverallFeedback)
+  overall_feedback!: AssignmentFeedbackOverallFeedback
+
+  constructor(init?: Partial<FeedbackResponse>) {
+    Object.assign(this, init)
+  }
+}
+
 export class CourseSettingsResponse {
   @IsInt()
   courseId!: number
@@ -2950,6 +3105,9 @@ export class CourseSettingsResponse {
   @IsBoolean()
   asyncCentreAuthorPublic!: boolean
 
+  @IsBoolean()
+  assignmentEvaluationEnabled!: boolean
+
   @IsOptional()
   @IsBoolean()
   settingsFound?: boolean = true //this is mostly just for debugging purposes by viewing network responses
@@ -2968,6 +3126,7 @@ export const validFeatures = [
   'asyncCentreAIAnswers',
   'asyncCentreDefaultAnonymous',
   'asyncCentreAuthorPublic',
+  'assignmentEvaluationEnabled',
 ]
 
 export class CourseSettingsRequestBody {
@@ -2980,6 +3139,144 @@ export class CourseSettingsRequestBody {
   static isValidFeature(feature: string): boolean {
     return validFeatures.includes(feature)
   }
+}
+
+export type EssayFeedbackFunctionDimension =
+  | 'content'
+  | 'interpersonal'
+  | 'organization'
+export type EssayFeedbackLinguisticLevel = 'text' | 'section' | 'clause_word'
+export type EssayFeedbackSeverity = 'low' | 'medium' | 'high'
+export type EssayFeedbackCitationType = 'rubric' | 'course_material'
+
+export class EssayFeedbackRequest {
+  @IsString()
+  @MinLength(1)
+  essay_text!: string
+}
+
+export class EssayFeedbackExtractTextResponse {
+  @IsString()
+  essay_text!: string
+
+  @IsString()
+  filename!: string
+}
+
+export class EssayFeedbackParagraph {
+  @IsString()
+  id!: string
+
+  @IsString()
+  text!: string
+}
+
+export class EssayFeedbackEssay {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EssayFeedbackParagraph)
+  paragraphs!: EssayFeedbackParagraph[]
+}
+
+export class EssayFeedbackCitation {
+  @IsIn(['rubric', 'course_material'])
+  type!: EssayFeedbackCitationType
+
+  @IsString()
+  label!: string
+
+  @IsOptional()
+  @IsString()
+  url!: string | null
+}
+
+export class EssayFeedbackEvidence {
+  @IsString()
+  quote!: string
+
+  @IsString()
+  reason!: string
+}
+
+export class EssayFeedbackAnnotation {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  paragraph_id!: string
+
+  @IsInt()
+  char_start!: number
+
+  @IsInt()
+  char_end!: number
+
+  @IsIn(['content', 'interpersonal', 'organization'])
+  function!: EssayFeedbackFunctionDimension
+
+  @IsIn(['text', 'section', 'clause_word'])
+  level!: EssayFeedbackLinguisticLevel
+
+  @IsString()
+  issue_type!: string
+
+  @IsIn(['low', 'medium', 'high'])
+  severity!: EssayFeedbackSeverity
+
+  @ValidateNested()
+  @Type(() => EssayFeedbackEvidence)
+  evidence!: EssayFeedbackEvidence
+
+  @IsString()
+  feedback!: string
+
+  @IsString()
+  revision_guidance!: string
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EssayFeedbackCitation)
+  citations!: EssayFeedbackCitation[]
+}
+
+export class EssayFeedbackOverallFeedback {
+  @IsString()
+  summary!: string
+
+  @IsArray()
+  @Type(() => String)
+  priority_issues!: string[]
+
+  @IsArray()
+  @Type(() => String)
+  next_steps!: string[]
+
+  @IsArray()
+  @Type(() => String)
+  reflection_questions!: string[]
+}
+
+export class EssayFeedbackResponse {
+  @IsOptional()
+  @IsString()
+  submission_id!: string | null
+
+  @IsOptional()
+  @IsString()
+  created_at!: string | null
+
+  @ValidateNested()
+  @Type(() => EssayFeedbackEssay)
+  essay!: EssayFeedbackEssay
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EssayFeedbackAnnotation)
+  annotations!: EssayFeedbackAnnotation[]
+
+  @ValidateNested()
+  @Type(() => EssayFeedbackOverallFeedback)
+  overall_feedback!: EssayFeedbackOverallFeedback
 }
 
 export class OrganizationSettingsResponse {

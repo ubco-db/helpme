@@ -535,7 +535,7 @@ describe('AuthService', () => {
       });
       const authState = await AuthStateFactory.create({
         organization: org,
-        expiresInSeconds: 0,
+        expiresInSeconds: -1,
       });
       const res: any = new MockResponse() as any;
       await service.ssoAuthCallback(
@@ -701,14 +701,14 @@ describe('AuthService', () => {
     });
 
     it('should return 400 if verification code has expired', async () => {
-      const token = await UserTokenModel.save({
+      const expiredToken = await UserTokenModel.save({
         user: user,
         token: crypto.randomBytes(32).toString('hex'),
-        expiresInSeconds: 0,
+        expiresInSeconds: -1,
       });
       const res = new MockResponse() as any;
       const result = await service.verifyRegistrationToken(res, user.id, {
-        token: token.token,
+        token: expiredToken.token,
       });
       expect(result instanceof Response).toBeTruthy();
       expect(res.statusCode).toEqual(400);

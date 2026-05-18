@@ -138,7 +138,6 @@ export default function ChatbotQuestions(
               This is due to some changes to react and @types/react, and the component
               packages have not been updated to fix these issues.
             */}
-          {/* @ts-expect-error Server Component */}
           <Highlighter
             highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
             searchWords={[search]}
@@ -182,7 +181,6 @@ export default function ChatbotQuestions(
               This is due to some changes to react and @types/react, and the component
               packages have not been updated to fix these issues.
             */}
-            {/* @ts-expect-error Server Component */}
             <Highlighter
               highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
               searchWords={[search]}

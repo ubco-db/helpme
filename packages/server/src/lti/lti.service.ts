@@ -116,7 +116,7 @@ export class LtiService {
 
     if (
       matchingToken.expiresInSeconds != undefined &&
-      (Date.now() - matchingToken.createdAt.getTime()) / 1000 >
+      (Date.now() - matchingToken.createdAt.getTime()) / 1000 >=
         matchingToken.expiresInSeconds
     ) {
       await matchingToken.remove();
@@ -229,7 +229,7 @@ export class LtiService {
 
     if (
       matchingInvite.expiresInSeconds != undefined &&
-      (Date.now() - matchingInvite.createdAt.getTime()) / 1000 >
+      (Date.now() - matchingInvite.createdAt.getTime()) / 1000 >=
         matchingInvite.expiresInSeconds
     ) {
       await matchingInvite.remove();

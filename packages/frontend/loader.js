@@ -5,8 +5,10 @@
 // This is needed since next.js creates images of different sizes for different screen resolutions and can return the right one
 export default function customImageLoader({ src, width, quality }) {
     if (src.startsWith('http')) {
-        // external URL image (e.g. to google)
-        return src;
+        // Next requires the returned URL to reflect `width` when using a custom loader.
+        const q = quality ?? 75;
+        const join = src.includes('?') ? '&' : '?';
+        return `${src}${join}w=${width}&q=${q}`;
     } else {
         if (src.startsWith('/')) {
             // trim off any starting /

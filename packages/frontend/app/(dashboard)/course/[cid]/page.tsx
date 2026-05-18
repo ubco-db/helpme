@@ -6,10 +6,11 @@ import { ReactElement, useEffect, useMemo, useState, use } from 'react'
 import QueueCard from './components/QueueCard'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { getRoleInCourse } from '@/app/utils/generalUtils'
+import { getRoleInCourse, getErrorMessage } from '@/app/utils/generalUtils'
 import { useCourse } from '@/app/hooks/useCourse'
 import CreateQueueModal from './components/CreateQueueModal'
 import AsyncCentreCard from './components/AsyncCentreCard'
+import AssignmentFeedbackStartCard from './components/AssignmentFeedbackStartCard'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import CoursePageCheckInButton from './components/CoursePageCheckInButton'
 import PopularTimes from './components/popularTimes/PopularTimes'
@@ -21,7 +22,6 @@ import StudentSchedulePanel from './schedule/components/StudentSchedulePanel'
 import { useChatbotContext } from './components/chatbot/ChatbotProvider'
 import Chatbot from './components/chatbot/Chatbot'
 import { useRouter } from 'next/navigation'
-import { getErrorMessage } from '@/app/utils/generalUtils'
 
 type CoursePageProps = {
   params: Promise<{ cid: string }>
@@ -168,6 +168,10 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                   />
                 )}
 
+                {courseFeatures.assignmentEvaluationEnabled && (
+                  <AssignmentFeedbackStartCard cid={cid} />
+                )}
+
                 {role === Role.TA ||
                   (role === Role.PROFESSOR && courseFeatures.queueEnabled && (
                     <Row>
@@ -249,6 +253,11 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
         )) || (
             // only show if only the chatbot is enabled
             <div className="mt-3 flex h-[100vh] flex-col items-center justify-items-end">
+              {courseFeatures.assignmentEvaluationEnabled && (
+                <div className="w-full max-w-3xl px-4 pb-4">
+                  <AssignmentFeedbackStartCard cid={cid} />
+                </div>
+              )}
               <Chatbot
                 key={cid}
                 cid={cid}

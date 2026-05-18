@@ -3291,6 +3291,7 @@ describe('Organization Integration', () => {
       expect(updatedCourseSettings.adsEnabled).toEqual(true);
       expect(updatedCourseSettings.queueEnabled).toEqual(true);
       expect(updatedCourseSettings.asyncCentreAIAnswers).toEqual(true);
+      expect(updatedCourseSettings.assignmentEvaluationEnabled).toEqual(false);
       expect(updatedCourseSettings.scheduleOnFrontPage).toEqual(false);
     });
 
@@ -3340,6 +3341,10 @@ describe('Organization Integration', () => {
               feature: 'scheduleOnFrontPage',
               value: true,
             },
+            {
+              feature: 'assignmentEvaluationEnabled',
+              value: true,
+            },
           ],
         });
 
@@ -3361,6 +3366,7 @@ describe('Organization Integration', () => {
       expect(updatedCourseSettings.adsEnabled).toEqual(true); // ungiven value defaults to their default value (true)
       expect(updatedCourseSettings.queueEnabled).toEqual(false);
       expect(updatedCourseSettings.asyncCentreAIAnswers).toEqual(false);
+      expect(updatedCourseSettings.assignmentEvaluationEnabled).toEqual(true);
       expect(updatedCourseSettings.scheduleOnFrontPage).toEqual(true);
     });
   });

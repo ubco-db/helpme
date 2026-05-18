@@ -37,6 +37,9 @@ import {
   DesktopNotifBody,
   DesktopNotifPartial,
   EditCourseInfoParams,
+  EssayFeedbackExtractTextResponse,
+  EssayFeedbackRequest,
+  EssayFeedbackResponse,
   ExtraTAStatus,
   GetAlertsResponse,
   GetAsyncQuestionsResponse,
@@ -685,6 +688,54 @@ export class APIClient {
       courseId: number,
     ): Promise<CourseSettingsResponse> =>
       this.req('GET', `/api/v1/courses/${courseId}/features`),
+    extractAssignmentText: async (
+      courseId: number,
+      file: File,
+    ): Promise<EssayFeedbackExtractTextResponse> => {
+      const formData = new FormData()
+      formData.append('file', file)
+      return this.req(
+        'POST',
+        `/api/v1/courses/${courseId}/assignment-feedback/extract-text`,
+        undefined,
+        formData,
+      )
+    },
+    generateAssignmentFeedback: async (
+      courseId: number,
+      essay_text: string,
+    ): Promise<EssayFeedbackResponse> =>
+      this.req(
+        'POST',
+        `/api/v1/courses/${courseId}/assignment-feedback`,
+        undefined,
+        { essay_text } satisfies EssayFeedbackRequest,
+      ),
+    /** @deprecated Prefer extractAssignmentText */
+    extractEssayText: async (
+      courseId: number,
+      file: File,
+    ): Promise<EssayFeedbackExtractTextResponse> => {
+      const formData = new FormData()
+      formData.append('file', file)
+      return this.req(
+        'POST',
+        `/api/v1/courses/${courseId}/assignment-feedback/extract-text`,
+        undefined,
+        formData,
+      )
+    },
+    /** @deprecated Prefer generateAssignmentFeedback */
+    generateEssayFeedback: async (
+      courseId: number,
+      essay_text: string,
+    ): Promise<EssayFeedbackResponse> =>
+      this.req(
+        'POST',
+        `/api/v1/courses/${courseId}/assignment-feedback`,
+        undefined,
+        { essay_text } satisfies EssayFeedbackRequest,
+      ),
     getAllStudentsNotInQueue: async (
       courseId: number,
       withATaskQuestion?: boolean,

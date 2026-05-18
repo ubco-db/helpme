@@ -1,0 +1,321 @@
+/* Adapted from LLED_bot_MVP styles.css — scoped assignment feedback viewer */
+
+:root .assignment-fb-scope {
+  --fb-bg: #edebe7;
+  --fb-surface: #ffffff;
+  --fb-border: #ddd9d1;
+  --fb-border-light: #eceae4;
+  --fb-text: #1a1816;
+  --fb-text-secondary: #6b6560;
+  --fb-text-muted: #9c968e;
+  --fb-teal: #0c6b6e;
+  --fb-teal-light: #e4f3f3;
+  --fb-teal-mid: #a8d8d8;
+  --fb-amber: #a7600b;
+  --fb-rose: #ad1a3a;
+  --fb-green: #15803d;
+}
+
+.assignment-fb-scope .viewer-root {
+  min-height: calc(100vh - 120px);
+  background: var(--fb-bg);
+}
+
+.assignment-fb-scope .layout {
+  display: grid;
+  grid-template-columns: 1fr min(460px, 40vw);
+  min-height: calc(100vh - 120px);
+}
+
+@media (max-width: 1024px) {
+  .assignment-fb-scope .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.assignment-fb-scope .pdf-panel {
+  background: #c8c4bc;
+  overflow-y: auto;
+  padding: 24px 24px 48px;
+}
+
+.assignment-fb-scope .paper {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  background: #fffff8;
+  border-radius: 3px;
+  box-shadow: 0 2px 24px rgba(0, 0, 0, 0.13);
+  padding: 48px 40px;
+}
+
+.assignment-fb-scope .assignment-body {
+  font-family: 'Lora', Georgia, serif;
+  font-size: 15px;
+  line-height: 1.85;
+  color: var(--fb-text);
+}
+
+.assignment-fb-scope .assignment-body p {
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.assignment-fb-scope .hl {
+  border-radius: 3px;
+  padding: 1px 2px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.assignment-fb-scope .hl-low {
+  background: rgba(21, 128, 61, 0.12);
+  border-bottom: 2px solid rgba(21, 128, 61, 0.5);
+}
+
+.assignment-fb-scope .hl-medium {
+  background: rgba(167, 96, 11, 0.12);
+  border-bottom: 2px solid rgba(167, 96, 11, 0.5);
+}
+
+.assignment-fb-scope .hl-high {
+  background: rgba(173, 26, 58, 0.12);
+  border-bottom: 2px solid rgba(173, 26, 58, 0.55);
+}
+
+.assignment-fb-scope .hl.is-active {
+  outline: 2px solid var(--fb-teal-mid);
+}
+
+.assignment-fb-scope .annotation-pin {
+  position: absolute;
+  right: -36px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.assignment-fb-scope .pin-low {
+  background: var(--fb-green);
+}
+
+.assignment-fb-scope .pin-medium {
+  background: var(--fb-amber);
+}
+
+.assignment-fb-scope .pin-high {
+  background: var(--fb-rose);
+}
+
+.assignment-fb-scope .annotation-pin.is-active {
+  transform: scale(1.08);
+}
+
+.assignment-fb-scope .feedback-panel {
+  background: var(--fb-surface);
+  border-left: 1px solid var(--fb-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.assignment-fb-scope .feedback-header {
+  padding: 14px;
+  border-bottom: 1px solid var(--fb-border-light);
+}
+
+.assignment-fb-scope .feedback-filter-label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fb-text-muted);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.assignment-fb-scope .dim-pill {
+  display: inline-block;
+  margin: 2px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--fb-border);
+  background: #fafaf8;
+  color: var(--fb-text-secondary);
+}
+
+.assignment-fb-scope .dim-pill.is-active {
+  border-color: var(--fb-teal);
+  background: var(--fb-teal-light);
+  color: var(--fb-teal);
+}
+
+.assignment-fb-scope .fb-tab {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--fb-text-secondary);
+}
+
+.assignment-fb-scope .fb-tab.is-active {
+  background: var(--fb-teal-light);
+  color: var(--fb-teal);
+  border-color: var(--fb-teal-mid);
+}
+
+.assignment-fb-scope .feedback-cards {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  gap: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.assignment-fb-scope .feedback-card {
+  border: 1px solid var(--fb-border);
+  border-radius: 12px;
+  padding: 14px;
+  background: #fafaf8;
+  cursor: pointer;
+}
+
+.assignment-fb-scope .feedback-card.is-active {
+  outline: 2px solid var(--fb-teal-mid);
+}
+
+.assignment-fb-scope .feedback-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.assignment-fb-scope .feedback-card__pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.assignment-fb-scope .feedback-card__tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eceae4;
+}
+
+.assignment-fb-scope .feedback-card__quote {
+  margin: 8px 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--fb-teal-mid);
+  font-style: italic;
+}
+
+/* Suggested course material — distinct from rubric citation chips */
+.assignment-fb-scope .feedback-card__suggested-material {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px dashed var(--fb-teal-mid);
+  background: linear-gradient(
+    135deg,
+    rgba(12, 107, 110, 0.06) 0%,
+    rgba(12, 107, 110, 0.02) 100%
+  );
+}
+
+.assignment-fb-scope .feedback-card__material-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fb-teal);
+  margin-bottom: 6px;
+}
+
+.assignment-fb-scope .feedback-card__material-hint {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--fb-text-secondary);
+  line-height: 1.45;
+}
+
+.assignment-fb-scope .feedback-card__material-filewrap {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.assignment-fb-scope .feedback-card__material-file {
+  color: var(--fb-teal);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.assignment-fb-scope .feedback-card__material-file:not(a) {
+  color: var(--fb-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.assignment-fb-scope .summary-section h4 {
+  margin: 12px 0 6px;
+  font-size: 13px;
+  color: var(--fb-text-secondary);
+}
+
+.assignment-fb-scope .dropzone {
+  border: 2px dashed var(--fb-border);
+  border-radius: 14px;
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  background: #fafaf8;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  margin-bottom: 16px;
+  min-height: 160px;
+  position: relative;
+}
+
+.assignment-fb-scope .dropzone.is-dragover {
+  border-color: var(--fb-teal);
+  background: var(--fb-teal-light);
+}
+
+.assignment-fb-scope .dropzone.is-loaded {
+  border-style: solid;
+  border-color: var(--fb-teal-mid);
+  background: var(--fb-teal-light);
+}
+
+.assignment-fb-scope .dropzone__title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--fb-text-secondary);
+}
+
+.assignment-fb-scope .dropzone__hint {
+  font-size: 12px;
+  color: var(--fb-text-muted);
+}
