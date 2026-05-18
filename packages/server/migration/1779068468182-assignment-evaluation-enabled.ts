@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class assignmentEvaluationEnabled1778520291992 implements MigrationInterface {
-    name = 'assignmentEvaluationEnabled1778520291992'
+export class AssignmentEvaluationEnabled1779068468182 implements MigrationInterface {
+    name = 'AssignmentEvaluationEnabled1779068468182'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`ALTER TABLE "course_settings_model" ADD "assignmentEvaluationEnabled" boolean NOT NULL DEFAULT false`);

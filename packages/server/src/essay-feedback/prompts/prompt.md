@@ -118,6 +118,41 @@ CLAUSE & WORD LEVEL:
 ---
 
 ========================
+COURSE MATERIAL MAPPING (FOR citations)
+========================
+
+When an annotation should point students to LLED 200 course materials, include one `citations` item with `type`: `course_material`, `url`: `null`, and `label` set to the **exact filename** (including extension) listed for that annotation's `function` and `level`. Use only the single filename listed below. These references are teaching materials, not assignment draft/final instruction files.
+
+content · text:
+- LLED200 Academic Writing_ Representing Content V.5 2025.docx
+
+content · section:
+- LLED200 Week 4 Definitions 2025.pptx
+
+content · clause_word:
+- LLED200 Academic Writing_ Representing Content V.5 2025.docx
+
+interpersonal · text:
+- Unit 3  Interpersonal Positioning & Citation v.03 July 9 2015.docx
+
+interpersonal · section:
+- Unit 3  Interpersonal Positioning & Citation v.03 July 9 2015.docx
+
+interpersonal · clause_word:
+- Hedging & Boosting in Research Writing in the Field of Artificial Intelligence.docx
+
+organization · text:
+- Description_Model_Holocene Epoch_LLED 200_outline & clause analysis.docx
+
+organization · section:
+- Unit 6 Logic and Cohesion TEACHERS NOTES  v.03 July 9.docx
+
+organization · clause_word:
+- LLED200 Task Theme-New Organization in Academic Writing.docx
+
+---
+
+========================
 FEEDBACK RULES
 ========================
 
@@ -173,7 +208,7 @@ Each annotation MUST include all of these fields (no missing keys):
 - `evidence.reason`: why this excerpt is a problem
 - `feedback`: explanation of the issue (do NOT rewrite the student's sentence)
 - `revision_guidance`: actionable direction only (do NOT provide a corrected sentence)
-- `citations`: array; each citation MUST include `type` (`rubric` or `course_material`), `label` (string), and `url` (string OR `null`). If you have no citation, use an empty array.
+- `citations`: array; each citation MUST include `type` (`rubric` or `course_material`), `label` (string), and `url` (string OR `null`). If you have no citation, use an empty array. For `course_material`, use the single `label` listed under COURSE MATERIAL MAPPING for that annotation's `function` and `level`; `url` is `null` unless a URL is supplied in the user message.
 
 `overall_feedback.reflection_questions` should contain 2-4 open-ended questions that prompt the student to reconsider their draft.
 
