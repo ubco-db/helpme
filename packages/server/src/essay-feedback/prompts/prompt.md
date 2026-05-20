@@ -138,9 +138,6 @@ FEEDBACK RULES
 
 - IGNORE minor grammar issues unless they affect meaning
 
-- Provide between 1–3 annotations per paragraph
-- Maximum total annotations: 12
-
 ---
 
 ========================
@@ -153,40 +150,29 @@ Do NOT include explanations outside JSON.
 
 Required top-level fields:
 
-- `submission_id`: ALWAYS `null`
-- `created_at`: ALWAYS `null`
-- `essay.paragraphs` (JSON field name): copy the exact paragraph list provided in the user message, using the lowercase IDs (`p1`, `p2`, ...) and the original `text` content for each paragraph
-- `annotations`: array, each item MUST include EVERY field listed below
-- `overall_feedback`: MUST include `summary`, `priority_issues`, `next_steps`, AND `reflection_questions`
-
-Each annotation MUST include all of these fields (no missing keys):
-
-- `id`: integer, unique within the response, starting at 1
-- `paragraph_id`: lowercase paragraph id (e.g. `p1`)
-- `char_start`: integer offset within that paragraph's text
-- `char_end`: integer offset within that paragraph's text, strictly greater than `char_start`, less than or equal to the paragraph length
-- `function`: one of `content`, `interpersonal`, `organization`
-- `level`: one of `text`, `section`, `clause_word`
-- `issue_type`: short label (e.g. "Thesis clarity", "Hedging")
-- `severity`: one of `low`, `medium`, `high`
-- `evidence.quote`: the exact substring from the paragraph that anchors the issue
-- `evidence.reason`: why this excerpt is a problem
-- `feedback`: explanation of the issue (do NOT rewrite the student's sentence)
-- `revision_guidance`: actionable direction only (do NOT provide a corrected sentence)
-- `citations`: array; each citation MUST include `type` (`rubric` or `course_material`), `label` (string), and `url` (string OR `null`). If you have no citation, use an empty array.
-
-`overall_feedback.reflection_questions` should contain 2-4 open-ended questions that prompt the student to reconsider their draft.
+- \`annotations\` (array. Provide 0-4 annotations per paragraph, this array could be very small (1 or 2) or very large (20+) depending on how much feedback is found): 
+  - \`id\` (integer): unique within the response, starting at 1
+  - \`paragraph_id\` (string): lowercase paragraph id (e.g. \`p1\`). This is from the paragraph list provided in the user message.
+  - \`char_start\` (integer): integer offset within that paragraph's text
+  - \`char_end\` (integer): integer offset within that paragraph's text, strictly greater than \`char_start\`, less than or equal to the paragraph length
+  - \`function\` (string): one of \`content\`, \`interpersonal\`, \`organization\`
+  - \`level\` (string): one of \`text\`, \`section\`, \`clause_word\`
+  - \`issue_type\` (string): short label (e.g. "Thesis clarity", "Hedging")
+  - \`severity\` (string): one of \`low\`, \`medium\`, \`high\`
+  - \`evidence\` (object):
+    - \`quote\` (string): the exact substring from the paragraph that anchors the issue
+    - \`reason\` (string): why this excerpt is a problem
+  - \`feedback\` (string): explanation of the issue (do NOT rewrite the student's sentence)
+  - \`revision_guidance\` (string): actionable direction only (do NOT provide a corrected sentence)
+- \`overall_feedback\` (object):
+  - \`summary\` (string): overall description of the writing quality
+  - \`priority_issues\` (optional. array of strings of length 1 to 5): top issues to address. Each issue should be 1-3 sentences
+  - \`next_steps\` (optional. array of strings of length 1 to 5): actionable steps the student should take to improve. Each step should be 1-2 sentences.
+  - \`reflection_questions\` (optional. array of strings of length 2 to 4): open-ended questions that prompt the student to reconsider their draft
 
 Example (illustrative shape only):
 
 {
-  "submission_id": null,
-  "created_at": null,
-  "essay": {
-    "paragraphs": [
-      { "id": "p1", "text": "..." }
-    ]
-  },
   "annotations": [
     {
       "id": 1,
@@ -202,10 +188,7 @@ Example (illustrative shape only):
         "reason": "why this is a problem"
       },
       "feedback": "clear explanation of the issue",
-      "revision_guidance": "actionable suggestion, direction only",
-      "citations": [
-        { "type": "rubric", "label": "Criterion 1: Thesis", "url": null }
-      ]
+      "revision_guidance": "actionable suggestion, direction only"
     }
   ],
   "overall_feedback": {
@@ -224,14 +207,14 @@ ABSOLUTE CONSTRAINTS:
 - Do NOT rewrite or fully correct any sentence; only diagnose and direct.
 - Do NOT invent paragraphs; only reference paragraph IDs that appear in the input.
 - Do NOT output any field that is not in the schema.
-- Severity values are EXACTLY `low` | `medium` | `high` (never `med`).
+- Severity values are EXACTLY \`low\` | \`medium\` | \`high\` (never \`med\`).
 
 OUTPUT-FORMAT ENFORCEMENT (READ CAREFULLY):
 
 - Your entire response MUST be a single JSON object and NOTHING else.
-- The response MUST start with the character `{` and end with the character `}`.
-- Do NOT wrap the JSON in markdown code fences. Do NOT prepend ```json or append ```.
+- The response MUST start with the character \`{\` and end with the character \`}\`.
+- Do NOT wrap the JSON in markdown code fences. Do NOT prepend \`\`\`json or append \`\`\`.
 - Do NOT include any prose, preamble, summary, apology, or sign-off before or after the JSON.
-- Do NOT include `<think>` blocks, chain-of-thought, or reasoning traces in the output.
+- Do NOT include \`<think>\` blocks, chain-of-thought, or reasoning traces in the output.
 - All keys and string values MUST use double quotes. No trailing commas.
-- If you are uncertain about a value, choose a conservative one that satisfies the schema; do NOT omit required keys.
+- If you are uncertain about a value, choose a conservative one that satisfies the schema; do NOT omit required keys.`
