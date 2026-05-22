@@ -215,6 +215,5 @@ OUTPUT-FORMAT ENFORCEMENT (READ CAREFULLY):
 - The response MUST start with the character `{` and end with the character `}`.
 - Do NOT wrap the JSON in markdown code fences. Do NOT prepend \`\`\`json or append \`\`\`.
 - Do NOT include any prose, preamble, summary, apology, or sign-off before or after the JSON.
-- Do NOT include `<think>` blocks, chain-of-thought, or reasoning traces in the output.
 - All keys and string values MUST use double quotes. No trailing commas.
 - If you are uncertain about a value, choose a conservative one that satisfies the schema; do NOT omit required keys.

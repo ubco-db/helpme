@@ -15,7 +15,6 @@ OUTPUT FORMAT (STRICT):
   - "id" (string): sequential ID starting from "p1"
   - "text" (string): the paragraph text, preserving the original wording exactly
 - Do NOT include markdown code fences, explanations, or any text outside the JSON array.
-- Do NOT include `<think>` blocks or chain-of-thought reasoning.
 - Your response MUST start with `[` and end with `]`.
 
 Example output:
