@@ -1,7 +1,6 @@
 import mammoth from 'mammoth';
 import { PDFParse } from 'pdf-parse';
-// word-extractor is CJS (`module.exports = WordExtractor`); default import emits `.default` and breaks at runtime.
-import WordExtractor = require('word-extractor');
+import WordExtractor from 'word-extractor';
 
 export type SupportedMime =
   | 'text/plain'

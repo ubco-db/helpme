@@ -357,7 +357,7 @@ export enum MailServiceType {
   ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST = 'async_question_new_comment_on_my_post',
   ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST = 'async_question_new_comment_on_others_post',
   COURSE_CLONE_SUMMARY = 'course_clone_summary',
-  WEEKLY_COURSE_SUMMARY= 'weekly_course_summary',
+  WEEKLY_COURSE_SUMMARY = 'weekly_course_summary',
 }
 /**
  * Represents one of three possible user roles in a course.
@@ -1438,7 +1438,6 @@ export class AsyncQuestionComment {
 
   @IsOptional()
   endorsedBy: (UserPartial & { role?: Role }) | null = null
-  
 
   @Type(() => Date)
   createdAt!: Date
@@ -3021,9 +3020,10 @@ export class AssignmentFeedbackAnnotation {
   @IsString()
   revision_guidance!: string
 
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => AssignmentFeedbackCitation)
-  citations!: AssignmentFeedbackCitation[]
+  citations?: AssignmentFeedbackCitation[]
 
   constructor(init?: Partial<AssignmentFeedbackAnnotation>) {
     Object.assign(this, init)
@@ -3034,17 +3034,20 @@ export class AssignmentFeedbackOverallFeedback {
   @IsString()
   summary!: string
 
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  priority_issues!: string[]
+  priority_issues?: string[]
 
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  next_steps!: string[]
+  next_steps?: string[]
 
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  reflection_questions!: string[]
+  reflection_questions?: string[]
 
   constructor(init?: Partial<AssignmentFeedbackOverallFeedback>) {
     Object.assign(this, init)
@@ -3236,24 +3239,27 @@ export class EssayFeedbackAnnotation {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => EssayFeedbackCitation)
-  citations!: EssayFeedbackCitation[]
+  citations?: EssayFeedbackCitation[]
 }
 
 export class EssayFeedbackOverallFeedback {
   @IsString()
   summary!: string
 
+  @IsOptional()
   @IsArray()
   @Type(() => String)
-  priority_issues!: string[]
+  priority_issues?: string[]
 
+  @IsOptional()
   @IsArray()
   @Type(() => String)
-  next_steps!: string[]
+  next_steps?: string[]
 
+  @IsOptional()
   @IsArray()
   @Type(() => String)
-  reflection_questions!: string[]
+  reflection_questions?: string[]
 }
 
 export class EssayFeedbackResponse {

@@ -27,11 +27,14 @@ export default function FeedbackSummaryView({
           <p>{overall.summary}</p>
         </section>
       ) : null}
-      <SummaryList title="Priority Issues" items={overall.priority_issues} />
-      <SummaryList title="Next Steps" items={overall.next_steps} />
+      <SummaryList
+        title="Priority Issues"
+        items={overall.priority_issues ?? []}
+      />
+      <SummaryList title="Next Steps" items={overall.next_steps ?? []} />
       <SummaryList
         title="Reflection Questions"
-        items={overall.reflection_questions}
+        items={overall.reflection_questions ?? []}
       />
     </div>
   )

@@ -3,19 +3,15 @@ import type {
   EssayFeedbackParagraph,
   EssayFeedbackResponse,
 } from '@koh/common';
-
-const citationSchema = z.object({
-  type: z.enum(['rubric', 'course_material']),
-  label: z.string(),
-  url: z.string().nullable(),
-});
+import { InternalServerErrorException } from '@nestjs/common';
 
 const evidenceSchema = z.object({
   quote: z.string(),
   reason: z.string(),
 });
 
-const annotationSchema = z.object({
+/** Schema for what the LLM actually returns (no citations, no submission_id/created_at/essay). */
+const llmAnnotationSchema = z.object({
   id: z.number().int(),
   paragraph_id: z.string(),
   char_start: z.number().int().nonnegative(),
@@ -27,43 +23,42 @@ const annotationSchema = z.object({
   evidence: evidenceSchema,
   feedback: z.string(),
   revision_guidance: z.string(),
-  citations: z.array(citationSchema),
 });
 
 const overallFeedbackSchema = z.object({
   summary: z.string(),
-  priority_issues: z.array(z.string()),
-  next_steps: z.array(z.string()),
-  reflection_questions: z.array(z.string()),
+  priority_issues: z.array(z.string()).optional(),
+  next_steps: z.array(z.string()).optional(),
+  reflection_questions: z.array(z.string()).optional(),
 });
 
-const feedbackSchema = z.object({
-  submission_id: z.string().nullable(),
-  created_at: z.string().nullable(),
-  essay: z.object({
-    paragraphs: z.array(
-      z.object({
-        id: z.string(),
-        text: z.string(),
-      }),
-    ),
-  }),
-  annotations: z.array(annotationSchema),
+/** Validates only the shape the LLM is expected to return. */
+const llmFeedbackSchema = z.object({
+  annotations: z.array(llmAnnotationSchema),
   overall_feedback: overallFeedbackSchema,
 });
 
+/**
+ * Layers programmatic fields on top of the validated LLM output:
+ * - submission_id, created_at, essay (from the original paragraphs)
+ * - citations: [] on each annotation
+ * - Defaults optional overall_feedback arrays to []
+ * Also filters out annotations with invalid char offsets.
+ */
 function normalizeFeedback(
-  feedback: EssayFeedbackResponse,
+  parsed: z.infer<typeof llmFeedbackSchema>,
   paragraphs: EssayFeedbackParagraph[],
 ): EssayFeedbackResponse {
   const paragraphById = new Map(
     paragraphs.map((item) => [item.id.toLowerCase(), item.text] as const),
   );
 
-  const safeAnnotations = feedback.annotations
+  const safeAnnotations = parsed.annotations
     .map((item) => ({
       ...item,
       paragraph_id: item.paragraph_id.toLowerCase(),
+      citations:
+        [] as EssayFeedbackResponse['annotations'][number]['citations'],
     }))
     .filter((item) => {
       const text = paragraphById.get(item.paragraph_id);
@@ -78,21 +73,29 @@ function normalizeFeedback(
     });
 
   return {
-    ...feedback,
     submission_id: null,
     created_at: null,
     essay: { paragraphs },
     annotations: safeAnnotations,
-  };
+    overall_feedback: {
+      summary: parsed.overall_feedback.summary,
+      priority_issues: parsed.overall_feedback.priority_issues ?? [],
+      next_steps: parsed.overall_feedback.next_steps ?? [],
+      reflection_questions: parsed.overall_feedback.reflection_questions ?? [],
+    },
+  } as EssayFeedbackResponse;
 }
 
 export function validateFeedbackResponse(
   raw: unknown,
   paragraphs: EssayFeedbackParagraph[],
 ): EssayFeedbackResponse {
-  const parsed = feedbackSchema.safeParse(raw);
+  console.log('raw', raw);
+  const parsed = llmFeedbackSchema.safeParse(raw);
   if (!parsed.success) {
-    throw new Error(`Feedback schema validation failed: ${parsed.error.message}`);
+    throw new InternalServerErrorException(
+      `Feedback schema validation failed: ${parsed.error.message}`,
+    );
   }
-  return normalizeFeedback(parsed.data as EssayFeedbackResponse, paragraphs);
+  return normalizeFeedback(parsed.data, paragraphs);
 }

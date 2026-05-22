@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "prebuild": "rimraf dist",
-    "build": "nest build --webpack --webpackPath webpack.config.js && node copy-assignment-feedback-assets.cjs && npm run sentry:sourcemaps",
+    "build": "nest build --webpack --webpackPath webpack.config.js && npm run sentry:sourcemaps",
     "build:dev": "nest build --webpack --webpackPath webpack.config.js",
     "dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider TYPEORM_LOGGING=true nest build --webpack --webpackPath webpack-hmr.config.js",
     "dev:debug": "nest start --debug --watch",
@@ -20,10 +20,10 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:integration": "jest --config ./test/jest-integration.json -i",
-    "dev:db:reset": "npm run schema:drop",
-    "migration:generate": "npm run schema:drop && npm run migration:run && npm run typeorm -- migration:generate",
-    "migration:run": "npm run typeorm -- migration:run -d ./typeORMCLI.config.ts",
-    "schema:drop": "npm run typeorm -- schema:drop -d ./typeORMCLI.config.ts",
+    "dev:db:reset": "yarn typeorm schema:drop",
+    "migration:generate": "yarn schema:drop && yarn migration:run && yarn typeorm migration:generate",
+    "migration:run": "yarn typeorm migration:run -d ./typeORMCLI.config.ts",
+    "schema:drop": "yarn typeorm schema:drop -d ./typeORMCLI.config.ts",
     "typeorm": "cross-env TYPEORM_CLI=true ts-node -r tsconfig-paths/register ../../node_modules/typeorm/cli.js",
     "cli": "nestjs-command",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org university-of-british-colum-p0 --project helpme-nestjs ./dist && sentry-cli --url https://sentry.io/ sourcemaps upload --org university-of-british-colum-p0 --project helpme-nestjs ./dist"
@@ -55,6 +55,7 @@
     "@types/bcrypt": "^5.0.2",
     "@types/multer": "^1.4.5",
     "@types/nodemailer": "^6.4.7",
+    "@types/word-extractor": "^1.0.6",
     "async": "^3.2.0",
     "bcrypt": "^5.0.0",
     "brace-expansion": "^2.0.2",
@@ -179,7 +180,9 @@
       "ts"
     ],
     "rootDir": "src",
-    "setupFiles": ["<rootDir>/../test/setup/jest-env.ts"],
+    "setupFiles": [
+      "<rootDir>/../test/setup/jest-env.ts"
+    ],
     "testRegex": ".spec.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
