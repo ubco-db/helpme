@@ -24,11 +24,12 @@ import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { EssayFeedbackService } from './essay-feedback.service';
 import { memoryStorage } from 'multer';
 
-@Controller('courses')
+/* A series of endpoints used for the "AI Essay Feedback" feature (used specifically be LLED courses for now) */
+@Controller('ai-assignment-feedback')
 export class EssayFeedbackController {
   constructor(private readonly essayFeedbackService: EssayFeedbackService) {}
 
-  @Post(':courseId/assignment-feedback/extract-text')
+  @Post(':courseId/extract-text')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   @UseInterceptors(
@@ -57,7 +58,7 @@ export class EssayFeedbackController {
     return this.essayFeedbackService.extractText(courseId, file);
   }
 
-  @Post(':courseId/assignment-feedback')
+  @Post(':courseId/generate-feedback')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async generateFeedback(

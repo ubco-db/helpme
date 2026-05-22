@@ -79,7 +79,10 @@ export default function AssignmentFeedbackClient(props: {
         const text = (await file.text()).trim()
         setAssignmentText(text)
       } else {
-        const res = await API.course.extractAssignmentText(courseId, file)
+        const res = await API.aiAssignmentFeedback.extractAssignmentText(
+          courseId,
+          file,
+        )
         setAssignmentText(res.essay_text.trim())
       }
       setLoadedFilename(file.name)
@@ -98,7 +101,10 @@ export default function AssignmentFeedbackClient(props: {
     setLoading(true)
     setStatusErr(null)
     try {
-      const raw = await API.course.generateAssignmentFeedback(courseId, trimmed)
+      const raw = await API.aiAssignmentFeedback.generateAssignmentFeedback(
+        courseId,
+        trimmed,
+      )
       setFeedback(raw)
       setViewerState(initialViewerState)
       message.success('Feedback generated.')

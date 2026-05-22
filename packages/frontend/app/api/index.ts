@@ -593,7 +593,32 @@ export class APIClient {
         ),
     },
   }
-
+  /* A series of endpoints used for the "AI Essay Feedback" feature (used specifically be LLED courses for now) */
+  aiAssignmentFeedback = {
+    extractAssignmentText: async (
+      courseId: number,
+      file: File,
+    ): Promise<EssayFeedbackExtractTextResponse> => {
+      const formData = new FormData()
+      formData.append('file', file)
+      return this.req(
+        'POST',
+        `/api/v1/ai-assignment-feedback/${courseId}/extract-text`,
+        undefined,
+        formData,
+      )
+    },
+    generateAssignmentFeedback: async (
+      courseId: number,
+      essay_text: string,
+    ): Promise<EssayFeedbackResponse> =>
+      this.req(
+        'POST',
+        `/api/v1/ai-assignment-feedback/${courseId}/generate-feedback`,
+        undefined,
+        { essay_text } satisfies EssayFeedbackRequest,
+      ),
+  }
   course = {
     addStudent: async (courseId: number, sid: number): Promise<void> =>
       this.req(
@@ -688,29 +713,6 @@ export class APIClient {
       courseId: number,
     ): Promise<CourseSettingsResponse> =>
       this.req('GET', `/api/v1/courses/${courseId}/features`),
-    extractAssignmentText: async (
-      courseId: number,
-      file: File,
-    ): Promise<EssayFeedbackExtractTextResponse> => {
-      const formData = new FormData()
-      formData.append('file', file)
-      return this.req(
-        'POST',
-        `/api/v1/courses/${courseId}/assignment-feedback/extract-text`,
-        undefined,
-        formData,
-      )
-    },
-    generateAssignmentFeedback: async (
-      courseId: number,
-      essay_text: string,
-    ): Promise<EssayFeedbackResponse> =>
-      this.req(
-        'POST',
-        `/api/v1/courses/${courseId}/assignment-feedback`,
-        undefined,
-        { essay_text } satisfies EssayFeedbackRequest,
-      ),
     getAllStudentsNotInQueue: async (
       courseId: number,
       withATaskQuestion?: boolean,
