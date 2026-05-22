@@ -1,9 +1,14 @@
 /**
- * Suggested course material for assignment feedback annotations — aligned with LLED_bot_MVP behaviour.
+ * Suggested course material for assignment feedback annotations
  * Prefer API-provided course_material citations; otherwise use function × level fallback filenames.
  */
 
-import type { Annotation, Citation, FunctionDimension, LinguisticLevel } from './assignmentFeedbackTypes'
+import type {
+  Annotation,
+  Citation,
+  FunctionDimension,
+  LinguisticLevel,
+} from './assignmentFeedbackTypes'
 
 /** Exact filenames from curriculum mapping (do not alter). */
 const FALLBACK_BY_FUNCTION_AND_LEVEL: Record<
@@ -13,8 +18,7 @@ const FALLBACK_BY_FUNCTION_AND_LEVEL: Record<
   content: {
     text: 'LLED200 Academic Writing_ Representing Content V.5 2025.docx',
     section: 'LLED200 Week 4 Definitions 2025.pptx',
-    clause_word:
-      'LLED200 Academic Writing_ Representing Content V.5 2025.docx',
+    clause_word: 'LLED200 Academic Writing_ Representing Content V.5 2025.docx',
   },
   interpersonal: {
     text: 'Unit 3  Interpersonal Positioning & Citation v.03 July 9 2015.docx',
@@ -26,8 +30,7 @@ const FALLBACK_BY_FUNCTION_AND_LEVEL: Record<
   organization: {
     text: 'Description_Model_Holocene Epoch_LLED 200_outline & clause analysis.docx',
     section: 'Unit 6 Logic and Cohesion TEACHERS NOTES  v.03 July 9.docx',
-    clause_word:
-      'LLED200 Task Theme-New Organization in Academic Writing.docx',
+    clause_word: 'LLED200 Task Theme-New Organization in Academic Writing.docx',
   },
 }
 

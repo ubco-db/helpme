@@ -50,9 +50,8 @@ export default function AssignmentFeedbackClient(props: {
   const [feedback, setFeedback] = useState<EssayFeedbackResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [statusErr, setStatusErr] = useState<string | null>(null)
-  const [viewerState, setViewerState] = useState<ViewerState>(
-    initialViewerState,
-  )
+  const [viewerState, setViewerState] =
+    useState<ViewerState>(initialViewerState)
 
   const dragDepth = useRef(0)
 
@@ -188,7 +187,12 @@ export default function AssignmentFeedbackClient(props: {
                       <span className="feedback-filter-label">Function</span>
                       <div>
                         {(
-                          ['all', 'content', 'interpersonal', 'organization'] as const
+                          [
+                            'all',
+                            'content',
+                            'interpersonal',
+                            'organization',
+                          ] as const
                         ).map((k) => (
                           <button
                             key={k}
@@ -282,7 +286,7 @@ export default function AssignmentFeedbackClient(props: {
         }}
       >
         <input
-          className="dropzone__input absolute inset-0 opacity-0 cursor-pointer"
+          className="dropzone__input absolute inset-0 cursor-pointer opacity-0"
           type="file"
           accept=".txt,.md,.doc,.docx,.pdf"
           onChange={(e) => {
@@ -290,7 +294,9 @@ export default function AssignmentFeedbackClient(props: {
             if (file) void loadFile(file)
           }}
         />
-        <div className="dropzone__title">Drop a file here or click to browse</div>
+        <div className="dropzone__title">
+          Drop a file here or click to browse
+        </div>
         <div className="dropzone__hint text-xs text-neutral-500">
           .txt, .md, .doc, .docx, .pdf — max 10 MB
         </div>
@@ -316,13 +322,23 @@ export default function AssignmentFeedbackClient(props: {
         <Button onClick={() => setAssignmentText(SAMPLE_ASSIGNMENT)}>
           Load sample
         </Button>
-        <Button type="primary" loading={loading} onClick={() => void onGenerate()}>
+        <Button
+          type="primary"
+          loading={loading}
+          onClick={() => void onGenerate()}
+        >
           Generate feedback
         </Button>
       </div>
 
       {statusErr && (
-        <Alert type="error" message={statusErr} className="mb-4" showIcon />
+        <Alert
+          type="error"
+          message="Error generating feedback. Please try again."
+          description={'Full Error Message: ' + statusErr}
+          className="mb-4"
+          showIcon
+        />
       )}
     </div>
   )

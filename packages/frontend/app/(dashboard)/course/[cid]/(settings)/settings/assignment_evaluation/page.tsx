@@ -48,13 +48,16 @@ export default function AssignmentEvaluationSettingsPage(props: {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <Typography.Text strong className="block">
-              Enable assignment evaluation
+              Enable assignment evaluation - LLED Courses Only
             </Typography.Text>
-            <Typography.Paragraph type="secondary" className="!mb-0 mt-1 max-w-xl">
-              When enabled, the course home page shows an &quot;Assignment / report
-              feedback&quot; card. Students and staff can open the feedback tool
-              in a new tab. The tool uses the same model as your course chatbot
-              settings.
+            <Typography.Paragraph
+              type="secondary"
+              className="!mb-0 mt-1 max-w-xl"
+            >
+              When enabled, the course home page shows an &quot;Assignment /
+              report feedback&quot; card. Students and staff can open the
+              feedback tool in a new tab. The tool uses the same model as your
+              course chatbot settings.
             </Typography.Paragraph>
           </div>
           <Switch
@@ -67,7 +70,7 @@ export default function AssignmentEvaluationSettingsPage(props: {
           />
         </div>
         {!canEdit && (
-          <Typography.Paragraph type="secondary" className="mt-4 !mb-0">
+          <Typography.Paragraph type="secondary" className="!mb-0 mt-4">
             Only instructors can change this setting.
           </Typography.Paragraph>
         )}

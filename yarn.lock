@@ -4347,6 +4347,13 @@
   dependencies:
     "@types/node" "*"
 
+"@types/word-extractor@^1.0.6":
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/@types/word-extractor/-/word-extractor-1.0.6.tgz#ed8d6995d9c418a5a09b74258dc2ee9b5e4fccd8"
+  integrity sha512-NDrvZXGJi7cTKXGr8GTP08HiqiueggR1wfHZvBj1sfL8e52qecBSlvl1rBWrvOY0LLkk1DISkKVlFqMTfipLbQ==
+  dependencies:
+    "@types/node" "*"
+
 "@types/yargs-parser@*":
   version "21.0.3"
   resolved "https://registry.yarnpkg.com/@types/yargs-parser/-/yargs-parser-21.0.3.tgz#815e30b786d2e8f0dcd85fd5bcf5e1a04d008f15"

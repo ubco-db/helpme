@@ -81,6 +81,7 @@ export default function ForgetPassword() {
           form={form}
           onFinish={sendResetPasswordEmail}
         >
+          {/* @ts-expect-error Server Component */}
           <ReCAPTCHA
             ref={recaptchaRef}
             size="invisible"

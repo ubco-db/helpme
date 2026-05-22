@@ -711,31 +711,6 @@ export class APIClient {
         undefined,
         { essay_text } satisfies EssayFeedbackRequest,
       ),
-    /** @deprecated Prefer extractAssignmentText */
-    extractEssayText: async (
-      courseId: number,
-      file: File,
-    ): Promise<EssayFeedbackExtractTextResponse> => {
-      const formData = new FormData()
-      formData.append('file', file)
-      return this.req(
-        'POST',
-        `/api/v1/courses/${courseId}/assignment-feedback/extract-text`,
-        undefined,
-        formData,
-      )
-    },
-    /** @deprecated Prefer generateAssignmentFeedback */
-    generateEssayFeedback: async (
-      courseId: number,
-      essay_text: string,
-    ): Promise<EssayFeedbackResponse> =>
-      this.req(
-        'POST',
-        `/api/v1/courses/${courseId}/assignment-feedback`,
-        undefined,
-        { essay_text } satisfies EssayFeedbackRequest,
-      ),
     getAllStudentsNotInQueue: async (
       courseId: number,
       withATaskQuestion?: boolean,
@@ -865,20 +840,21 @@ export class APIClient {
     get: async (cid: number): Promise<GetAsyncQuestionsResponse> =>
       this.req('GET', `/api/v1/asyncQuestions/${cid}`, undefined),
     create: async (body: CreateAsyncQuestions, cid: number): Promise<void> =>
-      this.req(
-        'POST',
-        `/api/v1/asyncQuestions/${cid}`,
-        undefined,
-        body,
-      ),
-    studentUpdate: async (qid: number, body: UpdateAsyncQuestions): Promise<void> =>
+      this.req('POST', `/api/v1/asyncQuestions/${cid}`, undefined, body),
+    studentUpdate: async (
+      qid: number,
+      body: UpdateAsyncQuestions,
+    ): Promise<void> =>
       this.req(
         'PATCH',
         `/api/v1/asyncQuestions/student/${qid}`,
         undefined,
         body,
       ),
-    facultyUpdate: async (qid: number, body: UpdateAsyncQuestions): Promise<void> =>
+    facultyUpdate: async (
+      qid: number,
+      body: UpdateAsyncQuestions,
+    ): Promise<void> =>
       this.req(
         'PATCH',
         `/api/v1/asyncQuestions/faculty/${qid}`,

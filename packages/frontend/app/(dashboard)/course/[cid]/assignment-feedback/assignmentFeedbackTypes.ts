@@ -1,5 +1,3 @@
-/** Matches LLED_bot_MVP shared/schema.ts — do not rename JSON fields (e.g. `essay`). */
-
 export type {
   AssignmentFeedbackFunctionDimension as FunctionDimension,
   AssignmentFeedbackLinguisticLevel as LinguisticLevel,
