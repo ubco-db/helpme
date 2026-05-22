@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Param,
+  ParseFilePipeBuilder,
   ParseIntPipe,
   Post,
   UploadedFile,
@@ -21,8 +22,7 @@ import { CourseRolesGuard } from '../guards/course-roles.guard';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { EssayFeedbackService } from './essay-feedback.service';
-
-const TEN_MB = 10 * 1024 * 1024;
+import { memoryStorage } from 'multer';
 
 @Controller('courses')
 export class EssayFeedbackController {
@@ -33,12 +33,23 @@ export class EssayFeedbackController {
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: TEN_MB },
+      storage: memoryStorage(),
     }),
   )
   async extractText(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          // Note that nestjs filetypevalidator comes with mime type and magic number validation build in
+          fileType: 'txt|md|doc|docx|pdf',
+        })
+        .addMaxSizeValidator({
+          maxSize: 10 * 1024 * 1024, // 10MB limit per file
+        })
+        .build(),
+    )
+    file: Express.Multer.File,
   ): Promise<EssayFeedbackExtractTextResponse> {
     if (!file?.buffer) {
       throw new BadRequestException('No file uploaded.');
