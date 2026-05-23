@@ -3155,6 +3155,7 @@ export type EssayFeedbackCitationType = 'rubric' | 'course_material'
 export class EssayFeedbackRequest {
   @IsString()
   @MinLength(1)
+  @MaxLength(15000) // ~2000 words ish. Our local LLMs are going to struggle A LOT with even producing a valid json output with essays larger than this.
   essay_text!: string
 }
 
