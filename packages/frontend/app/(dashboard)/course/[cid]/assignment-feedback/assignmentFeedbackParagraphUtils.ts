@@ -38,9 +38,10 @@ export function buildParagraphSegments(
   paragraph: Paragraph,
   paragraphAnnotations: Annotation[],
 ): ParagraphSegment[] {
-  const sorted = [...paragraphAnnotations].sort(
-    (a, b) => a.char_start - b.char_start,
-  )
+  const sorted = [...paragraphAnnotations]
+    .filter((a) => a.char_start !== null && a.char_end !== null)
+    .sort((a, b) => (a.char_start as number) - (b.char_start as number))
+
   if (sorted.length === 0) {
     return [{ kind: 'text', text: paragraph.text }]
   }
@@ -49,8 +50,12 @@ export function buildParagraphSegments(
   let cursor = 0
 
   for (const item of sorted) {
-    const start = clamp(item.char_start, cursor, paragraph.text.length)
-    const end = clamp(item.char_end, start, paragraph.text.length)
+    const start = clamp(
+      item.char_start as number,
+      cursor,
+      paragraph.text.length,
+    )
+    const end = clamp(item.char_end as number, start, paragraph.text.length)
     if (start > cursor) {
       segments.push({
         kind: 'text',

@@ -14,7 +14,12 @@ export default function AssignmentParagraphView({
   onActivate: (id: number) => void
 }) {
   const segments = buildParagraphSegments(paragraph, annotations)
-  const sorted = [...annotations].sort((a, b) => a.char_start - b.char_start)
+  const sorted = [...annotations].sort((a, b) => {
+    if (a.char_start === null && b.char_start === null) return 0
+    if (a.char_start === null) return 1
+    if (b.char_start === null) return -1
+    return (a.char_start as number) - (b.char_start as number)
+  })
 
   return (
     <p data-paragraph-id={paragraph.id}>

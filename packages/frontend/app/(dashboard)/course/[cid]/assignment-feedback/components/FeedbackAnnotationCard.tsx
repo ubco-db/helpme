@@ -67,9 +67,9 @@ export default function FeedbackAnnotationCard({
         </span>
       </header>
       <div className="feedback-card__issue">{annotation.issue_type}</div>
-      {annotation.evidence?.quote ? (
+      {annotation.evidence?.exact_quote ? (
         <blockquote className="feedback-card__quote">
-          {annotation.evidence.quote}
+          {annotation.evidence.exact_quote}
         </blockquote>
       ) : null}
       {annotation.evidence?.reason ? (

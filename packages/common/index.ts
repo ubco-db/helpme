@@ -3195,7 +3195,15 @@ export class EssayFeedbackCitation {
 
 export class EssayFeedbackEvidence {
   @IsString()
-  quote!: string
+  exact_quote!: string
+
+  @IsOptional()
+  @IsString()
+  context_before_quote?: string
+
+  @IsOptional()
+  @IsString()
+  context_after_quote?: string
 
   @IsString()
   reason!: string
@@ -3208,11 +3216,13 @@ export class EssayFeedbackAnnotation {
   @IsString()
   paragraph_id!: string
 
+  @IsOptional()
   @IsInt()
-  char_start!: number
+  char_start!: number | null
 
+  @IsOptional()
   @IsInt()
-  char_end!: number
+  char_end!: number | null
 
   @IsIn(['content', 'interpersonal', 'organization'])
   function!: EssayFeedbackFunctionDimension

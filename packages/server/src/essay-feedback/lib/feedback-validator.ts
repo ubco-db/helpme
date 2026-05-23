@@ -5,8 +5,12 @@ import type {
 } from '@koh/common';
 import { InternalServerErrorException } from '@nestjs/common';
 
+import { findQuoteInEssay } from './text-matcher';
+
 const evidenceSchema = z.object({
-  quote: z.string(),
+  exact_quote: z.string(),
+  context_before_quote: z.string().optional(),
+  context_after_quote: z.string().optional(),
   reason: z.string(),
 });
 
@@ -14,8 +18,6 @@ const evidenceSchema = z.object({
 const llmAnnotationSchema = z.object({
   id: z.number().int(),
   paragraph_id: z.string(),
-  char_start: z.number().int().nonnegative(),
-  char_end: z.number().int().nonnegative(),
   function: z.enum(['content', 'interpersonal', 'organization']),
   level: z.enum(['text', 'section', 'clause_word']),
   issue_type: z.string(),
@@ -54,22 +56,37 @@ function normalizeFeedback(
   );
 
   const safeAnnotations = parsed.annotations
-    .map((item) => ({
-      ...item,
-      paragraph_id: item.paragraph_id.toLowerCase(),
-      citations:
-        [] as EssayFeedbackResponse['annotations'][number]['citations'],
-    }))
+    .map((item) => {
+      const match = findQuoteInEssay(
+        paragraphs,
+        item.paragraph_id,
+        item.evidence.exact_quote,
+        item.evidence.context_before_quote,
+        item.evidence.context_after_quote,
+      );
+
+      return {
+        ...item,
+        paragraph_id: match
+          ? match.paragraph_id.toLowerCase()
+          : item.paragraph_id.toLowerCase(),
+        char_start: match ? match.char_start : null,
+        char_end: match ? match.char_end : null,
+        citations:
+          [] as EssayFeedbackResponse['annotations'][number]['citations'],
+      };
+    })
     .filter((item) => {
+      // Allow valid indices, or null indices (failed matches)
+      if (item.char_start === null || item.char_end === null) return true;
+
       const text = paragraphById.get(item.paragraph_id);
-      if (!text) {
-        return false;
-      }
-      const valid =
+      if (!text) return false;
+      return (
         item.char_start >= 0 &&
         item.char_end > item.char_start &&
-        item.char_end <= text.length;
-      return valid;
+        item.char_end <= text.length
+      );
     });
 
   return {

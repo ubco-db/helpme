@@ -153,14 +153,14 @@ Required top-level fields:
 - `annotations` (array. Provide 0-4 annotations per paragraph, this array could be very small (1 or 2) or very large (20+) depending on how much feedback is found): 
   - `id` (integer): unique within the response, starting at 1
   - `paragraph_id` (string): lowercase paragraph id (e.g. `p1`). This is from the paragraph list provided in the user message.
-  - `char_start` (integer): integer offset within that paragraph's text
-  - `char_end` (integer): integer offset within that paragraph's text, strictly greater than `char_start`, less than or equal to the paragraph length
   - `function` (string): one of `content`, `interpersonal`, `organization`
   - `level` (string): one of `text`, `section`, `clause_word`
   - `issue_type` (string): short label (e.g. "Thesis clarity", "Hedging")
   - `severity` (string): one of `low`, `medium`, `high`
   - `evidence` (object):
-    - `quote` (string): the exact substring from the paragraph that anchors the issue
+    - `exact_quote` (string): the exact substring from the paragraph that anchors the issue. You MUST provide a verbatim extract from the text.
+    - `context_before_quote` (string, optional): a short string of text appearing immediately before the quote in the paragraph, to help disambiguate multiple occurrences.
+    - `context_after_quote` (string, optional): a short string of text appearing immediately after the quote in the paragraph.
     - `reason` (string): why this excerpt is a problem
   - `feedback` (string): explanation of the issue (do NOT rewrite the student's sentence)
   - `revision_guidance` (string): actionable direction only (do NOT provide a corrected sentence)
@@ -177,14 +177,14 @@ Example (illustrative shape only):
     {
       "id": 1,
       "paragraph_id": "p1",
-      "char_start": 0,
-      "char_end": 50,
       "function": "content",
       "level": "text",
       "issue_type": "Thesis clarity",
       "severity": "medium",
       "evidence": {
-        "quote": "exact text span",
+        "exact_quote": "exact text span",
+        "context_before_quote": "text before ",
+        "context_after_quote": " text after",
         "reason": "why this is a problem"
       },
       "feedback": "clear explanation of the issue",
