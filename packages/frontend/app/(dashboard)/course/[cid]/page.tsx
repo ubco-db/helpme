@@ -10,7 +10,7 @@ import { getRoleInCourse, getErrorMessage } from '@/app/utils/generalUtils'
 import { useCourse } from '@/app/hooks/useCourse'
 import CreateQueueModal from './components/CreateQueueModal'
 import AsyncCentreCard from './components/AsyncCentreCard'
-import AssignmentFeedbackStartCard from './components/AssignmentFeedbackStartCard'
+import AssignmentFeedbackStartCard from './components/AIAssignmentFeedbackStartCard'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import CoursePageCheckInButton from './components/CoursePageCheckInButton'
 import PopularTimes from './components/popularTimes/PopularTimes'
@@ -88,7 +88,9 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
       return ''
     }, [courseFeatures])
 
-  const isAccessDenied = courseError?.response?.status === 404 || courseError?.response?.status === 403
+  const isAccessDenied =
+    courseError?.response?.status === 404 ||
+    courseError?.response?.status === 403
   const router = useRouter()
   const errorText = isAccessDenied
     ? 'You do not have access to this course or this course does not exist.'
@@ -100,17 +102,14 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
     return (
       <div className="mt-8 flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
         <h1 className="text-2xl font-semibold">Access denied</h1>
-        <p className="max-w-md text-sm text-neutral-600">
-          {errorText}
-        </p>
+        <p className="max-w-md text-sm text-neutral-600">{errorText}</p>
 
         <Button type="primary" onClick={() => router.push('/courses')}>
           Return to Dashboard
         </Button>
       </div>
     )
-  }
-  else if (!course || !courseFeatures) {
+  } else if (!course || !courseFeatures) {
     return <CenteredSpinner tip="Loading Course Data..." />
   } else {
     return (
@@ -149,7 +148,7 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                       cid={cid}
                       linkId={
                         skipLinkTarget == 'first-queue' &&
-                          q.id === sortedQueues[0].id
+                        q.id === sortedQueues[0].id
                           ? 'skip-link-target'
                           : ''
                       }
@@ -215,8 +214,8 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                 sm={24}
               >
                 {courseFeatures.queueEnabled &&
-                  (!courseFeatures.chatBotEnabled ||
-                    courseFeatures.scheduleOnFrontPage) ? (
+                (!courseFeatures.chatBotEnabled ||
+                  courseFeatures.scheduleOnFrontPage) ? (
                   <>
                     {role === Role.PROFESSOR ? (
                       <TAFacultySchedulePanel courseId={cid} condensed={true} />
@@ -251,35 +250,35 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
             </Row>
           </div>
         )) || (
-            // only show if only the chatbot is enabled
-            <div className="mt-3 flex h-[100vh] flex-col items-center justify-items-end">
-              {courseFeatures.assignmentEvaluationEnabled && (
-                <div className="w-full max-w-3xl px-4 pb-4">
-                  <AssignmentFeedbackStartCard cid={cid} />
-                </div>
-              )}
-              <Chatbot
-                key={cid}
-                cid={cid}
-                variant="huge"
-                preDeterminedQuestions={preDeterminedQuestions}
-                setPreDeterminedQuestions={setPreDeterminedQuestions}
-                questionsLeft={questionsLeft}
-                setQuestionsLeft={setQuestionsLeft}
-                messages={messages}
-                setMessages={setMessages}
-                isOpen={true}
-                interactionId={interactionId}
-                setInteractionId={setInteractionId}
-                setHelpmeQuestionId={setHelpmeQuestionId}
-                helpmeQuestionId={helpmeQuestionId}
-                chatbotQuestionType={chatbotQuestionType}
-                setChatbotQuestionType={setChatbotQuestionType}
-                /* eslint-disable-next-line @typescript-eslint/no-empty-function */
-                setIsOpen={() => { }}
-              />
-            </div>
-          )}
+          // only show if only the chatbot is enabled
+          <div className="mt-3 flex h-[100vh] flex-col items-center justify-items-end">
+            {courseFeatures.assignmentEvaluationEnabled && (
+              <div className="w-full max-w-3xl px-4 pb-4">
+                <AssignmentFeedbackStartCard cid={cid} />
+              </div>
+            )}
+            <Chatbot
+              key={cid}
+              cid={cid}
+              variant="huge"
+              preDeterminedQuestions={preDeterminedQuestions}
+              setPreDeterminedQuestions={setPreDeterminedQuestions}
+              questionsLeft={questionsLeft}
+              setQuestionsLeft={setQuestionsLeft}
+              messages={messages}
+              setMessages={setMessages}
+              isOpen={true}
+              interactionId={interactionId}
+              setInteractionId={setInteractionId}
+              setHelpmeQuestionId={setHelpmeQuestionId}
+              helpmeQuestionId={helpmeQuestionId}
+              chatbotQuestionType={chatbotQuestionType}
+              setChatbotQuestionType={setChatbotQuestionType}
+               
+              setIsOpen={() => {}}
+            />
+          </div>
+        )}
       </>
     )
   }

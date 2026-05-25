@@ -231,17 +231,17 @@ h1, h2, h3, h4, h5, h6 {
   height: 100%;
 }
 
-.queueCard, .asyncCentreCard {
+.queueCard, .asyncCentreCard, .aiAssignmentFeedbackCard {
   /* Tailwind shadows don't look great in this scenario so went with custom */
   box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.15);
   transition: box-shadow 0.3s ease;
 }
-.queueCard:hover, .queueCard:focus, .asyncCentreCard:hover, .asyncCentreCard:focus {
+.queueCard:hover, .queueCard:focus, .asyncCentreCard:hover, .asyncCentreCard:focus, .aiAssignmentFeedbackCard:hover, .aiAssignmentFeedbackCard:focus {
   box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.45);
 }
 @media (max-width: 650px) {
   /* make the box shadow more pronounced on mobile to make it look more tap-able */
-  .queueCard, .asyncCentreCard {
+  .queueCard, .asyncCentreCard, .aiAssignmentFeedbackCard {
     box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3);
   }
 }
@@ -250,6 +250,9 @@ background: rgb(47, 76, 128) !important;
 }
 .asyncCentreCard:hover .ant-card-head, a:focus .asyncCentreCard .ant-card-head {
   background: rgb(70, 76, 121) !important;
+}
+.aiAssignmentFeedbackCard:hover .ant-card-head, a:focus .aiAssignmentFeedbackCard .ant-card-head {
+  background: rgb(14, 124, 128) !important;
 }
 
 /* If you have a popconfirm in a dropdown (antd), only clicking the text will trigger the popconfirm. This is to get around that.
