@@ -5,8 +5,9 @@ import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { cn } from '@/app/utils/generalUtils'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { Alert, Button, Input, Typography, message } from 'antd'
-import { useCallback, useMemo, useRef, useState, use } from 'react'
+import { InboxOutlined } from '@ant-design/icons'
+import { Alert, Button, Input, Typography, Upload, message } from 'antd'
+import { useCallback, useMemo, useState, use } from 'react'
 import { FUNCTION_LABELS, LEVEL_LABELS } from './assignmentFeedbackConstants'
 import {
   activate,
@@ -52,8 +53,6 @@ export default function AssignmentFeedbackClient(props: {
   const [statusErr, setStatusErr] = useState<string | null>(null)
   const [viewerState, setViewerState] =
     useState<ViewerState>(initialViewerState)
-
-  const dragDepth = useRef(0)
 
   const filtered = useMemo(() => {
     if (!feedback) return []
@@ -114,8 +113,6 @@ export default function AssignmentFeedbackClient(props: {
       setLoading(false)
     }
   }
-
-  const [dragOver, setDragOver] = useState(false)
 
   if (!features) {
     return <CenteredSpinner tip="Loading..." />
@@ -280,62 +277,49 @@ export default function AssignmentFeedbackClient(props: {
       <Typography.Title level={3} className="!mb-2">
         Assignment feedback
       </Typography.Title>
+      <Typography.Paragraph type="secondary" className="mb-1">
+        Upload a file or paste your LLED Descriptive Report to get structured,
+        formative feedback from the AI.
+      </Typography.Paragraph>
       <Typography.Paragraph type="secondary" className="!mb-6">
-        Upload a file or paste your Descriptive Report. The model configured for
-        this course chatbot will return structured, formative feedback.
+        Uses UBC-hosted AI models and doesn&apos;t collect any data.
       </Typography.Paragraph>
 
-      <div
-        className={cn(
-          'relative mb-4 min-h-[160px] cursor-pointer rounded-[14px] border-2 border-dashed border-stone-300 bg-stone-50 px-5 py-8 text-center transition-[border-color,background] duration-150 ease-in-out',
-          dragOver && 'bg-fb-teal-light border-teal-700',
-          loadedFilename && 'border-fb-teal-mid bg-fb-teal-light border-solid',
-        )}
-        onDragEnter={(e) => {
-          e.preventDefault()
-          dragDepth.current += 1
-          setDragOver(true)
+      <Upload.Dragger
+        className="mb-4 block max-h-40"
+        accept=".txt,.md,.doc,.docx,.pdf"
+        multiple={false}
+        maxCount={1}
+        beforeUpload={(file) => {
+          void loadFile(file)
+          return false
         }}
-        onDragLeave={(e) => {
-          e.preventDefault()
-          dragDepth.current -= 1
-          if (dragDepth.current <= 0) {
-            dragDepth.current = 0
-            setDragOver(false)
-          }
+        onRemove={() => {
+          setLoadedFilename(null)
+          setAssignmentText('')
         }}
-        onDragOver={(e) => {
-          e.preventDefault()
-        }}
-        onDrop={(e) => {
-          e.preventDefault()
-          dragDepth.current = 0
-          setDragOver(false)
-          const file = e.dataTransfer.files?.[0]
-          if (file) void loadFile(file)
-        }}
+        fileList={
+          loadedFilename
+            ? [
+                {
+                  uid: '-1',
+                  name: loadedFilename,
+                  status: 'done',
+                },
+              ]
+            : []
+        }
       >
-        <input
-          className="absolute inset-0 cursor-pointer opacity-0"
-          type="file"
-          accept=".txt,.md,.doc,.docx,.pdf"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) void loadFile(file)
-          }}
-        />
-        <div className="mb-1.5 text-base font-bold text-stone-500">
-          Drop a file here or click to browse
-        </div>
-        <div className="text-xs text-stone-400">
-          .txt, .md, .doc, .docx, .pdf — max 10 MB
-        </div>
-        {loadedFilename && (
-          <div className="mt-3 text-sm font-semibold text-teal-700">
-            Loaded: {loadedFilename}
-          </div>
-        )}
-      </div>
+        <p className="ant-upload-drag-icon">
+          <InboxOutlined />
+        </p>
+        <p className="ant-upload-text">
+          Click or drag file to this area to upload
+        </p>
+        <p className="ant-upload-hint">
+          Support for .txt, .md, .doc, .docx, .pdf - max 10 MB
+        </p>
+      </Upload.Dragger>
 
       <div className="mb-4">
         <Typography.Text strong>Or paste text</Typography.Text>
