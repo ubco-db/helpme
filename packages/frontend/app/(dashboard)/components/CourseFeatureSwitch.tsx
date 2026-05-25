@@ -1,12 +1,13 @@
 import { API } from '@/app/api'
 import { QuestionCircleOutlined } from '@ant-design/icons'
 import { message, Switch, Tooltip } from 'antd'
+import { ReactNode } from 'react'
 
 type CourseFeatureSwitchProps = {
   featureName: string
   defaultChecked: boolean
   title: string
-  description: string
+  description: string | ReactNode
   courseId: number
   disabled?: boolean
   className?: string

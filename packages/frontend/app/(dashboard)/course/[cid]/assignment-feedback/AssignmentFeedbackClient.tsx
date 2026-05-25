@@ -124,8 +124,8 @@ export default function AssignmentFeedbackClient(props: {
         <Alert
           type="warning"
           showIcon
-          message="Assignment evaluation is not enabled for this course."
-          description="Ask your instructor to enable it under Course Settings → Scroll down to Advanced -> LLED AI Assignment Feedback"
+          message="AI Assignment Evaluation is not enabled for this course."
+          description="Ask your instructor to enable it under Course Settings → Scroll down to Advanced -> LLED AI Assignment Evaluation"
         />
       </div>
     )
@@ -286,7 +286,7 @@ export default function AssignmentFeedbackClient(props: {
       </Typography.Paragraph>
 
       <Upload.Dragger
-        className="mb-6 block max-h-40"
+        className="mb-10 block max-h-40 md:mb-6"
         accept=".txt,.md,.doc,.docx,.pdf"
         multiple={false}
         maxCount={1}
@@ -332,7 +332,7 @@ export default function AssignmentFeedbackClient(props: {
         />
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <Button onClick={() => setAssignmentText(SAMPLE_ASSIGNMENT)}>
           Load sample
         </Button>
@@ -343,6 +343,11 @@ export default function AssignmentFeedbackClient(props: {
         >
           Generate feedback
         </Button>
+        {loading && (
+          <Typography.Paragraph type="secondary" className="m-0">
+            This may take 30s-1min
+          </Typography.Paragraph>
+        )}
       </div>
 
       {statusErr && (

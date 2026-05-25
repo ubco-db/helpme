@@ -129,11 +129,6 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       icon: <RobotOutlined />,
       label: 'Edit Chatbot Questions',
     },
-    {
-      key: CourseAdminOptions.ASSIGNMENT_EVALUATION,
-      icon: <RobotOutlined />,
-      label: 'Chatbot · Assignment evaluation',
-    },
   ]
 
   const professorMenuItems: MenuItem[] = [
