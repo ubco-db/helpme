@@ -1,4 +1,8 @@
-import type { Annotation, FunctionDimension, LinguisticLevel } from './assignmentFeedbackTypes'
+import type {
+  Annotation,
+  FunctionDimension,
+  LinguisticLevel,
+} from './assignmentFeedbackTypes'
 
 export type FunctionFilter = 'all' | FunctionDimension
 export type LevelFilter = 'all' | LinguisticLevel

@@ -13,7 +13,7 @@ const AIAssignmentFeedbackStartCard: React.FC<
 > = ({ cid }): ReactElement => {
   return (
     <Link
-      href={`/course/${cid}/assignment-feedback`}
+      href={`/course/${cid}/ai-assignment-feedback`}
       aria-label="AI Assignment Feedback"
     >
       <Card
