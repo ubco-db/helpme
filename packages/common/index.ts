@@ -2977,9 +2977,6 @@ export class AssignmentFeedbackEvidence {
   @IsString()
   quote!: string
 
-  @IsString()
-  reason!: string
-
   constructor(init?: Partial<AssignmentFeedbackEvidence>) {
     Object.assign(this, init)
   }
@@ -3205,9 +3202,6 @@ export class EssayFeedbackEvidence {
   @IsOptional()
   @IsString()
   context_after_quote?: string
-
-  @IsString()
-  reason!: string
 }
 
 export class EssayFeedbackAnnotation {

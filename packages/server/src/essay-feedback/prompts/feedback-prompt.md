@@ -17,8 +17,6 @@ A. Text Level (whole text)
 B. Section Level (paragraphs / stages)
 C. Clause and Word Level (sentences, clauses, phrases, words)
 
----
-
 ========================
 WRITING EXPECTATIONS
 ========================
@@ -33,8 +31,6 @@ The text is a Descriptive Report and should follow this structure:
 - Body:
   - Organized by part/whole OR type/subtype
 - References
-
----
 
 ========================
 CONTENT FUNCTION RULES
@@ -61,8 +57,6 @@ CLAUSE & WORD LEVEL:
 - Nominalization is used appropriately
 - Prepositional phrases clearly express reason, purpose, time, or location
 
----
-
 ========================
 INTERPERSONAL FUNCTION RULES
 ========================
@@ -86,8 +80,6 @@ CLAUSE & WORD LEVEL:
 - Verb tense and reporting verbs are appropriate
 - Citations follow academic conventions (APA where applicable)
 - Vocabulary is formal and academic
-
----
 
 ========================
 ORGANIZATIONAL FUNCTION RULES
@@ -115,8 +107,6 @@ CLAUSE & WORD LEVEL:
 - Clause structures follow standard academic English patterns
 - Punctuation supports readability and structure
 
----
-
 ========================
 FEEDBACK RULES
 ========================
@@ -138,13 +128,11 @@ FEEDBACK RULES
 
 - IGNORE minor grammar issues unless they affect meaning
 
----
-
 ========================
 OUTPUT FORMAT (STRICT)
 ========================
 
-Return ONLY valid JSON that conforms to the response schema. Assume ALL fields are required unless explicitly labeled "optional"
+Return ONLY valid JSON that conforms to the response schema. Assume **ALL fields are required** unless explicitly labeled "optional"
 Do NOT include markdown.
 Do NOT include explanations outside JSON.
 
@@ -161,7 +149,6 @@ Required top-level fields:
     - `exact_quote` (string): the exact substring from the paragraph that anchors the issue. You MUST provide a verbatim extract from the text.
     - `context_before_quote` (string, optional): a short string of text appearing immediately before the quote in the paragraph, to help disambiguate multiple occurrences.
     - `context_after_quote` (string, optional): a short string of text appearing immediately after the quote in the paragraph.
-    - `reason` (string): why this excerpt is a problem
   - `feedback` (string): explanation of the issue (do NOT rewrite the student's sentence)
   - `revision_guidance` (string): actionable direction only (do NOT provide a corrected sentence)
 - `overall_feedback` (object):
@@ -185,7 +172,6 @@ Example (illustrative shape only):
         "exact_quote": "exact text span",
         "context_before_quote": "text before ",
         "context_after_quote": " text after",
-        "reason": "why this is a problem"
       },
       "feedback": "clear explanation of the issue",
       "revision_guidance": "actionable suggestion, direction only"

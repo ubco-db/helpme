@@ -11,7 +11,6 @@ const evidenceSchema = z.object({
   exact_quote: z.string(),
   context_before_quote: z.string().optional(),
   context_after_quote: z.string().optional(),
-  reason: z.string(),
 });
 
 /** Schema for what the LLM actually returns (no citations, no submission_id/created_at/essay). */

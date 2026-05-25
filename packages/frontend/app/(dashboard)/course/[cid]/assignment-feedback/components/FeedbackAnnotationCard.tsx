@@ -71,11 +71,6 @@ export default function FeedbackAnnotationCard({
           {annotation.evidence.exact_quote}
         </blockquote>
       ) : null}
-      {annotation.evidence?.reason ? (
-        <p>
-          <strong>Why it matters:</strong> {annotation.evidence.reason}
-        </p>
-      ) : null}
       <p>
         <strong>Feedback:</strong> {annotation.feedback}
       </p>
