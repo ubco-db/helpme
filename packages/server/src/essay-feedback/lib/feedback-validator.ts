@@ -18,10 +18,15 @@ const evidenceSchema = z.object({
 const llmAnnotationSchema = z.object({
   id: z.number().int(),
   paragraph_id: z.string(),
-  function: z.enum(['content', 'interpersonal', 'organization']),
+  function: z.enum([
+    'content',
+    'interpersonal',
+    'organization',
+    'organizational',
+  ]),
   level: z.enum(['text', 'section', 'clause_word']),
   issue_type: z.string(),
-  severity: z.enum(['low', 'medium', 'high']),
+  severity: z.enum(['low', 'medium', 'med', 'high']),
   evidence: evidenceSchema,
   feedback: z.string(),
   revision_guidance: z.string(),
@@ -67,6 +72,9 @@ function normalizeFeedback(
 
       return {
         ...item,
+        function:
+          item.function === 'organizational' ? 'organization' : item.function,
+        severity: item.severity === 'med' ? 'medium' : item.severity,
         paragraph_id: match
           ? match.paragraph_id.toLowerCase()
           : item.paragraph_id.toLowerCase(),

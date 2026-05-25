@@ -144,7 +144,7 @@ FEEDBACK RULES
 OUTPUT FORMAT (STRICT)
 ========================
 
-Return ONLY valid JSON that conforms to the response schema.
+Return ONLY valid JSON that conforms to the response schema. Assume ALL fields are required unless explicitly labeled "optional"
 Do NOT include markdown.
 Do NOT include explanations outside JSON.
 
@@ -207,7 +207,6 @@ ABSOLUTE CONSTRAINTS:
 - Do NOT rewrite or fully correct any sentence; only diagnose and direct.
 - Do NOT invent paragraphs; only reference paragraph IDs that appear in the input.
 - Do NOT output any field that is not in the schema.
-- Severity values are EXACTLY `low` | `medium` | `high` (never `med`).
 
 OUTPUT-FORMAT ENFORCEMENT (READ CAREFULLY):
 
