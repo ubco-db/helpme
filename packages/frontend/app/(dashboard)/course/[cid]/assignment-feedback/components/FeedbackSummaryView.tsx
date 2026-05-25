@@ -4,7 +4,7 @@ function SummaryList({ title, items }: { title: string; items: string[] }) {
   if (items.length === 0) return null
   return (
     <section>
-      <h4 className="mb-1.5 mt-3 text-[13px] text-stone-500">{title}</h4>
+      <h4 className="mb-1.5 mt-3 text-sm text-stone-500">{title}</h4>
       <ul>
         {items.map((item, index) => (
           <li key={`${title}-${index}`}>{item}</li>
@@ -23,7 +23,7 @@ export default function FeedbackSummaryView({
     <div>
       {overall.summary ? (
         <section>
-          <h4 className="mb-1.5 mt-3 text-[13px] text-stone-500">
+          <h4 className="mb-1.5 mt-3 text-sm text-stone-500">
             Overall Summary
           </h4>
           <p>{overall.summary}</p>

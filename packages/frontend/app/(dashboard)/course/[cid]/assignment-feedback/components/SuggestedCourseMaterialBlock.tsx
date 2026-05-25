@@ -13,13 +13,13 @@ export default function SuggestedCourseMaterialBlock({
       className="border-fb-teal-mid mt-3 rounded-lg border border-dashed bg-gradient-to-br from-teal-700/[0.06] to-teal-700/[0.02] px-3 py-2.5"
       aria-label="Suggested course material"
     >
-      <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.05em] text-teal-700">
+      <div className="mb-1.5 text-xs font-bold uppercase tracking-wider text-teal-700">
         Suggested course material
       </div>
-      <p className="mb-1.5 text-xs leading-[1.45] text-stone-500">
+      <p className="mb-1.5 text-xs leading-normal text-stone-500">
         Review this lesson before revising:
       </p>
-      <p className="m-0 break-words text-[13px] leading-normal">
+      <p className="m-0 break-words text-sm leading-normal">
         {url && url.length > 0 ? (
           <a
             className="font-semibold text-teal-700 underline underline-offset-2"

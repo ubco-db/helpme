@@ -5,7 +5,7 @@ import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { cn } from '@/app/utils/generalUtils'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { InboxOutlined } from '@ant-design/icons'
+import { InboxOutlined, UploadOutlined } from '@ant-design/icons'
 import { Alert, Button, Input, Typography, Upload, message } from 'antd'
 import { useCallback, useMemo, useState, use } from 'react'
 import { FUNCTION_LABELS, LEVEL_LABELS } from './assignmentFeedbackConstants'
@@ -147,8 +147,8 @@ export default function AssignmentFeedbackClient(props: {
         </div>
         <div className="grid min-h-[calc(100vh-120px)] grid-cols-1 lg:grid-cols-[1fr_min(460px,40vw)]">
           <div className="overflow-y-auto bg-[#c8c4bc] px-6 pb-12 pt-6">
-            <div className="mx-auto w-[min(720px,100%)] rounded-sm bg-[#fffff8] px-10 py-12 shadow-[0_2px_24px_rgba(0,0,0,0.13)]">
-              <div className="font-serif text-[15px] leading-[1.85] text-stone-900">
+            <div className="mx-auto w-full max-w-3xl rounded-sm bg-[#fffff8] px-10 py-12 shadow-lg">
+              <div className="font-serif text-base leading-relaxed text-stone-900">
                 <AssignmentBodyView
                   paragraphs={feedback.essay.paragraphs}
                   annotations={filtered}
@@ -167,7 +167,7 @@ export default function AssignmentFeedbackClient(props: {
                 <button
                   type="button"
                   className={cn(
-                    'cursor-pointer rounded-lg border bg-transparent px-3.5 py-2 text-[13px] font-semibold text-stone-500',
+                    'cursor-pointer rounded-lg border bg-transparent px-3.5 py-2 text-sm font-semibold text-stone-500',
                     viewerState.currentTab === 'annotations'
                       ? 'bg-fb-teal-light border-fb-teal-mid text-teal-700'
                       : 'border-transparent',
@@ -181,7 +181,7 @@ export default function AssignmentFeedbackClient(props: {
                 <button
                   type="button"
                   className={cn(
-                    'cursor-pointer rounded-lg border bg-transparent px-3.5 py-2 text-[13px] font-semibold text-stone-500',
+                    'cursor-pointer rounded-lg border bg-transparent px-3.5 py-2 text-sm font-semibold text-stone-500',
                     viewerState.currentTab === 'summary'
                       ? 'bg-fb-teal-light border-fb-teal-mid text-teal-700'
                       : 'border-transparent',
@@ -194,7 +194,7 @@ export default function AssignmentFeedbackClient(props: {
               {viewerState.currentTab === 'annotations' && (
                 <>
                   <div className="mb-2">
-                    <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.06em] text-stone-400">
+                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-stone-400">
                       Function
                     </span>
                     <div>
@@ -210,7 +210,7 @@ export default function AssignmentFeedbackClient(props: {
                           key={k}
                           type="button"
                           className={cn(
-                            'm-0.5 inline-block cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-semibold',
+                            'm-0.5 inline-block cursor-pointer rounded-full border px-2.5 py-1 text-xs font-semibold',
                             viewerState.functionFilter === k
                               ? 'bg-fb-teal-light border-teal-700 text-teal-700'
                               : 'border-stone-300 bg-stone-50 text-stone-500',
@@ -227,7 +227,7 @@ export default function AssignmentFeedbackClient(props: {
                     </div>
                   </div>
                   <div>
-                    <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.06em] text-stone-400">
+                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-stone-400">
                       Level
                     </span>
                     <div>
@@ -237,7 +237,7 @@ export default function AssignmentFeedbackClient(props: {
                             key={k}
                             type="button"
                             className={cn(
-                              'm-0.5 inline-block cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-semibold',
+                              'm-0.5 inline-block cursor-pointer rounded-full border px-2.5 py-1 text-xs font-semibold',
                               viewerState.levelFilter === k
                                 ? 'bg-fb-teal-light border-teal-700 text-teal-700'
                                 : 'border-stone-300 bg-stone-50 text-stone-500',
@@ -286,7 +286,7 @@ export default function AssignmentFeedbackClient(props: {
       </Typography.Paragraph>
 
       <Upload.Dragger
-        className="mb-4 block max-h-40"
+        className="mb-6 block max-h-40"
         accept=".txt,.md,.doc,.docx,.pdf"
         multiple={false}
         maxCount={1}
@@ -311,7 +311,7 @@ export default function AssignmentFeedbackClient(props: {
         }
       >
         <p className="ant-upload-drag-icon">
-          <InboxOutlined />
+          <UploadOutlined />
         </p>
         <p className="ant-upload-text">
           Click or drag file to this area to upload

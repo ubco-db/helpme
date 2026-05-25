@@ -73,7 +73,7 @@ export default function AssignmentParagraphView({
             key={`pin-${item.id}`}
             type="button"
             className={cn(
-              'absolute -right-9 h-[22px] w-[22px] cursor-pointer rounded-full border-none text-[10px] font-bold text-white',
+              'absolute -right-9 h-5 w-5 cursor-pointer rounded-full border-none text-xs font-bold text-white',
               PIN_BG[item.severity],
               isActive && 'scale-[1.08]',
             )}

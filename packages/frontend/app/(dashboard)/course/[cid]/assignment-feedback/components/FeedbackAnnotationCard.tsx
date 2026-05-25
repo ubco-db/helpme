@@ -49,25 +49,25 @@ export default function FeedbackAnnotationCard({
       <header className="mb-2 flex flex-wrap items-center gap-1.5">
         <span
           className={cn(
-            'inline-flex h-[22px] w-[22px] items-center justify-center rounded-full text-[11px] font-bold text-white',
+            'inline-flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-white',
             PIN_BG[annotation.severity],
           )}
         >
           {annotation.id}
         </span>
-        <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[11px]">
+        <span className="rounded-full bg-stone-200 px-2 py-0.5 text-xs">
           {fnLabel}
         </span>
-        <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[11px]">
+        <span className="rounded-full bg-stone-200 px-2 py-0.5 text-xs">
           {levelLabel}
         </span>
-        <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[11px]">
+        <span className="rounded-full bg-stone-200 px-2 py-0.5 text-xs">
           {sevLabel}
         </span>
       </header>
       <div>{annotation.issue_type}</div>
       {annotation.evidence?.exact_quote ? (
-        <blockquote className="border-fb-teal-mid my-2 border-l-[3px] pl-3 italic">
+        <blockquote className="border-fb-teal-mid my-2 border-l-2 pl-3 italic">
           {annotation.evidence.exact_quote}
         </blockquote>
       ) : null}
