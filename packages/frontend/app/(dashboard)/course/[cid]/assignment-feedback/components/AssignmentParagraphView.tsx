@@ -2,6 +2,20 @@ import { cn } from '@/app/utils/generalUtils'
 import type { Annotation, Paragraph } from '../assignmentFeedbackTypes'
 import { buildParagraphSegments } from '../assignmentFeedbackParagraphUtils'
 
+/** Tailwind classes for highlight severity backgrounds + bottom borders */
+const HL_SEVERITY: Record<string, string> = {
+  low: 'bg-green-700/[0.12] border-b-2 border-green-700/50',
+  medium: 'bg-amber-700/[0.12] border-b-2 border-amber-700/50',
+  high: 'bg-rose-700/[0.12] border-b-2 border-rose-700/[0.55]',
+}
+
+/** Tailwind classes for annotation-pin severity backgrounds */
+const PIN_BG: Record<string, string> = {
+  low: 'bg-green-700',
+  medium: 'bg-amber-700',
+  high: 'bg-rose-700',
+}
+
 export default function AssignmentParagraphView({
   paragraph,
   annotations,
@@ -22,7 +36,7 @@ export default function AssignmentParagraphView({
   })
 
   return (
-    <p data-paragraph-id={paragraph.id}>
+    <p data-paragraph-id={paragraph.id} className="relative mb-4">
       {segments.map((segment, index) => {
         if (segment.kind === 'text') {
           return <span key={`t-${index}`}>{segment.text}</span>
@@ -33,9 +47,9 @@ export default function AssignmentParagraphView({
           <span
             key={`h-${annotation.id}-${index}`}
             className={cn(
-              'hl',
-              `hl-${annotation.severity}`,
-              isActive && 'is-active',
+              'cursor-pointer rounded-sm px-0.5 py-px transition-[background] duration-150',
+              HL_SEVERITY[annotation.severity],
+              isActive && 'outline-fb-teal-mid outline outline-2',
             )}
             data-id={annotation.id}
             role="button"
@@ -59,9 +73,9 @@ export default function AssignmentParagraphView({
             key={`pin-${item.id}`}
             type="button"
             className={cn(
-              'annotation-pin',
-              `pin-${item.severity}`,
-              isActive && 'is-active',
+              'absolute -right-9 h-[22px] w-[22px] cursor-pointer rounded-full border-none text-[10px] font-bold text-white',
+              PIN_BG[item.severity],
+              isActive && 'scale-[1.08]',
             )}
             data-id={item.id}
             title={`Annotation ${item.id}`}

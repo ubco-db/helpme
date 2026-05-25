@@ -54,6 +54,8 @@ function findMatchesInText(text: string, quote: string): MatchLoc[] {
   }
 
   // Fuzzy match via bookends (start 32 chars and end 32 chars of the quote - since match_main only works with max 32 characters)
+  // note that I think there's probably an issue with this approach, there's probably some edge cases where limiting the quote to 32 characters creates more duplicate matches
+  // It's probably fine for most cases though
   const startPattern = quote.length <= 32 ? quote : quote.slice(0, 32);
   const endPattern = quote.length <= 32 ? quote : quote.slice(-32);
 

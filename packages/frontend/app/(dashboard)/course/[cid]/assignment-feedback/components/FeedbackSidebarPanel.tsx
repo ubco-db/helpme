@@ -21,10 +21,8 @@ export default function FeedbackSidebarPanel({
 
   if (annotations.length === 0) {
     return (
-      <div className="feedback-card feedback-card--empty">
-        <div className="feedback-card__text">
-          No feedback in the current filter.
-        </div>
+      <div className="rounded-xl border border-stone-300 bg-stone-50 p-3.5">
+        <div>No feedback in the current filter.</div>
       </div>
     )
   }

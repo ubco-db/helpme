@@ -3,6 +3,7 @@
 import { API } from '@/app/api'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
+import { cn } from '@/app/utils/generalUtils'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { Alert, Button, Input, Typography, message } from 'antd'
 import { useCallback, useMemo, useRef, useState, use } from 'react'
@@ -21,7 +22,6 @@ import {
 import AssignmentBodyView from './components/AssignmentBodyView'
 import FeedbackSidebarPanel from './components/FeedbackSidebarPanel'
 import type { EssayFeedbackResponse } from '@koh/common'
-import './assignment-feedback.css'
 
 const { TextArea } = Input
 
@@ -128,7 +128,7 @@ export default function AssignmentFeedbackClient(props: {
           type="warning"
           showIcon
           message="Assignment evaluation is not enabled for this course."
-          description="Ask your instructor to enable it under Course settings → Chatbot · Assignment evaluation."
+          description="Ask your instructor to enable it under Course Settings → Scroll down to Advanced -> LLED AI Assignment Feedback"
         />
       </div>
     )
@@ -136,95 +136,115 @@ export default function AssignmentFeedbackClient(props: {
 
   if (feedback) {
     return (
-      <div className="assignment-fb-scope">
-        <div className="viewer-root">
-          <div className="border-b border-neutral-200 bg-white px-4 py-3">
-            <Button
-              type="link"
-              onClick={() => {
-                setFeedback(null)
-                setViewerState(initialViewerState)
-              }}
-            >
-              ← Back to upload
-            </Button>
-          </div>
-          <div className="layout">
-            <div className="pdf-panel">
-              <div className="paper">
-                <div className="assignment-body">
-                  <AssignmentBodyView
-                    paragraphs={feedback.essay.paragraphs}
-                    annotations={filtered}
-                    activeAnnotationId={viewerState.activeAnnotationId}
-                    onActivate={handleActivate}
-                  />
-                </div>
+      <div className="min-h-[calc(100vh-120px)] bg-stone-200">
+        <div className="border-b border-neutral-200 bg-white px-4 py-3">
+          <Button
+            type="link"
+            onClick={() => {
+              setFeedback(null)
+              setViewerState(initialViewerState)
+            }}
+          >
+            ← Back to upload
+          </Button>
+        </div>
+        <div className="grid min-h-[calc(100vh-120px)] grid-cols-1 lg:grid-cols-[1fr_min(460px,40vw)]">
+          <div className="overflow-y-auto bg-[#c8c4bc] px-6 pb-12 pt-6">
+            <div className="mx-auto w-[min(720px,100%)] rounded-sm bg-[#fffff8] px-10 py-12 shadow-[0_2px_24px_rgba(0,0,0,0.13)]">
+              <div className="font-serif text-[15px] leading-[1.85] text-stone-900">
+                <AssignmentBodyView
+                  paragraphs={feedback.essay.paragraphs}
+                  annotations={filtered}
+                  activeAnnotationId={viewerState.activeAnnotationId}
+                  onActivate={handleActivate}
+                />
               </div>
             </div>
-            <div className="feedback-panel">
-              <div className="feedback-header">
-                <Typography.Title level={5} className="!mb-3">
-                  Feedback
-                </Typography.Title>
-                <div className="mb-2 flex flex-wrap gap-1">
-                  <button
-                    type="button"
-                    className={`fb-tab ${viewerState.currentTab === 'annotations' ? 'is-active' : ''}`}
-                    onClick={() =>
-                      setViewerState((s) => switchTab(s, 'annotations'))
-                    }
-                  >
-                    Annotations
-                  </button>
-                  <button
-                    type="button"
-                    className={`fb-tab ${viewerState.currentTab === 'summary' ? 'is-active' : ''}`}
-                    onClick={() =>
-                      setViewerState((s) => switchTab(s, 'summary'))
-                    }
-                  >
-                    Summary
-                  </button>
-                </div>
-                {viewerState.currentTab === 'annotations' && (
-                  <>
-                    <div className="feedback-filter-group mb-2">
-                      <span className="feedback-filter-label">Function</span>
-                      <div>
-                        {(
-                          [
-                            'all',
-                            'content',
-                            'interpersonal',
-                            'organization',
-                          ] as const
-                        ).map((k) => (
-                          <button
-                            key={k}
-                            type="button"
-                            className={`dim-pill ${viewerState.functionFilter === k ? 'is-active' : ''}`}
-                            onClick={() =>
-                              setViewerState((s) =>
-                                setFunctionFilter(s, k as FunctionFilter),
-                              )
-                            }
-                          >
-                            {k === 'all' ? 'All' : FUNCTION_LABELS[k]}
-                          </button>
-                        ))}
-                      </div>
+          </div>
+          <div className="flex flex-col overflow-hidden border-l border-stone-300 bg-white">
+            <div className="border-b border-stone-200 p-3.5">
+              <Typography.Title level={5} className="!mb-3">
+                Feedback
+              </Typography.Title>
+              <div className="mb-2 flex flex-wrap gap-1">
+                <button
+                  type="button"
+                  className={cn(
+                    'cursor-pointer rounded-lg border bg-transparent px-3.5 py-2 text-[13px] font-semibold text-stone-500',
+                    viewerState.currentTab === 'annotations'
+                      ? 'bg-fb-teal-light border-fb-teal-mid text-teal-700'
+                      : 'border-transparent',
+                  )}
+                  onClick={() =>
+                    setViewerState((s) => switchTab(s, 'annotations'))
+                  }
+                >
+                  Annotations
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    'cursor-pointer rounded-lg border bg-transparent px-3.5 py-2 text-[13px] font-semibold text-stone-500',
+                    viewerState.currentTab === 'summary'
+                      ? 'bg-fb-teal-light border-fb-teal-mid text-teal-700'
+                      : 'border-transparent',
+                  )}
+                  onClick={() => setViewerState((s) => switchTab(s, 'summary'))}
+                >
+                  Summary
+                </button>
+              </div>
+              {viewerState.currentTab === 'annotations' && (
+                <>
+                  <div className="mb-2">
+                    <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.06em] text-stone-400">
+                      Function
+                    </span>
+                    <div>
+                      {(
+                        [
+                          'all',
+                          'content',
+                          'interpersonal',
+                          'organization',
+                        ] as const
+                      ).map((k) => (
+                        <button
+                          key={k}
+                          type="button"
+                          className={cn(
+                            'm-0.5 inline-block cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-semibold',
+                            viewerState.functionFilter === k
+                              ? 'bg-fb-teal-light border-teal-700 text-teal-700'
+                              : 'border-stone-300 bg-stone-50 text-stone-500',
+                          )}
+                          onClick={() =>
+                            setViewerState((s) =>
+                              setFunctionFilter(s, k as FunctionFilter),
+                            )
+                          }
+                        >
+                          {k === 'all' ? 'All' : FUNCTION_LABELS[k]}
+                        </button>
+                      ))}
                     </div>
-                    <div className="feedback-filter-group">
-                      <span className="feedback-filter-label">Level</span>
-                      <div>
-                        {(
-                          ['all', 'text', 'section', 'clause_word'] as const
-                        ).map((k) => (
+                  </div>
+                  <div>
+                    <span className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.06em] text-stone-400">
+                      Level
+                    </span>
+                    <div>
+                      {(['all', 'text', 'section', 'clause_word'] as const).map(
+                        (k) => (
                           <button
                             key={k}
                             type="button"
-                            className={`dim-pill ${viewerState.levelFilter === k ? 'is-active' : ''}`}
+                            className={cn(
+                              'm-0.5 inline-block cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-semibold',
+                              viewerState.levelFilter === k
+                                ? 'bg-fb-teal-light border-teal-700 text-teal-700'
+                                : 'border-stone-300 bg-stone-50 text-stone-500',
+                            )}
                             onClick={() =>
                               setViewerState((s) =>
                                 setLevelFilter(s, k as LevelFilter),
@@ -233,21 +253,21 @@ export default function AssignmentFeedbackClient(props: {
                           >
                             {k === 'all' ? 'All' : LEVEL_LABELS[k]}
                           </button>
-                        ))}
-                      </div>
+                        ),
+                      )}
                     </div>
-                  </>
-                )}
-              </div>
-              <div className="feedback-cards">
-                <FeedbackSidebarPanel
-                  tab={viewerState.currentTab}
-                  annotations={filtered}
-                  overallFeedback={feedback.overall_feedback}
-                  activeAnnotationId={viewerState.activeAnnotationId}
-                  onActivate={handleActivate}
-                />
-              </div>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
+              <FeedbackSidebarPanel
+                tab={viewerState.currentTab}
+                annotations={filtered}
+                overallFeedback={feedback.overall_feedback}
+                activeAnnotationId={viewerState.activeAnnotationId}
+                onActivate={handleActivate}
+              />
             </div>
           </div>
         </div>
@@ -256,7 +276,7 @@ export default function AssignmentFeedbackClient(props: {
   }
 
   return (
-    <div className="assignment-fb-scope mx-auto max-w-3xl px-4 py-8">
+    <div className="mx-auto max-w-3xl px-4 py-8">
       <Typography.Title level={3} className="!mb-2">
         Assignment feedback
       </Typography.Title>
@@ -266,7 +286,11 @@ export default function AssignmentFeedbackClient(props: {
       </Typography.Paragraph>
 
       <div
-        className={`dropzone ${dragOver ? 'is-dragover' : ''} ${loadedFilename ? 'is-loaded' : ''}`}
+        className={cn(
+          'relative mb-4 min-h-[160px] cursor-pointer rounded-[14px] border-2 border-dashed border-stone-300 bg-stone-50 px-5 py-8 text-center transition-[border-color,background] duration-150 ease-in-out',
+          dragOver && 'bg-fb-teal-light border-teal-700',
+          loadedFilename && 'border-fb-teal-mid bg-fb-teal-light border-solid',
+        )}
         onDragEnter={(e) => {
           e.preventDefault()
           dragDepth.current += 1
@@ -292,7 +316,7 @@ export default function AssignmentFeedbackClient(props: {
         }}
       >
         <input
-          className="dropzone__input absolute inset-0 cursor-pointer opacity-0"
+          className="absolute inset-0 cursor-pointer opacity-0"
           type="file"
           accept=".txt,.md,.doc,.docx,.pdf"
           onChange={(e) => {
@@ -300,14 +324,14 @@ export default function AssignmentFeedbackClient(props: {
             if (file) void loadFile(file)
           }}
         />
-        <div className="dropzone__title">
+        <div className="mb-1.5 text-base font-bold text-stone-500">
           Drop a file here or click to browse
         </div>
-        <div className="dropzone__hint text-xs text-neutral-500">
+        <div className="text-xs text-stone-400">
           .txt, .md, .doc, .docx, .pdf — max 10 MB
         </div>
         {loadedFilename && (
-          <div className="mt-3 text-sm font-semibold text-[#0c6b6e]">
+          <div className="mt-3 text-sm font-semibold text-teal-700">
             Loaded: {loadedFilename}
           </div>
         )}

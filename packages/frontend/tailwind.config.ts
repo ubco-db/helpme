@@ -46,10 +46,16 @@ const config = {
           light: 'rgb(var(--helpmeblue-light) / <alpha-value>)',
           DEFAULT: 'rgb(var(--helpmeblue) / <alpha-value>)',
         },
+        fb: {
+          // ai-essay-FeedBack
+          'teal-light': '#e4f3f3',
+          'teal-mid': '#a8d8d8',
+        },
       },
     },
   },
   important: '#html',
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   plugins: [require('tailwindcss-animate')],
 } satisfies Config
 
