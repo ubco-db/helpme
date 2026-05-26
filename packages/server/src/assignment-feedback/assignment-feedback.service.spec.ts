@@ -97,13 +97,14 @@ describe('AssignmentFeedbackService two-pass pipeline', () => {
 
   it('falls back to parseEssay() when Pass 1 (reformat) fails', async () => {
     queryChatbotForCourse
-      .mockRejectedValueOnce(new Error('reformat LLM down')) // Pass 1 fails
+      .mockRejectedValueOnce(new Error('reformat LLM down')) // Pass 1 attempt 1 fails
+      .mockRejectedValueOnce(new Error('reformat LLM down retry')) // Pass 1 attempt 2 (retry) fails
       .mockResolvedValueOnce(buildValidFeedbackAnswer()); // Pass 2 succeeds
 
     const result = await service.generateFeedback(7, 'First paragraph.');
 
-    // Pass 1 failed + Pass 2 succeeded = 2 calls total
-    expect(queryChatbotForCourse).toHaveBeenCalledTimes(2);
+    // Pass 1 failed (2 attempts) + Pass 2 succeeded (1 attempt) = 3 calls total
+    expect(queryChatbotForCourse).toHaveBeenCalledTimes(3);
     expect(result.annotations).toHaveLength(1);
     // Paragraphs came from parseEssay() fallback
     expect(result.essay.paragraphs[0].id).toBe('p1');
