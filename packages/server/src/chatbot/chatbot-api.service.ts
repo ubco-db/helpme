@@ -110,8 +110,7 @@ export class ChatbotApiService {
       if (error instanceof HttpException) {
         throw error;
       }
-      const detail =
-        error instanceof Error ? error.message : String(error);
+      const detail = error instanceof Error ? error.message : String(error);
       this.logger.warn(
         `Chatbot request failed (${method} ${this.chatbotApiUrl}/${endpoint}): ${detail}`,
       );
@@ -159,6 +158,10 @@ export class ChatbotApiService {
    * chatbot routes the prompt through the course's generatorLLM (the same LLM
    * configured in Chatbot Settings for that course). No user token is required
    * by the chatbot's `/query` route, so this method intentionally omits it.
+   *
+   * Adam: So `/query` calls always use the org's default model, despite what it might look like in the code.
+   * I'm assuming this is the case because stuff like abstract generation wouldn't need big models that the prof may pick.
+   * So for the AI Assignment/Essay Feedback feature, it will need its own ChatbotQueryType eventually.
    */
   async queryChatbotForCourse(
     query: string,

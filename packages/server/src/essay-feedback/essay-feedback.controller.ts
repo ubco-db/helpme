@@ -24,7 +24,7 @@ import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { EssayFeedbackService } from './essay-feedback.service';
 import { memoryStorage } from 'multer';
 
-/* A series of endpoints used for the "AI Essay Feedback" feature (used specifically be LLED courses for now) */
+/* A series of endpoints used for the "AI Essay/Assignment Feedback" feature (used specifically be LLED courses for now) */
 @Controller('ai-assignment-feedback')
 export class EssayFeedbackController {
   constructor(private readonly essayFeedbackService: EssayFeedbackService) {}
