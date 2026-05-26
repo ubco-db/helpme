@@ -38,7 +38,7 @@ import { LmsIntegrationModule } from './lmsIntegration/lmsIntegration.module';
 import { BaseExceptionFilter } from 'exception_filters/generic-exception.filter';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { LtiModule } from './lti/lti.module';
-import { EssayFeedbackModule } from './essay-feedback/essay-feedback.module';
+import { AssignmentFeedbackModule } from './assignment-feedback/assignment-feedback.module';
 
 @Module({
   imports: [
@@ -93,7 +93,7 @@ import { EssayFeedbackModule } from './essay-feedback/essay-feedback.module';
     AlertsModule,
     SemesterModule,
     ChatbotModule,
-    EssayFeedbackModule,
+    AssignmentFeedbackModule,
     OrganizationModule,
     AuthModule,
     QuestionTypeModule,

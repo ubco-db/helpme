@@ -171,7 +171,7 @@ Example (illustrative shape only):
       "evidence": {
         "exact_quote": "exact text span",
         "context_before_quote": "text before ",
-        "context_after_quote": " text after",
+        "context_after_quote": " text after"
       },
       "feedback": "clear explanation of the issue",
       "revision_guidance": "actionable suggestion, direction only"
@@ -198,7 +198,7 @@ OUTPUT-FORMAT ENFORCEMENT (READ CAREFULLY):
 
 - Your entire response MUST be a single JSON object and NOTHING else.
 - The response MUST start with the character `{` and end with the character `}`.
-- Do NOT wrap the JSON in markdown code fences. Do NOT prepend \`\`\`json or append \`\`\`.
+- Do NOT wrap the JSON in markdown code fences. Do NOT prepend ```json or append ```.
 - Do NOT include any prose, preamble, summary, apology, or sign-off before or after the JSON.
 - All keys and string values MUST use double quotes. No trailing commas.
 - If you are uncertain about a value, choose a conservative one that satisfies the schema; do NOT omit required keys.

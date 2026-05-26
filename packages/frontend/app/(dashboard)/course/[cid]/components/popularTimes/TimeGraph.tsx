@@ -184,6 +184,7 @@ const TimeGraph: React.FC<TimeGraphProps> = ({
 
       {tooltipOpen && tooltipData && (
         <>
+          {/* @ts-expect-error Server Component */}
           <TooltipInPortal
             key={Math.random()} // update tooltip bounds each render
             top={tooltipTop}

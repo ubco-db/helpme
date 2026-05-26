@@ -1,5 +1,5 @@
 import { ForbiddenException } from '@nestjs/common';
-import { EssayFeedbackService } from './essay-feedback.service';
+import { AssignmentFeedbackService } from './assignment-feedback.service';
 import { ChatbotApiService } from '../chatbot/chatbot-api.service';
 import { CourseSettingsModel } from '../course/course_settings.entity';
 
@@ -16,7 +16,7 @@ import { CourseSettingsModel } from '../course/course_settings.entity';
  *   - Answer strings are parsed leniently (code fences, arrays, objects)
  *   - The route still respects course-level `assignmentEvaluationEnabled`
  */
-describe('EssayFeedbackService two-pass pipeline', () => {
+describe('AssignmentFeedbackService two-pass pipeline', () => {
   /** A valid Pass 1 (reformat) response. */
   const buildValidReformatAnswer = (): string =>
     JSON.stringify([{ id: 'p1', text: 'First paragraph.' }]);
@@ -32,7 +32,7 @@ describe('EssayFeedbackService two-pass pipeline', () => {
           level: 'text',
           issue_type: 'Thesis clarity',
           severity: 'medium',
-          evidence: { quote: 'First' },
+          evidence: { exact_quote: 'First' },
           feedback: 'feedback text',
           revision_guidance: 'do this',
         },
@@ -46,7 +46,7 @@ describe('EssayFeedbackService two-pass pipeline', () => {
     });
 
   let queryChatbotForCourse: jest.Mock;
-  let service: EssayFeedbackService;
+  let service: AssignmentFeedbackService;
   let findOneSpy: jest.SpyInstance;
 
   beforeEach(() => {
@@ -54,7 +54,7 @@ describe('EssayFeedbackService two-pass pipeline', () => {
     const chatbotApi = {
       queryChatbotForCourse,
     } as unknown as ChatbotApiService;
-    service = new EssayFeedbackService(chatbotApi);
+    service = new AssignmentFeedbackService(chatbotApi);
 
     findOneSpy = jest
       .spyOn(CourseSettingsModel, 'findOne')

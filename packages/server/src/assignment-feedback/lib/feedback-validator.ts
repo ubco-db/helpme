@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type {
-  EssayFeedbackParagraph,
-  EssayFeedbackResponse,
+  AssignmentFeedbackParagraph,
+  AssignmentFeedbackResponse,
 } from '@koh/common';
 import { InternalServerErrorException } from '@nestjs/common';
 
@@ -53,8 +53,8 @@ const llmFeedbackSchema = z.object({
  */
 function normalizeFeedback(
   parsed: z.infer<typeof llmFeedbackSchema>,
-  paragraphs: EssayFeedbackParagraph[],
-): EssayFeedbackResponse {
+  paragraphs: AssignmentFeedbackParagraph[],
+): AssignmentFeedbackResponse {
   const paragraphById = new Map(
     paragraphs.map((item) => [item.id.toLowerCase(), item.text] as const),
   );
@@ -80,7 +80,7 @@ function normalizeFeedback(
         char_start: match ? match.char_start : null,
         char_end: match ? match.char_end : null,
         citations:
-          [] as EssayFeedbackResponse['annotations'][number]['citations'],
+          [] as AssignmentFeedbackResponse['annotations'][number]['citations'],
       };
     })
     .filter((item) => {
@@ -107,13 +107,13 @@ function normalizeFeedback(
       next_steps: parsed.overall_feedback.next_steps ?? [],
       reflection_questions: parsed.overall_feedback.reflection_questions ?? [],
     },
-  } as EssayFeedbackResponse;
+  } as AssignmentFeedbackResponse;
 }
 
 export function validateFeedbackResponse(
   raw: unknown,
-  paragraphs: EssayFeedbackParagraph[],
-): EssayFeedbackResponse {
+  paragraphs: AssignmentFeedbackParagraph[],
+): AssignmentFeedbackResponse {
   const parsed = llmFeedbackSchema.safeParse(raw);
   if (!parsed.success) {
     throw new InternalServerErrorException(

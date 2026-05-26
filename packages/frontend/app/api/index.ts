@@ -37,9 +37,9 @@ import {
   DesktopNotifBody,
   DesktopNotifPartial,
   EditCourseInfoParams,
-  EssayFeedbackExtractTextResponse,
-  EssayFeedbackRequest,
-  EssayFeedbackResponse,
+  AssignmentFeedbackExtractTextResponse,
+  AssignmentFeedbackRequest,
+  AssignmentFeedbackResponse,
   ExtraTAStatus,
   GetAlertsResponse,
   GetAsyncQuestionsResponse,
@@ -598,7 +598,7 @@ export class APIClient {
     extractAssignmentText: async (
       courseId: number,
       file: File,
-    ): Promise<EssayFeedbackExtractTextResponse> => {
+    ): Promise<AssignmentFeedbackExtractTextResponse> => {
       const formData = new FormData()
       formData.append('file', file)
       return this.req(
@@ -611,12 +611,12 @@ export class APIClient {
     generateAssignmentFeedback: async (
       courseId: number,
       essay_text: string,
-    ): Promise<EssayFeedbackResponse> =>
+    ): Promise<AssignmentFeedbackResponse> =>
       this.req(
         'POST',
         `/api/v1/ai-assignment-feedback/${courseId}/generate-feedback`,
         undefined,
-        { essay_text } satisfies EssayFeedbackRequest,
+        { essay_text } satisfies AssignmentFeedbackRequest,
       ),
   }
   course = {

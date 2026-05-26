@@ -1,4 +1,4 @@
-import type { EssayFeedbackParagraph } from '@koh/common';
+import type { AssignmentFeedbackParagraph } from '@koh/common';
 import { formatParagraphsForPrompt } from './essay-parser';
 
 import * as FEEDBACK_SYSTEM_PROMPT from '../prompts/feedback-prompt.md';
@@ -26,7 +26,7 @@ export function buildReformatPromptMessages(rawText: string): PromptMessage[] {
  * Pass 2 — Feedback: asks the LLM to annotate the already-structured paragraphs.
  */
 export function buildFeedbackPromptMessages(
-  paragraphs: EssayFeedbackParagraph[],
+  paragraphs: AssignmentFeedbackParagraph[],
 ): PromptMessage[] {
   if (!FEEDBACK_SYSTEM_PROMPT) {
     throw new Error('FEEDBACK_SYSTEM_PROMPT is undefined');

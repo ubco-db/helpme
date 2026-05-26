@@ -17,21 +17,21 @@ import { parseEssay } from './lib/essay-parser';
 import { validateFeedbackResponse } from './lib/feedback-validator';
 import { validateReformatResponse } from './lib/reformat-validator';
 import type {
-  EssayFeedbackExtractTextResponse,
-  EssayFeedbackParagraph,
-  EssayFeedbackResponse,
+  AssignmentFeedbackExtractTextResponse,
+  AssignmentFeedbackParagraph,
+  AssignmentFeedbackResponse,
 } from '@koh/common';
 
 @Injectable()
-export class EssayFeedbackService {
-  private readonly logger = new Logger(EssayFeedbackService.name);
+export class AssignmentFeedbackService {
+  private readonly logger = new Logger(AssignmentFeedbackService.name);
 
   constructor(private readonly chatbotApiService: ChatbotApiService) {}
 
   async extractText(
     courseId: number,
     file: Express.Multer.File,
-  ): Promise<EssayFeedbackExtractTextResponse> {
+  ): Promise<AssignmentFeedbackExtractTextResponse> {
     await this.assertAssignmentEvaluationEnabled(courseId);
     try {
       const essay_text = await extractTextFromBuffer(
@@ -59,7 +59,7 @@ export class EssayFeedbackService {
   async generateFeedback(
     courseId: number,
     essayText: string,
-  ): Promise<EssayFeedbackResponse> {
+  ): Promise<AssignmentFeedbackResponse> {
     await this.assertAssignmentEvaluationEnabled(courseId);
 
     // --- Pass 1: Paragraph Reformatting ---
@@ -93,7 +93,7 @@ export class EssayFeedbackService {
   private async reformatParagraphs(
     courseId: number,
     essayText: string,
-  ): Promise<EssayFeedbackParagraph[]> {
+  ): Promise<AssignmentFeedbackParagraph[]> {
     const reformatMessages = buildReformatPromptMessages(essayText);
     try {
       const raw = await this.invokeLlm(courseId, reformatMessages);

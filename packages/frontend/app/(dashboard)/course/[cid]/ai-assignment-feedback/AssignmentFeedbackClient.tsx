@@ -22,7 +22,7 @@ import {
 } from './assignmentFeedbackInteractions'
 import AssignmentBodyView from './components/AssignmentBodyView'
 import FeedbackSidebarPanel from './components/FeedbackSidebarPanel'
-import type { EssayFeedbackResponse } from '@koh/common'
+import type { FeedbackResponse } from './assignmentFeedbackTypes'
 
 const { TextArea } = Input
 
@@ -48,7 +48,7 @@ export default function AssignmentFeedbackClient(props: {
 
   const [assignmentText, setAssignmentText] = useState('')
   const [loadedFilename, setLoadedFilename] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<EssayFeedbackResponse | null>(null)
+  const [feedback, setFeedback] = useState<FeedbackResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [statusErr, setStatusErr] = useState<string | null>(null)
   const [viewerState, setViewerState] =

@@ -1,14 +1,14 @@
 export type {
-  EssayFeedbackFunctionDimension as FunctionDimension,
-  EssayFeedbackLinguisticLevel as LinguisticLevel,
-  EssayFeedbackSeverity as Severity,
+  AssignmentFeedbackFunctionDimension as FunctionDimension,
+  AssignmentFeedbackLinguisticLevel as LinguisticLevel,
+  AssignmentFeedbackSeverity as Severity,
 } from '@koh/common'
 
 export {
-  EssayFeedbackResponse as FeedbackResponse,
-  EssayFeedbackAnnotation as Annotation,
-  EssayFeedbackCitation as Citation,
-  EssayFeedbackEvidence as Evidence,
-  EssayFeedbackOverallFeedback as OverallFeedback,
-  EssayFeedbackParagraph as Paragraph,
+  AssignmentFeedbackResponse as FeedbackResponse,
+  AssignmentFeedbackAnnotation as Annotation,
+  AssignmentFeedbackCitation as Citation,
+  AssignmentFeedbackEvidence as Evidence,
+  AssignmentFeedbackOverallFeedback as OverallFeedback,
+  AssignmentFeedbackParagraph as Paragraph,
 } from '@koh/common'

@@ -40,7 +40,8 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
     () =>
       courseFeatures?.chatBotEnabled &&
       !courseFeatures?.queueEnabled &&
-      !courseFeatures?.asyncQueueEnabled,
+      !courseFeatures?.asyncQueueEnabled &&
+      !courseFeatures?.assignmentEvaluationEnabled,
     [courseFeatures],
   )
   // chatbot
@@ -252,11 +253,6 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
         )) || (
           // only show if only the chatbot is enabled
           <div className="mt-3 flex h-[100vh] flex-col items-center justify-items-end">
-            {courseFeatures.assignmentEvaluationEnabled && (
-              <div className="w-full max-w-3xl px-4 pb-4">
-                <AssignmentFeedbackStartCard cid={cid} />
-              </div>
-            )}
             <Chatbot
               key={cid}
               cid={cid}

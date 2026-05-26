@@ -1,6 +1,6 @@
-This "AI Essay/Assignment Feedback" feature allows students to get annotated feedback on their essays.
+This "AI Assignment Feedback" feature allows students to get annotated feedback on their assignments/essays.
 
-**IMPORTANT:** Right now, only used in LLED courses and is hardcoded as such. To make it general-purpose, the citations need to no longer be hardcoded and there actually needs to be some sorta interface for allowing professors to create a criteria prompt with various "categories" that students can filter the feedback from (for LLED's usecase, it's "Function" and "Level). This prompt could also be LLM-generated based on files the professor uploads, as another idea.
+**IMPORTANT:** Right now, only used in LLED courses and is hardcoded as such. To make it general-purpose, the citations need to no longer be hardcoded and there actually needs to be some sorta interface for allowing professors to create a criteria prompt with various "categories" that students can filter the feedback from (for LLED's usecase, it's "Function" and "Level"). This prompt could also be LLM-generated based on files the professor uploads, as another idea.
 
 Flow:
 1. Student first uploads assignment pdf/word file
@@ -11,5 +11,4 @@ Flow:
    3. Because LLMs process things in tokens, it can't give an accurate "start character index" and "end character index" for the annotations (it's usually wildly off). Thus, we use the direct quote given to us and we determine programmatically where to put the start and end indices.
    4. LLM response is validated. And if good, send the json response to the frontend to be displayed.
 
-Suggested Materials/Citations are hard-coded for now based on the `level` + ""`function`"" combinations (these categories are LLED-specific, and are mostly just used for filters on the frontend so that students can filter feedback types). Later, feeding each feedback annotation into the RAG system to collect a series of suggested materials.
-
+Suggested Materials/Citations are hard-coded for now based on the `level` + `function` combinations (these categories are LLED-specific, and are mostly just used for filters on the frontend so that students can filter feedback types). Later, feeding each feedback annotation into the RAG system to collect a series of suggested materials.

@@ -1,4 +1,4 @@
-import type { EssayFeedbackParagraph } from '@koh/common';
+import type { AssignmentFeedbackParagraph } from '@koh/common';
 
 /**
  * Naive paragraph splitter — splits on blank lines and assigns sequential IDs.
@@ -6,7 +6,7 @@ import type { EssayFeedbackParagraph } from '@koh/common';
  * Used as a **fallback** when the LLM-based reformat (Pass 1) fails.
  * In the normal flow, the LLM handles paragraph segmentation.
  */
-export function parseEssay(essayText: string): EssayFeedbackParagraph[] {
+export function parseEssay(essayText: string): AssignmentFeedbackParagraph[] {
   const normalized = essayText.trim();
   if (!normalized) {
     throw new Error('assignment_text cannot be empty.');
@@ -24,7 +24,7 @@ export function parseEssay(essayText: string): EssayFeedbackParagraph[] {
 }
 
 export function formatParagraphsForPrompt(
-  paragraphs: EssayFeedbackParagraph[],
+  paragraphs: AssignmentFeedbackParagraph[],
 ): string {
   return paragraphs
     .map((item, index) => `Paragraph p${index + 1}: ${item.text}`)

@@ -12,22 +12,24 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
-  EssayFeedbackExtractTextResponse,
-  EssayFeedbackRequest,
-  EssayFeedbackResponse,
+  AssignmentFeedbackExtractTextResponse,
+  AssignmentFeedbackRequest,
+  AssignmentFeedbackResponse,
   Role,
 } from '@koh/common';
 import { Roles } from '../decorators/roles.decorator';
 import { CourseRolesGuard } from '../guards/course-roles.guard';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
-import { EssayFeedbackService } from './essay-feedback.service';
+import { AssignmentFeedbackService } from './assignment-feedback.service';
 import { memoryStorage } from 'multer';
 
-/* A series of endpoints used for the "AI Essay/Assignment Feedback" feature (used specifically be LLED courses for now) */
+/* A series of endpoints used for the "AI Assignment Feedback" feature (used specifically by LLED courses for now) */
 @Controller('ai-assignment-feedback')
-export class EssayFeedbackController {
-  constructor(private readonly essayFeedbackService: EssayFeedbackService) {}
+export class AssignmentFeedbackController {
+  constructor(
+    private readonly assignmentFeedbackService: AssignmentFeedbackService,
+  ) {}
 
   @Post(':courseId/extract-text')
   @UseGuards(JwtAuthGuard, CourseRolesGuard, EmailVerifiedGuard)
@@ -51,11 +53,11 @@ export class EssayFeedbackController {
         .build(),
     )
     file: Express.Multer.File,
-  ): Promise<EssayFeedbackExtractTextResponse> {
+  ): Promise<AssignmentFeedbackExtractTextResponse> {
     if (!file?.buffer) {
       throw new BadRequestException('No file uploaded.');
     }
-    return this.essayFeedbackService.extractText(courseId, file);
+    return this.assignmentFeedbackService.extractText(courseId, file);
   }
 
   @Post(':courseId/generate-feedback')
@@ -63,9 +65,9 @@ export class EssayFeedbackController {
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async generateFeedback(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() body: EssayFeedbackRequest,
-  ): Promise<EssayFeedbackResponse> {
-    return this.essayFeedbackService.generateFeedback(
+    @Body() body: AssignmentFeedbackRequest,
+  ): Promise<AssignmentFeedbackResponse> {
+    return this.assignmentFeedbackService.generateFeedback(
       courseId,
       body.essay_text,
     );

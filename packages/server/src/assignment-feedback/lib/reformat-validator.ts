@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { EssayFeedbackParagraph } from '@koh/common';
+import type { AssignmentFeedbackParagraph } from '@koh/common';
 import { parseEssay } from './essay-parser';
 
 const paragraphSchema = z.object({
@@ -19,7 +19,7 @@ const reformatResponseSchema = z.array(paragraphSchema).min(1);
 export function validateReformatResponse(
   raw: unknown,
   originalText: string,
-): EssayFeedbackParagraph[] {
+): AssignmentFeedbackParagraph[] {
   const parsed = reformatResponseSchema.safeParse(raw);
   if (!parsed.success) {
     console.warn(
