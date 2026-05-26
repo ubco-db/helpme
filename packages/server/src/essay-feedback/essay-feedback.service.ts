@@ -95,10 +95,8 @@ export class EssayFeedbackService {
     essayText: string,
   ): Promise<EssayFeedbackParagraph[]> {
     const reformatMessages = buildReformatPromptMessages(essayText);
-    console.log('reformatMessages', reformatMessages);
     try {
       const raw = await this.invokeLlm(courseId, reformatMessages);
-      console.log('raw2', raw);
       return validateReformatResponse(raw, essayText);
     } catch (err) {
       this.logger.warn(
@@ -144,7 +142,6 @@ export class EssayFeedbackService {
         courseId,
         'default',
       );
-      console.log('chatbot response', raw);
     } catch (firstErr) {
       this.logger.warn(`chatbot /query failed once: ${String(firstErr)}`);
       raw = await this.chatbotApiService.queryChatbotForCourse(

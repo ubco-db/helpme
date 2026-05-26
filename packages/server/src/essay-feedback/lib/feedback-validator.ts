@@ -114,7 +114,6 @@ export function validateFeedbackResponse(
   raw: unknown,
   paragraphs: EssayFeedbackParagraph[],
 ): EssayFeedbackResponse {
-  console.log('raw', raw);
   const parsed = llmFeedbackSchema.safeParse(raw);
   if (!parsed.success) {
     throw new InternalServerErrorException(
