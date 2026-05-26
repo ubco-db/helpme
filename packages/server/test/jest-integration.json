@@ -5,7 +5,8 @@
   "testEnvironment": "node",
   "testRegex": ".integration.ts$",
   "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
+    "^.+\\.(t|j)s$": "ts-jest",
+    "\\.md$": "<rootDir>/markdown-transformer.js"
   },
   "moduleDirectories": ["node_modules", "src"]
 }

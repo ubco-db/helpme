@@ -186,7 +186,8 @@
     ],
     "testRegex": ".spec.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
+      "^.+\\.(t|j)s$": "ts-jest",
+      "\\.md$": "<rootDir>/../test/markdown-transformer.js"
     },
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
