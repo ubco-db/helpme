@@ -301,7 +301,10 @@ It is used for displaying markdown nicely inside any <Markdown> components
   list-style-type: decimal;
   margin-left: 1.5em;
 }
-
+.childrenMarkdownFormatted p {
+  margin-bottom: 0.5em;
+  margin-bottom: 0.75em;
+}
 .childrenMarkdownFormatted h1 {
   font-size: 1.5em;
   font-weight: bold;

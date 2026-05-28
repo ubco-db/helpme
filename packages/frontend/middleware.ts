@@ -15,6 +15,9 @@ const publicPages: string[] = [
   '/register*',
   '/failed*',
   '/password*',
+  '/about',
+  '/changelog.md',
+  '/privacy_policy.md',
   '/',
   '/invite*',
   '/qi/*', // queue invite page

@@ -2,7 +2,7 @@
 
 **Last Updated: May 11, 2026**
 
-This Privacy Policy describes how the **HelpMe (UBC Project)** research team ("**we**," "**us**," or "**our**") collects, uses, stores, and protects your personal information when you use our services at [http://www.coursehelp.ubc.ca](http://www.coursehelp.ubc.ca) (the "**Services**"). 
+This Privacy Policy describes how the **HelpMe (UBC Project)** research team ("we," "us," or "our") collects, uses, stores, and protects your personal information when you use our services at [http://www.coursehelp.ubc.ca](http://www.coursehelp.ubc.ca) (the "Services"). 
 
 HelpMe is a student-led research project at the University of British Columbia (UBC). We are not a commercial entity. We are committed to data minimization, meaning we collect only the bare minimum information required for the application to function. All primary data is kept strictly within UBC servers, and we do not sell or share your data with external providers or businesses.
 
@@ -52,7 +52,7 @@ While we do collect other data not mentioned here (such as course configurations
 
 Primary application data and databases are confined to secure UBCO infrastructure. 
 
-* **Application & Database:** The HelpMe web application and PostgreSQL database are hosted on an **EduCloud Virtual Machine (VM)**. Access is secured via UBC Campus-Wide Login (CWL). Backups are encrypted and stored within EduCloud infrastructure (ISS U5 Tier 3).
+* **Application & Database:** The HelpMe web application and PostgreSQL database are hosted on an EduCloud Virtual Machine (VM). Access is secured via UBC Campus-Wide Login (CWL). Backups are encrypted and stored within EduCloud infrastructure (ISS U5 Tier 3).
 * **AI Infrastructure:** Our Large Language Model (LLM) runs on a physical GPU server located in a secure UBC data centre at the UBC Okanagan campus. It is managed and monitored by UBCO IT, with access strictly controlled via CWL.
 
 **We make NO external API calls to third-party AI services.** Your data never leaves the UBC network to be processed by outside generative AI providers.

@@ -510,6 +510,15 @@ const NavBar = ({
                   </>
                 )}
                 <ListItem
+                  key="about"
+                  title="About HelpMe"
+                  titleElement={<span className="">About HelpMe</span>}
+                  // If it's LTI, just make it open base helpme in a new tab
+                  target={isLti ? '_blank' : undefined}
+                  rel={isLti ? 'noopener noreferrer' : undefined}
+                  href={isLti ? '/about' : '/profile/about'}
+                />
+                <ListItem
                   key="logout"
                   title="Logout"
                   titleElement={<span className="text-red-700">Log Out</span>}
