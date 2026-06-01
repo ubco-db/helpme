@@ -1,8 +1,8 @@
 import { Metadata } from 'next'
 import { ReactElement } from 'react'
 import AboutPage from '../components/AboutPage'
-import Link from 'next/link'
-import { ArrowLeftOutlined } from '@ant-design/icons'
+import HeaderBar from '../components/HeaderBar'
+import StandardPageContainer from '../components/standardPageContainer'
 
 export const metadata: Metadata = {
   title: 'HelpMe | About',
@@ -10,11 +10,17 @@ export const metadata: Metadata = {
 
 export default function About(): ReactElement {
   return (
-    <main className="mx-auto flex w-full flex-col gap-y-2 px-1 sm:px-5 md:gap-y-3 md:px-8 xl:max-w-[1500px]">
-      <Link className="mt-2" href="/">
-        <ArrowLeftOutlined /> Back to Home Page
-      </Link>
-      <AboutPage />
-    </main>
+    <>
+      <header className={`border-b border-b-zinc-200 bg-white`}>
+        <StandardPageContainer className="!pl-0">
+          <HeaderBar />
+        </StandardPageContainer>
+      </header>
+      <main>
+        <StandardPageContainer className="gap-y-2">
+          <AboutPage />
+        </StandardPageContainer>
+      </main>
+    </>
   )
 }

@@ -7,6 +7,7 @@ import { getAuthTokenString } from '@/app/api/cookie-utils'
 // These are files that do not require authentication. Used for displaying logos outside of HelpMe.
 const publicFiles: RegExp[] = [
   new RegExp('^/helpme_logo_(full|medium|small)[.]png$'),
+  new RegExp('^/ubc_logo[.]png$'),
 ]
 
 // These are the public pages that do not require authentication. Adding an * will match any characters after the page (e.g. if the page has search query params).

@@ -109,7 +109,7 @@ const AboutPage: React.FC = (): ReactElement => {
           >
             <Meta
               avatar={
-                <Avatar src="https://media.licdn.com/dms/image/v2/D5635AQGicHxfiDMGYw/profile-framedphoto-shrink_800_800/B56ZqkUcRyHAAg-/0/1763693413873?e=1780527600&v=beta&t=IB0PhepsGI4NP-O4fhMTyYLn9HVDwLEgGFVFT4ZbgIo" />
+                <Avatar src="https://lh3.googleusercontent.com/a/ACg8ocLTTTeNhPRbmCDar9HN84SISsR4Zev4u9UHkoksmmNMCvroDw3Y=s288-c-no" />
               }
               title="Adam Fipke"
               description={
