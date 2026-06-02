@@ -1,16 +1,15 @@
 'use client'
 
-import { Avatar, Button, Card } from 'antd'
+import { Button } from 'antd'
 import { ReactElement, useState } from 'react'
-import ChangeLogModal from './ChangeLogModal'
-import PrivacyPolicyModal from './PrivacyPolicyModal'
-import Meta from 'antd/es/card/Meta'
-import { GithubOutlined, MailOutlined } from '@ant-design/icons'
-import { FileLock, ScrollText } from 'lucide-react'
+import { FileLock, Handshake, ScrollText } from 'lucide-react'
+import MarkdownFetcherModal from './MarkdownFetcherModal'
 
+/* needed to put this into its own file so it becomes a client component that can be put inside server components */
 const AboutPageModals: React.FC = (): ReactElement => {
   const [isChangelogOpen, setIsChangelogOpen] = useState(false)
   const [isPrivacyPolicyOpen, setIsPrivacyPolicyOpen] = useState(false)
+  const [isTermsOfServiceOpen, setIsTermsOfServiceOpen] = useState(false)
   return (
     <>
       <p className="flex items-center justify-center gap-4">
@@ -30,11 +29,29 @@ const AboutPageModals: React.FC = (): ReactElement => {
         >
           Privacy Policy
         </Button>
+        <Button
+          type="primary"
+          size="large"
+          onClick={() => setIsTermsOfServiceOpen(true)}
+          icon={<Handshake className="mt-1 p-[0.075rem]" />}
+        >
+          Terms of Service
+        </Button>
       </p>
-      <ChangeLogModal isOpen={isChangelogOpen} setIsOpen={setIsChangelogOpen} />
-      <PrivacyPolicyModal
+      <MarkdownFetcherModal
+        filename="changelog.md"
+        isOpen={isChangelogOpen}
+        setIsOpen={setIsChangelogOpen}
+      />
+      <MarkdownFetcherModal
+        filename="privacy_policy.md"
         isOpen={isPrivacyPolicyOpen}
         setIsOpen={setIsPrivacyPolicyOpen}
+      />
+      <MarkdownFetcherModal
+        filename="terms_of_service.md"
+        isOpen={isTermsOfServiceOpen}
+        setIsOpen={setIsTermsOfServiceOpen}
       />
     </>
   )

@@ -1,8 +1,9 @@
 import { API } from '@/app/api'
-import ChangeLogModal from '@/app/components/ChangeLogModal'
+import MarkdownFetcherModal from '@/app/components/MarkdownFetcherModal'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { useState } from 'react'
+import { OrganizationRole } from '@koh/common'
+import { useEffect, useState } from 'react'
 
 const FooterBar: React.FC = () => {
   const [isChangelogOpen, setIsChangelogOpen] = useState(false)
@@ -32,6 +33,19 @@ const FooterBar: React.FC = () => {
     readChangelog()
   }
 
+  useEffect(() => {
+    // make the changelog auto-open for admins and professors who haven't read it yet
+    // (note: some profs may have the admin role, hence why we check for both)
+    if (
+      userInfo &&
+      !userInfo.readChangeLog &&
+      (userInfo.organization?.organizationRole === OrganizationRole.ADMIN ||
+        userInfo.organization?.organizationRole === OrganizationRole.PROFESSOR)
+    ) {
+      setIsChangelogOpen(true)
+    }
+  }, [userInfo, setIsChangelogOpen])
+
   return (
     // Hide footer on mobile since screen space is more valuable
     <footer
@@ -53,8 +67,8 @@ const FooterBar: React.FC = () => {
             <span className="text-green-500">(New Changes!)</span>
           )}
         </a>
-        <ChangeLogModal
-          userInfo={userInfo}
+        <MarkdownFetcherModal
+          filename="changelog.md"
           isOpen={isChangelogOpen}
           setIsOpen={setIsChangelogOpen}
           onClose={IReadTheChangelog}

@@ -1,8 +1,8 @@
 import { Button, Divider } from 'antd'
 import { Metadata } from 'next'
-import Image from 'next/image'
+// import Image from 'next/image'
 import { ReactElement } from 'react'
-import ubcLogo from '../public/ubc_logo.png'
+// import ubcLogo from '../public/ubc_logo.png' leaving this here as a reference in case we want to add photos to this page (should be server-component friendly)
 import Link from 'next/link'
 import StandardPageContainer from './components/standardPageContainer'
 import HeaderBar from './components/HeaderBar'
@@ -67,9 +67,10 @@ export default function Home(): ReactElement {
               Primarily developed by students at UBC + UBCO
             </li>
             <li className="m-3">
-              For more information, contact Ramon Lawrence,{' '}
+              For new professors, please watch the video(s) below and contact
+              Ramon Lawrence at{' '}
               <a href="mailto:ramon.lawrence@ubc.ca">ramon.lawrence@ubc.ca</a>{' '}
-              or see our <Link href={'/about'}>About Page</Link>
+              for more information if interested
             </li>
           </ul>
 

@@ -49,7 +49,8 @@ const AboutPage: React.FC = (): ReactElement => {
         <h2 className="mt-3">Who funds HelpMe?</h2>
         <p>
           HelpMe has no profit incentive and is primarily funded through a mix
-          of grants and as part of research budgets.
+          of grants and as part of research budgets. This means that HelpMe is
+          completely free to use.
         </p>
 
         <h2 className="mt-3">Github Link</h2>
