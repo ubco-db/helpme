@@ -232,31 +232,31 @@ const NavBar = ({
               </NextLink>
               <NavigationMenuItem>
                 <Link
-                  className="!font-bold "
+                  className="pl-12 !font-bold md:pl-8"
                   href={`/`}
                   onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
                 >
-                  <HomeOutlined className="mr-3 text-2xl" />
+                  {/* <HomeOutlined className="mr-3 text-2xl" /> Got rid of icons so that the Login link + icon sticks out more */}
                   Home
                 </Link>
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <Link
-                  className="!font-bold "
+                  className="pl-12 !font-bold md:pl-8"
                   href={`/about`}
                   onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
                 >
-                  <InfoCircleOutlined className="mr-3 text-2xl" />
+                  {/* <InfoCircleOutlined className="mr-3 text-2xl" /> */}
                   About
                 </Link>
               </NavigationMenuItem>
-              <NavigationMenuItem className="mb-2 md:mb-0 md:ml-auto">
+              <NavigationMenuItem className="mb-2 md:mb-0 md:ml-auto ">
                 <Link
                   href={'/login'}
-                  className="!font-bold"
+                  className="!font-bold "
                   onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
                 >
-                  <LogIn strokeWidth={1.5} className="mr-3" />
+                  <LogIn strokeWidth={1.5} className="mr-3 " />
                   Log In
                 </Link>
               </NavigationMenuItem>
