@@ -227,7 +227,7 @@ const NavBar = ({
                   height={48}
                   className={cn('h-12 w-full object-contain p-1 pr-4')}
                   alt="UBC Logo"
-                  src={`/ubc_logo.png`}
+                  src={`/actually_public/images/ubc_logo.png`}
                 />
               </NextLink>
               <NavigationMenuItem>
@@ -732,7 +732,7 @@ const HeaderBar: React.FC = () => {
           height={48}
           className="h-12 object-contain p-1"
           alt="UBC Logo"
-          src={`/ubc_logo.png`}
+          src={`/actually_public/images/ubc_logo.png`}
         />
       ) : (
         <Image
@@ -797,7 +797,7 @@ const HeaderBar: React.FC = () => {
                   height={48}
                   className="h-12 object-contain"
                   alt="UBC Logo"
-                  src={`/ubc_logo.png`}
+                  src={`/actually_public/ubc_logo.png`}
                 />
               ) : (
                 <Image

@@ -38,7 +38,7 @@ const MarkdownFetcherModal: React.FC<MarkdownFetcherModalProps> = ({
   useEffect(() => {
     const fetchMarkdownContent = async () => {
       try {
-        const response = await fetch(filename)
+        const response = await fetch(`/actually_public/${filename}`)
         const text = await response.text()
         setCurrentMarkdownContent(text)
       } catch (error) {

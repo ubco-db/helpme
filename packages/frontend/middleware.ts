@@ -8,7 +8,7 @@ import { getAuthTokenString } from '@/app/api/cookie-utils'
 const publicFiles: RegExp[] = [
   new RegExp('^/helpme_logo_(full|medium|small)[.]png$'),
   new RegExp('^/ubc_logo[.]png$'),
-  new RegExp('^/(changelog|privacy_policy|terms_of_service)[.]md$'),
+  new RegExp('^/actually_public/.*$'),
 ]
 
 // These are the public pages that do not require authentication. Adding an * will match any characters after the page (e.g. if the page has search query params).

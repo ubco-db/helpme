@@ -109,9 +109,7 @@ const AboutPage: React.FC = (): ReactElement => {
             ]}
           >
             <Meta
-              avatar={
-                <Avatar src="https://lh3.googleusercontent.com/a/ACg8ocLTTTeNhPRbmCDar9HN84SISsR4Zev4u9UHkoksmmNMCvroDw3Y=s288-c-no" />
-              }
+              avatar={<Avatar src="/actually_public/images/adam_pfp.png" />}
               title="Adam Fipke"
               description={
                 <p>
