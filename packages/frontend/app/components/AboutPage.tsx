@@ -42,13 +42,13 @@ const AboutPage: React.FC = (): ReactElement => {
           of the page.
         </p>
         <p>
-          We have also passed the Privacy Impact Assessment (PIA) at both UBC
+          HelpMe has completed a [UBC Privacy Impact Assessment (PIA)](https://privacymatters.ubc.ca/pia-stra).
           and UBCO. TODO: include links to copy of it?
         </p>
 
         <h2 className="mt-3">Who funds HelpMe?</h2>
         <p>
-          HelpMe has no profit incentive and is primarily funded through a mix
+          HelpMe has been funded through UBC funding from [ALT-2040 grants](https://alt-2040.ok.ubc.ca/funded-projects-list/supporting-indigenous-studies-with-ethical-ai-enhancing-reflective-respectful-learning-and-scalability/) and Dr. Ramon Lawrence
           of grants and as part of research budgets. This means that HelpMe is
           completely free to use.
         </p>
@@ -90,7 +90,7 @@ const AboutPage: React.FC = (): ReactElement => {
               title="Dr. Ramon Lawrence"
               description={
                 <p className="max-w-96">
-                  Supervises and directs project development.
+                  Dr. Lawrence is a Professor and Department Head of Computer Science. His research on database systems and AI resulted in the development of HelpMe. Dr. Lawrence has supervised many students in the construction of HelpMe and directs project development.
                 </p>
               }
             />
