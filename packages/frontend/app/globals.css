@@ -289,6 +289,8 @@ Here's the issue on antd's github: https://github.com/ant-design/ant-design/issu
   padding: 0.25rem 0 0 0 !important;
 }
 
+
+
 /*
 These childrenMarkdownFormatted styles are to format all children of this component in a particular way.
 It is used for displaying markdown nicely inside any <Markdown> components
