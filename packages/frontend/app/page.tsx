@@ -6,6 +6,7 @@ import ImageChatbotCourseHomePage from '@/public/actually_public/images/helpme_c
 import ImageCanvasIntegrationAutoSync from '@/public/actually_public/images/helpme_canvas_integration_auto_sync.png'
 import ImageChatbotDocumentUpload from '@/public/actually_public/images/helpme_chatbot_document_drag_n_drop_upload.png'
 import ImageProfInsertQuestionAsNewChunk from '@/public/actually_public/images/helpme_prof_insert_question_as_new_chunk.png'
+import ImageChatbotEditPrompt from '@/public/actually_public/images/helpme_chatbot_edit_prompt.png'
 import ImageProfQueueHelpStudent from '@/public/actually_public/images/helpme_prof_queue_help_student.png'
 import ImageStudentQueueCreateQuestion from '@/public/actually_public/images/helpme_student_queue_create_question.png'
 import ImageStudentGettingHelp from '@/public/actually_public/images/helpme_student_getting_help.png'
@@ -133,6 +134,27 @@ export default function Home(): ReactElement {
                           with options to customize what items are synchronized.
                           Also lets you compare what students are in your HelpMe
                           course but not in your Canvas course, or vise-versa.
+                        </p>
+                      </div>
+                    ),
+                  },
+                  {
+                    src: ImageChatbotEditPrompt,
+                    alt: 'A popup form allowing the professor to customize the AI model and prompt, amongst some other more advanced settings like temperature and document similarity threshold.',
+                    caption: (
+                      <div>
+                        <h4 className="mb-1 text-base font-bold">
+                          Professor-Customizable Prompt
+                        </h4>
+                        <p className="text-sm">
+                          Professors have access to the prompt and can include
+                          course-specific instructions, such as what the course
+                          is, what the goals of the course are (at a high
+                          level), how you want the chatbot to respond, and why
+                          it&apos;s important for the chatbot to respond that
+                          way to meet the course&apos;s goals. They can also
+                          choose different models for more advanced
+                          configuration.
                         </p>
                       </div>
                     ),

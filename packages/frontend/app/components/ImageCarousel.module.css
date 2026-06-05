@@ -49,3 +49,9 @@
 .container :global(.ant-carousel .slick-arrow.slick-next:active) {
   transform: translateY(-50%) scale(0.95) !important;
 }
+
+.container :global(.ant-carousel .slick-dots li button),
+.container :global(.ant-carousel .slick-dots li.slick-active::after) {
+  background-color: rgb(var(--helpmeblue));
+}
+
