@@ -42,15 +42,30 @@ const AboutPage: React.FC = (): ReactElement => {
           of the page.
         </p>
         <p>
-          HelpMe has completed a [UBC Privacy Impact Assessment (PIA)](https://privacymatters.ubc.ca/pia-stra).
-          and UBCO. TODO: include links to copy of it?
+          HelpMe has completed a{' '}
+          <a
+            target="_blank"
+            rel="noopener noreferrer"
+            href="https://privacymatters.ubc.ca/pia-stra"
+          >
+            UBC Privacy Impact Assessment (PIA)
+          </a>
+          , ensuring security and data practices meet institutional
+          requirements. TODO: include links to copy of it?
         </p>
 
         <h2 className="mt-3">Who funds HelpMe?</h2>
         <p>
-          HelpMe has been funded through UBC funding from [ALT-2040 grants](https://alt-2040.ok.ubc.ca/funded-projects-list/supporting-indigenous-studies-with-ethical-ai-enhancing-reflective-respectful-learning-and-scalability/) and Dr. Ramon Lawrence
-          of grants and as part of research budgets. This means that HelpMe is
-          completely free to use.
+          HelpMe has been funded through UBC funding from{' '}
+          <a
+            target="_blank"
+            rel="noopener noreferrer"
+            href="https://alt-2040.ok.ubc.ca/funded-projects-list/supporting-indigenous-studies-with-ethical-ai-enhancing-reflective-respectful-learning-and-scalability/"
+          >
+            ALT-2040 grants
+          </a>{' '}
+          and Dr. Ramon Lawrence of grants and as part of research budgets. This
+          means that HelpMe is completely free to use.
         </p>
 
         <h2 className="mt-3">Github Link</h2>
@@ -90,7 +105,11 @@ const AboutPage: React.FC = (): ReactElement => {
               title="Dr. Ramon Lawrence"
               description={
                 <p className="max-w-96">
-                  Dr. Lawrence is a Professor and Department Head of Computer Science. His research on database systems and AI resulted in the development of HelpMe. Dr. Lawrence has supervised many students in the construction of HelpMe and directs project development.
+                  Dr. Lawrence is a Professor and Department Head of Computer
+                  Science. His research on database systems and AI resulted in
+                  the development of HelpMe. Dr. Lawrence has supervised many
+                  students in the construction of HelpMe and directs project
+                  development.
                 </p>
               }
             />
