@@ -464,6 +464,7 @@ export class FactoryService {
 
     this.EmbeddableQuestionFactory = new Factory(EmbeddableQuestionModel, dataSource)
       .assocOne('course', this.CourseFactory)
+      .sequence('name', (n) => `Question ${n+1}`)
       .attr('questionText', 'Sample embeddable question')
       .attr('criteriaText', 'Sample criteria');
 

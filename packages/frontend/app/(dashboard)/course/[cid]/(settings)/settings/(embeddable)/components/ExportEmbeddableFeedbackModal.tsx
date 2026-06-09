@@ -1,7 +1,12 @@
 import React, { SetStateAction, useMemo, useState } from 'react'
 import { Alert, Form, message, Modal, Select, Switch, Tooltip } from 'antd'
 import { useForm } from 'antd/es/form/Form'
-import { EmbeddableAssignment, EmbeddableQuestion, ExportEmbeddableQuestionResultsParams } from '@koh/common'
+import {
+  EmbeddableAssignment,
+  EmbeddableQuestion,
+  ExportEmbeddableAssignmentResultsParams,
+  ExportEmbeddableQuestionResultsParams,
+} from '@koh/common'
 import { InfoCircleOutlined } from '@ant-design/icons'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
@@ -27,38 +32,49 @@ const ExportEmbeddableFeedbackModal: React.FC<ExportEmbeddableFeedbackModalProps
   focusQuestion,
   focusAssignment,
 }) => {
-  const [form] = useForm<ExportEmbeddableQuestionResultsParams>()
+  const [form] = useForm<ExportEmbeddableQuestionResultsParams & { assignmentId: number }>()
   const [loading, setLoading] = useState(false)
 
-  const questionOptions = useMemo(() => questions.map((q, i) => ({
+  const questionOptions = useMemo(() => questions.map((q) => ({
     label: q.name,
     value: q.id
   })), [questions])
 
-  const assignmentOptions = useMemo(() => assignments.map((a, i) => ({
+  const assignmentOptions = useMemo(() => assignments.map((a) => ({
     label: a.name,
     value: a.id
   })), [assignments])
 
-  async function onSubmit(values: ExportEmbeddableQuestionResultsParams) {
+  async function onSubmit(values: ExportEmbeddableQuestionResultsParams  & { assignmentId: number }) {
     if (loading) return
     setLoading(true)
+
+    const then0 = async (res: Response) => {
+      if (res.headers.get('content-type')?.includes('application/json'))
+        throw await res.json()
+      return await res.blob()
+    }
+
+    const then1 = (blob: Blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `submissions_${mode == 'question' ? `q_${values.questions.join('_')}` : `a_${values.assignmentId}`}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    }
+
     try {
-      await API.lti.embeddableQuestion.exportResults(courseId, values)
-        .then(async (res) => {
-          if (res.headers.get('content-type')?.includes('application/json'))
-            throw await res.json()
-          return await res.blob()
-        })
-        .then((blob) => {
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `helpme_course_${courseId}_export_q_${values.questions.join('_')}.xlsx`;
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(url);
-        })
+      if (mode === 'assignment') {
+        await API.lti.embeddableQuestion.assignment.exportResults(courseId, values as unknown as ExportEmbeddableAssignmentResultsParams)
+          .then(then0)
+          .then(then1)
+      } else {
+        await API.lti.embeddableQuestion.exportResults(courseId, values)
+          .then(then0)
+          .then(then1)
+      }
     } catch (err) {
       message.error(`Failed to export results: ${getErrorMessage(err)}`)
     } finally {
@@ -93,7 +109,7 @@ const ExportEmbeddableFeedbackModal: React.FC<ExportEmbeddableFeedbackModalProps
     >
       {mode == 'assignment' && (
         <Form.Item
-          name={'assignment'}
+          name={'assignmentId'}
           label={
             <div className={'flex w-full'}>
               <Tooltip

@@ -1,4 +1,4 @@
-import { FactoryService } from 'factory/factory.service';
+import { FactoryService } from 'factory/factory.service'
 
 // IMPORTANT: In order to use ANY of these factories, you must make sure FactoryModule is an import in createTestingModule
 // AND you must get the FactoryService and pass it into initFactoriesFromService
@@ -49,6 +49,11 @@ export let LtiIdentityTokenFactory: FactoryService['LtiIdentityTokenFactory'];
 
 export let QueueStaffFactory: FactoryService['QueueStaffFactory'];
 export let EmbeddableQuestionFactory: FactoryService['EmbeddableQuestionFactory'];
+export let EmbeddableQuestionFeedbackFactory: FactoryService['EmbeddableQuestionFeedbackFactory'];
+export let EmbeddableAssignmentFactory: FactoryService['EmbeddableAssignmentFactory'];
+export let EmbeddableAssignmentQuestionFactory: FactoryService['EmbeddableAssignmentQuestionFactory'];
+export let EmbeddableAssignmentFeedbackFactory: FactoryService['EmbeddableAssignmentFeedbackFactory'];
+
 // We keep a helper so that in the test setup, once we have the real service,
 // we can “wire up” these variables.
 export function initFactoriesFromService(service: FactoryService) {
@@ -99,4 +104,8 @@ export function initFactoriesFromService(service: FactoryService) {
   LtiIdentityTokenFactory = service.LtiIdentityTokenFactory;
   QueueStaffFactory = service.QueueStaffFactory;
   EmbeddableQuestionFactory = service.EmbeddableQuestionFactory;
+  EmbeddableQuestionFeedbackFactory = service.EmbeddableQuestionFeedbackFactory;
+  EmbeddableAssignmentFactory = service.EmbeddableAssignmentFactory;
+  EmbeddableAssignmentQuestionFactory = service.EmbeddableAssignmentQuestionFactory;
+  EmbeddableAssignmentFeedbackFactory = service.EmbeddableAssignmentFeedbackFactory;
 }

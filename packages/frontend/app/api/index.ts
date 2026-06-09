@@ -41,6 +41,7 @@ import {
   EmbeddableFeedback,
   EmbeddableQuestion,
   EmbeddableQuestionFeedbackResponse,
+  ExportEmbeddableAssignmentResultsParams,
   ExportEmbeddableQuestionResultsParams,
   ExtraTAStatus,
   GetAlertsResponse,
@@ -1802,7 +1803,7 @@ export class APIClient {
             'DELETE',
             `/api/v1/lti/embeddable-assignment/${courseId}/answers/${feedbackId}`,
           ),
-        exportResults: async (courseId: number, body: ExportEmbeddableQuestionResultsParams): Promise<Response> =>
+        exportResults: async (courseId: number, body: ExportEmbeddableAssignmentResultsParams): Promise<Response> =>
           await this.fetchFull('POST',`/api/v1/lti/embeddable-assignment/${courseId}/export`,body),
       }
     }

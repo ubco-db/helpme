@@ -31,6 +31,7 @@ import {
 import { EmbeddableQuestionService } from './embeddable-question.service'
 import { EmbeddableQuestionModel } from './embeddable-question.entity'
 import { UserId } from '../../../decorators/user.decorator'
+import { EmbeddableQuestionFeedbackModel } from './embeddable-question-feedback.entity'
 
 @Controller('lti/embeddable-question')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -177,8 +178,8 @@ export class EmbeddableQuestionController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('answerId', ParseIntPipe) answerId: number,
     @Body() body: UpdateEmbeddableFeedbackParams
-  ): Promise<void> {
-    await this.embeddableQuestionService.updateAnswer(answerId,body);
+  ): Promise<EmbeddableQuestionFeedbackModel> {
+    return await this.embeddableQuestionService.updateAnswer(answerId,body);
   }
 
   @Delete(':courseId/answers/:answerId')

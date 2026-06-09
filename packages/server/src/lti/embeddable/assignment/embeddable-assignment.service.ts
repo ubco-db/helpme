@@ -9,12 +9,9 @@ import {
   UpsertEmbeddableAssignmentParams,
   UpsertEmbeddableAssignmentQuestionParams,
 } from '@koh/common'
-import { DataSource, DeepPartial, EntityManager, FindOptionsRelations, In } from 'typeorm'
+import { DataSource, DeepPartial, EntityManager, FindOptionsOrder, FindOptionsRelations, In } from 'typeorm'
 import { EmbeddableQuestionModel } from '../question/embeddable-question.entity'
 import { EmbeddableAssignmentModel } from './embeddable-assignment.entity'
-import {
-  OrganizationChatbotSettingsModel,
-} from '../../../chatbot/chatbot-infrastructure-models/organization-chatbot-settings.entity'
 import { pick } from 'lodash'
 
 @Injectable()
@@ -53,14 +50,16 @@ export class EmbeddableAssignmentService {
     assignmentId: number,
     relations?: FindOptionsRelations<EmbeddableAssignmentModel>,
   ): Promise<EmbeddableAssignmentModel> {
+    const order: FindOptionsOrder<EmbeddableAssignmentModel> = {}
+    if (relations && 'questions' in relations)
+      order['questions'] = {
+        order: 'ASC',
+      }
+
     const assignment = await EmbeddableAssignmentModel.findOne({
       where: { id: assignmentId },
       relations,
-      order: {
-        questions: {
-          order: 'ASC',
-        }
-      }
+      order,
     });
     if (!assignment) {
       throw new NotFoundException(ERROR_MESSAGES.embeddableModule.assignmentNotFound);
@@ -85,21 +84,21 @@ export class EmbeddableAssignmentService {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
-    
+
     try {
       const em = queryRunner.manager;
-      
+
       const assignmentRepo = em.getRepository(
         EmbeddableAssignmentModel,
       );
-      
+
       const assignment = await assignmentRepo.save({
         courseId,
         id: assignmentId,
         ...pick(params, ['availableFrom','availableUntil','name']),
-      } as DeepPartial<OrganizationChatbotSettingsModel>);
-      
-      if (!assignmentId) 
+      } as DeepPartial<EmbeddableAssignmentModel>);
+
+      if (!assignmentId)
         assignmentId = assignment.id;
 
       await this.associateQuestions(
@@ -108,7 +107,7 @@ export class EmbeddableAssignmentService {
         params.questions,
         em,
       )
-      
+
       await queryRunner.commitTransaction();
     } catch (err) {
       if (queryRunner.isTransactionActive && !queryRunner.isReleased) {
@@ -116,7 +115,7 @@ export class EmbeddableAssignmentService {
       }
       if (inserted) {
         // Just in case the transaction wasn't fully rolled back
-        await queryRunner.manager.delete(OrganizationChatbotSettingsModel, {
+        await queryRunner.manager.delete(EmbeddableAssignmentModel, {
           id: inserted.id,
         });
       }
@@ -152,12 +151,12 @@ export class EmbeddableAssignmentService {
     questions: UpsertEmbeddableAssignmentQuestionParams[],
     entityManager?: EntityManager,
   ) {
-    if (!entityManager) 
+    if (!entityManager)
       entityManager = this.dataSource.manager;
 
     const questionRepo = entityManager.getRepository(EmbeddableQuestionModel)
     const assignmentQuestionRepo = entityManager.getRepository(EmbeddableAssignmentQuestionModel)
-    
+
     const newQuestions = questions
       .filter(q => q.questionId === null || q.questionId === undefined)
     const existingQuestions = questions
@@ -169,9 +168,13 @@ export class EmbeddableAssignmentService {
       }
     });
     const toDelete = alreadyExist.filter(v => !existingQuestions.some(q => q.questionId === v.questionId))
+    const deleteIds = toDelete.map(v => v.questionId);
+    await assignmentQuestionRepo.delete({
+      questionId: In(deleteIds),
+    });
     await questionRepo.delete({
       isWeak: true,
-      id: In(toDelete.map(v => v.questionId))
+      id: In(deleteIds)
     });
 
     const embeddableQuestionParams: DeepPartial<EmbeddableQuestionModel>[] = []
@@ -192,7 +195,7 @@ export class EmbeddableAssignmentService {
     })
 
     const created = await questionRepo.save(embeddableQuestionParams);
-    
+
     const embeddableAssignmentQuestionParams: DeepPartial<EmbeddableAssignmentQuestionModel>[] = []
     existingQuestions.forEach((q) =>
       embeddableAssignmentQuestionParams.push({
@@ -294,6 +297,11 @@ export class EmbeddableAssignmentService {
         assignmentId,
         userId,
       },
+      {
+        questions: {
+          question: true,
+        }
+      }
     );
   }
 
@@ -359,6 +367,13 @@ export class EmbeddableAssignmentService {
       },
       order: {
         order: 'ASC',
+      },
+      relations: {
+        question: {
+          submissions: {
+            user: true,
+          }
+        }
       }
     })).map((aq) => aq.question);
 

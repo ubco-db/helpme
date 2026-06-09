@@ -6,9 +6,11 @@ import {
   Delete,
   Get,
   Param,
+  ParseArrayPipe,
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   Res,
   UseGuards,
   UseInterceptors,
@@ -151,8 +153,7 @@ export class EmbeddableAssignmentController {
    * For deleting an embeddable question. Accessible to TA and Professor roles only.
    * @param courseId
    * @param assignmentId
-   * @param body Parameters for deletion, including whether to delete all associated questions
-   */
+   * */
   @Delete(':courseId/:assignmentId')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
@@ -167,8 +168,7 @@ export class EmbeddableAssignmentController {
    * For retrieving feedback from a given editable question. Accessible to TA and Professor roles only.
    * @param courseId
    * @param assignmentId The assignment ID to retrieve questions for
-   * @param questionId (Optional) For filtering to specific question
-   * @param users (Optional) For filtering to specific group of users
+   * @param users (Optional) Filter to certain students
    */
   @Get(':courseId/answers/:assignmentId')
   @UseGuards(JwtAuthGuard, CourseRolesGuard)
@@ -176,10 +176,9 @@ export class EmbeddableAssignmentController {
   async getAnswers(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('assignmentId', ParseIntPipe) assignmentId: number,
-    //@Query('questionId', new ParseIntPipe({ optional: true })) questionId?: number,
-    //@Query('users', new ParseArrayPipe({ items: Number, optional: true })) users?: number[],
+    @Query('users', new ParseArrayPipe({ items: Number, optional: true })) users?: number[],
   ): Promise<EmbeddableAssignmentFeedbackModel[]> {
-    return await this.embeddableAssignmentService.getAnswers(assignmentId)//, questionId, users)
+    return await this.embeddableAssignmentService.getAnswers(assignmentId, undefined, users)
   }
 
   @Patch(':courseId/answers/:answerId')
@@ -189,8 +188,8 @@ export class EmbeddableAssignmentController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('answerId', ParseIntPipe) answerId: number,
     @Body() body: UpdateEmbeddableFeedbackParams
-  ): Promise<void> {
-    await this.embeddableAssignmentService.updateAnswer(answerId,body);
+  ): Promise<EmbeddableAssignmentFeedbackModel> {
+    return await this.embeddableAssignmentService.updateAnswer(answerId,body);
   }
 
   @Delete(':courseId/answers/:answerId')

@@ -13,6 +13,8 @@ import { EmbeddableAssignmentModel } from './assignment/embeddable-assignment.en
 
 /**
  * General functions for the LTI Embeddable Model
+ *
+ * NOTE: This provider has no associated specification file as it contains generic functions which are tested by the invokers specification files
  */
 @Injectable()
 export class EmbeddableModuleService {

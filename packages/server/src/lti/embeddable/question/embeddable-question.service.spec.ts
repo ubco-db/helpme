@@ -3,13 +3,24 @@ import { TestConfigModule, TestTypeOrmModule } from '../../../../test/util/testU
 import { FactoryModule } from '../../../factory/factory.module'
 import { DataSource } from 'typeorm'
 import { FactoryService } from '../../../factory/factory.service'
-import { CourseFactory, EmbeddableQuestionFactory, initFactoriesFromService } from '../../../../test/util/factories'
+import {
+  CourseFactory,
+  EmbeddableQuestionFactory,
+  EmbeddableQuestionFeedbackFactory,
+  initFactoriesFromService,
+  UserFactory,
+} from '../../../../test/util/factories'
 import { EmbeddableQuestionService } from './embeddable-question.service'
 import { CourseModel } from '../../../course/course.entity'
 import { EmbeddableQuestionModel } from './embeddable-question.entity'
-import { NotFoundException } from '@nestjs/common'
+import { NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { ERROR_MESSAGES } from '@koh/common'
 import { pick } from 'lodash'
+import { EmbeddableModule } from '../embeddable.module'
+import { ChatbotApiService } from '../../../chatbot/chatbot-api.service'
+import { EmbeddableQuestionFeedbackModel } from './embeddable-question-feedback.entity'
+import { EmbeddableModuleService } from '../embeddable-module.service'
+import { ChatbotModule } from '../../../chatbot/chatbot.module'
 
 describe('EmbeddableQuestionService', () => {
   let service: EmbeddableQuestionService;
@@ -24,8 +35,10 @@ describe('EmbeddableQuestionService', () => {
         TestTypeOrmModule,
         TestConfigModule,
         FactoryModule,
+        EmbeddableModule,
+        ChatbotModule,
       ],
-      providers: [EmbeddableQuestionService],
+      providers: [EmbeddableQuestionService, EmbeddableModuleService],
     }).compile();
 
     service = module.get<EmbeddableQuestionService>(EmbeddableQuestionService);
@@ -38,6 +51,7 @@ describe('EmbeddableQuestionService', () => {
   });
 
   afterAll(async () => {
+    if (!dataSource) return;
     await dataSource.destroy();
   });
 
@@ -56,6 +70,45 @@ describe('EmbeddableQuestionService', () => {
     questions = await EmbeddableQuestionModel.find({ where: { course }})
   });
 
+  describe('getFeedback()', () => {
+    it('should fail if question is not available yet', async () => {
+      const course = await CourseFactory.create()
+      const question = await EmbeddableQuestionFactory.create({
+        course,
+        availableFrom: new Date(Date.now()+1000),
+      });
+      await expect(service.getFeedback('',question.id,course.id,0)).rejects.toThrow(new UnauthorizedException(ERROR_MESSAGES.embeddableModule.notAvailableYet));
+    });
+
+    it('should fail if question is no longer available', async () => {
+      const course = await CourseFactory.create()
+      const question = await EmbeddableQuestionFactory.create({
+        course,
+        availableUntil: new Date(Date.now()-1000),
+      });
+      await expect(service.getFeedback('',question.id,course.id,0)).rejects.toThrow(new UnauthorizedException(ERROR_MESSAGES.embeddableModule.noLongerAvailable));
+    });
+
+    it('should return feedback & grade and save it', async () => {
+      const user = await UserFactory.create();
+      const querySpy = jest.spyOn(ChatbotApiService.prototype,'queryChatbot')
+
+      querySpy.mockImplementation(async (_q,_t,type, _p, _c) => {
+        if (type === 'feedback') return 'feedback';
+        if (type === 'grade') return '100';
+      });
+
+      const feedback = await service.getFeedback('',questions[0].id,course.id,user.id);
+
+      expect(pick(feedback,['aiFeedback','aiGrade'])).toEqual({
+        aiFeedback: 'feedback',
+        aiGrade: 100,
+      });
+
+      querySpy.mockClear();
+    });
+  });
+
   describe('findAllForCourse()', () => {
     it('should return all embeddable questions for a given course', async () => {
       const qs = await service.findAllForCourse(course.id);
@@ -65,7 +118,7 @@ describe('EmbeddableQuestionService', () => {
 
   describe('findOne()', () => {
     it('should throw an error if question is not found', async () => {
-      await expect(service.findOne(0)).rejects.toThrow(new NotFoundException(ERROR_MESSAGES.embeddableQuestionController.notFound))
+      await expect(service.findOne(0)).rejects.toThrow(new NotFoundException(ERROR_MESSAGES.embeddableModule.notFound))
     });
 
     it('should a specific embeddable question if found', async () => {
@@ -114,4 +167,50 @@ describe('EmbeddableQuestionService', () => {
       expect(await EmbeddableQuestionModel.findOne({where: {id: questions[0].id}})).toBeFalsy();
     });
   });
+
+  describe('getAnswers()', () => {
+    it('should retrieve answers for the given embeddable question ID', async () => {
+      const question = await EmbeddableQuestionFactory.create();
+      await EmbeddableQuestionFeedbackFactory.createList(3,{
+        embeddableQuestion: question,
+      });
+      expect(await service.getAnswers(question.id)).toHaveLength(3);
+    });
+  });
+
+  describe('updateAnswer()', () => {
+    it('should update an answer with the given human feedback and grade', async () => {
+      const feedback = await EmbeddableQuestionFeedbackFactory.create();
+
+      const params = {
+        humanFeedback: 'feedback',
+        humanGrade: 60,
+      }
+      await service.updateAnswer(feedback.id, params);
+
+      const retrieve = await EmbeddableQuestionFeedbackModel.findOne({
+        where: {
+          id: feedback.id,
+        }
+      });
+      expect(pick(retrieve,['humanFeedback','humanGrade'])).toEqual(params)
+    });
+  });
+
+  describe('deleteAnswer()', () => {
+    it('should delete an answer with the given ID', async () => {
+      const feedback = await EmbeddableQuestionFeedbackFactory.create();
+      await service.deleteAnswer(feedback.id);
+      expect(await EmbeddableQuestionFeedbackModel.findOne({
+        where: {
+          id: feedback.id,
+        }
+      })).toBeFalsy();
+    });
+  });
+
+  // TODO: Feasible test cases for this, it returns a buffer so is difficult to validate
+  // describe('exportFeedback()', () => {
+  //
+  // });
 });

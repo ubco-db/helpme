@@ -93,8 +93,8 @@ export class EmbeddableQuestionService {
     const question = EmbeddableQuestionModel.create({
       courseId,
       id: questionId,
-      name: params.name || `Question ${count+1}`,
       ...params,
+      name: params.name || `Question ${count+1}`,
     } as DeepPartial<EmbeddableQuestionModel>);
 
     return await question.save();
