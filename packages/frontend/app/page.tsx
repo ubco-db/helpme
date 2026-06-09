@@ -649,10 +649,12 @@ export default function Home(): ReactElement {
         </section>
 
         {/* ─── Interested? CTA ─── */}
-        <section className="mx-auto max-w-2xl px-4 py-6 md:px-8">
-          <div className="landing-cta-gradient-border relative overflow-hidden rounded-2xl bg-white px-5 py-6 text-center shadow md:px-10 md:py-8">
-            <h2 className="mb-2 text-xl">Interested in using HelpMe?</h2>
-            <p className="mb-3 text-sm text-[#444] md:mb-4">
+        <section className="mx-auto max-w-3xl px-4 py-6 md:px-8">
+          <div className="landing-cta-gradient-border relative overflow-hidden rounded-2xl bg-white px-5 py-6 text-left shadow md:px-10 md:py-8 md:text-center">
+            <h2 className="mb-2 text-center text-2xl">
+              Interested in using HelpMe?
+            </h2>
+            <p className="mb-3 text-base text-[#444] md:mb-4">
               <HL>
                 Contact Ramon Lawrence at{' '}
                 <a href="mailto:ramon.lawrence@ubc.ca">ramon.lawrence@ubc.ca</a>{' '}
@@ -660,12 +662,12 @@ export default function Home(): ReactElement {
                 customize and invite your students to.
               </HL>
             </p>
-            <p className="mb-3 text-sm text-[#444] md:mb-4">
+            <p className="mb-3 text-base text-[#444] md:mb-4">
               HelpMe is funded through research grants and is primarily
               developed by students at UBC + UBCO.{' '}
               <HL>It&apos;s free to add to your UBC courses.</HL>
             </p>
-            <p className="text-sm text-[#444]">
+            <p className="text-base text-[#444]">
               Visit our <Link href="/about">About</Link> page for more
               information.
             </p>
