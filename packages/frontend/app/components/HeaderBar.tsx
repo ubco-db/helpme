@@ -46,7 +46,6 @@ import {
 } from 'lucide-react'
 import {
   HomeOutlined,
-  InfoCircleOutlined,
   LogoutOutlined,
   MailOutlined,
   SyncOutlined,
@@ -250,6 +249,7 @@ const NavBar = ({
                   About
                 </Link>
               </NavigationMenuItem>
+
               <NavigationMenuItem className="mb-2 md:mb-0 md:ml-auto ">
                 <Link
                   href={'/login'}
@@ -571,15 +571,6 @@ const NavBar = ({
                         <div className="-mr-5 block h-0.5 w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
                       </>
                     )}
-                    <ListItem
-                      key="about"
-                      title="About HelpMe"
-                      titleElement={<span className="">About HelpMe</span>}
-                      // If it's LTI, just make it open base helpme in a new tab
-                      target={isLti ? '_blank' : undefined}
-                      rel={isLti ? 'noopener noreferrer' : undefined}
-                      href={isLti ? '/about' : '/profile/about'}
-                    />
                     <ListItem
                       key="logout"
                       title="Logout"

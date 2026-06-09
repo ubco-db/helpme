@@ -12,7 +12,7 @@ const AboutPageModals: React.FC = (): ReactElement => {
   const [isTermsOfServiceOpen, setIsTermsOfServiceOpen] = useState(false)
   return (
     <>
-      <p className="flex items-center justify-center gap-4">
+      <p className="flex flex-wrap items-center justify-center gap-4">
         <Button
           type="primary"
           size="large"
