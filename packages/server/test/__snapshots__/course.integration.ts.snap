@@ -71,6 +71,9 @@ exports[`Course Integration GET /courses/:id gets all queues that are not disabl
 exports[`Course Integration GET /courses/:id gets office hours no queues, since no queue is happening right now 1`] = `
 {
   "asyncQuestionDisplayTypes": [],
+  "chatbotAgentDescription": null,
+  "chatbotAgentName": null,
+  "chatbotAgentOrder": null,
   "coordinator_email": null,
   "courseInviteCode": "invite-code",
   "createdAt": "2020-01-01T00:00:00.000Z",
