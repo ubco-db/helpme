@@ -159,6 +159,15 @@ export class CourseModel extends BaseEntity {
   @Column({ nullable: true })
   superCourseId?: number;
 
+  @Column('text', { nullable: true })
+  chatbotAgentName?: string;
+
+  @Column('text', { nullable: true })
+  chatbotAgentDescription?: string;
+
+  @Column('integer', { nullable: true })
+  chatbotAgentOrder?: number;
+
   @Exclude()
   @JoinColumn({ referencedColumnName: 'courseId' })
   @OneToOne(

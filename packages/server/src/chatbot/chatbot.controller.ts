@@ -27,6 +27,7 @@ import {
   ChatbotAskParams,
   ChatbotAskResponse,
   ChatbotAskSuggestedParams,
+  ChatbotAgentCourse,
   ChatbotProvider,
   ChatbotQueryParams,
   ChatbotQuestionResponseChatbotDB,
@@ -209,6 +210,38 @@ export class ChatbotController {
       courseId,
       user.chat_token.token,
     );
+  }
+
+  @Get('course/:courseId/agents')
+  @UseGuards(CourseRolesGuard)
+  @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
+  async getChatbotAgents(
+    @Param('courseId', ParseIntPipe) courseId: number,
+  ): Promise<ChatbotAgentCourse[]> {
+    const course = await CourseModel.findOne({
+      where: { id: courseId },
+      relations: { superCourse: { courses: true } },
+    });
+
+    if (course?.superCourse?.purpose !== 'chatbot_agent_group') {
+      return [];
+    }
+
+    return course.superCourse.courses
+      .filter((groupCourse) => groupCourse.chatbotAgentName)
+      .sort(
+        (a, b) =>
+          (a.chatbotAgentOrder ?? Number.MAX_SAFE_INTEGER) -
+            (b.chatbotAgentOrder ?? Number.MAX_SAFE_INTEGER) ||
+          a.name.localeCompare(b.name),
+      )
+      .map((groupCourse) => ({
+        courseId: groupCourse.id,
+        name: groupCourse.name,
+        agentName: groupCourse.chatbotAgentName,
+        description: groupCourse.chatbotAgentDescription,
+        order: groupCourse.chatbotAgentOrder,
+      }));
   }
 
   @Patch('questionScore/:courseId/:questionId')

@@ -13,6 +13,7 @@ import {
   Card,
   Input,
   Popconfirm,
+  Select,
   Segmented,
   Space,
   Spin,
@@ -46,6 +47,7 @@ import {
   parseThinkBlock,
   PreDeterminedQuestion,
   Role,
+  ChatbotAgentCourse,
 } from '@koh/common'
 import { Bot } from 'lucide-react'
 
@@ -105,16 +107,42 @@ const Chatbot: React.FC<ChatbotProps> = ({
   // used to temporarily store what question type the user is trying to change to
   const [tempChatbotQuestionType, setTempChatbotQuestionType] =
     useState<ChatbotQuestionType | null>(null)
+  const [agents, setAgents] = useState<ChatbotAgentCourse[]>([])
+  const [hasLoadedAgents, setHasLoadedAgents] = useState(false)
+  const [selectedAgentCourseId, setSelectedAgentCourseId] = useState<
+    number | undefined
+  >()
+  const [tempAgentCourseId, setTempAgentCourseId] = useState<
+    number | undefined
+  >()
   const role = getRoleInCourse(userInfo, cid)
 
   const isLti = useMemo(() => pathname.startsWith('/lti'), [pathname])
   const courseIdToUse =
-    chatbotQuestionType === 'System'
+    selectedAgentCourseId ??
+    (chatbotQuestionType === 'System'
       ? Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) || -1
-      : cid
+      : cid)
 
   useEffect(() => {
-    if (messages.length === 1) {
+    setHasLoadedAgents(false)
+    API.chatbot.studentsOrStaff
+      .getAgents(cid)
+      .then((chatbotAgents) => {
+        setAgents(chatbotAgents)
+        setSelectedAgentCourseId(chatbotAgents[0]?.courseId)
+        setHasLoadedAgents(true)
+      })
+      .catch((err) => {
+        console.error(err)
+        setAgents([])
+        setSelectedAgentCourseId(undefined)
+        setHasLoadedAgents(true)
+      })
+  }, [cid])
+
+  useEffect(() => {
+    if (messages.length === 1 && hasLoadedAgents && agents.length === 0) {
       setPreDeterminedQuestions([])
       API.chatbot.studentsOrStaff
         .getSuggestedQuestions(courseIdToUse)
@@ -134,6 +162,8 @@ const Chatbot: React.FC<ChatbotProps> = ({
     setPreDeterminedQuestions,
     messages.length,
     setQuestionsLeft,
+    agents.length,
+    hasLoadedAgents,
   ])
 
   const handleAsk = async () => {
@@ -146,7 +176,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
 
     const data = {
       question:
-        chatbotQuestionType === 'System'
+        !selectedAgentCourseId && chatbotQuestionType === 'System'
           ? `${input}
             \nThis user is currently on the ${currentPageTitle}.
             \nThe user's role for this course is ${role === Role.PROFESSOR ? 'Professor (Staff)' : role === Role.TA ? 'TA (Staff)' : 'Student'}.`
@@ -290,8 +320,58 @@ const Chatbot: React.FC<ChatbotProps> = ({
           )}
           extra={
             <>
-              {Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) &&
-              messages.length > 1 ? (
+              {agents.length > 0 ? (
+                messages.length > 1 ? (
+                  <Popconfirm
+                    title="Are you sure? this will reset the chat"
+                    getPopupContainer={(trigger) =>
+                      trigger.parentNode as HTMLElement
+                    }
+                    open={tempAgentCourseId !== undefined}
+                    onConfirm={() => {
+                      if (tempAgentCourseId) {
+                        setSelectedAgentCourseId(tempAgentCourseId)
+                        setTempAgentCourseId(undefined)
+                        resetChat()
+                      }
+                    }}
+                    onCancel={() => setTempAgentCourseId(undefined)}
+                    trigger={'click'}
+                  >
+                    <Select
+                      value={selectedAgentCourseId}
+                      style={{ minWidth: 180 }}
+                      popupMatchSelectWidth={false}
+                      options={agents.map((agent) => ({
+                        value: agent.courseId,
+                        label: agent.agentName,
+                        title: agent.description,
+                      }))}
+                      onChange={(newValue) => {
+                        if (newValue !== selectedAgentCourseId) {
+                          setTempAgentCourseId(newValue)
+                        }
+                      }}
+                    />
+                  </Popconfirm>
+                ) : (
+                  <Select
+                    value={selectedAgentCourseId}
+                    style={{ minWidth: 180 }}
+                    popupMatchSelectWidth={false}
+                    options={agents.map((agent) => ({
+                      value: agent.courseId,
+                      label: agent.agentName,
+                      title: agent.description,
+                    }))}
+                    onChange={(newValue) => {
+                      setSelectedAgentCourseId(newValue)
+                      resetChat()
+                    }}
+                  />
+                )
+              ) : Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) &&
+                messages.length > 1 ? (
                 <Popconfirm
                   title="Are you sure? this will reset the chat"
                   getPopupContainer={(trigger) =>
@@ -456,6 +536,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                           </div>
                           <div className="flex flex-col gap-1">
                             {item.sourceDocuments &&
+                            !selectedAgentCourseId &&
                             chatbotQuestionType === 'System' ? (
                               <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
                                 <p className="truncate px-2 py-1">User Guide</p>
@@ -608,7 +689,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
                 <Button
                   type="primary"
                   onClick={handleAsk}
-                  disabled={input.trim().length === 0 || isLoading}
+                  disabled={
+                    input.trim().length === 0 || isLoading || !hasLoadedAgents
+                  }
                 >
                   Ask
                 </Button>

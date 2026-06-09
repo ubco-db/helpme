@@ -490,6 +490,14 @@ export interface ChatbotAskSuggestedParams {
   vectorStoreId: string
 }
 
+export interface ChatbotAgentCourse {
+  courseId: number
+  name: string
+  agentName: string
+  description?: string
+  order?: number
+}
+
 export interface AddDocumentChunkParams {
   documentText: string
   metadata: {

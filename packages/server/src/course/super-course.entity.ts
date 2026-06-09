@@ -17,6 +17,9 @@ export class SuperCourseModel extends BaseEntity {
   @Column('text')
   name: string;
 
+  @Column('text', { nullable: true })
+  purpose?: string;
+
   @ManyToOne(
     () => OrganizationModel,
     (organization) => organization.superCourses,
