@@ -64,8 +64,8 @@ const AboutPage: React.FC = (): ReactElement => {
           >
             ALT-2040 grants
           </a>{' '}
-          and Dr. Ramon Lawrence of grants and as part of research budgets. This
-          means that HelpMe is completely free to use.
+          and Dr. Ramon Lawrence. This means that HelpMe is completely free to
+          use.
         </p>
 
         <h2 className="mt-3">Github Link</h2>

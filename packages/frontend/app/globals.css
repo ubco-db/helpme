@@ -417,3 +417,44 @@ It is used for displaying markdown nicely inside any <Markdown> components
 .chart-4xl {
     max-width: 64rem;
 }
+
+/* ------------------------ AI landing page 1 ------------------------ */
+/* Ambient glow and text gradient for the landing page hero */
+.ambient-glow {
+  background: radial-gradient(1000px circle at 50% -200px, rgba(95, 160, 213, 0.08), transparent 70%);
+}
+.text-gradient-helpme {
+  background: linear-gradient(135deg, rgb(54, 132, 196) 0%, rgb(95, 160, 213) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ------------------------ AI landing page 3 ------------------------ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ======================== Landing Page Redesign ======================== */
+
+/* The ::before gradient uses CSS variable colors, which Tailwind's from-/to- can't resolve for this specific use case */
+.landing-cta-gradient-border::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, rgb(var(--helpmeblue)), rgb(var(--helpmeblue-light)));
+}
+
+
