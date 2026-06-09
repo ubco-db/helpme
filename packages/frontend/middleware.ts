@@ -341,13 +341,15 @@ export async function middleware(
     }
   }
 
-  // Case: User has auth token and tries to access a public page that isn't /invite or /lti or /qi or /error_pages
+  // Case: User has auth token and tries to access a public page that isn't /invite or /lti or /qi or /error_pages etc.
   if (
     isPublicPageRequested &&
     hasToken &&
     !nextUrl.pathname.startsWith('/invite') &&
     !nextUrl.pathname.startsWith('/qi/') &&
-    !nextUrl.pathname.startsWith('/error_pages')
+    !nextUrl.pathname.startsWith('/error_pages') &&
+    !nextUrl.pathname.startsWith('/about') &&
+    nextUrl.pathname !== '/' // let users access landing page
   ) {
     return NextResponse.redirect(new URL(defaultPage, url))
   }
