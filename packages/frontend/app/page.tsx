@@ -102,7 +102,7 @@ export default function Home(): ReactElement {
         </section>
 
         {/* ─── Features ─── */}
-        <section className="mx-auto flex w-full max-w-6xl flex-col px-4 pb-6 md:px-8 md:pb-8">
+        <section className="mx-auto flex w-full max-w-7xl flex-col px-4 pb-6 md:px-8 md:pb-8">
           <h2 className="mb-3 text-center text-3xl">Main Features</h2>
 
           <div className="flex w-full flex-col gap-4 md:gap-6">
@@ -110,7 +110,7 @@ export default function Home(): ReactElement {
             <div className="border-l-helpmeblue rounded-lg border-l-[3px] bg-white px-4 py-5 shadow ring-1 ring-black/[0.03] md:rounded-2xl md:border-l-4 md:px-10 md:py-8">
               <div className="flex w-full flex-col items-center gap-5 md:flex-row">
                 <div className="flex w-full flex-col items-center justify-center md:w-2/5">
-                  <div className="mb-1 flex items-center gap-2">
+                  <div className="mb-2 flex items-center gap-2">
                     <div className="rounded-2xl border border-blue-100 bg-blue-50 p-3 text-blue-600">
                       <Bot size={28} strokeWidth={1.75} />
                     </div>
@@ -121,28 +121,44 @@ export default function Home(): ReactElement {
                       Course Chatbot
                     </h3>
                   </div>
-                  <p className="text-sm text-[#444]">
-                    Allows students to get{' '}
-                    <HL>course-relevant AI assistance</HL>.
+                  <p className="text-base text-[#444]">
+                    <HL>
+                      Allows students to get course-relevant AI assistance.
+                    </HL>
                   </p>
-                  <ul className="mt-2 list-[square] pl-8 text-left text-sm text-[#444]">
-                    <li className="m-1">
-                      Accessed by students via <HL>Invite Link</HL> or{' '}
-                      <HL>embeddable within Canvas</HL>.
+                  <ul className="mt-3.5 space-y-2.5 pl-5 text-left text-sm text-[#444]">
+                    <li className="flex items-start gap-2.5">
+                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
+                      <span>
+                        Accessed by students via <HL>Invite Link</HL> or{' '}
+                        <HL>embeddable within Canvas</HL>.
+                      </span>
                     </li>
-                    <li className="m-1">
-                      Hosted entirely on UBCO infrastructure -{' '}
-                      <HL>Safe for student data.</HL>
+                    <li className="flex items-start gap-2.5">
+                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
+                      <span>
+                        Hosted entirely on UBCO infrastructure -{' '}
+                        <HL>Safe for student data.</HL>
+                      </span>
                     </li>
-                    <li className="m-1">
-                      Students can convert to{' '}
-                      <a href="#anytime-questions">Anytime Question</a> for{' '}
-                      <HL>Human In The Loop (HITL)</HL> support.
+                    <li className="flex items-start gap-2.5">
+                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
+                      <span>
+                        Students can convert to{' '}
+                        <a href="#anytime-questions">Anytime Question</a> for{' '}
+                        <HL>Human In The Loop (HITL)</HL> support.
+                      </span>
                     </li>
-                    <li className="m-1">Prompt is professor-customizable.</li>
-                    <li className="m-1">
-                      Supports drag-n-drop and automatic Canvas course document
-                      upload.
+                    <li className="flex items-start gap-2.5">
+                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
+                      <span>Prompt is professor-customizable.</span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
+                      <span>
+                        Supports drag-n-drop and automatic Canvas course
+                        document upload.
+                      </span>
                     </li>
                   </ul>
                 </div>
@@ -388,7 +404,7 @@ export default function Home(): ReactElement {
                   <EnlargeHint />
                 </div>
                 <div className="flex w-full flex-col items-center justify-center md:w-2/5">
-                  <div className="mb-1 flex items-center gap-2">
+                  <div className="mb-2 flex items-center gap-2">
                     <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-3 text-indigo-600">
                       <UsersRound size={28} strokeWidth={1.75} />
                     </div>
@@ -399,30 +415,42 @@ export default function Home(): ReactElement {
                       Queueing System
                     </h3>
                   </div>
-                  <p className="text-sm text-[#444]">
-                    For managing office hours or labs.
+                  <p className="text-base text-[#444]">
+                    <HL>For managing office hours or labs.</HL>
                   </p>
-                  <ul className="mt-2 list-[square] pl-8 text-left text-sm text-[#444]">
-                    <li className="m-1">
-                      Especially useful for{' '}
-                      <HL>busy Hybrid or Online sessions</HL>, but also supports
-                      In-Person queues.
+                  <ul className="mt-3.5 space-y-2.5 pl-5 text-left text-sm text-[#444]">
+                    <li className="flex items-start gap-2.5">
+                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-indigo-500" />
+                      <span>
+                        Especially useful for{' '}
+                        <HL>busy Hybrid or Online sessions</HL>, but also
+                        supports In-Person queues.
+                      </span>
                     </li>
-                    <li className="m-1">
-                      Scales well for <HL>large courses</HL>! Supports multiple
-                      queues with multiple staff at the same time, with a
-                      built-in schedule to help manage everything.
+                    <li className="flex items-start gap-2.5">
+                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-indigo-500" />
+                      <span>
+                        Scales well for <HL>large courses</HL>! Supports
+                        multiple queues with multiple staff at the same time,
+                        with a built-in schedule to help manage everything.
+                      </span>
                     </li>
-                    <li className="m-1">
-                      <HL>Tracks what questions were asked</HL> - Used in{' '}
-                      <a href="#insights">Insights</a>!
+                    <li className="flex items-start gap-2.5">
+                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-indigo-500" />
+                      <span>
+                        <HL>Tracks what questions were asked</HL> - Used in{' '}
+                        <a href="#insights">Insights</a>!
+                      </span>
                     </li>
-                    <li className="m-1">
-                      Don&apos;t have any busy office hours or labs?{' '}
-                      <HL>
-                        All HelpMe features can be toggled off at a click of a
-                        button!
-                      </HL>{' '}
+                    <li className="flex items-start gap-2.5">
+                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-indigo-500" />
+                      <span>
+                        Don&apos;t have any busy office hours or labs?{' '}
+                        <HL>
+                          All HelpMe features can be toggled off at a click of a
+                          button!
+                        </HL>{' '}
+                      </span>
                     </li>
                   </ul>
                 </div>
@@ -433,7 +461,7 @@ export default function Home(): ReactElement {
             <div className="border-l-helpmeblue rounded-lg border-l-[3px] bg-white px-4 py-5 shadow ring-1 ring-black/[0.03] md:rounded-2xl md:border-l-4 md:px-10 md:py-8">
               <div className="flex w-full flex-col items-center gap-5 md:flex-row">
                 <div className="flex w-full flex-col items-center justify-center md:w-2/5">
-                  <div className="mb-1 flex items-center gap-2">
+                  <div className="mb-2 flex items-center gap-2">
                     <div className="rounded-2xl border border-sky-100 bg-sky-50 p-3 text-sky-600">
                       <MessageCircleQuestion size={28} strokeWidth={1.75} />
                     </div>
@@ -444,20 +472,31 @@ export default function Home(): ReactElement {
                       Anytime Questions
                     </h3>
                   </div>
-                  <p className="text-sm text-[#444]">
+                  <p className="text-base text-[#444]">
                     <HL>A discussion board/email replacement.</HL>
                   </p>
-                  <ul className="mt-2 list-[square] pl-8 text-left text-sm text-[#444]">
-                    <li className="m-1">
-                      Students first get a chatbot answer. If they still need
-                      help, they can click a button which notifies course staff.
+                  <ul className="mt-3.5 space-y-2.5 pl-5 text-left text-sm text-[#444]">
+                    <li className="flex items-start gap-2.5">
+                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-sky-500" />
+                      <span>
+                        Students first get a chatbot answer. If they still need
+                        help, they can click a button which notifies course
+                        staff.
+                      </span>
                     </li>
-                    <li className="m-1">
-                      Any Course Staff member can help - great for large
-                      courses!
+                    <li className="flex items-start gap-2.5">
+                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-sky-500" />
+                      <span>
+                        Any Course Staff member can help - great for large
+                        courses!
+                      </span>
                     </li>
-                    <li className="m-1">
-                      Students are fully anonymized to one another by default.
+                    <li className="flex items-start gap-2.5">
+                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-sky-500" />
+                      <span>
+                        Students are fully anonymized to one another by default,
+                        allowing for <HL>anxiety-free participation</HL>.
+                      </span>
                     </li>
                   </ul>
                 </div>
@@ -588,7 +627,7 @@ export default function Home(): ReactElement {
                   <EnlargeHint />
                 </div>
                 <div className="flex w-full flex-col items-center justify-center md:w-2/5">
-                  <div className="mb-1 flex items-center justify-center gap-2">
+                  <div className="mb-2 flex items-center justify-center gap-2">
                     <div className="rounded-2xl border border-violet-100 bg-violet-50 p-3 text-violet-600">
                       <LineChart size={28} strokeWidth={1.75} />
                     </div>
@@ -599,7 +638,7 @@ export default function Home(): ReactElement {
                       Insights
                     </h3>
                   </div>
-                  <p className="text-sm text-[#444]">
+                  <p className="text-base text-[#444]">
                     See usage, busy times, what types of questions are being
                     asked, and much more!
                   </p>
