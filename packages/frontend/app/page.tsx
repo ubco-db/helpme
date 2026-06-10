@@ -40,13 +40,16 @@ export const metadata: Metadata = {
 }
 
 /** Small hint rendered beneath each ImageCarousel */
-const EnlargeHint: React.FC = (): ReactElement => {
+const EnlargeHint: React.FC<{
+  noDetails?: boolean
+}> = ({ noDetails = false }): ReactElement => {
   return (
     <p className="flex select-none items-center justify-center gap-1.5 pt-2.5 text-xs text-[#999]">
       <Search className="h-[13px] w-[13px] opacity-70" />
       <span>
         <span className="hidden md:inline">Click</span>
-        <span className="md:hidden">Tap</span> to enlarge + more details
+        <span className="md:hidden">Tap</span> to enlarge{' '}
+        {noDetails ? '' : '+ more details'}
       </span>
     </p>
   )
@@ -624,7 +627,7 @@ export default function Home(): ReactElement {
                       },
                     ]}
                   />
-                  <EnlargeHint />
+                  <EnlargeHint noDetails />
                 </div>
                 <div className="flex w-full flex-col items-center justify-center md:w-2/5">
                   <div className="mb-2 flex items-center justify-center gap-2">

@@ -349,7 +349,7 @@ export async function middleware(
     !nextUrl.pathname.startsWith('/qi/') &&
     !nextUrl.pathname.startsWith('/error_pages') &&
     !nextUrl.pathname.startsWith('/about') &&
-    nextUrl.pathname !== '/' // let users access landing page
+    nextUrl.pathname !== '/' // let logged-in users access landing page
   ) {
     return NextResponse.redirect(new URL(defaultPage, url))
   }

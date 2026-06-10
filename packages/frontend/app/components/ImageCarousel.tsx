@@ -5,13 +5,26 @@ import Image, { StaticImageData } from 'next/image'
 import { Carousel } from 'antd'
 import { LeftOutlined, RightOutlined } from '@ant-design/icons'
 import PhotoSwipeLightbox from 'photoswipe/lightbox'
-import PhotoSwipeDynamicCaption from 'photoswipe-dynamic-caption-plugin'
+// @ts-expect-error - photoswipe-dynamic-caption-plugin has no type declarations
+import PhotoSwipeDynamicCaptionRaw from 'photoswipe-dynamic-caption-plugin'
 
 import 'photoswipe/dist/photoswipe.css'
 import 'photoswipe-dynamic-caption-plugin/photoswipe-dynamic-caption-plugin.css'
 import { CarouselRef } from 'antd/lib/carousel'
 import styles from './ImageCarousel.module.css'
 import { cn } from '../utils/generalUtils'
+
+interface DynamicCaptionOptions {
+  type?: 'auto' | 'aside' | 'below'
+  captionContent?: string | ((slide: any) => string | HTMLElement | null)
+  mobileLayoutBreakpoint?: number
+  mobileCaptionOverlapRatio?: number
+}
+
+const PhotoSwipeDynamicCaption = PhotoSwipeDynamicCaptionRaw as new (
+  lightbox: PhotoSwipeLightbox,
+  options?: DynamicCaptionOptions,
+) => any
 
 interface CustomArrowProps {
   className?: string

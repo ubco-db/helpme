@@ -26,8 +26,11 @@ interface MarkdownFetcherModalProps {
   onClose?: () => void
 }
 
+/* a <Modal> component that will fetch the filename (e.g. changelog.md) that exists inside /public that we want to fetch and display.
+  Needs a button outside of this component to manage its open state.
+*/
 const MarkdownFetcherModal: React.FC<MarkdownFetcherModalProps> = ({
-  filename, // the filename (e.g. changelog.md) that exists inside /public that we want to fetch and display
+  filename,
   isOpen,
   setIsOpen,
   onClose,

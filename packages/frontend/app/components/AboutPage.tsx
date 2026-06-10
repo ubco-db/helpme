@@ -1,11 +1,11 @@
-import { Avatar, Button, Card } from 'antd'
+import { Avatar, Card } from 'antd'
 import { ReactElement } from 'react'
 import Meta from 'antd/es/card/Meta'
 import { GithubOutlined, MailOutlined } from '@ant-design/icons'
 import AboutPageModals from './AboutPageModals'
 import Link from 'next/link'
 
-/* Placing this inside the global app components since it's used in multiple spots (on landing page and inside login) */
+/* Placing this inside the global app components since it's used in multiple spots (on landing page and inside login - which has a 'back' button) */
 const AboutPage: React.FC = (): ReactElement => {
   return (
     <>
@@ -51,7 +51,7 @@ const AboutPage: React.FC = (): ReactElement => {
             UBC Privacy Impact Assessment (PIA)
           </a>
           , ensuring security and data practices meet institutional
-          requirements. TODO: include links to copy of it?
+          requirements.
         </p>
 
         <h2 className="mt-3">Who funds HelpMe?</h2>
@@ -241,7 +241,7 @@ const AboutPage: React.FC = (): ReactElement => {
                     modern tech stack in an actively-used system.
                   </p>
                   <p>
-                    Additionally, HelpMe initially was forked from Khourly
+                    Additionally, HelpMe initially was forked from Khoury
                     College&apos;s{' '}
                     <a
                       href="https://github.com/sandboxnu/office-hours"
