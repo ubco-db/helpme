@@ -32,6 +32,11 @@ const agents = [
       'Academic culture, hidden curriculum, mentorship navigation, common challenges in academia, and career planning.',
   },
 ];
+const parentCourseName = 'LANTERN';
+const organizationName = 'UBC';
+const localFallbackOrganizationName = 'UBCO';
+const semesterName = '2026S Both Terms';
+const localFallbackSemesterName = 'Test Semester';
 
 @Injectable()
 export class SeedChatbotAgentGroupCommand {
@@ -40,16 +45,31 @@ export class SeedChatbotAgentGroupCommand {
     describe: 'creates the LANTERN chatbot agent group demo courses',
   })
   async createLanternAgentGroup(): Promise<void> {
-    const organization = await OrganizationModel.findOneOrFail({
-      where: { name: 'UBCO' },
-    });
+    const organization =
+      (await OrganizationModel.findOne({
+        where: { name: organizationName },
+      })) ??
+      (await OrganizationModel.findOneOrFail({
+        where: { name: localFallbackOrganizationName },
+      }));
     const semester =
-      (await SemesterModel.findOne({ where: { name: 'Test Semester' } })) ??
+      (await SemesterModel.findOne({
+        where: { name: semesterName, organizationId: organization.id },
+      })) ??
+      (await SemesterModel.findOne({
+        where: {
+          name: localFallbackSemesterName,
+          organizationId: organization.id,
+        },
+      })) ??
       (await SemesterModel.findOne({
         where: { organizationId: organization.id },
       }));
     const superCourse = await this.findOrCreateSuperCourse(organization.id);
-    const parentCourse = await this.findOrCreateCourse('LANTERN', semester?.id);
+    const parentCourse = await this.findOrCreateCourse(
+      parentCourseName,
+      semester?.id,
+    );
 
     await this.attachCourseToGroup(parentCourse, superCourse, organization.id);
     await this.enrollStudentOne(parentCourse);
@@ -111,7 +131,7 @@ export class SeedChatbotAgentGroupCommand {
     superCourse: SuperCourseModel,
     organizationId: number,
   ): Promise<void> {
-    if (course.name === 'LANTERN') {
+    if (course.name === parentCourseName) {
       course.chatbotAgentName = null;
       course.chatbotAgentDescription = null;
       course.chatbotAgentOrder = null;
