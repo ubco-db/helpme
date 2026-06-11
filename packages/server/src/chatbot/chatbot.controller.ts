@@ -233,8 +233,20 @@ export class ChatbotController {
       return [];
     }
 
+    const requestedCourse = superCourse.courses.find(
+      (groupCourse) => Number(groupCourse.id) === Number(courseId),
+    );
+    if (!requestedCourse) {
+      return [];
+    }
+    const showArchivedAgents = requestedCourse.enabled === false;
+
     return superCourse.courses
-      .filter((groupCourse) => groupCourse.chatbotAgentName)
+      .filter(
+        (groupCourse) =>
+          groupCourse.chatbotAgentName &&
+          (showArchivedAgents || groupCourse.enabled !== false),
+      )
       .sort(
         (a, b) =>
           (a.chatbotAgentOrder ?? Number.MAX_SAFE_INTEGER) -

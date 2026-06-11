@@ -222,6 +222,63 @@ describe('ChatbotController Integration', () => {
       ]);
     });
 
+    it('should hide archived agents unless the parent course is archived', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const parentCourse = await CourseFactory.create({
+        name: 'LANTERN',
+        enabled: true,
+      });
+      const activeAgentCourse = await CourseFactory.create({
+        name: 'LANTERN Analyst',
+        enabled: true,
+        chatbotAgentName: 'Analyst',
+        chatbotAgentDescription: 'Research methods and critical appraisal.',
+        chatbotAgentOrder: 1,
+      });
+      const archivedAgentCourse = await CourseFactory.create({
+        name: 'LANTERN Strategist',
+        enabled: false,
+        chatbotAgentName: 'Strategist',
+        chatbotAgentDescription: 'Grantsmanship and project planning.',
+        chatbotAgentOrder: 2,
+      });
+      await UserCourseFactory.create({
+        user,
+        course: parentCourse,
+        role: Role.STUDENT,
+      });
+
+      const agentGroup = await SuperCourseModel.create({
+        name: 'LANTERN Agents',
+        purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
+        organization,
+      }).save();
+      agentGroup.courses = [
+        parentCourse,
+        activeAgentCourse,
+        archivedAgentCourse,
+      ];
+      await agentGroup.save();
+
+      const activeParentResponse = await supertest({ userId: user.id })
+        .get(`/chatbot/course/${parentCourse.id}/agents`)
+        .expect(200);
+      expect(activeParentResponse.body.map((agent) => agent.courseId)).toEqual([
+        activeAgentCourse.id,
+      ]);
+
+      parentCourse.enabled = false;
+      await parentCourse.save();
+
+      const archivedParentResponse = await supertest({ userId: user.id })
+        .get(`/chatbot/course/${parentCourse.id}/agents`)
+        .expect(200);
+      expect(
+        archivedParentResponse.body.map((agent) => agent.courseId),
+      ).toEqual([activeAgentCourse.id, archivedAgentCourse.id]);
+    });
+
     it('should block users who are not in the parent course', async () => {
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create();
