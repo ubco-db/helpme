@@ -9,6 +9,7 @@ import { OrganizationModel } from 'organization/organization.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import { UserModel } from 'profile/user.entity';
 import { SemesterModel } from 'semester/semester.entity';
+import * as crypto from 'crypto';
 
 const agents = [
   {
@@ -129,7 +130,9 @@ export class SeedChatbotAgentGroupCommand {
       semesterId,
       timezone: 'America/Los_Angeles',
       sectionGroupName: '001',
+      zoomLink: '',
       enabled: true,
+      courseInviteCode: crypto.randomBytes(6).toString('hex'),
     }).save();
   }
 
