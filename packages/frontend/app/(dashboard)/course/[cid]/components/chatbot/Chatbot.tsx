@@ -47,9 +47,9 @@ import {
   parseThinkBlock,
   PreDeterminedQuestion,
   Role,
-  ChatbotAgentCourse,
 } from '@koh/common'
 import { Bot } from 'lucide-react'
+import { useChatbotContext } from './ChatbotProvider'
 
 const { TextArea } = Input
 
@@ -107,11 +107,12 @@ const Chatbot: React.FC<ChatbotProps> = ({
   // used to temporarily store what question type the user is trying to change to
   const [tempChatbotQuestionType, setTempChatbotQuestionType] =
     useState<ChatbotQuestionType | null>(null)
-  const [agents, setAgents] = useState<ChatbotAgentCourse[]>([])
-  const [hasLoadedAgents, setHasLoadedAgents] = useState(false)
-  const [selectedAgentCourseId, setSelectedAgentCourseId] = useState<
-    number | undefined
-  >()
+  const {
+    agents,
+    hasLoadedAgents,
+    selectedAgentCourseId,
+    setSelectedAgentCourseId,
+  } = useChatbotContext()
   const [tempAgentCourseId, setTempAgentCourseId] = useState<
     number | undefined
   >()
@@ -123,23 +124,6 @@ const Chatbot: React.FC<ChatbotProps> = ({
     (chatbotQuestionType === 'System'
       ? Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) || -1
       : cid)
-
-  useEffect(() => {
-    setHasLoadedAgents(false)
-    API.chatbot.studentsOrStaff
-      .getAgents(cid)
-      .then((chatbotAgents) => {
-        setAgents(chatbotAgents)
-        setSelectedAgentCourseId(chatbotAgents[0]?.courseId)
-        setHasLoadedAgents(true)
-      })
-      .catch((err) => {
-        console.error(err)
-        setAgents([])
-        setSelectedAgentCourseId(undefined)
-        setHasLoadedAgents(true)
-      })
-  }, [cid])
 
   useEffect(() => {
     if (messages.length === 1 && hasLoadedAgents && agents.length === 0) {
