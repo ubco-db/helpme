@@ -1,4 +1,4 @@
-import { Role, SuperCoursePurpose } from '@koh/common';
+import { SuperCoursePurpose } from '@koh/common';
 import { Injectable } from '@nestjs/common';
 import { Command } from 'nestjs-command';
 import { CourseModel } from 'course/course.entity';
@@ -6,8 +6,6 @@ import { CourseSettingsModel } from 'course/course_settings.entity';
 import { SuperCourseModel } from 'course/super-course.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
 import { OrganizationModel } from 'organization/organization.entity';
-import { UserCourseModel } from 'profile/user-course.entity';
-import { UserModel } from 'profile/user.entity';
 import { SemesterModel } from 'semester/semester.entity';
 import * as crypto from 'crypto';
 
@@ -73,7 +71,6 @@ export class SeedChatbotAgentGroupCommand {
     );
 
     await this.attachCourseToGroup(parentCourse, superCourse, organization.id);
-    await this.enrollStudentOne(parentCourse);
 
     for (const [index, agent] of agents.entries()) {
       const course = await this.findOrCreateCourse(
@@ -175,26 +172,6 @@ export class SeedChatbotAgentGroupCommand {
         asyncQueueEnabled: true,
         adsEnabled: true,
         queueEnabled: true,
-      }).save();
-    }
-  }
-
-  private async enrollStudentOne(parentCourse: CourseModel): Promise<void> {
-    const student = await UserModel.findOne({
-      where: { email: 'studentOne@ubc.ca' },
-    });
-    if (!student) {
-      return;
-    }
-
-    const existingEnrollment = await UserCourseModel.findOne({
-      where: { userId: student.id, courseId: parentCourse.id },
-    });
-    if (!existingEnrollment) {
-      await UserCourseModel.create({
-        userId: student.id,
-        courseId: parentCourse.id,
-        role: Role.STUDENT,
       }).save();
     }
   }
