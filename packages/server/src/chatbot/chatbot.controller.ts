@@ -69,6 +69,7 @@ import * as Sentry from '@sentry/nestjs';
 import { CourseRolesBypassHelpMeCourseGuard } from 'guards/course-roles-helpme-bypass.guard';
 import { LibreOffice, MarkdownConverter } from 'chromiumly';
 import { CourseModel } from 'course/course.entity';
+import { SuperCourseModel } from 'course/super-course.entity';
 import { generateHTMLForMarkdownToPDF } from './markdown-to-pdf-styles';
 import { ChatbotDocPdfModel } from './chatbot-doc-pdf.entity';
 import { Request, Response } from 'express';
@@ -218,16 +219,19 @@ export class ChatbotController {
   async getChatbotAgents(
     @Param('courseId', ParseIntPipe) courseId: number,
   ): Promise<ChatbotAgentCourse[]> {
-    const course = await CourseModel.findOne({
-      where: { id: courseId },
-      relations: { superCourse: { courses: true } },
+    const superCourse = await SuperCourseModel.findOne({
+      where: {
+        purpose: 'chatbot_agent_group',
+        courses: { id: courseId },
+      },
+      relations: { courses: true },
     });
 
-    if (course?.superCourse?.purpose !== 'chatbot_agent_group') {
+    if (!superCourse) {
       return [];
     }
 
-    return course.superCourse.courses
+    return superCourse.courses
       .filter((groupCourse) => groupCourse.chatbotAgentName)
       .sort(
         (a, b) =>
