@@ -160,7 +160,10 @@ export class CourseModel extends BaseEntity {
   @Column({ nullable: true })
   superCourseId?: number;
 
-  @ManyToMany(() => SuperCourseModel, (superCourse) => superCourse.courses)
+  @ManyToMany(() => SuperCourseModel, (superCourse) => superCourse.courses, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
   superCourses?: SuperCourseModel[];
 
   @Column('text', { nullable: true })
