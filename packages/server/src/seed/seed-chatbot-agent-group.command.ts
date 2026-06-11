@@ -33,9 +33,7 @@ const agents = [
 ];
 const parentCourseName = 'LANTERN';
 const organizationName = 'UBC';
-const localFallbackOrganizationName = 'UBCO';
 const semesterName = '2026S Both Terms';
-const localFallbackSemesterName = 'Test Semester';
 
 @Injectable()
 export class SeedChatbotAgentGroupCommand {
@@ -44,30 +42,16 @@ export class SeedChatbotAgentGroupCommand {
     describe: 'creates the LANTERN chatbot agent group demo courses',
   })
   async createLanternAgentGroup(): Promise<void> {
-    const organization =
-      (await OrganizationModel.findOne({
-        where: { name: organizationName },
-      })) ??
-      (await OrganizationModel.findOneOrFail({
-        where: { name: localFallbackOrganizationName },
-      }));
-    const semester =
-      (await SemesterModel.findOne({
-        where: { name: semesterName, organizationId: organization.id },
-      })) ??
-      (await SemesterModel.findOne({
-        where: {
-          name: localFallbackSemesterName,
-          organizationId: organization.id,
-        },
-      })) ??
-      (await SemesterModel.findOne({
-        where: { organizationId: organization.id },
-      }));
+    const organization = await OrganizationModel.findOneOrFail({
+      where: { name: organizationName },
+    });
+    const semester = await SemesterModel.findOneOrFail({
+      where: { name: semesterName, organizationId: organization.id },
+    });
     const superCourse = await this.findOrCreateSuperCourse(organization.id);
     const parentCourse = await this.findOrCreateCourse(
       parentCourseName,
-      semester?.id,
+      semester.id,
     );
 
     await this.attachCourseToGroup(parentCourse, superCourse, organization.id);
@@ -115,7 +99,7 @@ export class SeedChatbotAgentGroupCommand {
 
   private async findOrCreateCourse(
     name: string,
-    semesterId?: number,
+    semesterId: number,
   ): Promise<CourseModel> {
     const existing = await CourseModel.findOne({ where: { name } });
     if (existing) {
