@@ -10,6 +10,7 @@ import {
   QueueConfig,
   QueueTypes,
   Role,
+  SuperCoursePurpose,
   TACheckinPair,
   TACheckinTimesResponse,
   TAAwayPair,
@@ -532,6 +533,369 @@ export class CourseService {
     };
   }
 
+  private async findSuperCourseForCourse(
+    manager: EntityManager,
+    courseId: number,
+    purpose: SuperCoursePurpose,
+  ): Promise<SuperCourseModel | null> {
+    return manager
+      .getRepository(SuperCourseModel)
+      .createQueryBuilder('superCourse')
+      .innerJoin('superCourse.courses', 'matchedCourse')
+      .leftJoinAndSelect('superCourse.courses', 'courses')
+      .where('superCourse.purpose = :purpose', { purpose })
+      .andWhere('matchedCourse.id = :courseId', { courseId })
+      .getOne();
+  }
+
+  private async addCoursesToSuperCourse(
+    manager: EntityManager,
+    superCourse: SuperCourseModel,
+    courses: CourseModel[],
+  ): Promise<void> {
+    const existingCourseIds = new Set(
+      (superCourse.courses ?? []).map((course) => course.id),
+    );
+    superCourse.courses = [
+      ...(superCourse.courses ?? []),
+      ...courses.filter((course) => !existingCourseIds.has(course.id)),
+    ];
+    await manager.save(superCourse);
+  }
+
+  private async associateCourseCloneWithOriginal(
+    manager: EntityManager,
+    originalCourse: CourseModel,
+    clonedCourse: CourseModel,
+    organizationId: number,
+  ): Promise<void> {
+    const superCourse = await this.findSuperCourseForCourse(
+      manager,
+      originalCourse.id,
+      SuperCoursePurpose.COURSE_CLONE_GROUP,
+    );
+
+    if (!superCourse) {
+      const newSuperCourse = await manager.save(
+        manager.create(SuperCourseModel, {
+          name: originalCourse.name,
+          organizationId,
+          purpose: SuperCoursePurpose.COURSE_CLONE_GROUP,
+        }),
+      );
+      await this.addCoursesToSuperCourse(manager, newSuperCourse, [
+        originalCourse,
+        clonedCourse,
+      ]);
+      return;
+    }
+
+    await this.addCoursesToSuperCourse(manager, superCourse, [clonedCourse]);
+  }
+
+  private async cloneAgentGroupCourse(
+    manager: EntityManager,
+    originalCourse: CourseModel,
+    cloneData: CourseCloneAttributes,
+    professors: UserModel[],
+    organizationId: number,
+  ): Promise<CourseModel> {
+    const clonedCourse = new CourseModel();
+    clonedCourse.enabled = true;
+    clonedCourse.name = originalCourse.name;
+    clonedCourse.timezone = originalCourse.timezone;
+    clonedCourse.courseInviteCode = this.generateRandomInviteCode();
+    clonedCourse.chatbotAgentName = originalCourse.chatbotAgentName;
+    clonedCourse.chatbotAgentDescription =
+      originalCourse.chatbotAgentDescription;
+    clonedCourse.chatbotAgentOrder = originalCourse.chatbotAgentOrder;
+
+    if (cloneData.toClone?.coordinator_email) {
+      clonedCourse.coordinator_email = originalCourse.coordinator_email;
+    }
+    if (cloneData.toClone?.zoomLink) {
+      clonedCourse.zoomLink = originalCourse.zoomLink;
+    }
+    if (cloneData.toClone?.courseInviteCode) {
+      clonedCourse.courseInviteCode = originalCourse.courseInviteCode;
+    }
+
+    clonedCourse.sectionGroupName =
+      cloneData.newSection && cloneData.newSection.trim() !== ''
+        ? cloneData.newSection
+        : originalCourse.sectionGroupName;
+
+    if (cloneData.newSemesterId) {
+      if (cloneData.newSemesterId !== -1) {
+        const semester = await manager.findOne(SemesterModel, {
+          where: { id: cloneData.newSemesterId },
+        });
+        if (semester) {
+          clonedCourse.semester = semester;
+        }
+      }
+    } else {
+      clonedCourse.semester = originalCourse.semester;
+    }
+
+    await manager.save(clonedCourse);
+
+    if (originalCourse.courseSettings) {
+      const origSettings = originalCourse.courseSettings;
+      const clonedSettings = new CourseSettingsModel();
+      clonedSettings.courseId = clonedCourse.id;
+      if (cloneData.toClone.courseFeatureConfig) {
+        clonedSettings.chatBotEnabled = origSettings.chatBotEnabled;
+        clonedSettings.asyncQueueEnabled = origSettings.asyncQueueEnabled;
+        clonedSettings.queueEnabled = origSettings.queueEnabled;
+        clonedSettings.scheduleOnFrontPage = origSettings.scheduleOnFrontPage;
+        clonedSettings.asyncCentreAIAnswers = origSettings.asyncCentreAIAnswers;
+      }
+      await manager.save(clonedSettings);
+    } else {
+      const clonedSettings = new CourseSettingsModel();
+      clonedSettings.courseId = clonedCourse.id;
+      await manager.save(clonedSettings);
+    }
+
+    for (const professor of professors) {
+      const profUserCourse = new UserCourseModel();
+      profUserCourse.user = professor;
+      profUserCourse.course = clonedCourse;
+      profUserCourse.role = Role.PROFESSOR;
+      await manager.save(profUserCourse);
+    }
+
+    const organizationCourse = new OrganizationCourseModel();
+    organizationCourse.courseId = clonedCourse.id;
+    organizationCourse.organizationId = organizationId;
+    await manager.save(organizationCourse);
+
+    return clonedCourse;
+  }
+
+  private async cloneChatbotData(
+    manager: EntityManager,
+    originalCourseId: number,
+    clonedCourseId: number,
+    cloneData: CourseCloneAttributes,
+    chatToken: string,
+  ): Promise<void> {
+    const docIdMap = {};
+    if (cloneData.toClone.chatbot?.documents) {
+      await manager.query(
+        `INSERT INTO chatbot_doc_pdf_model
+           ("docName", "courseId", "docData", "docSizeBytes", "docIdChatbotDB")
+           SELECT "docName", $1, "docData", "docSizeBytes", "docIdChatbotDB"
+           FROM chatbot_doc_pdf_model
+           WHERE "courseId" = $2`,
+        [clonedCourseId, originalCourseId],
+      );
+      const clonedCourseDocPdfs = await manager.find(ChatbotDocPdfModel, {
+        select: {
+          idHelpMeDB: true,
+          docIdChatbotDB: true,
+        },
+        where: { courseId: clonedCourseId },
+      });
+      for (const doc of clonedCourseDocPdfs) {
+        docIdMap[doc.docIdChatbotDB] = doc.idHelpMeDB.toString();
+      }
+    }
+
+    if (cloneData.toClone.chatbot?.settings) {
+      const oldChatbotSettings = await this.chatbotApiService
+        .getChatbotSettings(originalCourseId, chatToken)
+        .catch((err) => {
+          console.error(
+            `Failed to get current course chatbot data in chatbot service:`,
+            err,
+          );
+          throw new InternalServerErrorException(
+            `Failed to fetch chatbot settings for current course from chatbot service: ${err.message}`,
+          );
+        });
+
+      await this.chatbotApiService
+        .updateChatbotSettings(
+          oldChatbotSettings.metadata,
+          clonedCourseId,
+          chatToken,
+        )
+        .catch((err) => {
+          console.error(
+            `Failed to set cloned chatbot data in chatbot service:`,
+            err,
+          );
+          throw new InternalServerErrorException(
+            `Failed to set cloned chatbot data from chatbot service: ${err.message}`,
+          );
+        });
+    }
+    if (
+      cloneData.toClone.chatbot?.documents ||
+      cloneData.toClone.chatbot?.insertedQuestions ||
+      cloneData.toClone.chatbot?.insertedLMSData
+    ) {
+      const result = await this.chatbotApiService
+        .cloneCourseDocuments(
+          originalCourseId,
+          chatToken,
+          clonedCourseId,
+          cloneData.toClone.chatbot?.documents === true,
+          cloneData.toClone.chatbot?.insertedQuestions === true,
+          cloneData.toClone.chatbot?.insertedLMSData === true,
+          cloneData.toClone.chatbot?.manuallyCreatedChunks === true,
+          docIdMap,
+        )
+        .catch((err) => {
+          console.error(
+            `Failed to clone chatbot documents from original course in chatbot service:`,
+            err,
+          );
+          throw new InternalServerErrorException(
+            `Failed to clone chatbot documents from original course in chatbot service: ${err.message}`,
+          );
+        });
+
+      if (cloneData.toClone.chatbot?.documents) {
+        if (
+          result.newAggregateHelpmePDFIdMap &&
+          Object.keys(result.newAggregateHelpmePDFIdMap).length > 0
+        ) {
+          for (const [newHelpmeDocId, newAggregateDocId] of Object.entries(
+            result.newAggregateHelpmePDFIdMap,
+          )) {
+            await manager.update(
+              ChatbotDocPdfModel,
+              { idHelpMeDB: newHelpmeDocId },
+              { docIdChatbotDB: newAggregateDocId },
+            );
+          }
+        }
+
+        if (
+          Object.keys(docIdMap).length > 0 &&
+          result.newAggregateHelpmePDFIdMap &&
+          Object.keys(result.newAggregateHelpmePDFIdMap).length > 0 &&
+          Object.keys(result.newAggregateHelpmePDFIdMap).length <
+            Object.keys(docIdMap).length
+        ) {
+          console.error(`Error during end of course clone for clone course Id ${clonedCourseId} (original course Id: ${originalCourseId}).
+              Partial document mapping detected. Despite the helpme repo having ${Object.keys(docIdMap).length} document pdfs to clone,
+              the chatbot repo only returned ${Object.keys(result.newAggregateHelpmePDFIdMap).length} new document ids.
+              This could mean some documents were not cloned properly, or perhaps a desync where the helpme repo has more chatbot documents
+              than the equivalent on the chatbot repo.
+              ${Object.keys(docIdMap).length - Object.keys(result.newAggregateHelpmePDFIdMap).length} documents were not cloned.
+              HelpMe docIdMap: ${JSON.stringify(docIdMap)}
+              Chatbot repo newAggregateHelpmePDFIdMap: ${JSON.stringify(result.newAggregateHelpmePDFIdMap)}
+              `);
+        } else if (
+          Object.keys(docIdMap).length > 0 &&
+          !result.newAggregateHelpmePDFIdMap
+        ) {
+          console.error(`Error during end of course clone for clone course Id ${clonedCourseId} (original course Id: ${originalCourseId}).
+              No new document ids were returned from the chatbot repo.
+              Meaning either something may have gone horribly wrong or there is a desync between the helpme repo and the chatbot repo (probably the former).
+              HelpMe docIdMap: ${JSON.stringify(docIdMap)}
+              `);
+        } else if (
+          Object.keys(docIdMap).length === 0 &&
+          result.newAggregateHelpmePDFIdMap &&
+          Object.keys(result.newAggregateHelpmePDFIdMap).length > 0
+        ) {
+          console.error(`Error during end of course clone for clone course Id ${clonedCourseId} (original course Id: ${originalCourseId}).
+              Somehow the helpme repo has no document pdfs to clone, but the chatbot repo returned ${Object.keys(result.newAggregateHelpmePDFIdMap).length} new document ids.
+              I have no idea how this could happen.
+              HelpMe docIdMap: ${JSON.stringify(docIdMap)}
+              Chatbot repo newAggregateHelpmePDFIdMap: ${JSON.stringify(result.newAggregateHelpmePDFIdMap)}
+              `);
+        } else if (
+          Object.keys(docIdMap).length === 0 &&
+          (!result.newAggregateHelpmePDFIdMap ||
+            Object.keys(result.newAggregateHelpmePDFIdMap).length === 0)
+        ) {
+          console.log(
+            `No document pdfs were cloned for clone course Id ${clonedCourseId} (original course Id: ${originalCourseId}). `,
+          );
+        }
+      }
+    }
+  }
+
+  private async cloneChatbotAgentGroupIfNeeded(
+    manager: EntityManager,
+    originalCourse: CourseModel,
+    clonedCourse: CourseModel,
+    cloneData: CourseCloneAttributes,
+    chatToken: string,
+    professors: UserModel[],
+    organizationId: number,
+  ): Promise<void> {
+    const agentGroup = await this.findSuperCourseForCourse(
+      manager,
+      originalCourse.id,
+      SuperCoursePurpose.CHATBOT_AGENT_GROUP,
+    );
+
+    if (!agentGroup) {
+      return;
+    }
+
+    const clonedAgentGroup = await manager.save(
+      manager.create(SuperCourseModel, {
+        name: agentGroup.name,
+        organizationId,
+        purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
+      }),
+    );
+    await this.addCoursesToSuperCourse(manager, clonedAgentGroup, [
+      clonedCourse,
+    ]);
+
+    for (const groupCourse of agentGroup.courses) {
+      if (groupCourse.id === originalCourse.id) {
+        continue;
+      }
+
+      const originalAgentCourse = await manager.findOne(CourseModel, {
+        where: { id: groupCourse.id },
+        relations: ['courseSettings', 'semester'],
+      });
+      if (!originalAgentCourse) {
+        continue;
+      }
+
+      const clonedAgentCourse = await this.cloneAgentGroupCourse(
+        manager,
+        originalAgentCourse,
+        cloneData,
+        professors,
+        organizationId,
+      );
+      await this.addCoursesToSuperCourse(manager, clonedAgentGroup, [
+        clonedAgentCourse,
+      ]);
+
+      if (cloneData.associateWithOriginalCourse) {
+        await this.associateCourseCloneWithOriginal(
+          manager,
+          originalAgentCourse,
+          clonedAgentCourse,
+          organizationId,
+        );
+      }
+
+      await this.cloneChatbotData(
+        manager,
+        originalAgentCourse.id,
+        clonedAgentCourse.id,
+        cloneData,
+        chatToken,
+      );
+    }
+  }
+
   async cloneCourse(
     courseId: number,
     userId: number,
@@ -593,6 +957,10 @@ export class CourseService {
       clonedCourse.name = originalCourse.name;
       clonedCourse.timezone = originalCourse.timezone;
       clonedCourse.courseInviteCode = this.generateRandomInviteCode();
+      clonedCourse.chatbotAgentName = originalCourse.chatbotAgentName;
+      clonedCourse.chatbotAgentDescription =
+        originalCourse.chatbotAgentDescription;
+      clonedCourse.chatbotAgentOrder = originalCourse.chatbotAgentOrder;
 
       if (cloneData.toClone?.coordinator_email) {
         clonedCourse.coordinator_email = originalCourse.coordinator_email;
@@ -716,186 +1084,36 @@ export class CourseService {
       }
 
       // -------------- For Super Courses --------------
-
-      // find associated super course, if one does not exist, create one and add the original and cloned course to it
       if (cloneData.associateWithOriginalCourse) {
-        const superCourse = await SuperCourseModel.findOne({
-          where: {
-            courses: {
-              id: In([courseId]),
-            },
-          },
-        });
-
-        if (!superCourse) {
-          let newSuperCourse = new SuperCourseModel();
-          newSuperCourse.name = originalCourse.name;
-          newSuperCourse.organizationId = organizationUser.organizationId;
-          newSuperCourse = await manager.save(newSuperCourse);
-          clonedCourse.superCourseId = newSuperCourse.id;
-          await manager.save(clonedCourse);
-          originalCourse.superCourseId = newSuperCourse.id;
-          await manager.save(originalCourse);
-        } else {
-          // if a super course already exists, add the cloned course to it
-          clonedCourse.superCourseId = superCourse.id;
-          await manager.save(clonedCourse); // i have no idea if this 2nd save is necessary but i have it here for fun
-        }
+        await this.associateCourseCloneWithOriginal(
+          manager,
+          originalCourse,
+          clonedCourse,
+          organizationUser.organizationId,
+        );
       }
 
       // -------------- For Chatbot Settings and Documents --------------
-      const docIdMap = {};
-      // clone over all chatbot document pdfs in helpme db
-      if (cloneData.toClone.chatbot?.documents) {
-        await manager.query(
-          // this is pretty slick
-          `INSERT INTO chatbot_doc_pdf_model 
-           ("docName", "courseId", "docData", "docSizeBytes", "docIdChatbotDB") 
-           SELECT "docName", $1, "docData", "docSizeBytes", "docIdChatbotDB" 
-           FROM chatbot_doc_pdf_model 
-           WHERE "courseId" = $2`,
-          [clonedCourse.id, courseId],
-        );
-        // get all the idHelpMeDB and docIdChatbotDB values from the cloned course
-        const clonedCourseDocPdfs = await manager.find(ChatbotDocPdfModel, {
-          select: {
-            // only need these 2 fields. Don't want the whole documents
-            idHelpMeDB: true,
-            docIdChatbotDB: true, // these are the old ids, we need to update them once the new document aggregates are cloned in the chatbot repo
-          },
-          where: { courseId: clonedCourse.id },
-        });
-        for (const doc of clonedCourseDocPdfs) {
-          // map each old docIdChatbotDB to the new idHelpMeDB
-          docIdMap[doc.docIdChatbotDB] = doc.idHelpMeDB.toString();
-        }
-      }
-
       // IMPORTANT: do chatbot api stuff last since if something after the api calls fails i can't
       // go back and tell the chatbot service to revert what it already did.
       // Also note that we do not need to do anything special to create a course on the chatbot repo side
       // since it will automatically create a chatbot service when you call an endpoint with a courseId that does not exist
-      if (cloneData.toClone.chatbot?.settings) {
-        const oldChatbotSettings = await this.chatbotApiService
-          .getChatbotSettings(courseId, chatToken)
-          .catch((err) => {
-            console.error(
-              `Failed to get current course chatbot data in chatbot service:`,
-              err,
-            );
-            throw new InternalServerErrorException(
-              `Failed to fetch chatbot settings for current course from chatbot service: ${err.message}`,
-            );
-          });
-
-        await this.chatbotApiService
-          .updateChatbotSettings(
-            oldChatbotSettings.metadata,
-            clonedCourse.id,
-            chatToken,
-          )
-          .catch((err) => {
-            console.error(
-              `Failed to set cloned chatbot data in chatbot service:`,
-              err,
-            );
-            throw new InternalServerErrorException(
-              `Failed to set cloned chatbot data from chatbot service: ${err.message}`,
-            );
-          });
-      }
-      if (
-        cloneData.toClone.chatbot?.documents ||
-        cloneData.toClone.chatbot?.insertedQuestions ||
-        cloneData.toClone.chatbot?.insertedLMSData
-      ) {
-        const result = await this.chatbotApiService
-          .cloneCourseDocuments(
-            courseId,
-            chatToken,
-            clonedCourse.id,
-            cloneData.toClone.chatbot?.documents === true,
-            cloneData.toClone.chatbot?.insertedQuestions === true,
-            cloneData.toClone.chatbot?.insertedLMSData === true,
-            cloneData.toClone.chatbot?.manuallyCreatedChunks === true,
-            docIdMap,
-          )
-          .catch((err) => {
-            console.error(
-              `Failed to clone chatbot documents from original course in chatbot service:`,
-              err,
-            );
-            throw new InternalServerErrorException(
-              `Failed to clone chatbot documents from original course in chatbot service: ${err.message}`,
-            );
-          });
-
-        // so much work just to sync the urls in the chatbot repo and sync the docIdChatbotDB here
-        if (cloneData.toClone.chatbot?.documents) {
-          if (
-            result.newAggregateHelpmePDFIdMap &&
-            Object.keys(result.newAggregateHelpmePDFIdMap).length > 0
-          ) {
-            for (const [newHelpmeDocId, newAggregateDocId] of Object.entries(
-              result.newAggregateHelpmePDFIdMap,
-            )) {
-              await manager.update(
-                ChatbotDocPdfModel,
-                { idHelpMeDB: newHelpmeDocId },
-                { docIdChatbotDB: newAggregateDocId },
-              );
-            }
-          }
-
-          // some extra error checks. No sense in showing an error since things cannot be reverted from this point onwards
-          // without somehow making the transaction on the chatbot repo side rollback.
-          if (
-            Object.keys(docIdMap).length > 0 &&
-            result.newAggregateHelpmePDFIdMap &&
-            Object.keys(result.newAggregateHelpmePDFIdMap).length > 0 &&
-            Object.keys(result.newAggregateHelpmePDFIdMap).length <
-              Object.keys(docIdMap).length
-          ) {
-            console.error(`Error during end of course clone for clone course Id ${clonedCourse.id} (original course Id: ${courseId}). 
-              Partial document mapping detected. Despite the helpme repo having ${Object.keys(docIdMap).length} document pdfs to clone, 
-              the chatbot repo only returned ${Object.keys(result.newAggregateHelpmePDFIdMap).length} new document ids.
-              This could mean some documents were not cloned properly, or perhaps a desync where the helpme repo has more chatbot documents
-              than the equivalent on the chatbot repo.
-              ${Object.keys(docIdMap).length - Object.keys(result.newAggregateHelpmePDFIdMap).length} documents were not cloned.
-              HelpMe docIdMap: ${JSON.stringify(docIdMap)}
-              Chatbot repo newAggregateHelpmePDFIdMap: ${JSON.stringify(result.newAggregateHelpmePDFIdMap)}
-              `);
-          } else if (
-            Object.keys(docIdMap).length > 0 &&
-            !result.newAggregateHelpmePDFIdMap
-          ) {
-            console.error(`Error during end of course clone for clone course Id ${clonedCourse.id} (original course Id: ${courseId}). 
-              No new document ids were returned from the chatbot repo.
-              Meaning either something may have gone horribly wrong or there is a desync between the helpme repo and the chatbot repo (probably the former).
-              HelpMe docIdMap: ${JSON.stringify(docIdMap)}
-              `);
-          } else if (
-            Object.keys(docIdMap).length === 0 &&
-            result.newAggregateHelpmePDFIdMap &&
-            Object.keys(result.newAggregateHelpmePDFIdMap).length > 0
-          ) {
-            console.error(`Error during end of course clone for clone course Id ${clonedCourse.id} (original course Id: ${courseId}). 
-              Somehow the helpme repo has no document pdfs to clone, but the chatbot repo returned ${Object.keys(result.newAggregateHelpmePDFIdMap).length} new document ids.
-              I have no idea how this could happen.
-              HelpMe docIdMap: ${JSON.stringify(docIdMap)}
-              Chatbot repo newAggregateHelpmePDFIdMap: ${JSON.stringify(result.newAggregateHelpmePDFIdMap)}
-              `);
-          } else if (
-            Object.keys(docIdMap).length === 0 &&
-            (!result.newAggregateHelpmePDFIdMap ||
-              Object.keys(result.newAggregateHelpmePDFIdMap).length === 0)
-          ) {
-            console.log(
-              `No document pdfs were cloned for clone course Id ${clonedCourse.id} (original course Id: ${courseId}). `,
-            );
-          }
-        }
-      }
+      await this.cloneChatbotData(
+        manager,
+        courseId,
+        clonedCourse.id,
+        cloneData,
+        chatToken,
+      );
+      await this.cloneChatbotAgentGroupIfNeeded(
+        manager,
+        originalCourse,
+        clonedCourse,
+        cloneData,
+        chatToken,
+        professors,
+        organizationUser.organizationId,
+      );
 
       if (professorIds.includes(userId)) {
         return {

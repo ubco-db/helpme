@@ -1,4 +1,4 @@
-import { Role } from '@koh/common';
+import { Role, SuperCoursePurpose } from '@koh/common';
 import { Injectable } from '@nestjs/common';
 import { Command } from 'nestjs-command';
 import { CourseModel } from 'course/course.entity';
@@ -71,7 +71,11 @@ export class SeedChatbotAgentGroupCommand {
     organizationId: number,
   ): Promise<SuperCourseModel> {
     const existing = await SuperCourseModel.findOne({
-      where: { name: 'LANTERN Agents', purpose: 'chatbot_agent_group' },
+      where: {
+        name: 'LANTERN Agents',
+        purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
+      },
+      relations: { courses: true },
     });
     if (existing) {
       return existing;
@@ -80,7 +84,7 @@ export class SeedChatbotAgentGroupCommand {
     return SuperCourseModel.create({
       name: 'LANTERN Agents',
       organizationId,
-      purpose: 'chatbot_agent_group',
+      purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
     }).save();
   }
 
@@ -107,13 +111,19 @@ export class SeedChatbotAgentGroupCommand {
     superCourse: SuperCourseModel,
     organizationId: number,
   ): Promise<void> {
-    course.superCourseId = superCourse.id;
     if (course.name === 'LANTERN') {
       course.chatbotAgentName = null;
       course.chatbotAgentDescription = null;
       course.chatbotAgentOrder = null;
     }
     await course.save();
+    superCourse.courses = superCourse.courses ?? [];
+    if (
+      !superCourse.courses.some((groupCourse) => groupCourse.id === course.id)
+    ) {
+      superCourse.courses.push(course);
+      await superCourse.save();
+    }
 
     if (
       !(await OrganizationCourseModel.findOne({

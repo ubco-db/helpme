@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { RolesGuard } from './role.guard';
 import { UserModel } from '../profile/user.entity';
-import { Role } from '@koh/common';
-import { CourseModel } from '../course/course.entity';
+import { Role, SuperCoursePurpose } from '@koh/common';
+import { SuperCourseModel } from '../course/super-course.entity';
 
 /* Functionally the same as CourseRolesGuard but will allow users 
 to access the course with id HELPME_COURSE_ID as a student */
@@ -38,13 +38,24 @@ export class CourseRolesBypassHelpMeCourseGuard extends RolesGuard {
     // Agent courses are hidden from students, but students enrolled in the
     // non-agent parent course should still be able to ask those agent chatbots.
     if (!user?.courses?.find((c) => Number(c.courseId) === Number(courseId))) {
-      const agentCourse = await CourseModel.findOne({
-        where: { id: Number(courseId) },
-        relations: { superCourse: { courses: true } },
-      });
-      if (agentCourse?.superCourse?.purpose === 'chatbot_agent_group') {
+      const superCourse = await SuperCourseModel.createQueryBuilder(
+        'superCourse',
+      )
+        .innerJoin('superCourse.courses', 'matchedCourse')
+        .leftJoinAndSelect('superCourse.courses', 'courses')
+        .where('superCourse.purpose = :purpose', {
+          purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
+        })
+        .andWhere('matchedCourse.id = :courseId', {
+          courseId: Number(courseId),
+        })
+        .getOne();
+      const requestedCourse = superCourse?.courses.find(
+        (groupCourse) => Number(groupCourse.id) === Number(courseId),
+      );
+      if (requestedCourse?.chatbotAgentName) {
         const parentMembership = user.courses.find((userCourse) =>
-          agentCourse.superCourse.courses.some(
+          superCourse.courses.some(
             (groupCourse) =>
               Number(groupCourse.id) === Number(userCourse.courseId) &&
               !groupCourse.chatbotAgentName,

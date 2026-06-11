@@ -1,13 +1,19 @@
-import { ManyToOne, JoinColumn, OneToMany, BaseEntity } from 'typeorm';
+import {
+  ManyToOne,
+  JoinColumn,
+  ManyToMany,
+  BaseEntity,
+  JoinTable,
+} from 'typeorm';
 import { OrganizationModel } from '../organization/organization.entity';
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 import { CourseModel } from './course.entity';
 import { Exclude } from 'class-transformer';
+import { SuperCoursePurpose } from '@koh/common';
 
 /* A super course is basically just an association between multiple courses.
-  One of these is created when a course is cloned and they have associatedWithOriginalCourse to true.
-  This creates a super course with the original course and the cloned course.
-  If the original course already has a super course, the cloned course is added to that super course.
+  It can be used to connect course clones or to group hidden chatbot agent
+  courses behind one visible parent course.
 */
 @Entity('super_course_model')
 export class SuperCourseModel extends BaseEntity {
@@ -17,8 +23,12 @@ export class SuperCourseModel extends BaseEntity {
   @Column('text')
   name: string;
 
-  @Column('text', { nullable: true })
-  purpose?: string;
+  @Column({
+    type: 'enum',
+    enum: SuperCoursePurpose,
+    nullable: true,
+  })
+  purpose?: SuperCoursePurpose;
 
   @ManyToOne(
     () => OrganizationModel,
@@ -31,6 +41,11 @@ export class SuperCourseModel extends BaseEntity {
   organizationId: number;
 
   @Exclude()
-  @OneToMany(() => CourseModel, (course) => course.superCourse)
+  @ManyToMany(() => CourseModel, (course) => course.superCourses)
+  @JoinTable({
+    name: 'super_course_course_model',
+    joinColumn: { name: 'superCourseId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'courseId', referencedColumnName: 'id' },
+  })
   courses: CourseModel[];
 }

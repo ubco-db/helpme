@@ -53,6 +53,7 @@ import {
   OrganizationChatbotSettingsDefaults,
   OrganizationRole,
   Role,
+  SuperCoursePurpose,
   UpdateChatbotProviderBody,
   UpdateChatbotQuestionParams,
   UpdateDocumentChunkParams,
@@ -219,13 +220,14 @@ export class ChatbotController {
   async getChatbotAgents(
     @Param('courseId', ParseIntPipe) courseId: number,
   ): Promise<ChatbotAgentCourse[]> {
-    const superCourse = await SuperCourseModel.findOne({
-      where: {
-        purpose: 'chatbot_agent_group',
-        courses: { id: courseId },
-      },
-      relations: { courses: true },
-    });
+    const superCourse = await SuperCourseModel.createQueryBuilder('superCourse')
+      .innerJoin('superCourse.courses', 'matchedCourse')
+      .leftJoinAndSelect('superCourse.courses', 'courses')
+      .where('superCourse.purpose = :purpose', {
+        purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
+      })
+      .andWhere('matchedCourse.id = :courseId', { courseId })
+      .getOne();
 
     if (!superCourse) {
       return [];
