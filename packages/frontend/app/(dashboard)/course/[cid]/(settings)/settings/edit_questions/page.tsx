@@ -175,7 +175,7 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
       const newQuestionTypes = row.QuestionTypeIds
         ? questionTypes.filter((questionType) =>
             // I think typescript is having a stroke
-             
+
             row.QuestionTypeIds!.includes(questionType.id),
           )
         : []

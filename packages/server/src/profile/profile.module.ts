@@ -4,7 +4,7 @@ import { NotificationModule } from '../notification/notification.module';
 import { LoginModule } from 'login/login.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { JwtStrategy } from './jwt.strategy';
+import { JwtStrategy } from '../login/jwt.strategy';
 import { MailModule } from 'mail/mail.module';
 import { OrganizationModule } from '../organization/organization.module';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';

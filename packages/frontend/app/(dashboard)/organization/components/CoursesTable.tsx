@@ -3,23 +3,26 @@
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { SearchOutlined } from '@ant-design/icons'
-import { CourseResponse, GetOrganizationResponse } from '@koh/common'
-import { Button, Checkbox, Col, Input, List, Pagination, Row, Tag } from 'antd'
+import {
+  CourseResponse,
+  GetOrganizationResponse,
+  SemesterPartial,
+} from '@koh/common'
+import { Button, Checkbox, Col, Input, Row, Tag, Table } from 'antd'
+import { ColumnsType } from 'antd/es/table'
+import type { SortOrder } from 'antd/es/table/interface'
 import { useEffect, useState } from 'react'
-import useSWR, { mutate } from 'swr'
+import useSWR from 'swr'
 import BatchCourseCloneModal from './BatchCourseCloneModal'
 import { organizationApi } from '@/app/api/organizationApi'
+import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import SemesterInfoPopover from '../../components/SemesterInfoPopover'
-import { cn } from '@/app/utils/generalUtils'
 
 const CoursesTable: React.FC = () => {
   const { userInfo } = useUserInfo()
-
-  const [page, setPage] = useState(1)
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
-  const [showIds, setShowIds] = useState(true)
   const [organization, setOrganization] = useState<GetOrganizationResponse>()
 
   const [isCloneModalOpen, setIsCloneModalOpen] = useState(false)
@@ -32,7 +35,6 @@ const CoursesTable: React.FC = () => {
   const handleSearch = (event: any) => {
     event.preventDefault()
     setSearch(event.target.value)
-    setPage(1)
   }
 
   useEffect(() => {
@@ -50,22 +52,134 @@ const CoursesTable: React.FC = () => {
     fetchOrganization()
   }, [userInfo.organization?.orgId])
 
-  useEffect(() => {
-    return () => {
-      // Clear the cache for the "CoursesTab" component
-      mutate(`courses/${page}/${search}`)
-    }
-  }, [page, search])
-
   const { data: courses } = useSWR(
-    `courses/${page}/${search}`,
+    `courses/${search}`,
     async () =>
       await API.organizations.getCourses(
         userInfo?.organization?.orgId ?? -1,
-        page,
+        undefined,
         search,
       ),
   )
+
+  const getDateValue = (value?: Date | string | null): number | null => {
+    if (!value) return null
+    const dateValue = typeof value === 'string' ? new Date(value) : value
+    const time = dateValue.getTime()
+    return Number.isNaN(time) ? null : time
+  }
+
+  const getSemesterEndTime = (
+    semester?: SemesterPartial | null,
+  ): number | null => {
+    if (!semester) return null
+    if (semester.name === 'Legacy Semester') return null
+    return getDateValue(semester.endDate ?? null)
+  }
+
+  const compareSemesters = (
+    a: CourseResponse,
+    b: CourseResponse,
+    sortOrder?: SortOrder,
+  ): number => {
+    const order: SortOrder = sortOrder === 'descend' ? 'descend' : 'ascend'
+    const aTime = getSemesterEndTime(a.semester)
+    const bTime = getSemesterEndTime(b.semester)
+    const aIsNull = aTime === null
+    const bIsNull = bTime === null
+
+    const desiredCompare = () => {
+      if (aIsNull && bIsNull) return 0
+      if (aIsNull) return -1
+      if (bIsNull) return 1
+      return order === 'ascend' ? aTime - bTime : bTime - aTime
+    }
+
+    const result = desiredCompare()
+    return order === 'ascend' ? result : -result
+  }
+
+  const columns: ColumnsType<CourseResponse> = [
+    {
+      title: 'Course ID',
+      dataIndex: 'courseId',
+      key: 'courseId',
+      sorter: (a: CourseResponse, b: CourseResponse) =>
+        (a.courseId ?? 0) - (b.courseId ?? 0),
+    },
+    {
+      title: 'Course Name',
+      dataIndex: 'courseName',
+      key: 'courseName',
+      sorter: (a: CourseResponse, b: CourseResponse) => {
+        const A = a.courseName || ''
+        const B = b.courseName || ''
+        return A.localeCompare(B)
+      },
+      render: (name: string, record: CourseResponse) => (
+        <div className="flex items-center gap-2">
+          {name}
+          <span className="text-gray-500">{` ${record.sectionGroupName}`}</span>
+          {!record.isEnabled && <Tag color="red">Archived</Tag>}
+        </div>
+      ),
+    },
+    {
+      title: 'Semester',
+      dataIndex: 'semester',
+      key: 'semester',
+      defaultSortOrder: 'descend',
+      sorter: compareSemesters,
+      render: (semester: SemesterPartial) => {
+        if (!semester) return null
+        return (
+          <SemesterInfoPopover semester={semester}>
+            <Tag color={semester.color} bordered={false} className="text-sm">
+              {semester.name === 'Legacy Semester'
+                ? 'No Semester'
+                : semester.name}
+            </Tag>
+          </SemesterInfoPopover>
+        )
+      },
+    },
+    {
+      title: 'Total Students',
+      dataIndex: 'totalStudents',
+      key: 'totalStudents',
+      sorter: (a: CourseResponse, b: CourseResponse) =>
+        (a.totalStudents ?? 0) - (b.totalStudents ?? 0),
+    },
+    {
+      title: 'Date Created',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      sorter: (a: CourseResponse, b: CourseResponse) => {
+        const A = getDateValue(a.createdAt) ?? 0
+        const B = getDateValue(b.createdAt) ?? 0
+        return A - B
+      },
+      render: (createdAt: Date | string) => {
+        if (!createdAt) return '-'
+        const dateValue =
+          typeof createdAt === 'string' ? new Date(createdAt) : createdAt
+        const date = formatDateAndTimeForExcel(dateValue)
+        return date.split(' ')[0] // YYYY-MM-DD
+      },
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_: any, record: CourseResponse) => (
+        <Button
+          type="primary"
+          href={`/organization/course/${record.courseId}/edit`}
+        >
+          Edit
+        </Button>
+      ),
+    },
+  ]
 
   if (!organization) {
     return <CenteredSpinner tip="Fetching Organization Info..." />
@@ -87,14 +201,6 @@ const CoursesTable: React.FC = () => {
               />
             </Col>
             <Col className="flex items-center gap-2" flex="none">
-              <Col>
-                <Checkbox
-                  checked={showIds}
-                  onChange={() => setShowIds((prev) => !prev)}
-                >
-                  Show IDs
-                </Checkbox>
-              </Col>
               <Button type="primary" href={`/organization/course/add`}>
                 Add New Course
               </Button>
@@ -104,72 +210,18 @@ const CoursesTable: React.FC = () => {
             </Col>
           </Row>
 
-          <List
-            style={{ marginTop: 20 }}
+          <Table
             dataSource={courses}
-            renderItem={(item: CourseResponse) => (
-              <>
-                <List.Item
-                  style={{ borderBottom: '1px solid #f0f0f0', padding: 10 }}
-                  key={item.courseId}
-                  actions={[
-                    <Button
-                      key=""
-                      type="primary"
-                      href={`/organization/course/${item.courseId}/edit`}
-                    >
-                      Edit
-                    </Button>,
-                  ]}
-                >
-                  <List.Item.Meta
-                    title={
-                      <span>
-                        <span
-                          className={cn(
-                            showIds ? '' : 'hidden',
-                            'text-helpmeblue font-semibold',
-                          )}
-                        >
-                          {item.courseId}
-                        </span>{' '}
-                        {item.courseName}
-                        <span className="text-gray-500">
-                          {' '}
-                          {item.sectionGroupName}
-                        </span>
-                      </span>
-                    }
-                  />
-                  {item.semester && (
-                    <SemesterInfoPopover semester={item.semester}>
-                      <Tag
-                        color={item.semester.color}
-                        bordered={false}
-                        className="text-sm"
-                      >
-                        {item.semester.name === 'Legacy Semester'
-                          ? 'No Semester'
-                          : item.semester.name}
-                      </Tag>
-                    </SemesterInfoPopover>
-                  )}
-                  {!item.isEnabled && <Tag color="red">Archived</Tag>}
-                </List.Item>
-              </>
-            )}
+            columns={columns}
+            rowKey="courseId"
+            className="mt-2"
+            size="small"
+            pagination={{
+              pageSize: 30,
+              showQuickJumper: true,
+            }}
           />
         </div>
-        {courses.length > 50 && (
-          <Pagination
-            className="float-right"
-            current={page}
-            pageSize={50}
-            total={courses.length}
-            onChange={(page) => setPage(page)}
-            showSizeChanger={false}
-          />
-        )}
         <BatchCourseCloneModal
           open={isCloneModalOpen}
           onClose={() => setIsCloneModalOpen(false)}

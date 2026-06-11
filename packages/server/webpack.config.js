@@ -9,7 +9,7 @@ module.exports = function (options) {
   // Only add Sentry plugin if auth token is available
   if (process.env.SENTRY_AUTH_TOKEN) {
     plugins.push(
-      new SentryWebpackPlugin({
+      SentryWebpackPlugin.sentryWebpackPlugin({
         authToken: process.env.SENTRY_AUTH_TOKEN,
         org: "university-of-british-colum-p0",
         project: "helpme-nestjs",

@@ -12,9 +12,9 @@ import {
   message,
 } from 'antd'
 import {
-  encodeBase64,
   type QueueInvite,
   type QueueInviteParams,
+  encodeBase64,
 } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { API } from '@/app/api'
@@ -56,8 +56,7 @@ const QueueInviteListItem: React.FC<QueueInviteProps> = ({
   useEffect(() => {
     form.setFieldsValue(queueInvite)
     setHasValuesChanged(false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, queueInvite.queueId])
+  }, [form, queueInvite])
 
   const onFinish = (values: QueueInviteParams) => {
     setIsSaveLoading(true)
@@ -87,7 +86,7 @@ const QueueInviteListItem: React.FC<QueueInviteProps> = ({
           ) : (
             <div className="flex items-center gap-2">
               <Link
-                target="_blank" // open in new tab
+                target="_blank"
                 href={`/qi/${queueInvite.queueId}?c=${encodeBase64(queueInvite.inviteCode)}`}
               >
                 {inviteURL}
@@ -214,7 +213,8 @@ const QueueInviteListItem: React.FC<QueueInviteProps> = ({
                         Enabling this will allow users who are <i>not</i> in
                         your course to use this link (normally they can still
                         click on the link, but they can&apos;t use it to join
-                        the course/queue unless they are already in the course).{' '}
+                        the course/queue unless they are already in the
+                        course).{' '}
                       </p>
                       <p>
                         Generally, you may want this enabled until all of your

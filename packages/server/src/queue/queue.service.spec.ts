@@ -16,6 +16,7 @@ import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationTestingConfigModule } from 'config/application_config.module';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
+import { QueueStaffService } from './queue-staff/queue-staff.service';
 
 describe('QueueService', () => {
   let service: QueueService;
@@ -29,7 +30,17 @@ describe('QueueService', () => {
         FactoryModule,
         ApplicationTestingConfigModule,
       ],
-      providers: [QueueService, AlertsService],
+      providers: [
+        QueueService,
+        {
+          provide: QueueStaffService,
+          useValue: {
+            formatStaffListPropertyForFrontend: jest.fn(),
+            getFormattedStaffList: jest.fn(),
+          },
+        },
+        AlertsService,
+      ],
     }).compile();
 
     service = module.get<QueueService>(QueueService);
@@ -71,6 +82,19 @@ describe('QueueService', () => {
       await QuestionFactory.create({ queue });
       expect((await service.getQuestions(queue.id)).questions.length).toEqual(
         1,
+      );
+    });
+
+    it('includes creator namePronunciation when present', async () => {
+      const queue = await QueueFactory.create();
+      const creator = await UserFactory.create({
+        namePronunciation: 'uh-LEE-shuh',
+      });
+      await QuestionFactory.create({ queue, creator });
+
+      const response = await service.getQuestions(queue.id);
+      expect(response.questions[0].creator.namePronunciation).toEqual(
+        'uh-LEE-shuh',
       );
     });
 

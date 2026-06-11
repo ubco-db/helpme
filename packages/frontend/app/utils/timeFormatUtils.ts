@@ -159,6 +159,10 @@ export function formatSemesterDate(semester: SemesterPartial): string {
   const hasEnd = !!semester.endDate
   if (!hasStart && !hasEnd) return ''
 
+  if (hasEnd && new Date(semester.endDate!) < new Date('1971-01-01')) {
+    return '' // for test semester, don't show the start/end date
+  }
+
   let startMonth = '',
     startYear = 0,
     endMonth = '',

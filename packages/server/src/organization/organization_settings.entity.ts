@@ -15,7 +15,7 @@ export class OrganizationSettingsModel extends BaseEntity {
   organizationId: number;
 
   @OneToOne(
-    (type) => OrganizationModel,
+    () => OrganizationModel,
     (organization) => organization.organizationSettings,
     { onUpdate: 'CASCADE', onDelete: 'CASCADE' },
   )
@@ -24,4 +24,7 @@ export class OrganizationSettingsModel extends BaseEntity {
 
   @Column('boolean', { default: true })
   allowProfCourseCreate: boolean;
+
+  @Column('boolean', { default: false })
+  allowLMSApiKey: boolean;
 }

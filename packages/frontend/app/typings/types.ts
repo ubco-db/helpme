@@ -101,6 +101,7 @@ export enum TAStatus {
   InQueue = 'Currently in queue',
   ForgotToCheckOut = 'Forgot to check out',
   CheckedOut = 'Checked out',
+  Away = 'Away',
 }
 
 export const dayToIntMapping: { [key: string]: string } = {

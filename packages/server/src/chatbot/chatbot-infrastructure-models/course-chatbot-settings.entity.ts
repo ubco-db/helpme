@@ -22,7 +22,9 @@ export class CourseChatbotSettingsModel extends BaseEntity {
   @Column({ type: 'int', nullable: false })
   courseId: number;
 
-  @OneToOne((type) => CourseModel, (course) => course.chatbotSettings)
+  @OneToOne((type) => CourseModel, (course) => course.chatbotSettings, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'courseId' })
   course: CourseModel;
 

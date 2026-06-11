@@ -16,11 +16,15 @@ import * as Sentry from '@sentry/nestjs';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 import { CourseSettingsModel } from '../course/course_settings.entity';
 import { SentEmailModel } from '../mail/sent-email.entity';
+import { DataSource } from 'typeorm';
 import { AlertModel } from '../alerts/alerts.entity';
 
 @Injectable()
 export class AsyncQuestionService {
-  constructor(private mailService: MailService) {}
+  constructor(
+    private mailService: MailService,
+    private dataSource: DataSource,
+  ) {}
 
   async sendNewCommentOnMyQuestionEmailAndAlert(
     commenter: UserModel,
@@ -54,7 +58,7 @@ export class AsyncQuestionService {
           content: `<br> <b>${commenterIsStaff ? commenter.name : 'Someone'} has commented on your "${question.questionAbstract ?? (question.questionText ? question.questionText.slice(0, 50) : '')}" Anytime Question:</b> 
                 <br> <b>Comment Text<b>: ${comment.commentText}
                 <br>
-                <br> Note: Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre">View and Reply Here</a> <br>`,
+                <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre"><b>View and Answer It Here</b></a> <br>`,
         })
         .catch((err) => {
           console.error(
@@ -498,5 +502,23 @@ export class AsyncQuestionService {
           asyncQuestion.authorSetVisible) ||
           asyncQuestion.staffSetVisible
       : asyncQuestion.staffSetVisible;
+  }
+
+  /**
+   * Returns a map of userId -> number of staff-endorsed comments for that user
+   * in the given course. Uses a single aggregate query rather than a stored counter.
+   */
+  async getEndorsedCountByCourse(
+    courseId: number,
+  ): Promise<Map<number, number>> {
+    const rows = await this.dataSource
+      .createQueryBuilder(AsyncQuestionCommentModel, 'c')
+      .innerJoin('c.question', 'q', 'q.courseId = :courseId', { courseId })
+      .select('c.creatorId', 'creatorId')
+      .addSelect('COUNT(*)', 'count')
+      .where('c.endorsedById IS NOT NULL')
+      .groupBy('c.creatorId')
+      .getRawMany<{ creatorId: number; count: string }>();
+    return new Map(rows.map((r) => [r.creatorId, parseInt(r.count, 10)]));
   }
 }

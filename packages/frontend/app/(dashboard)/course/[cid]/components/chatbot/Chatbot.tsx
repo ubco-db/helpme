@@ -1,5 +1,12 @@
 'use client'
-import { Fragment, ReactElement, useEffect, useRef, useState } from 'react'
+import {
+  Fragment,
+  ReactElement,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import {
   Avatar,
   Button,
@@ -33,7 +40,7 @@ import {
 import { API } from '@/app/api'
 import MarkdownCustom from '@/app/components/Markdown'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   Message,
   parseThinkBlock,
@@ -92,6 +99,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const hasAskedQuestion = useRef(false) // to track if the user has asked a question
   const pathname = usePathname()
+  const router = useRouter()
   const currentPageTitle = convertPathnameToPageName(pathname)
   const [popResetOpen, setPopResetOpen] = useState(false)
   // used to temporarily store what question type the user is trying to change to
@@ -99,6 +107,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
     useState<ChatbotQuestionType | null>(null)
   const role = getRoleInCourse(userInfo, cid)
 
+  const isLti = useMemo(() => pathname.startsWith('/lti'), [pathname])
   const courseIdToUse =
     chatbotQuestionType === 'System'
       ? Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) || -1
@@ -254,7 +263,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
       <div
         className={cn(
           variant === 'small'
-            ? 'fixed bottom-0 z-50 max-h-[90vh] w-screen md:bottom-1 md:right-1 md:max-w-[400px]'
+            ? 'fixed bottom-0 z-40 max-h-[90vh] w-screen md:bottom-1 md:right-1 md:max-w-[400px]'
             : variant === 'big'
               ? 'flex h-[80vh] w-screen flex-col overflow-auto md:w-[90%]'
               : variant === 'huge'
@@ -546,19 +555,35 @@ const Chatbot: React.FC<ChatbotProps> = ({
                 />
               )}
               <div ref={messagesEndRef} />
-              {courseFeatures.asyncQueueEnabled &&
+              {!isLti &&
+                courseFeatures.asyncQueueEnabled &&
                 chatbotQuestionType === 'Course' &&
                 messages.length > 1 && (
-                  <div>
-                    Unhappy with your answer?{' '}
-                    <Link
-                      href={{
-                        pathname: `/course/${cid}/async_centre`,
-                        query: { convertChatbotQ: true },
+                  <div className="text-sm">
+                    Want to discuss or verify this with your Professor/TA?{' '}
+                    <Popconfirm
+                      title="Continue Navigation?"
+                      getPopupContainer={(trigger) =>
+                        trigger.parentNode as HTMLElement
+                      }
+                      onConfirm={() => {
+                        router.push(
+                          `/course/${cid}/async_centre?convertChatbotQ=true`,
+                        )
                       }}
                     >
-                      Convert to anytime question
-                    </Link>
+                      <Link
+                        href={{
+                          pathname: `/course/${cid}/async_centre`,
+                          query: { convertChatbotQ: true },
+                        }}
+                        onNavigate={(e) => {
+                          e.preventDefault()
+                        }}
+                      >
+                        Convert to Anytime Question
+                      </Link>
+                    </Popconfirm>
                   </div>
                 )}
             </div>

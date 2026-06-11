@@ -48,8 +48,16 @@ import { LLMTypeModel } from '../chatbot/chatbot-infrastructure-models/llm-type.
 import { ChatbotProviderModel } from '../chatbot/chatbot-infrastructure-models/chatbot-provider.entity';
 import { CourseChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
 import { SentEmailModel } from '../mail/sent-email.entity';
+import { LMSAuthStateModel } from '../lmsIntegration/lms-auth-state.entity';
+import { LMSAccessTokenModel } from '../lmsIntegration/lms-access-token.entity';
+import { LtiCourseInviteModel } from '../lti/lti-course-invite.entity';
+import { AuthStateModel } from '../auth/auth-state.entity';
+import * as crypto from 'crypto';
+import { UserLtiIdentityModel } from '../lti/user_lti_identity.entity';
+import { LtiIdentityTokenModel } from '../lti/lti_identity_token.entity';
+import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
 
-/* Has all of our factories and initializes them with the db dataSource. 
+/* Has all of our factories and initializes them with the db dataSource.
   If you want to use one of these factories, import it from factories.ts instead.
 
   If you are creating a new factory, first create it here and then modify factories.ts so that it exports it.
@@ -98,6 +106,13 @@ export class FactoryService {
   public ChatbotProviderFactory: Factory<ChatbotProviderModel>;
   public LLMTypeFactory: Factory<LLMTypeModel>;
   public CourseChatbotSettingsFactory: Factory<CourseChatbotSettingsModel>;
+  public LMSAuthStateFactory: Factory<LMSAuthStateModel>;
+  public LMSAccessTokenFactory: Factory<LMSAccessTokenModel>;
+  public LtiCourseInviteFactory: Factory<LtiCourseInviteModel>;
+  public AuthStateFactory: Factory<AuthStateModel>;
+  public UserLtiIdentityFactory: Factory<UserLtiIdentityModel>;
+  public LtiIdentityTokenFactory: Factory<LtiIdentityTokenModel>;
+  public QueueStaffFactory: Factory<QueueStaffModel>;
 
   constructor(dataSource: DataSource) {
     this.UserFactory = new Factory(UserModel, dataSource)
@@ -106,28 +121,29 @@ export class FactoryService {
       .attr('lastName', 'Person')
       .attr('emailVerified', true)
       .attr('photoURL', 'https://example.com')
-      .attr('hideInsights', []);
+      .attr('hideInsights', [])
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
-    this.StudentCourseFactory = new Factory(UserCourseModel, dataSource).attr(
-      'role',
-      Role.STUDENT,
-    );
+    this.StudentCourseFactory = new Factory(UserCourseModel, dataSource)
+      .attr('role', Role.STUDENT)
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
-    this.TACourseFactory = new Factory(UserCourseModel, dataSource).attr(
-      'role',
-      Role.TA,
-    );
+    this.TACourseFactory = new Factory(UserCourseModel, dataSource)
+      .attr('role', Role.TA)
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
     this.OrganizationFactory = new Factory(OrganizationModel, dataSource)
       .attr('name', 'UBCO')
-      .attr('description', 'UBC Okanagan');
+      .attr('description', 'UBC Okanagan')
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
     this.SemesterFactory = new Factory(SemesterModel, dataSource)
       .attr('name', 'Test Semester')
       .attr('startDate', new Date('2020-09-01'))
       .attr('endDate', new Date('2022-12-31'))
       .attr('description', 'Test Semester Description')
-      .assocOne('organization', this.OrganizationFactory);
+      .assocOne('organization', this.OrganizationFactory)
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
     this.CourseFactory = new Factory(CourseModel, dataSource)
       .attr('name', 'CS 304')
@@ -139,6 +155,8 @@ export class FactoryService {
       .attr('sectionGroupName', '001')
       .attr('enabled', true)
       .attr('courseInviteCode', 'invite-code')
+      .attr('isCourseInviteEnabled', true)
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'))
       .assocOne('semester', this.SemesterFactory);
 
     this.CourseSettingsFactory = new Factory(CourseSettingsModel, dataSource)
@@ -152,16 +170,21 @@ export class FactoryService {
     this.UserCourseFactory = new Factory(UserCourseModel, dataSource)
       .assocOne('user', this.UserFactory)
       .assocOne('course', this.CourseFactory)
-      .attr('role', Role.STUDENT);
+      .attr('role', Role.STUDENT)
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
     this.QueueFactory = new Factory(QueueModel, dataSource)
       .attr('room', 'Online')
       .assocOne('course', this.CourseFactory)
       .attr('allowQuestions', false)
-      .assocMany('staffList', this.UserFactory, 0)
       .attr('isProfessorQueue', false)
       .attr('isDisabled', false)
-      .attr('config', {});
+      .attr('config', {})
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
+
+    this.QueueStaffFactory = new Factory(QueueStaffModel, dataSource)
+      .assocOne('queue', this.QueueFactory)
+      .assocOne('user', this.UserFactory);
 
     this.QueueInviteFactory = new Factory(QueueInviteModel, dataSource)
       .assocOne('queue', this.QueueFactory)
@@ -169,7 +192,8 @@ export class FactoryService {
       .attr('isQuestionsVisible', false)
       .attr('willInviteToCourse', false)
       .attr('inviteCode', 'invite-code')
-      .attr('QRCodeErrorLevel', 'L');
+      .attr('QRCodeErrorLevel', 'L')
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
     this.QuestionTypeFactory = new Factory(QuestionTypeModel, dataSource)
       .attr('cid', 1)
@@ -177,7 +201,8 @@ export class FactoryService {
       .assocOne('queue', this.QueueFactory)
       .attr('queueId', 1)
       .attr('color', '#000000')
-      .attr('questions', []);
+      .attr('questions', [])
+      .attr('createdAt', new Date('2020-01-01T00:00:00.000Z'));
 
     // WARNING: DO NOT USE CREATORID. AS YOU SEE HERE, WE ONLY ACCEPT CREATOR
     //TODO: make it accept creatorId as well
@@ -258,7 +283,7 @@ export class FactoryService {
       .attr('role', OrganizationRole.MEMBER);
 
     this.ChatTokenFactory = new Factory(ChatTokenModel, dataSource)
-      .attr('token', v4())
+      .sequence('token', () => v4())
       .attr('used', 0)
       .attr('max_uses', 30)
       .assocOne('user', this.UserFactory);
@@ -394,5 +419,35 @@ export class FactoryService {
       'courseSettingsInstances',
       this.CourseChatbotSettingsFactory,
     );
+
+    this.LMSAuthStateFactory = new Factory(LMSAuthStateModel, dataSource)
+      .assocOne('user', this.UserFactory)
+      .assocOne('organizationIntegration', this.lmsOrgIntFactory)
+      .sequence('state', () => crypto.randomBytes(32).toString('hex'));
+
+    this.LMSAccessTokenFactory = new Factory(LMSAccessTokenModel, dataSource)
+      .assocOne('user', this.UserFactory)
+      .assocOne('organizationIntegration', this.lmsOrgIntFactory);
+
+    this.LtiCourseInviteFactory = new Factory(LtiCourseInviteModel, dataSource)
+      .assocOne('course', this.CourseFactory)
+      .sequence('inviteCode', () => v4());
+
+    this.AuthStateFactory = new Factory(AuthStateModel, dataSource)
+      .assocOne('organization', this.OrganizationFactory)
+      .sequence('state', () => crypto.randomBytes(32).toString('hex'));
+
+    this.UserLtiIdentityFactory = new Factory(UserLtiIdentityModel, dataSource)
+      .assocOne('user', this.UserFactory)
+      .attr('issuer', 'canvas.instructure.com')
+      .attr('ltiUserId', '1');
+
+    this.LtiIdentityTokenFactory = new Factory(
+      LtiIdentityTokenModel,
+      dataSource,
+    )
+      .attr('issuer', 'canvas.instructure.com')
+      .attr('ltiUserId', '1')
+      .sequence('code', () => crypto.randomBytes(32).toString('hex'));
   }
 }

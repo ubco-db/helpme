@@ -24,6 +24,12 @@
 
 **How to get:** Leave as-is from example (chatbot).
 
+###### POSTGRES_LTI_DB
+
+**Purpose:** database name for the postgres lti database
+
+**How to get:** Leave as-is from example (lti).
+
 ###### POSTGRES_USER
 
 **Purpose:** username of the root user for the postgres db
@@ -110,12 +116,6 @@
 
 **How to get:** Can get it from https://developers.google.com/identity/sign-in/web/sign-in 
 
-###### GOOGLE_REDIRECT_URI
-
-**Purpose:** same as GOOGLE_CLIENT_ID
-
-**How to get:** `domain` + `/api/v1/auth/callback/google` (e.g. `http://localhost:3000/api/v1/auth/callback/google`)
-
 ###### GOOGLE_CLIENT_SECRET
 
 **Purpose:** same as GOOGLE_CLIENT_ID
@@ -145,6 +145,12 @@
 **Purpose:** Sentry captures errors (e.g. 500 level errors) and sends it to its own site. This is needed in order for your environment to capture these errors. This is also needed to get the code source maps (code is normally minified and made unreadable, source maps are just the base code). If you leave it empty, it should be fine.
 
 **How to get:** Ask me (Adam) and I can provide you with mine. NOTE: This is a different SENTRY_AUTH_TOKEN from the frontend one.
+
+###### LTI_SECRET_KEY
+
+**Purpose:** Used for encrypting LTI database entries and in general throughout the LTI process.
+
+**How to get:** If testing with LTI locally, create any secret key. Make sure to not change it or else existing database rows in the LTI database can't be decrypted.
 
 ## client .env (place in packages/app)
 

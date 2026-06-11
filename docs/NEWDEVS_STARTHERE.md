@@ -21,7 +21,12 @@
         - [Endpoints that change their behavior based on role](#endpoints-that-change-their-behavior-based-on-role)
         - [Why some endpoints have `@Res` and some don't](#why-some-endpoints-have-res-and-some-dont)
           - [Ways to return errors/http status codes + messages](#ways-to-return-errorshttp-status-codes--messages)
+      - [Data Transfer Objects (DTOs), Serialization, and Sending Data from Frontend to Backend (and vise-versa)](#data-transfer-objects-dtos-serialization-and-sending-data-from-frontend-to-backend-and-vise-versa)
+        - [Backend Deserialization and Validation](#backend-deserialization-and-validation)
+        - [Frontend Deserialization (and Validation)](#frontend-deserialization-and-validation)
       - [TypeORM](#typeorm)
+        - [Entities (Database Schema)](#entities-database-schema)
+          - [Editing Entities (\& Migrations)](#editing-entities--migrations)
         - [Examples of typeorm runtime errors](#examples-of-typeorm-runtime-errors)
           - [Missing relations](#missing-relations)
           - [Querying with models and IsNull()](#querying-with-models-and-isnull)
@@ -33,7 +38,12 @@
         - [What is mocking?](#what-is-mocking)
         - [To mock or not to mock?](#to-mock-or-not-to-mock)
       - [Event Subscribers](#event-subscribers)
+  - [Known Quirks when Developing](#known-quirks-when-developing)
 - [History](#history)
+  - [Contributors (by commit count, not including merges)](#contributors-by-commit-count-not-including-merges)
+    - [Chatbot Repo](#chatbot-repo)
+    - [Current HelpMe Repo](#current-helpme-repo)
+    - [Old HelpMe Repo](#old-helpme-repo)
 - [TODO](#todo)
   - [For the whole project](#for-the-whole-project)
   - [For this document](#for-this-document)
@@ -62,10 +72,10 @@ File structure is as follows:
     - `/test` - contains integration tests
   - `/frontend` - frontend code
     - `.env` - Environment variables for the frontend
-    - `/api`
-        - `index.ts` - This is our first important index.ts. Contains functions that call the backend endpoints. It keeps the fetch calls all in one place, making it easier to maintain (e.g. if you renamed an endpoint, you only need to change in 1 area)  
     - `/app` - contains all the pages and components
-    - `/public` - Contains 
+      - `/api`
+          - `index.ts` - This is our first important index.ts. Contains functions that call the backend endpoints. It keeps the fetch calls all in one place, making it easier to maintain (e.g. if you renamed an endpoint, you only need to change in 1 area)  
+    - `/public` - Contains some special public files/images
   - `/common` - shared code between the frontend and backend
     - `index.ts` - This is our other important index.ts. Contains all types or functions used on both the frontend and backend
 
@@ -115,6 +125,9 @@ These are from Next.js, and allow us to define whether a component is rendered o
 `'use client'` - This component will be sent to the browser to be rendered. Any component that stores state (i.e. with `useState`), has interactability (buttons, forms, etc.), or uses *any* hooks (such as `useCourse` or `useEffect`)
 
 **Components with no 'use client' or 'use server'** - These are **server components** (er well they will need the `async` keyword beside function too maybe). These are rendered on the server and sent to the browser and in general you want as many things as possible to be server components. They have the advantage that any fetch calls within them will be made right-away on the server, before anything is rendered, which can improve performance a lot. They can also have client components within them, but not vice-versa (with the exception of layout.tsx), so try to have server components near the root and client components as far down as possible. 
+- NOTE that for our system, we generally do not use server components. For two reasons:
+  - Our system is very client-heavy with a lot of interactivity, meaning there is very little that can be pre-rendered
+  - Our system's architecture splits Next.js from our backend. Server components get more performance benefit when you *call things like the database directly*, instead of through the API (causes an extra round-trip).
 
 `'use server'` - In general, don't use this as that's for *making server actions* and *NOT for designating server components*. Server actions are "asynchronous functions" and are sorta like endpoints. We don't really use these as we are using our own endpoints. 
 
@@ -158,7 +171,7 @@ Want to conditionally render something like an `elseif` statement? Do: `{conditi
 
 `service` - These define methods that make calls to the database. Unit tests test these.
 
-`entity` - These define the database schema. If you make any changes to these, be sure to make a migration (see `DEVELOPING.md`). If you are making a new entity, be sure to add it inside `ormconfig.ts`!
+`entity` - These define the database schema. If you make any changes to these, be sure to make a migration (see `DEVELOPING.md` and [this section](#editing-entities--migrations)). If you are making a new entity, be sure to add it inside `ormconfig.ts`!
 
 #### Redis
 
@@ -254,11 +267,157 @@ There are multiple ways to make your endpoints give different errors/status code
   - note you will need to add the `@Res()` decorator at the top of the controller
   - This also lets you return other status codes (e.g. 201 Created) and is not just limited to errors
 
+#### Data Transfer Objects (DTOs), Serialization, and Sending Data from Frontend to Backend (and vise-versa)
+
+There is a few things you need to know when sending data between the Frontend to the Backend (or vise-versa).
+
+So in strongly typed languages you have types and object types. These help give intellisense when you use a variable wrong amongst other things. This is fantastic, but it doesn't work across networks (Frontend to Backend or vise-versa). This is known as end-to-end type safety. Some newer Frameworks have this, but ours does not. We have to define the shared types between the Frontend and the Backend, and these are known as Data Transfer Objects or DTOs, and they are stored in `common/index.ts`.
+
+However, defining the types alone normally wouldn't be enough. This is because any data sent between the Frontend and Backend is first turned into one big string, a process known as Serialization. Turning this big string back into an object is known as Deserialization. 
+
+What this means for you is that the attributes of the objects the Backend/Frontend receive are usually all strings. Since it would be annoying to manually convert these to their actual types (e.g. `const myTotal = Number(response.data.total)`) we employ a couple libraries to automatically convert them as explained in the next sections.
+
+##### Backend Deserialization and Validation
+
+For the Backend, Nest.js has various pipes for serializing sent parameters, such as `ParseIntPipe` and `ParseEnumPipe`. For bodies, defined by the `@Body` decorator, these will **automatically be serialized *and validated* assuming that it's given a valid class-validator DTO**.
+
+For example, see this endpoint definition:
+```ts
+@Patch(':questionId')
+@UseGuards(QuestionRolesGuard)
+@Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
+async updateQuestion(
+  @Param('questionId') questionId: number,
+  @Body() body: { text: string, queueId: number, status: QuestionStatus, questionTypes: QuestionTypeParams[] },
+  @UserId() userId: number,
+): Promise<UpdateQuestionResponse> {
+```
+There are two problems here.
+
+First, while it looks like the `questionId` parameter will always be a `number`, this is actually not the case and it is actually a ***string***. Not only that, the user can actually pass in anything they want to the `questionId` field, including `"bob"`, `"null"`, `"\"DROP TABLE user;"`. This could be extremely dangerous, and you will receive no warning or error about it. And if you don't write your TypeORM queries correctly, could result in SQL Injection attacks. 
+
+To fix this, add `ParseIntPipe` like so:
+```ts
+@Param('questionId', ParseIntPipe) questionId: number,
+```
+This will ensure that `questionId` is always a valid number and will reject the request otherwise.
+
+The next issue is the `body`. Like `questionId`, the attributes of the body (`text`, `queueId`, and `status`) are all non-validated and not deserialized, meaning they are all strings and the strings can be anything. Additionally, the user can pass additional attributes in the `body` or even none at all. 
+
+To fix this, defined a `DTO` inside `common/index.ts` and use decorators from the `class-validator` package for each attribute, like so:
+```ts
+export class UpdateQuestionParams {
+  @IsString()
+  @IsOptional()
+  text?: string
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => QuestionTypeParams)
+  @IsOptional()
+  questionTypes?: QuestionTypeParams[] // Note that QuestionTypeParams is also a DTO class just like this one
+
+  @IsInt()
+  @IsOptional()
+  queueId?: number
+
+  @IsEnum(QuestionStatusKeys)
+  @IsOptional()
+  status?: QuestionStatus
+}
+```
+and then change the endpoint like so:
+```ts
+@Body() body: UpdateQuestionParams,
+```
+
+Now, all attributes of the `body` object are deserialized *and* validated.
+
+For more details on Nest.js Pipes and Validation, see https://docs.nestjs.com/techniques/validation
+
+***NOTE***: Like with the Frontend, your DTO **MUST** be a *class* and **MUST** use *class-validator decorators* otherwise it will not work. If your DTO is a `type`, `interface`, etc. just *assume* that it won't be validated nor deserialized entirely.
+
+##### Frontend Deserialization (and Validation)
+
+By default, any data sent from the backend to the frontend seems to have some basic deserialization done (perhaps done automatically by Axios). This means if your endpoint returns data that's just basic objects, arrays, strings, and integers, it should appear to work fine. Most of our endpoints are like this, actually (but probably shouldn't be). If your endpoint returns something like a Date, this will remain as a string unless deserialized or has a proper DTO setup.
+
+Also, currently we don't *really* validate the data given by the backend, which is technically a security vulnerability if our Backend is compromised and starts sending bad data to clients. I mean we have some, like React already auto-escapes HTML, but the key thing is that our backend can return *different* data than what the DTO says it returns without a proper setup.
+
+Now, if you want to make your Frontend do validation and deserialization, follow the example below.
+
+For this frontend api method (inside `frontend/app/api/index.ts`)...
+```ts
+getAllProfInvites: async (
+  orgId: number,
+  courseId?: number,
+): Promise<GetProfInviteResponse[]> =>
+  this.req(
+    'GET',
+    `/api/v1/prof_invites/all/${orgId}`,
+    undefined,
+    undefined,
+    { courseId },
+  ),
+```
+...and corresponding response class DTO inside `common/index.ts`...
+```ts
+export class GetProfInviteResponse {
+  @IsString()
+  code!: string
+  @Type(() => Date)
+  expiresAt!: Date
+}
+```
+... this would have the issue where all my `expiresAt` times would be strings like `"2012-01-04T20:00:00.000Z"`. You *could* fix this by just putting `new Date(invite.expiresAt)` around each time you use it, but there's a proper way to do it so it happens automatically. 
+
+To do so:
+1. Put your response class as a generic to the `req` method
+2. Pass your response class as a parameter to the `req` method
+```ts
+getAllProfInvites: async (
+  orgId: number,
+  courseId?: number,
+): Promise<GetProfInviteResponse[]> =>
+  this.req<GetProfInviteResponse[]>( // 1
+    'GET',
+    `/api/v1/prof_invites/all/${orgId}`,
+    GetProfInviteResponse, // 2
+    undefined,
+    { courseId },
+  ),
+```
+
+And just like that, your dates are now deserialized automatically! Additionally, if you added proper class validators like `IsString()`, `IsEnum()`, etc., you will have validated the backend output as well, improving security in case the backend gets compromised!
+
+***NOTE***: Like with the Backend, your DTO **MUST** be a *class* and **MUST** use *class-validator decorators* otherwise it will not work. If your DTO is a `type`, `interface`, etc. just *assume* that it won't be validated nor deserialized entirely.
+
 #### TypeORM
 
 ORM stands for Object-Relational Mapping. It's used to transform database rows into javascript objects. There are many ORMs out there, but long ago the original devs chose TypeORM as their ORM of choice (probably because it's one of the first listed ORMs in the Nest.js docs).
 
 This section may be expanded upon in the future, but for now it might be best to just look at how other services/controllers do queries and kinda copy that.
+
+##### Entities (Database Schema)
+
+The `table_name.entity.ts` files define the tables of our database schema and their relationships with one another. 
+
+For more general information around entities and different column types, check out the (typeORM docs)[https://typeorm.io/docs/entity/entities/]
+
+###### Editing Entities (& Migrations)
+
+If you want to add/delete/edit a table column, note that you must also generate a migration file. The migration files works as a history of database schema changes and can be re-used to reconstruct or roll-back the database schema. 
+
+You can generate a migration file with: `yarn migration:generate ./migration/your-migration-name -d ./typeORMCLI.config.ts`. Note that this will wipe your dev database. If you want to keep it, you can make a backup by running the commands:
+
+- `docker exec -u postgres helpme-postgresql-1 pg_dumpall -U postgres | gzip > backups/my_dev_backup.sql.gz` Creates backup (do before running migration)
+- `docker exec -i helpme-postgresql-1 psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS dev; DROP DATABASE IF EXISTS chatbot;"` Wipes the databases (do after running migration)
+- `gunzip -c backups/my_dev_backup.sql | docker exec -i helpme-postgresql-1 psql -U postgres` to restore the backup.
+
+You may need to adjust the commands slightly depending on the name of your docker container name or postgres admin username (they might also incorrect, I haven't tested them in a bit -Adam).
+
+Additionally, if your database change requires some custom query to update old production data, you can add it in your migration file (just don't forget to also define a `down` step too so the query can be un-done).
+
+In `dev` mode, all changes to database schema happen automatically and you won't need to run the migrations. Though there can some [quirks](#known-quirks-when-developing) if there's preexisting data that is illegal in the schema, but you will get a detailed error message to let you know what to fix.
 
 ##### Examples of typeorm runtime errors
 
@@ -424,6 +583,21 @@ Some examples of where this is used:
 
 See https://orkhan.gitbook.io/typeorm/docs/listeners-and-subscribers for more info
 
+
+## Known Quirks when Developing
+
+If you have any ideas on where to even start with fixing these, feel free to give them a stab!
+
+- Sometimes the HMR/hot reload/hot refresh (the thing that immediately rebuilds your running code after saving) doesn't work for the Nestjs server. Sometimes this is a result of it just taking an extra minute to rebuild. Other times it's just stuck and you will need to `ctrl`+`c` the terminal and run `yarn dev` again. 
+- Sometimes the tests will just start failing on dev (usually with database connection errors, deadlock, or some table already existing). Restarting your computer *might* help
+- There's like a 1 in 40 chance or so that the tests will fail on github actions with one of the errors listed above
+- UI randomly looking funky with no changes? This is very uncommon, but it could be antd updating their css (even though we're using a package manager so we *should* be getting the same version each time. But, I did read somewhere that yarn and other package managers will download newer minor versions of packages even though we have a smaller version in our package.json), or maybe browser caching issue (try `ctrl`+`F5`. It's usually not this but a man can dream).
+- You might run into issues when switching between branches with different migrations (i.e. the database has a different schema between branches) which conflict in some way (typeorm usually resolves fine, but it will error if, for example, a field gets NULL in a non-nullable column). There are a couple of things you can do to fix this.
+  - Before switching branches, clear all data using the `/dev` endpoint. (easier)
+  - Run either an UPDATE or DELETE SQL query to fix the data (easier if you have beekeeper studio or some other nice UI connected to the database)
+- There's more, I'm sure of it
+
+
 # History
 
 The system was first forked off of [Khoury College's Office Hours system](https://github.com/sandboxnu/office-hours) to be adapted and used for UBCO. The first major test of the system was in COSC 404 in 2022W and was used for hybrid office hours and lab sessions. The results were a resounding success, as the queueing system allowed for labs and office hours to much more easily be managed, cutting confusion for both staff and students. The system also allowed professors to gather insights about what type of questions are being asked and when, which they can then integrate into the design of their courses. 
@@ -454,6 +628,100 @@ During the 2024 Summer, a massive undertaking was done to refactor and re-write 
 [2025-04] Finally updated the typeorm version from 0.2.x to 0.3.x. You can now rely on typeorm documentation and it will be accurate (doing this also fixes a 9.7 critical vulnerability and allows us to start running migrations on prod)
 
 [2025-05] Upgraded from Next.js v14 to v15. The most notable advantage of this is it now uses the React 19 compiler, making useCallback and useMemo not really necessary, plus other free performance gains. Also started using turbopack for dev for faster compile times (making it easier to manually test). Though production build still uses webpack since sentry does not support it yet.
+
+## Contributors (by commit count, not including merges)
+
+Commit count obviously is gonna be kinda innacurate for getting an exact idea of how much someone put into the project (since commits vary wildly in how much is put into them, also changing based on the person's commit habits), but it can give a rough idea. I think the cool part of how many different people worked on it.
+
+Command being ran: `git shortlog -sn --no-merges`
+
+### Chatbot Repo
+
+- 67  bhunt02
+- 46  wskksw 
+- 43  Adam Fipke
+- 23  JasonR24
+-  3  Akshat-Kalra
+-  2  Bridgette Hunt
+-  2  Dmytro Zhuravel
+-  2  Karel Joshua Harjono
+-  2  Patrick Ma
+
+### Current HelpMe Repo 
+(last updated 2026-04-08)
+
+- 1031  Adam Fipke
+-  279  bhunt02
+-  180  Patrick Ma
+-   84  wskksw
+-   66  kjassani
+-   65  mahigangal
+-   63  MithishR
+-   49  patrickma6199
+-   41  Akshat-Kalra
+-   32  Dima Zhuravel
+-   29  ribhavsharma
+-   22  frasermuller
+-   21  Eneshjakhar
+-   20  Akshat
+-   20  Bridgette Hunt
+-   10  Mithish
+-    9  Dmytro Zhuravel
+-    6  karelharjono
+-    3  Ramon Lawrence
+-    3  ribhav sharma
+-    2  FabianLCH
+-    2  root
+-    1  Ferdinand
+
+### Old HelpMe Repo
+
+Most of these contributors are from the original Khoury College people.
+
+- 601  dajinchu
+- 460  willstenzel
+- 407  NEUDitao
+- 217  Stanley Liu
+- 154  Iris
+- 148  Danish Farooq
+- 100  aislinblack
+-  87  Adam Fipke
+-  81  Da-Jin Chu
+-  72  Neel Bhalla
+-  69  Dima Zhuravel
+-  68  wskksw
+-  62  kevin wang
+-  59  Ferdinand
+-  59  tiingweii-shii
+-  58  ofloody
+-  50  brianyyang
+-  33  wstenzel
+-  32  sumitde22
+-  27  meebs
+-  25  JasonR24
+-  22  Alex Takayama
+-  20  Nicole Danuwidjaja
+-  12  dependabot[bot]
+-  11  IrisLiu-00
+-  10  Vera
+-   9  dfarooq610
+-   8  Vera Kong
+-   7  Juan Tavera
+-   7  Will Stenzel
+-   5  Ferdinand Haaben
+-   5  Olivia Floody
+-   4  ashdawngary
+-   3  Dmytro Zhuravel
+-   3  Eddy Li
+-   3  VKong6019
+-   2  Edward Li
+-   2  Isabel B
+-   2  liustanley
+-   2  nicoledanuwidjaja
+-   1  Hussain Khalil
+-   1  bugsalexander
+-   1  ethan-leba
+
 
 # TODO
 

@@ -29,7 +29,6 @@ import {
   checkCourseCreatePermissions,
   getErrorMessage,
 } from '@/app/utils/generalUtils'
-import { userApi } from '@/app/api/userApi'
 import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 
@@ -89,14 +88,16 @@ export default function AddCoursePage(): ReactElement {
         setOrganizationSemesters(
           semesters.filter(
             (semester) =>
-              semester.endDate && new Date(semester.endDate) > new Date(),
+              semester.endDate &&
+              (new Date(semester.endDate) > new Date() ||
+                new Date(semester.endDate) < new Date('1971-01-01')), // show the test semester, which has an end date of before 1971
           ), // filter out past semesters
         )
       })
       .catch((_) => {
         message.error('Failed to fetch semesters for organization')
       })
-  }, [])
+  }, [userInfo.organization?.orgId])
 
   useEffect(() => {
     if (userInfo && organizationSettings) {
@@ -146,7 +147,7 @@ export default function AddCoursePage(): ReactElement {
       .then(async () => {
         message.success('Course was created')
         // need to update userInfo so the course shows up in /courses
-        await userApi.getUser().then((userDetails) => {
+        await API.profile.getUser().then((userDetails) => {
           setUserInfo(userDetails)
           router.push('/courses')
         })
@@ -183,7 +184,7 @@ export default function AddCoursePage(): ReactElement {
                   asyncCentreAIAnswers: true,
                   scheduleOnFrontPage: false,
                 }}
-                onValuesChange={(changedValues, allValues) => {
+                onValuesChange={(changedValues) => {
                   if (changedValues.asyncQueueEnabled === false) {
                     form.setFieldsValue({ asyncCentreAIAnswers: false })
                   }
@@ -226,7 +227,7 @@ export default function AddCoursePage(): ReactElement {
                     <Form.Item
                       label="Coordinator Email"
                       name="coordinatorEmail"
-                      tooltip="Email of the coordinator of the course"
+                      tooltip="Email of the coordinator/instructor of the course"
                     >
                       <Input allowClear={true} />
                     </Form.Item>
@@ -258,9 +259,6 @@ export default function AddCoursePage(): ReactElement {
                       label="Course Timezone"
                       name="courseTimezone"
                       tooltip="Timezone of the course"
-                      rules={[
-                        { required: true, message: 'Please select a timezone' },
-                      ]}
                     >
                       <Select>
                         {COURSE_TIMEZONES.map((timezone) => (
@@ -277,7 +275,7 @@ export default function AddCoursePage(): ReactElement {
                       label="Semester"
                       name="semesterId"
                       className="flex-1"
-                      rules={[{ required: false }]}
+                      rules={[{ required: true }]}
                     >
                       <Select
                         placeholder="Select Semester"

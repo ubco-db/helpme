@@ -13,6 +13,7 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   Res,
   UploadedFile,
   UseGuards,
@@ -42,7 +43,10 @@ export class ProfileController {
   @SkipThrottle()
   @Get()
   @UseGuards(JwtAuthGuard)
-  async get(@UserId() userId: number): Promise<GetProfileResponse> {
+  async get(
+    @Req() request: any,
+    @UserId() userId: number,
+  ): Promise<GetProfileResponse> {
     if (userId === null || userId === undefined) {
       console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
       throw new HttpException(
@@ -82,10 +86,16 @@ export class ProfileController {
         await this.redisProfileService.setProfile(`u:${user.id}`, profile);
       }
 
-      return profile;
+      return {
+        ...profile,
+        restrictPaths: request?.user?.restrictPaths,
+      };
     } else {
       console.log('Fetching profile from Redis');
-      return redisRecord;
+      return {
+        ...redisRecord,
+        restrictPaths: request?.user?.restrictPaths,
+      };
     }
   }
 
@@ -111,6 +121,36 @@ export class ProfileController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit per file
+      },
+      fileFilter: (req, file, cb) => {
+        // Check mimetype
+        if (!file.mimetype.startsWith('image/')) {
+          cb(new Error('Only image files are allowed'), false);
+          return;
+        }
+        // Check file extension
+        const allowedExtensions = [
+          '.jpg',
+          '.jpeg',
+          '.png',
+          '.gif',
+          '.webp',
+          '.bmp',
+          '.svg',
+          '.tiff',
+          '.gif',
+        ];
+        const fileExt = file.originalname
+          .toLowerCase()
+          .substring(file.originalname.lastIndexOf('.'));
+        if (!allowedExtensions.includes(fileExt)) {
+          cb(new Error('Only image files are allowed'), false);
+          return;
+        }
+        cb(null, true);
+      },
     }),
   )
   async uploadImage(
@@ -199,5 +239,13 @@ export class ProfileController {
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .send({ message: 'Error reading changelogs' });
     }
+  }
+
+  // Only 5 calls allowed in 5 minutes
+  @Throttle({ default: { limit: 5, ttl: minutes(5) } })
+  @Delete('/clear_cache')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  async clearCache(@UserId() userId: number): Promise<void> {
+    await this.redisProfileService.deleteProfile(`u:${userId}`);
   }
 }

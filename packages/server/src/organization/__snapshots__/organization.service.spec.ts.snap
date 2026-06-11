@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`OrganizationService deleteUserCourses should throw not found exception if user does not exist 1`] = `"User with id 0 not found"`;
 
@@ -7,6 +7,7 @@ exports[`OrganizationService getCourses should return organization courses 1`] =
   {
     "courseId": 1,
     "courseName": "CS 304",
+    "createdAt": 2020-01-01T00:00:00.000Z,
     "isEnabled": true,
     "sectionGroupName": "001",
     "semester": {
@@ -18,6 +19,7 @@ exports[`OrganizationService getCourses should return organization courses 1`] =
       "startDate": 2020-09-01T00:00:00.000Z,
     },
     "semesterId": 1,
+    "totalStudents": "0",
   },
 ]
 `;
@@ -27,6 +29,7 @@ exports[`OrganizationService getCourses should return organization courses with 
   {
     "courseId": 1,
     "courseName": "test",
+    "createdAt": 2020-01-01T00:00:00.000Z,
     "isEnabled": true,
     "sectionGroupName": "001",
     "semester": {
@@ -38,6 +41,7 @@ exports[`OrganizationService getCourses should return organization courses with 
       "startDate": 2020-09-01T00:00:00.000Z,
     },
     "semesterId": 1,
+    "totalStudents": "0",
   },
 ]
 `;
@@ -60,16 +64,19 @@ exports[`OrganizationService getOrganizationCourse should return organization co
     "asyncQuestionDisplayTypes": [],
     "coordinator_email": null,
     "courseInviteCode": "invite-code",
+    "createdAt": 2020-01-01T00:00:00.000Z,
     "deletedAt": null,
     "enabled": true,
     "icalURL": "https://calendar.google.com/calendar/ical/t6lu2pic7u9otrbpkuk26sl34g%40group.calendar.google.com/public/basic.ics",
     "id": 1,
+    "isCourseInviteEnabled": true,
     "name": "CS 304",
     "questionTimer": null,
     "sectionGroupName": "001",
     "selfEnroll": false,
     "semester": SemesterModel {
       "color": "blue",
+      "createdAt": 2020-01-01T00:00:00.000Z,
       "description": "Test Semester Description",
       "endDate": "2022-12-31",
       "id": 1,

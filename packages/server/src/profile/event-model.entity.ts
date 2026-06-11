@@ -19,6 +19,8 @@ export enum EventType {
   TA_CHECKED_OUT = 'taCheckedOut',
   TA_CHECKED_OUT_FORCED = 'taCheckedOutForced',
   TA_CHECKED_OUT_EVENT_END = 'taCheckedOutEventEnd',
+  TA_MARKED_SELF_AWAY = 'taMarkedSelfAway',
+  TA_MARKED_SELF_BACK = 'taMarkedSelfBack',
 }
 
 @Entity('event_model')
@@ -40,7 +42,9 @@ export class EventModel extends BaseEntity {
   @Exclude()
   userId: number;
 
-  @ManyToOne((type) => CourseModel, (course) => course.events)
+  @ManyToOne((type) => CourseModel, (course) => course.events, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'courseId' })
   course: CourseModel;
 

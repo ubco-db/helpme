@@ -1,6 +1,7 @@
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
   DeleteDateColumn,
   Entity,
   JoinColumn,
@@ -18,6 +19,9 @@ import { QueueModel } from '../queue/queue.entity';
 export class QuestionTypeModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @CreateDateColumn({ type: 'timestamptz', nullable: true })
+  createdAt: Date;
 
   // since queueId is nullable, we need the courseId to find the question types for the async question centre
   @ManyToOne(() => CourseModel, (course) => course.questionTypes, {

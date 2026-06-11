@@ -16,6 +16,7 @@ import {
   QuestionFactory,
   QuestionTypeFactory,
   QueueFactory,
+  QueueStaffFactory,
   StudentCourseFactory,
   StudentTaskProgressFactory,
   TACourseFactory,
@@ -103,7 +104,10 @@ describe('Question Integration', () => {
       const queue = await QueueFactory.create({
         course: course,
         allowQuestions: true,
-        staffList: [ta.user],
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta.user,
       });
 
       const questionType = await QuestionTypeFactory.create({
@@ -152,7 +156,10 @@ describe('Question Integration', () => {
       const queue = await QueueFactory.create({
         course: course,
         allowQuestions: true,
-        staffList: [ta.user],
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta.user,
       });
 
       await StudentCourseFactory.create({ user, courseId: queue.courseId });
@@ -187,7 +194,10 @@ describe('Question Integration', () => {
       const queue = await QueueFactory.create({
         course: course,
         allowQuestions: true,
-        staffList: [ta.user],
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta.user,
       });
 
       const questionTypes = [];
@@ -243,7 +253,10 @@ describe('Question Integration', () => {
       const queueImNotIn = await QueueFactory.create({
         allowQuestions: true,
         course: course,
-        staffList: [ta.user],
+      });
+      await QueueStaffFactory.create({
+        queue: queueImNotIn,
+        user: ta.user,
       });
 
       const user = await UserFactory.create();
@@ -331,12 +344,18 @@ describe('Question Integration', () => {
       const queue1 = await QueueFactory.create({
         allowQuestions: true,
         course: course,
-        staffList: [ta2.user],
+      });
+      await QueueStaffFactory.create({
+        queue: queue1,
+        user: ta2.user,
       });
       const queue2 = await QueueFactory.create({
         allowQuestions: true,
         course: course,
-        staffList: [ta.user],
+      });
+      await QueueStaffFactory.create({
+        queue: queue2,
+        user: ta.user,
       });
 
       await StudentCourseFactory.create({
@@ -381,7 +400,6 @@ describe('Question Integration', () => {
       const queue1 = await QueueFactory.create({
         allowQuestions: true,
         course: course,
-        staffList: [ta2.user],
         config: {
           assignment_id: 'assignment1',
           tasks: {
@@ -394,10 +412,13 @@ describe('Question Integration', () => {
           },
         },
       });
+      await QueueStaffFactory.create({
+        queue: queue1,
+        user: ta2.user,
+      });
       const queue2 = await QueueFactory.create({
         allowQuestions: true,
         course: course,
-        staffList: [ta.user],
         config: {
           assignment_id: 'assignment2',
           tasks: {
@@ -410,7 +431,10 @@ describe('Question Integration', () => {
           },
         },
       });
-
+      await QueueStaffFactory.create({
+        queue: queue2,
+        user: ta.user,
+      });
       await StudentCourseFactory.create({
         userId: user.id,
         courseId: course.id,
@@ -448,7 +472,6 @@ describe('Question Integration', () => {
       const queue = await QueueFactory.create({
         allowQuestions: true,
         course: course,
-        staffList: [ta.user],
         config: {
           assignment_id: 'assignment1',
           tasks: {
@@ -461,7 +484,10 @@ describe('Question Integration', () => {
           },
         },
       });
-
+      await QueueStaffFactory.create({
+        queue,
+        user: ta.user,
+      });
       await StudentCourseFactory.create({
         userId: user.id,
         courseId: course.id,
@@ -491,8 +517,11 @@ describe('Question Integration', () => {
       const queue = await QueueFactory.create({
         allowQuestions: true,
         course: course,
-        staffList: [ta.user],
         config: {},
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta.user,
       });
 
       await StudentCourseFactory.create({
@@ -525,7 +554,6 @@ describe('Question Integration', () => {
       const queue = await QueueFactory.create({
         allowQuestions: true,
         course: course,
-        staffList: [ta.user],
         config: {
           assignment_id: 'assignment1',
           tasks: {
@@ -537,6 +565,10 @@ describe('Question Integration', () => {
             },
           },
         },
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta.user,
       });
 
       await StudentCourseFactory.create({
@@ -572,12 +604,14 @@ describe('Question Integration', () => {
       const queue1 = await QueueFactory.create({
         allowQuestions: true,
         course: course,
-        staffList: [ta2.user],
+      });
+      await QueueStaffFactory.create({
+        queue: queue1,
+        user: ta2.user,
       });
       const queue2 = await QueueFactory.create({
         allowQuestions: true,
         course: course,
-        staffList: [ta.user],
         config: {
           assignment_id: 'assignment1',
           tasks: {
@@ -590,7 +624,10 @@ describe('Question Integration', () => {
           },
         },
       });
-
+      await QueueStaffFactory.create({
+        queue: queue2,
+        user: ta.user,
+      });
       await StudentCourseFactory.create({
         userId: user.id,
         courseId: course.id,
@@ -645,12 +682,18 @@ describe('Question Integration', () => {
       const queue1 = await QueueFactory.create({
         allowQuestions: true,
         course: course1,
-        staffList: [ta1.user],
+      });
+      await QueueStaffFactory.create({
+        queue: queue1,
+        user: ta1.user,
       });
       const queue2 = await QueueFactory.create({
         allowQuestions: true,
         course: course2,
-        staffList: [ta2.user],
+      });
+      await QueueStaffFactory.create({
+        queue: queue2,
+        user: ta2.user,
       });
       await StudentCourseFactory.create({
         userId: user.id,
@@ -692,7 +735,10 @@ describe('Question Integration', () => {
       const queue = await QueueFactory.create({
         allowQuestions: true,
         course: course,
-        staffList: [ta.user],
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta.user,
       });
 
       await StudentCourseFactory.create({
@@ -735,7 +781,10 @@ describe('Question Integration', () => {
       // Make them student
       const queue = await QueueFactory.create({
         allowQuestions: true,
-        staffList: [ta.user],
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta.user,
       });
 
       await StudentCourseFactory.create({
@@ -768,8 +817,11 @@ describe('Question Integration', () => {
 
       // Make them student
       const queue = await QueueFactory.create({
-        staffList: [ta.user],
         allowQuestions: true,
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta.user,
       });
 
       await StudentCourseFactory.create({
@@ -855,8 +907,11 @@ describe('Question Integration', () => {
       await TACourseFactory.create({ courseId: course.id, userId: ta.id });
       const queue = await QueueFactory.create({
         course: course,
-        staffList: [ta],
         allowQuestions: true,
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta,
       });
       const student = await UserFactory.create();
       await StudentCourseFactory.create({
@@ -925,7 +980,10 @@ describe('Question Integration', () => {
       await TACourseFactory.create({ course: course, user: ta });
       const queue = await QueueFactory.create({
         course: course,
-        staffList: [ta],
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta,
       });
       const student = await UserFactory.create();
       await StudentCourseFactory.create({
@@ -1116,8 +1174,11 @@ describe('Question Integration', () => {
         user: await UserFactory.create(),
       });
       const queue = await QueueFactory.create({
-        staffList: [ta.user],
         courseId: course.id,
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta.user,
       });
 
       const user = await UserFactory.create();
@@ -1159,7 +1220,10 @@ describe('Question Integration', () => {
 
       const queue = await QueueFactory.create({
         courseId: course.id,
-        staffList: [ta],
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta,
       });
 
       const student = await UserFactory.create();
@@ -1191,7 +1255,10 @@ describe('Question Integration', () => {
       await TACourseFactory.create({ course: course, user: ta });
       const queue = await QueueFactory.create({
         courseId: course.id,
-        staffList: [ta],
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta,
       });
 
       const student = await UserFactory.create();
@@ -1205,12 +1272,19 @@ describe('Question Integration', () => {
         queue: queue,
       });
 
-      await supertest({ userId: q.creatorId })
-        .patch(`/questions/${q.id}`)
-        .send({
-          status: QuestionStatusKeys.Helping,
-        })
-        .expect(401);
+      const consoleSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      try {
+        await supertest({ userId: q.creatorId })
+          .patch(`/questions/${q.id}`)
+          .send({
+            status: QuestionStatusKeys.Helping,
+          })
+          .expect(403);
+      } finally {
+        consoleSpy.mockRestore();
+      }
     });
     it('PATCH status to helping as TA works', async () => {
       const course = await CourseFactory.create();
@@ -1218,7 +1292,10 @@ describe('Question Integration', () => {
       await TACourseFactory.create({ course: course, user: ta });
       const queue = await QueueFactory.create({
         course: course,
-        staffList: [ta],
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta,
       });
 
       const question = await QuestionFactory.create({
@@ -1249,7 +1326,10 @@ describe('Question Integration', () => {
       await TACourseFactory.create({ course: course, user: ta });
       const queue = await QueueFactory.create({
         course: course,
-        staffList: [ta],
+      });
+      await QueueStaffFactory.create({
+        queue,
+        user: ta,
       });
 
       const q = await QuestionFactory.create({
@@ -1276,7 +1356,11 @@ describe('Question Integration', () => {
 
       const q = await QuestionFactory.create({
         text: 'Help pls',
-        queue: await QueueFactory.create({ course: course, staffList: [ta] }),
+        queue: await QueueFactory.create({ course: course }),
+      });
+      await QueueStaffFactory.create({
+        queue: q.queue,
+        user: ta,
       });
       const qt = await QuestionTypeFactory.create({
         cid: course.id,
@@ -1295,13 +1379,24 @@ describe('Question Integration', () => {
           questionTypes: [{ id: qt.id }],
         })
         .expect(200);
-      await supertest({ userId: ta.id })
-        .patch(`/questions/${q.id}`)
-        .send({
-          isTaskQuestion: true,
-        })
-        .expect(401);
-
+      const consoleSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      try {
+        const res = await supertest({ userId: ta.id })
+          .patch(`/questions/${q.id}`)
+          .send({
+            isTaskQuestion: true,
+          })
+          .expect(403);
+        expect(res.body?.message).toBe(
+          ERROR_MESSAGES.questionController.updateQuestion.taOnlyEditQuestionStatus(
+            ['isTaskQuestion'],
+          ),
+        );
+      } finally {
+        consoleSpy.mockRestore();
+      }
       const updatedQuestion = await QuestionModel.findOne({
         where: { id: q.id },
       });
@@ -1312,6 +1407,7 @@ describe('Question Integration', () => {
       expect(updatedQuestion.questionTypes[0]).toEqual({
         cid: qt.cid,
         color: qt.color,
+        createdAt: qt.createdAt,
         deletedAt: null,
         id: qt.id,
         name: qt.name,
@@ -1324,15 +1420,31 @@ describe('Question Integration', () => {
       const ta = await UserFactory.create();
       await TACourseFactory.create({ course: q.queue.course, user: ta });
 
-      q.queue.staffList.push(ta);
+      await QueueStaffFactory.create({
+        queue: q.queue,
+        user: ta,
+      });
 
-      const res = await supertest({ userId: ta.id })
-        .patch(`/questions/${q.id}`)
-        .send({
-          status: ClosedQuestionStatus.ConfirmedDeleted,
-        })
-        .expect(401);
-      expect(res.body?.message).toContain('ta cannot change status from ');
+      const consoleSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      try {
+        const res = await supertest({ userId: ta.id })
+          .patch(`/questions/${q.id}`)
+          .send({
+            status: ClosedQuestionStatus.ConfirmedDeleted,
+          })
+          .expect(403);
+        expect(res.body?.message).toContain(
+          ERROR_MESSAGES.questionController.updateQuestion.fsmViolation(
+            Role.TA,
+            q.status,
+            ClosedQuestionStatus.ConfirmedDeleted,
+          ),
+        );
+      } finally {
+        consoleSpy.mockRestore();
+      }
     });
     it('PATCH question fails when you are not the question creator', async () => {
       const q = await QuestionFactory.create({ text: 'Help pls' });
@@ -1343,16 +1455,23 @@ describe('Question Integration', () => {
         user: student,
       });
 
-      const res = await supertest({ userId: student.id })
-        .patch(`/questions/${q.id}`)
-        .send({
-          text: 'bonjour',
-        })
-        .expect(401);
+      const consoleSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      try {
+        const res = await supertest({ userId: student.id })
+          .patch(`/questions/${q.id}`)
+          .send({
+            text: 'bonjour',
+          })
+          .expect(403);
 
-      expect(res.body?.message).toBe(
-        'Logged-in user does not have edit access',
-      );
+        expect(res.body?.message).toBe(
+          ERROR_MESSAGES.questionController.updateQuestion.loginUserCantEdit,
+        );
+      } finally {
+        consoleSpy.mockRestore();
+      }
     });
     it('User not in course cannot patch a question', async () => {
       const course = await CourseFactory.create();
@@ -1387,7 +1506,7 @@ describe('Question Integration', () => {
 
       const ta = await UserFactory.create();
       await TACourseFactory.create({ courseId: queue.courseId, user: ta });
-      queue.staffList.push(ta);
+      await QueueStaffFactory.create({ queue: queue, user: ta });
 
       await supertest({ userId: ta.id })
         .patch(`/questions/${q1.id}`)
@@ -1410,7 +1529,6 @@ describe('Question Integration', () => {
       await StudentCourseFactory.create({ course: course, user: student });
       const queue = await QueueFactory.create({
         course: course,
-        staffList: [ta],
         config: {
           assignment_id: 'assignment1',
           tasks: {
@@ -1429,6 +1547,7 @@ describe('Question Integration', () => {
           },
         },
       });
+      await QueueStaffFactory.create({ queue: queue, user: ta });
 
       await StudentTaskProgressFactory.create({
         user: student,
@@ -1490,7 +1609,6 @@ describe('Question Integration', () => {
       await StudentCourseFactory.create({ course: course2, user: student });
       const queue = await QueueFactory.create({
         course: course,
-        staffList: [ta],
         config: {
           assignment_id: 'assignment1',
           tasks: {
@@ -1509,6 +1627,7 @@ describe('Question Integration', () => {
           },
         },
       });
+      await QueueStaffFactory.create({ queue: queue, user: ta });
       const queue2 = await QueueFactory.create({
         course: course2,
         config: {
@@ -1598,7 +1717,6 @@ describe('Question Integration', () => {
       await StudentCourseFactory.create({ course: course, user: student });
       const queue = await QueueFactory.create({
         course: course,
-        staffList: [ta],
         config: {
           assignment_id: 'assignment1',
           tasks: {
@@ -1617,6 +1735,7 @@ describe('Question Integration', () => {
           },
         },
       });
+      await QueueStaffFactory.create({ queue: queue, user: ta });
 
       await StudentTaskProgressFactory.create({
         user: student,
@@ -1678,7 +1797,6 @@ describe('Question Integration', () => {
       await StudentCourseFactory.create({ course: course, user: student });
       const queue = await QueueFactory.create({
         course: course,
-        staffList: [ta],
         config: {
           assignment_id: 'assignment1',
           tasks: {
@@ -1697,6 +1815,7 @@ describe('Question Integration', () => {
           },
         },
       });
+      await QueueStaffFactory.create({ queue: queue, user: ta });
 
       await StudentTaskProgressFactory.create({
         user: student,
@@ -1786,7 +1905,6 @@ describe('Question Integration', () => {
       });
       const queue = await QueueFactory.create({
         course: course,
-        staffList: [ta],
         config: {
           assignment_id: 'assignment1',
           tasks: {
@@ -1805,6 +1923,7 @@ describe('Question Integration', () => {
           },
         },
       });
+      await QueueStaffFactory.create({ queue: queue, user: ta });
 
       const q1 = await QuestionFactory.create({
         text: 'Mark "task1" "task2"',
@@ -1856,7 +1975,6 @@ describe('Question Integration', () => {
       await StudentCourseFactory.create({ course: course, user: student });
       const queue = await QueueFactory.create({
         course: course,
-        staffList: [ta],
         config: {
           assignment_id: 'assignment1',
           tasks: {
@@ -1875,6 +1993,7 @@ describe('Question Integration', () => {
           },
         },
       });
+      await QueueStaffFactory.create({ queue: queue, user: ta });
 
       await StudentTaskProgressFactory.create({
         user: student,
@@ -1933,7 +2052,6 @@ describe('Question Integration', () => {
       await StudentCourseFactory.create({ course: course, user: student });
       const queue = await QueueFactory.create({
         course: course,
-        staffList: [ta],
         config: {
           tasks: {
             task1: {
@@ -1951,6 +2069,7 @@ describe('Question Integration', () => {
           },
         },
       });
+      await QueueStaffFactory.create({ queue: queue, user: ta });
 
       await StudentTaskProgressFactory.create({
         user: student,
@@ -2013,7 +2132,6 @@ describe('Question Integration', () => {
       await StudentCourseFactory.create({ course: course, user: student });
       const queue = await QueueFactory.create({
         course: course,
-        staffList: [ta],
         config: {
           assignment_id: 'assignment1',
           tasks: {
@@ -2032,6 +2150,7 @@ describe('Question Integration', () => {
           },
         },
       });
+      await QueueStaffFactory.create({ queue: queue, user: ta });
 
       const q1 = await QuestionFactory.create({
         text: 'Mark "task1"',
@@ -2060,7 +2179,6 @@ describe('Question Integration', () => {
       await StudentCourseFactory.create({ course: course, user: student });
       const queue = await QueueFactory.create({
         course: course,
-        staffList: [ta],
         config: {
           assignment_id: 'assignment1',
           tasks: {
@@ -2079,6 +2197,7 @@ describe('Question Integration', () => {
           },
         },
       });
+      await QueueStaffFactory.create({ queue: queue, user: ta });
 
       const q1 = await QuestionFactory.create({
         text: 'Mark "task1"',
@@ -2105,7 +2224,6 @@ describe('Question Integration', () => {
       await TACourseFactory.create({ course: course, user: ta });
       const queue = await QueueFactory.create({
         course: course,
-        staffList: [ta],
         config: {
           assignment_id: 'assignment1',
           tasks: {
@@ -2124,6 +2242,7 @@ describe('Question Integration', () => {
           },
         },
       });
+      await QueueStaffFactory.create({ queue: queue, user: ta });
       const student = await UserFactory.create();
       await StudentCourseFactory.create({
         user: student,
@@ -2157,8 +2276,8 @@ describe('Question Integration', () => {
       await TACourseFactory.create({ course: course, user: ta });
       const queue = await QueueFactory.create({
         course: course,
-        staffList: [ta],
       });
+      await QueueStaffFactory.create({ queue: queue, user: ta });
       const student = await UserFactory.create();
       await StudentCourseFactory.create({
         user: student,

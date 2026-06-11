@@ -33,6 +33,7 @@ interface CommentSectionProps {
   showStudents: boolean
   className?: string
   defaultAnonymousSetting: boolean
+  mutateAsyncQuestions: () => void
 }
 
 const CommentSection: React.FC<CommentSectionProps> = ({
@@ -44,6 +45,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   showStudents,
   className,
   defaultAnonymousSetting,
+  mutateAsyncQuestions,
 }) => {
   const [commentInputValue, setCommentInputValue] = useState('')
   const [isPostCommentLoading, setIsPostCommentLoading] = useState(false)
@@ -72,6 +74,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       dispatchUIStateChange,
       regenerateComments,
       regenerateCommentsFlag,
+      mutateAsyncQuestions,
     )
   }, [
     question.id,
@@ -82,6 +85,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     dispatchUIStateChange,
     regenerateCommentsFlag,
     defaultAnonymousSetting,
+    mutateAsyncQuestions,
   ])
 
   const anonymityOverwriteCount = useMemo(
@@ -117,25 +121,27 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               ? (question.isAnonymous ?? defaultAnonymousSetting)
               : isAnonymous,
       })
-      .then((comments) => {
+      .then((myComments) => {
         dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
         message.success('Comment posted successfully')
-        comments.forEach((c) => {
+        myComments.forEach((c) => {
           if (c.creator) {
             c.creator.courseRole = userCourseRole
           }
         })
-        const ids = comments.map((c) => c.id)
+        const ids = myComments.map((c) => c.id)
         question.comments.forEach((c) => {
-          if (!ids.includes(c.id)) return
-          c.isAnonymous = comments[0].isAnonymous
+          if (!ids.includes(c.id)) return // if for some reason they don't match
+          c.isAnonymous = myComments[0].isAnonymous // the anonymity of all of them now match the new one
         })
-        question.comments.push(comments[0])
-        setIsPostCommentLoading(false)
+        question.comments.push(myComments[0])
         regenerateComments(!regenerateCommentsFlag)
       })
       .catch((e) => {
         message.error('Failed to post reply: ' + getErrorMessage(e))
+      })
+      .finally(() => {
+        setIsPostCommentLoading(false)
       })
   }
 
@@ -380,9 +386,15 @@ function generateCommentProps(
   dispatchUIStateChange: (action: Action) => void,
   regenerateComments: (flag: boolean) => void,
   regenerateCommentsFlag: boolean,
+  mutateAsyncQuestions: () => void,
 ): CommentProps[] | undefined {
-  // first sort the comments by createdAt DESC (so oldest comments appear first)
-  comments.sort((a, b) => moment(a.createdAt).diff(moment(b.createdAt)))
+  // Sort endorsed comments to the top, then by createdAt ascending (oldest first)
+  comments.sort((a, b) => {
+    const aEndorsed = a.endorsedBy ? 1 : 0
+    const bEndorsed = b.endorsedBy ? 1 : 0
+    if (aEndorsed !== bEndorsed) return bEndorsed - aEndorsed
+    return moment(a.createdAt).diff(moment(b.createdAt))
+  })
 
   const newComments: CommentProps[] = []
   for (const comment of comments) {
@@ -425,6 +437,10 @@ function generateCommentProps(
       showStudents,
       dispatchUIStateChange,
       numOtherComments: otherUserComments.length,
+      endorsedBy: comment.endorsedBy ?? null,
+      onEndorseSuccess: () => {
+        mutateAsyncQuestions()
+      },
     })
   }
 

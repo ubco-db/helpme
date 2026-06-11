@@ -8,6 +8,7 @@ import {
   CourseResponse,
   ERROR_MESSAGES,
   GetOrganizationUserResponse,
+  GetOrganizationUsersPaginatedResponse,
   OrganizationRole,
   OrganizationRoleHistoryFilter,
   OrganizationRoleHistoryResponse,
@@ -137,11 +138,13 @@ export class OrganizationService {
         'CourseModel.enabled as isEnabled',
         'CourseModel.sectionGroupName as sectionGroupName',
         'CourseModel.semesterId as semesterId',
+        'CourseModel.createdAt as createdAt',
         'SemesterModel.name as semesterName',
         'SemesterModel.color as semesterColor',
         'SemesterModel.startDate as semesterStartDate',
         'SemesterModel.endDate as semesterEndDate',
         'SemesterModel.description as semesterDescription',
+        `(SELECT COUNT(*) FROM user_course_model WHERE user_course_model."courseId" = CourseModel.id AND user_course_model."role" = '${Role.STUDENT}') as totalStudents`,
       ])
       // first order by semester end date, then by course name
       .orderBy('SemesterModel.endDate', 'DESC')
@@ -166,6 +169,8 @@ export class OrganizationService {
         isEnabled: course.isenabled,
         sectionGroupName: course.sectiongroupname,
         semesterId: course.semesterid,
+        createdAt: course.createdat,
+        totalStudents: course.totalstudents,
         semester: {
           id: course.semesterid,
           name: course.semestername,
@@ -185,58 +190,39 @@ export class OrganizationService {
     page: number,
     pageSize: number,
     search?: string,
-  ): Promise<OrgUser[]> {
-    const organizationUsers = OrganizationUserModel.createQueryBuilder()
-      .leftJoin(
-        UserModel,
-        'UserModel',
-        'UserModel.id = OrganizationUserModel.userId',
-      )
-      .where('OrganizationUserModel.organizationId = :organizationId', {
+  ): Promise<GetOrganizationUsersPaginatedResponse> {
+    const organizationUsers = OrganizationUserModel.createQueryBuilder(
+      'orgUser',
+    )
+      .leftJoinAndSelect('orgUser.organizationUser', 'user')
+      .where('orgUser.organizationId = :organizationId', {
         organizationId,
       });
 
     if (search) {
-      const likeSearch = `%${search.replace(' ', '')}%`.toUpperCase();
-      organizationUsers.andWhere(
-        new Brackets((q) => {
-          q.where('UPPER("UserModel".name) like :searchString', {
-            searchString: likeSearch,
-          });
-        }),
-      );
+      organizationUsers.andWhere(`user.name ILIKE :search`, {
+        search: `%${search}%`,
+      });
     }
 
-    const users = organizationUsers.select([
-      'UserModel.id as userId',
-      'UserModel.firstName as userFirstName',
-      'UserModel.lastName as userLastName',
-      'UserModel.email as userEmail',
-      'UserModel.photoURL as userPhotoUrl',
-      'UserModel.userRole as userRole',
-      'OrganizationUserModel.role as userOrganizationRole',
-    ]);
+    organizationUsers
+      .orderBy('user.lastName', 'ASC')
+      .skip((page - 1) * pageSize)
+      .take(pageSize);
 
-    const usersSubset = await users
-      .orderBy('UserModel.lastName')
-      .offset((page - 1) * pageSize)
-      .limit(pageSize)
-      // .getMany() wouldn't work here because relations are not working well with getMany()
-      .getRawMany();
+    const [entities, total] = await organizationUsers.getManyAndCount();
 
-    const usersResponse = usersSubset.map((user) => {
-      return {
-        userId: user.userid,
-        firstName: user.userfirstname,
-        lastName: user.userlastname,
-        email: user.useremail,
-        photoUrl: user.userphotourl,
-        userRole: user.userrole,
-        organizationRole: user.userorganizationrole,
-      };
-    });
+    const users: OrgUser[] = entities.map((orgUser) => ({
+      userId: orgUser.organizationUser.id,
+      firstName: orgUser.organizationUser.firstName,
+      lastName: orgUser.organizationUser.lastName,
+      email: orgUser.organizationUser.email,
+      photoUrl: orgUser.organizationUser.photoURL ?? null,
+      userRole: orgUser.organizationUser.userRole,
+      organizationRole: orgUser.role,
+    }));
 
-    return usersResponse;
+    return { users, total };
   }
 
   public async getOrganizationUserByUserId(

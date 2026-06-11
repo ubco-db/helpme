@@ -8,7 +8,8 @@ import { Request } from 'express';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(configService: ConfigService) {
     super({
-      jwtFromRequest: (req: Request) => req.cookies['auth_token'],
+      jwtFromRequest: (req: Request) =>
+        req.cookies['auth_token'] ?? req.cookies['lti_auth_token'],
       ignoreExpiration: false,
       secretOrKey: configService.get('JWT_SECRET'),
     });

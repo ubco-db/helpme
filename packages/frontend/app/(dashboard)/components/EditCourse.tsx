@@ -4,6 +4,7 @@ import { API } from '@/app/api'
 import {
   GetOrganizationResponse,
   OrganizationCourseResponse,
+  OrganizationRole,
   Role,
   User,
 } from '@koh/common'
@@ -11,6 +12,7 @@ import { Card, message, Tooltip } from 'antd'
 import { useEffect, useState } from 'react'
 import EditCourseForm from './EditCourseForm'
 import ArchiveCourse from './ArchiveCourse'
+import DeleteCourse from './DeleteCourse'
 import { useRouter } from 'next/navigation'
 import CourseInviteCode from './CourseInviteCode'
 import CourseFeaturesForm from './CourseFeaturesForm'
@@ -122,7 +124,24 @@ const EditCourse: React.FC<EditCourseProps> = ({
                   <div>Course Invite Link</div>
                   <div className="text-gray-500">
                     <Tooltip
-                      title={`This is the invite link for the course. You must set an invite code (of anything you'd like) before anyone can join your course. Once set, you can share the invite link with your students (e.g. on Canvas). Clearing the invite code will prevent new people from joining your course.`}
+                      title={
+                        <div className="flex flex-col gap-y-2">
+                          <p>
+                            This is the invite link for the course. Once
+                            enabled, you can copy the link and share it with
+                            your students (e.g. Syllabus, Announcement, Lab
+                            sheet) or print the QR code.
+                          </p>
+                          <p>
+                            Later on, once all your students have joined, you
+                            can choose to disable the link.
+                          </p>
+                          <p>
+                            You may also regenerate a new link in case it was
+                            leaked.
+                          </p>
+                        </div>
+                      }
                     >
                       Help <QuestionCircleOutlined />
                     </Tooltip>
@@ -159,6 +178,16 @@ const EditCourse: React.FC<EditCourseProps> = ({
             organization={organization}
             fetchCourseData={fetchCourseData}
           />
+          {userInfo.organization?.organizationRole ===
+            OrganizationRole.ADMIN && (
+            <>
+              <hr className="my-4" />
+              <DeleteCourse
+                courseData={courseData}
+                organization={organization}
+              />
+            </>
+          )}
         </Card>
       </div>
     </>

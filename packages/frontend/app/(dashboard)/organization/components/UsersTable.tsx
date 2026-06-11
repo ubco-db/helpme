@@ -28,6 +28,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
   profile,
   updateFlag = false,
 }) => {
+  const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [input, setInput] = useState('')
   const [search, setSearch] = useState('')
@@ -38,7 +39,8 @@ const UsersTable: React.FC<UsersTableProps> = ({
     await API.organizations
       .getUsers(organization.id, page, search)
       .then((response) => {
-        setUsers(response)
+        setUsers(response.users)
+        setTotal(response.total)
       })
       .catch((error) => {
         const errorMessage = getErrorMessage(error)
@@ -153,9 +155,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
           current={page}
           pageSize={50}
           showQuickJumper
-          // set the total number of users very high so that it shows enough pages
-          // TODO: change the endpoint so it actually returns the total number of users
-          total={5000}
+          total={total}
           onChange={(page) => setPage(page)}
           showSizeChanger={false}
         />

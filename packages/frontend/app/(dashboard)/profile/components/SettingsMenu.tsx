@@ -5,9 +5,10 @@ import EditProfile from './EditProfile'
 import {
   BellOutlined,
   BookOutlined,
-  SettingFilled,
-  UserOutlined,
   HistoryOutlined,
+  KeyOutlined,
+  SettingOutlined,
+  UserOutlined,
 } from '@ant-design/icons'
 import { SettingsOptions } from '@/app/typings/enum'
 import NotificationsSettings from './NotificationsSettings'
@@ -15,7 +16,8 @@ import CoursePreference from './CoursePreference'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 import EmailNotifications from './EmailNotifications'
 import UserChatbotHistory from './UserChatbotHistory'
-import { API } from '@/app/api'
+import AdvancedSettings from './AdvancedSettings'
+
 interface SettingsMenuProps {
   currentSettings: SettingsOptions
   setCurrentSettings: (settings: SettingsOptions) => void
@@ -58,6 +60,11 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
           label: 'Chatbot History',
           children: <UserChatbotHistory />,
         },
+        {
+          key: SettingsOptions.ADVANCED,
+          label: 'Advanced',
+          children: <AdvancedSettings />,
+        },
       ]}
     />
   ) : (
@@ -85,6 +92,11 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
           key: SettingsOptions.CHATBOT_HISTORY,
           label: 'Chatbot History',
           icon: <HistoryOutlined />,
+        },
+        {
+          key: SettingsOptions.ADVANCED,
+          label: 'Advanced',
+          icon: <SettingOutlined />,
         },
       ]}
     />

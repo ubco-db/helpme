@@ -17,7 +17,7 @@ import {
   Tabs,
   Tooltip,
 } from 'antd'
-import { use, useCallback, useEffect, useMemo, useState } from 'react'
+import React, { use, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   LMSAnnouncement,
   LMSApiResponseStatus,
@@ -45,6 +45,8 @@ import {
 } from '@ant-design/icons'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
+import { useUserInfo } from '@/app/contexts/userContext'
 
 export default function CourseLMSIntegrationPage(props: {
   params: Promise<{
@@ -52,13 +54,19 @@ export default function CourseLMSIntegrationPage(props: {
     tab: 'assignment' | 'announcement' | 'page' | 'file' | 'quiz' | undefined
   }>
 }) {
-  const params = use(props.params)
   const searchParams = useSearchParams()
   const router = useRouter()
+  const pathname = usePathname()
+
+  const { userInfo } = useUserInfo()
+  const params = use(props.params)
   const pathName = usePathname()
   const courseId = useMemo(() => Number(params.cid) ?? -1, [params.cid])
   const tab = useMemo(() => searchParams.get('tab'), [searchParams])
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
+  const organizationSettings = useOrganizationSettings(
+    userInfo?.organization?.orgId ?? -1,
+  )
 
   const [currentTab, setCurrentTab] = useState<
     | 'assignment'
@@ -105,7 +113,6 @@ export default function CourseLMSIntegrationPage(props: {
     files,
     quizzes,
     isLoadingIntegration,
-    isLoadingCourse,
     isLoadingStudents,
     isLoadingAssignments,
     isLoadingAnnouncements,
@@ -127,6 +134,31 @@ export default function CourseLMSIntegrationPage(props: {
   const [delModalOpen, setDelModalOpen] = useState<boolean>(false)
   const [isTesting, setIsTesting] = useState<boolean>(false)
   const [selectedResources, setSelectedResources] = useState<string[]>([])
+  const [preselect, setPreselect] = useState<
+    LMSIntegrationPlatform | undefined
+  >()
+
+  useEffect(() => {
+    const success_msg = searchParams.get('success_message')
+    const error_msg = searchParams.get('error_message')
+    const platform = searchParams.get('platform')
+
+    if (platform) {
+      setPreselect(platform as LMSIntegrationPlatform)
+    }
+
+    if (success_msg) {
+      message.success(success_msg, 3).then(() => {
+        router.push(pathname)
+      })
+    } else if (error_msg) {
+      message.error(error_msg, 3).then(() => {
+        router.push(pathname)
+      })
+    } else {
+      router.push(pathname)
+    }
+  }, [pathname, router, searchParams])
 
   useEffect(() => {
     if (integration?.selectedResourceTypes) {
@@ -162,17 +194,36 @@ export default function CourseLMSIntegrationPage(props: {
       })
   }, [courseId])
 
+  useEffect(() => {
+    if (lmsIntegrations.length > 0 && preselect) {
+      setSelectedIntegration(
+        lmsIntegrations.find((v) => v.apiPlatform == preselect),
+      )
+      setModalOpen(true)
+      setPreselect(undefined)
+    }
+  }, [preselect, lmsIntegrations])
+
   const testLMSConnection = async (
-    apiKey: string,
     apiCourseId: string,
     apiPlatform: LMSIntegrationPlatform,
+    apiKey?: string,
+    accessTokenId?: number,
   ) => {
-    if (apiKey == undefined || apiKey.trim() == '') {
-      message.warning('API Key is required')
+    if (organizationSettings?.allowLMSApiKey) {
+      if (
+        accessTokenId == undefined &&
+        (apiKey == undefined || apiKey.trim() == '')
+      ) {
+        message.warning('API Key or Access Token is required')
+        return LMSApiResponseStatus.Error
+      }
+    } else if (accessTokenId == undefined) {
+      message.warning('Access Token is required')
       return LMSApiResponseStatus.Error
     }
 
-    if (apiCourseId == undefined || apiCourseId.trim() == '') {
+    if (apiCourseId == undefined || String(apiCourseId).trim() == '') {
       message.warning('API Course ID is required')
       return LMSApiResponseStatus.Error
     }
@@ -182,6 +233,7 @@ export default function CourseLMSIntegrationPage(props: {
       .testIntegration(courseId, {
         apiPlatform: apiPlatform,
         apiKey: apiKey,
+        accessTokenId: accessTokenId,
         apiCourseId: apiCourseId,
       })
       .then((response) => {
@@ -381,7 +433,7 @@ export default function CourseLMSIntegrationPage(props: {
     [ableToSync],
   )
 
-  if (isLoadingIntegration) {
+  if (isLoadingIntegration || !organizationSettings) {
     return <CenteredSpinner tip={'Loading...'} />
   }
 
@@ -394,19 +446,39 @@ export default function CourseLMSIntegrationPage(props: {
           title={
             <span className={'text-center'}>Learning Management System</span>
           }
-          className={'w-2/3'}
+          className={'md:w-2/3'}
         >
           <div
             className={
-              'flex flex-col items-center justify-start gap-2 text-center text-lg'
+              'flex flex-col items-center justify-start gap-2 text-base'
             }
           >
-            <div className={'flex flex-col'}>
+            <div className={'flex flex-col gap-3'}>
               <p>
-                This course is not integrated with a learning management system.
+                This course is currently not integrated with a learning
+                management system (LMS).
               </p>
+              <p className="mb-[-0.25rem]">
+                Advantages of connecting your HelpMe course with your LMS
+                include:
+              </p>
+              <ul className="list-inside list-disc">
+                <li>
+                  Automatically synchronize course materials into the
+                  Chatbot&apos;s Knowledge Base
+                </li>
+                <li>Compare course rosters</li>
+                <li>
+                  An embedded HelpMe Chatbot inside an LMS page. <br />
+                  <b className="font-semibold">NOTE:</b> For UBC Staff, if
+                  you&apos;re looking for the embedded Chatbot page, please
+                  email <a href="mailto:LT.hub@ubc.ca">LTHub</a> and request
+                  HelpMe be added to your Canvas course.
+                </li>
+              </ul>
               {lmsIntegrations.length == 0 ? (
                 <>
+                  <Divider className={'my-2'} />
                   <p>
                     The organization this course belongs to does not contain any
                     learning management system configurations.
@@ -415,15 +487,18 @@ export default function CourseLMSIntegrationPage(props: {
                     If you wish to integrate this course with a learning
                     management system, contact your organization administrator.
                   </p>
+                  <Divider className={'my-2'} />
                 </>
               ) : (
-                <p className={'font-semibold'}>
-                  You can integrate this course with any of the listed learning
-                  management systems:
-                </p>
+                <>
+                  <Divider className={'my-2'} />
+                  <p className={'font-semibold'}>
+                    You can integrate this course with any of the listed
+                    learning management systems:
+                  </p>
+                </>
               )}
             </div>
-            <Divider className={'my-2'} />
             {lmsIntegrations.length > 0 && (
               <>
                 <List
@@ -447,6 +522,7 @@ export default function CourseLMSIntegrationPage(props: {
                     </Button>
                   )}
                 ></List>
+                <Divider className={'my-2'} />
               </>
             )}
             <UpsertIntegrationModal
@@ -459,6 +535,7 @@ export default function CourseLMSIntegrationPage(props: {
               isTesting={isTesting}
               testLMSConnection={testLMSConnection}
               onCreate={() => setUpdateFlag(!updateFlag)}
+              organizationSettings={organizationSettings}
             />
           </div>
         </Card>
@@ -587,6 +664,18 @@ export default function CourseLMSIntegrationPage(props: {
         ),
       })
     }
+    tabItems.push({
+      key: 'chatbot_embed',
+      label: <LMSTabLabel title={'Chatbot Embed'} isLoading={false} />,
+      children: (
+        <p className="p-2">
+          For UBC Staff, if you&apos;re looking to embed the HelpMe Chatbot in
+          your Canvas course (appears as its own dedicated page in Canvas),
+          please email <a href="mailto:LT.hub@ubc.ca">LTHub</a> and request
+          HelpMe be added to your Canvas course.
+        </p>
+      ),
+    })
 
     const card = (
       <Card title={'Learning Management System Integration'}>
@@ -905,6 +994,7 @@ export default function CourseLMSIntegrationPage(props: {
             isTesting={isTesting}
             testLMSConnection={testLMSConnection}
             onCreate={() => setUpdateFlag(!updateFlag)}
+            organizationSettings={organizationSettings}
           />
           <Modal
             title={'Are you sure you want to delete this LMS integration?'}
