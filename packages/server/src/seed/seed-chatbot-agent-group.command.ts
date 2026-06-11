@@ -8,6 +8,7 @@ import { OrganizationCourseModel } from 'organization/organization-course.entity
 import { OrganizationModel } from 'organization/organization.entity';
 import { SemesterModel } from 'semester/semester.entity';
 import * as crypto from 'crypto';
+import { DataSource, EntityManager } from 'typeorm';
 
 const agents = [
   {
@@ -37,39 +38,60 @@ const semesterName = '2026S Both Terms';
 
 @Injectable()
 export class SeedChatbotAgentGroupCommand {
+  constructor(private dataSource: DataSource) {}
+
   @Command({
     command: 'seed:chatbot-agent-group',
     describe: 'creates the LANTERN chatbot agent group demo courses',
   })
   async createLanternAgentGroup(): Promise<void> {
-    const organization = await OrganizationModel.findOneOrFail({
-      where: { name: organizationName },
-    });
-    const semester = await SemesterModel.findOneOrFail({
-      where: { name: semesterName, organizationId: organization.id },
-    });
-    const superCourse = await this.findOrCreateSuperCourse(organization.id);
-    const parentCourse = await this.findOrCreateCourse(
-      parentCourseName,
-      semester.id,
-    );
-
-    await this.attachCourseToGroup(parentCourse, superCourse, organization.id);
-
-    for (const [index, agent] of agents.entries()) {
-      const course = await this.findOrCreateCourse(
-        this.getAgentCourseName(agent.name),
-        semester?.id,
+    await this.dataSource.transaction(async (manager) => {
+      const organization = await manager.findOneOrFail(OrganizationModel, {
+        where: { name: organizationName },
+      });
+      const semester = await manager.findOneOrFail(SemesterModel, {
+        where: { name: semesterName, organizationId: organization.id },
+      });
+      const superCourse = await this.findOrCreateSuperCourse(
+        manager,
+        organization.id,
       );
-      course.chatbotAgentName = agent.name;
-      course.chatbotAgentDescription = agent.description;
-      course.chatbotAgentOrder = index + 1;
-      await this.attachCourseToGroup(course, superCourse, organization.id);
-    }
+      const parentCourse = await this.findOrCreateCourse(
+        manager,
+        parentCourseName,
+        semester.id,
+        organization.id,
+      );
 
-    console.log(
-      `Seeded LANTERN chatbot agent group ${superCourse.id} with parent course ${parentCourse.id}`,
-    );
+      await this.attachCourseToGroup(
+        manager,
+        parentCourse,
+        superCourse,
+        organization.id,
+      );
+
+      for (const [index, agent] of agents.entries()) {
+        const course = await this.findOrCreateCourse(
+          manager,
+          this.getAgentCourseName(agent.name),
+          semester.id,
+          organization.id,
+        );
+        course.chatbotAgentName = agent.name;
+        course.chatbotAgentDescription = agent.description;
+        course.chatbotAgentOrder = index + 1;
+        await this.attachCourseToGroup(
+          manager,
+          course,
+          superCourse,
+          organization.id,
+        );
+      }
+
+      console.log(
+        `Seeded LANTERN chatbot agent group ${superCourse.id} with parent course ${parentCourse.id}`,
+      );
+    });
   }
 
   private getAgentCourseName(agentName: string): string {
@@ -77,11 +99,13 @@ export class SeedChatbotAgentGroupCommand {
   }
 
   private async findOrCreateSuperCourse(
+    manager: EntityManager,
     organizationId: number,
   ): Promise<SuperCourseModel> {
-    const existing = await SuperCourseModel.findOne({
+    const existing = await manager.findOne(SuperCourseModel, {
       where: {
         name: 'LANTERN Agents',
+        organizationId,
         purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
       },
       relations: { courses: true },
@@ -90,34 +114,56 @@ export class SeedChatbotAgentGroupCommand {
       return existing;
     }
 
-    return SuperCourseModel.create({
-      name: 'LANTERN Agents',
-      organizationId,
-      purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
-    }).save();
+    return manager.save(
+      SuperCourseModel,
+      manager.create(SuperCourseModel, {
+        name: 'LANTERN Agents',
+        organizationId,
+        purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
+        courses: [],
+      }),
+    );
   }
 
   private async findOrCreateCourse(
+    manager: EntityManager,
     name: string,
     semesterId: number,
+    organizationId: number,
   ): Promise<CourseModel> {
-    const existing = await CourseModel.findOne({ where: { name } });
+    const existing = await manager
+      .createQueryBuilder(CourseModel, 'course')
+      .innerJoin(
+        OrganizationCourseModel,
+        'organizationCourse',
+        '"organizationCourse"."courseId" = course.id',
+      )
+      .where('course.name = :name', { name })
+      .andWhere('course.semesterId = :semesterId', { semesterId })
+      .andWhere('"organizationCourse"."organizationId" = :organizationId', {
+        organizationId,
+      })
+      .getOne();
     if (existing) {
       return existing;
     }
 
-    return CourseModel.create({
-      name,
-      semesterId,
-      timezone: 'America/Los_Angeles',
-      sectionGroupName: '001',
-      zoomLink: '',
-      enabled: true,
-      courseInviteCode: crypto.randomBytes(6).toString('hex'),
-    }).save();
+    return manager.save(
+      CourseModel,
+      manager.create(CourseModel, {
+        name,
+        semesterId,
+        timezone: 'America/Los_Angeles',
+        sectionGroupName: '001',
+        zoomLink: '',
+        enabled: true,
+        courseInviteCode: crypto.randomBytes(6).toString('hex'),
+      }),
+    );
   }
 
   private async attachCourseToGroup(
+    manager: EntityManager,
     course: CourseModel,
     superCourse: SuperCourseModel,
     organizationId: number,
@@ -127,36 +173,44 @@ export class SeedChatbotAgentGroupCommand {
       course.chatbotAgentDescription = null;
       course.chatbotAgentOrder = null;
     }
-    await course.save();
+    await manager.save(CourseModel, course);
     superCourse.courses = superCourse.courses ?? [];
     if (
       !superCourse.courses.some((groupCourse) => groupCourse.id === course.id)
     ) {
       superCourse.courses.push(course);
-      await superCourse.save();
+      await manager.save(SuperCourseModel, superCourse);
     }
 
     if (
-      !(await OrganizationCourseModel.findOne({
+      !(await manager.findOne(OrganizationCourseModel, {
+        where: { courseId: course.id, organizationId },
+      }))
+    ) {
+      await manager.save(
+        OrganizationCourseModel,
+        manager.create(OrganizationCourseModel, {
+          courseId: course.id,
+          organizationId,
+        }),
+      );
+    }
+
+    if (
+      !(await manager.findOne(CourseSettingsModel, {
         where: { courseId: course.id },
       }))
     ) {
-      await OrganizationCourseModel.create({
-        courseId: course.id,
-        organizationId,
-      }).save();
-    }
-
-    if (
-      !(await CourseSettingsModel.findOne({ where: { courseId: course.id } }))
-    ) {
-      await CourseSettingsModel.create({
-        courseId: course.id,
-        chatBotEnabled: true,
-        asyncQueueEnabled: true,
-        adsEnabled: true,
-        queueEnabled: true,
-      }).save();
+      await manager.save(
+        CourseSettingsModel,
+        manager.create(CourseSettingsModel, {
+          courseId: course.id,
+          chatBotEnabled: true,
+          asyncQueueEnabled: true,
+          adsEnabled: true,
+          queueEnabled: true,
+        }),
+      );
     }
   }
 }

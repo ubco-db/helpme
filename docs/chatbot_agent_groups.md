@@ -13,11 +13,12 @@ Run the seed command:
 yarn seed:chatbot-agent-group
 ```
 
-The command creates or reuses the visible `LANTERN` parent course, the four
-agent courses, and the `chatbot_agent_group` super course. It connects those
-courses, enables chatbot settings, and enrolls `studentOne@ubc.ca` in the
-visible parent course when that seed user exists.
+The command expects the `UBC` organization and `2026S Both Terms` semester to
+already exist. It creates or reuses the visible `LANTERN` parent course, the
+four agent courses, and the `chatbot_agent_group` super course within that
+organization and semester. It connects those courses and enables chatbot
+settings.
 
-Students only need enrollment in the visible parent course. When they select an
-agent, HelpMe allows the chatbot request to use that agent course if it belongs
-to the same `chatbot_agent_group` as the parent course.
+Students still need to be enrolled in the visible parent course separately.
+When they select an agent, HelpMe allows the chatbot request to use that agent
+course if it belongs to the same `chatbot_agent_group` as the parent course.
