@@ -133,6 +133,74 @@ describe('ChatbotController Integration', () => {
       expect(response.body.vectorStoreId).toEqual(body.vectorStoreId);
       expect(response.body.interactionId).toBeDefined();
     });
+
+    it('should allow a parent course member to ask a suggested question in an agent course', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const parentCourse = await CourseFactory.create({ name: 'LANTERN' });
+      const agentCourse = await CourseFactory.create({
+        name: 'LANTERN Analyst',
+        chatbotAgentName: 'Analyst',
+      });
+      await UserCourseFactory.create({
+        user,
+        course: parentCourse,
+        role: Role.STUDENT,
+      });
+
+      const agentGroup = await SuperCourseModel.create({
+        name: 'LANTERN Agents',
+        purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
+        organization,
+      }).save();
+      agentGroup.courses = [parentCourse, agentCourse];
+      await agentGroup.save();
+
+      const body: ChatbotAskSuggestedParams = {
+        question: 'How do I evaluate a research article?',
+        responseText: 'Start with the study design and methods.',
+        vectorStoreId: 'agent-question-1',
+      };
+
+      const response = await supertest({ userId: user.id })
+        .post(`/chatbot/askSuggested/${agentCourse.id}`)
+        .send(body)
+        .expect(201);
+      expect(response.body.id).toBeDefined();
+      expect(response.body.questionText).toEqual(body.question);
+      expect(response.body.responseText).toEqual(body.responseText);
+      expect(response.body.vectorStoreId).toEqual(body.vectorStoreId);
+      expect(response.body.interactionId).toBeDefined();
+    });
+
+    it('should block agent course access when the user is not in the parent course', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const parentCourse = await CourseFactory.create({ name: 'LANTERN' });
+      const agentCourse = await CourseFactory.create({
+        name: 'LANTERN Analyst',
+        chatbotAgentName: 'Analyst',
+      });
+
+      const agentGroup = await SuperCourseModel.create({
+        name: 'LANTERN Agents',
+        purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
+        organization,
+      }).save();
+      agentGroup.courses = [parentCourse, agentCourse];
+      await agentGroup.save();
+
+      const body: ChatbotAskSuggestedParams = {
+        question: 'How do I evaluate a research article?',
+        responseText: 'Start with the study design and methods.',
+        vectorStoreId: 'agent-question-1',
+      };
+
+      await supertest({ userId: user.id })
+        .post(`/chatbot/askSuggested/${agentCourse.id}`)
+        .send(body)
+        .expect(404);
+    });
   });
 
   describe('GET /chatbot/course/:courseId/agents', () => {
