@@ -75,7 +75,10 @@ export class SeedChatbotAgentGroupCommand {
     await this.enrollStudentOne(parentCourse);
 
     for (const [index, agent] of agents.entries()) {
-      const course = await this.findOrCreateCourse(agent.name, semester?.id);
+      const course = await this.findOrCreateCourse(
+        this.getAgentCourseName(agent.name),
+        semester?.id,
+      );
       course.chatbotAgentName = agent.name;
       course.chatbotAgentDescription = agent.description;
       course.chatbotAgentOrder = index + 1;
@@ -85,6 +88,10 @@ export class SeedChatbotAgentGroupCommand {
     console.log(
       `Seeded LANTERN chatbot agent group ${superCourse.id} with parent course ${parentCourse.id}`,
     );
+  }
+
+  private getAgentCourseName(agentName: string): string {
+    return `${parentCourseName} ${agentName}`;
   }
 
   private async findOrCreateSuperCourse(
