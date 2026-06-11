@@ -220,21 +220,17 @@ export class ChatbotController {
   async getChatbotAgents(
     @Param('courseId', ParseIntPipe) courseId: number,
   ): Promise<ChatbotAgentCourse[]> {
-    const superCourse = await SuperCourseModel.createQueryBuilder('superCourse')
-      .innerJoin('superCourse.courses', 'matchedCourse')
-      .leftJoinAndSelect('superCourse.courses', 'courses')
-      .where('superCourse.purpose = :purpose', {
-        purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
-      })
-      .andWhere('matchedCourse.id = :courseId', { courseId })
-      .getOne();
+    const superCourse = await SuperCourseModel.findGroupForCourse(
+      courseId,
+      SuperCoursePurpose.CHATBOT_AGENT_GROUP,
+    );
 
     if (!superCourse) {
       return [];
     }
 
     const requestedCourse = superCourse.courses.find(
-      (groupCourse) => Number(groupCourse.id) === Number(courseId),
+      (groupCourse) => groupCourse.id === courseId,
     );
     if (!requestedCourse) {
       return [];

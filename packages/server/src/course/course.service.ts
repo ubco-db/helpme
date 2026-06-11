@@ -533,21 +533,6 @@ export class CourseService {
     };
   }
 
-  private async findSuperCourseForCourse(
-    manager: EntityManager,
-    courseId: number,
-    purpose: SuperCoursePurpose,
-  ): Promise<SuperCourseModel | null> {
-    return manager
-      .getRepository(SuperCourseModel)
-      .createQueryBuilder('superCourse')
-      .innerJoin('superCourse.courses', 'matchedCourse')
-      .leftJoinAndSelect('superCourse.courses', 'courses')
-      .where('superCourse.purpose = :purpose', { purpose })
-      .andWhere('matchedCourse.id = :courseId', { courseId })
-      .getOne();
-  }
-
   private async addCoursesToSuperCourse(
     manager: EntityManager,
     superCourse: SuperCourseModel,
@@ -569,10 +554,10 @@ export class CourseService {
     clonedCourse: CourseModel,
     organizationId: number,
   ): Promise<void> {
-    const superCourse = await this.findSuperCourseForCourse(
-      manager,
+    const superCourse = await SuperCourseModel.findGroupForCourse(
       originalCourse.id,
       SuperCoursePurpose.COURSE_CLONE_GROUP,
+      manager,
     );
 
     if (!superCourse) {
@@ -625,16 +610,14 @@ export class CourseService {
         ? cloneData.newSection
         : originalCourse.sectionGroupName;
 
-    if (cloneData.newSemesterId) {
-      if (cloneData.newSemesterId !== -1) {
-        const semester = await manager.findOne(SemesterModel, {
-          where: { id: cloneData.newSemesterId },
-        });
-        if (semester) {
-          clonedCourse.semester = semester;
-        }
+    if (cloneData.newSemesterId && cloneData.newSemesterId !== -1) {
+      const semester = await manager.findOne(SemesterModel, {
+        where: { id: cloneData.newSemesterId },
+      });
+      if (semester) {
+        clonedCourse.semester = semester;
       }
-    } else {
+    } else if (!cloneData.newSemesterId) {
       clonedCourse.semester = originalCourse.semester;
     }
 
@@ -832,10 +815,10 @@ export class CourseService {
     professors: UserModel[],
     organizationId: number,
   ): Promise<void> {
-    const agentGroup = await this.findSuperCourseForCourse(
-      manager,
+    const agentGroup = await SuperCourseModel.findGroupForCourse(
       originalCourse.id,
       SuperCoursePurpose.CHATBOT_AGENT_GROUP,
+      manager,
     );
 
     if (!agentGroup) {

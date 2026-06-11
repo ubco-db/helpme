@@ -4,6 +4,7 @@ import {
   ManyToMany,
   BaseEntity,
   JoinTable,
+  EntityManager,
 } from 'typeorm';
 import { OrganizationModel } from '../organization/organization.entity';
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
@@ -48,4 +49,24 @@ export class SuperCourseModel extends BaseEntity {
     inverseJoinColumn: { name: 'courseId', referencedColumnName: 'id' },
   })
   courses: CourseModel[];
+
+  /** Finds the super course group of a given purpose that contains the given course. */
+  static findGroupForCourse(
+    courseId: number,
+    purpose: SuperCoursePurpose,
+    manager?: EntityManager,
+  ): Promise<SuperCourseModel | null> {
+    const queryBuilder = manager
+      ? manager
+          .getRepository(SuperCourseModel)
+          .createQueryBuilder('superCourse')
+      : SuperCourseModel.createQueryBuilder('superCourse');
+
+    return queryBuilder
+      .innerJoin('superCourse.courses', 'matchedCourse')
+      .leftJoinAndSelect('superCourse.courses', 'courses')
+      .where('superCourse.purpose = :purpose', { purpose })
+      .andWhere('matchedCourse.id = :courseId', { courseId })
+      .getOne();
+  }
 }

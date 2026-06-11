@@ -38,18 +38,10 @@ export class CourseRolesConditionalBypassGuard extends RolesGuard {
     // Agent courses are hidden from students, but students enrolled in the
     // non-agent parent course should still be able to ask those agent chatbots.
     if (!user?.courses?.find((c) => Number(c.courseId) === Number(courseId))) {
-      const superCourse = await SuperCourseModel.createQueryBuilder(
-        'superCourse',
-      )
-        .innerJoin('superCourse.courses', 'matchedCourse')
-        .leftJoinAndSelect('superCourse.courses', 'courses')
-        .where('superCourse.purpose = :purpose', {
-          purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
-        })
-        .andWhere('matchedCourse.id = :courseId', {
-          courseId: Number(courseId),
-        })
-        .getOne();
+      const superCourse = await SuperCourseModel.findGroupForCourse(
+        Number(courseId),
+        SuperCoursePurpose.CHATBOT_AGENT_GROUP,
+      );
       const requestedCourse = superCourse?.courses.find(
         (groupCourse) => Number(groupCourse.id) === Number(courseId),
       );
