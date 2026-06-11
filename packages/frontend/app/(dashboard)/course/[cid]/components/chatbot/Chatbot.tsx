@@ -270,6 +270,30 @@ const Chatbot: React.FC<ChatbotProps> = ({
     setInput('')
   }
 
+  const agentSelect = (
+    <Select
+      value={selectedAgentCourseId}
+      className="min-w-[180px]"
+      popupMatchSelectWidth={false}
+      options={agents.map((agent) => ({
+        value: agent.courseId,
+        label: agent.agentName,
+        title: agent.description,
+      }))}
+      onChange={(newValue) => {
+        if (newValue === selectedAgentCourseId) {
+          return
+        }
+        if (messages.length > 1) {
+          setTempAgentCourseId(newValue)
+        } else {
+          setSelectedAgentCourseId(newValue)
+          resetChat()
+        }
+      }}
+    />
+  )
+
   if (!cid || !courseFeatures?.chatBotEnabled) {
     return <></>
   } else {
@@ -322,37 +346,10 @@ const Chatbot: React.FC<ChatbotProps> = ({
                     onCancel={() => setTempAgentCourseId(undefined)}
                     trigger={'click'}
                   >
-                    <Select
-                      value={selectedAgentCourseId}
-                      style={{ minWidth: 180 }}
-                      popupMatchSelectWidth={false}
-                      options={agents.map((agent) => ({
-                        value: agent.courseId,
-                        label: agent.agentName,
-                        title: agent.description,
-                      }))}
-                      onChange={(newValue) => {
-                        if (newValue !== selectedAgentCourseId) {
-                          setTempAgentCourseId(newValue)
-                        }
-                      }}
-                    />
+                    {agentSelect}
                   </Popconfirm>
                 ) : (
-                  <Select
-                    value={selectedAgentCourseId}
-                    style={{ minWidth: 180 }}
-                    popupMatchSelectWidth={false}
-                    options={agents.map((agent) => ({
-                      value: agent.courseId,
-                      label: agent.agentName,
-                      title: agent.description,
-                    }))}
-                    onChange={(newValue) => {
-                      setSelectedAgentCourseId(newValue)
-                      resetChat()
-                    }}
-                  />
+                  agentSelect
                 )
               ) : Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) &&
                 messages.length > 1 ? (
