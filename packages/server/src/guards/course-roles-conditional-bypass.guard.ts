@@ -4,10 +4,10 @@ import { UserModel } from '../profile/user.entity';
 import { Role, SuperCoursePurpose } from '@koh/common';
 import { SuperCourseModel } from '../course/super-course.entity';
 
-/* Functionally the same as CourseRolesGuard but will allow users 
-to access the course with id HELPME_COURSE_ID as a student */
+/* Functionally the same as CourseRolesGuard, but allows specific
+conditional chatbot access paths that do not have normal course membership. */
 @Injectable()
-export class CourseRolesBypassHelpMeCourseGuard extends RolesGuard {
+export class CourseRolesConditionalBypassGuard extends RolesGuard {
   async setupData(
     request: any,
   ): Promise<{ courseId: number; user: UserModel }> {

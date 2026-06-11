@@ -67,7 +67,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UserModel } from '../profile/user.entity';
 import { User, UserId } from '../decorators/user.decorator';
 import * as Sentry from '@sentry/nestjs';
-import { CourseRolesBypassHelpMeCourseGuard } from 'guards/course-roles-helpme-bypass.guard';
+import { CourseRolesConditionalBypassGuard } from 'guards/course-roles-conditional-bypass.guard';
 import { LibreOffice, MarkdownConverter } from 'chromiumly';
 import { CourseModel } from 'course/course.entity';
 import { SuperCourseModel } from 'course/super-course.entity';
@@ -121,7 +121,7 @@ export class ChatbotController {
   }
 
   @Post('ask/:courseId')
-  @UseGuards(CourseRolesBypassHelpMeCourseGuard)
+  @UseGuards(CourseRolesConditionalBypassGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async askQuestion(
     @Param('courseId', ParseIntPipe) courseId: number,
@@ -172,7 +172,7 @@ export class ChatbotController {
   }
 
   @Post('askSuggested/:courseId')
-  @UseGuards(CourseRolesBypassHelpMeCourseGuard)
+  @UseGuards(CourseRolesConditionalBypassGuard)
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async askSuggestedQuestion(
     @Param('courseId', ParseIntPipe) courseId: number,
@@ -201,7 +201,7 @@ export class ChatbotController {
   }
 
   @Get('question/suggested/:courseId')
-  @UseGuards(CourseRolesBypassHelpMeCourseGuard)
+  @UseGuards(CourseRolesConditionalBypassGuard)
   @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
   async getSuggestedQuestions(
     @Param('courseId', ParseIntPipe) courseId: number,
@@ -251,7 +251,7 @@ export class ChatbotController {
   }
 
   @Patch('questionScore/:courseId/:questionId')
-  @UseGuards(CourseRolesBypassHelpMeCourseGuard)
+  @UseGuards(CourseRolesConditionalBypassGuard)
   @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
   async updateChatbotUserScore(
     @Param('courseId', ParseIntPipe) courseId: number,
@@ -532,7 +532,7 @@ export class ChatbotController {
   // TODO: eventually add tests for this I guess
   // note that there is no corresponding endpoint for this one on the frontend as you are supposed to make links to it
   @Get('document/:courseId/:docId')
-  @UseGuards(CourseRolesBypassHelpMeCourseGuard)
+  @UseGuards(CourseRolesConditionalBypassGuard)
   @IgnoreSerializer()
   @Roles(Role.PROFESSOR, Role.TA, Role.STUDENT)
   async getChatbotDocument(
