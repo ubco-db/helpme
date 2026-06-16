@@ -12,7 +12,7 @@ import { ApplicationConfigService } from '../config/application_config.service';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { ApplicationConfigModule } from '../config/application_config.module';
 import { RedisQueueModule } from '../redisQueue/redis-queue.module';
-import { MailModule } from 'mail/mail.module';
+import { forwardRef } from '@nestjs/common';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { CourseSubscriber } from './course.subscriber';
 import { OrganizationService } from '../organization/organization.service';
@@ -24,7 +24,7 @@ import { OrganizationService } from '../organization/organization.service';
     LoginModule,
     CacheModule.register(),
     OrganizationModule,
-    MailModule,
+    forwardRef(() => require('mail/mail.module').MailModule),
     RedisQueueModule,
     ApplicationConfigModule,
   ],

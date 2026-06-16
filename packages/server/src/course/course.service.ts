@@ -1,4 +1,5 @@
 import {
+  ArchiveCourseParams,
   BatchCourseCloneAttributes,
   BatchCourseCloneResponse,
   CourseCloneAttributes,
@@ -47,6 +48,7 @@ import { SuperCourseModel } from './super-course.entity';
 import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
 import { URLSearchParams } from 'node:url';
 import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
+import { LMSCourseIntegrationModel } from 'lmsIntegration/lmsCourseIntegration.entity';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -1057,5 +1059,39 @@ export class CourseService {
 
   private generateRandomInviteCode(): string {
     return crypto.randomBytes(6).toString('hex');
+  }
+  async archiveCourse(
+    course: CourseModel,
+    options: ArchiveCourseParams = {},
+    manager?: EntityManager,
+  ): Promise<void> {
+    const {
+      deleteChatbotDocs = true,
+      deleteLMSIntegration = true,
+      permanentlyDelete = false,
+    } = options;
+
+    const execute = async (em: EntityManager) => {
+      if (deleteChatbotDocs) {
+        await em.getRepository(ChatbotDocPdfModel).delete({ courseId: course.id });
+      }
+
+      if (deleteLMSIntegration) {
+        await em.getRepository(LMSCourseIntegrationModel).delete({ courseId: course.id });
+      }
+
+      if (permanentlyDelete) {
+        await em.getRepository(CourseModel).remove(course);
+      } else {
+        course.enabled = false;
+        await em.getRepository(CourseModel).save(course);
+      }
+    };
+
+    if (manager) {
+      await execute(manager);
+    } else {
+      await this.dataSource.transaction(execute);
+    }
   }
 }
