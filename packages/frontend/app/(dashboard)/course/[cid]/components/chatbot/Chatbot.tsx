@@ -53,8 +53,7 @@ import { Bot } from 'lucide-react'
 import { useChatbotContext } from './ChatbotProvider'
 
 const { TextArea } = Input
-const HELPME_SYSTEM_SELECT_VALUE = 'helpme-system'
-type AgentSelectValue = number | typeof HELPME_SYSTEM_SELECT_VALUE
+type AgentSelectValue = number | Extract<ChatbotQuestionType, 'System'>
 
 interface ChatbotProps {
   cid: number
@@ -280,12 +279,10 @@ const Chatbot: React.FC<ChatbotProps> = ({
   }
 
   const selectedAgentSelectValue =
-    chatbotQuestionType === 'System'
-      ? HELPME_SYSTEM_SELECT_VALUE
-      : selectedAgentCourseId
+    chatbotQuestionType === 'System' ? 'System' : selectedAgentCourseId
 
   const applyAgentSelectValue = (newValue: AgentSelectValue) => {
-    if (newValue === HELPME_SYSTEM_SELECT_VALUE) {
+    if (newValue === 'System') {
       setChatbotQuestionType('System')
       setSelectedAgentCourseId(undefined)
       resetChat('System')
@@ -309,7 +306,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                 label: 'HelpMe System',
                 options: [
                   {
-                    value: HELPME_SYSTEM_SELECT_VALUE,
+                    value: 'System',
                     label: 'HelpMe System',
                   },
                 ],
