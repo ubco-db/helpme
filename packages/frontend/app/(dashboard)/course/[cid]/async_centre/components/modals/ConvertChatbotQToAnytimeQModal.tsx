@@ -36,13 +36,20 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
   const courseFeatures = useCourseFeatures(courseId)
   const [isGeneratingAbstract, setIsGeneratingAbstract] = useState(false)
 
-  // the question text is just all of the userMessages concatenated together with a "\n" between them
-  const questionText = useMemo(() => {
+  const userQuestionText = useMemo(() => {
     return chatbotQ.messages
       .filter((msg) => msg.type === 'userMessage')
       .map((msg) => msg.message)
       .join('\n')
-  }, [chatbotQ])
+  }, [chatbotQ.messages])
+
+  const questionText = useMemo(() => {
+    if (!chatbotQ.selectedAgentName) {
+      return userQuestionText
+    }
+
+    return `Selected chatbot agent: ${chatbotQ.selectedAgentName}\n\n${userQuestionText}`
+  }, [chatbotQ.selectedAgentName, userQuestionText])
 
   const fallbackGenerateAbstract = (question: string) => {
     const words = question.split(' ').slice(0, 8)
@@ -64,7 +71,7 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
           const response = await API.chatbot.studentsOrStaff.queryChatbot(
             courseId,
             {
-              query: questionText,
+              query: userQuestionText,
               type: 'abstract',
             },
           )
@@ -79,13 +86,13 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
             generatedAbstract.length > 100 ||
             generatedAbstract.includes('\n')
           ) {
-            generatedAbstract = fallbackGenerateAbstract(generatedAbstract)
+            generatedAbstract = fallbackGenerateAbstract(userQuestionText)
           }
 
           form.setFieldsValue({ QuestionAbstract: generatedAbstract })
         } catch (chatbotError) {
           console.warn('Chatbot failed, using fallback', chatbotError)
-          const fallbackAbstract = fallbackGenerateAbstract(questionText)
+          const fallbackAbstract = fallbackGenerateAbstract(userQuestionText)
           form.setFieldsValue({ QuestionAbstract: fallbackAbstract })
         } finally {
           setIsGeneratingAbstract(false)
@@ -93,7 +100,7 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
       }
       generateAbstract().then()
     }
-  }, [open, courseId, form, questionText])
+  }, [open, courseId, form, questionText, userQuestionText])
 
   const getAiAnswer = async (question: string) => {
     if (!courseFeatures?.asyncCentreAIAnswers) {

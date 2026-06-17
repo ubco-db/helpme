@@ -80,7 +80,14 @@ export default function AsyncCentrePage(
   const [showStudents, setShowStudents] = useState(false) // for when staff want to de-anonymize students on their end to see who posted what
 
   // chatbot
-  const { setCid, setRenderSmallChatbot, messages } = useChatbotContext()
+  const {
+    setCid,
+    setRenderSmallChatbot,
+    messages,
+    agents,
+    selectedAgentCourseId,
+    chatbotQuestionType,
+  } = useChatbotContext()
   useEffect(() => {
     setCid(courseId)
   }, [courseId, setCid])
@@ -91,6 +98,14 @@ export default function AsyncCentrePage(
 
   const [convertChatbotQModalOpen, setConvertChatbotQModalOpen] =
     useState(false)
+  const selectedAgentName = useMemo(() => {
+    if (chatbotQuestionType === 'System') {
+      return 'HelpMe System'
+    }
+
+    return agents.find((agent) => agent.courseId === selectedAgentCourseId)
+      ?.agentName
+  }, [agents, chatbotQuestionType, selectedAgentCourseId])
   const [convertQueueQModalOpen, setConvertQueueQModalOpen] = useState(false)
   const convertChatbotQSearchParam = searchParams.get('convertChatbotQ')
   const convertQueueQSearchParam = searchParams.get('convertQueueQ')
@@ -545,7 +560,7 @@ export default function AsyncCentrePage(
             router.replace(pathname)
             setConvertChatbotQModalOpen(false)
           }}
-          chatbotQ={{ messages: messages }}
+          chatbotQ={{ messages: messages, selectedAgentName }}
         />
         <ConvertQueueQToAnytimeQModal
           courseId={courseId}
