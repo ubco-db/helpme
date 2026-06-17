@@ -27,9 +27,8 @@ export class SuperCourseModel extends BaseEntity {
   @Column({
     type: 'enum',
     enum: SuperCoursePurpose,
-    nullable: true,
   })
-  purpose?: SuperCoursePurpose;
+  purpose: SuperCoursePurpose;
 
   @ManyToOne(
     () => OrganizationModel,
