@@ -6,11 +6,21 @@
   - [Codebase](#codebase)
   - [Technologies Guide](#technologies-guide)
     - [Environment Variables](#environment-variables)
+    - [What is "State"?](#what-is-state)
+      - [Synchronizing State between Backend and Frontend](#synchronizing-state-between-backend-and-frontend)
+        - [Manual Refresh](#manual-refresh)
+        - [Short Polling](#short-polling)
+        - [Long Polling](#long-polling)
+        - [Server Sent Events (SSE) with EventSource](#server-sent-events-sse-with-eventsource)
+        - [Websockets](#websockets)
     - [Frontend](#frontend)
-      - [Next.js](#nextjs)
-        - [What's with all these `'use client'` \& `'use server'` things?](#whats-with-all-these-use-client--use-server-things)
+      - [React](#react)
+        - [JSX](#jsx)
+        - [Hooks](#hooks)
+        - [Forms](#forms)
+        - [Next.js](#nextjs)
+          - [What's with all these `'use client'` \& `'use server'` things?](#whats-with-all-these-use-client--use-server-things)
       - [Tailwind and CSS](#tailwind-and-css)
-      - [JSX](#jsx)
     - [Backend](#backend)
       - [Nest.js files](#nestjs-files)
       - [Redis](#redis)
@@ -93,20 +103,159 @@ For the server `.env`, use `.env.development` as a template (create a copy of `.
 
 Note that if you are also setting up the chatbot repo, it also needs a `.env`, which uses `env.example` as a template. Inside this `.env` is where you would put your Open AI API key so you can properly interact with the chatbot while developing (contact one of the HelpMe devs if you don't have an Open AI key with funds on it and we will provide you with one).
 
+### What is "State"?
+
+"State", for lack of a better explanation, refers to what "state" something is in. Think sorta like variables (non-temporary ones). If the entire system was a function, the "state" would be the input variables.
+
+On the frontend we are using React, which pretty much copies this analogy perfectly. You use `useState` hooks to define your state variables, such as whether a button is loading or whether a modal popup is open. React treats the UI as a function of said state. 
+
+For example, say we have an extremely simple frontend with just a modal popup with a button that opens said modal. There are two ""states"" the UI can be in: one with the modal open, and one with the modal closed. To match this, we would have the line `const [isModalOpen, setIsModalOpen] = useState(false)`, where `false` is the initial value of the state variable `isModalOpen`. We would then add `<MyModal isOpen={isModalOpen} />`, which now shows us that the modal will be open depending on our `isModalOpen` state (pretend MyModal is a fully implemented component that will show a popup modal when isOpen is true). Lastly, all we need is to program our button with `onClick={setIsModalOpen(!isModalOpen)}` to toggle the open state of the modal. 
+
+If this is confusing, don't worry, you will get a hang of it as you practice more with React. Most of our React state variables actually just hold the data from the backend (more on that later). 
+
+Or for an easier example, on the backend your "state" is pretty much your database (technically there may be redis or session variables/cookies too, but don't think to hard about it). If a question gets updated from helping -> resolved, your entire system has changed to a new "state".
+
+For a vast majority of the site, the UI isn't dependent on frontend-only state but instead the backend state. For example, the queue questions, your user info (name, email, etc.), the chatbot questions, what course features are enabled, the user info of your students in the queue, the anytime questions for the course and their comments, you get the idea.
+
+Frontend-state variables are used for either storing data that doesn't need to be shared with any other user or for storing a copy of the backend state. The backend state (database) is used to store anything that needs to be shared between browsers (frontends). More on this in the next section.
+
+#### Synchronizing State between Backend and Frontend
+
+If you're new to web-development, you must first understand a very important problem: If, for example, Bob creates a question on his browser (putting the system into a new "state"), how can Alice see the changes on her browser?
+
+The short answer is we need a server. Bob's browser would need to send a request to add his new question to the backend state, and then Alice's browser would need to send a request to ask for the updated state. An extremely simple backend may choose to store the state inside a text file, where Bob's request would write to the file and Alice's would read from it. But because using a file system lacks querying, atomicity, safety, concurrency, backup and recovery features, we use a database.
+
+But this leads us to a hard question.
+
+For Bob's case, it's easy to update the backend state since we can just make his browser send a request when he clicks the "save" button for his question.
+
+For Alice's case, it's not so simple. Our options are the following (taken from this [medium article](https://medium.com/dailyjs/a-comparison-between-websockets-server-sent-events-and-polling-7a27c98cb1e3)):
+
+##### Manual Refresh
+
+Make Alice's browser only do the request *a single time*. With React, we usually implement this via a `useEffect` hook with an empty dependency array to fetch the data on page load and then store it inside a `useState` variable. However, I should note that technically [you're not supposed to do this](https://react.dev/learn/you-might-not-need-an-effect#fetching-data) since it can cause some duplicate request issues, race conditions, etc. and that you're supposed to use a library for it instead like `react-query` (or `swr` actually with using useSWRImmutable, which I tried out in the [prof-invites PR](https://github.com/ubco-db/helpme/pull/425#discussion_r2641594671) and I recommend you use!)
+
+This is how most of our Frontend gets Backend state. This is because a vast majority of our backend state updates so infrequently that it probably won't affect users if it goes out-of-date with the backend (e.g. organization's name or logo, or a user's name, or the number of queues a course has, etc.).
+
+Pros:
+- Simplest to implement.
+- Most performant (it's a single request)
+Cons:
+- Frontend state will stay outdated even if backend changes.
+
+##### Short Polling
+
+Make Alice's browser do a request every so often to check for updates. Maybe every 1s, maybe every 5s, maybe every 60s, it depends on how often you think the data will get updated.
+
+This is how `useSWR` works in the `swr` library out of the box.
+
+Pros:
+- Extremely simple to implement for both backend and frontend
+Cons:
+- Huge performance overhead. Frontend makes many (usually unnecessary) requests, which is bad for battery life for your users. Backend also needs to process more overall requests.
+- Frontend can be out-of-date for periods of time if the refresh interval is too high.
+
+##### Long Polling
+
+Make Alice's browser open an HTTP request and have it remain open until an update is received. Upon receiving an update, a new request is immediately opened awaiting the next update.
+
+We do not use Long Polling in our system (favouring SSE instead).
+
+Notes:
+- Less requests needed than Short Polling, so it will be slightly better for battery life but still ends up with a bunch of unnecessary HTTP requests.
+- Much harder to implement for both frontend and backend. Backend needs a pub/sub system I think (more about that in next section)
+- Has scalability concerns with keeping a bunch of open requests open apparently.
+- Apparently overshadowed by other techniques (like SSE).
+
+##### Server Sent Events (SSE) with EventSource
+
+Make Alice's browser open a long-lived HTTP connection that allows the server to continuously send data to the client (1-way).
+
+We use SSE for our queues, queue questions, queue chats, and alerts. Anything where we need the updated backend state on the frontend immediately. 
+
+Notes:
+- Allows you to get updated state data from the backend immediately.
+- Probably the best option for most cases in terms of performance/overhead where you need near-instant responses from the backend. 
+- On the frontend, uses the [EventSource](https://developer.mozilla.org/en-US/docs/Web/API/EventSource) api, which is pretty simple. For our system, we take the data from EventSource (via our custom useEventSource) and pass it into `useSWR` for handling state (probably unnecessary, but will work as a nice Short Polling fallback if the EventSource fails).
+- Needs a publish/subscribe (pub/sub) system on the backend so that various server events can send data to any open EventSource requests. This system has it implemented through redis, where new EventSource requests will subscribe the client to a redis "room" with an array of express.js `res` objects, allowing any part of the backend to call send a "publish message" event to the redis "room" they want to notify. Probably could've been built without redis and instead just use a single array of `res` objects, but at least this way it might be more scalable if we ever get multiple HelpMe instances (each can communicate to the same redis service). 
+- You can see useQuestions (and look at queue.controller's SSE endpoint) for a full example of this.
+
+See [MDN docs for SSE](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events) for more details.
+
+##### Websockets
+
+Like SSE, but 2-way (client can also now send data to server). Uses the WebSocket protocol.
+
+Notes:
+- More overhead than SSE (i.e. worse performance/battery life)
+- Requires more setup than SSE apparently.
+
 ### Frontend
 
-`hooks` - Unlike regular functions, hooks cannot be conditionally called. React has a lot of different hooks, but the most common ones are: 
-- `useState` is used to store state in a component (like if a modal is open)
-- `useEffect` is used to run code when the component is rendered. The second argument is an array of dependencies, which will cause the code to re-run if any of the dependencies change. If you want the code to only run once, pass an empty array.
-- `useCallback` is used to memoize functions (i.e. store a function so it doesn't get recreated every time the component is rendered)
+#### React
+
+I highly recommend going through the [Learn React docs](https://react.dev/learn). I've gone through them, they're really nice.
+
+But in short, React components are *functions*, where the *input is state* and the *output (return statement) is JSX* (think HTML + JS combined).
+
+And instead of writing JS to add event listeners and rearrange the DOM etc, you *declare* a UI based on the *state*. It's a completely different way of thinking from regular JS + HTML, and it took me months of programming with it before I sorta started to understand it (which is why I recommend the React docs). It's okay not to like it at first, or maybe even never. I don't care, I'm not your mom. I think React works just fine, but there's a lot of ways you can shoot yourself in the foot and make terrible UIs (e.g. excessive useEffects).
+
+I should also note that the term "render" is kinda a loaded term since it can mean a lot of different things. Like it could mean the full process of JSX being processed to paint the browser, or it could just mean a re-run of a component function (remember, React components are just functions!). But fundamentally what you need to know is that every time a React state variable changes, the component function runs again with the new value to calculate what the new UI is. If this updated state variable gets passed to sub-components, those get updated as well. 
+
+##### JSX
+
+`JSX` is a syntax extension for JavaScript that looks similar to XML or HTML. It is used with React to describe what the UI should look like.
+
+Want to conditionally render something like an `if` statement? Do: `{condition && (<Component />)}`
+Want to conditionally render something like an `elseif` statement? Do: `{condition ? (<Component />) : (<OtherComponent />)}`
+
+
+##### Hooks
+
+Here's some yapping about React Hooks. Some of it may actually be pretty handy to know - marked with (!).
+
+`hooks` - Unlike regular functions, hooks cannot be conditionally called. React has a lot of different hooks, but the most common ones you may see are: 
+- (!) `useState` is used to store state in a component (like if a modal is open)
+- `useEffect` is used to run code when the component is rendered, and is usually used to connect to an external system. The second argument is an array of dependencies, which will cause the code to re-run if any of the dependencies change. If you want the code to only run once, pass an empty array.
+- (!) `useSWRImmutable` use this to fetch data from the backend! Much simpler than using a state variable for data, state variable for loading state, state variable for error state, and a useEffect with proper de-duplication. We don't really use this anywhere right now, but I'd really recommend you use this instead of `useState` + `useEffect`. You can find an example of it inside my [ProfInvites PR](https://github.com/ubco-db/helpme/pull/425#discussion_r2641594671), and [read why you shouldn't use a useEffect for fetching data](https://react.dev/learn/you-might-not-need-an-effect#sending-a-post-request)
+- `useCallback` and `useMemo`, where the former is used to memoize functions and the latter to memoize values (i.e. store a function/value so it doesn't get recreated every time the component is rendered). Not needed anymore now that we use React v19, where the React Compiler will auto-add them.
 - `useContext` is basically like a global state variable. Useful for not needing to pass props down through many layers of components. We use this for the userInfo context, which stores the user's information (e.g. their name, email, etc.)
-- We also have a lot of custom hooks that we have made, such as `useCourse`, `useQueue`, `useQuestions`, and `useQuestionTypes`. These are wrappers around useSWR for getting up-to-date data from the backend.
+- `useRef` is basically a state variable (i.e. useState) but it *wont* cause a re-render if it changes. It's a little more niche since usually you want the UI to change if its state changes. But one example is for holding a reference to a particular HTML element so you can call functions like `.focus()` (In React, all HTML elements have a `ref` attribute). See [docs](https://react.dev/reference/react/useRef#manipulating-the-dom-with-a-ref)
+- `useReducer` (advanced) is used for adding extra behaviour to your `setState()` calls. AsyncQuestionCardUIReducer is an example of this, where I can define certain "actions" that my other components can call which will manage the state for me. For example, I can dispatch the "EXPAND_QUESTION" action, but unless the state was already in "collapsed", then it won't do anything.
+- (!) `useMediaQuery` a custom hook that returns whether the browser matches the given media query (e.g. `min-width:768px`). Please use this instead of putting `window.width` in a useEffect when trying to render something different based on browser size (or better yet, you can usually just hide the mobile-only component with `className="md:hidden"` and the desktop-only component gets `className="hidden md:flex"`)
+- (!) `useLocalStorage` a custom hook to interface with the browser's Local Storage (might be handy for saving form-state variables). Your browser's Local Storage is pretty much a big JSON file that you can put anything inside (max 5MB though, and maybe don't put anything that sensitive in it)
+- We also have a lot of custom hooks that we have made, such as `useCourse`, `useQueue`, `useQuestions`, and `useQuestionTypes`. This can be nice for organizing a few hooks together, like a `useState` to hold some data from the server and a corresponding `useEffect` to fetch said data (though this is a bad example since you should use `useSWRImmutable` instead, see above)
 
-`swr` - Normally, if you want all clients to have up-to-date data, you need to either have the server initiate requests/messages (e.g. using websockets) or by having clients poll the server every so often to see if there is new data. SWR is a javascript library that basically adds a fancy polling system to your endpoints to keep your data up-to-date. You can wrap your endpoint calls with useSWR and it will make sure your data is up to date (though it won't update quite as fast as websockets). We make great use of this library in our codebase. For example, we use it to make sure course data is up-to-date (useCourse), for getting up-to-date questionTypes (useQuestionTypes),
+[There are other hooks too](https://react.dev/reference/react/hooks), but I haven't yet found a need for them.
 
-`useQueue` & `useQuestions` & `SSE` - These components consist of a bunch of infrastructure to make the queue as close to real-time as possible. useQueue is for all queue details except for questions, and useQuestions is for questions (it also contains any questionsGettingHelp, priority queue, your own questions, and more). It seems to use a mix of websockets along with a lot of custom logic. All this infrastructure could probably be replaced with useSWRSubscription or something else, though the current system works well enough and it would take a lot of work change. SSE stands for Server Side Events, and allows clients to subscribe to particular events that happen on the server (e.g. when a new question is created, the server sends the event to all subscribed clients (i.e. all browsers viewing the queue page) to tell them to pull the new questions from the database).
+There's also [some common custom hooks](https://usehooks.com/) that tbh a lot of which would probably be really handy. I think our `useMediaQuery` and `useLocalStorage` hooks probably came from this.
 
-#### Next.js
+##### Forms
+
+Most of the web is just forms, and yet you would be surprised how often things get messed up (usually accessibility).
+
+All of our forms use [antd's forms](https://ant.design/components/form). They give you a lot of flexibility in how you use it. Please do not use said flexibility to make a bad form. Try to use the built-in frameworky things that antd does for us, since then it's most likely to be accessible and work well.
+
+The most common form of form is the form-in-modal (form form form form). `CreateAsyncQuestionModal` is a pretty decent example of how to make one. It looks like a lot but most of it is Anytime-question-specific, but it's also because it's both a Create and an Edit modal in one. [This](https://ant.design/components/form#form-demo-form-in-modal) was the template I think I based it on.
+
+For a regular form example, I would suggest looking at the `ProfInvites.tsx` file.
+
+Key parts:
+- DON'T store state variables ourselves (where possible) and DON'T use a useEffect to set them. Put the `initialValues` and `onFinish` attributes inside the `<Form>`, define a `FormValues` type with the types of each form item (number, boolean, dayjs.Dayjs (not Date - just antd things)), and make sure each `<Form.Item>` has a `name` that matches the FormValues type.
+- DON'T validate the form values ourselves (where possible). Pass `rules` to the `<Form.Item>`s
+- Form should contain a button with `htmlType="submit"` since that will trigger the validation step of the Form automatically and then triggers `onFinish` on success
+
+Key parts for modal-forms (includes previous items):
+- `okButtonProps={{ autoFocus: true, htmlType: 'submit', loading: isLoading, }}`. The `autoFocus` is the new thing here, which I'm assuming is an accessibility thing.
+- ` modalRender={(dom) => (<Form ... > {dom} </Form>` idk why. antd example had this and I assume it's important
+- `destroyOnHidden` so you don't need to worry about clearing the form state when `onFinish` is done (it was also in the antd example. I think we have a Modal Form or two that lacks this and they are kinda buggy sometimes). If you're worried about a user closing and losing what they were typing, I believe you can use `maskClosable = false`, `keyboard = false` , and/or an `onClose` handler when a user has unsaved changes but meh it probably is fine to go without
+- Optionally, play around with the cancelButtonProps or footer props (e.g. putting the delete button in the footer when editing on mobile if you're crammed for space in the main UI)
+- Some other `<Form>` props:
+  - `name="form_in_modal"` idk if this does anything but it was in antd example
+  - `clearOnDestroy`: same reason and goes with `destroyOnHidden`
+
+
+##### Next.js
 
 Note if you are looking at the Next.js docs: Make sure you set it to "Using App Router" and NOT "Using Pages Router"
 
@@ -118,13 +267,13 @@ All pages are functions (e.g. `export default function CoursePage(...)`) and all
 
 **Hydration Error** - This error occurs when the server and client render different things. This can happen when the server renders a component that the client doesn't, or when the server renders a component with different props than the client. Usually, these happen from some illegal HTML (e.g. a div inside a p tag) or some other nonos. The most common one I've encountered is ones with antd's `<Spin/>`, and can be fixed by making sure it's within the `<main>` content of the page. More here https://nextjs.org/docs/messages/react-hydration-error
 
-##### What's with all these `'use client'` & `'use server'` things? 
+###### What's with all these `'use client'` & `'use server'` things? 
 
 These are from Next.js, and allow us to define whether a component is rendered on the client, the server, or as a server action.
 
 `'use client'` - This component will be sent to the browser to be rendered. Any component that stores state (i.e. with `useState`), has interactability (buttons, forms, etc.), or uses *any* hooks (such as `useCourse` or `useEffect`)
 
-**Components with no 'use client' or 'use server'** - These are **server components** (er well they will need the `async` keyword beside function too maybe). These are rendered on the server and sent to the browser and in general you want as many things as possible to be server components. They have the advantage that any fetch calls within them will be made right-away on the server, before anything is rendered, which can improve performance a lot. They can also have client components within them, but not vice-versa (with the exception of layout.tsx), so try to have server components near the root and client components as far down as possible. 
+**Components with no 'use client' or 'use server'** - These are **server components** (er well they will need the `async` keyword beside function too maybe). These are rendered on the server and sent to the browser and in general you want as many things as possible to be server components. They have the advantage that any fetch calls within them will be made right-away on the server, before anything is rendered, which can improve client performance a lot (really important for SEO!). They can also have client components within them, but not vice-versa (with the exception of layout.tsx), so try to have server components near the root and client components as far down as possible. 
 - NOTE that for our system, we generally do not use server components. For two reasons:
   - Our system is very client-heavy with a lot of interactivity, meaning there is very little that can be pre-rendered
   - Our system's architecture splits Next.js from our backend. Server components get more performance benefit when you *call things like the database directly*, instead of through the API (causes an extra round-trip).
@@ -138,21 +287,15 @@ More info here https://nextjs.org/learn/react-foundations/server-and-client-comp
 
 #### Tailwind and CSS
 
-`Tailwind` basically creates a className for every single css property (and culls unused ones). Helps keep styling close to where the code was written (LoC) and prevents worrying about changing a css file and breaking something else. While it covers about 99.9% of cases, there are still some scenarios where you will need to create custom css (such as animations). You can either add said custom css inside `globals.css` or you can modify the `tailwind.config.js` file to add custom css classes.
+`Tailwind` basically creates a className for every single css property (and culls unused ones). Helps keep styling close to where the code was written (LoC) and prevents worrying about changing a css file and breaking something else. While it covers about 99.9% of cases, there are still some scenarios where you will need to create custom css (such as animations). You can either add said custom css inside `globals.css`, put the css in a custom `myComponent.module.css` that you import (Next.js thing), or you can modify the `tailwind.config.js` file to add custom css classes.
 
 Some things to note about tailwind:
 - each number corresponds to 0.25rem (or 4px). So doing `mt-5` is the equivalent of doing `margin-top: 1.25 rem` (or 20px)
 - All colors/numbers/etc can be replaced with a custom value with square brackets (e.g. `py-[0.125rem]` will give vertical padding of 0.125rem)
 - media-queries are *min-width* and not *max-width*. So, doing `md:flex` will give flex for medium (~768px) screens and up. So, if you want something to have less width on mobile, you do `classname="w-10 md:w-20"`
-- Chatgpt will often times mess up all of these things above
-- We use the `md:` breakpoint to designate mobile and desktop breakpoints. If you use `sm:`, you will get a weird scenario where some UI components are displaying their mobile version while other's their desktop version
-
-#### JSX
-
-`JSX` is a syntax extension for JavaScript that looks similar to XML or HTML. It is used with React to describe what the UI should look like.
-
-Want to conditionally render something like an `if` statement? Do: `{condition && (<Component />)}`
-Want to conditionally render something like an `elseif` statement? Do: `{condition ? (<Component />) : (<OtherComponent />)}`
+- LLMs will often times mess up all of these things above, so *please* double-check.
+- We use the `md:` breakpoint to designate mobile and desktop breakpoints. If you use `sm:`, you will get a weird scenario where some UI components are displaying their mobile version while other's their desktop version. Ideally at some point we have more than just 2 breakpoints (mobile + tablet + desktop).
+- **IMPORTANT**: If the class that you are trying to use does *not* explicitly exist in the codebase anywhere, tailwind's compiler will not recognize it and create the class name for it. This is a common pitfall when trying to do custom colors or lengths, e.g. `bg-${randomColor}` or `w-[${100/numItems}px]` or `text-${error ? 'red' : 'green'}-600`. See [here for more info](https://tailwindcss.com/docs/detecting-classes-in-source-files). To get around this, you can use tailwind's [safelisting](https://tailwindcss.com/docs/detecting-classes-in-source-files#safelisting-specific-utilities), set a global CSS class that changes based on a CSS variable and use inline CSS to change said CSS variable, or just use inline CSS directly. The latter is probably easiest, but using inline CSS may come with some performance issues with React (?)
 
 ### Backend
 
@@ -579,7 +722,7 @@ Typeorm has `@EventSubscriber`, which allows you to define certain actions after
 
 Some examples of where this is used:
 - For busting (deleting) the redis profile cache whenever a relevant entity updates (e.g. when a new UserCourse entity is created from a student joining a course, we need to bust their profile cache so they can see the new course) 
-- For notifying and sending new queue question data to all users subscribed to queue Server Side Events (which happens automatically when you are viewing a queue page)
+- For notifying and sending new queue question data to all users subscribed to queue Server Sent Events (which happens automatically when you are viewing a queue page)
 
 See https://orkhan.gitbook.io/typeorm/docs/listeners-and-subscribers for more info
 
