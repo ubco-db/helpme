@@ -151,15 +151,6 @@ export class CourseModel extends BaseEntity {
   @Exclude()
   chatbot_doc_pdfs: ChatbotDocPdfModel[];
 
-  @ManyToOne(() => SuperCourseModel, {
-    nullable: true,
-  })
-  @JoinColumn({ name: 'superCourseId' })
-  superCourse?: SuperCourseModel;
-
-  @Column({ nullable: true })
-  superCourseId?: number;
-
   @ManyToMany(() => SuperCourseModel, (superCourse) => superCourse.courses, {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
