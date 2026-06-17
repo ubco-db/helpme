@@ -42,6 +42,7 @@ import { API } from '@/app/api'
 import MarkdownCustom from '@/app/components/Markdown'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useCourse } from '@/app/hooks/useCourse'
 import {
   Message,
   parseThinkBlock,
@@ -52,6 +53,8 @@ import { Bot } from 'lucide-react'
 import { useChatbotContext } from './ChatbotProvider'
 
 const { TextArea } = Input
+const HELPME_SYSTEM_SELECT_VALUE = 'helpme-system'
+type AgentSelectValue = number | typeof HELPME_SYSTEM_SELECT_VALUE
 
 interface ChatbotProps {
   cid: number
@@ -98,6 +101,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const { userInfo, setUserInfo } = useUserInfo()
   const [isLoading, setIsLoading] = useState(false)
   const courseFeatures = useCourseFeatures(cid)
+  const { course } = useCourse(cid)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const hasAskedQuestion = useRef(false) // to track if the user has asked a question
   const pathname = usePathname()
@@ -113,20 +117,24 @@ const Chatbot: React.FC<ChatbotProps> = ({
     selectedAgentCourseId,
     setSelectedAgentCourseId,
   } = useChatbotContext()
-  const [tempAgentCourseId, setTempAgentCourseId] = useState<
-    number | undefined
+  const [tempAgentSelectValue, setTempAgentSelectValue] = useState<
+    AgentSelectValue | undefined
   >()
   const role = getRoleInCourse(userInfo, cid)
+  const helpMeCourseId = Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID)
+  const hasHelpMeSystem = Boolean(helpMeCourseId)
 
   const isLti = useMemo(() => pathname.startsWith('/lti'), [pathname])
   const courseIdToUse =
     selectedAgentCourseId ??
-    (chatbotQuestionType === 'System'
-      ? Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) || -1
-      : cid)
+    (chatbotQuestionType === 'System' ? helpMeCourseId || -1 : cid)
 
   useEffect(() => {
-    if (messages.length === 1 && hasLoadedAgents && agents.length === 0) {
+    if (
+      messages.length === 1 &&
+      hasLoadedAgents &&
+      (agents.length === 0 || chatbotQuestionType === 'System')
+    ) {
       setPreDeterminedQuestions([])
       API.chatbot.studentsOrStaff
         .getSuggestedQuestions(courseIdToUse)
@@ -147,6 +155,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
     messages.length,
     setQuestionsLeft,
     agents.length,
+    chatbotQuestionType,
     hasLoadedAgents,
   ])
 
@@ -270,25 +279,60 @@ const Chatbot: React.FC<ChatbotProps> = ({
     setInput('')
   }
 
+  const selectedAgentSelectValue =
+    chatbotQuestionType === 'System'
+      ? HELPME_SYSTEM_SELECT_VALUE
+      : selectedAgentCourseId
+
+  const applyAgentSelectValue = (newValue: AgentSelectValue) => {
+    if (newValue === HELPME_SYSTEM_SELECT_VALUE) {
+      setChatbotQuestionType('System')
+      setSelectedAgentCourseId(undefined)
+      resetChat('System')
+      return
+    }
+
+    setChatbotQuestionType('Course')
+    setSelectedAgentCourseId(newValue)
+    resetChat('Course')
+  }
+
   const agentSelect = (
-    <Select
-      value={selectedAgentCourseId}
+    <Select<AgentSelectValue>
+      value={selectedAgentSelectValue}
       className="min-w-[180px]"
       popupMatchSelectWidth={false}
-      options={agents.map((agent) => ({
-        value: agent.courseId,
-        label: agent.agentName,
-        title: agent.description,
-      }))}
+      options={[
+        ...(hasHelpMeSystem
+          ? [
+              {
+                label: 'HelpMe System',
+                options: [
+                  {
+                    value: HELPME_SYSTEM_SELECT_VALUE,
+                    label: 'HelpMe System',
+                  },
+                ],
+              },
+            ]
+          : []),
+        {
+          label: `${course?.name ?? 'Course'} Agents`,
+          options: agents.map((agent) => ({
+            value: agent.courseId,
+            label: agent.agentName,
+            title: agent.description,
+          })),
+        },
+      ]}
       onChange={(newValue) => {
-        if (newValue === selectedAgentCourseId) {
+        if (newValue === selectedAgentSelectValue) {
           return
         }
         if (messages.length > 1) {
-          setTempAgentCourseId(newValue)
+          setTempAgentSelectValue(newValue)
         } else {
-          setSelectedAgentCourseId(newValue)
-          resetChat()
+          applyAgentSelectValue(newValue)
         }
       }}
     />
@@ -335,15 +379,14 @@ const Chatbot: React.FC<ChatbotProps> = ({
                     getPopupContainer={(trigger) =>
                       trigger.parentNode as HTMLElement
                     }
-                    open={tempAgentCourseId !== undefined}
+                    open={tempAgentSelectValue !== undefined}
                     onConfirm={() => {
-                      if (tempAgentCourseId) {
-                        setSelectedAgentCourseId(tempAgentCourseId)
-                        setTempAgentCourseId(undefined)
-                        resetChat()
+                      if (tempAgentSelectValue !== undefined) {
+                        applyAgentSelectValue(tempAgentSelectValue)
+                        setTempAgentSelectValue(undefined)
                       }
                     }}
-                    onCancel={() => setTempAgentCourseId(undefined)}
+                    onCancel={() => setTempAgentSelectValue(undefined)}
                     trigger={'click'}
                   >
                     {agentSelect}
