@@ -11,6 +11,7 @@ import { Exclude } from 'class-transformer';
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -34,14 +35,11 @@ export class AlertModel extends BaseEntity {
   })
   deliveryMode: AlertDeliveryMode;
 
-  @Column()
-  sent: Date;
+  @CreateDateColumn({ type: 'timestamptz' })
+  sentAt: Date;
 
-  @Column({ nullable: true })
-  resolved: Date;
-
-  @Column({ type: 'timestamp', nullable: true })
-  readAt: Date;
+  @Column({ type: 'timestamptz', nullable: true })
+  readAt: Date; // for MODAL alerts, it's when the user closes the modal. For FEED alerts, it's when the user reads/dismisses the alert.
 
   @ManyToOne((type) => UserModel, (user) => user.alerts)
   @JoinColumn({ name: 'userId' })

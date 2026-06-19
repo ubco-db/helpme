@@ -38,7 +38,6 @@ import {
   DesktopNotifPartial,
   EditCourseInfoParams,
   ExtraTAStatus,
-  GetAlertsResponse,
   AlertDeliveryMode,
   GetAsyncQuestionsResponse,
   GetAvailableModelsBody,
@@ -131,6 +130,9 @@ import {
   UpsertLMSCourseParams,
   UpsertLMSOrganizationParams,
   UserMailSubscription,
+  MarkReadBulkRequest,
+  GetPageOfFeedAlerts,
+  GetInitialAlertsResponse,
 } from '@koh/common'
 import Axios, { AxiosError, AxiosInstance, AxiosResponse, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -1183,30 +1185,41 @@ export class APIClient {
   }
 
   alerts = {
-    markReadAll: async (): Promise<void> =>
-      this.req('PATCH', `/api/v1/alerts/mark-read-all`),
-    get: async (courseId: number): Promise<GetAlertsResponse> =>
-      this.req('GET', `/api/v1/alerts/${courseId}`),
-    getAll: async (
-      mode: AlertDeliveryMode = AlertDeliveryMode.FEED,
-      includeRead: boolean = true,
+    // Note that there's also a GET /sse endpoint, but that's to be used with an EventSource (1-way websocket to let server send new alerts to frontend)
+    markReadAllFeed: async (): Promise<void> =>
+      this.req('PATCH', `/api/v1/alerts/mark-read-all-feed`),
+    getMyFeedAlerts: async (
+      courseId: number = -1,
       limit?: number,
       offset?: number,
-    ): Promise<GetAlertsResponse> =>
-      this.req('GET', `/api/v1/alerts`, undefined, undefined, {
-        mode,
-        includeRead: includeRead ? 'true' : 'false',
-        ...(limit !== undefined ? { limit: String(limit) } : {}),
-        ...(offset !== undefined ? { offset: String(offset) } : {}),
-      }),
+    ): Promise<GetPageOfFeedAlerts> =>
+      this.req<GetPageOfFeedAlerts>(
+        'GET',
+        `/api/v1/alerts`,
+        GetPageOfFeedAlerts,
+        undefined,
+        {
+          courseId: String(courseId),
+          ...(limit !== undefined ? { limit: String(limit) } : {}),
+          ...(offset !== undefined ? { offset: String(offset) } : {}),
+        },
+      ),
+    getMyInitialAlerts: async (
+      courseId: number = -1,
+    ): Promise<GetInitialAlertsResponse> =>
+      this.req<GetInitialAlertsResponse>(
+        'GET',
+        `/api/v1/alerts/initial`,
+        GetInitialAlertsResponse,
+        undefined,
+        {
+          courseId: String(courseId),
+        },
+      ),
     create: async (params: CreateAlertParams): Promise<CreateAlertResponse> =>
       this.req('POST', `/api/v1/alerts`, CreateAlertResponse, params),
     close: async (alertId: number): Promise<void> =>
       this.req('PATCH', `/api/v1/alerts/${alertId}`),
-    markReadBulk: async (alertIds: number[]): Promise<void> =>
-      this.req('PATCH', `/api/v1/alerts/mark-read-bulk`, undefined, {
-        alertIds,
-      }),
   }
 
   organizations = {

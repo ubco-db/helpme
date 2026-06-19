@@ -724,7 +724,7 @@ Some examples of where this is used:
 - For busting (deleting) the redis profile cache whenever a relevant entity updates (e.g. when a new UserCourse entity is created from a student joining a course, we need to bust their profile cache so they can see the new course) 
 - For notifying and sending new queue question data to all users subscribed to queue Server Sent Events (which happens automatically when you are viewing a queue page)
 
-See https://orkhan.gitbook.io/typeorm/docs/listeners-and-subscribers for more info
+See https://typeorm.io/docs/listeners-and-subscribers/ for more info
 
 
 ## Known Quirks when Developing

@@ -189,12 +189,12 @@ describe('QueueStaffService', () => {
           courseId: queue.course.id,
         },
       });
-      expect(openAlert.resolved).toBeNull();
+      expect(openAlert.readAt).toBeNull();
 
       await service.cleanQueue(queue.id);
 
       await openAlert.reload();
-      expect(openAlert.resolved).not.toBeNull();
+      expect(openAlert.readAt).not.toBeNull();
     });
   });
 
@@ -412,7 +412,7 @@ describe('QueueStaffService', () => {
         payload: { queueId: queue.id },
       });
       // ensure alert is unresolved
-      await AlertModel.update(alert.id, { resolved: null });
+      await AlertModel.update(alert.id, { readAt: null });
 
       await service.autoLeaveQueue(
         student.id,
@@ -424,7 +424,7 @@ describe('QueueStaffService', () => {
       await alert.reload();
       await question.reload();
 
-      expect(alert.resolved).not.toBeNull();
+      expect(alert.readAt).not.toBeNull();
       expect(question.status).toEqual(ClosedQuestionStatus.LeftDueToNoStaff);
 
       expect(schedulerRegistry.deleteCronJob).toHaveBeenCalledWith(

@@ -2504,6 +2504,9 @@ export enum AlertDeliveryMode {
   MODAL = 'modal',
   FEED = 'feed',
 }
+export const AlertQueryMode = { ...AlertDeliveryMode, ALL: 'all' } as const
+export type AlertQueryMode =
+  (typeof AlertQueryMode)[keyof typeof AlertQueryMode]
 
 export class AlertPayload {}
 
@@ -2515,7 +2518,7 @@ export class Alert {
   deliveryMode!: AlertDeliveryMode
 
   @IsDate()
-  sent!: Date
+  sentAt!: Date
 
   @Type(() => AlertPayload)
   payload!: AlertPayload
@@ -2526,6 +2529,10 @@ export class Alert {
 
   @IsInt()
   id!: number
+
+  @IsOptional()
+  @IsInt()
+  courseId?: number | null
 }
 
 export class RephraseQuestionPayload extends AlertPayload {
@@ -2554,6 +2561,14 @@ export class DocumentProcessedPayload extends AlertPayload {
   documentName!: string
 }
 
+export enum AsyncQuestionUpdateSubtype {
+  COMMENT_ON_MY_POST = 'commentOnMyPost',
+  COMMENT_ON_OTHERS_POST = 'commentOnOthersPost',
+  HUMAN_ANSWERED = 'humanAnswered',
+  STATUS_CHANGED = 'statusChanged',
+  UPVOTED = 'upvoted',
+}
+
 export class AsyncQuestionUpdatePayload extends AlertPayload {
   @IsInt()
   questionId!: number
@@ -2561,14 +2576,9 @@ export class AsyncQuestionUpdatePayload extends AlertPayload {
   @IsInt()
   courseId!: number
 
-  @IsString()
+  @IsEnum(AsyncQuestionUpdateSubtype)
   @IsOptional()
-  subtype?:
-    | 'commentOnMyPost'
-    | 'commentOnOthersPost'
-    | 'humanAnswered'
-    | 'statusChanged'
-    | 'upvoted'
+  subtype?: AsyncQuestionUpdateSubtype
 
   @IsString()
   @IsOptional()
@@ -2601,6 +2611,12 @@ export class OrganizationStatsResponse {
   membersProfessors?: number
 }
 
+export class MarkReadBulkRequest {
+  @IsInt()
+  @IsArray()
+  alertIds!: number[]
+}
+
 export class CreateAlertParams {
   @IsEnum(AlertType)
   alertType!: AlertType
@@ -2621,12 +2637,51 @@ export class CreateAlertParams {
 
 export class CreateAlertResponse extends Alert {}
 
-export class GetAlertsResponse {
+export enum AlertServerSentEventType {
+  NEW_ALERT = 'newAlert',
+  DELETE_ALERT = 'deleteAlert',
+  MARK_READ = 'markAlertAsRead',
+}
+
+export type AlertServerSentEvent =
+  | {
+      eventType: AlertServerSentEventType.DELETE_ALERT
+      alertId: number
+      alert?: Alert
+    }
+  | {
+      eventType: AlertServerSentEventType.NEW_ALERT
+      alertId: number
+      alert: Alert
+    }
+  | {
+      eventType: AlertServerSentEventType.MARK_READ
+      alertId: number
+      alert: Alert
+    }
+
+export class GetPageOfFeedAlerts {
   @Type(() => Alert)
-  alerts!: Alert[]
-  @IsOptional()
+  pageOfFeedAlerts!: Alert[]
+
   @IsInt()
-  total?: number
+  totalAlerts!: number // includes both read and unread alerts
+}
+export class GetInitialAlertsResponse {
+  @Type(() => Alert)
+  unreadModalAlerts!: Alert[]
+
+  @Type(() => Alert)
+  unreadFeedAlerts!: Alert[]
+
+  @Type(() => Alert)
+  someReadAtFeedAlerts!: Alert[] // only includes the first 20 or so - subsequent will need to be obtained via paginated route
+
+  @IsInt()
+  totalUnreadFeedAlerts!: number
+
+  @IsInt()
+  totalReadAtFeedAlerts!: number
 }
 
 // not used anywhere
@@ -4370,7 +4425,7 @@ export const ERROR_MESSAGES = {
   },
   alertController: {
     duplicateAlert: 'This alert has already been sent',
-    notActiveAlert: "This is not an alert that's open for the current user",
+    notActiveAlert: 'This alert does not exist for this user',
     incorrectPayload: 'The payload provided was not of the correct type',
   },
   sseService: {

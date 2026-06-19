@@ -235,7 +235,7 @@ export class CalendarService implements OnModuleInit {
       alert = await AlertModel.create({
         alertType: AlertType.EVENT_ENDED_CHECKOUT_STAFF,
         deliveryMode: AlertDeliveryMode.MODAL,
-        sent: now,
+        sentAt: now,
         userId: userId,
         courseId: courseId,
         payload: {},
@@ -312,7 +312,7 @@ export class CalendarService implements OnModuleInit {
       }
 
       // if the alert is not resolved, check out the user and stop helping any questions
-      if (alert.resolved === null) {
+      if (alert.readAt === null) {
         for (const queue of myCheckedInQueues) {
           // convert any helping questions to resolved
           try {
@@ -361,7 +361,7 @@ export class CalendarService implements OnModuleInit {
         }
         // resolve the alert
         try {
-          alert.resolved = new Date();
+          alert.readAt = new Date();
           await alert.save();
         } catch (err) {
           console.error('Error resolving auto-checkout alert in cron job', err);
@@ -372,7 +372,7 @@ export class CalendarService implements OnModuleInit {
         // if the alert is resolved, check when resolved, and create a new cron job that calls this function again 10mins from the resolve date
         const now = new Date();
         const tenMinutes = 10 * 60 * 1000;
-        const resolveDate = alert.resolved;
+        const resolveDate = alert.readAt;
         const nextRun = new Date(resolveDate.getTime() + tenMinutes);
         if (now > nextRun) {
           // somehow, the alert was resolved *after* the 10min mark (When they should've been checked out)

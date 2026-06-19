@@ -358,7 +358,7 @@ export class QueueStaffService {
       ...Object.values(LimboQuestionStatus),
     ]).getMany();
     const alerts = await AlertModel.createQueryBuilder('alert')
-      .where('alert.resolved IS NULL')
+      .where('alert.readAt IS NULL')
       .andWhere("(alert.payload ->> 'queueId')::INTEGER = :queueId ", {
         queueId,
       })
@@ -372,7 +372,7 @@ export class QueueStaffService {
       q.closedAt = new Date();
     });
     alerts.forEach((a: AlertModel) => {
-      a.resolved = new Date();
+      a.readAt = new Date();
     });
 
     await QuestionModel.save(questions);
@@ -461,7 +461,7 @@ export class QueueStaffService {
           .andWhere('alert.alertType = :alertType', {
             alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
           })
-          .andWhere('alert.resolved IS NULL')
+          .andWhere('alert.readAt IS NULL')
           .andWhere('alert.payload::jsonb @> :payload', {
             payload: JSON.stringify({ queueId }),
           })
@@ -532,10 +532,10 @@ export class QueueStaffService {
       return;
     }
     // if the alert is not resolved, resolve the alert and mark the question as LeftDueToNoStaff
-    if (alert.resolved === null) {
+    if (alert.readAt === null) {
       // resolve the alert
       try {
-        alert.resolved = new Date();
+        alert.readAt = new Date();
         await alert.save();
       } catch (err) {
         console.error(
@@ -628,14 +628,14 @@ export class QueueStaffService {
       .where('alert.alertType = :alertType', {
         alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
       })
-      .andWhere('alert.resolved IS NULL')
+      .andWhere('alert.readAt IS NULL')
       .andWhere('alert.payload::jsonb @> :payload', {
         payload: JSON.stringify({ queueId }),
       })
       .getMany();
 
     alerts.forEach(async (alert) => {
-      alert.resolved = new Date();
+      alert.readAt = new Date();
       await alert.save();
     });
   }

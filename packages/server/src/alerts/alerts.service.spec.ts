@@ -171,7 +171,7 @@ describe('Alerts service', () => {
 
       expect(unresolvedAlerts.length).toBe(1);
       expect(unresolvedAlerts[0].id).toBe(openAlert.id);
-      expect(unresolvedAlerts[0].resolved).toBeNull();
+      expect(unresolvedAlerts[0].readAt).toBeNull();
       expect(unresolvedAlerts[0].alertType).toBe(AlertType.REPHRASE_QUESTION);
       expect(unresolvedAlerts[0].payload['queueId']).toBe(queue.id);
     });
