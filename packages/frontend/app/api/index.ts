@@ -11,6 +11,7 @@ import {
   ChatbotAskParams,
   ChatbotAskResponse,
   ChatbotAskSuggestedParams,
+  ChatbotAgentCourse,
   ChatbotProvider,
   ChatbotQueryParams,
   ChatbotQuestionResponseChatbotDB,
@@ -302,6 +303,8 @@ export class APIClient {
         courseId: number,
       ): Promise<PreDeterminedQuestion[]> =>
         this.req('GET', `/api/v1/chatbot/question/suggested/${courseId}`),
+      getAgents: async (courseId: number): Promise<ChatbotAgentCourse[]> =>
+        this.req('GET', `/api/v1/chatbot/course/${courseId}/agents`),
       updateUserScore: async (
         courseId: number,
         questionId: number,
@@ -814,20 +817,21 @@ export class APIClient {
     get: async (cid: number): Promise<GetAsyncQuestionsResponse> =>
       this.req('GET', `/api/v1/asyncQuestions/${cid}`, undefined),
     create: async (body: CreateAsyncQuestions, cid: number): Promise<void> =>
-      this.req(
-        'POST',
-        `/api/v1/asyncQuestions/${cid}`,
-        undefined,
-        body,
-      ),
-    studentUpdate: async (qid: number, body: UpdateAsyncQuestions): Promise<void> =>
+      this.req('POST', `/api/v1/asyncQuestions/${cid}`, undefined, body),
+    studentUpdate: async (
+      qid: number,
+      body: UpdateAsyncQuestions,
+    ): Promise<void> =>
       this.req(
         'PATCH',
         `/api/v1/asyncQuestions/student/${qid}`,
         undefined,
         body,
       ),
-    facultyUpdate: async (qid: number, body: UpdateAsyncQuestions): Promise<void> =>
+    facultyUpdate: async (
+      qid: number,
+      body: UpdateAsyncQuestions,
+    ): Promise<void> =>
       this.req(
         'PATCH',
         `/api/v1/asyncQuestions/faculty/${qid}`,

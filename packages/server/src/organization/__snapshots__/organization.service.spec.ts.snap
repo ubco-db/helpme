@@ -62,6 +62,9 @@ exports[`OrganizationService getOrganizationCourse should return organization co
 {
   "course": CourseModel {
     "asyncQuestionDisplayTypes": [],
+    "chatbotAgentDescription": null,
+    "chatbotAgentName": null,
+    "chatbotAgentOrder": null,
     "coordinator_email": null,
     "courseInviteCode": "invite-code",
     "createdAt": 2020-01-01T00:00:00.000Z,
@@ -85,7 +88,6 @@ exports[`OrganizationService getOrganizationCourse should return organization co
       "startDate": "2020-09-01",
     },
     "semesterId": 1,
-    "superCourseId": null,
     "timezone": "America/Los Angeles",
     "zoomLink": null,
   },
