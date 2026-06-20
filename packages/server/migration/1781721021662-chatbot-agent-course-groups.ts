@@ -19,13 +19,22 @@ export class ChatbotAgentCourseGroups1781721021662
       `CREATE INDEX "IDX_424f337188cbf825994e856c7c" ON "super_course_course_model" ("courseId") `,
     );
     await queryRunner.query(
-      `ALTER TABLE "course_model" DROP COLUMN "superCourseId"`,
-    );
-    await queryRunner.query(
       `CREATE TYPE "public"."super_course_model_purpose_enum" AS ENUM('course_clone_group', 'chatbot_agent_group')`,
     );
     await queryRunner.query(
-      `ALTER TABLE "super_course_model" ADD "purpose" "public"."super_course_model_purpose_enum" NOT NULL`,
+      `ALTER TABLE "super_course_model" ADD "purpose" "public"."super_course_model_purpose_enum"`,
+    );
+    await queryRunner.query(
+      `UPDATE "super_course_model" SET "purpose" = 'course_clone_group' WHERE "purpose" IS NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "super_course_model" ALTER COLUMN "purpose" SET NOT NULL`,
+    );
+    await queryRunner.query(
+      `INSERT INTO "super_course_course_model" ("superCourseId", "courseId") SELECT "superCourseId", "id" FROM "course_model" WHERE "superCourseId" IS NOT NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "course_model" DROP COLUMN "superCourseId"`,
     );
     await queryRunner.query(
       `ALTER TABLE "course_model" ADD "chatbotAgentName" text`,
@@ -68,6 +77,9 @@ export class ChatbotAgentCourseGroups1781721021662
     );
     await queryRunner.query(
       `ALTER TABLE "course_model" ADD "superCourseId" integer`,
+    );
+    await queryRunner.query(
+      `UPDATE "course_model" SET "superCourseId" = "superCourse"."superCourseId" FROM (SELECT DISTINCT ON ("courseId") "courseId", "superCourseId" FROM "super_course_course_model" ORDER BY "courseId", "superCourseId") "superCourse" WHERE "course_model"."id" = "superCourse"."courseId"`,
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_424f337188cbf825994e856c7c"`,
