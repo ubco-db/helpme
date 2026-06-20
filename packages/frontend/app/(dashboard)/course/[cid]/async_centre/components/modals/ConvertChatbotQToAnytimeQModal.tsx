@@ -86,7 +86,7 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
             generatedAbstract.length > 100 ||
             generatedAbstract.includes('\n')
           ) {
-            generatedAbstract = fallbackGenerateAbstract(userQuestionText)
+            generatedAbstract = fallbackGenerateAbstract(generatedAbstract)
           }
 
           form.setFieldsValue({ QuestionAbstract: generatedAbstract })
