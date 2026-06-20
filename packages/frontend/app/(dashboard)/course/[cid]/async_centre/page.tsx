@@ -100,7 +100,7 @@ export default function AsyncCentrePage(
     useState(false)
   const selectedAgentName = useMemo(() => {
     if (chatbotQuestionType === 'System') {
-      return 'HelpMe System'
+      return 'System Inquiries'
     }
 
     return agents.find((agent) => agent.courseId === selectedAgentCourseId)

@@ -307,7 +307,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                 options: [
                   {
                     value: 'System',
-                    label: 'HelpMe System',
+                    label: 'System Inquiries',
                   },
                 ],
               },
