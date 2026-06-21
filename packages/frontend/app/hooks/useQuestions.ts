@@ -1,5 +1,5 @@
 import { ListQuestionsResponse, SSEQueueResponse } from '@koh/common'
-import { plainToClass } from 'class-transformer'
+import { plainToInstance } from 'class-transformer'
 import { useCallback, useMemo } from 'react'
 import useSWR, { mutate, SWRResponse } from 'swr'
 import { useEventSource } from './useEventSource'
@@ -25,7 +25,7 @@ export function useQuestions(qid: number): UseQuestionReturn {
         if (data.queueQuestions) {
           mutate(
             key,
-            plainToClass(ListQuestionsResponse, data.queueQuestions),
+            plainToInstance(ListQuestionsResponse, data.queueQuestions),
             false,
           )
         }
@@ -39,6 +39,8 @@ export function useQuestions(qid: number): UseQuestionReturn {
     error: questionsError,
     mutate: mutateQuestions,
   } = useSWR(key, async () => API.questions.index(qid), {
+    // If the EventSource/SSE stuff fails, like for old browsers that don't support EventSourcee,
+    // use Short Polling as a fallback (every 10s re-fetch for updates)
     refreshInterval: isLive ? 0 : 10 * 1000,
   })
 

@@ -17,6 +17,13 @@ const EVENTSOURCES: Record<string, SourceAndCount> = {}
  * Listen to eventsource at given url calling the given onmessage when messages are received.
  * onmessage is overwritten if listenerKey is the same.
  * Returns whether the event source is connected
+ *
+ * Adam: I believe this was implemented for if the browser is listening to multiple different EventSources (i.e. SSE endpoints).
+ * Multiple browser tabs with the queue open, for example - I want to guess it re-uses the same EventSource somehow in this case, but I'm not sure.
+ * I think another example is you could have an Alerts EventSource and a Queue EventSource,
+ * and I think this would just be a unified area for them all so they get closed on exit?
+ *
+ *
  * @param url URL to subscribe event source to
  * @param listenerKey key of the listener. eg: "queue" or "question"
  * @param onmessage callback when messages are received
