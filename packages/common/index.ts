@@ -3804,6 +3804,12 @@ export type LMSPostResponseBody = {
   expires_in: number
   canvas_region?: string
 }
+export type LMSPostResponseRefreshTokenBody = {
+  access_token: string
+  token_type: string
+  user: { id: number; name: string }
+  expires_in: number
+}
 
 export class LMSToken {
   @IsInt()
