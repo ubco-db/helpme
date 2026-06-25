@@ -5,25 +5,26 @@ import {
 } from '@koh/common'
 import { useRouter } from 'next/navigation'
 import StudentRephraseModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/StudentRephraseModal'
-import { API } from '../api'
-import { useAlertsContext } from '@/app/contexts/alertsContext'
+import { useAlerts } from '@/app/contexts/AlertsContext'
 import EventEndedCheckoutStaffModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/EventEndedCheckoutStaffModal'
 import PromptStudentToLeaveQueueModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/PromptStudentToLeaveQueueModal'
+
+// TODO: double check the PR to make sure that this is still good
 
 type AlertsContainerProps = {
   courseId: number
 }
 const AlertsContainer: React.FC<AlertsContainerProps> = ({ courseId }) => {
   const router = useRouter()
-  const { thisCourseAlerts, closeCourseAlert } = useAlertsContext()
-  const alerts = thisCourseAlerts
+  const { modalAlerts, markAlertRead } = useAlerts()
+  const alerts = modalAlerts
 
   const handleCloseRephrase = async (
     alertId: number,
     courseId: number,
     queueId: number,
   ) => {
-    await closeCourseAlert(alertId)
+    await markAlertRead(alertId)
     router.push(`/course/${courseId}/queue/${queueId}?edit_question=true`)
   }
 
@@ -43,7 +44,7 @@ const AlertsContainer: React.FC<AlertsContainerProps> = ({ courseId }) => {
           <EventEndedCheckoutStaffModal
             courseId={courseId}
             handleClose={async () => {
-              await closeCourseAlert(alert.id)
+              await markAlertRead(alert.id)
             }}
           />
         )
@@ -58,7 +59,7 @@ const AlertsContainer: React.FC<AlertsContainerProps> = ({ courseId }) => {
                 .queueQuestionId
             }
             handleClose={async () => {
-              await closeCourseAlert(alert.id)
+              await markAlertRead(alert.id)
             }}
           />
         )

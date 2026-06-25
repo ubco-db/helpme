@@ -160,7 +160,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
         courseId,
         payload,
         targetUserId: question.creatorId,
-        deliveryMode: AlertDeliveryMode.FEED,
+        deliveryMode: AlertDeliveryMode.MODAL,
       })
       // await mutateQuestions()
       message.success('Successfully asked student to rephrase their question.')

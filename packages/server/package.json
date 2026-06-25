@@ -61,7 +61,7 @@
     "check-disk-space": "^2.1.0",
     "cheerio": "^1.1.2",
     "chromiumly": "^4.1.1",
-    "class-transformer": "0.3.1",
+    "class-transformer": "^0.5.1",
     "co": "^4.6.0",
     "connect-redis": "^5.0.0",
     "cookie-parser": "^1.4.5",

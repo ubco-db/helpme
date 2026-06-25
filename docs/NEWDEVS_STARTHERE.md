@@ -219,7 +219,7 @@ Here's some yapping about React Hooks. Some of it may actually be pretty handy t
 - `useEffect` is used to run code when the component is rendered, and is usually used to connect to an external system. The second argument is an array of dependencies, which will cause the code to re-run if any of the dependencies change. If you want the code to only run once, pass an empty array.
 - (!) `useSWRImmutable` use this to fetch data from the backend! Much simpler than using a state variable for data, state variable for loading state, state variable for error state, and a useEffect with proper de-duplication. We don't really use this anywhere right now, but I'd really recommend you use this instead of `useState` + `useEffect`. You can find an example of it inside my [ProfInvites PR](https://github.com/ubco-db/helpme/pull/425#discussion_r2641594671), and [read why you shouldn't use a useEffect for fetching data](https://react.dev/learn/you-might-not-need-an-effect#sending-a-post-request)
 - `useCallback` and `useMemo`, where the former is used to memoize functions and the latter to memoize values (i.e. store a function/value so it doesn't get recreated every time the component is rendered). Not needed anymore now that we use React v19, where the React Compiler will auto-add them.
-- `useContext` is basically like a global state variable. Useful for not needing to pass props down through many layers of components. We use this for the userInfo context, which stores the user's information (e.g. their name, email, etc.)
+- `useContext` is basically like a global state variable. Useful for not needing to pass props down through many layers of components. We use this for the userInfo context, which stores the user's information (e.g. their name, email, etc.). Note that SWR comes with its own cache which essentially works as a global context.
 - `useRef` is basically a state variable (i.e. useState) but it *wont* cause a re-render if it changes. It's a little more niche since usually you want the UI to change if its state changes. But one example is for holding a reference to a particular HTML element so you can call functions like `.focus()` (In React, all HTML elements have a `ref` attribute). See [docs](https://react.dev/reference/react/useRef#manipulating-the-dom-with-a-ref)
 - `useReducer` (advanced) is used for adding extra behaviour to your `setState()` calls. AsyncQuestionCardUIReducer is an example of this, where I can define certain "actions" that my other components can call which will manage the state for me. For example, I can dispatch the "EXPAND_QUESTION" action, but unless the state was already in "collapsed", then it won't do anything.
 - (!) `useMediaQuery` a custom hook that returns whether the browser matches the given media query (e.g. `min-width:768px`). Please use this instead of putting `window.width` in a useEffect when trying to render something different based on browser size (or better yet, you can usually just hide the mobile-only component with `className="md:hidden"` and the desktop-only component gets `className="hidden md:flex"`)
@@ -253,7 +253,6 @@ Key parts for modal-forms (includes previous items):
 - Some other `<Form>` props:
   - `name="form_in_modal"` idk if this does anything but it was in antd example
   - `clearOnDestroy`: same reason and goes with `destroyOnHidden`
-
 
 ##### Next.js
 
@@ -507,7 +506,8 @@ getAllProfInvites: async (
 export class GetProfInviteResponse {
   @IsString()
   code!: string
-  @Type(() => Date)
+  @IsDate()
+  @Type(() => Date) // important: needed otherwise it won't deserialize
   expiresAt!: Date
 }
 ```

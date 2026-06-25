@@ -23,7 +23,7 @@ import {
   Inject,
   forwardRef,
 } from '@nestjs/common';
-import { classToClass } from 'class-transformer';
+import { instanceToInstance } from 'class-transformer';
 import { pick } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
 import { DataSource, In } from 'typeorm';
@@ -196,8 +196,8 @@ export class QueueService {
             question.creator.id === userId
               ? question.creator
               : pick(question.creator, ['id']);
-          // classToClass transformer will apply the @Excludes
-          return classToClass<Question>(
+          // instanceToInstance transformer will apply the @Excludes
+          return instanceToInstance<Question>(
             QuestionModel.create({ ...question, creator }),
           );
         });
@@ -210,8 +210,8 @@ export class QueueService {
               question.creator.id === userId
                 ? question.creator
                 : pick(question.creator, ['id']);
-            // classToClass transformer will apply the @Excludes
-            return classToClass<Question>(
+            // instanceToInstance transformer will apply the @Excludes
+            return instanceToInstance<Question>(
               QuestionModel.create({ ...question, creator }),
             );
           },

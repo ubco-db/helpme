@@ -33,11 +33,14 @@ export class AlertsSSEService {
 
   /* If the user is subscribed to server-sent events (they have a HelpMe tab open), call this function with the alert to notify them */
   notifyUserOfNewAlert = async (
-    alert: AlertModel | number,
+    alert: AlertModel | number, // NEEDS .course to get courseName
     eventType: AlertServerSentEventType = AlertServerSentEventType.NEW_ALERT,
   ) => {
     if (typeof alert === 'number') {
-      alert = await AlertModel.findOne({ where: { id: alert } });
+      alert = await AlertModel.findOne({
+        where: { id: alert },
+        relations: { course: true },
+      });
     }
     if (!alert) {
       console.error(`Alert not found for ID: ${alert}`);

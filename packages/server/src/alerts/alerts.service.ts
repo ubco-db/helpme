@@ -8,11 +8,21 @@ import {
   AsyncQuestionUpdatePayload,
   AlertDeliveryMode,
 } from '@koh/common';
+import { validateSync } from 'class-validator';
+import { plainToClass } from 'class-transformer';
 import { Injectable } from '@nestjs/common';
 import { QuestionModel } from 'question/question.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { AlertModel } from './alerts.entity';
 import { Brackets, EntityManager } from 'typeorm';
+
+const ALERT_PAYLOAD_CLASS: Partial<Record<AlertType, new () => AlertPayload>> =
+  {
+    [AlertType.REPHRASE_QUESTION]: RephraseQuestionPayload,
+    [AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE]: PromptStudentToLeaveQueuePayload,
+    [AlertType.DOCUMENT_PROCESSED]: DocumentProcessedPayload,
+    [AlertType.ASYNC_QUESTION_UPDATE]: AsyncQuestionUpdatePayload,
+  };
 
 export const formatAlertForFrontend = (alert: AlertModel): Alert => {
   return {
@@ -23,6 +33,7 @@ export const formatAlertForFrontend = (alert: AlertModel): Alert => {
     deliveryMode: alert.deliveryMode,
     readAt: alert.readAt,
     courseId: alert.courseId,
+    courseName: alert.course ? alert.course.name : undefined,
   };
 };
 
@@ -90,49 +101,12 @@ export class AlertsService {
     return nonStaleAlerts;
   }
   assertPayloadType(alertType: AlertType, payload: AlertPayload): boolean {
-    switch (alertType) {
-      case AlertType.REPHRASE_QUESTION:
-        const castPayload = payload as RephraseQuestionPayload;
+    const PayloadClass = ALERT_PAYLOAD_CLASS[alertType];
+    if (!PayloadClass) return true; // no specific payload class (e.g. EVENT_ENDED_CHECKOUT_STAFF), allow it
 
-        return (
-          !!castPayload.courseId &&
-          !!castPayload.questionId &&
-          !!castPayload.queueId &&
-          typeof castPayload.courseId === 'number' &&
-          typeof castPayload.questionId === 'number' &&
-          typeof castPayload.queueId === 'number'
-        );
-
-      case AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE:
-        const promptPayload = payload as PromptStudentToLeaveQueuePayload;
-        return (
-          !!promptPayload.queueId &&
-          typeof promptPayload.queueId === 'number' &&
-          (promptPayload.queueQuestionId === undefined ||
-            typeof promptPayload.queueQuestionId === 'number')
-        );
-
-      case AlertType.DOCUMENT_PROCESSED:
-      case AlertType.ASYNC_QUESTION_UPDATE:
-        const docPayload = payload as DocumentProcessedPayload;
-        // For async question update, ensure course/question IDs exist; for document processed, ensure doc info exists
-        if ((alertType as AlertType) === AlertType.DOCUMENT_PROCESSED) {
-          return (
-            typeof docPayload.documentId === 'number' &&
-            typeof docPayload.documentName === 'string' &&
-            docPayload.documentName.trim().length > 0
-          );
-        } else {
-          const asyncPayload = payload as AsyncQuestionUpdatePayload;
-          return (
-            typeof (asyncPayload as any).courseId === 'number' &&
-            typeof (asyncPayload as any).questionId === 'number'
-          );
-        }
-
-      default:
-        return true;
-    }
+    const instance = plainToClass(PayloadClass, payload);
+    const errors = validateSync(instance);
+    return errors.length === 0;
   }
 
   async getUnresolvedRephraseQuestionAlert(
@@ -195,6 +169,11 @@ export class AlertsService {
   ): Promise<[AlertModel[], number]> {
     const qb = manager
       .createQueryBuilder(AlertModel, 'alert')
+      .leftJoinAndSelect(
+        // only joining to get course name for FEED alerts (to show what course the alert is from when on /courses page) since it's not needed for MODAL ones
+        'alert.course',
+        'course',
+      )
       .where('alert.userId = :userId', { userId })
       .andWhere('alert.deliveryMode = :mode', { mode: AlertDeliveryMode.FEED });
 
@@ -215,9 +194,10 @@ export class AlertsService {
     } // if no courseId, get alerts across ALL courses or null
 
     return await qb
+      .orderBy('alert.readAt', 'DESC', 'NULLS FIRST')
+      .addOrderBy('alert.sentAt', 'DESC')
       .take(Math.min(limit, 300))
       .skip(offset)
-      .orderBy('alert.sentAt', 'DESC')
       .getManyAndCount();
   }
 }

@@ -25,7 +25,7 @@ export class AlertsSubscriber implements EntitySubscriberInterface<AlertModel> {
   async afterUpdate(event: UpdateEvent<AlertModel>): Promise<void> {
     if (event.entity.alertId) {
       await this.alertsSSEService.notifyUserOfNewAlert(
-        event.entity.alertId,
+        event.entity.id,
         AlertServerSentEventType.MARK_READ,
       );
     } else {
@@ -37,7 +37,7 @@ export class AlertsSubscriber implements EntitySubscriberInterface<AlertModel> {
   }
 
   async afterInsert(event: InsertEvent<AlertModel>): Promise<void> {
-    await this.alertsSSEService.notifyUserOfNewAlert(event.entity);
+    await this.alertsSSEService.notifyUserOfNewAlert(event.entity.id);
   }
 
   async afterRemove(event: RemoveEvent<AlertModel>): Promise<void> {

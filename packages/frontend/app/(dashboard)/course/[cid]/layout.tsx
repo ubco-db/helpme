@@ -1,10 +1,8 @@
 'use client'
 import { use, useEffect } from 'react'
-import useSWR from 'swr'
 
 import AlertsContainer from '@/app/components/AlertsContainer'
-import { useAlertsContext } from '@/app/contexts/alertsContext'
-import { API } from '@/app/api'
+import { useAlerts } from '@/app/contexts/AlertsContext'
 
 type Params = Promise<{ cid: string }>
 
@@ -13,32 +11,22 @@ export default function Layout(props: {
   params: Params
 }) {
   const params = use(props.params)
-
   const { children } = props
-
   const { cid } = params
+  const courseId = Number(cid)
 
-  const { setThisCourseAlerts, clearThisCourseAlerts } = useAlertsContext()
-
-  const { data } = useSWR(
-    `/api/v1/alerts/course/${cid}`,
-    async () => API.alerts.get(Number(cid)),
-    { refreshInterval: 60000 },
-  )
+  const { setCurrentCourseId } = useAlerts()
 
   useEffect(() => {
-    setThisCourseAlerts(data?.alerts ?? [])
-  }, [data?.alerts])
-
-  useEffect(() => {
+    setCurrentCourseId(courseId)
     return () => {
-      clearThisCourseAlerts()
+      setCurrentCourseId(-1)
     }
-  }, [])
+  }, [courseId, setCurrentCourseId])
 
   return (
     <>
-      <AlertsContainer courseId={Number(cid)} />
+      <AlertsContainer courseId={courseId} />
       {children}
     </>
   )

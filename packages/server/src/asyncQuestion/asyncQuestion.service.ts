@@ -1,6 +1,8 @@
 import {
   AlertDeliveryMode,
   AlertType,
+  AsyncQuestionUpdatePayload,
+  AsyncQuestionUpdateSubtype,
   MailServiceType,
   parseThinkBlock,
   Role,
@@ -73,15 +75,14 @@ export class AsyncQuestionService {
     await AlertModel.create({
       alertType: AlertType.ASYNC_QUESTION_UPDATE,
       deliveryMode: AlertDeliveryMode.FEED,
-      sent: new Date(),
       userId: question.creator.id,
       courseId: question.courseId,
       payload: {
         courseId: question.courseId,
         questionId: question.id,
-        subtype: 'commentOnMyPost',
+        subtype: AsyncQuestionUpdateSubtype.COMMENT_ON_MY_POST,
         summary: `${commenterIsStaff ? commenter.name : 'Someone'} commented on your question`,
-      },
+      } satisfies AsyncQuestionUpdatePayload,
     }).save();
   }
 
@@ -155,15 +156,14 @@ export class AsyncQuestionService {
         AlertModel.create({
           alertType: AlertType.ASYNC_QUESTION_UPDATE,
           deliveryMode: AlertDeliveryMode.FEED,
-          sent: new Date(),
           userId: uid,
           courseId: updatedQuestion.courseId,
           payload: {
             courseId: updatedQuestion.courseId,
             questionId: updatedQuestion.id,
-            subtype: 'commentOnOthersPost',
+            subtype: AsyncQuestionUpdateSubtype.COMMENT_ON_OTHERS_POST,
             summary: `${commenterIsStaff ? commenter.name : 'Someone'} commented on an Anytime Question you follow`,
-          },
+          } satisfies AsyncQuestionUpdatePayload,
         }).save(),
       ),
     );
@@ -258,15 +258,14 @@ export class AsyncQuestionService {
       await AlertModel.create({
         alertType: AlertType.ASYNC_QUESTION_UPDATE,
         deliveryMode: AlertDeliveryMode.FEED,
-        sent: new Date(),
         userId: question.creator.id,
         courseId: question.courseId,
         payload: {
           courseId: question.courseId,
           questionId: question.id,
-          subtype: 'humanAnswered',
+          subtype: AsyncQuestionUpdateSubtype.HUMAN_ANSWERED,
           summary: 'Your Anytime Question has been answered',
-        } as any,
+        } satisfies AsyncQuestionUpdatePayload,
       }).save();
     }
   }
@@ -342,15 +341,14 @@ export class AsyncQuestionService {
       await AlertModel.create({
         alertType: AlertType.ASYNC_QUESTION_UPDATE,
         deliveryMode: AlertDeliveryMode.FEED,
-        sent: new Date(),
         userId: question.creator.id,
         courseId: question.courseId,
         payload: {
           courseId: question.courseId,
           questionId: question.id,
-          subtype: 'statusChanged',
+          subtype: AsyncQuestionUpdateSubtype.STATUS_CHANGED,
           summary: `Your Anytime Question status changed to ${status}`,
-        },
+        } satisfies AsyncQuestionUpdatePayload,
       }).save();
     }
   }
@@ -387,15 +385,14 @@ export class AsyncQuestionService {
       await AlertModel.create({
         alertType: AlertType.ASYNC_QUESTION_UPDATE,
         deliveryMode: AlertDeliveryMode.FEED,
-        sent: new Date(),
         userId: updatedQuestion.creator.id,
         courseId: updatedQuestion.courseId,
         payload: {
           courseId: updatedQuestion.courseId,
           questionId: updatedQuestion.id,
-          subtype: 'upvoted',
+          subtype: AsyncQuestionUpdateSubtype.UPVOTED,
           summary: 'Your Anytime Question was upvoted',
-        },
+        } satisfies AsyncQuestionUpdatePayload,
       }).save();
     }
   }

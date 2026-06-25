@@ -1,5 +1,6 @@
 import { QuestionGroupModel } from 'question/question-group.entity';
 import {
+  AlertDeliveryMode,
   AlertType,
   asyncQuestionStatus,
   calendarEventLocationType,
@@ -228,7 +229,9 @@ export class FactoryService {
 
     this.AlertFactory = new Factory(AlertModel, dataSource)
       .attr('alertType', AlertType.REPHRASE_QUESTION)
-      .attr('sent', new Date(Date.now() - 86400000))
+      .attr('sentAt', new Date(Date.now() - 86400000))
+      .attr('readAt', null)
+      .attr('deliveryMode', AlertDeliveryMode.FEED)
       .assocOne('user', this.UserFactory)
       .assocOne('course', this.CourseFactory)
       .attr('payload', {});

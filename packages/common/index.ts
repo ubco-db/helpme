@@ -734,6 +734,7 @@ export class OllamaModelDescription {
   model!: string
 
   @IsDate()
+  @Type(() => Date)
   modifiedAt!: Date
 
   @IsInt()
@@ -1469,6 +1470,7 @@ export class QueueChatPartial {
   questionId!: number
 
   @IsDate()
+  @Type(() => Date)
   startedAt!: Date
 
   messages?: QueueChatMessagePartial[]
@@ -1497,6 +1499,7 @@ export class QueueChatMessagePartial {
   message!: string
 
   @IsDate()
+  @Type(() => Date)
   timestamp!: Date
 }
 
@@ -1942,14 +1945,17 @@ export class LMSAssignment {
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   due?: Date
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   modified?: Date
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   uploaded?: Date
 }
 
@@ -1965,6 +1971,7 @@ export class LMSAnnouncement {
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   posted?: Date
 
   @IsOptional()
@@ -1973,10 +1980,12 @@ export class LMSAnnouncement {
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   modified?: Date
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   uploaded?: Date
 }
 
@@ -2003,10 +2012,12 @@ export class LMSPage {
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   modified?: Date
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   uploaded?: Date
 }
 
@@ -2032,10 +2043,12 @@ export class LMSFile {
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   modified?: Date
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   uploaded?: Date
 }
 
@@ -2487,18 +2500,15 @@ export enum AlertType {
   DOCUMENT_PROCESSED = 'documentProcessed',
   ASYNC_QUESTION_UPDATE = 'asyncQuestionUpdate',
 }
-
-// Allowed combinations to enforce front/back consistency
-export const FEED_ALERT_TYPES: AlertType[] = [
+export const FEED_ALERT_TYPES = [
   AlertType.DOCUMENT_PROCESSED,
   AlertType.ASYNC_QUESTION_UPDATE,
-]
-
-export const MODAL_ALERT_TYPES: AlertType[] = [
+] as const
+export const MODAL_ALERT_TYPES = [
   AlertType.REPHRASE_QUESTION,
   AlertType.EVENT_ENDED_CHECKOUT_STAFF,
   AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
-]
+] as const
 
 export enum AlertDeliveryMode {
   MODAL = 'modal',
@@ -2518,6 +2528,7 @@ export class Alert {
   deliveryMode!: AlertDeliveryMode
 
   @IsDate()
+  @Type(() => Date)
   sentAt!: Date
 
   @Type(() => AlertPayload)
@@ -2525,6 +2536,7 @@ export class Alert {
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   readAt?: Date
 
   @IsInt()
@@ -2533,6 +2545,10 @@ export class Alert {
   @IsOptional()
   @IsInt()
   courseId?: number | null
+
+  @IsOptional()
+  @IsString()
+  courseName?: string // used by FEED alerts to show what course the alert is from (since you can see ALL feed alerts when on /courses. Not the case with Modal alerts)
 }
 
 export class RephraseQuestionPayload extends AlertPayload {
@@ -2545,14 +2561,12 @@ export class RephraseQuestionPayload extends AlertPayload {
   @IsInt()
   courseId!: number
 }
-
 export class PromptStudentToLeaveQueuePayload extends AlertPayload {
   queueId!: number
   @IsInt()
   @IsOptional()
   queueQuestionId?: number
 }
-
 export class DocumentProcessedPayload extends AlertPayload {
   @IsInt()
   documentId!: number
@@ -2560,7 +2574,6 @@ export class DocumentProcessedPayload extends AlertPayload {
   @IsString()
   documentName!: string
 }
-
 export enum AsyncQuestionUpdateSubtype {
   COMMENT_ON_MY_POST = 'commentOnMyPost',
   COMMENT_ON_OTHERS_POST = 'commentOnOthersPost',
@@ -2568,7 +2581,6 @@ export enum AsyncQuestionUpdateSubtype {
   STATUS_CHANGED = 'statusChanged',
   UPVOTED = 'upvoted',
 }
-
 export class AsyncQuestionUpdatePayload extends AlertPayload {
   @IsInt()
   questionId!: number
@@ -2577,8 +2589,7 @@ export class AsyncQuestionUpdatePayload extends AlertPayload {
   courseId!: number
 
   @IsEnum(AsyncQuestionUpdateSubtype)
-  @IsOptional()
-  subtype?: AsyncQuestionUpdateSubtype
+  subtype!: AsyncQuestionUpdateSubtype
 
   @IsString()
   @IsOptional()
@@ -2662,26 +2673,19 @@ export type AlertServerSentEvent =
 
 export class GetPageOfFeedAlerts {
   @Type(() => Alert)
+  @ValidateNested({ each: true })
   pageOfFeedAlerts!: Alert[]
 
   @IsInt()
-  totalAlerts!: number // includes both read and unread alerts
+  totalFeedAlerts!: number // includes both read and unread alerts
 }
 export class GetInitialAlertsResponse {
   @Type(() => Alert)
-  unreadModalAlerts!: Alert[]
-
-  @Type(() => Alert)
-  unreadFeedAlerts!: Alert[]
-
-  @Type(() => Alert)
-  someReadAtFeedAlerts!: Alert[] // only includes the first 20 or so - subsequent will need to be obtained via paginated route
+  @ValidateNested({ each: true })
+  mostAlerts!: Alert[] // includes all (max 20) unread modal alerts and most feed alerts - need to fetch subsequent pages
 
   @IsInt()
-  totalUnreadFeedAlerts!: number
-
-  @IsInt()
-  totalReadAtFeedAlerts!: number
+  totalFeedAlerts!: number
 }
 
 // not used anywhere
@@ -2778,7 +2782,7 @@ export class EditCourseInfoParams {
   isCourseInviteEnabled?: boolean
 }
 
-export enum antdTagColor {
+export enum StandardAntdTagColor {
   blue = 'blue',
   gold = 'gold',
   green = 'green',
@@ -2791,6 +2795,8 @@ export enum antdTagColor {
   geekblue = 'geekblue',
   magenta = 'magenta',
   volcano = 'volcano',
+}
+export enum InverseAntdTagColor {
   blueInverse = 'blue-inverse',
   goldInverse = 'gold-inverse',
   greenInverse = 'green-inverse',
@@ -2803,12 +2809,26 @@ export enum antdTagColor {
   geekblueInverse = 'geekblue-inverse',
   magentaInverse = 'magenta-inverse',
   volcanoInverse = 'volcano-inverse',
+}
+export enum StatusAntdTagColor {
   success = 'success',
   processing = 'processing',
   error = 'error',
   default = 'default',
   warning = 'warning',
 }
+export const antdTagColor = {
+  ...StandardAntdTagColor,
+  ...InverseAntdTagColor,
+  ...StatusAntdTagColor,
+} as const
+export type antdTagColor =
+  | StandardAntdTagColor
+  | InverseAntdTagColor
+  | StatusAntdTagColor
+/** Array version of antd tag colors (standard ones - not inverse or status colors) */
+export const STANDARD_ANTD_TAG_COLORS: readonly StandardAntdTagColor[] =
+  Object.values(StandardAntdTagColor) as StandardAntdTagColor[]
 
 export class SemesterPartial {
   @IsOptional()
@@ -3158,6 +3178,7 @@ export class OrgRoleHistory {
   id!: number
 
   @IsDate()
+  @Type(() => Date)
   timestamp!: Date
 
   @IsEnum(OrganizationRole)
@@ -3189,10 +3210,12 @@ export class OrganizationRoleHistoryFilter {
   toRole?: OrganizationRole
 
   @IsDate()
+  @Type(() => Date)
   @IsOptional()
   minDate?: Date
 
   @IsDate()
+  @Type(() => Date)
   @IsOptional()
   maxDate?: Date
 

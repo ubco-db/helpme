@@ -1,5 +1,6 @@
 import {
   AlertDeliveryMode,
+  AlertType,
   CreateAlertParams,
   CreateAlertResponse,
   ERROR_MESSAGES,
@@ -7,8 +8,8 @@ import {
   Role,
   FEED_ALERT_TYPES,
   MODAL_ALERT_TYPES,
-  AlertQueryMode,
   GetInitialAlertsResponse,
+  Alert,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -21,8 +22,6 @@ import {
   Post,
   Query,
   UseGuards,
-  ParseBoolPipe,
-  ParseEnumPipe,
   NotFoundException,
   Res,
 } from '@nestjs/common';
@@ -30,7 +29,7 @@ import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { UserId } from 'decorators/user.decorator';
 import { Roles } from '../decorators/roles.decorator';
 import { AlertModel } from './alerts.entity';
-import { AlertsService } from './alerts.service';
+import { AlertsService, formatAlertForFrontend } from './alerts.service';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { DataSource, IsNull } from 'typeorm';
 import { Response } from 'express';
@@ -66,6 +65,17 @@ export class AlertsController {
         readAt: IsNull(),
       },
       { readAt: new Date() },
+      // TODO: issue with this: alerts.subscriber.ts's afterUpdate will only get the readAt value.
+      // I'm not really sure what the best way to fix this is.
+      // If I query for a list of ids first and then run this .update(), idk what the afterUpdate()
+      // is going to do.
+      // Or maybe I add a new SSE event? I would still need a list of updated alert ids.
+      // I can't just ignore it, since I *need* to make sure the frontend state is updated (like multiple tabs open)
+      // If I end up updating over 100 items, that's over 100 individual SSE events...
+      // so yeah maybe I just create a new SSE event called MARK_MANY_READ or something
+      // and then query a list of alertIds that are about to be updated and then send that to the frontend.
+      // Maybe I just do that here instead of using alerts.subscriber.
+      // Maybe commit what I've got first.
     );
   }
 
@@ -74,7 +84,7 @@ export class AlertsController {
     Gets both read and unread notifications.
 
     What happens when totalAlerts doesn't match the current frontend total of unread alerts + readAt alerts?
-    Who knows.
+    Who knows, probably the frontend messed up somewhere.
   */
   @Get('/feed')
   async getMyFeedAlerts(
@@ -97,7 +107,7 @@ export class AlertsController {
       response = {
         pageOfFeedAlerts:
           await this.alertsService.removeStaleAlerts(feedAlertModels),
-        totalAlerts: totalFeedAlerts,
+        totalFeedAlerts: totalFeedAlerts,
       };
     });
     return response;
@@ -106,8 +116,7 @@ export class AlertsController {
   /*
   - When page first loads, do query that fetches:
 	- FEED alerts
-		- ALL unread alerts (limit 100, note that the nextPage() getter should still work with unreadAlerts).
-		- Maybe 20 or so readAt alerts
+    - Limit 100 alerts, choosing unread first, then by sentAt
 		- When given no courseId: Fetch alerts across ALL courses
 		- When given courseId: Fetch alerts with both null courseId and the courseId
 	- MODAL alerts
@@ -122,40 +131,27 @@ export class AlertsController {
   ): Promise<GetInitialAlertsResponse> {
     let response: GetInitialAlertsResponse = null;
     await this.dataSource.transaction(async (manager) => {
-      const modalAlerts = await this.alertsService.removeStaleAlerts(
-        await this.alertsService.getModalAlerts(userId, manager, courseId),
+      const modalAlertModels = await this.alertsService.getModalAlerts(
+        userId,
         manager,
+        courseId,
       );
-      const [unreadFeedAlertModels, totalUnreadFeedAlerts] =
+
+      const [feedAlertModels, totalFeedAlerts] =
         await this.alertsService.getFeedAlerts(
           userId,
           manager,
           100,
           0,
-          'unread',
-          courseId,
-        );
-      const [readAtFeedAlertModels, totalReadAtFeedAlerts] =
-        await this.alertsService.getFeedAlerts(
-          userId,
-          manager,
-          20,
-          0,
-          'dismissed',
+          'all',
           courseId,
         );
       response = {
-        unreadModalAlerts: modalAlerts,
-        someReadAtFeedAlerts: await this.alertsService.removeStaleAlerts(
-          readAtFeedAlertModels,
+        mostAlerts: await this.alertsService.removeStaleAlerts(
+          [...modalAlertModels, ...feedAlertModels],
           manager,
         ),
-        totalReadAtFeedAlerts,
-        totalUnreadFeedAlerts,
-        unreadFeedAlerts: await this.alertsService.removeStaleAlerts(
-          unreadFeedAlertModels,
-          manager,
-        ),
+        totalFeedAlerts,
       };
     });
     return response;
@@ -206,9 +202,9 @@ export class AlertsController {
     // Enforce allowed alert types per delivery mode
     if (
       (parsedMode === AlertDeliveryMode.FEED &&
-        !FEED_ALERT_TYPES.includes(alertType)) ||
+        !(FEED_ALERT_TYPES as readonly AlertType[]).includes(alertType)) ||
       (parsedMode === AlertDeliveryMode.MODAL &&
-        !MODAL_ALERT_TYPES.includes(alertType))
+        !(MODAL_ALERT_TYPES as readonly AlertType[]).includes(alertType))
     ) {
       throw new BadRequestException(
         'Invalid alert type for selected delivery mode',
@@ -247,7 +243,7 @@ export class AlertsController {
   async closeAlert(
     @UserId() userId: number,
     @Param('alertId', ParseIntPipe) alertId: number,
-  ): Promise<void> {
+  ): Promise<Alert> {
     const alert = await AlertModel.findOne({
       where: {
         id: alertId,
@@ -263,5 +259,6 @@ export class AlertsController {
 
     alert.readAt = new Date();
     await alert.save();
+    return formatAlertForFrontend(alert);
   }
 }

@@ -133,6 +133,7 @@ import {
   MarkReadBulkRequest,
   GetPageOfFeedAlerts,
   GetInitialAlertsResponse,
+  Alert,
 } from '@koh/common'
 import Axios, { AxiosError, AxiosInstance, AxiosResponse, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -182,7 +183,11 @@ export class APIClient {
     const res = (
       await this.axios.request({ method, url, data: body, params, headers })
     ).data
-    return responseClass ? plainToClass(responseClass, res) : res
+    return responseClass
+      ? plainToClass(responseClass, res, {
+          enableImplicitConversion: true, // needed otherwise dates won't be deserialized (converted from string to date object)
+        })
+      : res
   }
 
   /**
@@ -1195,7 +1200,7 @@ export class APIClient {
     ): Promise<GetPageOfFeedAlerts> =>
       this.req<GetPageOfFeedAlerts>(
         'GET',
-        `/api/v1/alerts`,
+        `/api/v1/alerts/feed`,
         GetPageOfFeedAlerts,
         undefined,
         {
@@ -1218,8 +1223,8 @@ export class APIClient {
       ),
     create: async (params: CreateAlertParams): Promise<CreateAlertResponse> =>
       this.req('POST', `/api/v1/alerts`, CreateAlertResponse, params),
-    close: async (alertId: number): Promise<void> =>
-      this.req('PATCH', `/api/v1/alerts/${alertId}`),
+    close: async (alertId: number): Promise<Alert> =>
+      this.req<Alert>('PATCH', `/api/v1/alerts/${alertId}`, Alert),
   }
 
   organizations = {
