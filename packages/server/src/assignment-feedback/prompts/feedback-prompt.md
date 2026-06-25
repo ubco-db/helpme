@@ -112,29 +112,27 @@ CLAUSE & WORD LEVEL:
 FEEDBACK RULES
 ========================
 
+Follow the following section (Output Format) for exact rules. As a general guideline: 
+
+**Strength Annotations**
+
 - REQUIRED strength annotations (exactly 3):
   - One with `"function": "content"`, one with `"function": "interpersonal"`, one with `"function": "organization"`
-  - Each MUST use `"severity": "low"`
-  - Anchor to the text with `evidence.exact_quote`; use `feedback` to explain what works well; use `revision_guidance` to say how to maintain or extend the strength (not how to fix a problem)
+  - Use `feedback` to explain what works well; use `revision_guidance` to say how to maintain or extend the strength (not how to fix a problem)
   - Use a positive `issue_type` label (e.g. "Clear definition", "Appropriate hedging")
-- For issue annotations (optional, any count): follow the rules below; use `"severity": "medium"` or `"high"` only (do not use `"low"` for issues)
+
+**Issue Annotations**
 
 - Each issue annotation MUST:
   - Reference a specific part of the text
   - Explain WHY it is a problem
   - Provide revision guidance (direction only)
+  - Focus ONLY on issues that significantly affect:
+    - clarity
+    - logical structure
+    - academic effectiveness
+  - IGNORE minor grammar issues unless they affect meaning
 
-- DO NOT:
-  - Rewrite the student's sentence
-  - Provide full corrected sentences
-  - Give vague comments (e.g., "unclear", "improve this")
-
-- For issue annotations, focus ONLY on issues that significantly affect:
-  - clarity
-  - logical structure
-  - academic effectiveness
-
-- IGNORE minor grammar issues unless they affect meaning
 
 ========================
 OUTPUT FORMAT (STRICT)
@@ -146,13 +144,13 @@ Do NOT include explanations outside JSON.
 
 Required top-level fields:
 
-- `annotations` (array. Provide 0-4 issue annotations per paragraph where needed; this array could be very small or very large depending on how much feedback is found. The array MUST include exactly three strength annotations — one per function: content, interpersonal, organization — plus any issue annotations): 
+- `annotations` (array. Provide 0-4 issue annotations per paragraph where needed; this array could be very small (1 or 2) or very large (20+) depending on how much feedback is found. In total, the array MUST include exactly three strength annotations — one per function: content, interpersonal, organization — plus any number of issue annotations): 
   - `id` (integer): unique within the response, starting at 1
   - `paragraph_id` (string): lowercase paragraph id (e.g. `p1`). This is from the paragraph list provided in the user message.
   - `function` (string): one of `content`, `interpersonal`, `organization`
   - `level` (string): one of `text`, `section`, `clause_word`
   - `issue_type` (string): short label — for strengths, what works well; for issues, the problem (e.g. "Thesis clarity", "Appropriate hedging")
-  - `severity` (string): one of `low`, `medium`, `high` — use `low` ONLY for the three required strength annotations
+  - `severity` (string): one of `low`, `medium`, `high` — use `low` ONLY for the three required strength annotations, `medium` and `high` are for issues only.
   - `evidence` (object):
     - `exact_quote` (string): the exact substring from the paragraph that anchors the strength or issue. You MUST provide a verbatim extract from the text.
     - `context_before_quote` (string, optional): a short string of text appearing immediately before the quote in the paragraph, to help disambiguate multiple occurrences.
@@ -213,7 +211,7 @@ Example (illustrative shape only):
 
 ABSOLUTE CONSTRAINTS:
 
-- Do NOT rewrite or fully correct any sentence; diagnose issues and affirm strengths without rewriting.
+- Do NOT rewrite or fully correct any sentence inside the feedback and revision_guidance fields; diagnose issues and affirm strengths without rewriting.
 - Do NOT invent paragraphs; only reference paragraph IDs that appear in the input.
 - Do NOT output any field that is not in the schema.
 
