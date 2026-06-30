@@ -20,7 +20,11 @@ import {
   StaffTotalHelped,
   StaffEfficiency,
 } from '../insights/insight-objects';
-import { ChartOutputType, GanttChartOutputType, TableOutputType } from '@koh/common';
+import {
+  ChartOutputType,
+  GanttChartOutputType,
+  TableOutputType,
+} from '@koh/common';
 import {
   WeeklySummaryBuilder,
   ChatbotStats,
@@ -36,8 +40,6 @@ import {
   CourseStatsData,
 } from './weekly-summary.builder';
 
-
-
 @Injectable()
 export class WeeklySummaryService {
   constructor(
@@ -46,7 +48,7 @@ export class WeeklySummaryService {
   ) {}
 
   // Run every Monday at midnight
-  @Cron('0 0 0 * * 1')  
+  @Cron('0 0 0 * * 1')
   async sendWeeklySummaries() {
     const startTime = Date.now();
 
@@ -79,11 +81,17 @@ export class WeeklySummaryService {
 
       // Pre-calculated statistics for each course to avoid repeating the same calculations when multiple professors have the same course
       const courseStatsCache = new Map<number, CourseStatsData>();
-      const uniqueCourseEntries = new Map<number, { courseId: number; course: CourseModel }>();
+      const uniqueCourseEntries = new Map<
+        number,
+        { courseId: number; course: CourseModel }
+      >();
       for (const courses of professorMap.values()) {
         for (const pc of courses) {
           if (!uniqueCourseEntries.has(pc.courseId)) {
-            uniqueCourseEntries.set(pc.courseId, { courseId: pc.courseId, course: pc.course });
+            uniqueCourseEntries.set(pc.courseId, {
+              courseId: pc.courseId,
+              course: pc.course,
+            });
           }
         }
       }
@@ -92,16 +100,26 @@ export class WeeklySummaryService {
         try {
           const chatbotStats = await this.getChatbotStats(courseId, lastWeek);
           const newStudents = await this.getNewStudents(courseId, lastWeek);
-          const topStudents = await this.getTopActiveStudents(courseId, lastWeek);
-          const staffPerformance = await this.getStaffPerformance(courseId, lastWeek);
-          const mostActiveDays = await this.getMostActiveDays(courseId, lastWeek);
+          const topStudents = await this.getTopActiveStudents(
+            courseId,
+            lastWeek,
+          );
+          const staffPerformance = await this.getStaffPerformance(
+            courseId,
+            lastWeek,
+          );
+          const mostActiveDays = await this.getMostActiveDays(
+            courseId,
+            lastWeek,
+          );
           const peakHours = await this.getPeakHours(courseId, lastWeek);
 
           let asyncStats: AsyncQuestionStats;
           let asyncQuestionsNeedingHelp: AsyncQuestionDetailData[] = [];
           try {
             asyncStats = await this.getAsyncQuestionStats(courseId, lastWeek);
-            asyncQuestionsNeedingHelp = await this.getAsyncQuestionsNeedingHelp(courseId);
+            asyncQuestionsNeedingHelp =
+              await this.getAsyncQuestionsNeedingHelp(courseId);
           } catch (error) {
             console.error(
               `[WeeklySummary] Failed to get async question stats for course ${courseId}:`,
@@ -117,7 +135,15 @@ export class WeeklySummaryService {
               stillNeedHelp: 0,
               withNewComments: 0,
               avgResponseTime: 0,
-              byDayOfWeek: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day) => ({ day, count: 0 })),
+              byDayOfWeek: [
+                'Sunday',
+                'Monday',
+                'Tuesday',
+                'Wednesday',
+                'Thursday',
+                'Friday',
+                'Saturday',
+              ].map((day) => ({ day, count: 0 })),
               mostActiveDay: 'N/A',
             };
             asyncQuestionsNeedingHelp = [];
@@ -144,7 +170,9 @@ export class WeeklySummaryService {
           }
 
           const hasActivity =
-            chatbotStats.totalQuestions > 0 || asyncStats.total > 0 || queueStats.totalQuestions > 0;
+            chatbotStats.totalQuestions > 0 ||
+            asyncStats.total > 0 ||
+            queueStats.totalQuestions > 0;
 
           let recommendations: RecommendationData[] = [];
           let suggestArchive = false;
@@ -284,7 +312,9 @@ export class WeeklySummaryService {
     courseId: number,
     since: Date,
   ): Promise<ChatbotStats> {
-    const interactions = await InteractionModel.createQueryBuilder('interaction')
+    const interactions = await InteractionModel.createQueryBuilder(
+      'interaction',
+    )
       .leftJoinAndSelect('interaction.questions', 'questions')
       .leftJoinAndSelect('interaction.user', 'user')
       .where('interaction.course = :courseId', { courseId })
@@ -305,9 +335,8 @@ export class WeeklySummaryService {
 
     const mostActiveDay =
       byDayOfWeek.length > 0
-        ? byDayOfWeek.reduce((max, day) =>
-            day.count > max.count ? day : max,
-          ).day
+        ? byDayOfWeek.reduce((max, day) => (day.count > max.count ? day : max))
+            .day
         : 'N/A';
 
     return {
@@ -323,46 +352,60 @@ export class WeeklySummaryService {
     courseId: number,
     since: Date,
   ): Promise<AsyncQuestionStats> {
-    const questions = (await AsyncQuestionModel.createQueryBuilder('aq')
-      .leftJoinAndSelect('aq.comments', 'comments')
-      .where('aq.courseId = :courseId', { courseId })
-      .andWhere('aq.createdAt >= :since', { since })
-      .getMany()) || [];
+    const questions =
+      (await AsyncQuestionModel.createQueryBuilder('aq')
+        .leftJoinAndSelect('aq.comments', 'comments')
+        .where('aq.courseId = :courseId', { courseId })
+        .andWhere('aq.createdAt >= :since', { since })
+        .getMany()) || [];
 
     const total = questions.length;
     const aiResolved = questions.filter(
-      (q) => q.aiAnswerText && q.status === asyncQuestionStatus.AIAnsweredResolved,
+      (q) =>
+        q.aiAnswerText && q.status === asyncQuestionStatus.AIAnsweredResolved,
     ).length;
     const humanAnswered = questions.filter(
       (q) => q.answerText && q.status === asyncQuestionStatus.HumanAnswered,
     ).length;
     const stillNeedHelp = questions.filter(
-      (q) => q.status === asyncQuestionStatus.AIAnswered || q.status === asyncQuestionStatus.AIAnsweredNeedsAttention,
+      (q) =>
+        q.status === asyncQuestionStatus.AIAnswered ||
+        q.status === asyncQuestionStatus.AIAnsweredNeedsAttention,
     ).length;
     const withNewComments = questions.filter((q) =>
       q.comments?.some((c) => c.createdAt >= since),
     ).length;
 
-    const answeredQuestions = (questions || []).filter((q) => q && q.closedAt && q.createdAt);
+    const answeredQuestions = (questions || []).filter(
+      (q) => q && q.closedAt && q.createdAt,
+    );
     const avgResponseTime =
       answeredQuestions && answeredQuestions.length > 0
-        ? answeredQuestions.reduce(
-            (sum, q) => {
-              const closedTime = q.closedAt.getTime();
-              const createdTime = new Date(q.createdAt).getTime();
-              return sum + (closedTime - createdTime) / (1000 * 60 * 60);
-            },
-            0,
-          ) / answeredQuestions.length
+        ? answeredQuestions.reduce((sum, q) => {
+            const closedTime = q.closedAt.getTime();
+            const createdTime = new Date(q.createdAt).getTime();
+            return sum + (closedTime - createdTime) / (1000 * 60 * 60);
+          }, 0) / answeredQuestions.length
         : null;
 
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayNames = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
     const dayCounts = new Array(7).fill(0);
     questions.forEach((q) => {
       const dayOfWeek = new Date(q.createdAt).getDay();
       dayCounts[dayOfWeek]++;
     });
-    const byDayOfWeek = dayNames.map((day, index) => ({ day, count: dayCounts[index] }));
+    const byDayOfWeek = dayNames.map((day, index) => ({
+      day,
+      count: dayCounts[index],
+    }));
 
     let mostActiveDay = 'No activity';
     let maxCount = 0;
@@ -389,19 +432,36 @@ export class WeeklySummaryService {
     courseId: number,
   ): Promise<AsyncQuestionDetailData[]> {
     const questions = await AsyncQuestionModel.createQueryBuilder('aq')
-      .select(['aq.id', 'aq.questionAbstract', 'aq.questionText', 'aq.status', 'aq.createdAt', 'aq.closedAt'])
+      .select([
+        'aq.id',
+        'aq.questionAbstract',
+        'aq.questionText',
+        'aq.status',
+        'aq.createdAt',
+        'aq.closedAt',
+      ])
       .where('aq.courseId = :courseId', { courseId })
-      .andWhere('aq.status IN (:...statuses)', { statuses: [asyncQuestionStatus.AIAnswered, asyncQuestionStatus.AIAnsweredNeedsAttention] })
+      .andWhere('aq.status IN (:...statuses)', {
+        statuses: [
+          asyncQuestionStatus.AIAnswered,
+          asyncQuestionStatus.AIAnsweredNeedsAttention,
+        ],
+      })
       .orderBy('aq.createdAt', 'ASC')
       .getMany();
-    
 
     const now = new Date();
     return questions.map((q) => {
-      const daysAgo = Math.floor((now.getTime() - new Date(q.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+      const daysAgo = Math.floor(
+        (now.getTime() - new Date(q.createdAt).getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
       return {
         id: q.id,
-        abstract: q.questionAbstract || q.questionText?.substring(0, 100) || '(No content)',
+        abstract:
+          q.questionAbstract ||
+          q.questionText?.substring(0, 100) ||
+          '(No content)',
         status: q.status,
         createdAt: q.createdAt,
         daysAgo,
@@ -421,23 +481,30 @@ export class WeeklySummaryService {
       .getMany();
 
     const totalQuestions = questions.length;
-    const uniqueStudents = new Set(questions.map(q => q.creatorId)).size;
-    const queueNames = [...new Set(
-      questions
-        .map(q => q.queue?.room)
-        .filter(room => room != null && room !== '')
-    )];
+    const uniqueStudents = new Set(questions.map((q) => q.creatorId)).size;
+    const queueNames = [
+      ...new Set(
+        questions
+          .map((q) => q.queue?.room)
+          .filter((room) => room != null && room !== ''),
+      ),
+    ];
 
+    const questionsWithWait = questions.filter((q) => q.waitTime > 0);
+    const avgWaitTime =
+      questionsWithWait.length > 0
+        ? questionsWithWait.reduce((sum, q) => sum + q.waitTime, 0) /
+          questionsWithWait.length /
+          60
+        : null;
 
-    const questionsWithWait = questions.filter(q => q.waitTime > 0);
-    const avgWaitTime = questionsWithWait.length > 0
-      ? questionsWithWait.reduce((sum, q) => sum + q.waitTime, 0) / questionsWithWait.length / 60
-      : null;
-
-    const questionsWithHelp = questions.filter(q => q.helpTime > 0);
-    const avgHelpTime = questionsWithHelp.length > 0
-      ? questionsWithHelp.reduce((sum, q) => sum + q.helpTime, 0) / questionsWithHelp.length / 60
-      : null;
+    const questionsWithHelp = questions.filter((q) => q.helpTime > 0);
+    const avgHelpTime =
+      questionsWithHelp.length > 0
+        ? questionsWithHelp.reduce((sum, q) => sum + q.helpTime, 0) /
+          questionsWithHelp.length /
+          60
+        : null;
 
     return {
       totalQuestions,
@@ -482,7 +549,7 @@ export class WeeklySummaryService {
       }
     }
 
-    // Check if a course has had any activity in the past 4 weeks. If not, suggest archiving the course. 
+    // Check if a course has had any activity in the past 4 weeks. If not, suggest archiving the course.
     const fourWeeksAgo = new Date();
     fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
 
@@ -507,8 +574,11 @@ export class WeeklySummaryService {
       .andWhere('q.createdAt >= :since', { since: fourWeeksAgo })
       .getCount();
 
-
-    return recentInteractions === 0 && recentAsyncQuestions === 0 && recentQueueQuestions === 0;
+    return (
+      recentInteractions === 0 &&
+      recentAsyncQuestions === 0 &&
+      recentQueueQuestions === 0
+    );
   }
 
   private async getNewStudents(
@@ -531,7 +601,6 @@ export class WeeklySummaryService {
       joinedAt: uc.createdAt,
     }));
   }
-
 
   private async getStaffPerformance(
     courseId: number,
@@ -573,7 +642,12 @@ export class WeeklySummaryService {
           avgHelpTime: efficiency?.avgHelpTime ?? null,
         };
       })
-      .sort((a, b) => (b.questionsHelped + b.asyncQuestionsHelped) - (a.questionsHelped + a.asyncQuestionsHelped));
+      .sort(
+        (a, b) =>
+          b.questionsHelped +
+          b.asyncQuestionsHelped -
+          (a.questionsHelped + a.asyncQuestionsHelped),
+      );
   }
 
   private async getTopActiveStudents(
@@ -590,9 +664,9 @@ export class WeeklySummaryService {
 
     const tableData = insight as TableOutputType;
     return tableData.data.map((item: any) => ({
-      id: 0, 
+      id: 0,
       name: item.studentName,
-      email: '', 
+      email: '',
       questionsAsked: item.questionsAsked,
     }));
   }
@@ -658,7 +732,7 @@ export class WeeklySummaryService {
     });
 
     const ganttData = insight as GanttChartOutputType;
-    
+
     if (!ganttData.data || ganttData.data.length === 0) {
       return { peakHours: [] };
     }
@@ -670,7 +744,10 @@ export class WeeklySummaryService {
       timeCountMap.set(time, (timeCountMap.get(time) || 0) + amount);
     });
 
-    const totalCount = Array.from(timeCountMap.values()).reduce((a, b) => a + b, 0);
+    const totalCount = Array.from(timeCountMap.values()).reduce(
+      (a, b) => a + b,
+      0,
+    );
     const avgCount = totalCount / timeCountMap.size;
     const peakHours: string[] = [];
 
@@ -682,8 +759,9 @@ export class WeeklySummaryService {
       return `${displayHours}:${mins.toString().padStart(2, '0')}${suffix}`;
     };
 
-    const sortedTimes = Array.from(timeCountMap.entries())
-      .sort((a, b) => b[1] - a[1]);
+    const sortedTimes = Array.from(timeCountMap.entries()).sort(
+      (a, b) => b[1] - a[1],
+    );
 
     const maxCount = sortedTimes[0][1];
     const minCount = sortedTimes[sortedTimes.length - 1][1];
@@ -712,7 +790,10 @@ export class WeeklySummaryService {
   ): Promise<RecommendationData[]> {
     const recommendations: RecommendationData[] = [];
 
-    if (course.courseSettings?.chatBotEnabled !== false && course.courseSettings?.asyncQueueEnabled === false) {
+    if (
+      course.courseSettings?.chatBotEnabled !== false &&
+      course.courseSettings?.asyncQueueEnabled === false
+    ) {
       recommendations.push({
         type: 'info',
         message: `This course's Chatbot feature is enabled but the Anytime Question feature is disabled. It is strongly recommended to <a href="${process.env.DOMAIN}/course/${course.id}/settings" style="color: #17a2b8; text-decoration: underline; font-weight: bold;">enable the Anytime Questions feature</a> to allow students to get human feedback/discussion from their conversations with the Chatbot.`,
@@ -720,9 +801,14 @@ export class WeeklySummaryService {
     }
 
     // Check if course has queues but no calendar events with staff assigned
-    if (course.courseSettings?.queueEnabled !== false && queueStats.totalQuestions > 0) {
+    if (
+      course.courseSettings?.queueEnabled !== false &&
+      queueStats.totalQuestions > 0
+    ) {
       // Find calendar events for this course that have at least one staff member assigned
-      const calendarEventsWithStaff = await CalendarModel.createQueryBuilder('calendar')
+      const calendarEventsWithStaff = await CalendarModel.createQueryBuilder(
+        'calendar',
+      )
         .innerJoin('calendar.staff', 'staff')
         .where('calendar.course = :courseId', { courseId: course.id })
         .getCount();
@@ -745,7 +831,11 @@ export class WeeklySummaryService {
     }
 
     // Check for good performance
-    if (queueStats.avgWaitTime !== null && queueStats.avgWaitTime < 10 && queueStats.totalQuestions > 10) {
+    if (
+      queueStats.avgWaitTime !== null &&
+      queueStats.avgWaitTime < 10 &&
+      queueStats.totalQuestions > 10
+    ) {
       recommendations.push({
         type: 'success',
         message: 'Response time is excellent. No recommendations needed.',

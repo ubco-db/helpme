@@ -118,14 +118,6 @@ export class OrganizationResponse {
 
   @IsString()
   @IsOptional()
-  logoUrl?: string
-
-  @IsString()
-  @IsOptional()
-  bannerUrl?: string
-
-  @IsString()
-  @IsOptional()
   websiteUrl?: string
 
   @IsBoolean()
@@ -1822,8 +1814,6 @@ export class UpdateProfileParams {
 export class OrganizationPartial {
   id!: number
   name!: string
-  logoUrl?: string
-  bannerUrl?: string
   websiteUrl?: string
   ssoEnabled?: boolean
   ssoUrl?: string
@@ -1835,8 +1825,6 @@ export class OrganizationUserPartial {
   orgId!: number
   organizationName?: string
   organizationDescription?: string
-  organizationLogoUrl?: string
-  organizationBannerUrl?: string
   organizationRole?: string
 }
 

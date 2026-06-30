@@ -132,7 +132,7 @@ To run a specific unit test suite, you can run `yarn test:unit suite-name` e.g. 
 
 If your tests are failing with a message about "deadlock something whatever", do `yarn test --run-in-band`. This makes the tests run sequentially.
 
-If `yarn test` is not running all of the tests, navigate to `server/test` folder and run `yarn jest --config ./test/jest-integration.json -i --run-in-band` if you would like to run all the integration tests. To run the tests of a specific integration test file (e.g. course.integration.ts), you can use `yarn jest --config ./test/jest-integration.json -i --run-in-band course`
+If `yarn test` is not running all of the tests, navigate to `packages/server/test` folder and run `yarn test:integration --run-in-band` if you would like to run all the integration tests. To run the tests of a specific integration test file (e.g. course.integration.ts), you can use `yarn test:integration --run-in-band course`
 
 
 > [!NOTE]
