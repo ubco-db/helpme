@@ -240,15 +240,11 @@ describe('AsyncQuestion Integration', () => {
           answerText: 'new answer',
           saveToChatbot: true,
         })
-        .expect(200)
-        .then((response) => {
-          expect(response.body).toHaveProperty(
-            'questionAbstract',
-            'new abstract',
-          );
-          expect(response.body).toHaveProperty('questionText', 'new text');
-          expect(response.body).toHaveProperty('answerText', 'new answer');
-        });
+        .expect(200);
+      await asyncQuestion.reload();
+      expect(asyncQuestion.aiAnswerText).toBe('new answer');
+      expect(asyncQuestion.questionText).toBe('new text');
+
       expect(
         mockChatbotService.deleteDocumentChunksByAsyncQuestionId,
       ).toHaveBeenCalledWith(
@@ -275,15 +271,11 @@ describe('AsyncQuestion Integration', () => {
           answerText: 'new answer',
           // saveToChatbot is not set (defaults to false/undefined)
         })
-        .expect(200)
-        .then((response) => {
-          expect(response.body).toHaveProperty(
-            'questionAbstract',
-            'new abstract',
-          );
-          expect(response.body).toHaveProperty('questionText', 'new text');
-          expect(response.body).toHaveProperty('answerText', 'new answer');
-        });
+        .expect(200);
+      await asyncQuestion.reload();
+      expect(asyncQuestion.aiAnswerText).toBe('new answer');
+      expect(asyncQuestion.questionText).toBe('new text');
+
       expect(mockChatbotService.addDocumentChunk).not.toHaveBeenCalled();
       expect(
         mockChatbotService.deleteDocumentChunksByAsyncQuestionId,
@@ -298,15 +290,11 @@ describe('AsyncQuestion Integration', () => {
           answerText: 'new answer',
           saveToChatbot: true,
         })
-        .expect(200)
-        .then((response) => {
-          expect(response.body).toHaveProperty(
-            'questionAbstract',
-            'new abstract',
-          );
-          expect(response.body).toHaveProperty('questionText', 'new text');
-          expect(response.body).toHaveProperty('answerText', 'new answer');
-        });
+        .expect(200);
+      await asyncQuestion.reload();
+      expect(asyncQuestion.aiAnswerText).toBe('new answer');
+      expect(asyncQuestion.questionText).toBe('new text');
+
       expect(
         mockChatbotService.deleteDocumentChunksByAsyncQuestionId,
       ).toHaveBeenCalledWith(
@@ -333,15 +321,10 @@ describe('AsyncQuestion Integration', () => {
           answerText: 'new answer',
           // saveToChatbot is not set (defaults to false/undefined)
         })
-        .expect(200)
-        .then((response) => {
-          expect(response.body).toHaveProperty(
-            'questionAbstract',
-            'new abstract',
-          );
-          expect(response.body).toHaveProperty('questionText', 'new text');
-          expect(response.body).toHaveProperty('answerText', 'new answer');
-        });
+        .expect(200);
+      await asyncQuestion.reload();
+      expect(asyncQuestion.aiAnswerText).toBe('new answer');
+      expect(asyncQuestion.questionText).toBe('new text');
       expect(mockChatbotService.addDocumentChunk).not.toHaveBeenCalled();
       expect(
         mockChatbotService.deleteDocumentChunksByAsyncQuestionId,
