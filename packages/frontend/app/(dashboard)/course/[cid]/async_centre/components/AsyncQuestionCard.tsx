@@ -426,6 +426,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                 defaultAnonymousSetting={
                   courseFeatures?.asyncCentreDefaultAnonymous ?? true
                 }
+                mutateAsyncQuestions={mutateAsyncQuestions}
               />
             </div>
             <div className="flex flex-wrap">

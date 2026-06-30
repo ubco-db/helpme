@@ -446,29 +446,39 @@ export default function CourseLMSIntegrationPage(props: {
           title={
             <span className={'text-center'}>Learning Management System</span>
           }
-          className={'w-2/3'}
+          className={'md:w-2/3'}
         >
           <div
             className={
-              'flex flex-col items-center justify-start gap-2 text-center text-lg'
+              'flex flex-col items-center justify-start gap-2 text-base'
             }
           >
-            <div className={'flex flex-col'}>
+            <div className={'flex flex-col gap-3'}>
               <p>
-                This course is not integrated with a learning management system.
+                This course is currently not integrated with a learning
+                management system (LMS).
               </p>
-              <p>
-                By integrating a course with a learning management system, you
-                can enable documents to be retrieved by HelpMe automatically.
-                These will be used to build your course chatbot&#39;s knowledge
-                base.
+              <p className="mb-[-0.25rem]">
+                Advantages of connecting your HelpMe course with your LMS
+                include:
               </p>
-              <p>
-                Other benefits include being able to view which students from
-                your course do not have a corresponding enrollment on the LMS.
-              </p>
+              <ul className="list-inside list-disc">
+                <li>
+                  Automatically synchronize course materials into the
+                  Chatbot&apos;s Knowledge Base
+                </li>
+                <li>Compare course rosters</li>
+                <li>
+                  An embedded HelpMe Chatbot inside an LMS page. <br />
+                  <b className="font-semibold">NOTE:</b> For UBC Staff, if
+                  you&apos;re looking for the embedded Chatbot page, please
+                  email <a href="mailto:LT.hub@ubc.ca">LTHub</a> and request
+                  HelpMe be added to your Canvas course.
+                </li>
+              </ul>
               {lmsIntegrations.length == 0 ? (
                 <>
+                  <Divider className={'my-2'} />
                   <p>
                     The organization this course belongs to does not contain any
                     learning management system configurations.
@@ -477,15 +487,18 @@ export default function CourseLMSIntegrationPage(props: {
                     If you wish to integrate this course with a learning
                     management system, contact your organization administrator.
                   </p>
+                  <Divider className={'my-2'} />
                 </>
               ) : (
-                <p className={'font-semibold'}>
-                  You can integrate this course with any of the listed learning
-                  management systems:
-                </p>
+                <>
+                  <Divider className={'my-2'} />
+                  <p className={'font-semibold'}>
+                    You can integrate this course with any of the listed
+                    learning management systems:
+                  </p>
+                </>
               )}
             </div>
-            <Divider className={'my-2'} />
             {lmsIntegrations.length > 0 && (
               <>
                 <List
@@ -509,6 +522,7 @@ export default function CourseLMSIntegrationPage(props: {
                     </Button>
                   )}
                 ></List>
+                <Divider className={'my-2'} />
               </>
             )}
             <UpsertIntegrationModal
@@ -650,6 +664,18 @@ export default function CourseLMSIntegrationPage(props: {
         ),
       })
     }
+    tabItems.push({
+      key: 'chatbot_embed',
+      label: <LMSTabLabel title={'Chatbot Embed'} isLoading={false} />,
+      children: (
+        <p className="p-2">
+          For UBC Staff, if you&apos;re looking to embed the HelpMe Chatbot in
+          your Canvas course (appears as its own dedicated page in Canvas),
+          please email <a href="mailto:LT.hub@ubc.ca">LTHub</a> and request
+          HelpMe be added to your Canvas course.
+        </p>
+      ),
+    })
 
     const card = (
       <Card title={'Learning Management System Integration'}>
