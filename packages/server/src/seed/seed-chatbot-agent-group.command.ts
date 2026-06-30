@@ -1,6 +1,8 @@
 import { SuperCoursePurpose } from '@koh/common';
 import { Injectable } from '@nestjs/common';
 import { Command } from 'nestjs-command';
+import { CourseChatbotSettingsModel } from 'chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
+import { OrganizationChatbotSettingsModel } from 'chatbot/chatbot-infrastructure-models/organization-chatbot-settings.entity';
 import { CourseModel } from 'course/course.entity';
 import { CourseSettingsModel } from 'course/course_settings.entity';
 import { SuperCourseModel } from 'course/super-course.entity';
@@ -15,21 +17,29 @@ const agents = [
     name: 'Analyst',
     description:
       'Research foundations, statistics, research methods, terminology, philosophy of science, and critical appraisal.',
+    prompt:
+      'You are LANTERN Analyst, a research foundations coach for graduate students and researchers. Help with research methods, statistics, terminology, philosophy of science, and critical appraisal. Ask clarifying questions when useful, explain concepts plainly, and guide learners toward sound reasoning instead of doing their work for them.',
   },
   {
     name: 'Communicator',
     description:
       'Scholarly communication, literature synthesis, scientific writing, and oral presentations.',
+    prompt:
+      'You are LANTERN Communicator, a scholarly communication coach for graduate students and researchers. Help with literature synthesis, scientific writing, presentation structure, audience fit, and clear academic language. Offer concrete revision guidance while keeping the learner in control of their own argument.',
   },
   {
     name: 'Strategist',
     description:
       'Grantsmanship, funder alignment, grant structure, budget justification, project management, and reviewer perspective.',
+    prompt:
+      'You are LANTERN Strategist, a grants and project planning coach for graduate students and researchers. Help with funder alignment, proposal structure, budget justification, project planning, and reviewer expectations. Give practical, structured advice and flag assumptions that should be verified.',
   },
   {
     name: 'Thrive',
     description:
       'Academic culture, hidden curriculum, mentorship navigation, common challenges in academia, and career planning.',
+    prompt:
+      'You are LANTERN Thrive, an academic wellbeing and career navigation coach for graduate students and researchers. Help with academic culture, mentorship, hidden curriculum, common academic challenges, and career planning. Be supportive and practical, and encourage learners to use local human support for personal, health, or urgent concerns.',
   },
 ];
 const parentCourseName = 'LANTERN';
@@ -62,6 +72,8 @@ export class SeedChatbotAgentGroupCommand {
         semester.id,
         organization.id,
       );
+      const organizationChatbotSettings =
+        await this.getOrganizationChatbotSettings(manager, organization.id);
 
       await this.attachCourseToGroup(
         manager,
@@ -86,6 +98,12 @@ export class SeedChatbotAgentGroupCommand {
           superCourse,
           organization.id,
         );
+        await this.upsertAgentCourseChatbotSettings(
+          manager,
+          course.id,
+          agent.prompt,
+          organizationChatbotSettings,
+        );
       }
 
       console.log(
@@ -96,6 +114,27 @@ export class SeedChatbotAgentGroupCommand {
 
   private getAgentCourseName(agentName: string): string {
     return `${parentCourseName} ${agentName}`;
+  }
+
+  private async getOrganizationChatbotSettings(
+    manager: EntityManager,
+    organizationId: number,
+  ): Promise<OrganizationChatbotSettingsModel> {
+    const organizationChatbotSettings = await manager.findOne(
+      OrganizationChatbotSettingsModel,
+      {
+        where: { organizationId },
+        relations: { defaultProvider: true },
+      },
+    );
+
+    if (!organizationChatbotSettings?.defaultProvider?.defaultModelId) {
+      throw new Error(
+        `Cannot seed LANTERN chatbot settings for organization ${organizationId}: default chatbot provider/model is not configured.`,
+      );
+    }
+
+    return organizationChatbotSettings;
   }
 
   private async findOrCreateSuperCourse(
@@ -212,5 +251,29 @@ export class SeedChatbotAgentGroupCommand {
         }),
       );
     }
+  }
+
+  private async upsertAgentCourseChatbotSettings(
+    manager: EntityManager,
+    courseId: number,
+    prompt: string,
+    organizationChatbotSettings: OrganizationChatbotSettingsModel,
+  ): Promise<void> {
+    const existing = await manager.findOne(CourseChatbotSettingsModel, {
+      where: { courseId },
+    });
+    const defaults = CourseChatbotSettingsModel.getDefaults(manager);
+    const settings = manager.create(CourseChatbotSettingsModel, {
+      ...defaults,
+      ...existing,
+      courseId,
+      organizationSettingsId: organizationChatbotSettings.id,
+      llmId: organizationChatbotSettings.defaultProvider.defaultModelId,
+      prompt,
+      usingDefaultModel: true,
+      usingDefaultPrompt: false,
+    });
+
+    await manager.save(CourseChatbotSettingsModel, settings);
   }
 }
