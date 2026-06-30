@@ -76,7 +76,7 @@ export default function ProfInvitePage(
         title="Error"
         subTitle={`Sorry, there was an error accepting the professor invite: ${errorMessage}`}
         extra={
-          <Link href="/login">
+          <Link href="/login" prefetch={false}>
             <Button type="primary">Back to Login</Button>
           </Link>
         }

@@ -42,7 +42,7 @@ const ThirdPartyCookiesWarning: React.FC = () => {
               the button below:
             </p>
             <div>
-              <Link href={launchUrl} target={'_blank'}>
+              <Link href={launchUrl} target={'_blank'} prefetch={false}>
                 <Button
                   variant={'solid'}
                   color={'primary'}
