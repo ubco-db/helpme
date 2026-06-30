@@ -8,14 +8,17 @@ import {
   UserFactory,
 } from './util/factories';
 import { AuthService } from 'auth/auth.service';
-import { AccountType } from '@koh/common';
+import { AccountType, ERROR_MESSAGES } from '@koh/common';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import {
   TokenAction,
   TokenType,
   UserTokenModel,
 } from 'profile/user-token.entity';
+import { OrganizationModel } from 'organization/organization.entity';
+
 import { LoginTicket, OAuth2Client } from 'google-auth-library';
+import { UserModel } from 'profile/user.entity';
 
 jest.mock('google-auth-library', () => ({
   OAuth2Client: jest.fn().mockImplementation(
@@ -520,61 +523,52 @@ describe('Auth Integration', () => {
   });
 
   describe('POST password/reset', () => {
-    it('should return BAD REQUEST when Google returned false for recaptcha', () => {
-      return supertest()
-        .post('/auth/password/reset')
-        .send({
-          email: 'email.com',
-          recaptchaToken: 'invalid',
-          organizationId: 1,
-        })
-        .expect(400);
-    });
-
-    it('should return BAD REQUEST when user does not exist', async () => {
-      const organization = await OrganizationFactory.create();
-
-      const res = await supertest().post('/auth/password/reset').send({
-        email: 'email.com',
-        recaptchaToken: 'token',
-        organizationId: organization.id,
-      });
-
-      expect(res.status).toBe(400);
-    });
-
-    it('should return BAD REQUEST when email is not verified', async () => {
-      const organization = await OrganizationFactory.create();
-      const user = await UserFactory.create({
-        email: 'email.com',
-        emailVerified: false,
-      });
-
-      await OrganizationUserModel.create({
-        organizationId: organization.id,
-        userId: user.id,
-      }).save();
-
-      const res = await supertest().post('/auth/password/reset').send({
-        email: user.email,
-        recaptchaToken: 'token',
-        organizationId: organization.id,
-      });
-
-      expect(res.status).toBe(400);
-    });
-
-    it('should return ACCEPTED when email is sent', async () => {
-      const organization = await OrganizationFactory.create();
-      const user = await UserFactory.create({
+    let user: UserModel;
+    let organization: OrganizationModel;
+    beforeEach(async () => {
+      user = await UserFactory.create({
         email: 'email.com',
         emailVerified: true,
       });
-
+      organization = await OrganizationFactory.create();
       await OrganizationUserModel.create({
         organizationId: organization.id,
         userId: user.id,
       }).save();
+    });
+    it('should return BAD REQUEST when recaptcha token is missing', async () => {
+      const res = await supertest().post('/auth/password/reset').send({
+        email: user.email,
+        organizationId: organization.id,
+      });
+      expect(res.status).toBe(400);
+    });
+    it('should return BAD REQUEST when Google returned false for recaptcha', async () => {
+      const res = await supertest().post('/auth/password/reset').send({
+        email: user.email,
+        recaptchaToken: 'invalid',
+        organizationId: organization.id,
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe(
+        ERROR_MESSAGES.authController.invalidRecaptchaToken,
+      );
+    });
+    it('should return NOT FOUND when user does not exist', async () => {
+      const res = await supertest().post('/auth/password/reset').send({
+        email: 'email.notfound@email.com',
+        recaptchaToken: 'token',
+        organizationId: organization.id,
+      });
+
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe(
+        ERROR_MESSAGES.authController.userNotFoundWithEmail,
+      );
+    });
+    it('should return 202when email is not verified', async () => {
+      user.emailVerified = false;
+      await user.save();
 
       const res = await supertest().post('/auth/password/reset').send({
         email: user.email,
@@ -582,6 +576,52 @@ describe('Auth Integration', () => {
         organizationId: organization.id,
       });
 
+      expect(res.status).toBe(202);
+    });
+    it('should return BAD REQUEST when account is an SSO account (google)', async () => {
+      user.accountType = AccountType.GOOGLE;
+      await user.save();
+
+      const res = await supertest().post('/auth/password/reset').send({
+        email: user.email,
+        recaptchaToken: 'token',
+        organizationId: organization.id,
+      });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe(
+        ERROR_MESSAGES.authController.ssoAccountGoogle,
+      );
+    });
+    it('should return BAD REQUEST when account is an SSO account (shibboleth)', async () => {
+      user.accountType = AccountType.SHIBBOLETH;
+      await user.save();
+
+      const res = await supertest().post('/auth/password/reset').send({
+        email: user.email,
+        recaptchaToken: 'token',
+        organizationId: organization.id,
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe(
+        ERROR_MESSAGES.authController.ssoAccountShibboleth(organization.name),
+      );
+    });
+    it('should return ACCEPTED when email is sent', async () => {
+      const res = await supertest().post('/auth/password/reset').send({
+        email: user.email,
+        recaptchaToken: 'token',
+        organizationId: organization.id,
+      });
+
+      expect(res.status).toBe(202);
+    });
+    it('should return ACCEPTED when email is different case', async () => {
+      const res = await supertest().post('/auth/password/reset').send({
+        email: user.email.toUpperCase(),
+        recaptchaToken: 'token',
+        organizationId: organization.id,
+      });
       expect(res.status).toBe(202);
     });
   });

@@ -169,6 +169,7 @@ export class QueueService {
         creator: {
           name: question.creator.name,
           photoURL: question.creator.photoURL,
+          namePronunciation: question.creator.namePronunciation,
         },
       });
 
@@ -256,6 +257,7 @@ export class QueueService {
             creator: {
               name: question.creator.name,
               photoURL: question.creator.photoURL,
+              namePronunciation: question.creator.namePronunciation,
             },
           }) as Question;
         });

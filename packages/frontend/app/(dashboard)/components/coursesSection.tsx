@@ -12,12 +12,14 @@ interface CoursesSectionProps {
   semesters: SemesterPartial[]
   enabledTableView: boolean
   ltiView?: boolean
+  highlightedCourseId?: number
 }
 
 const CoursesSection: React.FC<CoursesSectionProps> = ({
   semesters,
   enabledTableView,
   ltiView,
+  highlightedCourseId,
 }) => {
   // For some reason, jdenticon is not working when imported as a module and needs to use require
   // eslint-disable @typescript-eslint/no-var-requires
@@ -91,7 +93,10 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
   return (
     <div className="mb-8 w-full">
       {enabledTableView ? (
-        <CoursesSectionTableView semesters={semesters} />
+        <CoursesSectionTableView
+          semesters={semesters}
+          highlightedCourseId={highlightedCourseId}
+        />
       ) : (
         <div className="mt-5 flex flex-wrap gap-3">
           {sortedCoursesInCardView.map((course, index) => {
@@ -114,7 +119,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
             return (
               <Card
                 key={course.course.id}
-                className="m-2 w-full shadow md:w-[46%] lg:w-[30.5%] xl:w-[22.5%]"
+                className={`m-2 w-full shadow md:w-[46%] lg:w-[30.5%] xl:w-[22.5%] ${highlightedCourseId === course.course.id ? 'glowy' : ''}`}
                 cover={
                   <div className="relative block h-24 w-full md:h-32">
                     <div

@@ -22,6 +22,7 @@ import {
 import {
   AccountRegistrationParams,
   AccountType,
+  ERROR_MESSAGES,
   OrganizationRole,
   OrgRoleChangeReason,
 } from '@koh/common';
@@ -185,6 +186,7 @@ describe('AuthService', () => {
 
   let registrationParams: AccountRegistrationParams;
   let organization: OrganizationModel;
+  const expiredCreatedAt = (): Date => new Date(Date.now() - 1000);
 
   beforeEach(async () => {
     organization = await OrganizationFactory.create({
@@ -207,6 +209,7 @@ describe('AuthService', () => {
       const validAuthState = await AuthStateFactory.create({ organization });
       const invalidAuthState = await AuthStateFactory.create({
         organization,
+        createdAt: expiredCreatedAt(),
         expiresInSeconds: 0,
       });
 
@@ -534,6 +537,7 @@ describe('AuthService', () => {
       });
       const authState = await AuthStateFactory.create({
         organization: org,
+        createdAt: expiredCreatedAt(),
         expiresInSeconds: 0,
       });
       const res: any = new MockResponse() as any;
@@ -703,6 +707,7 @@ describe('AuthService', () => {
       const token = await UserTokenModel.save({
         user: user,
         token: crypto.randomBytes(32).toString('hex'),
+        createdAt: expiredCreatedAt(),
         expiresInSeconds: 0,
       });
       const res = new MockResponse() as any;
@@ -874,6 +879,36 @@ describe('AuthService', () => {
           sid: 2,
         },
       ],
+      [
+        400,
+        'Name pronunciation must be at most 64 characters',
+        {
+          recaptchaToken: 'succeed',
+          firstName: 'first',
+          lastName: 'last',
+          email: 'email@example.com',
+          password: 'abcdef',
+          confirmPassword: 'abcdef',
+          organizationId: 1,
+          sid: 2,
+          namePronunciation: 'a'.repeat(65),
+        },
+      ],
+      [
+        null,
+        null,
+        {
+          recaptchaToken: 'succeed',
+          firstName: 'first',
+          lastName: 'last',
+          email: 'email@example.com',
+          password: 'abcdef',
+          confirmPassword: 'abcdef',
+          organizationId: 1,
+          sid: 2,
+          namePronunciation: 'uh-LEE-shuh',
+        },
+      ],
     ])(
       'should return %d with %s if params %o',
       async (
@@ -937,7 +972,7 @@ describe('AuthService', () => {
       );
 
       const res = new MockResponse() as any;
-      await service.issuePasswordReset(res, email, organization.id);
+      await service.issuePasswordReset(res, user);
 
       expect(res.statusCode).toBe(202);
       expect(res._body).toHaveProperty('message', 'Password reset email sent');
@@ -948,13 +983,20 @@ describe('AuthService', () => {
 
   describe('validateResetPasswordParams', () => {
     it.each([
-      [400, 'Invalid recaptcha token', { recaptchaToken: undefined }],
-      [400, 'Recaptcha token invalid', { recaptchaToken: 'fail' }],
-      [400, 'User not found', { recaptchaToken: 'succeed', userFound: false }],
       [
         400,
-        'Email not verified',
-        { recaptchaToken: 'succeed', userFound: true, emailVerified: false },
+        ERROR_MESSAGES.authController.invalidRecaptchaToken,
+        { recaptchaToken: undefined },
+      ],
+      [
+        400,
+        ERROR_MESSAGES.authController.invalidRecaptchaToken,
+        { recaptchaToken: 'fail' },
+      ],
+      [
+        404,
+        ERROR_MESSAGES.authController.userNotFoundWithEmail,
+        { recaptchaToken: 'succeed', userFound: false },
       ],
       [
         null,

@@ -32,6 +32,7 @@ exports[`Profile Integration GET /profile returns the logged-in user profile 1`]
   "includeDefaultMessage": true,
   "lastName": "Person",
   "name": "User Person",
+  "namePronunciation": null,
   "organization": {
     "id": 1,
     "orgId": 1,

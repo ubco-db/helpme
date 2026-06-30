@@ -143,7 +143,7 @@ export default function RegisterPage(props: {
       if (pattern.startsWith('r')) {
         try {
           const regexPattern = pattern.substring(1)
-          const regex = new RegExp(regexPattern)
+          const regex = new RegExp(regexPattern, 'i')
           if (regex.test(email)) {
             return errorMessage
           }
@@ -268,6 +268,10 @@ export default function RegisterPage(props: {
                     </Form.Item>
                   </Col>
                 </Row>
+
+                <Form.Item label="Name Pronunciation" name="namePronunciation">
+                  <Input allowClear={true} placeholder="Example: uh-LEE-shuh" />
+                </Form.Item>
 
                 <Form.Item
                   label="Email"

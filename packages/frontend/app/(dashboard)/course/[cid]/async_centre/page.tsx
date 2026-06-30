@@ -12,6 +12,7 @@ import React, {
 import {
   Button,
   Checkbox,
+  Empty,
   Pagination,
   Popover,
   Segmented,
@@ -65,7 +66,11 @@ export default function AsyncCentrePage(
 
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  const [asyncQuestions, mutateAsyncQuestions] = useAsyncQuestions(courseId)
+  const [asyncQuestionsResponse, mutateAsyncQuestions] =
+    useAsyncQuestions(courseId)
+  const asyncQuestions = asyncQuestionsResponse?.questions
+  const hiddenPrivateQuestionsCount =
+    asyncQuestionsResponse?.hiddenPrivateQuestionsCount ?? 0
 
   const [createAsyncQuestionModalOpen, setCreateAsyncQuestionModalOpen] =
     useState(false)
@@ -75,7 +80,14 @@ export default function AsyncCentrePage(
   const [showStudents, setShowStudents] = useState(false) // for when staff want to de-anonymize students on their end to see who posted what
 
   // chatbot
-  const { setCid, setRenderSmallChatbot, messages } = useChatbotContext()
+  const {
+    setCid,
+    setRenderSmallChatbot,
+    messages,
+    agents,
+    selectedAgentCourseId,
+    chatbotQuestionType,
+  } = useChatbotContext()
   useEffect(() => {
     setCid(courseId)
   }, [courseId, setCid])
@@ -86,6 +98,14 @@ export default function AsyncCentrePage(
 
   const [convertChatbotQModalOpen, setConvertChatbotQModalOpen] =
     useState(false)
+  const selectedAgentName = useMemo(() => {
+    if (chatbotQuestionType === 'System') {
+      return 'System Inquiries'
+    }
+
+    return agents.find((agent) => agent.courseId === selectedAgentCourseId)
+      ?.agentName
+  }, [agents, chatbotQuestionType, selectedAgentCourseId])
   const [convertQueueQModalOpen, setConvertQueueQModalOpen] = useState(false)
   const convertChatbotQSearchParam = searchParams.get('convertChatbotQ')
   const convertQueueQSearchParam = searchParams.get('convertQueueQ')
@@ -207,6 +227,8 @@ export default function AsyncCentrePage(
   const displayedQuestions = useMemo(() => applySort, [applySort])
 
   const totalQuestions = displayedQuestions.length // total length after all filters applied
+  const totalPages = Math.max(1, Math.ceil(totalQuestions / pageSize))
+  const isLastPage = page >= totalPages
 
   // reset to page 1 whenever the filtered question count changes.
   useEffect(() => {
@@ -344,7 +366,11 @@ export default function AsyncCentrePage(
 
   if (!userInfo) {
     return <CenteredSpinner tip="Loading User Info..." />
-  } else if (asyncQuestions === undefined || asyncQuestions === null) {
+  } else if (
+    asyncQuestionsResponse === undefined ||
+    asyncQuestionsResponse === null ||
+    asyncQuestions === undefined // should always be defined beyond this point, just for type safety
+  ) {
     return <CenteredSpinner tip="Loading Questions..." />
   } else {
     return (
@@ -450,25 +476,76 @@ export default function AsyncCentrePage(
                   showStudents={showStudents}
                 />
               ))}
+
+              {asyncQuestions.length === 0 &&
+              hiddenPrivateQuestionsCount === 0 ? (
+                <div className="flex flex-grow items-center justify-center">
+                  <Empty description="No questions have been posted here yet" />
+                </div>
+              ) : (
+                asyncQuestions.length === 0 &&
+                hiddenPrivateQuestionsCount > 0 && (
+                  <div className="flex flex-grow items-center justify-center">
+                    <Empty
+                      description={
+                        <div className="text-center">
+                          <p className="mb-1">
+                            No public questions or questions you created found.
+                            Try posting a course question!
+                          </p>
+                          {hiddenPrivateQuestionsCount > 0 && (
+                            <Tooltip title="These are questions other students have asked that have not been made public by the Professor/TA (they're all private by default, meaning only the Professor/TA can see them)">
+                              <p className="text-sm text-gray-500">
+                                +{hiddenPrivateQuestionsCount} additional
+                                private question
+                                {hiddenPrivateQuestionsCount === 1 ? '' : 's'}
+                              </p>
+                            </Tooltip>
+                          )}
+                        </div>
+                      }
+                    />
+                  </div>
+                )
+              )}
+              {
+                // Show how many total private questions that the student can't see so that the student has
+                //  a better way to know that this system is being used
+                // (and students usually ask questions to the most-popular system the prof set up)
+                !isStaff &&
+                  hiddenPrivateQuestionsCount > 0 &&
+                  paginatedQuestions.length > 0 &&
+                  isLastPage && (
+                    <Tooltip title="These are questions other students have asked that have not been made public by the Professor/TA (they're all private by default, meaning only the Professor/TA can see them)">
+                      <p className="mt-1 self-center pl-2 text-sm text-gray-500">
+                        +{hiddenPrivateQuestionsCount} additional private
+                        question
+                        {hiddenPrivateQuestionsCount === 1 ? '' : 's'}
+                      </p>
+                    </Tooltip>
+                  )
+              }
             </div>
 
-            <Pagination
-              current={page}
-              pageSize={pageSize}
-              total={totalQuestions}
-              onChange={(newPage, newPageSize) => {
-                setPage(newPage)
-                if (newPageSize !== pageSize) {
-                  setPageSize(newPageSize)
-                  setPage(1) // reset to page 1 when page size changes so you don't end up on a page that doesnt exist anymore
+            {totalQuestions > 0 && (
+              <Pagination
+                current={page}
+                pageSize={pageSize}
+                total={totalQuestions}
+                onChange={(newPage, newPageSize) => {
+                  setPage(newPage)
+                  if (newPageSize !== pageSize) {
+                    setPageSize(newPageSize)
+                    setPage(1) // reset to page 1 when page size changes so you don't end up on a page that doesnt exist anymore
+                  }
+                }}
+                showSizeChanger
+                showTotal={(total, range) =>
+                  `${range[0]}-${range[1]} of ${total} questions`
                 }
-              }}
-              showSizeChanger
-              showTotal={(total, range) =>
-                `${range[0]}-${range[1]} of ${total} questions`
-              }
-              className="mb-2 mt-4 text-center"
-            />
+                className="mb-2 mt-4 text-center"
+              />
+            )}
           </div>
         </div>
         <ConvertChatbotQToAnytimeQModal
@@ -483,7 +560,7 @@ export default function AsyncCentrePage(
             router.replace(pathname)
             setConvertChatbotQModalOpen(false)
           }}
-          chatbotQ={{ messages: messages }}
+          chatbotQ={{ messages: messages, selectedAgentName }}
         />
         <ConvertQueueQToAnytimeQModal
           courseId={courseId}

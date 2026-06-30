@@ -1,11 +1,12 @@
 import {
   AsyncCreator,
   AsyncQuestion,
+  AsyncQuestionCommentEndorseParams,
   AsyncQuestionCommentParams,
-  AsyncQuestionParams,
   asyncQuestionStatus,
   CreateAsyncQuestions,
   ERROR_MESSAGES,
+  GetAsyncQuestionsResponse,
   nameToRGB,
   Role,
   UnreadAsyncQuestionResponse,
@@ -112,6 +113,8 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'comments.endorsedBy',
+        'comments.endorsedBy.courses',
       ],
     });
 
@@ -180,6 +183,8 @@ export class asyncQuestionController {
           'comments',
           'comments.creator',
           'comments.creator.courses',
+          'comments.endorsedBy',
+          'comments.endorsedBy.courses',
         ],
       });
 
@@ -192,7 +197,7 @@ export class asyncQuestionController {
         await this.asyncQuestionService.sendNeedsAttentionEmail(question);
       }
 
-      res.status(HttpStatus.CREATED).send(newQuestion);
+      res.status(HttpStatus.CREATED).send();
       return;
     } catch (err) {
       console.error(err);
@@ -210,7 +215,7 @@ export class asyncQuestionController {
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
     @UserId() userId: number,
-  ): Promise<AsyncQuestionParams> {
+  ): Promise<void> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: questionId },
       relations: [
@@ -219,6 +224,8 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'comments.endorsedBy',
+        'comments.endorsedBy.courses',
       ],
     });
 
@@ -313,10 +320,6 @@ export class asyncQuestionController {
         updatedQuestion,
       );
     }
-    delete question.taHelped;
-    delete question.votes;
-
-    return question;
   }
 
   // check that verified equals true and something changed
@@ -327,7 +330,7 @@ export class asyncQuestionController {
     @Param('questionId', ParseIntPipe) questionId: number,
     @Body() body: UpdateAsyncQuestions,
     @User({ chat_token: true }) user: UserModel,
-  ): Promise<AsyncQuestionParams> {
+  ): Promise<void> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: questionId },
       relations: [
@@ -337,6 +340,8 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'comments.endorsedBy',
+        'comments.endorsedBy.courses',
       ],
     });
 
@@ -443,11 +448,6 @@ export class asyncQuestionController {
         updatedQuestion,
       );
     }
-
-    delete question.taHelped;
-    delete question.votes;
-
-    return question;
   }
 
   @Post('comment/:qid')
@@ -492,17 +492,17 @@ export class asyncQuestionController {
       createdAt: new Date(),
     }).save();
 
-    const otherComments = await AsyncQuestionCommentModel.find({
+    const myOtherComments = await AsyncQuestionCommentModel.find({
       where: {
         creatorId: user.id,
         questionId: qid,
         id: Not(comment.id),
       },
     });
-    const originalAnons = otherComments.map((c) => c.isAnonymous);
-    otherComments.forEach((oc) => (oc.isAnonymous = comment.isAnonymous));
+    const originalAnons = myOtherComments.map((c) => c.isAnonymous);
+    myOtherComments.forEach((oc) => (oc.isAnonymous = comment.isAnonymous));
     await AsyncQuestionCommentModel.save(
-      otherComments.filter((v, i) => originalAnons[i] != v.isAnonymous),
+      myOtherComments.filter((v, i) => originalAnons[i] != v.isAnonymous),
     );
 
     const updatedQuestion = await AsyncQuestionModel.findOne({
@@ -514,6 +514,8 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'comments.endorsedBy',
+        'comments.endorsedBy.courses',
       ],
     });
 
@@ -560,19 +562,86 @@ export class asyncQuestionController {
       );
     }
 
-    // only put necessary info for the response's creator (otherwise it would send the password hash and a bunch of other unnecessary info)
-    const comments = [comment, ...otherComments];
-    for (const c of comments) {
-      c.creator = {
-        id: user.id,
-        name: user.name,
-        colour: nameToRGB(Math.abs(user.id - qid).toString()),
-        anonId: this.asyncQuestionService.getAnonId(user.id, qid),
-        photoURL: user.photoURL,
-        isAuthor: comment.creator.id === question.creatorId,
-      } as AsyncCreator as unknown as UserModel;
+    // Build response from updatedQuestion.comments which has all relations loaded (endorsedBy.courses, etc.)
+    // This ensures endorsedBy is properly formatted (role derived, endorsedById stripped) and avoids leaking internal fields.
+    const updatedCommentMap = new Map(
+      updatedQuestion.comments.map((c) => [c.id, c]),
+    );
+    const formattedComments = [comment.id, ...myOtherComments.map((c) => c.id)]
+      .map((id) => updatedCommentMap.get(id))
+      .filter(Boolean)
+      .map((c) => {
+        const temp = { ...c } as any;
+        delete temp.endorsedById;
+        // only put necessary info for the response's creator (otherwise it would send the password hash and a bunch of other unnecessary info)
+        temp.creator = {
+          id: user.id,
+          name: user.name,
+          colour: nameToRGB(Math.abs(user.id - qid).toString()),
+          anonId: this.asyncQuestionService.getAnonId(user.id, qid),
+          photoURL: user.photoURL,
+          isAuthor: c.creatorId === question.creatorId,
+        } as AsyncCreator as unknown as UserModel;
+        temp.endorsedBy = c.endorsedBy
+          ? ({
+              ...pick(c.endorsedBy, ['id', 'name', 'photoURL']),
+              role:
+                c.endorsedBy.courses?.find(
+                  (course) => course.courseId === question.courseId,
+                )?.role || Role.TA,
+            } as unknown as UserModel)
+          : null;
+        return temp;
+      });
+    res.status(HttpStatus.CREATED).send(formattedComments);
+  }
+
+  @Patch('comment/:qid/:commentId/endorse')
+  @UseGuards(AsyncQuestionRolesGuard)
+  @Roles(Role.TA, Role.PROFESSOR)
+  async endorseComment(
+    @Param('qid', ParseIntPipe) qid: number,
+    @Param('commentId', ParseIntPipe) commentId: number,
+    @Body() body: AsyncQuestionCommentEndorseParams,
+    @User() user: UserModel,
+  ): Promise<void> {
+    const question = await AsyncQuestionModel.findOne({
+      where: { id: qid },
+    });
+    if (!question) {
+      throw new NotFoundException(ERROR_MESSAGES.questionController.notFound);
     }
-    res.status(HttpStatus.CREATED).send(comments);
+
+    const comment = await AsyncQuestionCommentModel.findOne({
+      where: { id: commentId, questionId: qid },
+    });
+    if (!comment) {
+      throw new NotFoundException(
+        ERROR_MESSAGES.asyncQuestionController.comments.commentNotFound,
+      );
+    }
+
+    comment.endorsedById = body.isEndorsed ? user.id : null;
+    await comment.save();
+
+    const updatedQuestion = await AsyncQuestionModel.findOne({
+      where: { id: qid },
+      relations: [
+        'creator',
+        'taHelped',
+        'votes',
+        'comments',
+        'comments.creator',
+        'comments.creator.courses',
+        'comments.endorsedBy',
+        'comments.endorsedBy.courses',
+      ],
+    });
+
+    await this.redisQueueService.updateAsyncQuestion(
+      `c:${question.courseId}:aq`,
+      updatedQuestion,
+    );
   }
 
   @Patch('comment/:qid/:commentId')
@@ -644,6 +713,8 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'comments.endorsedBy',
+        'comments.endorsedBy.courses',
       ],
     });
 
@@ -665,7 +736,36 @@ export class asyncQuestionController {
       otherComments.filter((v, i) => originalAnons[i] != v.isAnonymous),
     );
 
-    res.status(HttpStatus.OK).send([comment, otherComments]);
+    // Build response from updatedQuestion.comments to ensure endorsedBy is properly formatted and endorsedById is stripped
+    const updatedCommentMap = new Map(
+      updatedQuestion.comments.map((c) => [c.id, c]),
+    );
+    const formattedComments = [comment.id, ...otherComments.map((c) => c.id)]
+      .map((id) => updatedCommentMap.get(id))
+      .filter(Boolean)
+      .map((c) => {
+        const temp = { ...c } as any;
+        delete temp.endorsedById;
+        temp.creator = {
+          id: c.creator.id,
+          name: c.creator.name,
+          colour: nameToRGB(Math.abs(c.creatorId - qid).toString()),
+          anonId: this.asyncQuestionService.getAnonId(c.creatorId, qid),
+          photoURL: c.creator.photoURL,
+          isAuthor: c.creatorId === question.creatorId,
+        } as AsyncCreator as unknown as UserModel;
+        temp.endorsedBy = c.endorsedBy
+          ? ({
+              ...pick(c.endorsedBy, ['id', 'name', 'photoURL']),
+              role:
+                c.endorsedBy.courses?.find(
+                  (course) => course.courseId === question.courseId,
+                )?.role || Role.TA,
+            } as unknown as UserModel)
+          : null;
+        return temp;
+      });
+    res.status(HttpStatus.OK).send(formattedComments);
   }
 
   @Delete('comment/:qid/:commentId')
@@ -675,16 +775,12 @@ export class asyncQuestionController {
     @Param('qid', ParseIntPipe) qid: number,
     @Param('commentId', ParseIntPipe) commentId: number,
     @UserId() userId: number,
-    @Res() res: Response,
-  ): Promise<Response> {
+  ): Promise<void> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: qid },
     });
     if (!question) {
-      res
-        .status(HttpStatus.NOT_FOUND)
-        .send({ message: ERROR_MESSAGES.questionController.notFound });
-      return;
+      throw new NotFoundException(ERROR_MESSAGES.questionController.notFound);
     }
 
     const userCourse = await UserCourseModel.findOne({
@@ -701,13 +797,10 @@ export class asyncQuestionController {
     const comment = await AsyncQuestionCommentModel.findOne({
       where: { id: commentId, questionId: qid },
     });
-
     if (!comment) {
-      res.status(HttpStatus.NOT_FOUND).send({
-        message:
-          ERROR_MESSAGES.asyncQuestionController.comments.commentNotFound,
-      });
-      return;
+      throw new NotFoundException(
+        ERROR_MESSAGES.asyncQuestionController.comments.commentNotFound,
+      );
     }
 
     // staff can delete anyone's comments. students can only delete their own comments
@@ -716,11 +809,9 @@ export class asyncQuestionController {
       userCourse.role !== Role.PROFESSOR &&
       userCourse.role !== Role.TA
     ) {
-      res.status(HttpStatus.FORBIDDEN).send({
-        message:
-          ERROR_MESSAGES.asyncQuestionController.comments.forbiddenDelete,
-      });
-      return;
+      throw new ForbiddenException(
+        ERROR_MESSAGES.asyncQuestionController.comments.forbiddenDelete,
+      );
     }
 
     await comment.remove();
@@ -734,6 +825,8 @@ export class asyncQuestionController {
         'comments',
         'comments.creator',
         'comments.creator.courses',
+        'comments.endorsedBy',
+        'comments.endorsedBy.courses',
       ],
     });
 
@@ -741,8 +834,6 @@ export class asyncQuestionController {
       `c:${question.courseId}:aq`,
       updatedQuestion,
     );
-
-    res.status(HttpStatus.OK).send({ message: 'Comment deleted' });
   }
 
   @Get(':courseId')
@@ -751,7 +842,7 @@ export class asyncQuestionController {
   async getAsyncQuestions(
     @Param('courseId', ParseIntPipe) courseId: number,
     @UserId() userId: number,
-  ): Promise<AsyncQuestion[]> {
+  ): Promise<GetAsyncQuestionsResponse> {
     const userCourse = await UserCourseModel.findOne({
       where: {
         userId,
@@ -789,6 +880,8 @@ export class asyncQuestionController {
           'comments',
           'comments.creator',
           'comments.creator.courses',
+          'comments.endorsedBy',
+          'comments.endorsedBy.courses',
         ],
         order: {
           createdAt: 'DESC',
@@ -812,6 +905,7 @@ export class asyncQuestionController {
     }
 
     let questions: Partial<AsyncQuestionModel>[];
+    let hiddenPrivateQuestionsCount = 0;
 
     const isStaff: boolean =
       userCourse.role === Role.TA || userCourse.role === Role.PROFESSOR;
@@ -826,23 +920,36 @@ export class asyncQuestionController {
       );
     } else {
       // Students see their own questions and questions that are visible
-      questions = (
-        await Promise.all(
-          all.map(async (question) => {
-            if (
-              question.creatorId === userId ||
-              (await this.asyncQuestionService.isVisible(
-                question,
-                courseSettings,
-              ))
-            ) {
-              return question;
-            } else {
-              return undefined;
-            }
-          }),
-        )
-      ).filter((s) => s != undefined);
+      const visibilityResults = await Promise.all(
+        all.map(async (question) => {
+          if (question.creatorId === userId) {
+            return { question, isHiddenPrivate: false };
+          }
+
+          const isVisible = await this.asyncQuestionService.isVisible(
+            question,
+            courseSettings,
+          );
+
+          if (isVisible) {
+            return { question, isHiddenPrivate: false };
+          }
+
+          return {
+            question: undefined,
+            isHiddenPrivate:
+              question.status !== asyncQuestionStatus.TADeleted &&
+              question.status !== asyncQuestionStatus.StudentDeleted,
+          };
+        }),
+      );
+
+      questions = visibilityResults
+        .map((result) => result.question)
+        .filter((question): question is AsyncQuestionModel => !!question);
+      hiddenPrivateQuestionsCount = visibilityResults.filter(
+        (result) => result.isHiddenPrivate,
+      ).length;
     }
 
     questions = questions.map((question: AsyncQuestionModel) => {
@@ -912,6 +1019,17 @@ export class asyncQuestionController {
                 } as AsyncCreator as unknown as UserModel);
 
           delete temp.creatorId;
+          delete temp.endorsedById;
+
+          temp.endorsedBy = comment.endorsedBy
+            ? ({
+                ...pick(comment.endorsedBy, ['id', 'name', 'photoURL']),
+                role:
+                  comment.endorsedBy.courses?.find(
+                    (c) => c.courseId === question.courseId,
+                  )?.role || Role.TA,
+              } as unknown as UserModel)
+            : null;
 
           return temp as unknown as AsyncQuestionCommentModel;
         });
@@ -948,7 +1066,10 @@ export class asyncQuestionController {
       return temp;
     });
 
-    return questions as unknown as AsyncQuestion[];
+    return {
+      questions: questions as unknown as AsyncQuestion[],
+      hiddenPrivateQuestionsCount,
+    };
   }
 
   // Moved from userInfo context endpoint as this updates too frequently to make sense caching it with userInfo data

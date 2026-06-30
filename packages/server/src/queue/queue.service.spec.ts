@@ -85,6 +85,19 @@ describe('QueueService', () => {
       );
     });
 
+    it('includes creator namePronunciation when present', async () => {
+      const queue = await QueueFactory.create();
+      const creator = await UserFactory.create({
+        namePronunciation: 'uh-LEE-shuh',
+      });
+      await QuestionFactory.create({ queue, creator });
+
+      const response = await service.getQuestions(queue.id);
+      expect(response.questions[0].creator.namePronunciation).toEqual(
+        'uh-LEE-shuh',
+      );
+    });
+
     it('filters questions by status appropriately', async () => {
       const queue = await QueueFactory.create();
       await createQuestionsEveryStatus(queue);

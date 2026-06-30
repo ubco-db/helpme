@@ -50,7 +50,7 @@ export class CalendarModel extends BaseEntity {
   @Column({ nullable: true })
   locationInPerson: string;
 
-  @ManyToOne((type) => CourseModel)
+  @ManyToOne((type) => CourseModel, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'course' })
   @Exclude()
   course: CourseModel;

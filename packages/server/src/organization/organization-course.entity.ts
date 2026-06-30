@@ -29,6 +29,7 @@ export class OrganizationCourseModel extends BaseEntity {
 
   @OneToOne((type) => CourseModel, (course) => course.organizationCourse, {
     cascade: true,
+    onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'courseId' })
   @Exclude()

@@ -27,7 +27,14 @@ const EditProfile: React.FC = () => {
       newProfile.sid = parseInt(`${newProfile.sid}`, 10) || undefined
       if (userInfo.email === updateProfile.email) {
         await API.profile
-          .patch(pick(newProfile, ['firstName', 'lastName', 'sid']))
+          .patch(
+            pick(newProfile, [
+              'firstName',
+              'lastName',
+              'sid',
+              'namePronunciation',
+            ]),
+          )
           .then(() => setUserInfo({ ...userInfo, ...updateProfile }))
           .catch((error) => {
             const errorMessage = getErrorMessage(error)
@@ -35,7 +42,15 @@ const EditProfile: React.FC = () => {
           })
       } else {
         await API.profile
-          .patch(pick(newProfile, ['firstName', 'lastName', 'email', 'sid']))
+          .patch(
+            pick(newProfile, [
+              'firstName',
+              'lastName',
+              'email',
+              'sid',
+              'namePronunciation',
+            ]),
+          )
           .then(() => setUserInfo({ ...userInfo, ...updateProfile }))
           .catch((error) => {
             const errorMessage = getErrorMessage(error)
@@ -49,12 +64,20 @@ const EditProfile: React.FC = () => {
           firstName: updateProfile.firstName,
           lastName: updateProfile.lastName,
           sid: updateProfile.sid,
+          namePronunciation: updateProfile.namePronunciation,
         },
       }
       newProfile.sid = parseInt(`${newProfile.sid}`, 10) || undefined
       setUserInfo(newProfile)
       await API.profile
-        .patch(pick(newProfile, ['firstName', 'lastName', 'sid']))
+        .patch(
+          pick(newProfile, [
+            'firstName',
+            'lastName',
+            'sid',
+            'namePronunciation',
+          ]),
+        )
         .catch((error) => {
           const errorMessage = getErrorMessage(error)
           message.error('Error updating profile:' + errorMessage)
@@ -144,6 +167,14 @@ const EditProfile: React.FC = () => {
               <Col xs={{ span: 24 }} sm={{ span: 12 }}>
                 <Form.Item label="Student ID" name="sid">
                   <Input />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
+              <Col xs={{ span: 24 }} sm={{ span: 12 }}>
+                <Form.Item label="Name Pronunciation" name="namePronunciation">
+                  <Input placeholder="Example: uh-LEE-shuh" />
                 </Form.Item>
               </Col>
             </Row>

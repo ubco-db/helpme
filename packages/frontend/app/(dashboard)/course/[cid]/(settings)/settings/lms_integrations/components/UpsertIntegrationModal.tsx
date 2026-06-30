@@ -21,8 +21,8 @@ import {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSToken,
-  OrganizationRole,
   OrganizationSettingsResponse,
+  Role,
   UpsertLMSCourseParams,
   User,
 } from '@koh/common'
@@ -409,6 +409,7 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
                       handleInvalidate={handleInvalidate}
                       userInfo={userInfo}
                       canGenerate={canGenerate}
+                      courseId={courseId}
                     />
                   ),
                 },
@@ -428,6 +429,7 @@ const UpsertIntegrationModal: React.FC<CreateIntegrationModalProps> = ({
               handleInvalidate={handleInvalidate}
               userInfo={userInfo}
               canGenerate={canGenerate}
+              courseId={courseId}
             />
           )}
           <Divider>Course Information</Divider>
@@ -546,19 +548,18 @@ const AccessTokenFormItem: React.FC<{
   handleInvalidate: () => Promise<void>
   userInfo: User
   canGenerate: boolean
+  courseId: number
 }> = ({
   accessTokens,
   handleGenerate,
   handleInvalidate,
   userInfo,
   canGenerate,
+  courseId,
 }) => {
-  const hasValidRole = [
-    OrganizationRole.PROFESSOR,
-    OrganizationRole.ADMIN,
-  ].includes(
-    (userInfo.organization?.organizationRole as OrganizationRole) ??
-      OrganizationRole.MEMBER,
+  const hasValidRole = [Role.PROFESSOR, Role.TA].includes(
+    userInfo.courses?.find((c) => c.course.id === courseId)?.role ??
+      Role.STUDENT,
   )
 
   if (!canGenerate) {

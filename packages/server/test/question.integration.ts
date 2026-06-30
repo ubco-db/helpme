@@ -29,7 +29,6 @@ import {
   modifyMockNotifs,
   setupIntegrationTest,
 } from './util/testUtils';
-import { forEach } from 'lodash';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 
@@ -78,6 +77,19 @@ describe('Question Integration', () => {
   ];
 
   describe('POST /questions/:queueId', () => {
+    const createQuestionTypes = async (
+      cid: number,
+    ): Promise<QuestionTypeModel[]> =>
+      Promise.all(
+        QuestionTypes.map((questionType) =>
+          QuestionTypeFactory.create({
+            name: questionType.name,
+            color: questionType.color,
+            cid,
+          }),
+        ),
+      );
+
     const postQuestion = async (
       user: UserModel,
       queue: QueueModel,
@@ -201,25 +213,7 @@ describe('Question Integration', () => {
         queue,
         user: ta.user,
       });
-
-      const questionTypes = [];
-
-      forEach(QuestionTypes, async (questionType) => {
-        await QuestionTypeFactory.create({
-          name: questionType.name,
-          color: questionType.color,
-          cid: course.id,
-        });
-
-        const sendQuestionTypes = {
-          id: questionType.id,
-          cid: questionType.cid,
-          name: questionType.name,
-          color: questionType.color,
-          queueId: queue.id,
-        };
-        questionTypes.push(sendQuestionTypes);
-      });
+      const questionTypes = await createQuestionTypes(course.id);
 
       await TACourseFactory.create({ user, courseId: queue.courseId });
       expect(await QuestionModel.count({ where: { queueId: 1 } })).toEqual(0);
@@ -229,7 +223,7 @@ describe('Question Integration', () => {
     it('post question fails with non-existent queue', async () => {
       const course = await CourseFactory.create();
       const user = await UserFactory.create();
-      const ta = await TACourseFactory.create({
+      await TACourseFactory.create({
         course: course,
         user: await UserFactory.create(),
       });
@@ -267,15 +261,7 @@ describe('Question Integration', () => {
         user,
         course: course2,
       });
-      const questionTypes = [];
-      forEach(QuestionTypes, async (questionType) => {
-        const currentQuestionType = await QuestionTypeFactory.create({
-          name: questionType.name,
-          color: questionType.color,
-          cid: course2.id,
-        });
-        questionTypes.push(currentQuestionType);
-      });
+      const questionTypes = await createQuestionTypes(course2.id);
 
       const response = await postQuestion(user, queueImNotIn, questionTypes);
       expect(response.status).toBe(404);
@@ -289,15 +275,7 @@ describe('Question Integration', () => {
         allowQuestions: true,
         isDisabled: true,
       });
-      const questionTypes = [];
-      forEach(QuestionTypes, async (questionType) => {
-        const currentQuestionType = await QuestionTypeFactory.create({
-          name: questionType.name,
-          color: questionType.color,
-          cid: course.id,
-        });
-        questionTypes.push(currentQuestionType);
-      });
+      const questionTypes = await createQuestionTypes(course.id);
 
       const user = await UserFactory.create();
       await StudentCourseFactory.create({ user, courseId: queue.courseId });
@@ -371,15 +349,7 @@ describe('Question Integration', () => {
         status: OpenQuestionStatus.Drafting,
       });
 
-      const questionTypes = [];
-      forEach(QuestionTypes, async (questionType) => {
-        const currentQuestionType = await QuestionTypeFactory.create({
-          name: questionType.name,
-          color: questionType.color,
-          cid: course.id,
-        });
-        questionTypes.push(currentQuestionType);
-      });
+      const questionTypes = await createQuestionTypes(course.id);
 
       const response = await postQuestion(user, queue2, questionTypes);
 
@@ -711,15 +681,7 @@ describe('Question Integration', () => {
         queue: queue1,
         status: OpenQuestionStatus.Drafting,
       });
-      const questionTypes = [];
-      forEach(QuestionTypes, async (questionType) => {
-        const currentQuestionType = await QuestionTypeFactory.create({
-          name: questionType.name,
-          color: questionType.color,
-          cid: course2.id,
-        });
-        questionTypes.push(currentQuestionType);
-      });
+      const questionTypes = await createQuestionTypes(course2.id);
 
       const response = await postQuestion(user, queue2, questionTypes);
       expect(response.status).toBe(201);
@@ -752,15 +714,7 @@ describe('Question Integration', () => {
         creator: user,
         status: OpenQuestionStatus.Drafting,
       });
-      const questionTypes = [];
-      forEach(QuestionTypes, async (questionType) => {
-        const currentQuestionType = await QuestionTypeFactory.create({
-          name: questionType.name,
-          color: questionType.color,
-          cid: queue.courseId,
-        });
-        questionTypes.push(currentQuestionType);
-      });
+      const questionTypes = await createQuestionTypes(queue.courseId);
 
       const response = await postQuestion(user, queue, questionTypes);
       expect(response.status).toBe(201);
@@ -793,15 +747,7 @@ describe('Question Integration', () => {
         userId: user.id,
         courseId: queue.courseId,
       });
-      const questionTypes = [];
-      forEach(QuestionTypes, async (questionType) => {
-        const currentQuestionType = await QuestionTypeFactory.create({
-          name: questionType.name,
-          color: questionType.color,
-          cid: queue.courseId,
-        });
-        questionTypes.push(currentQuestionType);
-      });
+      const questionTypes = await createQuestionTypes(queue.courseId);
 
       const response = await postQuestion(user, queue, questionTypes);
       expect(response.status).toBe(201);
@@ -830,15 +776,7 @@ describe('Question Integration', () => {
         userId: user.id,
         courseId: queue.courseId,
       });
-      const questionTypes = [];
-      forEach(QuestionTypes, async (questionType) => {
-        const currentQuestionType = await QuestionTypeFactory.create({
-          name: questionType.name,
-          color: questionType.color,
-          cid: queue.courseId,
-        });
-        questionTypes.push(currentQuestionType);
-      });
+      const questionTypes = await createQuestionTypes(queue.courseId);
 
       const response = await postQuestion(user, queue, questionTypes);
       expect(response.status).toBe(201);

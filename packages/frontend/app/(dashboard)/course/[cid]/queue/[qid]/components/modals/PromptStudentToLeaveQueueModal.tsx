@@ -188,7 +188,7 @@ const PromptStudentToLeaveQueueModal: React.FC<
                 icon={<ArrowRightLeft />}
                 size="large"
               >
-                Convert to anytime question
+                Convert to Anytime Question
               </Button>
             </span>
           </Tooltip>
