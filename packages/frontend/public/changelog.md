@@ -1,6 +1,24 @@
+## Version 1.9.0 - 
+
+*April ..., 2026*
+
+#### New Features
+
+- ***General***
+  - 
+- ***Faculty-only***
+  - 
+
+#### Improvements
+
+- Fixed an issue in the registration form where the "UBC email detected! Consider continuing with UBC" message would not appear
+
+
+***
+
 ## Version 1.8.0 - Canvas Chatbot Embed, Away Toggle
 
-*Jan 9th, 2025*
+*Jan 9th, 2026*
 
 #### New Features
 

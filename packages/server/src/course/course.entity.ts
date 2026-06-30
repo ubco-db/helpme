@@ -6,6 +6,7 @@ import {
   DeleteDateColumn,
   Entity,
   JoinColumn,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   OneToOne,
@@ -151,14 +152,20 @@ export class CourseModel extends BaseEntity {
   @Exclude()
   chatbot_doc_pdfs: ChatbotDocPdfModel[];
 
-  @ManyToOne(() => SuperCourseModel, (course) => course.courses, {
-    nullable: true,
+  @ManyToMany(() => SuperCourseModel, (superCourse) => superCourse.courses, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
   })
-  @JoinColumn({ name: 'superCourseId' })
-  superCourse?: SuperCourseModel;
+  superCourses?: SuperCourseModel[];
 
-  @Column({ nullable: true })
-  superCourseId?: number;
+  @Column('text', { nullable: true })
+  chatbotAgentName?: string;
+
+  @Column('text', { nullable: true })
+  chatbotAgentDescription?: string;
+
+  @Column('integer', { nullable: true })
+  chatbotAgentOrder?: number;
 
   @Exclude()
   @JoinColumn({ referencedColumnName: 'courseId' })

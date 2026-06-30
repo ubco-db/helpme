@@ -210,7 +210,7 @@ const RosterItem: React.FC<{
     <List.Item
       key={item.id}
       className={cn(
-        'flex flex-col items-center justify-between px-1 py-2 md:flex-row md:px-4 md:py-4',
+        'flex flex-col items-center justify-between px-1 py-2 md:px-4 md:py-4 lg:flex-row',
         className ?? '',
       )}
     >
@@ -220,7 +220,7 @@ const RosterItem: React.FC<{
             <UserAvatar photoURL={item.photoURL} username={item.name ?? ''} />
           }
           title={
-            <span className="mr-0 md:mr-2">
+            <span className="mr-0 lg:mr-2">
               {item.name}
               {item.namePronunciation ? ` (${item.namePronunciation})` : ''}
               {item.organizationRole == OrganizationRole.ADMIN && (
@@ -234,21 +234,23 @@ const RosterItem: React.FC<{
               )}
             </span>
           }
-          className="flex flex-grow items-center"
+          className="flex min-w-0 flex-grow items-center"
         />
         {isSensitiveInfoHidden ? (
-          <div className="text-gray-600">
+          <div className="max-w-[45%] break-all text-right text-gray-600">
             {item.email
               ?.substring(0, item.email?.indexOf('@'))
               .replace(/./g, '*')}
             {item.email?.substring(item.email?.indexOf('@'))}
           </div>
         ) : (
-          <div className="text-gray-600">{item.email}</div>
+          <div className="max-w-[45%] break-all text-right text-gray-600">
+            {item.email}
+          </div>
         )}
       </Row>
 
-      <Row className="flex w-full items-center justify-around md:justify-end">
+      <Row className="flex w-full flex-wrap items-center justify-around lg:justify-end">
         {userInfo.id !== item.id && (
           <Dropdown
             menu={{

@@ -143,7 +143,7 @@ export default function RegisterPage(props: {
       if (pattern.startsWith('r')) {
         try {
           const regexPattern = pattern.substring(1)
-          const regex = new RegExp(regexPattern)
+          const regex = new RegExp(regexPattern, 'i')
           if (regex.test(email)) {
             return errorMessage
           }

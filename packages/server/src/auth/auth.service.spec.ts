@@ -186,6 +186,7 @@ describe('AuthService', () => {
 
   let registrationParams: AccountRegistrationParams;
   let organization: OrganizationModel;
+  const expiredCreatedAt = (): Date => new Date(Date.now() - 1000);
 
   beforeEach(async () => {
     organization = await OrganizationFactory.create({
@@ -208,6 +209,7 @@ describe('AuthService', () => {
       const validAuthState = await AuthStateFactory.create({ organization });
       const invalidAuthState = await AuthStateFactory.create({
         organization,
+        createdAt: expiredCreatedAt(),
         expiresInSeconds: 0,
       });
 
@@ -535,6 +537,7 @@ describe('AuthService', () => {
       });
       const authState = await AuthStateFactory.create({
         organization: org,
+        createdAt: expiredCreatedAt(),
         expiresInSeconds: 0,
       });
       const res: any = new MockResponse() as any;
@@ -704,6 +707,7 @@ describe('AuthService', () => {
       const token = await UserTokenModel.save({
         user: user,
         token: crypto.randomBytes(32).toString('hex'),
+        createdAt: expiredCreatedAt(),
         expiresInSeconds: 0,
       });
       const res = new MockResponse() as any;

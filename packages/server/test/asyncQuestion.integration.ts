@@ -17,9 +17,10 @@ import { AsyncQuestion, asyncQuestionStatus, Role } from '@koh/common';
 import { AsyncQuestionVotesModel } from 'asyncQuestion/asyncQuestionVotes.entity';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 import { AsyncQuestionCommentModel } from '../src/asyncQuestion/asyncQuestionComment.entity';
+import { AsyncQuestionService } from '../src/asyncQuestion/asyncQuestion.service';
 
 describe('AsyncQuestion Integration', () => {
-  const { supertest } = setupIntegrationTest(
+  const { supertest, getTestModule } = setupIntegrationTest(
     asyncQuestionModule,
     overrideRedisQueue,
   );
@@ -80,13 +81,12 @@ describe('AsyncQuestion Integration', () => {
 
   describe('POST asyncQuestions/:cid', () => {
     it('Student can create a question', async () => {
-      const [prevRecords, prevCount] =
-        await UnreadAsyncQuestionModel.findAndCount({
-          where: {
-            userId: studentUser2.id,
-            courseId: course.id,
-          },
-        });
+      const [, prevCount] = await UnreadAsyncQuestionModel.findAndCount({
+        where: {
+          userId: studentUser2.id,
+          courseId: course.id,
+        },
+      });
 
       await supertest({ userId: studentUser.id })
         .post(`/asyncQuestions/${course.id}`)
@@ -94,25 +94,26 @@ describe('AsyncQuestion Integration', () => {
           questionAbstract: 'abstract',
           questionText: 'text',
         })
-        .expect(201)
-        .then(async (response) => {
-          const [currentRecords, currentCount] =
-            await UnreadAsyncQuestionModel.findAndCount({
-              where: {
-                userId: studentUser2.id,
-                courseId: course.id,
-              },
-            });
-          expect(currentCount).toBe(prevCount + 1);
+        .expect(201);
 
-          expect(response.body).toHaveProperty('status', 'AIAnswered');
-          expect(response.body).toHaveProperty('closedAt', null);
-          expect(response.body).toHaveProperty('questionText', 'text');
-          expect(response.body).toHaveProperty('isAnonymous', true);
-          expect(response.body).toHaveProperty('staffSetVisible', null);
-          expect(response.body.status).toBe('AIAnswered');
-          expect(response.body.closedAt).toBeNull();
-        });
+      const [, currentCount] = await UnreadAsyncQuestionModel.findAndCount({
+        where: { userId: studentUser2.id, courseId: course.id },
+      });
+      expect(currentCount).toBe(prevCount + 1);
+
+      const createdQuestion = await AsyncQuestionModel.findOne({
+        where: {
+          courseId: course.id,
+          creatorId: studentUser.id,
+          questionText: 'text',
+        },
+        order: { id: 'DESC' },
+      });
+      expect(createdQuestion).not.toBeNull();
+      expect(createdQuestion.status).toBe(asyncQuestionStatus.AIAnswered);
+      expect(createdQuestion.closedAt).toBeNull();
+      expect(createdQuestion.isAnonymous).toBe(true);
+      expect(createdQuestion.staffSetVisible).toBeNull();
     });
     it('Staff can create question', async () => {
       await supertest({ userId: TAuser.id })
@@ -123,17 +124,22 @@ describe('AsyncQuestion Integration', () => {
           isAnonymous: false,
           authorSetVisible: false,
         })
-        .expect(201)
-        .then(async (response) => {
-          expect(response.body).toHaveProperty('status', 'AIAnswered');
-          expect(response.body).toHaveProperty('closedAt', null);
-          expect(response.body).toHaveProperty('questionText', 'text');
-          expect(response.body).toHaveProperty('isAnonymous', false);
-          expect(response.body).toHaveProperty('authorSetVisible', false);
-          expect(response.body).toHaveProperty('staffSetVisible', null);
-          expect(response.body.status).toBe('AIAnswered');
-          expect(response.body.closedAt).toBeNull();
-        });
+        .expect(201);
+
+      const createdQuestion = await AsyncQuestionModel.findOne({
+        where: {
+          courseId: course.id,
+          creatorId: TAuser.id,
+          questionText: 'text',
+        },
+        order: { id: 'DESC' },
+      });
+      expect(createdQuestion).not.toBeNull();
+      expect(createdQuestion.status).toBe(asyncQuestionStatus.AIAnswered);
+      expect(createdQuestion.closedAt).toBeNull();
+      expect(createdQuestion.isAnonymous).toBe(false);
+      expect(createdQuestion.authorSetVisible).toBe(false);
+      expect(createdQuestion.staffSetVisible).toBeNull();
     });
     it('prevents users outside this course from posting questions', async () => {
       const otherCourse = await CourseFactory.create();
@@ -186,25 +192,19 @@ describe('AsyncQuestion Integration', () => {
           questionAbstract: 'abstract',
           questionText: 'text1',
         })
-        .expect(200)
-        .then((response) => {
-          expect(response.body).toHaveProperty('questionText', 'text1');
-        });
+        .expect(200);
+      await asyncQuestion.reload();
+      expect(asyncQuestion.questionText).toBe('text1');
+
       await supertest({ userId: TAuser.id })
         .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
         .send({
           status: asyncQuestionStatus.HumanAnswered,
         })
-        .expect(200)
-        .then((response) => {
-          expect(response.body).toHaveProperty(
-            'status',
-            asyncQuestionStatus.HumanAnswered,
-          );
-          expect(response.body).toHaveProperty('closedAt');
-          expect(response.body.status).toBe(asyncQuestionStatus.HumanAnswered);
-          expect(response.body.closedAt).not.toBeNull();
-        });
+        .expect(200);
+      await asyncQuestion.reload();
+      expect(asyncQuestion.status).toBe(asyncQuestionStatus.HumanAnswered);
+      expect(asyncQuestion.closedAt).not.toBeNull();
     });
     it('Allows staff to modify a question in their course even if they are a student in another course', async () => {
       const otherCourse = await CourseFactory.create();
@@ -218,14 +218,9 @@ describe('AsyncQuestion Integration', () => {
         .send({
           status: asyncQuestionStatus.HumanAnswered,
         })
-        .expect(200)
-        .then((response) => {
-          expect(response.body).toHaveProperty(
-            'status',
-            asyncQuestionStatus.HumanAnswered,
-          );
-          expect(response.body.status).toBe(asyncQuestionStatus.HumanAnswered);
-        });
+        .expect(200);
+      await asyncQuestion.reload();
+      expect(asyncQuestion.status).toBe(asyncQuestionStatus.HumanAnswered);
     });
   });
 
@@ -236,14 +231,9 @@ describe('AsyncQuestion Integration', () => {
         .send({
           status: asyncQuestionStatus.AIAnswered,
         })
-        .expect(200)
-        .then((response) => {
-          expect(response.body).toHaveProperty(
-            'status',
-            asyncQuestionStatus.AIAnswered,
-          );
-          expect(response.body.status).toBe(asyncQuestionStatus.AIAnswered);
-        });
+        .expect(200);
+      await asyncQuestion.reload();
+      expect(asyncQuestion.status).toBe(asyncQuestionStatus.AIAnswered);
     });
 
     it('Student cannot modify other students question', async () => {
@@ -280,11 +270,9 @@ describe('AsyncQuestion Integration', () => {
         .send({
           isAnonymous: false,
         })
-        .expect(200)
-        .then((response) => {
-          expect(response.body).toHaveProperty('isAnonymous');
-          expect(response.body.isAnonymous).toBe(false);
-        });
+        .expect(200);
+      await asyncQuestion.reload();
+      expect(asyncQuestion.isAnonymous).toBe(false);
       await comment.reload();
       expect(comment.isAnonymous).toBe(false);
     });
@@ -452,14 +440,21 @@ describe('AsyncQuestion Integration', () => {
     });
     it('If question is visible, will mark the question as unread for everyone except the comment creator', async () => {
       // must first call the create async question endpoint since that one creates the initial notifications
-      const res = await supertest({ userId: studentUser.id })
+      await supertest({ userId: studentUser.id })
         .post(`/asyncQuestions/${course.id}`)
         .send({
           questionAbstract: 'abstract',
           questionText: 'text',
         })
         .expect(201);
-      const asyncQuestionFromResponse: AsyncQuestionModel = res.body;
+      const asyncQuestionFromResponse = await AsyncQuestionModel.findOneOrFail({
+        where: {
+          courseId: course.id,
+          creatorId: studentUser.id,
+          questionText: 'text',
+        },
+        order: { id: 'DESC' },
+      });
 
       // check to make sure everyone now has unread entities, and that its marked as unread only for staff
       const unreadEntities = await UnreadAsyncQuestionModel.find({
@@ -543,14 +538,21 @@ describe('AsyncQuestion Integration', () => {
     });
     it('If question is not visible and comment is from staff, will mark the question as unread only for the question creator', async () => {
       // must first call the create async question endpoint since that one creates the initial notifications
-      const res = await supertest({ userId: studentUser.id })
+      await supertest({ userId: studentUser.id })
         .post(`/asyncQuestions/${course.id}`)
         .send({
           questionAbstract: 'abstract',
           questionText: 'text',
         })
         .expect(201);
-      const asyncQuestionFromResponse: AsyncQuestionModel = res.body;
+      const asyncQuestionFromResponse = await AsyncQuestionModel.findOneOrFail({
+        where: {
+          courseId: course.id,
+          creatorId: studentUser.id,
+          questionText: 'text',
+        },
+        order: { id: 'DESC' },
+      });
 
       // check to make sure everyone now has unread entities, and that its marked as unread only for staff
       const unreadEntities = await UnreadAsyncQuestionModel.find({
@@ -625,14 +627,21 @@ describe('AsyncQuestion Integration', () => {
     });
     it('If the question is not visible and the comment is from the question creator, will mark the question as unread for all staff', async () => {
       // must first call the create async question endpoint since that one creates the initial notifications
-      const res = await supertest({ userId: studentUser.id })
+      await supertest({ userId: studentUser.id })
         .post(`/asyncQuestions/${course.id}`)
         .send({
           questionAbstract: 'abstract',
           questionText: 'text',
         })
         .expect(201);
-      const asyncQuestionFromResponse: AsyncQuestionModel = res.body;
+      const asyncQuestionFromResponse = await AsyncQuestionModel.findOneOrFail({
+        where: {
+          courseId: course.id,
+          creatorId: studentUser.id,
+          questionText: 'text',
+        },
+        order: { id: 'DESC' },
+      });
 
       // check to make sure everyone now has unread entities, and that its marked as unread only for staff
       const unreadEntities = await UnreadAsyncQuestionModel.find({
@@ -976,6 +985,175 @@ describe('AsyncQuestion Integration', () => {
     });
   });
 
+  describe('PATCH /asyncQuestions/comment/:qid/:commentId/endorse', () => {
+    it('TA can endorse a comment', async () => {
+      const comment = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'Student comment to endorse',
+      });
+      await supertest({ userId: TAuser.id })
+        .patch(
+          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}/endorse`,
+        )
+        .send({ isEndorsed: true })
+        .expect(200);
+      const updated = await AsyncQuestionCommentModel.findOne({
+        where: { id: comment.id },
+      });
+      expect(updated.endorsedById).toBe(TAuser.id);
+    });
+
+    it('TA can un-endorse a comment', async () => {
+      const comment = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'Already endorsed comment',
+        endorsedById: TAuser.id,
+      });
+      await supertest({ userId: TAuser.id })
+        .patch(
+          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}/endorse`,
+        )
+        .send({ isEndorsed: false })
+        .expect(200);
+      const updated = await AsyncQuestionCommentModel.findOne({
+        where: { id: comment.id },
+      });
+      expect(updated.endorsedById).toBeNull();
+    });
+
+    it('Student cannot endorse a comment', async () => {
+      const comment = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'Student comment',
+      });
+      await supertest({ userId: studentUser.id })
+        .patch(
+          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}/endorse`,
+        )
+        .send({ isEndorsed: true })
+        .expect(403);
+    });
+
+    it('returns 404 for non-existent question', async () => {
+      const comment = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'Student comment',
+      });
+      await supertest({ userId: TAuser.id })
+        .patch(`/asyncQuestions/comment/99999/${comment.id}/endorse`)
+        .send({ isEndorsed: true })
+        .expect(404);
+    });
+
+    it('returns 404 for non-existent comment', async () => {
+      await supertest({ userId: TAuser.id })
+        .patch(`/asyncQuestions/comment/${asyncQuestion.id}/99999/endorse`)
+        .send({ isEndorsed: true })
+        .expect(404);
+    });
+
+    it('prevents users outside this course from endorsing comments', async () => {
+      const otherCourse = await CourseFactory.create();
+      const otherUser = await UserFactory.create();
+      await UserCourseFactory.create({
+        user: otherUser,
+        course: otherCourse,
+        role: Role.TA,
+      });
+      const comment = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'Student comment',
+      });
+      await supertest({ userId: otherUser.id })
+        .patch(
+          `/asyncQuestions/comment/${asyncQuestion.id}/${comment.id}/endorse`,
+        )
+        .send({ isEndorsed: true })
+        .expect(404);
+    });
+  });
+
+  describe('AsyncQuestionService.getEndorsedCountByCourse', () => {
+    it('returns empty map when no comments are endorsed', async () => {
+      await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'unendorsed comment',
+      });
+      const service =
+        getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
+      const result = await service.getEndorsedCountByCourse(course.id);
+      expect(result.size).toBe(0);
+    });
+
+    it('counts endorsed comments per user', async () => {
+      await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'endorsed comment 1',
+        endorsedById: TAuser.id,
+      });
+      await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'endorsed comment 2',
+        endorsedById: TAuser.id,
+      });
+      await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser2,
+        commentText: 'endorsed comment from student2',
+        endorsedById: TAuser.id,
+      });
+      const service =
+        getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
+      const result = await service.getEndorsedCountByCourse(course.id);
+      expect(result.get(studentUser.id)).toBe(2);
+      expect(result.get(studentUser2.id)).toBe(1);
+    });
+
+    it('does not count unendorsed comments', async () => {
+      await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'endorsed',
+        endorsedById: TAuser.id,
+      });
+      await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'not endorsed',
+      });
+      const service =
+        getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
+      const result = await service.getEndorsedCountByCourse(course.id);
+      expect(result.get(studentUser.id)).toBe(1);
+    });
+
+    it('does not count endorsed comments from other courses', async () => {
+      const otherCourse = await CourseFactory.create();
+      const otherQuestion = await AsyncQuestionFactory.create({
+        creator: studentUser,
+        course: otherCourse,
+      });
+      await AsyncQuestionCommentFactory.create({
+        question: otherQuestion,
+        creator: studentUser,
+        commentText: 'endorsed in other course',
+        endorsedById: TAuser.id,
+      });
+      const service =
+        getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
+      const result = await service.getEndorsedCountByCourse(course.id);
+      expect(result.size).toBe(0);
+    });
+  });
+
   describe('GET /asyncQuestions/:courseId', () => {
     let asyncQuestion2: AsyncQuestionModel;
     let asyncQuestion3: AsyncQuestionModel;
@@ -1079,6 +1257,29 @@ describe('AsyncQuestion Integration', () => {
           }),
         ]),
       );
+    });
+    it('should include endorsedBy in comments when a comment is endorsed', async () => {
+      const comment = await AsyncQuestionCommentFactory.create({
+        question: asyncQuestion,
+        creator: studentUser,
+        commentText: 'endorsed comment',
+        endorsedById: TAuser.id,
+      });
+      const response = await supertest({ userId: TAuser.id }).get(
+        `/asyncQuestions/${course.id}`,
+      );
+      expect(response.status).toBe(200);
+      const questions: AsyncQuestion[] = response.body.questions;
+      const q = questions.find((q) => q.id === asyncQuestion.id);
+      const c = q.comments.find((c) => c.id === comment.id);
+      expect(c.endorsedBy).toEqual(
+        expect.objectContaining({
+          id: TAuser.id,
+          name: expect.any(String),
+          role: Role.TA,
+        }),
+      );
+      expect(c).not.toHaveProperty('endorsedById');
     });
     it('should include the votes in the response', async () => {
       const vote1 = await VotesFactory.create({

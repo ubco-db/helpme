@@ -359,6 +359,12 @@ export enum MailServiceType {
   ADMIN_NOTICE = 'admin_notice', // currently used for all prof invite admin emails. Just wanted something generic for it.
   WEEKLY_COURSE_SUMMARY = 'weekly_course_summary',
 }
+
+export enum SuperCoursePurpose {
+  COURSE_CLONE_GROUP = 'course_clone_group',
+  CHATBOT_AGENT_GROUP = 'chatbot_agent_group',
+}
+
 /**
  * Represents one of three possible user roles in a course.
  */
@@ -489,6 +495,14 @@ export interface ChatbotAskSuggestedParams {
   question: string
   responseText: string
   vectorStoreId: string
+}
+
+export interface ChatbotAgentCourse {
+  courseId: number
+  name: string
+  agentName: string
+  description?: string
+  order?: number
 }
 
 export interface AddDocumentChunkParams {
@@ -1486,6 +1500,9 @@ export class AsyncQuestionComment {
 
   isAnonymous!: boolean
 
+  @IsOptional()
+  endorsedBy: (UserPartial & { role?: Role }) | null = null
+
   @Type(() => Date)
   createdAt!: Date
 }
@@ -1497,6 +1514,11 @@ export class AsyncQuestionCommentParams {
   @IsOptional()
   @IsBoolean()
   isAnonymous?: boolean
+}
+
+export class AsyncQuestionCommentEndorseParams {
+  @IsBoolean()
+  isEndorsed!: boolean
 }
 
 export class QueueChatPartial {
@@ -3840,6 +3862,12 @@ export type LMSPostResponseBody = {
   refresh_token: string
   expires_in: number
   canvas_region?: string
+}
+export type LMSPostResponseRefreshTokenBody = {
+  access_token: string
+  token_type: string
+  user: { id: number; name: string }
+  expires_in: number
 }
 
 export class LMSToken {
