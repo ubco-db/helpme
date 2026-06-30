@@ -7,6 +7,7 @@ import {
   GetCourseUserInfoResponse,
   MailServiceType,
   OrganizationRole,
+  QUERY_PARAMS,
   QueueConfig,
   QueueTypes,
   Role,
@@ -450,7 +451,7 @@ export class CourseService {
     // check if the queueInvite exists and if it will invite to course
     const queueInvite = await QueueInviteModel.findOne({
       where: {
-        queueId: parseInt(queueId),
+        queueId: Number(queueId),
       },
     });
     // get the user to see if they are in the course
@@ -488,7 +489,7 @@ export class CourseService {
 
       if (!queueInvite) {
         // if the queueInvite doesn't exist
-        queryParams.set('err', 'inviteNotFound');
+        queryParams.set('err', QUERY_PARAMS.queueInvite.error.inviteNotFound);
         return;
       }
 
@@ -501,12 +502,15 @@ export class CourseService {
         });
 
         if (!course) {
-          queryParams.set('err', 'courseNotFound');
+          queryParams.set('err', QUERY_PARAMS.queueInvite.error.courseNotFound);
           return;
         }
 
         if (course.courseInviteCode !== courseInviteCode) {
-          queryParams.set('err', 'badCourseInviteCode');
+          queryParams.set(
+            'err',
+            QUERY_PARAMS.queueInvite.error.badCourseInviteCode,
+          );
           return;
         }
 
@@ -522,7 +526,7 @@ export class CourseService {
         return;
       }
 
-      queryParams.set('err', 'notInCourse');
+      queryParams.set('err', QUERY_PARAMS.queueInvite.error.notInCourse);
     };
 
     await getUrlAndParams();

@@ -81,13 +81,12 @@ describe('AsyncQuestion Integration', () => {
 
   describe('POST asyncQuestions/:cid', () => {
     it('Student can create a question', async () => {
-      const [, prevCount] =
-        await UnreadAsyncQuestionModel.findAndCount({
-          where: {
-            userId: studentUser2.id,
-            courseId: course.id,
-          },
-        });
+      const [, prevCount] = await UnreadAsyncQuestionModel.findAndCount({
+        where: {
+          userId: studentUser2.id,
+          courseId: course.id,
+        },
+      });
 
       await supertest({ userId: studentUser.id })
         .post(`/asyncQuestions/${course.id}`)
@@ -103,7 +102,11 @@ describe('AsyncQuestion Integration', () => {
       expect(currentCount).toBe(prevCount + 1);
 
       const createdQuestion = await AsyncQuestionModel.findOne({
-        where: { courseId: course.id, creatorId: studentUser.id, questionText: 'text' },
+        where: {
+          courseId: course.id,
+          creatorId: studentUser.id,
+          questionText: 'text',
+        },
         order: { id: 'DESC' },
       });
       expect(createdQuestion).not.toBeNull();
@@ -124,7 +127,11 @@ describe('AsyncQuestion Integration', () => {
         .expect(201);
 
       const createdQuestion = await AsyncQuestionModel.findOne({
-        where: { courseId: course.id, creatorId: TAuser.id, questionText: 'text' },
+        where: {
+          courseId: course.id,
+          creatorId: TAuser.id,
+          questionText: 'text',
+        },
         order: { id: 'DESC' },
       });
       expect(createdQuestion).not.toBeNull();
@@ -441,7 +448,11 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(201);
       const asyncQuestionFromResponse = await AsyncQuestionModel.findOneOrFail({
-        where: { courseId: course.id, creatorId: studentUser.id, questionText: 'text' },
+        where: {
+          courseId: course.id,
+          creatorId: studentUser.id,
+          questionText: 'text',
+        },
         order: { id: 'DESC' },
       });
 
@@ -535,7 +546,11 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(201);
       const asyncQuestionFromResponse = await AsyncQuestionModel.findOneOrFail({
-        where: { courseId: course.id, creatorId: studentUser.id, questionText: 'text' },
+        where: {
+          courseId: course.id,
+          creatorId: studentUser.id,
+          questionText: 'text',
+        },
         order: { id: 'DESC' },
       });
 
@@ -620,7 +635,11 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(201);
       const asyncQuestionFromResponse = await AsyncQuestionModel.findOneOrFail({
-        where: { courseId: course.id, creatorId: studentUser.id, questionText: 'text' },
+        where: {
+          courseId: course.id,
+          creatorId: studentUser.id,
+          questionText: 'text',
+        },
         order: { id: 'DESC' },
       });
 
@@ -1025,18 +1044,14 @@ describe('AsyncQuestion Integration', () => {
         commentText: 'Student comment',
       });
       await supertest({ userId: TAuser.id })
-        .patch(
-          `/asyncQuestions/comment/99999/${comment.id}/endorse`,
-        )
+        .patch(`/asyncQuestions/comment/99999/${comment.id}/endorse`)
         .send({ isEndorsed: true })
         .expect(404);
     });
 
     it('returns 404 for non-existent comment', async () => {
       await supertest({ userId: TAuser.id })
-        .patch(
-          `/asyncQuestions/comment/${asyncQuestion.id}/99999/endorse`,
-        )
+        .patch(`/asyncQuestions/comment/${asyncQuestion.id}/99999/endorse`)
         .send({ isEndorsed: true })
         .expect(404);
     });
@@ -1070,7 +1085,8 @@ describe('AsyncQuestion Integration', () => {
         creator: studentUser,
         commentText: 'unendorsed comment',
       });
-      const service = getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
+      const service =
+        getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
       const result = await service.getEndorsedCountByCourse(course.id);
       expect(result.size).toBe(0);
     });
@@ -1094,7 +1110,8 @@ describe('AsyncQuestion Integration', () => {
         commentText: 'endorsed comment from student2',
         endorsedById: TAuser.id,
       });
-      const service = getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
+      const service =
+        getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
       const result = await service.getEndorsedCountByCourse(course.id);
       expect(result.get(studentUser.id)).toBe(2);
       expect(result.get(studentUser2.id)).toBe(1);
@@ -1112,7 +1129,8 @@ describe('AsyncQuestion Integration', () => {
         creator: studentUser,
         commentText: 'not endorsed',
       });
-      const service = getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
+      const service =
+        getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
       const result = await service.getEndorsedCountByCourse(course.id);
       expect(result.get(studentUser.id)).toBe(1);
     });
@@ -1129,7 +1147,8 @@ describe('AsyncQuestion Integration', () => {
         commentText: 'endorsed in other course',
         endorsedById: TAuser.id,
       });
-      const service = getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
+      const service =
+        getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
       const result = await service.getEndorsedCountByCourse(course.id);
       expect(result.size).toBe(0);
     });

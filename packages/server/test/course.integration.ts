@@ -3169,7 +3169,9 @@ describe('Course Integration', () => {
 
     it('should return 201 when organization admin calls the endpoint', async () => {
       const adminUser = await UserFactory.create();
-      adminUser.chat_token = await ChatTokenFactory.create({ user: adminUser });
+      adminUser.chat_token = await ChatTokenFactory.create({
+        user: adminUser,
+      });
       await adminUser.save();
 
       const organization = await OrganizationFactory.create();

@@ -421,7 +421,9 @@ export class AsyncQuestionService {
    * Returns a map of userId -> number of staff-endorsed comments for that user
    * in the given course. Uses a single aggregate query rather than a stored counter.
    */
-  async getEndorsedCountByCourse(courseId: number): Promise<Map<number, number>> {
+  async getEndorsedCountByCourse(
+    courseId: number,
+  ): Promise<Map<number, number>> {
     const rows = await this.dataSource
       .createQueryBuilder(AsyncQuestionCommentModel, 'c')
       .innerJoin('c.question', 'q', 'q.courseId = :courseId', { courseId })

@@ -1,7 +1,7 @@
 'use client'
 
-import { Role } from '@koh/common'
-import { Col, Row, Button } from 'antd'
+import { QUERY_PARAMS, Role } from '@koh/common'
+import { Col, Row, Button, Alert } from 'antd'
 import { ReactElement, useEffect, useMemo, useState, use } from 'react'
 import QueueCard from './components/QueueCard'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
@@ -22,6 +22,7 @@ import { useChatbotContext } from './components/chatbot/ChatbotProvider'
 import Chatbot from './components/chatbot/Chatbot'
 import { useRouter } from 'next/navigation'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useSearchParams } from 'next/navigation'
 
 type CoursePageProps = {
   params: Promise<{ cid: string }>
@@ -34,6 +35,8 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
   const role = getRoleInCourse(userInfo, cid)
   const { course, error: courseError } = useCourse(cid)
 
+  const searchParams = useSearchParams()
+  const queryParamNotice = searchParams.get('notice')
   const [createQueueModalOpen, setCreateQueueModalOpen] = useState(false)
   const courseFeatures = useCourseFeatures(cid)
   const onlyChatBotEnabled = useMemo(
@@ -88,7 +91,9 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
       return ''
     }, [courseFeatures])
 
-  const isAccessDenied = courseError?.response?.status === 404 || courseError?.response?.status === 403
+  const isAccessDenied =
+    courseError?.response?.status === 404 ||
+    courseError?.response?.status === 403
   const router = useRouter()
   const errorText = isAccessDenied
     ? 'You do not have access to this course or this course does not exist.'
@@ -100,17 +105,14 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
     return (
       <div className="mt-8 flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
         <h1 className="text-2xl font-semibold">Access denied</h1>
-        <p className="max-w-md text-sm text-neutral-600">
-          {errorText}
-        </p>
+        <p className="max-w-md text-sm text-neutral-600">{errorText}</p>
 
         <Button type="primary" onClick={() => router.push('/courses')}>
           Return to Dashboard
         </Button>
       </div>
     )
-  }
-  else if (!course || !courseFeatures) {
+  } else if (!course || !courseFeatures) {
     return <CenteredSpinner tip="Loading Course Data..." />
   } else {
     return (
@@ -124,6 +126,60 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                 md={12}
                 xs={24}
               >
+                <Row>
+                  {queryParamNotice && (
+                    <Alert
+                      message={(() => {
+                        switch (queryParamNotice) {
+                          case QUERY_PARAMS.profInvite.notice
+                            .adminAlreadyInCourse:
+                            return 'You (admin) are already in this course. Professor invite not consumed and still working'
+                          case QUERY_PARAMS.profInvite.notice
+                            .adminAcceptedInviteNotConsumed:
+                            return `Professor invite successfully accepted! You are now a professor inside this course. Since you are an admin, the professor invite was not consumed and still working`
+                          case QUERY_PARAMS.profInvite.notice.inviteAccepted: // TODO: Start the tutorial from here
+                            return (
+                              <div className="flex flex-col items-center">
+                                <p>
+                                  Professor invite successfully accepted!
+                                  Welcome to your course!
+                                </p>
+                                <p>
+                                  You can find a list of video tutorials here:
+                                </p>
+                                <ul className="flex list-disc gap-4 gap-x-6">
+                                  <li>
+                                    <a
+                                      href="https://www.youtube.com/watch?v=H9ywkvDdeZ0"
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      HelpMe Overview
+                                    </a>
+                                  </li>
+                                  <li>
+                                    <a
+                                      href="https://www.youtube.com/watch?v=Y8v8HfEpkqo"
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      Chatbot Configuration Tutorial
+                                    </a>
+                                  </li>
+                                </ul>
+                              </div>
+                            )
+                          default:
+                            return queryParamNotice
+                        }
+                      })()}
+                      type="info"
+                      className="mb-1 w-full"
+                      showIcon
+                      closable
+                    />
+                  )}
+                </Row>
                 <Row justify="space-between">
                   <h1 className="overflow-hidden whitespace-nowrap text-2xl font-semibold text-[#212934] md:text-3xl">
                     {course?.name} Help Centre
@@ -149,7 +205,7 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                       cid={cid}
                       linkId={
                         skipLinkTarget == 'first-queue' &&
-                          q.id === sortedQueues[0].id
+                        q.id === sortedQueues[0].id
                           ? 'skip-link-target'
                           : ''
                       }
@@ -211,8 +267,8 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                 sm={24}
               >
                 {courseFeatures.queueEnabled &&
-                  (!courseFeatures.chatBotEnabled ||
-                    courseFeatures.scheduleOnFrontPage) ? (
+                (!courseFeatures.chatBotEnabled ||
+                  courseFeatures.scheduleOnFrontPage) ? (
                   <>
                     {role === Role.PROFESSOR ? (
                       <TAFacultySchedulePanel courseId={cid} condensed={true} />
@@ -247,30 +303,29 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
             </Row>
           </div>
         )) || (
-            // only show if only the chatbot is enabled
-            <div className="mt-3 flex h-[100vh] flex-col items-center justify-items-end">
-              <Chatbot
-                key={cid}
-                cid={cid}
-                variant="huge"
-                preDeterminedQuestions={preDeterminedQuestions}
-                setPreDeterminedQuestions={setPreDeterminedQuestions}
-                questionsLeft={questionsLeft}
-                setQuestionsLeft={setQuestionsLeft}
-                messages={messages}
-                setMessages={setMessages}
-                isOpen={true}
-                interactionId={interactionId}
-                setInteractionId={setInteractionId}
-                setHelpmeQuestionId={setHelpmeQuestionId}
-                helpmeQuestionId={helpmeQuestionId}
-                chatbotQuestionType={chatbotQuestionType}
-                setChatbotQuestionType={setChatbotQuestionType}
-                /* eslint-disable-next-line @typescript-eslint/no-empty-function */
-                setIsOpen={() => { }}
-              />
-            </div>
-          )}
+          // only show if only the chatbot is enabled
+          <div className="mt-3 flex h-[100vh] flex-col items-center justify-items-end">
+            <Chatbot
+              key={cid}
+              cid={cid}
+              variant="huge"
+              preDeterminedQuestions={preDeterminedQuestions}
+              setPreDeterminedQuestions={setPreDeterminedQuestions}
+              questionsLeft={questionsLeft}
+              setQuestionsLeft={setQuestionsLeft}
+              messages={messages}
+              setMessages={setMessages}
+              isOpen={true}
+              interactionId={interactionId}
+              setInteractionId={setInteractionId}
+              setHelpmeQuestionId={setHelpmeQuestionId}
+              helpmeQuestionId={helpmeQuestionId}
+              chatbotQuestionType={chatbotQuestionType}
+              setChatbotQuestionType={setChatbotQuestionType}
+              setIsOpen={() => {}}
+            />
+          </div>
+        )}
       </>
     )
   }

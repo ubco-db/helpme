@@ -1,6 +1,14 @@
 'use client'
 
-import { Button, Checkbox, Form, Modal, Segmented, message, Tooltip } from 'antd'
+import {
+  Button,
+  Checkbox,
+  Form,
+  Modal,
+  Segmented,
+  message,
+  Tooltip,
+} from 'antd'
 import { InfoCircleOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import csvDownload from 'json-to-csv-export'
@@ -28,7 +36,7 @@ type CSVRow = {
   'User ID': string | number
   'First Name': string
   'Last Name': string
-  'Email': string
+  Email: string
   [key: string]: string | number
 }
 
@@ -50,7 +58,13 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
   const [loading, setLoading] = useState(false)
 
   const handleExport = async (values: FormValues) => {
-    const { includeQueueQuestions, includeAnytimeQuestions, includeChatbotInteractions, groupBy, includeBreakdown } = values
+    const {
+      includeQueueQuestions,
+      includeAnytimeQuestions,
+      includeChatbotInteractions,
+      groupBy,
+      includeBreakdown,
+    } = values
 
     setLoading(true)
     try {
@@ -59,30 +73,31 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
         includeQueueQuestions,
         includeAnytimeQuestions,
         includeChatbotInteractions,
-        groupBy
+        groupBy,
       )
-      
+
       if (!data || data.length === 0) {
         message.warning('No tool usage data found for the selected criteria')
         onCancel()
         return
       }
-      
+
       const courseName = data[0].course_name
-      
+
       const toolsString = [
         includeQueueQuestions && 'queue',
         includeAnytimeQuestions && 'anytime questions',
-        includeChatbotInteractions && 'chatbot'
-      ].filter(Boolean).join(', ')
-      
+        includeChatbotInteractions && 'chatbot',
+      ]
+        .filter(Boolean)
+        .join(', ')
 
       const timePeriods = new Set<string>()
       const students = new Map<string, StudentData>()
-      
+
       data.forEach((row) => {
         timePeriods.add(row.period_date)
-        
+
         const studentKey = `${row.user_id}_${row.firstName}_${row.lastName}_${row.email}`
         if (!students.has(studentKey)) {
           students.set(studentKey, {
@@ -90,18 +105,17 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
             firstName: row.firstName || '',
             lastName: row.lastName || '',
             email: row.email || '',
-            periods: new Map<string, number>()
+            periods: new Map<string, number>(),
           })
         }
       })
-      
+
       const sortedPeriods = Array.from(timePeriods).sort()
       const formattedData: CSVRow[] = []
-      
-      if (includeBreakdown) {
 
+      if (includeBreakdown) {
         const toolData = new Map<string, ToolUsageExportData[]>()
-        
+
         data.forEach((row) => {
           const toolKey = row.tool_type
           if (!toolData.has(toolKey)) {
@@ -109,28 +123,27 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
           }
           toolData.get(toolKey)?.push(row)
         })
-        
-        const toolTypes = Array.from(toolData.keys()).sort()
-        
 
-        toolTypes.forEach(toolType => {
+        const toolTypes = Array.from(toolData.keys()).sort()
+
+        toolTypes.forEach((toolType) => {
           const toolRows = toolData.get(toolType) || []
           const studentData = new Map<string, StudentData>()
-          
+
           toolRows.forEach((row) => {
             const studentKey = `${row.user_id}_${row.firstName}_${row.lastName}_${row.email}`
             const timeKey = row.period_date
-            
+
             if (!studentData.has(studentKey)) {
               studentData.set(studentKey, {
                 user_id: row.user_id,
                 firstName: row.firstName || '',
                 lastName: row.lastName || '',
                 email: row.email || '',
-                periods: new Map<string, number>()
+                periods: new Map<string, number>(),
               })
             }
-            
+
             const student = studentData.get(studentKey)
             if (student) {
               const currentCount = student.periods.get(timeKey) || 0
@@ -142,88 +155,94 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
             'User ID': `[${toolType.toUpperCase()}]`,
             'First Name': '',
             'Last Name': '',
-            'Email': '',
-            ...Object.fromEntries(sortedPeriods.map(period => [period, '']))
+            Email: '',
+            ...Object.fromEntries(sortedPeriods.map((period) => [period, ''])),
           })
-          
 
-          Array.from(studentData.values()).forEach(student => {
+          Array.from(studentData.values()).forEach((student) => {
             const row: CSVRow = {
               'User ID': student.user_id,
               'First Name': student.firstName,
               'Last Name': student.lastName,
-              'Email': student.email
+              Email: student.email,
             }
-            
-            sortedPeriods.forEach(period => {
+
+            sortedPeriods.forEach((period) => {
               row[period] = student.periods.get(period) || 0
             })
-            
+
             formattedData.push(row)
           })
-          
+
           formattedData.push({
             'User ID': '',
             'First Name': '',
             'Last Name': '',
-            'Email': '',
-            ...Object.fromEntries(sortedPeriods.map(period => [period, '']))
+            Email: '',
+            ...Object.fromEntries(sortedPeriods.map((period) => [period, ''])),
           })
         })
       } else {
         const allStudentData = new Map<string, StudentData>()
-        
+
         data.forEach((row) => {
           const studentKey = `${row.user_id}_${row.firstName}_${row.lastName}_${row.email}`
           const timeKey = row.period_date
-          
+
           if (!allStudentData.has(studentKey)) {
             allStudentData.set(studentKey, {
               user_id: row.user_id,
               firstName: row.firstName || '',
               lastName: row.lastName || '',
               email: row.email || '',
-              periods: new Map<string, number>()
+              periods: new Map<string, number>(),
             })
           }
-          
+
           const student = allStudentData.get(studentKey)
           if (student) {
             const currentCount = student.periods.get(timeKey) || 0
             student.periods.set(timeKey, currentCount + Number(row.count))
           }
         })
-        
-        Array.from(allStudentData.values()).forEach(student => {
+
+        Array.from(allStudentData.values()).forEach((student) => {
           const row: CSVRow = {
             'User ID': student.user_id,
             'First Name': student.firstName,
             'Last Name': student.lastName,
-            'Email': student.email
+            Email: student.email,
           }
-          
-          sortedPeriods.forEach(period => {
+
+          sortedPeriods.forEach((period) => {
             row[period] = student.periods.get(period) || 0
           })
-          
+
           formattedData.push(row)
         })
       }
-      
+
       const csvData = {
         data: formattedData,
         filename: `Tool Usage for ${courseName} (${toolsString}) - ${new Date().toISOString().split('T')[0]}.csv`,
         delimiter: ',',
-        headers: ['User ID', 'First Name', 'Last Name', 'Email', ...sortedPeriods]
+        headers: [
+          'User ID',
+          'First Name',
+          'Last Name',
+          'Email',
+          ...sortedPeriods,
+        ],
       }
 
       csvDownload(csvData)
-      
+
       // Show the date range that was used
-      const dateRange = sortedPeriods.length > 0 
-        ? `Date range: ${sortedPeriods[0]} to ${sortedPeriods[sortedPeriods.length - 1]}`
-        : 'No data found for the selected criteria'
-      
+      const dateRange =
+        sortedPeriods.length > 0
+          ? `Date range: ${sortedPeriods[0]} to ${sortedPeriods[sortedPeriods.length - 1]}`
+          : 'No data found for the selected criteria'
+
       message.success(`Tool usage data exported successfully! ${dateRange}`)
       if (onFinish) {
         onFinish()
@@ -233,13 +252,13 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
     } catch (error) {
       console.error('Failed to export tool usage data:', error)
       const errorMessage = getErrorMessage(error)
-      
+
       Sentry.captureException(
         new Error(
           `Tool usage export failed for course ${courseId}. Error: ${errorMessage}. Options: includeQueueQuestions=${includeQueueQuestions}, includeAnytimeQuestions=${includeAnytimeQuestions}, includeChatbotInteractions=${includeChatbotInteractions}, groupBy=${groupBy}, includeBreakdown=${includeBreakdown}`,
         ),
       )
-      
+
       message.error(`Failed to export tool usage data: ${errorMessage}`)
     } finally {
       setLoading(false)
@@ -254,14 +273,12 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
   return (
     <Modal
       title={
-        <div className="flex items-center w-full">
+        <div className="flex w-full items-center">
           <span className="flex-1">Export Tool Usage to CSV</span>
-          <div className="flex items-center gap-3 mr-6">
-            <Tooltip
-              title="You can export the usage data to see how much each student is using the system (e.g. for participation marks). Students are rows, and each week or day are the columns. Each cell is how many times a tool was used for that day/week by that student."
-            >
+          <div className="mr-6 flex items-center gap-3">
+            <Tooltip title="You can export the usage data to see how much each student is using the system (e.g. for participation marks). Students are rows, and each week or day are the columns. Each cell is how many times a tool was used for that day/week by that student.">
               <div className="cursor-help text-gray-500 hover:text-gray-600">
-                 Help <InfoCircleOutlined />
+                Help <InfoCircleOutlined />
               </div>
             </Tooltip>
           </div>
@@ -298,19 +315,33 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
       >
         <div className="space-y-6">
           <fieldset>
-            <legend className="text-sm font-medium mb-3">What constitutes as tool usage?</legend>
+            <legend className="mb-3 text-sm font-medium">
+              What constitutes as tool usage?
+            </legend>
             <div className="space-y-2">
-              <Form.Item 
-                name="includeQueueQuestions" 
-                valuePropName="checked" 
+              <Form.Item
+                name="includeQueueQuestions"
+                valuePropName="checked"
                 className="mb-2"
-                dependencies={['includeAnytimeQuestions', 'includeChatbotInteractions']}
+                dependencies={[
+                  'includeAnytimeQuestions',
+                  'includeChatbotInteractions',
+                ]}
                 rules={[
                   {
                     validator: async (_, value) => {
-                      const { includeAnytimeQuestions, includeChatbotInteractions } = form.getFieldsValue()
-                      if (!value && !includeAnytimeQuestions && !includeChatbotInteractions) {
-                        throw new Error('Please select at least one tool type to export')
+                      const {
+                        includeAnytimeQuestions,
+                        includeChatbotInteractions,
+                      } = form.getFieldsValue()
+                      if (
+                        !value &&
+                        !includeAnytimeQuestions &&
+                        !includeChatbotInteractions
+                      ) {
+                        throw new Error(
+                          'Please select at least one tool type to export',
+                        )
                       }
                     },
                   },
@@ -318,26 +349,36 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
               >
                 <Checkbox>Queue Questions</Checkbox>
               </Form.Item>
-              <Form.Item 
-                name="includeAnytimeQuestions" 
-                valuePropName="checked" 
+              <Form.Item
+                name="includeAnytimeQuestions"
+                valuePropName="checked"
                 className="mb-2"
-                dependencies={['includeQueueQuestions', 'includeChatbotInteractions']}
+                dependencies={[
+                  'includeQueueQuestions',
+                  'includeChatbotInteractions',
+                ]}
               >
                 <Checkbox>Anytime Questions</Checkbox>
               </Form.Item>
-              <Form.Item 
-                name="includeChatbotInteractions" 
-                valuePropName="checked" 
+              <Form.Item
+                name="includeChatbotInteractions"
+                valuePropName="checked"
                 className="mb-0"
-                dependencies={['includeQueueQuestions', 'includeAnytimeQuestions']}
+                dependencies={[
+                  'includeQueueQuestions',
+                  'includeAnytimeQuestions',
+                ]}
               >
                 <Checkbox>Chatbot Interactions</Checkbox>
               </Form.Item>
             </div>
           </fieldset>
 
-          <Form.Item name="groupBy" label="Tool uses by day or by week?" className="mb-0">
+          <Form.Item
+            name="groupBy"
+            label="Tool uses by day or by week?"
+            className="mb-0"
+          >
             <Segmented
               options={[
                 { label: 'Day', value: 'day' },
@@ -346,7 +387,11 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
             />
           </Form.Item>
 
-          <Form.Item name="includeBreakdown" valuePropName="checked" className="mb-0">
+          <Form.Item
+            name="includeBreakdown"
+            valuePropName="checked"
+            className="mb-0"
+          >
             <Checkbox>
               Include breakdown by tool type (separate sections for each tool)
             </Checkbox>
