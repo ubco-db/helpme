@@ -13,7 +13,6 @@ import {
   OrganizationRoleHistoryFilter,
   OrganizationRoleHistoryResponse,
   OrgRoleChangeReason,
-  OrgRoleChangeReasonMap,
   OrgRoleHistory,
   OrgUser,
   Role,
@@ -198,9 +197,15 @@ export class OrganizationService {
       });
 
     if (search) {
-      organizationUsers.andWhere(`user.name ILIKE :search`, {
-        search: `%${search}%`,
-      });
+      organizationUsers.andWhere(
+        new Brackets((q) => {
+          q.where(`user.email ILIKE :search1`, {
+            search1: `%${search}%`,
+          }).orWhere(`user.name ILIKE :search2`, {
+            search2: `%${search}%`,
+          });
+        }),
+      );
     }
 
     organizationUsers
@@ -435,10 +440,7 @@ export class OrganizationService {
           timestamp: history.OrganizationRoleHistory_timestamp,
           fromRole: history.OrganizationRoleHistory_fromRole,
           toRole: history.OrganizationRoleHistory_toRole,
-          changeReason:
-            OrgRoleChangeReasonMap[
-              history.OrganizationRoleHistory_changeReason
-            ],
+          changeReason: history.OrganizationRoleHistory_roleChangeReason,
           toUser: {
             userId: history.touserid,
             firstName: history.touserfirstname,

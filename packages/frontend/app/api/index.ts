@@ -11,6 +11,7 @@ import {
   ChatbotAskParams,
   ChatbotAskResponse,
   ChatbotAskSuggestedParams,
+  ChatbotAgentCourse,
   ChatbotProvider,
   ChatbotQueryParams,
   ChatbotQuestionResponseChatbotDB,
@@ -130,6 +131,11 @@ import {
   UpsertLMSCourseParams,
   UpsertLMSOrganizationParams,
   UserMailSubscription,
+  CreateCourseResponse,
+  AcceptProfInviteParams,
+  GetProfInviteDetailsResponse,
+  CreateProfInviteParams,
+  GetProfInviteResponse,
 } from '@koh/common'
 import Axios, { AxiosError, AxiosInstance, AxiosResponse, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -179,7 +185,11 @@ export class APIClient {
     const res = (
       await this.axios.request({ method, url, data: body, params, headers })
     ).data
-    return responseClass ? plainToClass(responseClass, res) : res
+    return responseClass
+      ? plainToClass(responseClass, res, {
+          enableImplicitConversion: true, // needed otherwise dates won't be deserialized (converted from string to date object)
+        })
+      : res
   }
 
   /**
@@ -302,6 +312,8 @@ export class APIClient {
         courseId: number,
       ): Promise<PreDeterminedQuestion[]> =>
         this.req('GET', `/api/v1/chatbot/question/suggested/${courseId}`),
+      getAgents: async (courseId: number): Promise<ChatbotAgentCourse[]> =>
+        this.req('GET', `/api/v1/chatbot/course/${courseId}/agents`),
       updateUserScore: async (
         courseId: number,
         questionId: number,
@@ -738,6 +750,35 @@ export class APIClient {
         undefined,
       )
     },
+  }
+  profInvites = {
+    accept: async (
+      piid: number,
+      body: AcceptProfInviteParams,
+    ): Promise<string> => // returns the url to redirect to
+      this.req('POST', `/api/v1/prof_invites/accept/${piid}`, undefined, body),
+    getDetails: async (piid: number): Promise<GetProfInviteDetailsResponse> =>
+      this.req('GET', `/api/v1/prof_invites/details/${piid}`),
+    getAll: async (
+      orgId: number,
+      courseId?: number,
+    ): Promise<GetProfInviteResponse[]> =>
+      // note to self: In order to use the response class for arrays (so that dates get auto-deserialized),
+      // we need to pass in the class[] as the generic type for req (see example below).
+      this.req<GetProfInviteResponse[]>(
+        'GET',
+        `/api/v1/prof_invites/all/${orgId}`,
+        GetProfInviteResponse,
+        undefined,
+        { courseId },
+      ),
+    create: async (
+      orgId: number,
+      body: CreateProfInviteParams,
+    ): Promise<GetProfInviteResponse> =>
+      this.req('POST', `/api/v1/prof_invites/${orgId}`, undefined, body),
+    delete: async (orgId: number, piid: number): Promise<void> =>
+      this.req('DELETE', `/api/v1/prof_invites/${orgId}/${piid}`),
   }
   mail = {
     resendVerificationCode: async () =>
@@ -1207,7 +1248,7 @@ export class APIClient {
     createCourse: async (
       oid: number,
       body: UpdateOrganizationCourseDetailsParams,
-    ): Promise<void> =>
+    ): Promise<CreateCourseResponse> =>
       this.req(
         'POST',
         `/api/v1/organization/${oid}/create_course`,

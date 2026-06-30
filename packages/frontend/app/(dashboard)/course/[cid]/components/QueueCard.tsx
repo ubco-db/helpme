@@ -85,46 +85,46 @@ const QueueCard: React.FC<QueueCardProps> = ({
         }}
         // make the card glow if there are staff members in the queue
         className={cn(
-          'my-4 rounded-md',
+          'group my-4 rounded-md',
           queue.staffList.length >= 1 ? 'glowy' : '',
           isLinkEnabled ? 'cursor-pointer' : '',
           'queueCard',
         )}
         title={
-          <span className="mr-8 flex flex-row flex-wrap items-center justify-between">
-            <div>
+          <div className="mr-8 flex flex-row flex-wrap items-center justify-between">
+            <div className="w-full group-hover:underline group-focus:underline group-active:underline">
               {queue.room}
-              <div className="mb-1 flex flex-wrap gap-y-1 sm:mb-0">
-                {queue?.type && (
-                  <Tag
-                    color={getQueueTypeColor(queue.type)}
-                    className="m-0 mr-1 leading-4 text-gray-200"
-                  >
-                    {getQueueTypeLabel(queue.type)}
-                  </Tag>
-                )}
-                {queue?.isProfessorQueue && (
-                  <Tag
-                    color="#337589"
-                    className="m-0 mr-1 leading-4 text-gray-200"
-                  >
-                    Professor Queue
-                  </Tag>
-                )}
-                {!queue.allowQuestions && (
-                  <Tooltip title="This queue is not accepting questions right now">
-                    <Tag
-                      icon={<StopOutlined />}
-                      color="#591e40"
-                      className="m-0 leading-4 text-gray-300"
-                    >
-                      Not Accepting Questions
-                    </Tag>
-                  </Tooltip>
-                )}
-              </div>
             </div>
-          </span>
+            <div className="mb-1 flex flex-wrap gap-y-1 sm:mb-0">
+              {queue?.type && (
+                <Tag
+                  color={getQueueTypeColor(queue.type)}
+                  className="m-0 mr-1 leading-4 text-gray-200"
+                >
+                  {getQueueTypeLabel(queue.type)}
+                </Tag>
+              )}
+              {queue?.isProfessorQueue && (
+                <Tag
+                  color="#337589"
+                  className="m-0 mr-1 leading-4 text-gray-200"
+                >
+                  Professor Queue
+                </Tag>
+              )}
+              {!queue.allowQuestions && (
+                <Tooltip title="This queue is not accepting questions right now">
+                  <Tag
+                    icon={<StopOutlined />}
+                    color="#591e40"
+                    className="m-0 leading-4 text-gray-300"
+                  >
+                    Not Accepting Questions
+                  </Tag>
+                </Tooltip>
+              )}
+            </div>
+          </div>
         }
         extra={
           <div className="mr-8 h-fit text-sm font-normal text-gray-200">

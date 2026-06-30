@@ -65,6 +65,8 @@ Note:
   The only function that can be formally tested is the getAdapter() function.
 */
 describe('LMSIntegrationService', () => {
+  const expiredCreatedAt = (): Date => new Date(Date.now() - 1000);
+
   let service: LMSIntegrationService;
   let dataSource: DataSource;
 
@@ -120,6 +122,7 @@ describe('LMSIntegrationService', () => {
       const invalidAuthState = await LMSAuthStateFactory.create({
         organizationIntegration,
         user,
+        createdAt: expiredCreatedAt(),
         expiresInSeconds: 0,
       });
 

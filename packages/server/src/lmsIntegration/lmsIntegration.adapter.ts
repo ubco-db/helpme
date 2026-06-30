@@ -11,6 +11,7 @@ import {
   LMSPage,
   LMSPostAuthBody,
   LMSPostResponseBody,
+  LMSPostResponseRefreshTokenBody,
   LMSQuiz,
 } from '@koh/common';
 import { LMSUpload } from './lmsIntegration.service';
@@ -165,8 +166,12 @@ export abstract class AbstractLMSAdapter {
         );
       }
 
-      const raw = (await response.json()) as LMSPostResponseBody;
-      const updated = await accessToken.encryptToken(raw);
+      const raw = (await response.json()) as LMSPostResponseRefreshTokenBody;
+      const updated = await accessToken.encryptToken({
+        ...token, // old token
+        ...raw, // new token attributes (just in case anything changed. Also RefreshTokenBody is a subset of the regular POST body)
+        refresh_token: token.refresh_token, // just to be explicit: we must RE-USE existing refresh token according to canvas api docs https://developerdocs.instructure.com/services/canvas/oauth2/file.oauth_endpoints#post-login-oauth2-token
+      });
 
       return {
         accessToken: updated,
