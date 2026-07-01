@@ -1,19 +1,68 @@
-## Version 1.9.0 - 
+## Version 1.9.0 - New Landing Page, Weekly Summary Emails, Save to Chatbot, and More
 
-*April ..., 2026*
+*July 1st, 2026 - Happy Canada Day!*
 
 #### New Features
 
 - ***General***
-  - 
+  - Reworked the [landing page](https://coursehelp.ubc.ca/)
+	  - Now with a lot more information and screenshots
+  - Added an [About](https://coursehelp.ubc.ca/about) page
+	  - Has our Privacy Policy, Terms of Service, Changelog, an FAQ, our team, and more
+  - Course Staff can now "Endorse" Anytime Question Comments
+	  - Endorsed comments appear first
+	  - Useful if you have "Allow Anytime Question Authors to make their Questions Public" enabled under Course Settings and you encourage your students to help each other
+
 - ***Faculty-only***
-  - 
+  - Added Weekly Summary emails for professors
+	  - Includes activity, any pending Anytime Questions, and recommendations
+  - Added a "Save to Chatbot" feature when posting a response to an Anytime Question
+	  - Allows your Chatbot to keep getting better as it gets used
+  - Added a "Export Tool Usage to CSV" button under Course Settings → Export Data
+	  - Could be used to chart what tools (Chatbot, Anytime Questions, Queues) each student is using over time
+	  - Could be used to assign participation marks
+  - Added "Professor Invites"
+	  - Works as a regular course invite except it promotes the user to a professor right away
+	  - Useful if you are creating the course for a fellow professor
 
 #### Improvements
 
+- **Fixed the refresh_token: not found issue** (probably)
+	- You will need to re-create your Canvas integration one last time: Course Settings → LMS Integrations → Delete → Create LMS Integration with Canvas
+	- Let me know if you encounter any issues with it - Adam
+- Anytime Questions now shows "+X additional private question(s)" with improved text for when no questions have been posted
+	- Students naturally ask questions in areas with the most activity, and letting them know that other students have been asking Anytime questions should help increase activity 
+- Students may now specify how to pronounce their name under Profile Settings
+- Clarified a lot of the text around LMS integrations
+- Anytime Questions are now paginated
+- Added a "There are no queues in this course" in the Queues dropdown, with instructions for creating new queues for professors
+- TA Check In/Out Times page now shows when TAs mark themselves "Away" 
+- Changed the "Unhappy with your answer? Convert to an Anytime Question" text to "Discuss or verify this with your professor/TA: Convert to Anytime Question"
+	- Also added a "Continue Navigation" confirmation popup
+- Added the ability for professors to permanently delete their courses (as opposed to "archiving" them) - useful for accidentally created courses
+- Fixed an issue where users would not get redirected to their course invite after verifying their email
+- Added a button that lets you clear the cache for your backend profile (under Profile → Advanced), which might be helpful if you notice certain pieces of UI not updating when they should
+- Added a "Access denied" message when trying to access a course page you lack access to instead of an infinite spinner
 - Fixed an issue in the registration form where the "UBC email detected! Consider continuing with UBC" message would not appear
-
-
+- After creating a course, now receives a highlight to make it easier to see on My Courses page
+- Fixed an issue with Anytime Questions where the "Set question visible to all students" toggle would sometimes default to "Visible" despite showing "Hidden"
+- Added a feature for LLED courses for AI Assignment Feedback (under Course Settings → Scroll down to Advanced). See its help tooltip for more info.
+- Fixed an issue where the "Test Course" Semester would not show up when creating courses (and made it not show as "ended")
+- Re-arranged Course Features (under Course Settings) to be easier to digest
+- Added an "Advanced" divider to Course Settings, amongst other re-arrangements
+- Fixed the Profile → Course Preferences table from overflowing on mobile
+- Added a new "name" field when manually creating new chatbot knowledge base chunks (previously, all chunks were given the name "Manually Inserted Information" - this lets you customize it)
+- Fixed an issue where course professors that lacked the "Organization Professor" role could not create an LMS/Canvas integration for their course
+- Various improvements for Admins:
+	- Professor Selectors now show the user's email and the search now works
+	- Users Table now paginated
+	- Users Table now searches by email *or* name
+	- Courses Table now has more information and is sortable
+- Minor: started keeping track of when more things are created: enrollments, question types, queue invites, queues, semesters, organizations, users, and courses.
+- Fixed a minor issue where 'helping student in another course' was not working for queue invites
+- Fixed a minor issue where the Checkout button on the course page would only check you out of 1 queue instead of all
+- Various security improvements
+- Various small UI fixes and adjustments
 ***
 
 ## Version 1.8.0 - Canvas Chatbot Embed, Away Toggle
