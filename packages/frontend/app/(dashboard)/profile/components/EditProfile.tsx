@@ -173,7 +173,11 @@ const EditProfile: React.FC = () => {
 
             <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
               <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                <Form.Item label="Name Pronunciation" name="namePronunciation">
+                <Form.Item
+                  label="Name Pronunciation"
+                  name="namePronunciation"
+                  tooltip="Lets course staff inside queues see how to pronounce your name. Use capital letters to indicate the primary stress (emphasis) of your name."
+                >
                   <Input placeholder="Example: uh-LEE-shuh" />
                 </Form.Item>
               </Col>
