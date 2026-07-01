@@ -65,6 +65,7 @@
 - Fixed a minor issue where the Checkout button on the course page would only check you out of 1 queue instead of all
 - Various security improvements
 - Various small UI fixes and adjustments
+
 ***
 
 ## Version 1.8.0 - Canvas Chatbot Embed, Away Toggle
