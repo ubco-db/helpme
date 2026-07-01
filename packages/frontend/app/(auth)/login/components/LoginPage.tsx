@@ -1,0 +1,542 @@
+'use client'
+
+import { Alert, Button, Card, Form, Input, message, Select } from 'antd'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { LockOutlined, SyncOutlined, UserOutlined } from '@ant-design/icons'
+import Image from 'next/image'
+import ReCAPTCHA from 'react-google-recaptcha'
+import Link from 'next/link'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { isProd, LoginParam, OrganizationResponse } from '@koh/common'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
+import { useLoginRedirectInfoProvider } from './LoginRedirectInfoProvider'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils'
+import * as Sentry from '@sentry/nextjs'
+import { API } from '@/app/api'
+import { useLocalStorage } from '@/app/hooks/useLocalStorage'
+
+const LoginPage: React.FC = () => {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [accountActiveResponse, setAccountActiveResponse] = useState(true)
+
+  const [organizations, setOrganizations] = useState<OrganizationResponse[]>([])
+  const [organization, setOrganization] = useState<OrganizationResponse | null>(
+    null,
+  )
+  const [hasRetrievedOrganizations, setHasRetrievedOrganizations] =
+    useState(false)
+
+  const [ltiSSOInitiated, setLtiSSOInitiated] = useState(false)
+
+  const recaptchaRef = React.createRef<ReCAPTCHA>()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const pathName = usePathname()
+
+  const isLti = useMemo(() => {
+    return pathName.startsWith('/lti')
+  }, [pathName])
+
+  useEffect(() => {
+    if (window.sessionStorage.getItem('lms_info') && !isLti) {
+      const params = new URLSearchParams(searchParams.toString())
+      const redirect = params.get('redirect')
+      if (redirect && !redirect.startsWith('/lti')) {
+        params.delete('redirect')
+      }
+      router.push(`/lti/login${params.size > 0 ? '?' + params.toString() : ''}`)
+    }
+  }, [])
+
+  const error = searchParams.get('error')
+  const [errorGettingOrgs, setErrorGettingOrgs] = useState(false)
+  const redirect = searchParams.get('redirect')
+  const [localStorageOrgId, setLocalStorageOrgId] = useLocalStorage<
+    number | null
+  >('organizationId', null)
+
+  const { invitedOrgId, invitedCourseId, invitedQueueId } =
+    useLoginRedirectInfoProvider()
+
+  // capture error from the query params in sentry
+  useEffect(() => {
+    if (error) {
+      if (error === 'sessionExpired') {
+        Sentry.captureEvent({
+          message: 'Session Expired',
+          level: 'info',
+        })
+      } else {
+        Sentry.captureException(error)
+      }
+    }
+  }, [error])
+
+  const selectOrganization = useCallback(
+    (value: number, newlyRetrievedOrganizations?: OrganizationResponse[]) => {
+      const organizationsToUse = newlyRetrievedOrganizations
+        ? newlyRetrievedOrganizations
+        : organizations
+      if (organizationsToUse.length === 0) {
+        message.error('No organizations could be selected as none were found')
+        Sentry.captureEvent({
+          message:
+            'No organizations could be selected as none were found. This should not happen.',
+          level: 'error',
+        })
+        return
+      }
+      const organization = organizationsToUse.find((org) => org.id === value)
+      if (!organization) {
+        message.error('Organization not found')
+        Sentry.captureEvent({
+          message: 'Organization not found',
+          level: 'error',
+          extra: {
+            value,
+          },
+        })
+        return
+      }
+      setLocalStorageOrgId(organization.id)
+      setOrganization(organization)
+    },
+    [organizations, setLocalStorageOrgId],
+  )
+
+  const smartlySetOrganization = useCallback(
+    async (organizations: OrganizationResponse[]) => {
+      if (organizations.length === 1) {
+        selectOrganization(organizations[0].id, organizations)
+      } else if (invitedOrgId) {
+        // get courseId from SECURE_REDIRECT (from invite code) and get the course's organization, and then set the organization to that
+        selectOrganization(invitedOrgId, organizations)
+      } else if (localStorageOrgId) {
+        // if no invite ID, set it to whatever was in local storage (idea being that if you selected this org before, you probably want to select it again)
+        selectOrganization(localStorageOrgId, organizations)
+      } else {
+        // try to select the UBC organization as a default for everyone
+        const UBCOrg = organizations.find((org) => org.id === 1)
+        if (UBCOrg) {
+          selectOrganization(UBCOrg.id, organizations)
+        } else {
+          // if worst comes to worst, just select the first organization so that *something* is selected
+          selectOrganization(organizations[0].id, organizations)
+        }
+      }
+    },
+    [invitedOrgId, selectOrganization, localStorageOrgId],
+  )
+
+  useEffect(() => {
+    async function getOrganizations() {
+      try {
+        const organizations = await API.organizations.getOrganizations()
+        setOrganizations(organizations)
+        smartlySetOrganization(organizations)
+        setHasRetrievedOrganizations(true)
+      } catch (error: any) {
+        message.error(error)
+        setErrorGettingOrgs(true)
+        return
+      }
+    }
+    getOrganizations()
+  }, [])
+
+  async function login() {
+    let loginData: LoginParam
+    if (isProd()) {
+      const token = (await recaptchaRef?.current?.executeAsync()) ?? ''
+      if (organization && !organization.legacyAuthEnabled) {
+        message.error(
+          'Organization does not support login with username/password',
+        )
+        return
+      }
+      loginData = {
+        email,
+        password,
+        recaptchaToken: token,
+      }
+    } else {
+      loginData = {
+        email,
+        password,
+        recaptchaToken: '',
+      }
+    }
+
+    const response = await API.login.index(loginData).catch((err: any) => {
+      switch (err.status) {
+        case 401:
+          message.error(err.message)
+          break
+        case 403:
+          setAccountActiveResponse(false)
+          break
+        case 404:
+          message.error('User Not Found')
+          break
+        case 429:
+          message.error('Too many requests. Please try again after 1min')
+          break
+        default:
+          message.error(getErrorMessage(err))
+          break
+      }
+    })
+    if (!response) {
+      return
+    }
+
+    const data = response.data
+    const params = new URLSearchParams({
+      token: data.token,
+    })
+    if (redirect) {
+      params.append('redirect', redirect)
+    }
+    if (!redirect && isLti) {
+      params.set('redirect', '/lti')
+    }
+    router.push(isLti ? API.lti.auth.entry(params) : API.login.entry(params))
+  }
+
+  async function loginWithGoogle() {
+    const id = organization?.id ?? -1
+    const response = await (isLti
+      ? API.lti.auth.loginWithGoogle(id)
+      : API.auth.loginWithGoogle(id))
+
+    if (response.headers['content-type']?.includes('application/json')) {
+      const data = response.data
+      if (response.status !== 200) {
+        message.error(data.message)
+        Sentry.captureEvent({
+          message: `Error with loginWithGoogle ${response.status}: ${response.statusText}`,
+          level: 'error',
+          extra: {
+            text: data.message,
+            data,
+            response,
+          },
+        })
+        return
+      }
+      if (isLti) {
+        window.open(data.redirectUri, '_blank', 'noopener,noreferrer')
+        setLtiSSOInitiated(true)
+      } else {
+        router.push(data.redirectUri)
+      }
+    } else {
+      const text = response.data as string
+      Sentry.captureEvent({
+        message: `Error with loginWithGoogle ${response.status}: ${response.statusText}`,
+        level: 'error',
+        extra: {
+          text,
+          response,
+        },
+      })
+      message.error(text)
+    }
+  }
+
+  async function onReCAPTCHAChange(captchaCode: string | null) {
+    if (!captchaCode) return
+    recaptchaRef?.current?.reset()
+  }
+
+  if (ltiSSOInitiated) {
+    return (
+      <main
+        className={'container mx-auto h-auto w-full max-w-lg pt-10 text-center'}
+      >
+        <title>HelpMe | Reload page</title>
+        <div className="container mx-auto h-auto w-full pt-10 text-center">
+          <Alert
+            message="Authentication with SSO Started"
+            description="Please follow the steps for authorization with the SSO option in the new window or tab, then reload this page by pressing the button below. The window should automatically close after you've successfully authorized."
+            type="info"
+          />
+          <Button
+            className={'mt-4'}
+            icon={<SyncOutlined />}
+            onClick={() => window.location.reload()}
+          >
+            Reload
+          </Button>
+        </div>
+      </main>
+    )
+  }
+
+  if (errorGettingOrgs) {
+    return (
+      <main
+        className={'container mx-auto h-auto w-full max-w-lg pt-10 text-center'}
+      >
+        <title>HelpMe | Error</title>
+        <div className="container mx-auto h-auto w-full pt-10 text-center">
+          <Alert
+            message="Error"
+            description="There was an error getting the organizations. Please refresh the page or try again later."
+            type="error"
+          />
+        </div>
+      </main>
+    )
+  } else if (!organizations || organizations?.length === 0) {
+    return (
+      <main
+        className={'container mx-auto h-auto w-full max-w-lg pt-10 text-center'}
+      >
+        {hasRetrievedOrganizations ? (
+          <Alert
+            message="No Organizations"
+            description="There are no registered organizations."
+            type="error"
+          />
+        ) : (
+          <CenteredSpinner tip="Loading Organizations..." />
+        )}
+      </main>
+    )
+  } else {
+    return (
+      <main>
+        <title>HelpMe | Login</title>
+        {invitedCourseId && !invitedQueueId ? (
+          <div className="container mx-auto h-auto w-full max-w-lg pt-10 text-center">
+            <Alert
+              message={
+                'You have been invited to a course! Please login to continue.'
+              }
+              type="success"
+            />
+          </div>
+        ) : (
+          invitedQueueId && (
+            <div className="container mx-auto h-auto w-full max-w-lg pt-10 text-center">
+              <Alert
+                message={
+                  'You have been invited to join a queue! Please login to continue.'
+                }
+                type="success"
+              />
+            </div>
+          )
+        )}
+        {error && (
+          <div className="container mx-auto h-auto w-full pt-10 text-center md:w-1/2">
+            <Alert
+              message="Error"
+              description={
+                error === 'redirect'
+                  ? 'There was an error during a redirection. Please refresh the page or login again.'
+                  : error === 'sessionExpired'
+                    ? 'Your session has expired. Please login again.'
+                    : `An unknown error has occurred (${error}). Please try again.`
+              }
+              type="error"
+            />
+          </div>
+        )}
+        <div
+          className={cn(
+            'container mx-auto h-auto w-full text-center md:w-1/2',
+            invitedQueueId || error || invitedCourseId ? 'pt-5' : 'pt-20',
+          )}
+        >
+          <Card className="mx-auto max-w-md sm:px-2 md:px-6">
+            <h2 className="mb-4 text-left">Login</h2>
+            <div>
+              <div>
+                <p className="text-left text-stone-400">
+                  Select your organization.
+                </p>
+                <Select
+                  className="mt-2 w-full text-left"
+                  placeholder="Available Organizations"
+                  options={organizations.map((organization) => {
+                    return {
+                      label: organization.name,
+                      value: organization.id,
+                    }
+                  })}
+                  value={organization?.id}
+                  onChange={(value) => {
+                    selectOrganization(value)
+                  }}
+                />
+              </div>
+              {organization && organization.ssoEnabled && (
+                <Link
+                  href={(isLti ? API.lti : API).auth.shibboleth(
+                    organization.id,
+                  )}
+                  onClick={(event) => {
+                    if (isLti) {
+                      event.preventDefault()
+                      window.open(event.currentTarget.href)
+                      setLtiSSOInitiated(true)
+                    }
+                  }}
+                  prefetch={false}
+                >
+                  <Button className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left">
+                    <Image
+                      src={`/api/v1/organization/${organization.id}/get_logo`}
+                      loading="lazy"
+                      alt="Org Logo"
+                      width={24}
+                      height={24}
+                    />
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="font-semibold">
+                        Continue with {organization.name}
+                      </div>
+                      <div className="text-xs text-green-400">
+                        (recommended)
+                      </div>
+                    </div>
+                  </Button>
+                </Link>
+              )}
+              {organization && organization.googleAuthEnabled && (
+                <Button
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border px-5 py-5 text-left"
+                  onClick={() => loginWithGoogle()}
+                >
+                  <Image
+                    src="https://www.svgrepo.com/show/475656/google-color.svg"
+                    className="h-6 w-6"
+                    loading="lazy"
+                    alt="google logo"
+                    width={24}
+                    height={24}
+                  />
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="font-semibold">Continue with Google</div>
+                    {!organization.ssoEnabled && (
+                      <div className="text-xs text-green-400">
+                        (recommended)
+                      </div>
+                    )}
+                  </div>
+                </Button>
+              )}
+
+              {organization && organization.legacyAuthEnabled && (
+                <p className="my-5 font-medium uppercase text-stone-400">
+                  Or login with email
+                </p>
+              )}
+
+              {!accountActiveResponse && (
+                <Alert
+                  message="System Notice"
+                  description="Your account has been deactivated. Please contact your organization admin for more information."
+                  type="error"
+                  style={{ marginBottom: 20, textAlign: 'left' }}
+                />
+              )}
+
+              {organization && organization.legacyAuthEnabled && (
+                <Form
+                  name="normal_login"
+                  className="login-form"
+                  initialValues={{ remember: true }}
+                  onFinish={login}
+                >
+                  {/*
+                    In some environments, components which return Promises or arrays do not work.
+                    This is due to some changes to react and @types/react, and the component
+                    packages have not been updated to fix these issues.
+                  */}
+                  {/* @ts-expect-error Server Component */}
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    size="invisible"
+                    sitekey={
+                      process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ??
+                      'nokeyprovided'
+                    }
+                    onChange={onReCAPTCHAChange}
+                  />
+                  <Form.Item
+                    name="email"
+                    rules={[
+                      {
+                        required: true,
+                        message: 'Please enter a valid email.',
+                      },
+                    ]}
+                  >
+                    <Input
+                      prefix={<UserOutlined className="site-form-item-icon" />}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="rounded-lg border px-2 py-2"
+                      placeholder="Email"
+                      autoComplete="email"
+                      type="email"
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="password"
+                    rules={[
+                      {
+                        required: true,
+                        message: 'Please enter a valid password.',
+                      },
+                    ]}
+                  >
+                    <Input
+                      prefix={<LockOutlined className="site-form-item-icon" />}
+                      onChange={(e) => setPassword(e.target.value)}
+                      type="password"
+                      autoComplete="current-password"
+                      className="rounded-lg border px-2 py-2"
+                      placeholder="Password"
+                    />
+                  </Form.Item>
+
+                  <Form.Item>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      className="h-auto w-full items-center justify-center rounded-lg border px-2 py-2 "
+                    >
+                      <span className="font-semibold">Log in</span>
+                    </Button>
+                  </Form.Item>
+
+                  <div className="d-flex flex-row space-x-8 text-center">
+                    <Link href={isLti ? '/lti/password' : '/password'}>
+                      <Button type="link">Forgot password</Button>
+                    </Link>
+                    <Link
+                      href={
+                        isLti
+                          ? `/lti/register/${organization.id}`
+                          : `/register/${organization.id}`
+                      }
+                    >
+                      <Button type="link">Create account</Button>
+                    </Link>
+                  </div>
+                </Form>
+              )}
+            </div>
+          </Card>
+        </div>
+      </main>
+    )
+  }
+}
+
+export default LoginPage

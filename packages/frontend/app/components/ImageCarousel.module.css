@@ -1,0 +1,57 @@
+.container :global(.ant-carousel .slick-prev::before),
+.container :global(.ant-carousel .slick-next::before),
+.container :global(.ant-carousel .slick-prev::after),
+.container :global(.ant-carousel .slick-next::after) {
+  display: none !important;
+}
+
+.container :global(.ant-carousel .slick-arrow.slick-prev),
+.container :global(.ant-carousel .slick-arrow.slick-next) {
+  width: 44px !important;
+  height: 44px !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 50% !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.05s ease-out !important;
+  color: rgb(var(--helpmeblue)) !important;
+}
+
+.container :global(.ant-carousel .slick-arrow.slick-prev) {
+  left: 16px !important;
+}
+
+.container :global(.ant-carousel .slick-arrow.slick-next) {
+  right: 16px !important;
+}
+
+.container :global(.ant-carousel .slick-arrow.slick-prev svg),
+.container :global(.ant-carousel .slick-arrow.slick-next svg) {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.05s ease-out;
+}
+
+.container :global(.ant-carousel .slick-arrow.slick-prev:hover),
+.container :global(.ant-carousel .slick-arrow.slick-next:hover) {
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: rgb(var(--helpmeblue-light)) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-50%) scale(1.05) !important;
+}
+
+.container :global(.ant-carousel .slick-arrow.slick-prev:active),
+.container :global(.ant-carousel .slick-arrow.slick-next:active) {
+  transform: translateY(-50%) scale(0.95) !important;
+}
+
+.container :global(.ant-carousel .slick-dots li button),
+.container :global(.ant-carousel .slick-dots li.slick-active::after) {
+  background-color: rgb(var(--helpmeblue));
+}
+

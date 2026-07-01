@@ -6,7 +6,7 @@ import React, {
   useMemo,
   useState,
 } from 'react'
-import { useUserInfo } from '@/app/contexts/userContext'
+import { useUserInfoOptional } from '@/app/contexts/userContext'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   NavigationMenu,
@@ -37,6 +37,7 @@ import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from './ui/drawer'
 import {
   CalendarDays,
   LineChart,
+  LogIn,
   MenuIcon,
   MessageCircleQuestion,
   Settings,
@@ -151,7 +152,7 @@ const NavBar = ({
   orientation = 'horizontal',
   isLti = false,
 }: {
-  userInfo: User
+  userInfo?: User
   courseId?: number
   course?: GetCourseResponse
   isAQueuePage: boolean
@@ -168,7 +169,7 @@ const NavBar = ({
   )
   const router = useRouter()
   const courseFeatures = useCourseFeatures(courseId)
-  const role = courseId ? getRoleInCourse(userInfo, courseId) : null
+  const role = courseId && userInfo ? getRoleInCourse(userInfo, courseId) : null
   const sortedQueues = useMemo(() => {
     if (!course?.queues) return []
     return sortQueues(course.queues)
@@ -199,6 +200,7 @@ const NavBar = ({
     !course.enabled &&
     role !== Role.TA &&
     role !== Role.PROFESSOR &&
+    userInfo &&
     userInfo.organization?.organizationRole !== OrganizationRole.ADMIN
   ) {
     router.push(isLti ? '/lti' : '/courses')
@@ -209,383 +211,449 @@ const NavBar = ({
     return (
       <NavigationMenu orientation={orientation}>
         <NavigationMenuList>
-          <NextLink
-            href={
-              course
-                ? `${coursePrefix}/${courseId}`
-                : isLti
-                  ? '/lti'
-                  : '/courses'
-            }
-            aria-hidden="true"
-            className="hidden md:block"
-            tabIndex={-1}
-            onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
-          >
-            {/* This organization logo is only visible on desktop */}
-            <Image
-              width={48}
-              height={48}
-              className={cn(
-                'h-12 w-full object-contain p-1',
-                isLti ? 'pl-4' : 'pr-4',
-              )}
-              alt="Organization Logo"
-              src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo`}
-            />
-          </NextLink>
-          {course ? (
+          {!userInfo ? ( // this is the NavBar when NOT logged in
             <>
+              <NextLink
+                href={'/'}
+                aria-hidden="true"
+                className="hidden md:block"
+                tabIndex={-1}
+                onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+              >
+                {/* This logo is only visible on desktop */}
+                <Image
+                  width={48}
+                  height={48}
+                  className={cn('h-12 w-full object-contain p-1 pr-4')}
+                  alt="UBC Logo"
+                  src={`/actually_public/images/ubc_logo.png`}
+                />
+              </NextLink>
               <NavigationMenuItem>
                 <Link
-                  className="!font-bold "
-                  href={`${coursePrefix}/${courseId}`}
+                  className="pl-12 !font-bold md:pl-8"
+                  href={`/`}
                   onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
                 >
-                  {/* <House strokeWidth={1.5} className='mr-3' /> */}
-                  <HomeOutlined className="mr-3 text-2xl" />
-                  {course.name}
+                  {/* <HomeOutlined className="mr-3 text-2xl" /> Got rid of icons so that the Login link + icon sticks out more */}
+                  Home
                 </Link>
               </NavigationMenuItem>
-              {isLti && [Role.PROFESSOR].includes(role ?? Role.STUDENT) && (
-                <NavigationMenuItem>
-                  <Link
-                    href={`/lti/${course.id}/integration`}
-                    onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
-                  >
-                    <SyncOutlined className="mr-3 text-2xl" />
-                    Integration
-                  </Link>
-                </NavigationMenuItem>
-              )}
-              {!isLti && (
+              <NavigationMenuItem>
+                <Link
+                  className="pl-12 !font-bold md:pl-8"
+                  href={`/about`}
+                  onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                >
+                  {/* <InfoCircleOutlined className="mr-3 text-2xl" /> */}
+                  About
+                </Link>
+              </NavigationMenuItem>
+
+              <NavigationMenuItem className="mb-2 md:mb-0 md:ml-auto ">
+                <Link
+                  href={'/login'}
+                  className="!font-bold "
+                  onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                >
+                  <LogIn strokeWidth={1.5} className="mr-3 " />
+                  Log In
+                </Link>
+              </NavigationMenuItem>
+            </>
+          ) : (
+            <>
+              <NextLink
+                href={
+                  course
+                    ? `${coursePrefix}/${courseId}`
+                    : isLti
+                      ? '/lti'
+                      : '/courses'
+                }
+                aria-hidden="true"
+                className="hidden md:block"
+                tabIndex={-1}
+                onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+              >
+                {/* This organization logo is only visible on desktop */}
+                <Image
+                  width={48}
+                  height={48}
+                  className={cn(
+                    'h-12 w-full object-contain p-1',
+                    isLti ? 'pl-4' : 'pr-4',
+                  )}
+                  alt="Organization Logo"
+                  src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo`}
+                />
+              </NextLink>
+              {course ? (
                 <>
-                  {courseFeatures?.queueEnabled && (
-                    <NavigationMenuItem>
-                      {/* This "NavigationMenuTrigger" is just the "Queues" button */}
-                      <NavigationMenuTrigger
-                        className={
-                          isAQueuePage
-                            ? 'md:border-helpmeblue bg-zinc-300/80 md:border-b-2 md:bg-white'
-                            : ''
-                        }
-                        onFocus={setNavigationSubMenuLeftSide}
-                        onClick={setNavigationSubMenuLeftSide}
-                        onPointerMove={(e) => e.preventDefault()}
-                        onPointerLeave={(e) => e.preventDefault()}
-                      >
-                        <UsersRound strokeWidth={1.5} className="mr-3" />
-                        Queues
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        {/* On mobile, if there are more than 6 queues, put the queue list into two columns */}
-                        {sortedQueues.length > 0 ? (
-                          <ul
-                            className={`grid gap-1 p-4 md:grid-cols-2 lg:w-[600px] lg:gap-2 ${sortedQueues.length > 6 ? 'w-[95vw] grid-cols-2' : 'w-[60vw]'}`}
-                          >
-                            {sortedQueues.map((queue) => (
-                              <ListItem
-                                key={queue.id}
-                                title={queue.room}
-                                href={`/course/${courseId}/queue/${queue.id}`}
-                                onClick={() =>
-                                  setIsDrawerOpen && setIsDrawerOpen(false)
-                                }
-                              >
-                                <>
-                                  {`${queue.staffList.length > 0 ? `${queue.staffList.length} staff checked in` : ''}`}
-                                  <br />
-                                  {`${queue.queueSize > 0 ? `${queue.queueSize} students in queue` : ''}`}
-                                </>
-                              </ListItem>
-                            ))}
-                          </ul>
-                        ) : (
-                          <div
-                            className={`w-[60vw] p-4 text-center text-sm text-gray-500 ${role === Role.PROFESSOR ? 'lg:w-[600px]' : 'lg:w-[400px]'}`}
-                          >
-                            <p>There are no queues in this course</p>
-                            {role === Role.PROFESSOR && (
-                              <p>
-                                You can create a queue on the{' '}
-                                <NextLink
-                                  href={`${coursePrefix}/${courseId}`}
-                                  onClick={() =>
-                                    setIsDrawerOpen && setIsDrawerOpen(false)
-                                  }
-                                >
-                                  Course Home page
-                                </NextLink>{' '}
-                                or disable the Queues feature under{' '}
-                                <NextLink
-                                  href={`${coursePrefix}/${courseId}/settings`}
-                                  onClick={() =>
-                                    setIsDrawerOpen && setIsDrawerOpen(false)
-                                  }
-                                >
-                                  Course Settings
-                                </NextLink>
-                                .
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  )}
-                  {courseFeatures?.asyncQueueEnabled && (
-                    <NavigationMenuItem>
-                      <Link
-                        href={`/course/${courseId}/async_centre`}
-                        onClick={() =>
-                          setIsDrawerOpen && setIsDrawerOpen(false)
-                        }
-                      >
-                        <MessageCircleQuestion
-                          strokeWidth={1.5}
-                          className="mr-3"
-                        />
-                        Anytime Qs
-                      </Link>
-                    </NavigationMenuItem>
-                  )}
-                  {courseFeatures?.queueEnabled && (
-                    <NavigationMenuItem>
-                      <Link
-                        href={`/course/${courseId}/schedule`}
-                        onClick={() =>
-                          setIsDrawerOpen && setIsDrawerOpen(false)
-                        }
-                      >
-                        <CalendarDays strokeWidth={1.5} className="mr-3" />
-                        Schedule
-                      </Link>
-                    </NavigationMenuItem>
-                  )}
-                  {(role === Role.TA || role === Role.PROFESSOR) && (
-                    <NavigationMenuItem
-                      className={
-                        isACourseSettingsPage
-                          ? // the hover:border-none is because the inner link has a hover effect that adds another border
-                            'md:border-helpmeblue bg-zinc-300/80 md:border-b-2 md:bg-white md:hover:border-none md:focus:border-none'
-                          : ''
-                      }
+                  <NavigationMenuItem>
+                    <Link
+                      className="!font-bold "
+                      href={`${coursePrefix}/${courseId}`}
+                      onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
                     >
+                      {/* <House strokeWidth={1.5} className='mr-3' /> */}
+                      <HomeOutlined className="mr-3 text-2xl" />
+                      {course.name}
+                    </Link>
+                  </NavigationMenuItem>
+                  {isLti && [Role.PROFESSOR].includes(role ?? Role.STUDENT) && (
+                    <NavigationMenuItem>
                       <Link
-                        href={`/course/${courseId}/settings${role === Role.TA ? '/edit_questions' : ''}`}
+                        href={`/lti/${course.id}/integration`}
                         onClick={() =>
                           setIsDrawerOpen && setIsDrawerOpen(false)
                         }
                       >
-                        <Settings strokeWidth={1.5} className="mr-3" />
-                        Course Settings
+                        <SyncOutlined className="mr-3 text-2xl" />
+                        Integration
                       </Link>
                     </NavigationMenuItem>
                   )}
-                  {role === Role.PROFESSOR && (
+                  {!isLti && (
+                    <>
+                      {courseFeatures?.queueEnabled && (
+                        <NavigationMenuItem>
+                          {/* This "NavigationMenuTrigger" is just the "Queues" button */}
+                          <NavigationMenuTrigger
+                            className={
+                              isAQueuePage
+                                ? 'md:border-helpmeblue bg-zinc-300/80 md:border-b-2 md:bg-white'
+                                : ''
+                            }
+                            onFocus={setNavigationSubMenuLeftSide}
+                            onClick={setNavigationSubMenuLeftSide}
+                            onPointerMove={(e) => e.preventDefault()}
+                            onPointerLeave={(e) => e.preventDefault()}
+                          >
+                            <UsersRound strokeWidth={1.5} className="mr-3" />
+                            Queues
+                          </NavigationMenuTrigger>
+                          <NavigationMenuContent>
+                            {/* On mobile, if there are more than 6 queues, put the queue list into two columns */}
+                            {sortedQueues.length > 0 ? (
+                              <ul
+                                className={`grid gap-1 p-4 md:grid-cols-2 lg:w-[600px] lg:gap-2 ${sortedQueues.length > 6 ? 'w-[95vw] grid-cols-2' : 'w-[60vw]'}`}
+                              >
+                                {sortedQueues.map((queue) => (
+                                  <ListItem
+                                    key={queue.id}
+                                    title={queue.room}
+                                    href={`/course/${courseId}/queue/${queue.id}`}
+                                    onClick={() =>
+                                      setIsDrawerOpen && setIsDrawerOpen(false)
+                                    }
+                                  >
+                                    <>
+                                      {`${queue.staffList.length > 0 ? `${queue.staffList.length} staff checked in` : ''}`}
+                                      <br />
+                                      {`${queue.queueSize > 0 ? `${queue.queueSize} students in queue` : ''}`}
+                                    </>
+                                  </ListItem>
+                                ))}
+                              </ul>
+                            ) : (
+                              <div
+                                className={`w-[60vw] p-4 text-center text-sm text-gray-500 ${role === Role.PROFESSOR ? 'lg:w-[600px]' : 'lg:w-[400px]'}`}
+                              >
+                                <p>There are no queues in this course</p>
+                                {role === Role.PROFESSOR && (
+                                  <p>
+                                    You can create a queue on the{' '}
+                                    <NextLink
+                                      href={`${coursePrefix}/${courseId}`}
+                                      onClick={() =>
+                                        setIsDrawerOpen &&
+                                        setIsDrawerOpen(false)
+                                      }
+                                    >
+                                      Course Home page
+                                    </NextLink>{' '}
+                                    or disable the Queues feature under{' '}
+                                    <NextLink
+                                      href={`${coursePrefix}/${courseId}/settings`}
+                                      onClick={() =>
+                                        setIsDrawerOpen &&
+                                        setIsDrawerOpen(false)
+                                      }
+                                    >
+                                      Course Settings
+                                    </NextLink>
+                                    .
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </NavigationMenuContent>
+                        </NavigationMenuItem>
+                      )}
+                      {courseFeatures?.asyncQueueEnabled && (
+                        <NavigationMenuItem>
+                          <Link
+                            href={`/course/${courseId}/async_centre`}
+                            onClick={() =>
+                              setIsDrawerOpen && setIsDrawerOpen(false)
+                            }
+                          >
+                            <MessageCircleQuestion
+                              strokeWidth={1.5}
+                              className="mr-3"
+                            />
+                            Anytime Qs
+                          </Link>
+                        </NavigationMenuItem>
+                      )}
+                      {courseFeatures?.queueEnabled && (
+                        <NavigationMenuItem>
+                          <Link
+                            href={`/course/${courseId}/schedule`}
+                            onClick={() =>
+                              setIsDrawerOpen && setIsDrawerOpen(false)
+                            }
+                          >
+                            <CalendarDays strokeWidth={1.5} className="mr-3" />
+                            Schedule
+                          </Link>
+                        </NavigationMenuItem>
+                      )}
+                      {(role === Role.TA || role === Role.PROFESSOR) && (
+                        <NavigationMenuItem
+                          className={
+                            isACourseSettingsPage
+                              ? // the hover:border-none is because the inner link has a hover effect that adds another border
+                                'md:border-helpmeblue bg-zinc-300/80 md:border-b-2 md:bg-white md:hover:border-none md:focus:border-none'
+                              : ''
+                          }
+                        >
+                          <Link
+                            href={`/course/${courseId}/settings${role === Role.TA ? '/edit_questions' : ''}`}
+                            onClick={() =>
+                              setIsDrawerOpen && setIsDrawerOpen(false)
+                            }
+                          >
+                            <Settings strokeWidth={1.5} className="mr-3" />
+                            Course Settings
+                          </Link>
+                        </NavigationMenuItem>
+                      )}
+                      {role === Role.PROFESSOR && (
+                        <NavigationMenuItem>
+                          <Link
+                            href={`/course/${courseId}/insights`}
+                            onClick={() =>
+                              setIsDrawerOpen && setIsDrawerOpen(false)
+                            }
+                          >
+                            <LineChart strokeWidth={1.5} className="mr-3" />
+                            Insights
+                          </Link>
+                        </NavigationMenuItem>
+                      )}
+                    </>
+                  )}
+                  <NavigationMenuItem>
+                    <Link
+                      href={isLti ? '/lti' : '/courses'}
+                      onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                    >
+                      <Undo2 strokeWidth={1.5} className="mr-3" />
+                      My Courses
+                    </Link>
+                  </NavigationMenuItem>
+                </>
+              ) : !courseId ? (
+                <>
+                  {isProfilePage && (
                     <NavigationMenuItem>
                       <Link
-                        href={`/course/${courseId}/insights`}
+                        href=""
+                        className="md:pl-8"
+                        onClick={() => {
+                          router.back()
+                          if (setIsDrawerOpen) setIsDrawerOpen(false)
+                        }}
+                      >
+                        <Undo2 strokeWidth={1.5} className="mr-3" />
+                        Back
+                      </Link>
+                    </NavigationMenuItem>
+                  )}
+                  <NavigationMenuItem>
+                    <Link
+                      href={isLti ? '/lti' : '/courses'}
+                      className="md:pl-8"
+                      onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+                    >
+                      My Courses
+                    </Link>
+                  </NavigationMenuItem>
+                  {!isLti &&
+                    checkCourseCreatePermissions(
+                      userInfo,
+                      organizationSettings,
+                    ) && (
+                      <NavigationMenuItem>
+                        <Link
+                          className={cn(
+                            '!md:pl-8',
+                            isAnOrganizationSettingsPage
+                              ? 'md:border-helpmeblue md:border-b-2'
+                              : '',
+                          )}
+                          href="/organization/settings"
+                          onClick={() =>
+                            setIsDrawerOpen && setIsDrawerOpen(false)
+                          }
+                        >
+                          {userInfo?.organization?.organizationRole ===
+                          OrganizationRole.PROFESSOR
+                            ? 'Semester Management'
+                            : 'Organization Settings'}
+                        </Link>
+                      </NavigationMenuItem>
+                    )}
+                  {!isLti && userInfo.userRole == UserRole.ADMIN && (
+                    <NavigationMenuItem>
+                      <Link
+                        href="/admin"
+                        className={cn(
+                          'md:pl-8',
+                          isAnAdminPanelPage
+                            ? 'md:border-helpmeblue md:border-b-2'
+                            : '',
+                        )}
                         onClick={() =>
                           setIsDrawerOpen && setIsDrawerOpen(false)
                         }
                       >
-                        <LineChart strokeWidth={1.5} className="mr-3" />
-                        Insights
+                        Admin Panel
                       </Link>
                     </NavigationMenuItem>
                   )}
                 </>
-              )}
-              <NavigationMenuItem>
-                <Link
-                  href={isLti ? '/lti' : '/courses'}
-                  onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
+              ) : null}
+              {/* DESKTOP ONLY PART OF NAVBAR */}
+              <NavigationMenuItem className="!ml-auto hidden md:block">
+                <NavigationMenuTrigger
+                  className={cn(
+                    '!pl-4',
+                    isProfilePage ? 'md:border-helpmeblue md:border-b-2' : '',
+                  )}
+                  onFocus={setNavigationSubMenuRightSide}
+                  onClick={setNavigationSubMenuRightSide}
+                  onPointerMove={(e) => e.preventDefault()}
+                  onPointerLeave={(e) => e.preventDefault()}
                 >
-                  <Undo2 strokeWidth={1.5} className="mr-3" />
-                  My Courses
-                </Link>
-              </NavigationMenuItem>
-            </>
-          ) : !courseId ? (
-            <>
-              {isProfilePage && (
-                <NavigationMenuItem>
-                  <Link
-                    href=""
-                    className="md:pl-8"
-                    onClick={() => {
-                      router.back()
-                      if (setIsDrawerOpen) setIsDrawerOpen(false)
-                    }}
-                  >
-                    <Undo2 strokeWidth={1.5} className="mr-3" />
-                    Back
-                  </Link>
-                </NavigationMenuItem>
-              )}
-              <NavigationMenuItem>
-                <Link
-                  href={isLti ? '/lti' : '/courses'}
-                  className="md:pl-8"
-                  onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
-                >
-                  My Courses
-                </Link>
-              </NavigationMenuItem>
-              {!isLti &&
-                checkCourseCreatePermissions(
-                  userInfo,
-                  organizationSettings,
-                ) && (
-                  <NavigationMenuItem>
-                    <Link
-                      className={cn(
-                        '!md:pl-8',
-                        isAnOrganizationSettingsPage
-                          ? 'md:border-helpmeblue md:border-b-2'
-                          : '',
-                      )}
-                      href="/organization/settings"
-                      onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
-                    >
-                      {userInfo?.organization?.organizationRole ===
-                      OrganizationRole.PROFESSOR
-                        ? 'Semester Management'
-                        : 'Organization Settings'}
-                    </Link>
-                  </NavigationMenuItem>
-                )}
-              {!isLti && userInfo.userRole == UserRole.ADMIN && (
-                <NavigationMenuItem>
-                  <Link
-                    href="/admin"
-                    className={cn(
-                      'md:pl-8',
-                      isAnAdminPanelPage
-                        ? 'md:border-helpmeblue md:border-b-2'
-                        : '',
+                  <SelfAvatar size={40} className="mr-2" />
+                  {userInfo.firstName}
+                </NavigationMenuTrigger>
+                <NavigationMenuContent className="hidden md:flex">
+                  <ul className="grid w-max min-w-[200px] grid-cols-1 gap-1 p-2">
+                    {!isLti && (
+                      <ListItem key="profile" title="Profile" href="/profile">
+                        {userInfo.email}
+                      </ListItem>
                     )}
+                    {isLti && (
+                      <>
+                        <NavigationMenuItem className="hidden w-full md:block">
+                          <div className="!ml-2 flex flex-col px-2 text-xs text-gray-500">
+                            <span className={'flex items-center'}>
+                              <MailOutlined className={'mr-2'} />
+                              {userInfo.email}
+                            </span>
+                          </div>
+                        </NavigationMenuItem>
+                        <div className="-mr-5 block h-0.5 w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
+                      </>
+                    )}
+                    <ListItem
+                      key="logout"
+                      title="Logout"
+                      titleElement={
+                        <span className="text-red-700">Log Out</span>
+                      }
+                      href={logoutUrl}
+                    ></ListItem>
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+              {/* MOBILE ONLY PART OF NAVBAR */}
+              <div className="!mb-2 !mt-auto -mr-5 block w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
+              {!isLti && (
+                <NavigationMenuItem className="md:hidden">
+                  <Link
+                    href="/profile"
+                    className="!pl-0"
                     onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
                   >
-                    Admin Panel
+                    <SelfAvatar size={40} className="mr-2" />
+                    {userInfo.firstName}
                   </Link>
                 </NavigationMenuItem>
               )}
-            </>
-          ) : null}
-          {/* DESKTOP ONLY PART OF NAVBAR */}
-          <NavigationMenuItem className="!ml-auto hidden md:block">
-            <NavigationMenuTrigger
-              className={cn(
-                '!pl-4',
-                isProfilePage ? 'md:border-helpmeblue md:border-b-2' : '',
-              )}
-              onFocus={setNavigationSubMenuRightSide}
-              onClick={setNavigationSubMenuRightSide}
-              onPointerMove={(e) => e.preventDefault()}
-              onPointerLeave={(e) => e.preventDefault()}
-            >
-              <SelfAvatar size={40} className="mr-2" />
-              {userInfo?.firstName}
-            </NavigationMenuTrigger>
-            <NavigationMenuContent className="hidden md:flex">
-              <ul className="grid w-max min-w-[200px] grid-cols-1 gap-1 p-2">
-                {!isLti && (
-                  <ListItem key="profile" title="Profile" href="/profile">
-                    {userInfo?.email}
-                  </ListItem>
-                )}
-                {isLti && (
-                  <>
-                    <NavigationMenuItem className="hidden w-full md:block">
-                      <div className="!ml-2 flex flex-col px-2 text-xs text-gray-500">
-                        <span className={'flex items-center'}>
-                          <MailOutlined className={'mr-2'} />
-                          {userInfo?.email}
+              {isLti && (
+                <>
+                  <NavigationMenuItem className="w-full md:hidden">
+                    <div className="!ml-2 flex flex-col gap-2 px-2 text-xs text-gray-500">
+                      <div className="flex items-center">
+                        <SelfAvatar size={20} className="mr-2" />
+                        <span>
+                          {userInfo.firstName}
+                          {userInfo.lastName ? ` ${userInfo.lastName}` : ''}
                         </span>
                       </div>
-                    </NavigationMenuItem>
-                    <div className="-mr-5 block h-0.5 w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
-                  </>
-                )}
-                <ListItem
-                  key="logout"
-                  title="Logout"
-                  titleElement={<span className="text-red-700">Log Out</span>}
-                  href={logoutUrl}
-                ></ListItem>
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          {/* MOBILE ONLY PART OF NAVBAR */}
-          <div className="!mb-2 !mt-auto -mr-5 block w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
-          {!isLti && (
-            <NavigationMenuItem className="md:hidden">
-              <Link
-                href="/profile"
-                className="!pl-0"
-                onClick={() => setIsDrawerOpen && setIsDrawerOpen(false)}
-              >
-                <SelfAvatar size={40} className="mr-2" />
-                {userInfo?.firstName}
-              </Link>
-            </NavigationMenuItem>
-          )}
-          {isLti && (
-            <>
-              <NavigationMenuItem className="w-full md:hidden">
-                <div className="!ml-2 flex flex-col gap-2 px-2 text-xs text-gray-500">
-                  <div className="flex items-center">
-                    <SelfAvatar size={20} className="mr-2" />
-                    <span>
-                      {userInfo?.firstName}
-                      {userInfo?.lastName ? ` ${userInfo.lastName}` : ''}
-                    </span>
-                  </div>
-                  <span className={'flex items-center'}>
-                    <MailOutlined
-                      style={{
-                        fontSize: '10px',
-                        paddingLeft: '5px',
-                        paddingRight: '5px',
-                      }}
-                      className={'mr-2'}
+                      <span className={'flex items-center'}>
+                        <MailOutlined
+                          style={{
+                            fontSize: '10px',
+                            paddingLeft: '5px',
+                            paddingRight: '5px',
+                          }}
+                          className={'mr-2'}
+                        />
+                        {userInfo.email}
+                      </span>
+                    </div>
+                  </NavigationMenuItem>
+                  <div className="-mr-5 block h-0.5 w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
+                </>
+              )}
+              <NavigationMenuItem className="mb-2 md:hidden">
+                <Popconfirm
+                  title="Are you sure you want to log out?"
+                  onConfirm={() => {
+                    router.push(logoutUrl)
+                    if (setIsDrawerOpen) setIsDrawerOpen(false)
+                  }}
+                  okText="Yes"
+                  cancelText="No"
+                  // this places the Popconfirm just below the Link in the DOM rather than at the very bottom of the DOM (important for accessibility and prevent buttons being clicked underneath the Popconfirm)
+                  getPopupContainer={(trigger) =>
+                    trigger.parentNode as HTMLElement
+                  }
+                >
+                  <Link
+                    href={logoutUrl}
+                    className="text-red-700"
+                    onClick={(e) => {
+                      e.preventDefault()
+                    }}
+                  >
+                    <LogoutOutlined
+                      size={40}
+                      className="mr-2 rotate-180 text-2xl"
                     />
-                    {userInfo?.email}
-                  </span>
-                </div>
+                    Log Out
+                  </Link>
+                </Popconfirm>
               </NavigationMenuItem>
-              <div className="-mr-5 block h-0.5 w-[calc(100%+1.25rem)] border-b border-b-zinc-200 md:hidden" />
             </>
           )}
-          <NavigationMenuItem className="mb-2 md:hidden">
-            <Popconfirm
-              title="Are you sure you want to log out?"
-              onConfirm={() => {
-                router.push(logoutUrl)
-                if (setIsDrawerOpen) setIsDrawerOpen(false)
-              }}
-              okText="Yes"
-              cancelText="No"
-              // this places the Popconfirm just below the Link in the DOM rather than at the very bottom of the DOM (important for accessibility and prevent buttons being clicked underneath the Popconfirm)
-              getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
-            >
-              <Link
-                href={logoutUrl}
-                className="text-red-700"
-                onClick={(e) => {
-                  e.preventDefault()
-                }}
-              >
-                <LogoutOutlined
-                  size={40}
-                  className="mr-2 rotate-180 text-2xl"
-                />
-                Log Out
-              </Link>
-            </Popconfirm>
-          </NavigationMenuItem>
         </NavigationMenuList>
       </NavigationMenu>
     )
@@ -596,7 +664,7 @@ const NavBar = ({
  * Navbar component that is rendered on each page.
  */
 const HeaderBar: React.FC = () => {
-  const { userInfo } = useUserInfo()
+  const { userInfo } = useUserInfoOptional()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 768px)')
   // This is not the usual way to get the courseId from the URL
@@ -649,13 +717,23 @@ const HeaderBar: React.FC = () => {
   ) : (
     // MOBILE HEADER AND NAV DRAWER
     <div className="flex items-center justify-between">
-      <Image
-        width={48}
-        height={48}
-        className="h-12 object-contain p-1"
-        alt="Organization Logo"
-        src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo`}
-      />
+      {!userInfo ? (
+        <Image
+          width={48}
+          height={48}
+          className="h-12 object-contain p-1"
+          alt="UBC Logo"
+          src={`/actually_public/images/ubc_logo.png`}
+        />
+      ) : (
+        <Image
+          width={48}
+          height={48}
+          className="h-12 object-contain p-1"
+          alt="Organization Logo"
+          src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo`}
+        />
+      )}
       <div className="flex h-14 grow flex-col items-center justify-center">
         <h1
           className={cn(
@@ -704,15 +782,25 @@ const HeaderBar: React.FC = () => {
           {/* INSIDE DRAWER */}
           <div className="flex h-screen flex-col items-start justify-start">
             <DrawerTitle className="my-1 flex w-full items-center justify-center border-b border-b-zinc-200 bg-white py-1 pr-5">
-              <Image
-                width={48}
-                height={48}
-                className="h-12 object-contain"
-                alt="Organization Logo"
-                src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo`}
-              />
+              {!userInfo ? (
+                <Image
+                  width={48}
+                  height={48}
+                  className="h-12 object-contain"
+                  alt="UBC Logo"
+                  src={`/actually_public/ubc_logo.png`}
+                />
+              ) : (
+                <Image
+                  width={48}
+                  height={48}
+                  className="h-12 object-contain"
+                  alt="Organization Logo"
+                  src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo`}
+                />
+              )}
               <span className="text-2xl font-semibold leading-none">
-                {userInfo?.organization?.organizationName}
+                {!userInfo ? 'HelpMe' : userInfo.organization?.organizationName}
               </span>
             </DrawerTitle>
             <NavBar

@@ -1,8 +1,7 @@
 # Description
 
 Please include a summary of the change and which issue is fixed.
-Please also include relevant motivation and context. 
-List any dependencies that are required for this change.
+Please also include relevant motivation and context, like why certain changes were made that might not be obvious. 
 
 Closes # (issue number)
 
@@ -11,11 +10,11 @@ Closes # (issue number)
 - [ ] Bug fix (non-breaking change which fixes an issue)
 - [ ] New feature (non-breaking change which adds functionality)
 - [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] This change requires a documentation update
+- [ ] Documentation update
 - [ ] This requires a run of `yarn install`
-- [ ] This change requires an addition/change to the production .env variables. These changes are below:
-- [ ] This change requires developers to add new .env variables. The file and variables needed are below:
-- [ ] This change requires a database query to update old data on production. This query is below:
+- [ ] This change requires an addition/change to the **production .env variables**. These changes are below:
+- [ ] This change requires an addition/change to **developers' .env variables**. These changes are below:
+- [ ] This change requires a database query to update old data on production that for some reason can't be done via migration. This query is below:
 
 
 # How Has This Been Tested?
