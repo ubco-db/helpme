@@ -205,7 +205,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           valuePropName="checked"
           label="Documents"
           layout="horizontal"
-          tooltip="Clone the documents you uploaded to the chatbot. Note that after you clone these, you may want to review them and remove any that contain out-of-date information"
+          tooltip="Clone the documents you uploaded to the chatbot knowledge base. Note that after you clone these, you may want to review them and remove any that contain out-of-date information"
           className={`${formItemClassNames}`}
         >
           <Checkbox />
@@ -225,7 +225,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           valuePropName="checked"
           label="Inserted Questions"
           layout="horizontal"
-          tooltip="Clone over any chatbot questions that were inserted as a source into the chatbot."
+          tooltip="Clone over any Chatbot Questions and Anytime Questions that were inserted into the chatbot knowledge base."
           className={`${formItemClassNames}`}
         >
           <Checkbox />
@@ -235,7 +235,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           valuePropName="checked"
           label="Inserted LMS Data"
           layout="horizontal"
-          tooltip="Clone over any LMS data (e.g. assignment descriptions, announcements) that was inserted as a source into the chatbot. Defaulted to false since announcements usually have outdated information."
+          tooltip="Clone over any LMS data (e.g. assignment descriptions, announcements) that was inserted into the chatbot knowledge base. Defaulted to false since announcements usually have outdated information."
           className={`${formItemClassNames}`}
         >
           <Checkbox />

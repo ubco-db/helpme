@@ -254,6 +254,18 @@ export class ChatbotApiService {
     return this.request('DELETE', `document/${courseId}/${docId}`, userToken);
   }
 
+  async deleteDocumentChunksByAsyncQuestionId(
+    asyncQuestionId: number,
+    courseId: number,
+    userToken: string,
+  ): Promise<string> {
+    return this.request(
+      'DELETE',
+      `document/${courseId}/asyncQuestion/${asyncQuestionId}`,
+      userToken,
+    );
+  }
+
   async deleteDocument(docId: string, courseId: number, userToken: string) {
     return this.request(
       'DELETE',

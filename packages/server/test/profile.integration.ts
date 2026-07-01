@@ -9,7 +9,7 @@ import {
   CourseSettingsFactory,
   UserCourseFactory,
 } from './util/factories';
-import { setupIntegrationTest } from './util/testUtils';
+import { overrideChatbotService, setupIntegrationTest } from './util/testUtils';
 import { ProfileModule } from '../src/profile/profile.module';
 import { DesktopNotifModel } from 'notification/desktop-notif.entity';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
@@ -21,7 +21,9 @@ import * as path from 'path';
 import * as sharp from 'sharp';
 
 describe('Profile Integration', () => {
-  const { supertest } = setupIntegrationTest(ProfileModule);
+  const { supertest } = setupIntegrationTest(ProfileModule, [
+    overrideChatbotService,
+  ]);
 
   describe('GET /profile', () => {
     it('returns the logged-in user profile', async () => {

@@ -2995,7 +2995,7 @@ describe('Course Integration', () => {
 
     const { supertest, getTestModule } = setupIntegrationTest(
       CourseModule,
-      modifyModule,
+      [modifyModule],
       [MailModule],
     );
 
