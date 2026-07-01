@@ -171,7 +171,7 @@ const LoginPage: React.FC = () => {
     const response = await API.login.index(loginData).catch((err: any) => {
       switch (err.status) {
         case 401:
-          message.error(err.message)
+          message.error(getErrorMessage(err))
           break
         case 403:
           setAccountActiveResponse(false)

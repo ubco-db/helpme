@@ -60,6 +60,7 @@
   - Users Table now paginated
   - Users Table now searches by email *or* name
   - Courses Table now has more information and is sortable
+- Fixed issue where instead of "Wrong Password" it would say "Request failed with status code 401" when trying to login
 - Minor: started keeping track of when more things are created: enrollments, question types, queue invites, queues, semesters, organizations, users, and courses.
 - Fixed a minor issue where 'helping student in another course' was not working for queue invites
 - Fixed a minor issue where the Checkout button on the course page would only check you out of 1 queue instead of all
