@@ -41,6 +41,7 @@ import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.en
 import { QueueChatsModel } from 'queueChats/queue-chats.entity';
 import { DataSource } from 'typeorm';
 import { FactoryService } from 'factory/factory.service';
+import { SuperCourseModel } from '../course/super-course.entity';
 
 const exampleConfig = {
   fifo_queue_view_enabled: true,
@@ -154,6 +155,7 @@ export class SeedController {
     await this.seedService.deleteAll(UserTokenModel);
     await this.seedService.deleteAll(UserModel);
     await this.seedService.deleteAll(CourseModel);
+    await this.seedService.deleteAll(SuperCourseModel);
     await this.seedService.deleteAll(SemesterModel);
     await this.seedService.deleteAll(OrganizationModel);
     await this.seedService.deleteAll(QuestionTypeModel);

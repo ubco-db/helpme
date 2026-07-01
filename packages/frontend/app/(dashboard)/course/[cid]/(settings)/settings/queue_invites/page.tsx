@@ -60,7 +60,7 @@ export default function QueueInvitesPage(
       return
     }
     try {
-      await API.queueInvites.create(Number(queueId)).then(() => {
+      await API.queueInvites.create(Number(queueId)).then((inviteCode) => {
         if (
           selectedPreset === 'For Printing' ||
           selectedPreset === 'Projector' ||
@@ -72,7 +72,7 @@ export default function QueueInvitesPage(
             isQuestionsVisible: selectedPreset === 'Projector' ? true : false,
             willInviteToCourse:
               selectedPreset === 'Help Desk Print' ? true : false,
-            inviteCode: '',
+            inviteCode: inviteCode,
             QRCodeErrorLevel:
               selectedPreset === 'For Printing' ||
               selectedPreset === 'Help Desk Print'
@@ -169,30 +169,64 @@ export default function QueueInvitesPage(
               Create Queue Invite
             </Button>
             <Tooltip
+              classNames={{
+                root: 'max-w-96',
+              }}
               title={
                 <div className="flex flex-col gap-y-2">
                   <p>
-                    A queue invite is like a course invite except will take them
-                    to the queue page instead of course page. The page for this
-                    queue invite will also have a QR code that you can choose to
-                    print or display, as well as some other features.
+                    A queue invite works the same as a course invite except it
+                    gives students a preview of how busy the queue is before
+                    needing to login.
                   </p>
                   <p>
-                    Anyone will be able to join the queue if they have the
-                    invite code/link/QRCode.
+                    See video for motivation behind this:
+                    <div className="youtube-video-container">
+                      <iframe
+                        src="https://www.youtube.com/embed/H9ywkvDdeZ0?si=MFrDY7aZYXfDPNeK&amp;start=294"
+                        title="YouTube video player"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        allowFullScreen
+                      />
+                    </div>
                   </p>
+                  <div>
+                    As a professor, there are 3 primary ways you could use this
+                    feature:
+                    <ul className="list-inside list-disc">
+                      <li>
+                        Standard: Create invite, copy and share link with
+                        students
+                      </li>
+                      <li>
+                        Hybrid Office Hours/Help Desk: Create invite, print QR
+                        code, and stick it outside your office/room
+                      </li>
+                      <li>
+                        Projector (e.g. for in a busy lab): Create invite,{' '}
+                        <i>professor clicks on invite link</i> and puts it up on
+                        the projector screen,{' '}
+                        <i>
+                          professor clicks &quot;Show QR Code&quot; at bottom of
+                          screen
+                        </i>
+                        . Compared to just printing the QR code, this will allow
+                        everyone in the room to see the status of the queue just
+                        by looking at the projector.
+                      </li>
+                    </ul>
+                  </div>
                   <p>
-                    NOTE: When someone first accesses the page, the QR code and
-                    some other details are hidden. You must toggle the switch on
-                    the bottom of the page to show the QR code (this is because
-                    when someone clicks the link or scans the QR code, the first
-                    thing they would see is the QR code they just scanned, which
-                    is confusing to students)
+                    Note that you may want to enable &quot;Will Invite to
+                    Course&quot; initially until your students have all joined
+                    your HelpMe course. But if you leave this setting enabled
+                    and have the invite posted/printed somewhere publicly,
+                    anyone would be able to join your HelpMe course!
                   </p>
-                  <p>You can also click on the QR code to print it.</p>
                 </div>
               }
-              overlayStyle={{ maxWidth: '25rem' }}
             >
               Help <QuestionCircleOutlined />
             </Tooltip>

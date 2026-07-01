@@ -1,11 +1,17 @@
 import { API } from '@/app/api'
-import ChangeLogModal from '@/app/components/ChangeLogModal'
+import MarkdownFetcherModal from '@/app/components/MarkdownFetcherModal'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { useState } from 'react'
+import { OrganizationRole } from '@koh/common'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
+import { Button } from 'antd'
 
 const FooterBar: React.FC = () => {
   const [isChangelogOpen, setIsChangelogOpen] = useState(false)
+  const pathname = usePathname()
+  const isLti = pathname.startsWith('/lti')
 
   const { userInfo, setUserInfo } = useUserInfo()
 
@@ -32,34 +38,55 @@ const FooterBar: React.FC = () => {
     readChangelog()
   }
 
+  useEffect(() => {
+    // make the changelog auto-open for admins and professors who haven't read it yet
+    // (note: some profs may have the admin role, hence why we check for both)
+    if (
+      userInfo &&
+      !userInfo.readChangeLog &&
+      (userInfo.organization?.organizationRole === OrganizationRole.ADMIN ||
+        userInfo.organization?.organizationRole === OrganizationRole.PROFESSOR)
+    ) {
+      setIsChangelogOpen(true)
+    }
+  }, [userInfo, setIsChangelogOpen])
+
   return (
-    // Hide footer on mobile since screen space is more valuable
+    // On mobile it's the version in left corner, "About HelpMe" on right corner
+    // On desktop it's "Version # | About HelpMe" in left corner, "Found a bug? ..." in right corner
     <footer
-      className="mt-auto hidden w-full justify-between bg-[#ebebeb] px-6 py-[0.3rem] text-xs md:flex"
+      className="mt-auto flex w-full justify-between bg-[#ebebeb] px-6 py-[0.3rem] text-xs"
       aria-hidden="true"
     >
-      <div>
-        <a
-          aria-hidden="true"
-          tabIndex={-1}
-          className="cursor-pointer "
+      <div className="flex w-full justify-between md:block md:w-fit">
+        <button
+          className="cursor-pointer text-[#1677ff] transition-colors hover:text-[#69b1ff] active:text-[#0958d9]"
           onClick={() => {
             setIsChangelogOpen(true)
             IReadTheChangelog()
           }}
         >
-          Version 1.8.0{' '}
+          Version {process.env.NEXT_PUBLIC_HELPME_VERSION}{' '}
           {userInfo.readChangeLog === false && (
             <span className="text-green-500">(New Changes!)</span>
           )}
-        </a>
-        <ChangeLogModal
+        </button>
+        <MarkdownFetcherModal
+          filename="changelog.md"
           isOpen={isChangelogOpen}
           setIsOpen={setIsChangelogOpen}
           onClose={IReadTheChangelog}
         />
+        <span className="mx-4 hidden text-zinc-400 md:inline">|</span>
+        <Link
+          target={isLti ? '_blank' : undefined}
+          rel={isLti ? 'noopener noreferrer' : undefined}
+          href={isLti ? '/about' : '/profile/about'}
+        >
+          About HelpMe
+        </Link>
       </div>
-      <div>
+      <div className="hidden md:block">
         Found a bug? Have a suggestion? We welcome your feedback:
         <a
           aria-hidden="true"

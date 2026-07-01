@@ -138,7 +138,7 @@ const CourseCloneFormModal: React.FC<CourseCloneFormModalProps> = ({
                 )}
                 <p>
                   This process will take a minute to complete. You will be
-                  notified on the bottom-right of the screen once the cloning
+                  notified on the bottom corner of the screen once the cloning
                   completes.
                 </p>
               </div>

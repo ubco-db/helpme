@@ -416,7 +416,7 @@ export class QueueService {
   /**
    * Creates a new queue invite for the given queue
    */
-  async createQueueInvite(queueId: number): Promise<void> {
+  async createQueueInvite(queueId: number): Promise<QueueInviteModel> {
     const queueInvite = await QueueInviteModel.findOne({
       where: {
         queueId: queueId,
@@ -433,7 +433,7 @@ export class QueueService {
         queueId,
         inviteCode: this.generateRandomInviteCode(),
       });
-      await invite.save();
+      return await invite.save();
     } catch (err) {
       console.error('Error while creating queue invite:');
       console.error(err);

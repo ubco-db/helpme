@@ -76,7 +76,7 @@ export class TestChatbotModule {}
 
 export function setupIntegrationTest(
   module: Type<any>,
-  modifyModule?: ModuleModifier,
+  modifyModules?: ModuleModifier | ModuleModifier[],
   additionalModules: Type<any>[] = [],
   additionalMiddlewares: ((
     req: express.Request,
@@ -166,8 +166,14 @@ export function setupIntegrationTest(
       .overrideModule(ChatbotDataSourceModule)
       .useModule(TestChatbotDataSourceModule);
 
-    if (modifyModule) {
-      testModuleBuilder = modifyModule(testModuleBuilder);
+    if (modifyModules) {
+      if (Array.isArray(modifyModules)) {
+        for (const modifyModule of modifyModules) {
+          testModuleBuilder = modifyModule(testModuleBuilder);
+        }
+      } else {
+        testModuleBuilder = modifyModules(testModuleBuilder);
+      }
     }
     testModule = await testModuleBuilder.compile();
 
@@ -300,9 +306,16 @@ export const mockRedisQueueService = {
   getKey: jest.fn().mockResolvedValue([]),
   deleteKey: jest.fn(),
 };
-
 export const overrideRedisQueue: ModuleModifier = (builder) =>
   builder.overrideProvider(RedisQueueService).useValue(mockRedisQueueService);
+
+export const mockChatbotService = {
+  // can add more if you'd like
+  addDocumentChunk: jest.fn(),
+  deleteDocumentChunksByAsyncQuestionId: jest.fn(),
+};
+export const overrideChatbotService: ModuleModifier = (builder) =>
+  builder.overrideProvider(ChatbotApiService).useValue(mockChatbotService);
 
 const mockSendEmail = jest.fn().mockImplementation(() => Promise.resolve());
 export const mockEmailService = {
@@ -320,10 +333,15 @@ export const mockEmailService = {
 
 export const overrideEmailService: ModuleModifier = (builder) =>
   builder.overrideProvider(MailService).useValue(mockEmailService);
-/* Takes an array of emails (receivers) and type of email (types)*/
+
+/* Takes an array of emails (receivers) and type of email (types).
+Also takes in subject and content (optional). If added, will check that they are correct and don't have null, undefined, etc.
+*/
 export const expectEmailSent = (
   receivers: (string | string[])[],
   types: string[],
+  subject?: string,
+  content?: string,
 ): void => {
   expect(mockEmailService.sendEmail).toHaveBeenCalledTimes(receivers.length);
   const calls = mockEmailService.sendEmail.mock.calls.map((args) => args[0]);
@@ -338,7 +356,28 @@ export const expectEmailSent = (
       ),
     ),
   );
+  // ensure the content and subject have no "null", "undefined", "[object Object]", "{}"
+  const forbidden = ['null', 'undefined', 'object Object', '{}'];
+  if (content) {
+    calls.forEach((call) => {
+      forbidden.forEach((term) => {
+        if (call.content && typeof call.content === 'string') {
+          expect(call.content).not.toContain(term);
+        }
+      });
+    });
+  }
+  if (subject) {
+    calls.forEach((call) => {
+      forbidden.forEach((term) => {
+        if (call.subject && typeof call.subject === 'string') {
+          expect(call.subject).not.toContain(term);
+        }
+      });
+    });
+  }
 };
+
 export const expectEmailNotSent = (): void =>
   expect(mockEmailService.sendEmail).not.toHaveBeenCalled();
 

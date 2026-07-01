@@ -6,6 +6,8 @@ import { MailModule, MailTestingModule } from 'mail/mail.module';
 import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { ApplicationConfigService } from '../config/application_config.service';
 import { RedisQueueModule } from '../redisQueue/redis-queue.module';
+import { ChatbotModule } from 'chatbot/chatbot.module';
+import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 
 @Module({
   controllers: [asyncQuestionController],
@@ -13,16 +15,9 @@ import { RedisQueueModule } from '../redisQueue/redis-queue.module';
     AsyncQuestionService,
     RedisQueueService,
     ApplicationConfigService,
+    ChatbotApiService,
   ],
-  imports: [NotificationModule, MailModule, RedisQueueModule],
-  exports: [AsyncQuestionService],
+  imports: [NotificationModule, MailModule, RedisQueueModule, ChatbotModule],
+  exports: [AsyncQuestionService, ChatbotApiService],
 })
 export class asyncQuestionModule {}
-
-@Module({
-  controllers: [asyncQuestionController],
-  providers: [AsyncQuestionService, ApplicationConfigService],
-  imports: [NotificationModule, MailTestingModule],
-  exports: [AsyncQuestionService],
-})
-export class asyncQuestionTestingModule {}

@@ -1,5 +1,4 @@
 'use client'
-/* eslint-disable @typescript-eslint/no-empty-function */
 import {
   createContext,
   ReactNode,
@@ -12,7 +11,8 @@ import {
   chatbotStartingMessageCourse,
   ChatbotQuestionType,
 } from '@/app/typings/chatbot'
-import { Message, PreDeterminedQuestion } from '@koh/common'
+import { API } from '@/app/api'
+import { ChatbotAgentCourse, Message, PreDeterminedQuestion } from '@koh/common'
 
 interface ChatbotContextType {
   setCid: React.Dispatch<React.SetStateAction<number | null>>
@@ -35,6 +35,12 @@ interface ChatbotContextType {
   chatbotQuestionType: ChatbotQuestionType
   setChatbotQuestionType: React.Dispatch<
     React.SetStateAction<ChatbotQuestionType>
+  >
+  agents: ChatbotAgentCourse[]
+  hasLoadedAgents: boolean
+  selectedAgentCourseId: number | undefined
+  setSelectedAgentCourseId: React.Dispatch<
+    React.SetStateAction<number | undefined>
   >
 }
 
@@ -61,6 +67,10 @@ const chatbotContext = createContext<ChatbotContextType>({
   setHelpmeQuestionId: () => {},
   chatbotQuestionType: 'Course',
   setChatbotQuestionType: () => {},
+  agents: [],
+  hasLoadedAgents: true,
+  selectedAgentCourseId: undefined,
+  setSelectedAgentCourseId: () => {},
 })
 export function useChatbotContext() {
   return useContext(chatbotContext)
@@ -101,6 +111,12 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
   )
   const [chatbotQuestionType, setChatbotQuestionType] =
     useState<ChatbotQuestionType>('Course')
+  const [agents, setAgents] = useState<ChatbotAgentCourse[]>([])
+  const [hasLoadedAgents, setHasLoadedAgents] = useState(false)
+  const [selectedAgentCourseId, setSelectedAgentCourseId] = useState<
+    number | undefined
+  >()
+
   useEffect(() => {
     // reset chatbot states when course changes
     setPreDeterminedQuestions([])
@@ -114,6 +130,42 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
     setHelpmeQuestionId(undefined)
     setIsOpen(false)
     setChatbotQuestionType('Course')
+    setAgents([])
+    setSelectedAgentCourseId(undefined)
+    setHasLoadedAgents(false)
+
+    if (!cid) {
+      return
+    }
+
+    let isCurrentCourse = true
+
+    API.chatbot.studentsOrStaff
+      .getAgents(cid)
+      .then((chatbotAgents) => {
+        if (!isCurrentCourse) {
+          return
+        }
+        setAgents(chatbotAgents)
+        setSelectedAgentCourseId(chatbotAgents[0]?.courseId)
+      })
+      .catch((err) => {
+        if (!isCurrentCourse) {
+          return
+        }
+        console.error(err)
+        setAgents([])
+        setSelectedAgentCourseId(undefined)
+      })
+      .finally(() => {
+        if (isCurrentCourse) {
+          setHasLoadedAgents(true)
+        }
+      })
+
+    return () => {
+      isCurrentCourse = false
+    }
   }, [cid])
 
   const values = {
@@ -134,6 +186,10 @@ const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({
     setHelpmeQuestionId,
     chatbotQuestionType,
     setChatbotQuestionType,
+    agents,
+    hasLoadedAgents,
+    selectedAgentCourseId,
+    setSelectedAgentCourseId,
   }
   return (
     <chatbotContext.Provider value={values}>

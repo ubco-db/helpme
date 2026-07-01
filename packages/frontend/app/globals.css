@@ -234,7 +234,7 @@ h1, h2, h3, h4, h5, h6 {
 .queueCard, .asyncCentreCard, .aiAssignmentFeedbackCard {
   /* Tailwind shadows don't look great in this scenario so went with custom */
   box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.15);
-  transition: box-shadow 0.3s ease;
+  transition: box-shadow 0.2s ease-out;
 }
 .queueCard:hover, .queueCard:focus, .asyncCentreCard:hover, .asyncCentreCard:focus, .aiAssignmentFeedbackCard:hover, .aiAssignmentFeedbackCard:focus {
   box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.45);
@@ -292,6 +292,8 @@ Here's the issue on antd's github: https://github.com/ant-design/ant-design/issu
   padding: 0.25rem 0 0 0 !important;
 }
 
+
+
 /*
 These childrenMarkdownFormatted styles are to format all children of this component in a particular way.
 It is used for displaying markdown nicely inside any <Markdown> components
@@ -304,7 +306,10 @@ It is used for displaying markdown nicely inside any <Markdown> components
   list-style-type: decimal;
   margin-left: 1.5em;
 }
-
+.childrenMarkdownFormatted p {
+  margin-bottom: 0.5em;
+  margin-bottom: 0.75em;
+}
 .childrenMarkdownFormatted h1 {
   font-size: 1.5em;
   font-weight: bold;
@@ -415,3 +420,16 @@ It is used for displaying markdown nicely inside any <Markdown> components
 .chart-4xl {
     max-width: 64rem;
 }
+
+/* For Landing page: The ::before gradient uses CSS variable colors, which Tailwind's from-/to- can't resolve for this specific use case */
+.landing-cta-gradient-border::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, rgb(var(--helpmeblue)), rgb(var(--helpmeblue-light)));
+}
+
+

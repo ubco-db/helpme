@@ -4,6 +4,7 @@ import { UserModel } from 'profile/user.entity';
 import {
   AsyncQuestionCommentFactory,
   AsyncQuestionFactory,
+  ChatTokenFactory,
   CourseFactory,
   CourseSettingsFactory,
   QuestionTypeFactory,
@@ -11,7 +12,12 @@ import {
   UserFactory,
   VotesFactory,
 } from './util/factories';
-import { overrideRedisQueue, setupIntegrationTest } from './util/testUtils';
+import {
+  mockChatbotService,
+  overrideChatbotService,
+  overrideRedisQueue,
+  setupIntegrationTest,
+} from './util/testUtils';
 import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
 import { AsyncQuestion, asyncQuestionStatus, Role } from '@koh/common';
 import { AsyncQuestionVotesModel } from 'asyncQuestion/asyncQuestionVotes.entity';
@@ -22,7 +28,7 @@ import { AsyncQuestionService } from '../src/asyncQuestion/asyncQuestion.service
 describe('AsyncQuestion Integration', () => {
   const { supertest, getTestModule } = setupIntegrationTest(
     asyncQuestionModule,
-    overrideRedisQueue,
+    [overrideRedisQueue, overrideChatbotService],
   );
 
   let course: CourseModel;
@@ -61,6 +67,9 @@ describe('AsyncQuestion Integration', () => {
       course,
       role: Role.TA,
     });
+    await ChatTokenFactory.create({
+      user: TAuser,
+    });
     await UserCourseFactory.create({
       user: studentUser,
       course,
@@ -81,13 +90,12 @@ describe('AsyncQuestion Integration', () => {
 
   describe('POST asyncQuestions/:cid', () => {
     it('Student can create a question', async () => {
-      const [, prevCount] =
-        await UnreadAsyncQuestionModel.findAndCount({
-          where: {
-            userId: studentUser2.id,
-            courseId: course.id,
-          },
-        });
+      const [, prevCount] = await UnreadAsyncQuestionModel.findAndCount({
+        where: {
+          userId: studentUser2.id,
+          courseId: course.id,
+        },
+      });
 
       await supertest({ userId: studentUser.id })
         .post(`/asyncQuestions/${course.id}`)
@@ -103,7 +111,11 @@ describe('AsyncQuestion Integration', () => {
       expect(currentCount).toBe(prevCount + 1);
 
       const createdQuestion = await AsyncQuestionModel.findOne({
-        where: { courseId: course.id, creatorId: studentUser.id, questionText: 'text' },
+        where: {
+          courseId: course.id,
+          creatorId: studentUser.id,
+          questionText: 'text',
+        },
         order: { id: 'DESC' },
       });
       expect(createdQuestion).not.toBeNull();
@@ -124,7 +136,11 @@ describe('AsyncQuestion Integration', () => {
         .expect(201);
 
       const createdQuestion = await AsyncQuestionModel.findOne({
-        where: { courseId: course.id, creatorId: TAuser.id, questionText: 'text' },
+        where: {
+          courseId: course.id,
+          creatorId: TAuser.id,
+          questionText: 'text',
+        },
         order: { id: 'DESC' },
       });
       expect(createdQuestion).not.toBeNull();
@@ -214,6 +230,105 @@ describe('AsyncQuestion Integration', () => {
         .expect(200);
       await asyncQuestion.reload();
       expect(asyncQuestion.status).toBe(asyncQuestionStatus.HumanAnswered);
+    });
+    it('will insert the Q&A as new chatbot chunks if saveToChatbot is true (just checks if it calls the right chatbot endpoints)', async () => {
+      await supertest({ userId: TAuser.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({
+          questionAbstract: 'new abstract',
+          questionText: 'new text',
+          answerText: 'new answer',
+          saveToChatbot: true,
+        })
+        .expect(200);
+      await asyncQuestion.reload();
+      expect(asyncQuestion.answerText).toBe('new answer');
+      expect(asyncQuestion.questionText).toBe('new text');
+
+      expect(
+        mockChatbotService.deleteDocumentChunksByAsyncQuestionId,
+      ).toHaveBeenCalledWith(
+        asyncQuestion.id,
+        course.id,
+        expect.any(String), // userToken
+      );
+      expect(mockChatbotService.addDocumentChunk).toHaveBeenCalledWith(
+        expect.objectContaining({
+          documentText: expect.stringMatching(
+            /(?=.*new abstract)(?=.*new text)(?=.*new answer)/s,
+          ), // all three must appear in documentText
+        }),
+        course.id,
+        expect.any(String), // userToken
+      );
+    });
+    it('will NOT call chatbot methods if saveToChatbot is false (or not provided)', async () => {
+      await supertest({ userId: TAuser.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({
+          questionAbstract: 'new abstract',
+          questionText: 'new text',
+          answerText: 'new answer',
+          // saveToChatbot is not set (defaults to false/undefined)
+        })
+        .expect(200);
+      await asyncQuestion.reload();
+      expect(asyncQuestion.answerText).toBe('new answer');
+      expect(asyncQuestion.questionText).toBe('new text');
+
+      expect(mockChatbotService.addDocumentChunk).not.toHaveBeenCalled();
+      expect(
+        mockChatbotService.deleteDocumentChunksByAsyncQuestionId,
+      ).not.toHaveBeenCalled();
+    });
+    it('will insert the Q&A as new chatbot chunks if saveToChatbot is true (just checks if it calls the right chatbot endpoints)', async () => {
+      await supertest({ userId: TAuser.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({
+          questionAbstract: 'new abstract',
+          questionText: 'new text',
+          answerText: 'new answer',
+          saveToChatbot: true,
+        })
+        .expect(200);
+      await asyncQuestion.reload();
+      expect(asyncQuestion.answerText).toBe('new answer');
+      expect(asyncQuestion.questionText).toBe('new text');
+
+      expect(
+        mockChatbotService.deleteDocumentChunksByAsyncQuestionId,
+      ).toHaveBeenCalledWith(
+        asyncQuestion.id,
+        course.id,
+        expect.any(String), // userToken
+      );
+      expect(mockChatbotService.addDocumentChunk).toHaveBeenCalledWith(
+        expect.objectContaining({
+          documentText: expect.stringMatching(
+            /(?=.*new abstract)(?=.*new text)(?=.*new answer)/s,
+          ), // all three must appear in documentText
+        }),
+        course.id,
+        expect.any(String), // userToken
+      );
+    });
+    it('will NOT call chatbot methods if saveToChatbot is false (or not provided)', async () => {
+      await supertest({ userId: TAuser.id })
+        .patch(`/asyncQuestions/faculty/${asyncQuestion.id}`)
+        .send({
+          questionAbstract: 'new abstract',
+          questionText: 'new text',
+          answerText: 'new answer',
+          // saveToChatbot is not set (defaults to false/undefined)
+        })
+        .expect(200);
+      await asyncQuestion.reload();
+      expect(asyncQuestion.answerText).toBe('new answer');
+      expect(asyncQuestion.questionText).toBe('new text');
+      expect(mockChatbotService.addDocumentChunk).not.toHaveBeenCalled();
+      expect(
+        mockChatbotService.deleteDocumentChunksByAsyncQuestionId,
+      ).not.toHaveBeenCalled();
     });
   });
 
@@ -441,7 +556,11 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(201);
       const asyncQuestionFromResponse = await AsyncQuestionModel.findOneOrFail({
-        where: { courseId: course.id, creatorId: studentUser.id, questionText: 'text' },
+        where: {
+          courseId: course.id,
+          creatorId: studentUser.id,
+          questionText: 'text',
+        },
         order: { id: 'DESC' },
       });
 
@@ -535,7 +654,11 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(201);
       const asyncQuestionFromResponse = await AsyncQuestionModel.findOneOrFail({
-        where: { courseId: course.id, creatorId: studentUser.id, questionText: 'text' },
+        where: {
+          courseId: course.id,
+          creatorId: studentUser.id,
+          questionText: 'text',
+        },
         order: { id: 'DESC' },
       });
 
@@ -620,7 +743,11 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(201);
       const asyncQuestionFromResponse = await AsyncQuestionModel.findOneOrFail({
-        where: { courseId: course.id, creatorId: studentUser.id, questionText: 'text' },
+        where: {
+          courseId: course.id,
+          creatorId: studentUser.id,
+          questionText: 'text',
+        },
         order: { id: 'DESC' },
       });
 
@@ -1025,18 +1152,14 @@ describe('AsyncQuestion Integration', () => {
         commentText: 'Student comment',
       });
       await supertest({ userId: TAuser.id })
-        .patch(
-          `/asyncQuestions/comment/99999/${comment.id}/endorse`,
-        )
+        .patch(`/asyncQuestions/comment/99999/${comment.id}/endorse`)
         .send({ isEndorsed: true })
         .expect(404);
     });
 
     it('returns 404 for non-existent comment', async () => {
       await supertest({ userId: TAuser.id })
-        .patch(
-          `/asyncQuestions/comment/${asyncQuestion.id}/99999/endorse`,
-        )
+        .patch(`/asyncQuestions/comment/${asyncQuestion.id}/99999/endorse`)
         .send({ isEndorsed: true })
         .expect(404);
     });
@@ -1070,7 +1193,8 @@ describe('AsyncQuestion Integration', () => {
         creator: studentUser,
         commentText: 'unendorsed comment',
       });
-      const service = getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
+      const service =
+        getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
       const result = await service.getEndorsedCountByCourse(course.id);
       expect(result.size).toBe(0);
     });
@@ -1094,7 +1218,8 @@ describe('AsyncQuestion Integration', () => {
         commentText: 'endorsed comment from student2',
         endorsedById: TAuser.id,
       });
-      const service = getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
+      const service =
+        getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
       const result = await service.getEndorsedCountByCourse(course.id);
       expect(result.get(studentUser.id)).toBe(2);
       expect(result.get(studentUser2.id)).toBe(1);
@@ -1112,7 +1237,8 @@ describe('AsyncQuestion Integration', () => {
         creator: studentUser,
         commentText: 'not endorsed',
       });
-      const service = getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
+      const service =
+        getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
       const result = await service.getEndorsedCountByCourse(course.id);
       expect(result.get(studentUser.id)).toBe(1);
     });
@@ -1129,7 +1255,8 @@ describe('AsyncQuestion Integration', () => {
         commentText: 'endorsed in other course',
         endorsedById: TAuser.id,
       });
-      const service = getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
+      const service =
+        getTestModule().get<AsyncQuestionService>(AsyncQuestionService);
       const result = await service.getEndorsedCountByCourse(course.id);
       expect(result.size).toBe(0);
     });
