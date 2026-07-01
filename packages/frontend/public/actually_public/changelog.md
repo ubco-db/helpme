@@ -34,7 +34,7 @@
   - Let me know if you encounter any issues with it - Adam
 - **Fixed an issue where queues would appear unresponsive or delayed**
   - More specifically, any updates to the queue would always be 1 update behind
-  - This also fixes the "Rejoin Queue" button appearing to not work, or the "You are being helped now" popup from showing up right away, amongst other fixes
+  - This also fixes the "Rejoin Queue" button appearing to not work, or the "You are being helped now" popup from showing up right away, the Queue Invite page being unresponsive, amongst other fixes
 - Anytime Questions now shows "+X additional private question(s)" with improved text for when no questions have been posted
   - Students naturally ask questions in areas with the most activity, and letting them know that other students have been asking Anytime questions should help increase activity 
 - Students may now specify how to pronounce their name under Profile Settings
