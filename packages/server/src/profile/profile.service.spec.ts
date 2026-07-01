@@ -34,6 +34,7 @@ jest.mock('sharp', () => ({
 
 import checkDiskSpace from 'check-disk-space';
 import sharp from 'sharp';
+import { AsyncQuestionService } from 'asyncQuestion/asyncQuestion.service';
 
 const mockCheckDiskSpace = checkDiskSpace as jest.MockedFunction<
   typeof checkDiskSpace
@@ -59,6 +60,10 @@ describe('ProfileService', () => {
         {
           provide: OrganizationService,
           useValue: { getOrganizationAndRoleByUserId: jest.fn() },
+        },
+        {
+          provide: AsyncQuestionService,
+          useValue: { isVisible: jest.fn() },
         },
       ],
     }).compile();

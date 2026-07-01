@@ -18,6 +18,7 @@ import { OrganizationSettingsModel } from './organization_settings.entity';
 import { OrganizationRoleHistory } from './organization_role_history.entity';
 import { OrganizationChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/organization-chatbot-settings.entity';
 import { AuthStateModel } from '../auth/auth-state.entity';
+import { ProfInviteModel } from 'course/prof-invite/prof-invite.entity';
 
 @Entity('organization_model')
 export class OrganizationModel extends BaseEntity {
@@ -33,9 +34,11 @@ export class OrganizationModel extends BaseEntity {
   @Column('text', { nullable: true })
   description: string;
 
+  @Exclude()
   @Column('text', { nullable: true })
   logoUrl: string;
 
+  @Exclude()
   @Column('text', { nullable: true })
   bannerUrl: string;
 
@@ -118,4 +121,9 @@ export class OrganizationModel extends BaseEntity {
     (orgChatbotSettings) => orgChatbotSettings.organization,
   )
   userAuthStates: AuthStateModel;
+
+  @Exclude()
+  @JoinColumn({ name: 'organizationId' })
+  @OneToMany((type) => ProfInviteModel, (profInvite) => profInvite.organization)
+  profInvites: ProfInviteModel[];
 }

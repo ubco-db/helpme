@@ -21,11 +21,12 @@ import {
   UserFactory,
 } from '../../test/util/factories';
 import { LoginService } from './login.service';
-import { ERROR_MESSAGES } from '@koh/common';
+import { ERROR_MESSAGES, QUERY_PARAMS } from '@koh/common';
 import { Request } from 'express';
 import { UserModel } from '../profile/user.entity';
 import { CourseService } from '../course/course.service';
 import { LtiService } from '../lti/lti.service';
+import { ProfInviteService } from '../course/prof-invite/prof-invite.service';
 import { CourseModel } from '../course/course.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { OrganizationModel } from '../organization/organization.entity';
@@ -50,7 +51,15 @@ describe('LoginService', () => {
           }),
         }),
       ],
-      providers: [LoginService],
+      providers: [
+        LoginService,
+        {
+          provide: ProfInviteService,
+          useValue: {
+            acceptProfInviteFromCookie: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<LoginService>(LoginService);
@@ -389,7 +398,9 @@ describe('LoginService', () => {
         expect(res.headersSent).toEqual(false);
         if (queueInvite) {
           expect(res._cookies['queueInviteInfo']).toBeUndefined();
-          expect(redirectUrl).toEqual(`/courses?err=notInCourse`);
+          expect(redirectUrl).toEqual(
+            `/courses?err=${QUERY_PARAMS.queueInvite.error.notInCourse}`,
+          );
         } else if (secureRedirect) {
           expect(res._cookies['__SECURE_REDIRECT']).toBeUndefined();
           expect(redirectUrl).toEqual(

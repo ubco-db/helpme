@@ -7,7 +7,9 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  NotFoundException,
   Param,
+  ParseFilePipeBuilder,
   ParseIntPipe,
   Patch,
   Post,
@@ -25,6 +27,7 @@ import {
   COURSE_TIMEZONES,
   CourseResponse,
   CourseSettingsRequestBody,
+  CreateCourseResponse,
   ERROR_MESSAGES,
   GetOrganizationResponse,
   GetOrganizationUserResponse,
@@ -300,7 +303,7 @@ export class OrganizationController {
     @OrgRole() orgRole: OrganizationRole,
     @Body() courseDetails: UpdateOrganizationCourseDetailsParams,
     @Res() res: Response,
-  ): Promise<Response<void>> {
+  ): Promise<Response<CreateCourseResponse>> {
     const orgSettings =
       await this.organizationService.getOrganizationSettings(oid);
     if (
@@ -346,9 +349,10 @@ export class OrganizationController {
         )}`,
       });
     }
+    let newCourse: CourseModel;
     await this.dataSource.transaction(async (manager) => {
       // Create course entity
-      const newCourse = manager.create(CourseModel, {
+      newCourse = manager.create(CourseModel, {
         name: courseDetails.name,
         coordinator_email: courseDetails.coordinator_email,
         sectionGroupName: courseDetails.sectionGroupName,
@@ -435,6 +439,7 @@ export class OrganizationController {
 
     return res.status(status).send({
       message: message,
+      courseId: newCourse.id,
     });
   }
 
@@ -688,68 +693,75 @@ export class OrganizationController {
     return res.status(HttpStatus.OK).send(course);
   }
 
-  @Get(':oid/get_banner/:photoUrl')
-  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  @Get(':oid/get_banner')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, OrganizationRolesGuard)
+  @Roles(
+    OrganizationRole.ADMIN,
+    OrganizationRole.PROFESSOR,
+    OrganizationRole.MEMBER,
+  )
   async getBannerImage(
-    @Param('photoUrl') photoUrl: string,
     @Param('oid', ParseIntPipe) oid: number,
     @Res() res: Response,
   ): Promise<void> {
-    fs.stat(
-      path.join(process.env.UPLOAD_LOCATION, photoUrl),
-      async (err, stats) => {
-        if (stats) {
-          res.set('Content-Type', 'image/webp');
-          res.sendFile(photoUrl, {
-            root: process.env.UPLOAD_LOCATION,
-          });
-        } else {
-          const organization = await OrganizationModel.findOne({
-            where: {
-              id: oid,
-            },
-          });
-
-          return res.status(HttpStatus.NOT_FOUND).send({
-            message: `Banner image for ${organization.name} not found`,
-          });
-        }
+    const organization = await OrganizationModel.findOne({
+      where: {
+        id: oid,
       },
-    );
+    });
+    if (!organization) {
+      throw new NotFoundException(`Organization not found`);
+    }
+    if (!organization.bannerUrl) {
+      throw new NotFoundException(
+        `No banner image set for ${organization.name}`,
+      );
+    }
+    try {
+      await fs.promises.stat(
+        path.join(process.env.UPLOAD_LOCATION, organization.bannerUrl),
+      );
+      res.set('Content-Type', 'image/webp');
+      res.sendFile(organization.bannerUrl, {
+        root: process.env.UPLOAD_LOCATION,
+      });
+    } catch {
+      throw new NotFoundException(
+        `Banner image for ${organization.name} not found`,
+      );
+    }
   }
 
   // Uses no guards as this is a public endpoint (so it shows up on login page)
-  @Get(':oid/get_logo/:photoUrl')
+  @Get(':oid/get_logo')
   async getLogoImage(
-    @Param('photoUrl') photoUrl: string,
     @Param('oid', ParseIntPipe) oid: number,
     @Res() res: Response,
   ): Promise<void> {
-    fs.stat(
-      path.join(process.env.UPLOAD_LOCATION, photoUrl),
-      async (err, stats) => {
-        if (stats) {
-          res.set('Content-Type', 'image/webp');
-          res.sendFile(photoUrl, {
-            root: process.env.UPLOAD_LOCATION,
-          });
-        } else {
-          const organization = await OrganizationModel.findOne({
-            where: {
-              id: oid,
-            },
-          });
-          if (!organization) {
-            return res.status(HttpStatus.NOT_FOUND).send({
-              message: `Organization not found`,
-            });
-          }
-          return res.status(HttpStatus.NOT_FOUND).send({
-            message: `Logo image for ${organization.name} not found`,
-          });
-        }
+    const organization = await OrganizationModel.findOne({
+      where: {
+        id: oid,
       },
-    );
+    });
+    if (!organization) {
+      throw new NotFoundException(`Organization not found`);
+    }
+    if (!organization.logoUrl) {
+      throw new NotFoundException(`No logo image set for ${organization.name}`);
+    }
+    try {
+      await fs.promises.stat(
+        path.join(process.env.UPLOAD_LOCATION, organization.logoUrl),
+      );
+      res.set('Content-Type', 'image/webp');
+      res.sendFile(organization.logoUrl, {
+        root: process.env.UPLOAD_LOCATION,
+      });
+    } catch {
+      throw new NotFoundException(
+        `Logo image for ${organization.name} not found`,
+      );
+    }
   }
 
   @Post(':oid/upload_banner')
@@ -766,7 +778,18 @@ export class OrganizationController {
     }),
   )
   async uploadBanner(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          // Note that nestjs filetypevalidator comes with mime type and magic number validation build in
+          fileType: 'jpg|jpeg|png|gif|avif|webp',
+        })
+        .addMaxSizeValidator({
+          maxSize: 5 * 1024 * 1024, // 5MB limit per file
+        })
+        .build(),
+    )
+    file: Express.Multer.File,
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
@@ -820,7 +843,10 @@ export class OrganizationController {
       await sharp(file.buffer).resize(1920, 300).webp().toFile(targetPath);
       organization.bannerUrl = fileName;
     } catch (err) {
-      console.error('Error processing image:', err);
+      console.error('Error processing image with sharp:', err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        message: 'Error processing image with sharp: ' + err,
+      });
     }
 
     await organization
@@ -852,7 +878,18 @@ export class OrganizationController {
     }),
   )
   async uploadLogo(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          // Note that nestjs filetypevalidator comes with mime type and magic number validation build in
+          fileType: 'jpg|jpeg|png|gif|avif|webp',
+        })
+        .addMaxSizeValidator({
+          maxSize: 5 * 1024 * 1024, // 5MB limit per file
+        })
+        .build(),
+    )
+    file: Express.Multer.File,
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
   ): Promise<Response<void>> {
@@ -1528,6 +1565,7 @@ export class OrganizationController {
         organizationUser: {
           id: prof.organizationUser.id,
           name: prof.organizationUser.name,
+          email: prof.organizationUser.email,
         },
         trueRole: prof.role,
         userId: prof.userId,
@@ -1536,6 +1574,7 @@ export class OrganizationController {
         organizationUser: {
           id: prof.user.id,
           name: prof.user.name,
+          email: prof.user.email,
         },
         trueRole: prof.user.organizationUser.role,
         userId: prof.userId,

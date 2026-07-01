@@ -154,6 +154,7 @@ const AssignmentReportModal: React.FC<AssignmentReportModalProps> = ({
                   size={46}
                   username={studentDetailsAndProgress.userDetails.name}
                   photoURL={studentDetailsAndProgress.userDetails.photoURL}
+                  userId={studentDetailsAndProgress.userDetails.id}
                 />
               </Col>
               <Col flex="1 1">

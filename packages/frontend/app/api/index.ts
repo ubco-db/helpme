@@ -11,6 +11,7 @@ import {
   ChatbotAskParams,
   ChatbotAskResponse,
   ChatbotAskSuggestedParams,
+  ChatbotAgentCourse,
   ChatbotProvider,
   ChatbotQueryParams,
   ChatbotQuestionResponseChatbotDB,
@@ -130,6 +131,11 @@ import {
   UpsertLMSCourseParams,
   UpsertLMSOrganizationParams,
   UserMailSubscription,
+  CreateCourseResponse,
+  AcceptProfInviteParams,
+  GetProfInviteDetailsResponse,
+  CreateProfInviteParams,
+  GetProfInviteResponse,
   ValidateEmailTokenRequest,
   ValidateEmailTokenResponse,
 } from '@koh/common'
@@ -156,10 +162,10 @@ export class APIClient {
   }
 
   /**
-   * Send HTTP and return data, optionally serialized with class-transformer (helpful for Date serialization)
+   * Send HTTP and return data, optionally deserialized with class-transformer (helpful for Date deserialization)
    * @param method HTTP method
    * @param url URL to send req to
-   * @param responseClass Class with class-transformer decorators to serialize response to
+   * @param responseClass Class with class-transformer decorators to deserialize response to
    * @param body body to send with req
    * @param params any query parameters to include in req URL
    */
@@ -181,7 +187,11 @@ export class APIClient {
     const res = (
       await this.axios.request({ method, url, data: body, params, headers })
     ).data
-    return responseClass ? plainToClass(responseClass, res) : res
+    return responseClass
+      ? plainToClass(responseClass, res, {
+          enableImplicitConversion: true, // needed otherwise dates won't be deserialized (converted from string to date object)
+        })
+      : res
   }
 
   /**
@@ -306,6 +316,8 @@ export class APIClient {
         courseId: number,
       ): Promise<PreDeterminedQuestion[]> =>
         this.req('GET', `/api/v1/chatbot/question/suggested/${courseId}`),
+      getAgents: async (courseId: number): Promise<ChatbotAgentCourse[]> =>
+        this.req('GET', `/api/v1/chatbot/course/${courseId}/agents`),
       updateUserScore: async (
         courseId: number,
         questionId: number,
@@ -743,6 +755,35 @@ export class APIClient {
       )
     },
   }
+  profInvites = {
+    accept: async (
+      piid: number,
+      body: AcceptProfInviteParams,
+    ): Promise<string> => // returns the url to redirect to
+      this.req('POST', `/api/v1/prof_invites/accept/${piid}`, undefined, body),
+    getDetails: async (piid: number): Promise<GetProfInviteDetailsResponse> =>
+      this.req('GET', `/api/v1/prof_invites/details/${piid}`),
+    getAll: async (
+      orgId: number,
+      courseId?: number,
+    ): Promise<GetProfInviteResponse[]> =>
+      // note to self: In order to use the response class for arrays (so that dates get auto-deserialized),
+      // we need to pass in the class[] as the generic type for req (see example below).
+      this.req<GetProfInviteResponse[]>(
+        'GET',
+        `/api/v1/prof_invites/all/${orgId}`,
+        GetProfInviteResponse,
+        undefined,
+        { courseId },
+      ),
+    create: async (
+      orgId: number,
+      body: CreateProfInviteParams,
+    ): Promise<GetProfInviteResponse> =>
+      this.req('POST', `/api/v1/prof_invites/${orgId}`, undefined, body),
+    delete: async (orgId: number, piid: number): Promise<void> =>
+      this.req('DELETE', `/api/v1/prof_invites/${orgId}/${piid}`),
+  }
   mail = {
     resendVerificationCode: async () =>
       this.request('POST', '/api/v1/mail/registration/resend'),
@@ -1025,7 +1066,7 @@ export class APIClient {
   }
 
   queueInvites = {
-    create: async (queueId: number): Promise<void> =>
+    create: async (queueId: number): Promise<string> =>
       this.req('POST', `/api/v1/queueInvites/${queueId}`),
     delete: async (queueId: number): Promise<void> =>
       this.req('DELETE', `/api/v1/queueInvites/${queueId}`),
@@ -1211,7 +1252,7 @@ export class APIClient {
     createCourse: async (
       oid: number,
       body: UpdateOrganizationCourseDetailsParams,
-    ): Promise<void> =>
+    ): Promise<CreateCourseResponse> =>
       this.req(
         'POST',
         `/api/v1/organization/${oid}/create_course`,
