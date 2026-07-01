@@ -35,6 +35,9 @@
 - **Fixed an issue where queues would appear unresponsive or delayed**
   - More specifically, any updates to the queue would always be 1 update behind
   - This also fixes the "Rejoin Queue" button appearing to not work, or the "You are being helped now" popup from showing up right away, the Queue Invite page being unresponsive, amongst other fixes
+- **Increased Chatbot Context Cap**
+  - From 4k tokens to 256k tokens, the Chatbot should now be a lot less "forgetful" when it comes to longer conversations, big course prompts, etc.
+  - Note that this change was implemented May 18th, 2026
 - Anytime Questions now shows "+X additional private question(s)" with improved text for when no questions have been posted
   - Students naturally ask questions in areas with the most activity, and letting them know that other students have been asking Anytime questions should help increase activity 
 - Students may now specify how to pronounce their name under Profile Settings
