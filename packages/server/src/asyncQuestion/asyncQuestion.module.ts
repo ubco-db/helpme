@@ -18,6 +18,6 @@ import { ChatbotApiService } from 'chatbot/chatbot-api.service';
     ChatbotApiService,
   ],
   imports: [NotificationModule, MailModule, RedisQueueModule, ChatbotModule],
-  exports: [AsyncQuestionService],
+  exports: [AsyncQuestionService, ChatbotApiService],
 })
 export class asyncQuestionModule {}
