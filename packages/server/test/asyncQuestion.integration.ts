@@ -242,7 +242,7 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(200);
       await asyncQuestion.reload();
-      expect(asyncQuestion.aiAnswerText).toBe('new answer');
+      expect(asyncQuestion.answerText).toBe('new answer');
       expect(asyncQuestion.questionText).toBe('new text');
 
       expect(
@@ -273,7 +273,7 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(200);
       await asyncQuestion.reload();
-      expect(asyncQuestion.aiAnswerText).toBe('new answer');
+      expect(asyncQuestion.answerText).toBe('new answer');
       expect(asyncQuestion.questionText).toBe('new text');
 
       expect(mockChatbotService.addDocumentChunk).not.toHaveBeenCalled();
@@ -292,7 +292,7 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(200);
       await asyncQuestion.reload();
-      expect(asyncQuestion.aiAnswerText).toBe('new answer');
+      expect(asyncQuestion.answerText).toBe('new answer');
       expect(asyncQuestion.questionText).toBe('new text');
 
       expect(
@@ -323,7 +323,7 @@ describe('AsyncQuestion Integration', () => {
         })
         .expect(200);
       await asyncQuestion.reload();
-      expect(asyncQuestion.aiAnswerText).toBe('new answer');
+      expect(asyncQuestion.answerText).toBe('new answer');
       expect(asyncQuestion.questionText).toBe('new text');
       expect(mockChatbotService.addDocumentChunk).not.toHaveBeenCalled();
       expect(
