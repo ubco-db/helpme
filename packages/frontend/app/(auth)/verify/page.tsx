@@ -21,6 +21,7 @@ export default function VerifyEmailPage() {
   const pathName = usePathname()
   const [profile, setProfile] = useState<User>()
   const [success, setSuccess] = useState(false)
+  const [redirectTarget, setRedirectTarget] = useState<string | null>(null)
 
   const isLti = useMemo(() => {
     return pathName.startsWith('/lti')
@@ -43,38 +44,39 @@ export default function VerifyEmailPage() {
   const validateVerificationCode = async () => {
     const formValues: { verificationCode: string } = await form.validateFields()
     const verificationCode = formValues.verificationCode.toUpperCase()
-
-    const response = await (
+    await (
       isLti
-        ? API.lti.auth.verifyEmail(verificationCode)
-        : API.auth.verifyEmail(verificationCode)
-    ).catch((err) => {
-      message.error(getErrorMessage(err))
-    })
+        ? API.lti.auth.verifyEmail({ token: verificationCode })
+        : API.auth.verifyEmail({ token: verificationCode })
+    )
+      .then((response) => {
+        if (!(response.status >= 200 && response.status < 300)) {
+          message.error(getErrorMessage(response.data))
+          return
+        }
+        if (!response.data) {
+          console.error(
+            'validateVerificationCode returned no data. Redirecting user to /courses',
+          ) // hopefully caught by sentry
+          router.push(isLti ? '/lti' : '/courses')
+          setRedirectTarget(isLti ? '/lti' : '/courses')
+          setSuccess(true)
+        }
 
-    if (!response) {
-      return
-    }
-
-    const data = response.data
-
-    if (response.status == 307 || response.status == 302) {
-      router.push(data.redirectUri)
-      setSuccess(true)
-      return
-    }
-
-    if (!(response.status >= 200 && response.status < 300)) {
-      message.error(getErrorMessage(response.data))
-      return
-    }
-
-    router.push(isLti ? '/lti' : '/courses')
-    setSuccess(true)
+        // verifyEmail handles any cookies (invite to course, lti stuff, page redirect, etc.) and
+        // returns the redirectUrl as a result of these cookies
+        router.push(response.data.redirectUrl)
+        setRedirectTarget(response.data.redirectUrl)
+        setSuccess(true)
+      })
+      .catch((err) => {
+        message.error(getErrorMessage(err))
+      })
   }
 
+  // shows up if for some reason router.push failed
   if (success) {
-    const target = isLti ? '/lti' : '/courses'
+    const target = redirectTarget ?? (isLti ? '/lti' : '/courses')
     return (
       <StandardPageContainer>
         <div className="mx-auto mt-40 flex items-center justify-center md:w-4/5 lg:w-2/5 2xl:w-3/5">

@@ -16,7 +16,8 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import {
   AccountRegistrationParams,
   PasswordRequestResetBody,
-  RegistrationTokenDetails,
+  ValidateEmailTokenRequest,
+  ValidateEmailTokenResponse,
 } from '@koh/common';
 import { LtiService } from './lti.service';
 import { LoginService } from '../login/login.service';
@@ -37,6 +38,7 @@ export const restrictPaths = [
   'r^\\/api\\/v1\\/organization\\/[0-9]+\\/settings$',
 ];
 
+/* Note that many of these mimic the ones from auth.controller.ts */
 @Controller('lti/auth')
 export class LtiAuthController {
   constructor(
@@ -114,30 +116,26 @@ export class LtiAuthController {
     @Res() res: Response,
     @Req() req: Request,
     @UserId() userId: number,
-    @Body() registrationTokenDetails: RegistrationTokenDetails,
-  ): Promise<Response<void>> {
-    const result = await this.authService.verifyRegistrationToken(
-      res,
+    @Body() registrationTokenDetails: ValidateEmailTokenRequest,
+  ): Promise<ValidateEmailTokenResponse> {
+    await this.authService.verifyRegistrationToken(
       userId,
       registrationTokenDetails,
     );
 
-    // If non-number was returned, the verification failed
-    if (typeof result != 'number') {
-      return;
-    }
-
-    return (await this.loginService.handleCookies(
+    const { redirectUrl } = await this.loginService.handleCookies(
       req,
       res,
-      result,
+      userId,
       {
         cookieOptions: LtiService.cookieOptions,
-        emailVerification: true,
       },
       undefined,
       this.ltiService,
-    )) as Response;
+    );
+
+    res.status(200).send({ redirectUrl });
+    return;
   }
 
   @Post('/password/reset')

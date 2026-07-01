@@ -289,9 +289,13 @@ export type BatchCourseCloneResponse = {
   message: string
 }
 
-export class RegistrationTokenDetails {
+export class ValidateEmailTokenRequest {
   @IsString()
   token!: string
+}
+export class ValidateEmailTokenResponse {
+  @IsString()
+  redirectUrl!: string
 }
 
 export class PasswordRequestResetBody {

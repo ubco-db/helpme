@@ -136,6 +136,8 @@ import {
   GetProfInviteDetailsResponse,
   CreateProfInviteParams,
   GetProfInviteResponse,
+  ValidateEmailTokenRequest,
+  ValidateEmailTokenResponse,
 } from '@koh/common'
 import Axios, { AxiosError, AxiosInstance, AxiosResponse, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -229,8 +231,10 @@ export class APIClient {
       this.request('POST', '/api/v1/auth/register', registerData),
     requestPasswordReset: async (passwordResetData: PasswordRequestResetBody) =>
       this.request('POST', '/api/v1/auth/password/reset', passwordResetData),
-    verifyEmail: async (token: string) =>
-      this.request('POST', '/api/v1/auth/registration/verify', { token }),
+    verifyEmail: async (
+      body: ValidateEmailTokenRequest,
+    ): Promise<AxiosResponse<ValidateEmailTokenResponse>> =>
+      this.request('POST', '/api/v1/auth/registration/verify', body),
     resetPassword: async (
       token: string,
       confirmation: PasswordRequestResetWithTokenBody,
@@ -1646,8 +1650,10 @@ export class APIClient {
         ),
       registerAccount: async (registerData: AccountRegistrationParams) =>
         this.request('POST', '/api/v1/lti/auth/register', registerData),
-      verifyEmail: async (token: string) =>
-        this.request('POST', '/api/v1/lti/auth/registration/verify', { token }),
+      verifyEmail: async (
+        body: ValidateEmailTokenRequest,
+      ): Promise<AxiosResponse<ValidateEmailTokenResponse>> =>
+        this.request('POST', '/api/v1/lti/auth/registration/verify', body),
       loginWithGoogle: async (organizationId: number) =>
         this.request('GET', `/api/v1/lti/auth/link/google/${organizationId}`),
       entry: (params: URLSearchParams) =>
