@@ -55,6 +55,9 @@
 - Fixed an issue where the "Test Course" Semester would not show up when creating courses (and made it not show as "ended")
 - Re-arranged Course Features (under Course Settings) to be easier to digest
 - Added an "Advanced" divider to Course Settings, amongst other re-arrangements
+- Removed the Course Timezone field when created/editing courses since it's unused
+- Re-arranged the features in the Add Course form
+- Edit Course Form Semester Selector now shows how long ago a semester ended
 - Fixed the Profile → Course Preferences table from overflowing on mobile
 - Added a new "name" field when manually creating new chatbot knowledge base chunks (previously, all chunks were given the name "Manually Inserted Information" - this lets you customize it)
 - Fixed an issue where course professors that lacked the "Organization Professor" role could not create an LMS/Canvas integration for their course

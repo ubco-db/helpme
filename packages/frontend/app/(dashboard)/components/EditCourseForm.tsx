@@ -4,7 +4,6 @@ import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
 import {
-  COURSE_TIMEZONES,
   GetOrganizationResponse,
   OrganizationCourseResponse,
   OrganizationProfessor,
@@ -14,6 +13,10 @@ import {
 import { Alert, Button, Card, Form, Input, message, Select } from 'antd'
 import { useEffect, useState } from 'react'
 import ProfessorSelector from './ProfessorSelector'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+
+dayjs.extend(relativeTime)
 
 type EditCourseFormProps = {
   courseData: OrganizationCourseResponse
@@ -257,7 +260,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
                         new Date(semester.endDate) < new Date('1971-01-01')
                       ) && (
                         <span style={{ color: 'red', marginLeft: 6 }}>
-                          (ended)
+                          (ended {dayjs(semester.endDate).fromNow()})
                         </span>
                       )}
                   </Select.Option>
