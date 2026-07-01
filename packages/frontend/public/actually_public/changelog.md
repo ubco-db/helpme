@@ -52,6 +52,7 @@
 - Fixed an issue with Anytime Questions where the "Set question visible to all students" toggle would sometimes default to "Visible" despite showing "Hidden"
 - Added a feature for LLED courses for AI Assignment Feedback (under Course Settings → Scroll down to Advanced). See its help tooltip for more info.
 - Fixed an issue where the "Test Course" Semester would not show up when creating courses (and made it not show as "ended")
+- Updated "Convert Chatbot/Queue Question to Anytime Question" modals to have "Appear Anonymous" or "Show Publicly" options (the latter only enabled if you have the corresponding setting enabled) 
 - Re-arranged Course Features (under Course Settings) to be easier to digest
 - Added an "Advanced" divider to Course Settings, amongst other re-arrangements
 - Removed the Course Timezone field when created/editing courses since it's unused
@@ -71,6 +72,7 @@
 - Fixed a minor issue where 'helping student in another course' was not working for queue invites
 - Fixed a minor issue where the Checkout button on the course page would only check you out of 1 queue instead of all
 - Various security improvements
+- Improved various help tooltips across the site
 - Various small UI fixes and adjustments
 
 ***

@@ -101,7 +101,7 @@ const CourseFeaturesForm: React.FC<CourseFeaturesFormProps> = ({
             className="ml-4 md:ml-6"
             defaultChecked={courseFeatures.asyncCentreDefaultAnonymous}
             title="Questions Anonymous by Default"
-            description="By default, Anytime Question authors are anonymous when viewed by students. Toggling this will make new Anytime Questions be anonymous or non-anonymous by default. It will not change the anonymity of previously posted questions. Question authors decide whether their profile will be visible or not when editing or creating the question."
+            description="When creating an Anytime Question, by default the 'Appear Anonymous' checkbox will be checked. Disable this feature will make it so the checkbox will by default be unchecked. Most students will leave the checkbox to whatever the default value is."
             courseId={courseId}
           />
 
