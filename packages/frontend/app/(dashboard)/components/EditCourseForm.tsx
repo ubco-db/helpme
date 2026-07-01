@@ -44,7 +44,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
     const coordinatorEmailField = formValues.coordinatorEmail
     const sectionGroupNameField = formValues.sectionGroupName
     const zoomLinkField = formValues.zoomLink
-    const courseTimezoneField = formValues.courseTimezone
+    // const courseTimezoneField = formValues.courseTimezone
     const semesterIdField = formValues.semesterId
     const profIdsField = isAdmin ? formValues.professorsUserId : [user.id]
 
@@ -53,7 +53,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
       coordinatorEmailField === courseData.course?.coordinator_email &&
       sectionGroupNameField === courseData.course?.sectionGroupName &&
       zoomLinkField === courseData.course?.zoomLink &&
-      courseTimezoneField === courseData.course?.timezone &&
+      // courseTimezoneField === courseData.course?.timezone &&
       semesterIdField === courseData.course?.semester?.id &&
       profIdsField === courseData.profIds
     ) {
@@ -74,10 +74,10 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
       return
     }
 
-    if (courseData.course?.timezone && courseTimezoneField.length < 1) {
-      message.error('Course timezone cannot be empty')
-      return
-    }
+    // if (courseData.course?.timezone && courseTimezoneField.length < 1) {
+    //   message.error('Course timezone cannot be empty')
+    //   return
+    // }
 
     if (
       !Array.isArray(profIdsField) ||
@@ -98,7 +98,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
         coordinator_email: coordinatorEmailField ?? '',
         sectionGroupName: sectionGroupNameField,
         zoomLink: zoomLinkField ?? '',
-        timezone: courseTimezoneField,
+        timezone: courseData.course?.timezone,
         semesterId: semesterIdField,
         profIds: profIdsField,
       })
@@ -145,7 +145,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
             coordinatorEmail: courseData.course?.coordinator_email,
             sectionGroupName: courseData.course?.sectionGroupName,
             zoomLink: courseData.course?.zoomLink,
-            courseTimezone: courseData.course?.timezone,
+            // courseTimezone: courseData.course?.timezone,
             semesterId: courseData.course?.semester?.id ?? -1,
             professorsUserId: courseData.profIds,
           }}
@@ -220,7 +220,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
           </div>
 
           <div className="flex flex-col md:flex-row md:space-x-3">
-            <Form.Item
+            {/* <Form.Item
               label="Course Timezone"
               name="courseTimezone"
               tooltip="Timezone of the course"
@@ -233,7 +233,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
                   </Select.Option>
                 ))}
               </Select>
-            </Form.Item>
+            </Form.Item> */}
 
             <Form.Item
               label="Semester"

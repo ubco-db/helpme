@@ -14,7 +14,6 @@ import {
 } from 'antd'
 import { ReactElement, useEffect, useState } from 'react'
 import {
-  COURSE_TIMEZONES,
   GetOrganizationResponse,
   OrganizationProfessor,
   OrganizationRole,
@@ -123,7 +122,7 @@ export default function AddCoursePage(): ReactElement {
     const coordinatorEmailField = values.coordinatorEmail
     const sectionGroupNameField = values.sectionGroupName
     const zoomLinkField = values.zoomLink
-    const courseTimezoneField = values.courseTimezone
+    // const courseTimezoneField = values.courseTimezone
     const semesterIdField = values.semesterId
     const profIds = isAdmin ? values.professorsUserId : [userInfo.id]
     const courseFeatures = [
@@ -140,7 +139,7 @@ export default function AddCoursePage(): ReactElement {
         coordinator_email: coordinatorEmailField ?? '',
         sectionGroupName: sectionGroupNameField ?? '',
         zoomLink: zoomLinkField ?? '',
-        timezone: courseTimezoneField,
+        timezone: 'America/Los_Angeles', // courseTimezoneField
         semesterId: semesterIdField,
         profIds: profIds,
         courseSettings: courseFeatures,
@@ -190,7 +189,7 @@ export default function AddCoursePage(): ReactElement {
                 layout="vertical"
                 onFinish={(values) => onFinish(values)}
                 initialValues={{
-                  courseTimezone: 'America/Los_Angeles',
+                  // courseTimezone: 'America/Los_Angeles',
                   chatBotEnabled: true,
                   queueEnabled: true,
                   asyncQueueEnabled: true,
@@ -267,7 +266,7 @@ export default function AddCoursePage(): ReactElement {
                     </Form.Item>
                   </Col>
 
-                  <Col xs={{ span: 24 }} sm={{ span: 12 }}>
+                  {/* <Col xs={{ span: 24 }} sm={{ span: 12 }}>
                     <Form.Item
                       label="Course Timezone"
                       name="courseTimezone"
@@ -281,7 +280,7 @@ export default function AddCoursePage(): ReactElement {
                         ))}
                       </Select>
                     </Form.Item>
-                  </Col>
+                  </Col> */}
 
                   <Col xs={{ span: 24 }} sm={{ span: 12 }}>
                     <Form.Item
