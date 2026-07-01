@@ -937,10 +937,10 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
               The reason there are filters here is because students need to be able to see these too
             */
             questionsGettingHelp={queueQuestions.questionsGettingHelp.filter(
-              (q) => q.status == 'Helping',
+              (q) => q.status == OpenQuestionStatus.Helping,
             )}
             pausedQuestions={queueQuestions.questionsGettingHelp.filter(
-              (q) => q.status == 'Paused',
+              (q) => q.status == OpenQuestionStatus.Paused,
             )}
             cid={cid}
             qid={qid}
