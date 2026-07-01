@@ -208,12 +208,6 @@ export default function RegisterPage(props: {
                 initialValues={{ remember: true }}
                 onFinish={createAccount}
               >
-                {/*
-              In some environments, components which return Promises or arrays do not work.
-              This is due to some changes to react and @types/react, and the component
-              packages have not been updated to fix these issues.
-              */}
-                {/* @ts-expect-error Server Component */}
                 <ReCAPTCHA
                   ref={recaptchaRef}
                   size="invisible"
