@@ -21,6 +21,7 @@ import ImageAnytimeQuestionsStudentWithCommentsOpen from '@/public/actually_publ
 import ImageInsightsUsageOverTime from '@/public/actually_public/images/helpme_insights_usage_over_time.png'
 import ImageInsightsQuestionTypesOverTime from '@/public/actually_public/images/helpme_insights_question_types_over_time.png'
 import ImageInsightsMostActiveTimes from '@/public/actually_public/images/helpme_insights_most_active_times.png'
+import ImageCourseSettings from '@/public/actually_public/images/helpme_course_settings.png'
 
 import StandardPageContainer from './components/standardPageContainer'
 import HeaderBar from './components/HeaderBar'
@@ -398,6 +399,22 @@ export default function Home(): ReactElement {
                               creating &quot;events&quot; for each queue with
                               assigned staff for easier managing (such as
                               auto-checkout).
+                            </p>
+                          </div>
+                        ),
+                      },
+                      {
+                        src: ImageCourseSettings,
+                        alt: 'Course settings page with the following toggles: Chatbot, Queues, Schedule on Front/Home Course Page, Anytime Question Hub, Anytime Question AI Answers, Anytime Questions Anonymous by Default, and Allow Anytime Question Authors to make their Questions Public',
+                        caption: (
+                          <div>
+                            <h4 className="mb-1 text-base font-bold">
+                              Completely Customizable
+                            </h4>
+                            <p className="text-sm">
+                              Don&apos;t have any busy office hours or labs? All
+                              HelpMe features can be toggled off at a click of a
+                              button!
                             </p>
                           </div>
                         ),
