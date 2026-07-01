@@ -121,13 +121,13 @@ export default function QueueInvitePage(
   // if questions are enabled, dynamically set the queue size, otherwise set it to queueInvite.queueSize
   useEffect(() => {
     if (queueInviteInfo) {
-      if (queueInviteInfo.isQuestionsVisible && queue) {
-        setQueueSize(queue.queueSize)
+      if (queueInviteInfo.isQuestionsVisible) {
+        setQueueSize(queueQuestions?.questions.length ?? queue?.queueSize ?? 0)
       } else {
         setQueueSize(queueInviteInfo.queueSize)
       }
     }
-  }, [queue, queueInviteInfo])
+  }, [queue, queueInviteInfo, queueQuestions])
 
   const isHttps =
     (typeof window !== 'undefined' && window.location.protocol) === 'https:'

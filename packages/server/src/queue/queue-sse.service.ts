@@ -2,6 +2,7 @@ import { Role, SSEQueueResponse } from '@koh/common';
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { Response } from 'express';
 import { throttle } from 'lodash';
+import { EntityManager } from 'typeorm';
 import { SSEService } from 'sse/sse.service';
 import { QueueService } from './queue.service';
 import { QueueChatService } from 'queueChats/queue-chats.service';
@@ -36,8 +37,11 @@ export class QueueSSEService {
   }
 
   // Send event with new questions, but no more than once a second
-  updateQuestions = this.throttleUpdate(async (queueId) => {
-    const queueQuestions = await this.queueService.getQuestions(queueId);
+  updateQuestions = this.throttleUpdate(async (queueId, manager?) => {
+    const queueQuestions = await this.queueService.getQuestions(
+      queueId,
+      manager,
+    );
     if (queueQuestions) {
       await this.sendToRoom(queueId, async ({ role, userId }) => ({
         queueQuestions: await this.queueService.personalizeQuestions(
@@ -45,13 +49,14 @@ export class QueueSSEService {
           queueQuestions,
           userId,
           role,
+          manager,
         ),
       }));
     }
   });
 
-  updateQueue = this.throttleUpdate(async (queueId) => {
-    const queue = await this.queueService.getQueueFormatted(queueId);
+  updateQueue = this.throttleUpdate(async (queueId, manager?) => {
+    const queue = await this.queueService.getQueueFormatted(queueId, manager);
     if (queue) {
       await this.sendToRoom(queueId, async () => ({ queue }));
     }
@@ -86,11 +91,13 @@ export class QueueSSEService {
    * by the first time the function is called.
    * Set leading to false possibly in the future may be a good idea.
    */
-  private throttleUpdate(updateFunction: (queueId: number) => Promise<void>) {
+  private throttleUpdate(
+    updateFunction: (queueId: number, manager?: EntityManager) => Promise<void>,
+  ) {
     return throttle(
-      async (queueId: number) => {
+      async (queueId: number, manager?: EntityManager) => {
         try {
-          await updateFunction(queueId);
+          await updateFunction(queueId, manager);
         } catch (e) {}
       },
       150, // Don't make too high, since it can cause tests to fail as it will run updateFunction even after the endpoint is finished

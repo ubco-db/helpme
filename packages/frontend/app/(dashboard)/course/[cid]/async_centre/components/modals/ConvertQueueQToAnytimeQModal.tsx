@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Form, Input, message, Modal, Spin, Tooltip } from 'antd'
+import { Checkbox, Form, Input, message, Modal, Spin, Tooltip } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { QuestionTagSelector } from '../../../components/QuestionTagElement'
@@ -18,6 +18,8 @@ interface FormValues {
   questionText: string
   questionTypesInput: number[]
   refreshAIAnswer: boolean
+  setVisible: boolean
+  setAnonymous: boolean
 }
 
 interface ConvertQueueQToAnytimeQModalProps {
@@ -41,6 +43,7 @@ const ConvertQueueQToAnytimeQModal: React.FC<
 }) => {
   const { userInfo } = useUserInfo()
   const courseFeatures = useCourseFeatures(courseId)
+  const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(false)
@@ -61,9 +64,17 @@ const ConvertQueueQToAnytimeQModal: React.FC<
       const fetchQuestion = async () => {
         setInitialLoading(true)
         try {
-          const myQuestion = await API.questions.update(queueQuestionId, {})
+          const myQuestion = await API.questions
+            .update(queueQuestionId, {})
+            .catch((err) => {
+              console.error(
+                'Failed to load queue question data: ' + getErrorMessage(err),
+              )
+              message.error(
+                'Failed to load queue question data: ' + getErrorMessage(err),
+              )
+            })
           if (!myQuestion?.text) {
-            message.error('Failed to load question data.')
             setInitialLoading(false)
             return
           }
@@ -147,6 +158,8 @@ const ConvertQueueQToAnytimeQModal: React.FC<
           questionText: values.questionText,
           questionAbstract: values.QuestionAbstract,
           status: asyncQuestionStatus.AIAnsweredNeedsAttention,
+          isAnonymous: values.setAnonymous,
+          authorSetVisible: authorCanSetVisible ? values.setVisible : false,
         },
         courseId,
       )
@@ -218,6 +231,10 @@ const ConvertQueueQToAnytimeQModal: React.FC<
           layout="vertical"
           form={form}
           name="form_in_modal"
+          initialValues={{
+            setVisible: false,
+            setAnonymous: courseFeatures?.asyncCentreDefaultAnonymous ?? true,
+          }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
         >
@@ -274,11 +291,30 @@ const ConvertQueueQToAnytimeQModal: React.FC<
           <QuestionTagSelector questionTags={anytimeQuestionTypes} />
         </Form.Item>
       )}
-      <div className="text-gray-500">
-        Only you and faculty will be able to see your question unless a faculty
-        member chooses to mark it public, in which case it will appear fully
-        anonymous to other students.
-      </div>
+      {authorCanSetVisible && (
+        <Form.Item
+          name="setVisible"
+          label="Show Publicly?"
+          tooltip={
+            'Allows other students to see your question, and maybe even give you help via comments. Note that Course Staff can make questions public or private regardless of this setting.'
+          }
+          valuePropName="checked"
+          layout="horizontal"
+        >
+          <Checkbox />
+        </Form.Item>
+      )}
+      <Form.Item
+        name="setAnonymous"
+        label="Appear Anonymous?"
+        tooltip={
+          'If toggled, your name and avatar will not be shown with the question. Staff members will still see who you are.'
+        }
+        layout="horizontal"
+        valuePropName="checked"
+      >
+        <Checkbox />
+      </Form.Item>
     </Modal>
   )
 }

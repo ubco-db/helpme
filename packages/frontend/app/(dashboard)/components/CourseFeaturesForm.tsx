@@ -59,7 +59,7 @@ const CourseFeaturesForm: React.FC<CourseFeaturesFormProps> = ({
             featureName="scheduleOnFrontPage"
             className="ml-4 md:ml-6"
             defaultChecked={courseFeatures.scheduleOnFrontPage}
-            title="Schedule on Front/Home Course Page"
+            title="Schedule on Home Course Page"
             description="By default, a chatbot is displayed on the home course page. Enabling this will replace that chatbot with a preview of today's schedule and show a little 'Chatbot' widget for the chatbot like other pages. Choose this option if you think it is more valuable for students to see today's event schedule over a large chatbot component."
             courseId={courseId}
           />
@@ -83,7 +83,7 @@ const CourseFeaturesForm: React.FC<CourseFeaturesFormProps> = ({
             featureName="asyncQueueEnabled"
             defaultChecked={courseFeatures.asyncQueueEnabled}
             title="Anytime Question Hub"
-            description="This feature allows students to ask questions asynchronously (e.g. outside of office hours or labs) that can then be answered by the professor. It also features automatic AI-generated answers based on uploaded course content."
+            description="This feature will enable students question's to immediately get an AI answer when they ask it (on the Anytime Question Hub). From there, students can ask if they are satisfied or still need help with it, in which staff can then edit the answer or verify it. Utilizes the Course Chatbot and pairs great with it for Human In The Loop Support."
             courseId={courseId}
           />
 
@@ -92,7 +92,7 @@ const CourseFeaturesForm: React.FC<CourseFeaturesFormProps> = ({
             className="ml-4 md:ml-6"
             defaultChecked={courseFeatures.asyncCentreAIAnswers}
             title="AI Answers"
-            description="This feature will enable students question's to immediately get an AI answer when they ask it (on the Anytime Question Hub). From there, students can ask if they are satisfied or still need help with it, in which staff can then edit the answer or verify it."
+            description="When students first as an Anytime Question, they get an AI response from the Course Chatbot. You can choose to disable this if you don't want this AI feature."
             courseId={courseId}
           />
 
@@ -101,7 +101,7 @@ const CourseFeaturesForm: React.FC<CourseFeaturesFormProps> = ({
             className="ml-4 md:ml-6"
             defaultChecked={courseFeatures.asyncCentreDefaultAnonymous}
             title="Questions Anonymous by Default"
-            description="By default, Anytime Question authors are anonymous when viewed by students. Toggling this will make new Anytime Questions be anonymous or non-anonymous by default. It will not change the anonymity of previously posted questions. Question authors decide whether their profile will be visible or not when editing or creating the question."
+            description="When creating an Anytime Question, by default the 'Appear Anonymous' checkbox will be checked. Disable this feature will make it so the checkbox will by default be unchecked. Most students will leave the checkbox to whatever the default value is."
             courseId={courseId}
           />
 

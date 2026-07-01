@@ -208,12 +208,6 @@ export default function RegisterPage(props: {
                 initialValues={{ remember: true }}
                 onFinish={createAccount}
               >
-                {/*
-              In some environments, components which return Promises or arrays do not work.
-              This is due to some changes to react and @types/react, and the component
-              packages have not been updated to fix these issues.
-              */}
-                {/* @ts-expect-error Server Component */}
                 <ReCAPTCHA
                   ref={recaptchaRef}
                   size="invisible"
@@ -269,7 +263,11 @@ export default function RegisterPage(props: {
                   </Col>
                 </Row>
 
-                <Form.Item label="Name Pronunciation" name="namePronunciation">
+                <Form.Item
+                  label="Name Pronunciation"
+                  name="namePronunciation"
+                  tooltip="Lets course staff inside queues see how to pronounce your name. Use capital letters to indicate the primary stress (emphasis) of your name."
+                >
                   <Input allowClear={true} placeholder="Example: uh-LEE-shuh" />
                 </Form.Item>
 

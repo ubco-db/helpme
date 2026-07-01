@@ -10,6 +10,7 @@ import { Injectable } from '@nestjs/common';
 import { QuestionModel } from 'question/question.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { AlertModel } from './alerts.entity';
+import { EntityManager } from 'typeorm';
 
 @Injectable()
 export class AlertsService {
@@ -88,9 +89,13 @@ export class AlertsService {
 
   async getUnresolvedRephraseQuestionAlert(
     queueId: number,
+    manager?: EntityManager,
   ): Promise<AlertModel[]> {
     const alertType = AlertType.REPHRASE_QUESTION;
-    return await AlertModel.createQueryBuilder('alert')
+    const alertQueryBuilder = manager
+      ? manager.getRepository(AlertModel).createQueryBuilder('alert')
+      : AlertModel.createQueryBuilder('alert');
+    return await alertQueryBuilder
       .where('alert.resolved IS NULL')
       .andWhere('alert.alertType = :alertType', { alertType })
       .andWhere("(alert.payload ->> 'queueId')::INTEGER = :queueId ", {

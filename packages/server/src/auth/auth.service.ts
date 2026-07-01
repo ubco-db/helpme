@@ -395,6 +395,8 @@ export class AuthService {
     }
 
     if (password.trim().length < 6 || password.trim().length > 32) {
+      // we need to limit it since bcrpyt the max password length is 72 bytes
+      // Which with UTF-8 is between 18 and 36 characters long (ASCII-only passwords can be 72 chars)
       return res
         .status(HttpStatus.BAD_REQUEST)
         .send({ message: 'Password must be between 6 and 32 characters' });

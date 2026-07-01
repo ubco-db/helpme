@@ -622,6 +622,10 @@ Some examples of where this is used:
 
 See https://orkhan.gitbook.io/typeorm/docs/listeners-and-subscribers for more info
 
+**Important Gotchas:**
+- For `afterUpdate`, if you're using a `.update()` statement, the subscriber's `entity` object will only contain what was passed into the `update()` statement. This is really important since you might not even have access to what entities were updated!
+- **VERY IMPORTANT**: TypeORM's entity listeners (afterUpdate, BeforeDelete, etc.) do not commit their transaction until the end of the event. This means it's ABSOLUTELY CRUCIAL that you perform any database operations using the event object's `queryRunner` or `manager` instance since otherwise you won't pull new data.
+
 
 ## Known Quirks when Developing
 

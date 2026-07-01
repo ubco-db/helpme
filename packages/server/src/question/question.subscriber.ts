@@ -1,4 +1,4 @@
-import { ClosedQuestionStatus } from '@koh/common';
+import { ClosedQuestionStatus, StatusInQueue } from '@koh/common';
 import {
   DataSource,
   EntitySubscriberInterface,
@@ -36,12 +36,17 @@ export class QuestionSubscriber
   }
 
   async afterUpdate(event: UpdateEvent<QuestionModel>): Promise<void> {
-    if (!event.entity) {
-      // TODO: this is kinda janky maybe fix
+    if (!event.entity || !event.entity.queueId) {
+      console.error(
+        "WARNING in afterUpdate in question.subscriber.ts: There exists a .update() query somewhere that does not pass enough information (queueId) so users won't be notified of a queue update",
+      );
       return;
     }
 
-    await this.queueSSEService.updateQuestions(event.entity.queueId);
+    await this.queueSSEService.updateQuestions(
+      event.entity.queueId,
+      event.manager,
+    );
     // Send push notification to students when they are hit 3rd in line
     // if status updated to closed
     if (
@@ -66,16 +71,25 @@ export class QuestionSubscriber
   }
 
   async afterInsert(event: InsertEvent<QuestionModel>): Promise<void> {
-    const numberOfQuestions = await QuestionModel.waitingInQueue(
-      event.entity.queueId,
-    ).getCount();
+    const numberOfQuestions = await event.manager
+      .getRepository(QuestionModel)
+      .createQueryBuilder('question')
+      .where('question.queueId = :queueId', {
+        queueId: event.entity.queueId,
+      })
+      .andWhere('question.status IN (:...statuses)', {
+        statuses: StatusInQueue,
+      })
+      .getCount();
 
     if (numberOfQuestions === 0) {
-      const queueStaff = await QueueStaffModel.find({
-        where: {
-          queueId: event.entity.queueId,
-        },
-      });
+      const queueStaff = await event.manager
+        .getRepository(QueueStaffModel)
+        .find({
+          where: {
+            queueId: event.entity.queueId,
+          },
+        });
 
       queueStaff.forEach((staff) => {
         this.notifService.notifyUser(
@@ -86,14 +100,20 @@ export class QuestionSubscriber
     }
 
     // Send all listening clients an update
-    await this.queueSSEService.updateQuestions(event.entity.queueId);
+    await this.queueSSEService.updateQuestions(
+      event.entity.queueId,
+      event.manager,
+    );
   }
 
   async beforeRemove(event: RemoveEvent<QuestionModel>): Promise<void> {
     // due to cascades entity is not guaranteed to be loaded
     if (event.entity) {
       // Send all listening clients an update
-      await this.queueSSEService.updateQuestions(event.entity.queueId);
+      await this.queueSSEService.updateQuestions(
+        event.entity.queueId,
+        event.manager,
+      );
     }
   }
 }

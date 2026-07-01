@@ -4,7 +4,6 @@ import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
 import {
-  COURSE_TIMEZONES,
   GetOrganizationResponse,
   OrganizationCourseResponse,
   OrganizationProfessor,
@@ -14,6 +13,10 @@ import {
 import { Alert, Button, Card, Form, Input, message, Select } from 'antd'
 import { useEffect, useState } from 'react'
 import ProfessorSelector from './ProfessorSelector'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+
+dayjs.extend(relativeTime)
 
 type EditCourseFormProps = {
   courseData: OrganizationCourseResponse
@@ -44,7 +47,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
     const coordinatorEmailField = formValues.coordinatorEmail
     const sectionGroupNameField = formValues.sectionGroupName
     const zoomLinkField = formValues.zoomLink
-    const courseTimezoneField = formValues.courseTimezone
+    // const courseTimezoneField = formValues.courseTimezone
     const semesterIdField = formValues.semesterId
     const profIdsField = isAdmin ? formValues.professorsUserId : [user.id]
 
@@ -53,7 +56,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
       coordinatorEmailField === courseData.course?.coordinator_email &&
       sectionGroupNameField === courseData.course?.sectionGroupName &&
       zoomLinkField === courseData.course?.zoomLink &&
-      courseTimezoneField === courseData.course?.timezone &&
+      // courseTimezoneField === courseData.course?.timezone &&
       semesterIdField === courseData.course?.semester?.id &&
       profIdsField === courseData.profIds
     ) {
@@ -74,10 +77,10 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
       return
     }
 
-    if (courseData.course?.timezone && courseTimezoneField.length < 1) {
-      message.error('Course timezone cannot be empty')
-      return
-    }
+    // if (courseData.course?.timezone && courseTimezoneField.length < 1) {
+    //   message.error('Course timezone cannot be empty')
+    //   return
+    // }
 
     if (
       !Array.isArray(profIdsField) ||
@@ -98,7 +101,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
         coordinator_email: coordinatorEmailField ?? '',
         sectionGroupName: sectionGroupNameField,
         zoomLink: zoomLinkField ?? '',
-        timezone: courseTimezoneField,
+        timezone: courseData.course?.timezone,
         semesterId: semesterIdField,
         profIds: profIdsField,
       })
@@ -145,7 +148,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
             coordinatorEmail: courseData.course?.coordinator_email,
             sectionGroupName: courseData.course?.sectionGroupName,
             zoomLink: courseData.course?.zoomLink,
-            courseTimezone: courseData.course?.timezone,
+            // courseTimezone: courseData.course?.timezone,
             semesterId: courseData.course?.semester?.id ?? -1,
             professorsUserId: courseData.profIds,
           }}
@@ -220,7 +223,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
           </div>
 
           <div className="flex flex-col md:flex-row md:space-x-3">
-            <Form.Item
+            {/* <Form.Item
               label="Course Timezone"
               name="courseTimezone"
               tooltip="Timezone of the course"
@@ -233,7 +236,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
                   </Select.Option>
                 ))}
               </Select>
-            </Form.Item>
+            </Form.Item> */}
 
             <Form.Item
               label="Semester"
@@ -257,7 +260,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
                         new Date(semester.endDate) < new Date('1971-01-01')
                       ) && (
                         <span style={{ color: 'red', marginLeft: 6 }}>
-                          (ended)
+                          (ended {dayjs(semester.endDate).fromNow()})
                         </span>
                       )}
                   </Select.Option>

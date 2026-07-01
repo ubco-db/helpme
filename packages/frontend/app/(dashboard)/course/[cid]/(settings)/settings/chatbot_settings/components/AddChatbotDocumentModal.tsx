@@ -120,8 +120,8 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
         }
       },
       {
-        successMsg: `${file.name} uploaded and processed!`,
-        errorMsg: `Failed to upload/process ${file.name}`,
+        successMsg: `${file?.name || 'A file'} was uploaded and processed!`,
+        errorMsg: `Failed to upload/process ${file?.name || 'a file'}`,
         appendApiError: true,
         successDuration: 3500,
       },

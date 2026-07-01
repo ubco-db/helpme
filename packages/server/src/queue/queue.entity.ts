@@ -5,6 +5,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  EntityManager,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -88,12 +89,19 @@ export class QueueModel extends BaseEntity {
   @Column({ default: 0 })
   queueSize: number;
 
-  async addQueueSize(): Promise<void> {
-    this.queueSize = await QuestionModel.inQueueWithStatus(this.id, [
+  async addQueueSize(manager?: EntityManager): Promise<void> {
+    const statuses = [
       ...StatusInQueue,
       OpenQuestionStatus.Helping,
       OpenQuestionStatus.Paused,
-    ]).getCount();
+    ];
+    const queryBuilder = manager
+      ? manager.getRepository(QuestionModel).createQueryBuilder('question')
+      : QuestionModel.createQueryBuilder('question');
+    this.queueSize = await queryBuilder
+      .where('question.queueId = :queueId', { queueId: this.id })
+      .andWhere('question.status IN (:...statuses)', { statuses })
+      .getCount();
   }
 
   @Column('json', { nullable: true })

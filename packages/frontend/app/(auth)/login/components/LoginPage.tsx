@@ -171,7 +171,7 @@ const LoginPage: React.FC = () => {
     const response = await API.login.index(loginData).catch((err: any) => {
       switch (err.status) {
         case 401:
-          message.error(err.message)
+          message.error(getErrorMessage(err))
           break
         case 403:
           setAccountActiveResponse(false)
@@ -452,12 +452,6 @@ const LoginPage: React.FC = () => {
                   initialValues={{ remember: true }}
                   onFinish={login}
                 >
-                  {/*
-                    In some environments, components which return Promises or arrays do not work.
-                    This is due to some changes to react and @types/react, and the component
-                    packages have not been updated to fix these issues.
-                  */}
-                  {/* @ts-expect-error Server Component */}
                   <ReCAPTCHA
                     ref={recaptchaRef}
                     size="invisible"
@@ -507,7 +501,6 @@ const LoginPage: React.FC = () => {
 
                   <Form.Item>
                     <Button
-                      type="primary"
                       htmlType="submit"
                       className="h-auto w-full items-center justify-center rounded-lg border px-2 py-2 "
                     >

@@ -104,7 +104,7 @@ const CourseInviteCode: React.FC<CourseInviteCodeProps> = ({
 
   return (
     <div className="space-y-3">
-      <div className="mb-2 flex flex-col justify-center gap-2 md:flex-row md:items-center">
+      <div className="mb-2 flex flex-col items-center justify-center gap-2 md:flex-row">
         {isEnabled ? <div>{inviteURL}</div> : <s>{inviteURL}</s>}
         <div className="flex gap-2">
           <Button
