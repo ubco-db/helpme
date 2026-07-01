@@ -13,6 +13,7 @@ import {
   Card,
   Input,
   Popconfirm,
+  Select,
   Segmented,
   Space,
   Spin,
@@ -41,6 +42,7 @@ import { API } from '@/app/api'
 import MarkdownCustom from '@/app/components/Markdown'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useCourse } from '@/app/hooks/useCourse'
 import {
   Message,
   parseThinkBlock,
@@ -48,8 +50,10 @@ import {
   Role,
 } from '@koh/common'
 import { Bot } from 'lucide-react'
+import { useChatbotContext } from './ChatbotProvider'
 
 const { TextArea } = Input
+type AgentSelectValue = number | Extract<ChatbotQuestionType, 'System'>
 
 interface ChatbotProps {
   cid: number
@@ -96,6 +100,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
   const { userInfo, setUserInfo } = useUserInfo()
   const [isLoading, setIsLoading] = useState(false)
   const courseFeatures = useCourseFeatures(cid)
+  const { course } = useCourse(cid)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const hasAskedQuestion = useRef(false) // to track if the user has asked a question
   const pathname = usePathname()
@@ -105,16 +110,30 @@ const Chatbot: React.FC<ChatbotProps> = ({
   // used to temporarily store what question type the user is trying to change to
   const [tempChatbotQuestionType, setTempChatbotQuestionType] =
     useState<ChatbotQuestionType | null>(null)
+  const {
+    agents,
+    hasLoadedAgents,
+    selectedAgentCourseId,
+    setSelectedAgentCourseId,
+  } = useChatbotContext()
+  const [tempAgentSelectValue, setTempAgentSelectValue] = useState<
+    AgentSelectValue | undefined
+  >()
   const role = getRoleInCourse(userInfo, cid)
+  const helpMeCourseId = Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID)
+  const hasHelpMeSystem = Boolean(helpMeCourseId)
 
   const isLti = useMemo(() => pathname.startsWith('/lti'), [pathname])
   const courseIdToUse =
-    chatbotQuestionType === 'System'
-      ? Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) || -1
-      : cid
+    selectedAgentCourseId ??
+    (chatbotQuestionType === 'System' ? helpMeCourseId || -1 : cid)
 
   useEffect(() => {
-    if (messages.length === 1) {
+    if (
+      messages.length === 1 &&
+      hasLoadedAgents &&
+      (agents.length === 0 || chatbotQuestionType === 'System')
+    ) {
       setPreDeterminedQuestions([])
       API.chatbot.studentsOrStaff
         .getSuggestedQuestions(courseIdToUse)
@@ -134,6 +153,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
     setPreDeterminedQuestions,
     messages.length,
     setQuestionsLeft,
+    agents.length,
+    chatbotQuestionType,
+    hasLoadedAgents,
   ])
 
   const handleAsk = async () => {
@@ -146,7 +168,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
 
     const data = {
       question:
-        chatbotQuestionType === 'System'
+        !selectedAgentCourseId && chatbotQuestionType === 'System'
           ? `${input}
             \nThis user is currently on the ${currentPageTitle}.
             \nThe user's role for this course is ${role === Role.PROFESSOR ? 'Professor (Staff)' : role === Role.TA ? 'TA (Staff)' : 'Student'}.`
@@ -256,6 +278,63 @@ const Chatbot: React.FC<ChatbotProps> = ({
     setInput('')
   }
 
+  const selectedAgentSelectValue =
+    chatbotQuestionType === 'System' ? 'System' : selectedAgentCourseId
+
+  const applyAgentSelectValue = (newValue: AgentSelectValue) => {
+    if (newValue === 'System') {
+      setChatbotQuestionType('System')
+      setSelectedAgentCourseId(undefined)
+      resetChat('System')
+      return
+    }
+
+    setChatbotQuestionType('Course')
+    setSelectedAgentCourseId(newValue)
+    resetChat('Course')
+  }
+
+  const agentSelect = (
+    <Select<AgentSelectValue>
+      value={selectedAgentSelectValue}
+      className="min-w-[180px]"
+      popupMatchSelectWidth={false}
+      options={[
+        ...(hasHelpMeSystem
+          ? [
+              {
+                label: 'HelpMe System',
+                options: [
+                  {
+                    value: 'System',
+                    label: 'System Inquiries',
+                  },
+                ],
+              },
+            ]
+          : []),
+        {
+          label: `${course?.name ?? 'Course'} Agents`,
+          options: agents.map((agent) => ({
+            value: agent.courseId,
+            label: agent.agentName,
+            title: agent.description,
+          })),
+        },
+      ]}
+      onChange={(newValue) => {
+        if (newValue === selectedAgentSelectValue) {
+          return
+        }
+        if (messages.length > 1) {
+          setTempAgentSelectValue(newValue)
+        } else {
+          applyAgentSelectValue(newValue)
+        }
+      }}
+    />
+  )
+
   if (!cid || !courseFeatures?.chatBotEnabled) {
     return <></>
   } else {
@@ -290,8 +369,30 @@ const Chatbot: React.FC<ChatbotProps> = ({
           )}
           extra={
             <>
-              {Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) &&
-              messages.length > 1 ? (
+              {agents.length > 0 ? (
+                messages.length > 1 ? (
+                  <Popconfirm
+                    title="Are you sure? this will reset the chat"
+                    getPopupContainer={(trigger) =>
+                      trigger.parentNode as HTMLElement
+                    }
+                    open={tempAgentSelectValue !== undefined}
+                    onConfirm={() => {
+                      if (tempAgentSelectValue !== undefined) {
+                        applyAgentSelectValue(tempAgentSelectValue)
+                        setTempAgentSelectValue(undefined)
+                      }
+                    }}
+                    onCancel={() => setTempAgentSelectValue(undefined)}
+                    trigger={'click'}
+                  >
+                    {agentSelect}
+                  </Popconfirm>
+                ) : (
+                  agentSelect
+                )
+              ) : Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID) &&
+                messages.length > 1 ? (
                 <Popconfirm
                   title="Are you sure? this will reset the chat"
                   getPopupContainer={(trigger) =>
@@ -456,6 +557,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                           </div>
                           <div className="flex flex-col gap-1">
                             {item.sourceDocuments &&
+                            !selectedAgentCourseId &&
                             chatbotQuestionType === 'System' ? (
                               <div className="align-items-start flex h-fit w-fit max-w-[280px] flex-wrap justify-start gap-x-2 rounded-xl bg-slate-100 p-1 font-semibold">
                                 <p className="truncate px-2 py-1">User Guide</p>
@@ -608,7 +710,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
                 <Button
                   type="primary"
                   onClick={handleAsk}
-                  disabled={input.trim().length === 0 || isLoading}
+                  disabled={
+                    input.trim().length === 0 || isLoading || !hasLoadedAgents
+                  }
                 >
                   Ask
                 </Button>

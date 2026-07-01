@@ -23,6 +23,7 @@ import {
   QueueConfig,
   QueueTypes,
   Role,
+  SuperCoursePurpose,
   UserPartial,
 } from '@koh/common';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
@@ -682,6 +683,9 @@ describe('CourseService', () => {
 
       expect(superCourse).toBeTruthy();
       expect(superCourse.length).toEqual(1);
+      expect(superCourse[0].purpose).toEqual(
+        SuperCoursePurpose.COURSE_CLONE_GROUP,
+      );
       expect(superCourse[0].courses.length).toEqual(2);
       expect(superCourse[0].courses.map((course) => course.id)).toEqual([
         originalCourseId,
@@ -899,11 +903,10 @@ describe('CourseService', () => {
       const superCourse = await SuperCourseModel.create({
         name: course.name,
         organization,
+        purpose: SuperCoursePurpose.COURSE_CLONE_GROUP,
       }).save();
-      extraTempCourse.superCourseId = superCourse.id;
-      await extraTempCourse.save();
-      course.superCourseId = superCourse.id;
-      await course.save();
+      superCourse.courses = [extraTempCourse, course];
+      await superCourse.save();
 
       const cloneData: CourseCloneAttributes = {
         professorIds: [professor.id],
@@ -933,6 +936,9 @@ describe('CourseService', () => {
         relations: ['courses'],
       });
       expect(updatedSuperCourse).toBeTruthy();
+      expect(updatedSuperCourse.purpose).toEqual(
+        SuperCoursePurpose.COURSE_CLONE_GROUP,
+      );
       expect(updatedSuperCourse.courses.length).toEqual(3);
       expect(updatedSuperCourse.courses.map((course) => course.id)).toEqual(
         expect.arrayContaining([

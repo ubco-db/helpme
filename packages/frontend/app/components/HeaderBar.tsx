@@ -285,7 +285,7 @@ const NavBar = ({
                     isLti ? 'pl-4' : 'pr-4',
                   )}
                   alt="Organization Logo"
-                  src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
+                  src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo`}
                 />
               </NextLink>
               {course ? (
@@ -731,7 +731,7 @@ const HeaderBar: React.FC = () => {
           height={48}
           className="h-12 object-contain p-1"
           alt="Organization Logo"
-          src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
+          src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo`}
         />
       )}
       <div className="flex h-14 grow flex-col items-center justify-center">
@@ -796,7 +796,7 @@ const HeaderBar: React.FC = () => {
                   height={48}
                   className="h-12 object-contain"
                   alt="Organization Logo"
-                  src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo/${userInfo.organization?.organizationLogoUrl}`}
+                  src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo`}
                 />
               )}
               <span className="text-2xl font-semibold leading-none">

@@ -11,6 +11,7 @@ import { LtiService } from '../lti/lti.service';
 import { ERROR_MESSAGES } from '@koh/common';
 import { CookieOptions, Request, Response } from 'express';
 import { getCookie } from '../common/helpers';
+import { ProfInviteService } from 'course/prof-invite/prof-invite.service';
 
 export type LoginEntryOptions = {
   cookieName?: string;
@@ -27,6 +28,7 @@ export class LoginService {
   constructor(
     private jwtService: JwtService,
     private configService: ConfigService,
+    private profInviteService: ProfInviteService,
   ) {}
 
   async initLoginEnter(
@@ -90,7 +92,7 @@ export class LoginService {
     let cookieOptions = options?.cookieOptions ?? { httpOnly: true };
 
     const secure =
-      cookieOptions?.secure != undefined
+      cookieOptions?.secure !== undefined
         ? cookieOptions.secure
         : this.configService.get<string>('DOMAIN').startsWith('https://');
 
@@ -127,12 +129,7 @@ export class LoginService {
           );
         }
         if (ltiIdentity) {
-          res = await this.handleLTIIdentityCookie(
-            res,
-            userId,
-            ltiIdentity,
-            ltiService,
-          );
+          await this.handleLTIIdentityCookie(userId, ltiIdentity, ltiService);
         }
       }
       return res
@@ -140,35 +137,33 @@ export class LoginService {
         .send({ message: returnImmediateMessage ?? 'OK' });
     }
 
-    let result = await this.handleCookies(
+    const { redirectUrl } = await this.handleCookies(
       req,
       res,
       userId,
       {
         cookieOptions,
         redirect,
-        emailVerification: false,
       },
       courseService,
       ltiService,
     );
-
-    if ('headersSent' in result && (result as Response).headersSent) {
-      return;
-    }
-
-    result = result as { res: Response; redirectUrl: string };
-    res = result.res;
-    const { redirectUrl } = result;
-    if (res.headersSent) {
-      return;
-    }
 
     return res
       .cookie(cookieName ?? 'auth_token', authToken, cookieOptions)
       .redirect(redirectUrl);
   }
 
+  /* Handles any cookies (as part of the login process). 
+    This includes: 
+    - getting invited to a course, 
+    - creating LTI identity (if part of LTI login and has a LTI cookie).
+    - any other redirect cookies.
+
+    Note: "Mutates" the `res` param (clears cookies).
+
+    Returns `res` (used for tests) and `redirectUrl` (please redirect the user to the redirectURL)
+  */
   async handleCookies(
     req: Request,
     res: Response,
@@ -176,12 +171,11 @@ export class LoginService {
     options: {
       cookieOptions: CookieOptions;
       redirect?: string;
-      emailVerification?: boolean;
     },
     courseService?: CourseService,
     ltiService?: LtiService,
-  ): Promise<Response | { res: Response; redirectUrl: string }> {
-    const { emailVerification, cookieOptions } = options;
+  ): Promise<{ res: Response; redirectUrl: string }> {
+    const { cookieOptions } = options;
     let { redirect } = options;
 
     let redirectUrl: string;
@@ -197,22 +191,30 @@ export class LoginService {
     }
     const queryParams = new URLSearchParams(initialParams);
 
-    const secureRedirectCookie = getCookie(req, '__SECURE_REDIRECT');
+    const secureRedirectCookie = getCookie(req, '__SECURE_REDIRECT'); // note that this is just the course invite cookie
     const queueInviteCookie = getCookie(req, 'queueInviteInfo');
+    const profInviteCookie = getCookie(req, 'profInviteInfo');
+
     const ltiInviteCookie = getCookie(req, '__COURSE_INVITE');
     const ltiIdentityCookie = getCookie(req, '__LTI_IDENTITY');
 
     // Process first as there's no associated redirect
     if (ltiIdentityCookie && ltiService) {
-      res = await this.handleLTIIdentityCookie(
-        res,
-        userId,
-        ltiIdentityCookie,
-        ltiService,
-      );
+      await this.handleLTIIdentityCookie(userId, ltiIdentityCookie, ltiService);
     }
 
-    if (queueInviteCookie && courseService && !redirect) {
+    if (profInviteCookie && !redirect) {
+      await this.profInviteService
+        .acceptProfInviteFromCookie(userId, profInviteCookie)
+        .then((urlWithParams) => {
+          res.clearCookie('profInviteInfo');
+          redirectUrl = urlWithParams;
+          // since it already has query params, clear queryParams so we don't end up with a weird situation with multiple
+          for (const [key] of queryParams) {
+            queryParams.delete(key);
+          }
+        });
+    } else if (queueInviteCookie && courseService && !redirect) {
       // Ignore queueInviteInfo if there's another redirect queued
       await courseService
         .getQueueInviteRedirectURLandInviteToCourse(queueInviteCookie, userId)
@@ -250,23 +252,10 @@ export class LoginService {
     } else if (redirect) {
       redirectUrl = redirect;
     } else {
-      redirectUrl = emailVerification ? undefined : '/courses';
+      redirectUrl = '/courses';
     }
 
-    redirectUrl =
-      redirectUrl != undefined
-        ? `${redirectUrl}${queryParams.size > 0 ? '?' + queryParams.toString() : ''}`
-        : undefined;
-
-    if (emailVerification && redirectUrl) {
-      return res.status(HttpStatus.TEMPORARY_REDIRECT).send({
-        redirectUri: redirectUrl,
-      });
-    } else if (emailVerification) {
-      return res.status(HttpStatus.ACCEPTED).send({
-        message: 'Email verified',
-      });
-    }
+    redirectUrl = `${redirectUrl}${queryParams.size > 0 ? '?' + queryParams.toString() : ''}`;
 
     return {
       res,
@@ -275,7 +264,6 @@ export class LoginService {
   }
 
   async handleLTIIdentityCookie(
-    res: Response,
     userId: number,
     ltiIdentityCookie: string,
     ltiService: LtiService,
@@ -289,7 +277,6 @@ export class LoginService {
       // On the next LTI launch, the pipeline will be re-executed
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_ignored) {}
-    return res;
   }
 
   async handleLTICourseInviteCookie(

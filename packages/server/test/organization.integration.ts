@@ -1890,16 +1890,18 @@ describe('Organization Integration', () => {
     });
   });
 
-  describe('GET /organization/:oid/get_banner/:photoUrl', () => {
+  describe('GET /organization/:oid/get_banner', () => {
     it('should return 401 when user is not logged in', async () => {
-      const response = await supertest().get(`/organization/1/get_banner/1`);
+      const response = await supertest().get(`/organization/1/get_banner`);
 
       expect(response.status).toBe(401);
     });
 
     it('should return 404 when image is not found', async () => {
       const user = await UserFactory.create();
-      const organization = await OrganizationFactory.create();
+      const organization = await OrganizationFactory.create({
+        bannerUrl: 'non_existing_image.png',
+      });
 
       await OrganizationUserModel.create({
         userId: user.id,
@@ -1907,7 +1909,7 @@ describe('Organization Integration', () => {
       }).save();
 
       const res = await supertest({ userId: user.id }).get(
-        `/organization/${organization.id}/get_banner/non_existing_image.png`,
+        `/organization/${organization.id}/get_banner`,
       );
 
       expect(res.status).toBe(404);
@@ -1933,7 +1935,7 @@ describe('Organization Integration', () => {
       }).save();
 
       const res = await supertest({ userId: user.id }).get(
-        `/organization/${organization.id}/get_banner/${organization.bannerUrl}`,
+        `/organization/${organization.id}/get_banner`,
       );
 
       expect(res.status).toBe(200);
@@ -1942,9 +1944,9 @@ describe('Organization Integration', () => {
     });
   });
 
-  describe('GET /organization/:oid/get_logo/:photoUrl', () => {
+  describe('GET /organization/:oid/get_logo', () => {
     it('should return 404 when getting an invalid organization', async () => {
-      const response = await supertest().get(`/organization/1/get_logo/999`);
+      const response = await supertest().get(`/organization/1/get_logo`);
 
       expect(response.status).toBe(404);
     });
@@ -1952,10 +1954,7 @@ describe('Organization Integration', () => {
       const file = Buffer.from([]);
       const fileName = 'test.png';
 
-      await fs.writeFileSync(
-        `${process.env.UPLOAD_LOCATION}/${fileName}`,
-        file,
-      );
+      fs.writeFileSync(`${process.env.UPLOAD_LOCATION}/${fileName}`, file);
 
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create({
@@ -1963,17 +1962,19 @@ describe('Organization Integration', () => {
       });
 
       const res = await supertest({ userId: user.id }).get(
-        `/organization/${organization.id}/get_logo/${organization.logoUrl}`,
+        `/organization/${organization.id}/get_logo`,
       );
 
       expect(res.status).toBe(200);
 
-      await fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, fileName));
+      fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, fileName));
     });
 
     it('should return 404 when image is not found', async () => {
       const user = await UserFactory.create();
-      const organization = await OrganizationFactory.create();
+      const organization = await OrganizationFactory.create({
+        logoUrl: 'non_existing_image.png',
+      });
 
       await OrganizationUserModel.create({
         userId: user.id,
@@ -1981,7 +1982,7 @@ describe('Organization Integration', () => {
       }).save();
 
       const res = await supertest({ userId: user.id }).get(
-        `/organization/${organization.id}/get_logo/non_existing_image.png`,
+        `/organization/${organization.id}/get_logo`,
       );
 
       expect(res.status).toBe(404);
@@ -1991,10 +1992,7 @@ describe('Organization Integration', () => {
       const file = Buffer.from([]);
       const fileName = 'test.png';
 
-      await fs.writeFileSync(
-        `${process.env.UPLOAD_LOCATION}/${fileName}`,
-        file,
-      );
+      fs.writeFileSync(`${process.env.UPLOAD_LOCATION}/${fileName}`, file);
 
       const user = await UserFactory.create();
       const organization = await OrganizationFactory.create({
@@ -2007,12 +2005,12 @@ describe('Organization Integration', () => {
       }).save();
 
       const res = await supertest({ userId: user.id }).get(
-        `/organization/${organization.id}/get_logo/${organization.logoUrl}`,
+        `/organization/${organization.id}/get_logo`,
       );
 
       expect(res.status).toBe(200);
 
-      await fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, fileName));
+      fs.unlinkSync(path.join(process.env.UPLOAD_LOCATION, fileName));
     });
   });
 
@@ -3433,7 +3431,7 @@ describe('Organization Integration', () => {
 
     const { supertest, getTestModule } = setupIntegrationTest(
       CourseModule,
-      modifyModule,
+      [modifyModule],
       [MailModule],
     );
 

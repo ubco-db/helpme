@@ -139,6 +139,7 @@ const Comment: React.FC<CommentProps> = ({
                 ? author.photoURL
                 : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${anonAnimal}.png`
             }
+            userId={author.id}
             anonymous
             onClick={(e) => {
               if (
@@ -172,6 +173,7 @@ const Comment: React.FC<CommentProps> = ({
                 ? author.photoURL
                 : `${ANONYMOUS_ANIMAL_AVATAR.URL}/${anonAnimal}.png`
             }
+            userId={author.id}
             anonymous
             onClick={(e) => {
               if (
@@ -306,7 +308,9 @@ const Comment: React.FC<CommentProps> = ({
                     .then(() => {
                       onEndorseSuccess()
                       message.success(
-                        !endorsedBy ? 'Comment endorsed' : 'Endorsement removed',
+                        !endorsedBy
+                          ? 'Comment endorsed'
+                          : 'Endorsement removed',
                       )
                     })
                     .catch((e) => {
@@ -347,10 +351,8 @@ const Comment: React.FC<CommentProps> = ({
             <CheckCircleOutlined />
             <span>
               Endorsed by{' '}
-              {endorsedBy.role === Role.PROFESSOR
-                ? 'Instructor'
-                : 'TA'}{' '}
-              ({endorsedBy.name})
+              {endorsedBy.role === Role.PROFESSOR ? 'Instructor' : 'TA'} (
+              {endorsedBy.name})
             </span>
           </div>
         )}

@@ -140,6 +140,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
                       <UserAvatar
                         username={item.firstName + ' ' + item.lastName}
                         photoURL={item.photoUrl ?? undefined}
+                        userId={item.userId}
                       />
                     }
                     title={item.firstName + ' ' + (item.lastName ?? '')}

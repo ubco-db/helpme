@@ -9,6 +9,8 @@ import { RedisProfileService } from 'redisProfile/redis-profile.service';
 import { MailModule } from 'mail/mail.module';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { LoginService } from './login.service';
+import { ProfInviteService } from 'course/prof-invite/prof-invite.service';
+import { ProfInviteModule } from 'course/prof-invite/prof-invite.module';
 
 @Module({
   imports: [
@@ -20,6 +22,7 @@ import { LoginService } from './login.service';
       }),
     }),
     MailModule,
+    ProfInviteModule,
   ],
   controllers: [LoginController],
   providers: [
@@ -28,6 +31,8 @@ import { LoginService } from './login.service';
     LoginService,
     RedisProfileService,
     ChatbotApiService,
+    ProfInviteService,
   ],
+  exports: [LoginService, ProfInviteService],
 })
 export class LoginModule {}

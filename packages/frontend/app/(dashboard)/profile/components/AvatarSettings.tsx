@@ -41,6 +41,7 @@ const AvatarSettings: React.FC = () => {
             />
           ) : (
             <UserAvatar
+              userId={userInfo?.id}
               photoURL={userInfo?.photoURL}
               username={userInfo?.name}
               size={avatarSize}

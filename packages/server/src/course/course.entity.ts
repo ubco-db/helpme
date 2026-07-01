@@ -6,6 +6,7 @@ import {
   DeleteDateColumn,
   Entity,
   JoinColumn,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   OneToOne,
@@ -27,6 +28,7 @@ import { ChatbotDocPdfModel } from '../chatbot/chatbot-doc-pdf.entity';
 import { SuperCourseModel } from './super-course.entity';
 import { CourseChatbotSettingsModel } from '../chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
 import { LtiCourseInviteModel } from '../lti/lti-course-invite.entity';
+import { ProfInviteModel } from './prof-invite/prof-invite.entity';
 
 @Entity('course_model')
 export class CourseModel extends BaseEntity {
@@ -150,14 +152,20 @@ export class CourseModel extends BaseEntity {
   @Exclude()
   chatbot_doc_pdfs: ChatbotDocPdfModel[];
 
-  @ManyToOne(() => SuperCourseModel, (course) => course.courses, {
-    nullable: true,
+  @ManyToMany(() => SuperCourseModel, (superCourse) => superCourse.courses, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
   })
-  @JoinColumn({ name: 'superCourseId' })
-  superCourse?: SuperCourseModel;
+  superCourses?: SuperCourseModel[];
 
-  @Column({ nullable: true })
-  superCourseId?: number;
+  @Column('text', { nullable: true })
+  chatbotAgentName?: string;
+
+  @Column('text', { nullable: true })
+  chatbotAgentDescription?: string;
+
+  @Column('integer', { nullable: true })
+  chatbotAgentOrder?: number;
 
   @Exclude()
   @JoinColumn({ referencedColumnName: 'courseId' })
@@ -170,4 +178,8 @@ export class CourseModel extends BaseEntity {
   @Exclude()
   @OneToMany(() => LtiCourseInviteModel, (ltiInvite) => ltiInvite.course)
   ltiInvites: LtiCourseInviteModel[];
+
+  @OneToMany((type) => ProfInviteModel, (profInvite) => profInvite.course)
+  @Exclude()
+  profInvites: ProfInviteModel[];
 }

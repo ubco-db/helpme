@@ -199,6 +199,11 @@ const QueueChat: React.FC<QueueChatProps> = ({
                               ? queueChatData.staff.photoURL
                               : queueChatData.student.photoURL
                           }
+                          userId={
+                            message.isStaff
+                              ? queueChatData.staff.id
+                              : queueChatData.student.id
+                          }
                         />
                       </div>
                     ) : (
@@ -214,6 +219,11 @@ const QueueChat: React.FC<QueueChatProps> = ({
                             message.isStaff
                               ? queueChatData.staff.photoURL
                               : queueChatData.student.photoURL
+                          }
+                          userId={
+                            message.isStaff
+                              ? queueChatData.staff.id
+                              : queueChatData.student.id
                           }
                         />
                         <div className="flex max-w-[70%] flex-col rounded-xl bg-slate-100 p-2 text-slate-900">
@@ -334,6 +344,9 @@ const QueueChat: React.FC<QueueChatProps> = ({
                   !isStaff
                     ? `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`
                     : `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}`
+                }
+                userId={
+                  !isStaff ? queueChatData.staff.id : queueChatData.student.id
                 }
               />
             }
