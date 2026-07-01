@@ -44,7 +44,6 @@
 - TA Check In/Out Times page now shows when TAs mark themselves "Away" 
 - Changed the "Unhappy with your answer? Convert to an Anytime Question" text to "Discuss or verify this with your professor/TA: Convert to Anytime Question"
   - Also added a "Continue Navigation" confirmation popup
-- Added the ability for professors to permanently delete their courses (as opposed to "archiving" them) - useful for accidentally created courses
 - Fixed an issue where users would not get redirected to their course invite after verifying their email
 - Added a button that lets you clear the cache for your backend profile (under Profile → Advanced), which might be helpful if you notice certain pieces of UI not updating when they should
 - Added a "Access denied" message when trying to access a course page you lack access to instead of an infinite spinner
@@ -56,7 +55,7 @@
 - Re-arranged Course Features (under Course Settings) to be easier to digest
 - Added an "Advanced" divider to Course Settings, amongst other re-arrangements
 - Removed the Course Timezone field when created/editing courses since it's unused
-- Re-arranged the features in the Add Course form
+- Re-arranged the features in the Add Course form and added "Anytime Questions Use Case" which is only a fancy toggle for allowing students for making their own questions public. It was done this way so that professors can get an idea on what Anytime Questions is for.
 - Edit Course Form Semester Selector now shows how long ago a semester ended
 - Fixed the Profile → Course Preferences table from overflowing on mobile
 - Added a new "name" field when manually creating new chatbot knowledge base chunks (previously, all chunks were given the name "Manually Inserted Information" - this lets you customize it)
@@ -66,6 +65,7 @@
   - Users Table now paginated
   - Users Table now searches by email *or* name
   - Courses Table now has more information and is sortable
+  - Now have the option to fully delete courses (as opposed to just archiving them)
 - Fixed issue where instead of "Wrong Password" it would say "Request failed with status code 401" when trying to login
 - Minor: started keeping track of when more things are created: enrollments, question types, queue invites, queues, semesters, organizations, users, and courses.
 - Fixed a minor issue where 'helping student in another course' was not working for queue invites

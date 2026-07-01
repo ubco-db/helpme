@@ -6,11 +6,14 @@ import {
   Card,
   Checkbox,
   Col,
+  Divider,
   Form,
   Input,
   message,
   Row,
+  Segmented,
   Select,
+  Tooltip,
 } from 'antd'
 import { ReactElement, useEffect, useState } from 'react'
 import {
@@ -31,6 +34,7 @@ import {
 import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 import ProfessorSelector from '@/app/(dashboard)/components/ProfessorSelector'
+import { useMediaQuery } from '@/app/hooks/useMediaQuery'
 
 interface FormValues {
   courseName: string
@@ -44,6 +48,7 @@ interface FormValues {
   queueEnabled: boolean
   asyncQueueEnabled: boolean
   asyncCentreAIAnswers: boolean
+  asyncCentreAuthorPublic: 'discussionBoard' | 'curatedListOfQuestions'
   scheduleOnFrontPage: boolean
 }
 
@@ -61,6 +66,12 @@ export default function AddCoursePage(): ReactElement {
     userInfo.organization?.orgId ?? -1,
   )
   const [isCourseNameTooLong, setIsCourseNameTooLong] = useState(false)
+
+  const isCertainlyNotMobile = useMediaQuery('(min-width: 992px)')
+  const [
+    isAnytimeQuestionsUseCaseDisabled,
+    setIsAnytimeQuestionsUseCaseDisabled,
+  ] = useState(false)
 
   const isAdmin =
     userInfo &&
@@ -130,6 +141,10 @@ export default function AddCoursePage(): ReactElement {
       { feature: 'queueEnabled', value: values.queueEnabled },
       { feature: 'asyncQueueEnabled', value: values.asyncQueueEnabled },
       { feature: 'asyncCentreAIAnswers', value: values.asyncCentreAIAnswers },
+      {
+        feature: 'asyncCentreAuthorPublic',
+        value: values.asyncCentreAuthorPublic !== 'curatedListOfQuestions',
+      },
       { feature: 'scheduleOnFrontPage', value: values.scheduleOnFrontPage },
     ]
 
@@ -193,12 +208,17 @@ export default function AddCoursePage(): ReactElement {
                   chatBotEnabled: true,
                   queueEnabled: true,
                   asyncQueueEnabled: true,
+                  asyncCentreAuthorPublic: 'discussionBoard',
                   asyncCentreAIAnswers: true,
                   scheduleOnFrontPage: false,
                 }}
                 onValuesChange={(changedValues) => {
                   if (changedValues.asyncQueueEnabled === false) {
+                    setIsAnytimeQuestionsUseCaseDisabled(true)
                     form.setFieldsValue({ asyncCentreAIAnswers: false })
+                  } else if (changedValues.asyncQueueEnabled === true) {
+                    setIsAnytimeQuestionsUseCaseDisabled(false)
+                    form.setFieldsValue({ asyncCentreAIAnswers: true })
                   }
                   if (changedValues.courseName) {
                     if (changedValues.courseName.length > 14) {
@@ -323,60 +343,150 @@ export default function AddCoursePage(): ReactElement {
                       </Form.Item>
                     )}
                   </Col>
-                  <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                    <div className="flex flex-wrap gap-x-4 md:gap-x-8">
-                      <Form.Item
-                        label="Chatbot"
-                        layout="horizontal"
-                        valuePropName="checked"
-                        name="chatBotEnabled"
-                        tooltip="This feature allows students to ask an AI chatbot questions that will answer their questions based on uploaded course content (located in course admin settings)"
-                      >
-                        <Checkbox />
-                      </Form.Item>
-                      <Form.Item
-                        label="Queues"
-                        valuePropName="checked"
-                        layout="horizontal"
-                        name="queueEnabled"
-                        tooltip="This feature allows students to ask questions in a queue that can then be answered by the professor or a TA. Suitable for online, hybrid, and in-person office hours and labs."
-                      >
-                        <Checkbox />
-                      </Form.Item>
-                      <Form.Item
-                        label="Anytime Question Hub"
-                        valuePropName="checked"
-                        layout="horizontal"
-                        name="asyncQueueEnabled"
-                        tooltip="This feature allows students to ask questions asynchronously (e.g. outside of office hours or labs) that can then be answered by the professor. It also features automatic AI-generated answers based on uploaded course content."
-                      >
-                        <Checkbox />
-                      </Form.Item>
-                      <Form.Item
-                        label="Anytime Question AI Answers"
-                        valuePropName="checked"
-                        layout="horizontal"
-                        name="asyncCentreAIAnswers"
-                        tooltip="This feature will enable students question's to immediately get an AI answer when they ask it (on the Anytime Question Hub). From there, students can ask if they are satisfied or still need help with it, in which staff can then edit the answer or verify it."
-                      >
-                        <Checkbox />
-                      </Form.Item>
-                      <Form.Item
-                        label="Schedule on Home Course Page"
-                        valuePropName="checked"
-                        layout="horizontal"
-                        name="scheduleOnFrontPage"
-                        tooltip="By default, a chatbot is displayed on the home course page. Enabling this will replace that chatbot with a preview of today's schedule and show a little 'chat now!' widget for the chatbot like other pages. Choose this option if you think it is more valuable for students to see today's event schedule over a large chatbot component."
-                      >
-                        <Checkbox />
-                      </Form.Item>
+                  <Col xs={{ span: 24 }} sm={{ span: 24 }}>
+                    <h3 className="text-lg font-semibold">Features</h3>
+                    <div className="flex min-w-full flex-col gap-2 md:min-w-[34rem]">
+                      <div className="w-full">
+                        <Form.Item
+                          labelCol={{ xs: 20, md: 18, lg: 12, xl: 6 }}
+                          wrapperCol={{ xs: 4, md: 6, lg: 12, xl: 18 }}
+                          label="Chatbot"
+                          layout="horizontal"
+                          valuePropName="checked"
+                          name="chatBotEnabled"
+                          tooltip="This feature allows students to ask an AI chatbot questions that will answer their questions based on uploaded course content (located in course admin settings)"
+                        >
+                          <Checkbox />
+                        </Form.Item>
+                        <Divider
+                          className="mx-auto w-1/2 min-w-40 border-gray-300 "
+                          size="small"
+                          variant="dashed"
+                        />
+                      </div>
+                      <div className="w-full">
+                        <Form.Item
+                          labelCol={{ xs: 20, md: 18, lg: 12, xl: 6 }}
+                          wrapperCol={{ xs: 4, md: 6, lg: 12, xl: 18 }}
+                          label="Queues"
+                          valuePropName="checked"
+                          className="mb-2"
+                          layout="horizontal"
+                          name="queueEnabled"
+                          tooltip="This feature allows students to ask questions in a queue that can then be answered by the professor or a TA. Suitable for online, hybrid, and in-person office hours and labs."
+                        >
+                          <Checkbox />
+                        </Form.Item>
+                        <Form.Item
+                          labelCol={{ xs: 20, md: 18, lg: 12, xl: 6 }}
+                          wrapperCol={{ xs: 4, md: 6, lg: 12, xl: 18 }}
+                          label={
+                            <span className="font-normal">
+                              Schedule on Home Course Page
+                            </span>
+                          }
+                          valuePropName="checked"
+                          layout="horizontal"
+                          name="scheduleOnFrontPage"
+                          tooltip="By default, a chatbot is displayed on the home course page. Enabling this will replace that chatbot with a preview of today's schedule and show a little 'Chatbot' widget for the chatbot like other pages. Choose this option if you think it is more valuable for students to see today's event schedule over a large chatbot component."
+                        >
+                          <Checkbox />
+                        </Form.Item>
+                        <Divider
+                          className="mx-auto w-1/2 min-w-40 border-gray-300 "
+                          size="small"
+                          variant="dashed"
+                        />
+                      </div>
+                      <div className="w-full">
+                        <Form.Item
+                          labelCol={{ xs: 20, md: 18, lg: 12, xl: 6 }}
+                          wrapperCol={{ xs: 4, md: 6, lg: 12, xl: 18 }}
+                          label="Anytime Question Hub"
+                          valuePropName="checked"
+                          layout="horizontal"
+                          className="mb-2"
+                          name="asyncQueueEnabled"
+                          tooltip="This feature will enable students question's to immediately get an AI answer when they ask it (on the Anytime Question Hub). From there, students can ask if they are satisfied or still need help with it, in which staff can then edit the answer or verify it. Utilizes the Course Chatbot and pairs great with it for Human In The Loop Support. All students are default anonymous to other students."
+                        >
+                          <Checkbox />
+                        </Form.Item>
+                        <Form.Item
+                          labelCol={{ xs: 20, md: 18, lg: 12, xl: 6 }}
+                          wrapperCol={{ xs: 4, md: 6, lg: 12, xl: 18 }}
+                          label={
+                            <span className="font-normal">AI Answers</span>
+                          }
+                          valuePropName="checked"
+                          layout="horizontal"
+                          className="mb-2"
+                          name="asyncCentreAIAnswers"
+                          tooltip="Anytime Questions first get an AI answer from the Course Chatbot. You can disable this feature if you want Anytime Questions to be a discussion board without AI."
+                        >
+                          <Checkbox />
+                        </Form.Item>
+                        <Form.Item
+                          labelCol={{ xs: 24, md: 24, lg: 10, xl: 6 }}
+                          wrapperCol={{ xs: 24, md: 24, lg: 14, xl: 18 }}
+                          label={<span className="font-normal">Use Case</span>}
+                          valuePropName="checked"
+                          layout={
+                            isCertainlyNotMobile ? 'horizontal' : 'vertical'
+                          }
+                          name="asyncCentreAuthorPublic"
+                          tooltip={
+                            <div className="flex flex-col gap-2">
+                              <p>
+                                This is if you want to have your Anytime
+                                Question Hub work more as a traditional
+                                discussion board vs a professor/TA curated list
+                                of questions. The only thing this changes is
+                                whether students are able to make their own
+                                questions visible to other students.
+                              </p>
+                              <p>
+                                Note that if you choose Discussion Board,
+                                don&apos;t forget to encourage your students to
+                                use it!
+                              </p>
+                            </div>
+                          }
+                        >
+                          <Segmented
+                            disabled={isAnytimeQuestionsUseCaseDisabled}
+                            options={[
+                              {
+                                label: (
+                                  <Tooltip title="Allow students to make their questions visible to other students, allowing them to help each other without involvement from course staff (default).">
+                                    Discussion Board
+                                  </Tooltip>
+                                ),
+                                value: 'discussionBoard',
+                              },
+                              {
+                                label: (
+                                  <Tooltip title="All questions start private. After verifying, course staff can choose to make questions visible to other students if they think it's a good question.">
+                                    Curated List of Questions
+                                  </Tooltip>
+                                ),
+                                value: 'curatedListOfQuestions',
+                              },
+                            ]}
+                          />
+                        </Form.Item>
+                        <Divider
+                          className="mx-auto w-1/2 min-w-40 border-gray-300 "
+                          size="small"
+                          variant="dashed"
+                        />
+                      </div>
                     </div>
                   </Col>
                 </Row>
                 <Row>
-                  <Col xs={{ span: 24 }} sm={{ span: 12 }}>
-                    <Form.Item>
-                      <Button type="primary" htmlType="submit">
+                  <Col xs={{ span: 24 }} sm={{ span: 24 }}>
+                    <Form.Item className="mb-0 mt-2 justify-self-center">
+                      <Button type="primary" htmlType="submit" size="large">
                         Add Course
                       </Button>
                     </Form.Item>
