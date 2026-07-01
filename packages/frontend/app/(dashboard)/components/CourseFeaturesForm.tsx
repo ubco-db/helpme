@@ -113,39 +113,6 @@ const CourseFeaturesForm: React.FC<CourseFeaturesFormProps> = ({
             description="By default, staff members have to make anytime questions public themselves (public = all students in course can see it). Enabling this allows students to make their own questions public, giving a more traditional discussion board experience rather than a curated list of questions."
             courseId={courseId}
           />
-
-          <CourseFeatureSwitch
-            featureName="assignmentEvaluationEnabled"
-            defaultChecked={courseFeatures.assignmentEvaluationEnabled}
-            title="(LLED Courses Only) AI Assignment Evaluation"
-            description={
-              <div className="flex flex-col gap-2">
-                <p>
-                  When enabled, this will add a &quot;AI Assignment
-                  Evaluation&quot; tool that can be access from the Course Home
-                  page. This will allow students to upload their
-                  assignments/essays to get some AI feedback.
-                </p>
-                <p>Does NOT utilize uploaded Chatbot materials yet.</p>
-                <p>
-                  Only hardcoded for LLED Courses for now since it was easier to
-                  implement - but if enough professors show interest, it can be
-                  adapted to be more generalizable. You can find a video of the
-                  feature{' '}
-                  <a
-                    href="https://github.com/ubco-db/helpme/pull/546#issuecomment-4416714212"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    here
-                  </a>
-                  . Contact <a href="mailto:adam.fipke@ubc.ca">Adam</a> for more
-                  details.
-                </p>
-              </div>
-            }
-            courseId={courseId}
-          />
         </div>
       </Form>
     )
