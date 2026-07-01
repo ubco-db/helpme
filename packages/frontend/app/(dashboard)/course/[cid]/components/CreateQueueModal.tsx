@@ -180,7 +180,7 @@ const CreateQueueModal: React.FC<CreateQueueModalProps> = ({
         label={
           <span>
             <span>
-              <span className="mr-1">Queue Config</span>
+              <span className="mr-1">Queue Config (Optional)</span>
               <Tooltip
                 title={
                   'Here you can specify a JSON config to automatically set up question tags, tasks, and other settings for the queue. For example, you can use this to set up a chemistry lab that requires certain tasks to be checked off (e.g. have the TA look at the experiment before continuing). You can also easily externally save this config and copy/paste this config to other queues and courses.'
