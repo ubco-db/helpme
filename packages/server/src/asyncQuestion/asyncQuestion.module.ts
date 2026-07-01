@@ -21,15 +21,3 @@ import { ChatbotApiService } from 'chatbot/chatbot-api.service';
   exports: [AsyncQuestionService],
 })
 export class asyncQuestionModule {}
-
-@Module({
-  controllers: [asyncQuestionController],
-  providers: [
-    AsyncQuestionService,
-    ChatbotApiService,
-    ApplicationConfigService,
-  ],
-  imports: [NotificationModule, MailTestingModule, ChatbotModule],
-  exports: [AsyncQuestionService],
-})
-export class asyncQuestionTestingModule {}
