@@ -1852,6 +1852,19 @@ describe('Course Integration', () => {
       expect(updatedCourseSettings.queueEnabled).toEqual(false);
       expect(updatedCourseSettings.asyncCentreAIAnswers).toEqual(false);
       expect(updatedCourseSettings.scheduleOnFrontPage).toEqual(true);
+
+      // ENABLE ESSAY EVALUATION
+      resp = await supertest({ userId: professor.id })
+        .patch(`/courses/${course.id}/features`)
+        .send({ value: true, feature: 'assignmentEvaluationEnabled' });
+
+      expect(resp.status).toBe(200);
+
+      updatedCourseSettings = await CourseSettingsModel.findOne({
+        where: { courseId: course.id },
+      });
+
+      expect(updatedCourseSettings.assignmentEvaluationEnabled).toEqual(true);
     });
   });
 
@@ -1892,6 +1905,7 @@ describe('Course Integration', () => {
         asyncCentreAIAnswers: true,
         asyncCentreAuthorPublic: false,
         asyncCentreDefaultAnonymous: true,
+        assignmentEvaluationEnabled: false,
         scheduleOnFrontPage: false,
         settingsFound: false,
       });
@@ -1927,6 +1941,7 @@ describe('Course Integration', () => {
         asyncCentreAIAnswers: false,
         asyncCentreDefaultAnonymous: false,
         asyncCentreAuthorPublic: false,
+        assignmentEvaluationEnabled: false,
         scheduleOnFrontPage: true,
         settingsFound: true,
       });

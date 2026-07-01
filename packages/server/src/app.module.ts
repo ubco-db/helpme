@@ -39,6 +39,7 @@ import { BaseExceptionFilter } from 'exception_filters/generic-exception.filter'
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { LtiModule } from './lti/lti.module';
 import { ProfInviteModule } from './course/prof-invite/prof-invite.module';
+import { AssignmentFeedbackModule } from './assignment-feedback/assignment-feedback.module';
 
 @Module({
   imports: [
@@ -93,6 +94,7 @@ import { ProfInviteModule } from './course/prof-invite/prof-invite.module';
     AlertsModule,
     SemesterModule,
     ChatbotModule,
+    AssignmentFeedbackModule,
     OrganizationModule,
     AuthModule,
     QuestionTypeModule,

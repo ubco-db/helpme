@@ -6,10 +6,11 @@ import { ReactElement, useEffect, useMemo, useState, use } from 'react'
 import QueueCard from './components/QueueCard'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { getRoleInCourse } from '@/app/utils/generalUtils'
+import { getRoleInCourse, getErrorMessage } from '@/app/utils/generalUtils'
 import { useCourse } from '@/app/hooks/useCourse'
 import CreateQueueModal from './components/CreateQueueModal'
 import AsyncCentreCard from './components/AsyncCentreCard'
+import AssignmentFeedbackStartCard from './components/AIAssignmentFeedbackStartCard'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import CoursePageCheckInButton from './components/CoursePageCheckInButton'
 import PopularTimes from './components/popularTimes/PopularTimes'
@@ -21,7 +22,6 @@ import StudentSchedulePanel from './schedule/components/StudentSchedulePanel'
 import { useChatbotContext } from './components/chatbot/ChatbotProvider'
 import Chatbot from './components/chatbot/Chatbot'
 import { useRouter } from 'next/navigation'
-import { getErrorMessage } from '@/app/utils/generalUtils'
 import { useSearchParams } from 'next/navigation'
 
 type CoursePageProps = {
@@ -43,7 +43,8 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
     () =>
       courseFeatures?.chatBotEnabled &&
       !courseFeatures?.queueEnabled &&
-      !courseFeatures?.asyncQueueEnabled,
+      !courseFeatures?.asyncQueueEnabled &&
+      !courseFeatures?.assignmentEvaluationEnabled,
     [courseFeatures],
   )
   // chatbot
@@ -222,6 +223,10 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                       skipLinkTarget == 'async-centre' ? 'skip-link-target' : ''
                     }
                   />
+                )}
+
+                {courseFeatures.assignmentEvaluationEnabled && (
+                  <AssignmentFeedbackStartCard cid={cid} />
                 )}
 
                 {role === Role.TA ||

@@ -542,7 +542,7 @@ describe('AuthService', () => {
       const authState = await AuthStateFactory.create({
         organization: org,
         createdAt: expiredCreatedAt(),
-        expiresInSeconds: 0,
+        expiresInSeconds: -1,
       });
       const res: any = new MockResponse() as any;
       await service.ssoAuthCallback(
@@ -713,7 +713,7 @@ describe('AuthService', () => {
         user: user,
         token: crypto.randomBytes(32).toString('hex'),
         createdAt: expiredCreatedAt(),
-        expiresInSeconds: 0,
+        expiresInSeconds: -1,
       });
 
       await expect(

@@ -250,7 +250,7 @@ export class AuthService {
     }
 
     if (
-      (Date.now() - authState.createdAt.getTime()) / 1000 >
+      (Date.now() - authState.createdAt.getTime()) / 1000 >=
       authState.expiresInSeconds
     ) {
       return res.redirect(`${options?.prefix ?? ''}/failed/40004`);
@@ -324,7 +324,7 @@ export class AuthService {
     }
 
     if (
-      (Date.now() - emailToken.createdAt.getTime()) / 1000 >
+      (Date.now() - emailToken.createdAt.getTime()) / 1000 >=
       emailToken.expiresInSeconds
     ) {
       throw new BadRequestException('Verification code has expired');

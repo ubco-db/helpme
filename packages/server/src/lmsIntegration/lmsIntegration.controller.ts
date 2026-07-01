@@ -448,7 +448,7 @@ export class LMSIntegrationController {
       }
 
       const expired =
-        (Date.now() - stateModel.createdAt.getTime()) / 1000 >
+        (Date.now() - stateModel.createdAt.getTime()) / 1000 >=
         stateModel.expiresInSeconds;
       if (expired) {
         throw new BadRequestException(

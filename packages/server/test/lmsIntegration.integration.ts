@@ -1371,7 +1371,7 @@ describe('Lms Integration Integrations', () => {
         user,
         organizationIntegration: orgInt,
         createdAt: expiredCreatedAt(),
-        expiresInSeconds: 0,
+        expiresInSeconds: -1,
       });
       const params = new URLSearchParams({
         state: expiredState.state,

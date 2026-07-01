@@ -123,7 +123,7 @@ describe('LMSIntegrationService', () => {
         organizationIntegration,
         user,
         createdAt: expiredCreatedAt(),
-        expiresInSeconds: 0,
+        expiresInSeconds: -1,
       });
 
       await service.clearLMSAuthStates();

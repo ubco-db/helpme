@@ -36,6 +36,10 @@ module.exports = function (options) {
           use: 'ts-loader',
           include: /@koh/, // Build packages we depend on
         },
+        {
+          test: /\.md$/,
+          type: 'asset/source', // allows us to import .md files into our typescript rather than requiring to read them at runtime
+        },
       ],
     },
     devtool: 'source-map',

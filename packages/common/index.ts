@@ -14,6 +14,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  MinLength,
   ValidateNested,
 } from 'class-validator'
 import 'reflect-metadata'
@@ -2994,6 +2995,194 @@ export type UserMailSubscription = {
   isSubscribed: boolean
 }
 
+export type AssignmentFeedbackFunctionDimension =
+  | 'content'
+  | 'interpersonal'
+  | 'organization'
+export type AssignmentFeedbackLinguisticLevel =
+  | 'text'
+  | 'section'
+  | 'clause_word'
+export type AssignmentFeedbackSeverity = 'low' | 'medium' | 'high'
+export type AssignmentFeedbackCitationType = 'rubric' | 'course_material'
+
+export class AssignmentFeedbackRequest {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(15000)
+  essay_text!: string
+
+  constructor(init?: Partial<AssignmentFeedbackRequest>) {
+    Object.assign(this, init)
+  }
+}
+
+export class AssignmentFeedbackExtractTextResponse {
+  @IsString()
+  essay_text!: string
+
+  @IsString()
+  filename!: string
+
+  constructor(init?: Partial<AssignmentFeedbackExtractTextResponse>) {
+    Object.assign(this, init)
+  }
+}
+
+export class AssignmentFeedbackParagraph {
+  @IsString()
+  id!: string
+
+  @IsString()
+  text!: string
+
+  constructor(init?: Partial<AssignmentFeedbackParagraph>) {
+    Object.assign(this, init)
+  }
+}
+
+export class AssignmentFeedbackEssay {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AssignmentFeedbackParagraph)
+  paragraphs!: AssignmentFeedbackParagraph[]
+
+  constructor(init?: Partial<AssignmentFeedbackEssay>) {
+    Object.assign(this, init)
+  }
+}
+
+export class AssignmentFeedbackCitation {
+  @IsIn(['rubric', 'course_material'])
+  type!: AssignmentFeedbackCitationType
+
+  @IsString()
+  label!: string
+
+  @IsOptional()
+  @IsString()
+  url!: string | null
+
+  constructor(init?: Partial<AssignmentFeedbackCitation>) {
+    Object.assign(this, init)
+  }
+}
+
+export class AssignmentFeedbackEvidence {
+  @IsString()
+  exact_quote!: string
+
+  @IsOptional()
+  @IsString()
+  context_before_quote?: string
+
+  @IsOptional()
+  @IsString()
+  context_after_quote?: string
+
+  constructor(init?: Partial<AssignmentFeedbackEvidence>) {
+    Object.assign(this, init)
+  }
+}
+
+export class AssignmentFeedbackAnnotation {
+  @IsInt()
+  id!: number
+
+  @IsString()
+  paragraph_id!: string
+
+  @IsOptional()
+  @IsInt()
+  char_start!: number | null
+
+  @IsOptional()
+  @IsInt()
+  char_end!: number | null
+
+  @IsIn(['content', 'interpersonal', 'organization'])
+  function!: AssignmentFeedbackFunctionDimension
+
+  @IsIn(['text', 'section', 'clause_word'])
+  level!: AssignmentFeedbackLinguisticLevel
+
+  @IsString()
+  issue_type!: string
+
+  @IsIn(['low', 'medium', 'high'])
+  severity!: AssignmentFeedbackSeverity
+
+  @ValidateNested()
+  @Type(() => AssignmentFeedbackEvidence)
+  evidence!: AssignmentFeedbackEvidence
+
+  @IsString()
+  feedback!: string
+
+  @IsString()
+  revision_guidance!: string
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AssignmentFeedbackCitation)
+  citations?: AssignmentFeedbackCitation[]
+
+  constructor(init?: Partial<AssignmentFeedbackAnnotation>) {
+    Object.assign(this, init)
+  }
+}
+
+export class AssignmentFeedbackOverallFeedback {
+  @IsString()
+  summary!: string
+
+  @IsOptional()
+  @IsArray()
+  @Type(() => String)
+  priority_issues?: string[]
+
+  @IsOptional()
+  @IsArray()
+  @Type(() => String)
+  next_steps?: string[]
+
+  @IsOptional()
+  @IsArray()
+  @Type(() => String)
+  reflection_questions?: string[]
+
+  constructor(init?: Partial<AssignmentFeedbackOverallFeedback>) {
+    Object.assign(this, init)
+  }
+}
+
+export class AssignmentFeedbackResponse {
+  @IsOptional()
+  @IsString()
+  submission_id!: string | null
+
+  @IsOptional()
+  @IsString()
+  created_at!: string | null
+
+  @ValidateNested()
+  @Type(() => AssignmentFeedbackEssay)
+  essay!: AssignmentFeedbackEssay
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AssignmentFeedbackAnnotation)
+  annotations!: AssignmentFeedbackAnnotation[]
+
+  @ValidateNested()
+  @Type(() => AssignmentFeedbackOverallFeedback)
+  overall_feedback!: AssignmentFeedbackOverallFeedback
+
+  constructor(init?: Partial<AssignmentFeedbackResponse>) {
+    Object.assign(this, init)
+  }
+}
+
 export class CourseSettingsResponse {
   @IsInt()
   courseId!: number
@@ -3022,6 +3211,9 @@ export class CourseSettingsResponse {
   @IsBoolean()
   asyncCentreAuthorPublic!: boolean
 
+  @IsBoolean()
+  assignmentEvaluationEnabled!: boolean
+
   @IsOptional()
   @IsBoolean()
   settingsFound?: boolean = true //this is mostly just for debugging purposes by viewing network responses
@@ -3040,6 +3232,7 @@ export const validFeatures = [
   'asyncCentreAIAnswers',
   'asyncCentreDefaultAnonymous',
   'asyncCentreAuthorPublic',
+  'assignmentEvaluationEnabled',
 ]
 
 export class CourseSettingsRequestBody {
