@@ -501,7 +501,6 @@ const LoginPage: React.FC = () => {
 
                   <Form.Item>
                     <Button
-                      type="primary"
                       htmlType="submit"
                       className="h-auto w-full items-center justify-center rounded-lg border px-2 py-2 "
                     >
