@@ -1,20 +1,32 @@
 # HelpMe System
 
-Main features:
-- **Queues** that support in-person and virtual office hours and labs with instructors and teaching assistants
+This is the repo for the HelpMe system, which is currently being hosted at [https://coursehelp.ubc.ca/](https://coursehelp.ubc.ca/).
+
+Check out the [Overview Video](https://www.youtube.com/watch?v=H9ywkvDdeZ0) or see the landing page for detailed info (packages/frontend/app/page.tsx), which has images. The production server's [landing page](https://coursehelp.ubc.ca/) should have all of this though. Also checkout our [About page](https://coursehelp.ubc.ca/about).
+
+Main features (all can be toggled off):
+- **Queues**: For managing office hours or labs.
+  - Especially useful for busy Hybrid or Online sessions, but also supports In-Person queues.
+  - Scales well for large courses. Supports multiple queues with multiple staff at the same time, with a built-in schedule to help manage everything (calendar events).
+  - Tracks what questions were asked - used in Insights page
   - Also supports "task questions" (aka Demos) which are when students ask to have some "tasks" checked off. Useful for labs that have multiple parts that need to be checked off by staff
-- **Course Chatbot** for real-time answers about course content and course questions
+- **Course Chatbot** for real-time answers about course content. Note that the chatbot repo is on a separate service (ask HelpMe devs for access). HelpMe calls chatbot endpoints via `chatbot-api.service.ts`
   - For students, they get personalized responses based on the course content that was uploaded (with citations!)
-  - For instructors, they get more control and can see what questions are asked and also edit/verify the answer in case the question gets answered again
-- **Anytime Questions** that allow students to ask questions outside of labs or office hours 
+    - Can convert questions into Anytime Questions for Human In The Loop (HITL) support.
+    - Accessed by students via Invite Link (the main invite link to the course) or embeddable within Canvas (instructors must reach out to LTHub for access)
+    - Hosted on UBCO servers (we have a GPU server running Ollama, but this may be switched out with some other local model manager at some point). When developing though, you likely won't have network permissions to access the server and thus you will need to use OpenAI or your own Ollama server.
+  - For instructors, they get more control and can see what questions are asked and also edit the answer and re-insert it into the chatbot knowledge base.
+    - Prompt is professor-customizable (and they are encouraged to do so).
+    - Supports drag-n-drop and automatic Canvas course document upload (via canvas integration).
+- **Anytime Questions**: A discussion board/email replacement
   - The questions are initially answered by AI, which can then be reviewed and edited by instructors and TAs (great for large courses with lots of TAs since any TA can answer)
   - Instructors and TAs can then make the question public to allow other students to see it (good for commonly asked questions)
-  - Basically like an Email 2.0
+  - Students are fully anonymized to one another by default, allowing for anxiety-free participation
 - Built for UBC but **supports other organizations** (for more information, contact Ramon Lawrence ramon.lawrence@ubc.ca)
 
-Note: the new Chatbot feature has been integrated through a different API service that is not part of this queue system. 
+Note: the new Chatbot feature has been integrated through a different API service that is not part of this system. It has its own private repo. If you're looking to contribute in tasks related to the chatbot, you will need permission to access the repo.
 
-## Installation
+## Installation (for Production)
 The easiest way to spin up the system is through Docker.
 
 The Docker container uses an environment variable file that can be found [here](packages/server/.env.docker). This file should stay up to date within other environment variable files. Change the environment variables to match your environment.

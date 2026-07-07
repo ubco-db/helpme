@@ -26,7 +26,7 @@ import {
 import { instanceToInstance } from 'class-transformer';
 import { pick } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
-import { DataSource, In } from 'typeorm';
+import { DataSource, EntityManager, In } from 'typeorm';
 import { QueueModel } from './queue.entity';
 import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationConfigService } from '../config/application_config.service';
@@ -50,59 +50,76 @@ export class QueueService {
   Before returning the queue to frontend, use formatStaffListPropertyForFrontend() or getFormattedStaffList() to make sure the staff list is the right structure.
   (Since the stafflist our frontend uses is not the same structure as the backend)
   */
-  async getQueueRaw(queueId: number): Promise<QueueModel> {
-    const queue = await QueueModel.findOne({
-      where: {
-        id: queueId,
-      },
-      relations: {
-        queueStaff: {
-          user: {
-            courses: true,
-          },
-        },
-      },
-    });
-    await queue.addQueueSize();
+  async getQueueRaw(
+    queueId: number,
+    manager?: EntityManager,
+  ): Promise<QueueModel> {
+    const queue = manager
+      ? await manager.getRepository(QueueModel).findOne({
+          where: { id: queueId },
+          relations: { queueStaff: { user: { courses: true } } },
+        })
+      : await QueueModel.findOne({
+          where: { id: queueId },
+          relations: { queueStaff: { user: { courses: true } } },
+        });
+    await queue.addQueueSize(manager);
 
     return queue;
   }
 
   /* Queries for a QueueModel and formats it for the frontend */
-  async getQueueFormatted(queueId: number): Promise<GetQueueResponse> {
+  async getQueueFormatted(
+    queueId: number,
+    manager?: EntityManager,
+  ): Promise<GetQueueResponse> {
     return await this.queueStaffService.formatStaffListPropertyForFrontend(
-      await this.getQueueRaw(queueId),
+      await this.getQueueRaw(queueId, manager),
     );
   }
 
-  async getQuestions(queueId: number): Promise<ListQuestionsResponse> {
+  async getQuestions(
+    queueId: number,
+    manager?: EntityManager,
+  ): Promise<ListQuestionsResponse> {
     // todo: Make a student and a TA version of this function, and switch which one to use in the controller
     // for now, just return the student response
-    const queueSize = await QueueModel.count({
-      where: { id: queueId },
-    });
+    const queueSize = manager
+      ? await manager
+          .getRepository(QueueModel)
+          .count({ where: { id: queueId } })
+      : await QueueModel.count({ where: { id: queueId } });
     // Check that the queue exists
     if (queueSize === 0) {
       throw new NotFoundException();
     }
 
-    const questionsFromDb = await QuestionModel.inQueueWithStatus(
-      queueId,
-      [
-        ...StatusInPriorityQueue,
-        ...StatusInQueue,
-        OpenQuestionStatus.Helping,
-        OpenQuestionStatus.Paused,
-      ],
-      this.appConfig.get('max_questions_per_queue'),
-    )
+    const questionQueryBuilder = manager
+      ? manager.getRepository(QuestionModel).createQueryBuilder('question')
+      : QuestionModel.createQueryBuilder('question');
+
+    const questionsFromDb = await questionQueryBuilder
+      .where('question.queueId = :queueId', { queueId })
+      .andWhere('question.status IN (:...statuses)', {
+        statuses: [
+          ...StatusInPriorityQueue,
+          ...StatusInQueue,
+          OpenQuestionStatus.Helping,
+          OpenQuestionStatus.Paused,
+        ],
+      })
+      .limit(this.appConfig.get('max_questions_per_queue'))
+      .orderBy('question.createdAt', 'ASC')
       .leftJoinAndSelect('question.questionTypes', 'questionTypes')
       .leftJoinAndSelect('question.creator', 'creator')
       .leftJoinAndSelect('question.taHelped', 'taHelped')
       .getMany();
 
     const unresolvedRephraseQuestionAlerts =
-      await this.alertsService.getUnresolvedRephraseQuestionAlert(queueId);
+      await this.alertsService.getUnresolvedRephraseQuestionAlert(
+        queueId,
+        manager,
+      );
 
     const queueQuestions = new ListQuestionsResponse();
 
@@ -185,6 +202,7 @@ export class QueueService {
     queueQuestions: ListQuestionsResponse,
     userId: number,
     role: Role,
+    manager?: EntityManager,
   ): Promise<ListQuestionsResponse> {
     if (role === Role.STUDENT) {
       const newLQR = new ListQuestionsResponse();
@@ -218,14 +236,23 @@ export class QueueService {
         );
       }
 
-      newLQR.yourQuestions = await QuestionModel.find({
-        relations: ['creator', 'taHelped'],
-        where: {
-          creatorId: userId,
-          queueId: queueId,
-          status: In(StatusSentToCreator),
-        },
-      });
+      newLQR.yourQuestions = manager
+        ? await manager.getRepository(QuestionModel).find({
+            relations: { creator: true, taHelped: true },
+            where: {
+              creatorId: userId,
+              queueId: queueId,
+              status: In(StatusSentToCreator),
+            },
+          })
+        : await QuestionModel.find({
+            relations: { creator: true, taHelped: true },
+            where: {
+              creatorId: userId,
+              queueId: queueId,
+              status: In(StatusSentToCreator),
+            },
+          });
       newLQR.priorityQueue = [];
 
       if (newLQR.yourQuestions) {
@@ -416,7 +443,7 @@ export class QueueService {
   /**
    * Creates a new queue invite for the given queue
    */
-  async createQueueInvite(queueId: number): Promise<void> {
+  async createQueueInvite(queueId: number): Promise<QueueInviteModel> {
     const queueInvite = await QueueInviteModel.findOne({
       where: {
         queueId: queueId,
@@ -433,7 +460,7 @@ export class QueueService {
         queueId,
         inviteCode: this.generateRandomInviteCode(),
       });
-      await invite.save();
+      return await invite.save();
     } catch (err) {
       console.error('Error while creating queue invite:');
       console.error(err);

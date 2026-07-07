@@ -15,7 +15,6 @@ export class QueueSubscriber implements EntitySubscriberInterface<QueueModel> {
     dataSource.subscribers.push(this);
   }
 
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   listenTo() {
     return QueueModel;
   }
@@ -23,7 +22,7 @@ export class QueueSubscriber implements EntitySubscriberInterface<QueueModel> {
   async afterUpdate(event: UpdateEvent<QueueModel>): Promise<void> {
     if (event.entity) {
       // Send all listening clients an update
-      await this.queueSSEService.updateQueue(event.entity.id);
+      await this.queueSSEService.updateQueue(event.entity.id, event.manager);
     }
   }
 }

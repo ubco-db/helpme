@@ -111,9 +111,13 @@ export class AlertsService {
 
   async getUnresolvedRephraseQuestionAlert(
     queueId: number,
+    manager?: EntityManager,
   ): Promise<AlertModel[]> {
     const alertType = AlertType.REPHRASE_QUESTION;
-    return await AlertModel.createQueryBuilder('alert')
+    const alertQueryBuilder = manager
+      ? manager.getRepository(AlertModel).createQueryBuilder('alert')
+      : AlertModel.createQueryBuilder('alert');
+    return await alertQueryBuilder
       .where('alert.readAt IS NULL')
       .andWhere('alert.alertType = :alertType', { alertType })
       .andWhere("(alert.payload ->> 'queueId')::INTEGER = :queueId ", {

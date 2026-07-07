@@ -12,12 +12,16 @@ export function useOrganizationSettings(
 
   const { data: organizationSettings } = useSWR(
     key,
-    async () =>
-      await API.organizations.getOrganizationSettings(
-        organizationId === undefined || organizationId === null
-          ? 0
-          : organizationId,
-      ),
+    async () => {
+      if (
+        organizationId === undefined ||
+        organizationId === null ||
+        organizationId === -1 ||
+        organizationId === 0
+      )
+        return undefined
+      return await API.organizations.getOrganizationSettings(organizationId)
+    },
     {
       onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
         // if the API responded with 404, stop retrying

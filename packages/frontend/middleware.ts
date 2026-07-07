@@ -7,6 +7,8 @@ import { getAuthTokenString } from '@/app/api/cookie-utils'
 // These are files that do not require authentication. Used for displaying logos outside of HelpMe.
 const publicFiles: RegExp[] = [
   new RegExp('^/helpme_logo_(full|medium|small)[.]png$'),
+  new RegExp('^/ubc_logo[.]png$'),
+  new RegExp('^/actually_public/.*$'),
 ]
 
 // These are the public pages that do not require authentication. Adding an * will match any characters after the page (e.g. if the page has search query params).
@@ -15,6 +17,7 @@ const publicPages: string[] = [
   '/register*',
   '/failed*',
   '/password*',
+  '/about',
   '/',
   '/invite*',
   '/qi/*', // queue invite page
@@ -338,13 +341,15 @@ export async function middleware(
     }
   }
 
-  // Case: User has auth token and tries to access a public page that isn't /invite or /lti or /qi or /error_pages
+  // Case: User has auth token and tries to access a public page that isn't /invite or /lti or /qi or /error_pages etc.
   if (
     isPublicPageRequested &&
     hasToken &&
     !nextUrl.pathname.startsWith('/invite') &&
     !nextUrl.pathname.startsWith('/qi/') &&
-    !nextUrl.pathname.startsWith('/error_pages')
+    !nextUrl.pathname.startsWith('/error_pages') &&
+    !nextUrl.pathname.startsWith('/about') &&
+    nextUrl.pathname !== '/' // let logged-in users access landing page
   ) {
     return NextResponse.redirect(new URL(defaultPage, url))
   }

@@ -38,6 +38,8 @@ import { LmsIntegrationModule } from './lmsIntegration/lmsIntegration.module';
 import { BaseExceptionFilter } from 'exception_filters/generic-exception.filter';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { LtiModule } from './lti/lti.module';
+import { ProfInviteModule } from './course/prof-invite/prof-invite.module';
+import { AssignmentFeedbackModule } from './assignment-feedback/assignment-feedback.module';
 
 @Module({
   imports: [
@@ -92,6 +94,7 @@ import { LtiModule } from './lti/lti.module';
     AlertsModule,
     SemesterModule,
     ChatbotModule,
+    AssignmentFeedbackModule,
     OrganizationModule,
     AuthModule,
     QuestionTypeModule,
@@ -99,6 +102,7 @@ import { LtiModule } from './lti/lti.module';
     RedisQueueModule,
     BackupModule,
     QueueChatsModule,
+    ProfInviteModule,
     // no more than 30 calls per 1 second
     ThrottlerModule.forRoot([
       {

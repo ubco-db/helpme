@@ -23,6 +23,7 @@
     "dev:prod-simulate:build": "cross-env NEXT_PUBLIC_API_BASE_URL=https://localhost NEXT_PUBLIC_DEV_PORT=443 NEXT_PUBLIC_HOST_PROTOCOL=https NODE_ENV=production yarn build:dev",
     "migration:generate": "yarn workspace @koh/server run migration:generate",
     "migration:run": "yarn workspace @koh/server run migration:run",
+    "seed:chatbot-agent-group": "yarn workspace @koh/server run seed:chatbot-agent-group",
     "schema:drop": "yarn workspace @koh/server run schema:drop",
     "build": "cross-env NODE_OPTIONS=--openssl-legacy-provider yarn workspace @koh/server run build && yarn workspace @koh/frontend run build",
     "build:dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider yarn workspace @koh/server run build:dev && yarn workspace @koh/frontend run build",

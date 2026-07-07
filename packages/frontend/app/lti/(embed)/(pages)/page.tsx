@@ -101,7 +101,7 @@ export default function LtiLandingPage(): ReactElement {
     <>
       <div className="mt-4 flex items-center rounded-[10px] bg-white p-3 shadow md:text-left lg:p-5 xl:max-w-[1500px]">
         <Image
-          src={`/api/v1/organization/${userInfo?.organization?.orgId}/get_logo/${userInfo?.organization?.organizationLogoUrl}`}
+          src={`/api/v1/organization/${userInfo?.organization?.orgId}/get_logo`}
           className="mr-2 max-h-20 object-contain object-center p-1 md:max-h-80"
           alt="Organization Logo"
           width={80}

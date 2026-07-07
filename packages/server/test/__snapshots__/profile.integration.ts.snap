@@ -36,9 +36,7 @@ exports[`Profile Integration GET /profile returns the logged-in user profile 1`]
   "organization": {
     "id": 1,
     "orgId": 1,
-    "organizationBannerUrl": null,
     "organizationDescription": "UBC Okanagan",
-    "organizationLogoUrl": null,
     "organizationName": "UBCO",
     "organizationRole": "member",
   },

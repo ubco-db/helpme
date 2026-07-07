@@ -77,6 +77,7 @@ const StaffFilter: React.FC<StaffFilterProps> = ({
                   >
                     <UserAvatar
                       photoURL={item.photoURL}
+                      userId={item.id}
                       username={item.name ?? ''}
                     />
                     <span className="ml-2">{item.name}</span>

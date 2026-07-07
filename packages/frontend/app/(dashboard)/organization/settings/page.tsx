@@ -28,6 +28,7 @@ import { SemesterManagement } from './components/SemesterManagement'
 import OrganizationSettingSwitch from '@/app/(dashboard)/organization/settings/components/OrganizationSettingSwitch'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
+import { AllProfInvites } from './components/AllProfInvites'
 
 export default function SettingsPage(): ReactNode {
   // Handler to update SSO patterns
@@ -294,7 +295,7 @@ export default function SettingsPage(): ReactNode {
                           width={300}
                           height={300}
                           alt="Organization Logo"
-                          src={`/api/v1/organization/${organization?.id}/get_logo/${organization?.logoUrl}`}
+                          src={`/api/v1/organization/${organization?.id}/get_logo`}
                         />
                       </Row>
                       <Row>
@@ -348,7 +349,7 @@ export default function SettingsPage(): ReactNode {
                           width={300}
                           height={300}
                           alt="Organization Banner"
-                          src={`/api/v1/organization/${organization?.id}/get_banner/${organization?.bannerUrl}`}
+                          src={`/api/v1/organization/${organization?.id}/get_banner`}
                         />
                       </Row>
                       <Row>
@@ -518,6 +519,10 @@ export default function SettingsPage(): ReactNode {
           organizationSemesters={organizationSemesters}
           setOrganizationSemesters={setOrganizationSemesters}
         />
+      )}
+
+      {userInfo.organization?.organizationRole === OrganizationRole.ADMIN && (
+        <AllProfInvites orgId={organization.id} />
       )}
     </div>
   ) : (

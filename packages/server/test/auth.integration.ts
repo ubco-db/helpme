@@ -3,12 +3,17 @@ import { setupIntegrationTest } from './util/testUtils';
 import { JwtService } from '@nestjs/jwt';
 import {
   AuthStateFactory,
+  CourseFactory,
   OrganizationFactory,
   OrganizationUserFactory,
   UserFactory,
 } from './util/factories';
 import { AuthService } from 'auth/auth.service';
-import { AccountType, ERROR_MESSAGES } from '@koh/common';
+import {
+  AccountType,
+  ERROR_MESSAGES,
+  ValidateEmailTokenResponse,
+} from '@koh/common';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import {
   TokenAction,
@@ -226,7 +231,7 @@ describe('Auth Integration', () => {
       });
       const authState = await AuthStateFactory.create({
         organization,
-        expiresInSeconds: 0,
+        expiresInSeconds: -1,
       });
 
       const res = await supertest().get(
@@ -652,7 +657,7 @@ describe('Auth Integration', () => {
         token: 'expired',
         token_type: TokenType.PASSWORD_RESET,
         token_action: TokenAction.ACTION_PENDING,
-        expiresInSeconds: 0,
+        expiresInSeconds: -1,
       }).save();
 
       const res = await supertest()
@@ -701,7 +706,7 @@ describe('Auth Integration', () => {
         token: 'expired',
         token_type: TokenType.PASSWORD_RESET,
         token_action: TokenAction.ACTION_PENDING,
-        expiresInSeconds: 0,
+        expiresInSeconds: -1,
       }).save();
 
       const res = await supertest().get(
@@ -751,7 +756,7 @@ describe('Auth Integration', () => {
         token: 'expired',
         token_type: TokenType.EMAIL_VERIFICATION,
         token_action: TokenAction.ACTION_PENDING,
-        expiresInSeconds: 0,
+        expiresInSeconds: -1,
       }).save();
 
       const res = await supertest({ userId: user.id })
@@ -764,7 +769,7 @@ describe('Auth Integration', () => {
       expect(res.status).toBe(400);
     });
 
-    it('should return ACCEPTED when token is valid', async () => {
+    it('should return 200 when token is valid', async () => {
       const user = await UserFactory.create();
 
       const userToken = await UserTokenModel.create({
@@ -780,11 +785,14 @@ describe('Auth Integration', () => {
           token: userToken.token,
         });
 
-      expect(res.status).toBe(202);
+      expect(res.status).toBe(200);
     });
 
-    it('should return TEMPORARY REDIRECT when __SECURE_REDIRECT cookie is present', async () => {
+    it('should return 200 with redirectUrl when __SECURE_REDIRECT cookie is present', async () => {
       const user = await UserFactory.create();
+      const course = await CourseFactory.create({
+        courseInviteCode: 'someCode',
+      });
 
       const userToken = await UserTokenModel.create({
         user,
@@ -798,13 +806,17 @@ describe('Auth Integration', () => {
         .post('/auth/registration/verify')
         .set(
           'Cookie',
-          `auth_token=${token};__SECURE_REDIRECT=${Buffer.from(`/course`).toString('base64')}`,
+          `auth_token=${token};__SECURE_REDIRECT=${course.id},${course.courseInviteCode}`,
         )
         .send({
           token: userToken.token,
         });
 
-      expect(res.status).toBe(307);
+      expect(res.status).toBe(200);
+      const body = res.body as ValidateEmailTokenResponse;
+      expect(body.redirectUrl).toBe(
+        `/invite?cid=${course.id}&code=${course.courseInviteCode}`,
+      );
     });
   });
 });

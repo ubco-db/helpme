@@ -270,6 +270,9 @@ export class WeeklySummaryService {
           });
 
           emailsSent++;
+
+          // Throttle to avoid overwhelming the mail service. This might add 1-2 extra minutes depending on how many professors we have.
+          await new Promise((resolve) => setTimeout(resolve, 500)); // 500ms
         } catch (error) {
           emailsFailed++;
           console.error(
@@ -293,7 +296,8 @@ export class WeeklySummaryService {
         `[WeeklySummary] Sent ${emailsSent} emails (${emailsFailed} failed) for Weekly Summary cron job. Took ${durationSeconds}s.`,
       );
 
-      if (duration > 60000) {
+      if (duration > 60000 * 10) {
+        // if it takes longer than 10 minutes
         Sentry.captureMessage(
           `Weekly Summary cron job took ${durationSeconds}s to complete (${emailsSent} sent, ${emailsFailed} failed)`,
           'warning',

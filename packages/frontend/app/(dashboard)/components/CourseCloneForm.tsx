@@ -1,23 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import {
-  Checkbox,
-  Form,
-  FormInstance,
-  Input,
-  message,
-  Select,
-  Tag,
-  Tooltip,
-} from 'antd'
-import {
-  GetOrganizationResponse,
-  OrganizationProfessor,
-  OrganizationRole,
-} from '@koh/common'
+import { Checkbox, Form, FormInstance, Input, message, Select } from 'antd'
+import { GetOrganizationResponse, OrganizationProfessor } from '@koh/common'
 import { API } from '@/app/api'
 import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
+import ProfessorSelector from './ProfessorSelector'
 
 type CourseCloneFormProps = {
   form: FormInstance
@@ -71,59 +59,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           className="flex-1"
           required
         >
-          <Select
-            mode="multiple"
-            placeholder="Select professors"
-            showSearch
-            optionFilterProp="label"
-            options={professors.map((prof: OrganizationProfessor) => ({
-              key: prof.organizationUser.id,
-              label: prof.organizationUser.name,
-              value: prof.organizationUser.id,
-            }))}
-            filterSort={(optionA, optionB) =>
-              (optionA?.label ?? '')
-                .toLowerCase()
-                .localeCompare((optionB?.label ?? '').toLowerCase())
-            }
-            notFoundContent="There seems to be no professors available. This is likely a server error."
-            tagRender={(props) => {
-              const { label, value, closable, onClose } = props
-              const onPreventMouseDown = (
-                event: React.MouseEvent<HTMLSpanElement>,
-              ) => {
-                event.preventDefault()
-                event.stopPropagation()
-              }
-              // find the professor with the given id and see if they have lacksProfOrgRole
-              const match = professors.find(
-                (prof) => prof.organizationUser.id === value,
-              )
-              const lacksProfOrgRole = ![
-                OrganizationRole.ADMIN,
-                OrganizationRole.PROFESSOR,
-              ].includes(match?.trueRole ?? OrganizationRole.MEMBER)
-              return (
-                <Tooltip
-                  title={
-                    lacksProfOrgRole
-                      ? 'This user lacks the Professor role in this organization, meaning they cannot create their own courses.'
-                      : ''
-                  }
-                >
-                  <Tag
-                    color={lacksProfOrgRole ? 'orange' : 'blue'}
-                    onMouseDown={onPreventMouseDown}
-                    closable={closable}
-                    onClose={onClose}
-                    style={{ marginInlineEnd: 4 }}
-                  >
-                    {label}
-                  </Tag>
-                </Tooltip>
-              )
-            }}
-          />
+          <ProfessorSelector professors={professors} />
         </Form.Item>
       )}
       <Form.Item
@@ -269,7 +205,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           valuePropName="checked"
           label="Documents"
           layout="horizontal"
-          tooltip="Clone the documents you uploaded to the chatbot. Note that after you clone these, you may want to review them and remove any that contain out-of-date information"
+          tooltip="Clone the documents you uploaded to the chatbot knowledge base. Note that after you clone these, you may want to review them and remove any that contain out-of-date information"
           className={`${formItemClassNames}`}
         >
           <Checkbox />
@@ -289,7 +225,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           valuePropName="checked"
           label="Inserted Questions"
           layout="horizontal"
-          tooltip="Clone over any chatbot questions that were inserted as a source into the chatbot."
+          tooltip="Clone over any Chatbot Questions and Anytime Questions that were inserted into the chatbot knowledge base."
           className={`${formItemClassNames}`}
         >
           <Checkbox />
@@ -299,7 +235,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           valuePropName="checked"
           label="Inserted LMS Data"
           layout="horizontal"
-          tooltip="Clone over any LMS data (e.g. assignment descriptions, announcements) that was inserted as a source into the chatbot. Defaulted to false since announcements usually have outdated information."
+          tooltip="Clone over any LMS data (e.g. assignment descriptions, announcements) that was inserted into the chatbot knowledge base. Defaulted to false since announcements usually have outdated information."
           className={`${formItemClassNames}`}
         >
           <Checkbox />

@@ -9,6 +9,7 @@ import {
   ERROR_MESSAGES,
   OrganizationRole,
   Role,
+  SuperCoursePurpose,
   UpdateChatbotProviderBody,
 } from '@koh/common';
 import {
@@ -38,6 +39,7 @@ import { ChatbotService } from '../src/chatbot/chatbot.service';
 import { CourseChatbotSettingsModel } from '../src/chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
 import { UserModel } from '../src/profile/user.entity';
 import { ChatbotApiService } from '../src/chatbot/chatbot-api.service';
+import { SuperCourseModel } from '../src/course/super-course.entity';
 
 describe('ChatbotController Integration', () => {
   const { supertest } = setupIntegrationTest(ChatbotModule);
@@ -130,6 +132,241 @@ describe('ChatbotController Integration', () => {
       expect(response.body.responseText).toEqual(body.responseText);
       expect(response.body.vectorStoreId).toEqual(body.vectorStoreId);
       expect(response.body.interactionId).toBeDefined();
+    });
+
+    it('should allow a parent course member to ask a suggested question in an agent course', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const parentCourse = await CourseFactory.create({ name: 'LANTERN' });
+      const agentCourse = await CourseFactory.create({
+        name: 'LANTERN Analyst',
+        chatbotAgentName: 'Analyst',
+      });
+      await UserCourseFactory.create({
+        user,
+        course: parentCourse,
+        role: Role.STUDENT,
+      });
+
+      const agentGroup = await SuperCourseModel.create({
+        name: 'LANTERN Agents',
+        purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
+        organization,
+      }).save();
+      agentGroup.courses = [parentCourse, agentCourse];
+      await agentGroup.save();
+
+      const body: ChatbotAskSuggestedParams = {
+        question: 'How do I evaluate a research article?',
+        responseText: 'Start with the study design and methods.',
+        vectorStoreId: 'agent-question-1',
+      };
+
+      const response = await supertest({ userId: user.id })
+        .post(`/chatbot/askSuggested/${agentCourse.id}`)
+        .send(body)
+        .expect(201);
+      expect(response.body.id).toBeDefined();
+      expect(response.body.questionText).toEqual(body.question);
+      expect(response.body.responseText).toEqual(body.responseText);
+      expect(response.body.vectorStoreId).toEqual(body.vectorStoreId);
+      expect(response.body.interactionId).toBeDefined();
+    });
+
+    it('should block agent course access when the user is not in the parent course', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const parentCourse = await CourseFactory.create({ name: 'LANTERN' });
+      const agentCourse = await CourseFactory.create({
+        name: 'LANTERN Analyst',
+        chatbotAgentName: 'Analyst',
+      });
+
+      const agentGroup = await SuperCourseModel.create({
+        name: 'LANTERN Agents',
+        purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
+        organization,
+      }).save();
+      agentGroup.courses = [parentCourse, agentCourse];
+      await agentGroup.save();
+
+      const body: ChatbotAskSuggestedParams = {
+        question: 'How do I evaluate a research article?',
+        responseText: 'Start with the study design and methods.',
+        vectorStoreId: 'agent-question-1',
+      };
+
+      await supertest({ userId: user.id })
+        .post(`/chatbot/askSuggested/${agentCourse.id}`)
+        .send(body)
+        .expect(404);
+    });
+  });
+
+  describe('GET /chatbot/course/:courseId/agents', () => {
+    it('should return an empty list for a course without chatbot agents', async () => {
+      const user = await UserFactory.create();
+      const course = await CourseFactory.create();
+      await UserCourseFactory.create({
+        user,
+        course,
+        role: Role.STUDENT,
+      });
+
+      const response = await supertest({ userId: user.id })
+        .get(`/chatbot/course/${course.id}/agents`)
+        .expect(200);
+
+      expect(response.body).toEqual([]);
+    });
+
+    it('should return sorted chatbot agents for a parent course member', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const parentCourse = await CourseFactory.create({ name: 'LANTERN' });
+      const analystCourse = await CourseFactory.create({
+        name: 'LANTERN Analyst',
+        chatbotAgentName: 'Analyst',
+        chatbotAgentDescription: 'Research methods and critical appraisal.',
+        chatbotAgentOrder: 1,
+      });
+      const strategistCourse = await CourseFactory.create({
+        name: 'LANTERN Strategist',
+        chatbotAgentName: 'Strategist',
+        chatbotAgentDescription: 'Grantsmanship and project planning.',
+        chatbotAgentOrder: 2,
+      });
+      const thriveCourse = await CourseFactory.create({
+        name: 'LANTERN Thrive',
+        chatbotAgentName: 'Thrive',
+        chatbotAgentDescription: 'Academic culture and career planning.',
+        chatbotAgentOrder: 3,
+      });
+      await UserCourseFactory.create({
+        user,
+        course: parentCourse,
+        role: Role.STUDENT,
+      });
+
+      const agentGroup = await SuperCourseModel.create({
+        name: 'LANTERN Agents',
+        purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
+        organization,
+      }).save();
+      agentGroup.courses = [
+        parentCourse,
+        strategistCourse,
+        thriveCourse,
+        analystCourse,
+      ];
+      await agentGroup.save();
+
+      const response = await supertest({ userId: user.id })
+        .get(`/chatbot/course/${parentCourse.id}/agents`)
+        .expect(200);
+
+      expect(response.body).toEqual([
+        {
+          courseId: analystCourse.id,
+          name: analystCourse.name,
+          agentName: analystCourse.chatbotAgentName,
+          description: analystCourse.chatbotAgentDescription,
+          order: analystCourse.chatbotAgentOrder,
+        },
+        {
+          courseId: strategistCourse.id,
+          name: strategistCourse.name,
+          agentName: strategistCourse.chatbotAgentName,
+          description: strategistCourse.chatbotAgentDescription,
+          order: strategistCourse.chatbotAgentOrder,
+        },
+        {
+          courseId: thriveCourse.id,
+          name: thriveCourse.name,
+          agentName: thriveCourse.chatbotAgentName,
+          description: thriveCourse.chatbotAgentDescription,
+          order: thriveCourse.chatbotAgentOrder,
+        },
+      ]);
+    });
+
+    it('should hide archived agents unless the parent course is archived', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const parentCourse = await CourseFactory.create({
+        name: 'LANTERN',
+        enabled: true,
+      });
+      const activeAgentCourse = await CourseFactory.create({
+        name: 'LANTERN Analyst',
+        enabled: true,
+        chatbotAgentName: 'Analyst',
+        chatbotAgentDescription: 'Research methods and critical appraisal.',
+        chatbotAgentOrder: 1,
+      });
+      const archivedAgentCourse = await CourseFactory.create({
+        name: 'LANTERN Strategist',
+        enabled: false,
+        chatbotAgentName: 'Strategist',
+        chatbotAgentDescription: 'Grantsmanship and project planning.',
+        chatbotAgentOrder: 2,
+      });
+      await UserCourseFactory.create({
+        user,
+        course: parentCourse,
+        role: Role.STUDENT,
+      });
+
+      const agentGroup = await SuperCourseModel.create({
+        name: 'LANTERN Agents',
+        purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
+        organization,
+      }).save();
+      agentGroup.courses = [
+        parentCourse,
+        activeAgentCourse,
+        archivedAgentCourse,
+      ];
+      await agentGroup.save();
+
+      const activeParentResponse = await supertest({ userId: user.id })
+        .get(`/chatbot/course/${parentCourse.id}/agents`)
+        .expect(200);
+      expect(activeParentResponse.body.map((agent) => agent.courseId)).toEqual([
+        activeAgentCourse.id,
+      ]);
+
+      parentCourse.enabled = false;
+      await parentCourse.save();
+
+      const archivedParentResponse = await supertest({ userId: user.id })
+        .get(`/chatbot/course/${parentCourse.id}/agents`)
+        .expect(200);
+      expect(
+        archivedParentResponse.body.map((agent) => agent.courseId),
+      ).toEqual([activeAgentCourse.id, archivedAgentCourse.id]);
+    });
+
+    it('should block users who are not in the parent course', async () => {
+      const user = await UserFactory.create();
+      const organization = await OrganizationFactory.create();
+      const parentCourse = await CourseFactory.create({ name: 'LANTERN' });
+      const analystCourse = await CourseFactory.create({
+        name: 'LANTERN Analyst',
+        chatbotAgentName: 'Analyst',
+      });
+
+      const agentGroup = await SuperCourseModel.create({
+        name: 'LANTERN Agents',
+        purpose: SuperCoursePurpose.CHATBOT_AGENT_GROUP,
+        organization,
+      }).save();
+      agentGroup.courses = [parentCourse, analystCourse];
+      await agentGroup.save();
+
+      await supertest({ userId: user.id })
+        .get(`/chatbot/course/${parentCourse.id}/agents`)
+        .expect(404);
     });
   });
 

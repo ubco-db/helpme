@@ -8,6 +8,10 @@ interface UserInfoContextType {
   userInfo: User
   setUserInfo: React.Dispatch<React.SetStateAction<User>>
 }
+interface OptionalUserInfoContextType {
+  userInfo?: User
+  setUserInfo?: React.Dispatch<React.SetStateAction<User>>
+}
 
 // Create context
 const userInfoContext = createContext<UserInfoContextType | undefined>(
@@ -42,5 +46,17 @@ export const useUserInfo = (): UserInfoContextType => {
     throw new Error('useUserInfo must be used within a UserInfoProvider')
   }
 
+  return context
+}
+
+/* Same as useUserInfo except will returned undefined instead of throwing an error if used outside of a UserInfoProvider.
+  Reason: In very specific cases (e.g. the HeaderBar), there are components that we want to have different behavior based on
+  whether or not the user is logged in, but for a vast majority of cases the user will be logged in.
+*/
+export const useUserInfoOptional = (): OptionalUserInfoContextType => {
+  const context = useContext(userInfoContext)
+  if (context === undefined) {
+    return { userInfo: undefined, setUserInfo: undefined }
+  }
   return context
 }

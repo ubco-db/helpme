@@ -41,6 +41,7 @@ import { LMSCourseIntegrationModel } from '../src/lmsIntegration/lmsCourseIntegr
 jest.setTimeout(10000);
 describe('Lms Integration Integrations', () => {
   const { supertest } = setupIntegrationTest(LmsIntegrationModule);
+  const expiredCreatedAt = (): Date => new Date(Date.now() - 1000);
 
   let prof: UserModel;
   let course: CourseModel;
@@ -1369,7 +1370,8 @@ describe('Lms Integration Integrations', () => {
       const expiredState = await LMSAuthStateFactory.create({
         user,
         organizationIntegration: orgInt,
-        expiresInSeconds: 0,
+        createdAt: expiredCreatedAt(),
+        expiresInSeconds: -1,
       });
       const params = new URLSearchParams({
         state: expiredState.state,

@@ -12,6 +12,7 @@ import {
 } from '@ant-design/icons'
 import { EditCourseInfoParams, OrganizationCourseResponse } from '@koh/common'
 import { Button, Popconfirm, message, Divider } from 'antd'
+import Link from 'next/link'
 import { useCallback, useState } from 'react'
 
 type CourseInviteCodeProps = {
@@ -103,7 +104,7 @@ const CourseInviteCode: React.FC<CourseInviteCodeProps> = ({
 
   return (
     <div className="space-y-3">
-      <div className="mb-2 flex flex-col justify-center gap-2 md:flex-row md:items-center">
+      <div className="mb-2 flex flex-col items-center justify-center gap-2 md:flex-row">
         {isEnabled ? <div>{inviteURL}</div> : <s>{inviteURL}</s>}
         <div className="flex gap-2">
           <Button
@@ -125,7 +126,11 @@ const CourseInviteCode: React.FC<CourseInviteCodeProps> = ({
           </Button>
         </div>
       </div>
-      <Divider size="middle" className="mx-auto min-w-2 max-w-40" />
+      <Divider
+        size="middle"
+        className="mx-auto min-w-2 max-w-40 border-gray-300 "
+        variant="dashed"
+      />
       <div className="flex w-full flex-wrap items-center justify-center gap-2 pt-1">
         <Button
           type={isEnabled ? 'default' : 'primary'}
@@ -151,6 +156,16 @@ const CourseInviteCode: React.FC<CourseInviteCodeProps> = ({
           </Button>
         </Popconfirm>
       </div>
+      <p>
+        See also:{' '}
+        <Link href={`/course/${courseData.course?.id}/settings/queue_invites`}>
+          Queue Invites
+        </Link>
+        ,{' '}
+        <a href={`/course/${courseData.course?.id}/settings#professor-invites`}>
+          Professor Invites
+        </a>
+      </p>
     </div>
   )
 }

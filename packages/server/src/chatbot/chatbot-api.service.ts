@@ -10,7 +10,7 @@ import {
   UpdateDocumentAggregateParams,
   UpdateDocumentChunkParams,
 } from '@koh/common';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -23,13 +23,38 @@ import { ConfigService } from '@nestjs/config';
     the CHATBOT_API_KEY in the chatbot repo.
 */
 export class ChatbotApiService {
+  private readonly logger = new Logger(ChatbotApiService.name);
   private readonly chatbotApiUrl: string;
   private readonly chatbotApiKey: string;
 
   constructor(private configService: ConfigService) {
-    // this.chatbotApiUrl = this.configService.get<string>('CHATBOT_API_URL');
-    this.chatbotApiUrl = 'http://localhost:3003/chat';
+    const configuredUrl = this.configService
+      .get<string>('CHATBOT_API_URL')
+      ?.trim();
+    this.chatbotApiUrl = configuredUrl || 'http://localhost:3003/chat';
     this.chatbotApiKey = this.configService.get<string>('CHATBOT_API_KEY');
+  }
+
+  /** Parse chatbot error bodies that may be JSON `{ error }` or plain text / HTML. */
+  private async throwHttpFromChatbotFailure(
+    response: Response,
+    fallbackMessage: string,
+  ): Promise<never> {
+    const text = await response.text();
+    let message = fallbackMessage;
+    try {
+      const parsed = JSON.parse(text) as { error?: string };
+      if (parsed?.error && typeof parsed.error === 'string') {
+        message = parsed.error;
+      } else if (text.trim()) {
+        message = text.trim().slice(0, 500);
+      }
+    } catch {
+      if (text.trim()) {
+        message = text.trim().slice(0, 500);
+      }
+    }
+    throw new HttpException(message, response.status);
   }
 
   /**
@@ -61,8 +86,10 @@ export class ChatbotApiService {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'HMS-API-KEY': this.chatbotApiKey,
-        HMS_API_TOKEN: userToken,
       };
+      if (userToken && userToken.length > 0) {
+        headers.HMS_API_TOKEN = userToken;
+      }
 
       const response = await fetch(url, {
         method,
@@ -72,10 +99,9 @@ export class ChatbotApiService {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new HttpException(
-          error.error || 'Error from chatbot service',
-          response.status,
+        await this.throwHttpFromChatbotFailure(
+          response,
+          'Error from chatbot service',
         );
       }
 
@@ -84,6 +110,10 @@ export class ChatbotApiService {
       if (error instanceof HttpException) {
         throw error;
       }
+      const detail = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `Chatbot request failed (${method} ${this.chatbotApiUrl}/${endpoint}): ${detail}`,
+      );
       throw new HttpException(
         'Failed to connect to chatbot service',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -119,6 +149,30 @@ export class ChatbotApiService {
       },
       undefined,
       type === 'abstract' ? 5000 : undefined, // 5s timeout for abstract queries
+    );
+    return resp.answer;
+  }
+
+  /**
+   * Calls the chatbot `POST /chatbot/query` endpoint with a `courseId`, so the
+   * chatbot routes the prompt through the course's generatorLLM (the same LLM
+   * configured in Chatbot Settings for that course). No user token is required
+   * by the chatbot's `/query` route, so this method intentionally omits it.
+   *
+   * Adam: So `/query` calls always use the org's default model, despite what it might look like in the code.
+   * I'm assuming this is the case because stuff like abstract generation wouldn't need big models that the prof may pick.
+   * So for the AI Assignment/Essay Feedback feature, it will need its own ChatbotQueryType eventually.
+   */
+  async queryChatbotForCourse(
+    query: string,
+    courseId: number,
+    type: 'default' | 'abstract' = 'default',
+  ): Promise<string> {
+    const resp: { answer: string } = await this.request(
+      'POST',
+      `chatbot/query`,
+      '',
+      { query, type, courseId },
     );
     return resp.answer;
   }
@@ -254,6 +308,18 @@ export class ChatbotApiService {
     return this.request('DELETE', `document/${courseId}/${docId}`, userToken);
   }
 
+  async deleteDocumentChunksByAsyncQuestionId(
+    asyncQuestionId: number,
+    courseId: number,
+    userToken: string,
+  ): Promise<string> {
+    return this.request(
+      'DELETE',
+      `document/${courseId}/asyncQuestion/${asyncQuestionId}`,
+      userToken,
+    );
+  }
+
   async deleteDocument(docId: string, courseId: number, userToken: string) {
     return this.request(
       'DELETE',
@@ -332,10 +398,9 @@ export class ChatbotApiService {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new HttpException(
-          error.error || 'Error from chatbot service',
-          response.status,
+        await this.throwHttpFromChatbotFailure(
+          response,
+          'Error from chatbot service',
         );
       }
 
@@ -401,12 +466,9 @@ export class ChatbotApiService {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        console.error('Error for url', url);
-        console.error(response);
-        throw new HttpException(
-          error.error || 'Failed to upload LMS file buffer',
-          response.status,
+        await this.throwHttpFromChatbotFailure(
+          response,
+          'Failed to upload LMS file buffer',
         );
       }
 

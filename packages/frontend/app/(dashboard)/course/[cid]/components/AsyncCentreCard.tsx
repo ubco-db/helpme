@@ -31,13 +31,14 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
     >
       <Card
         classNames={{
-          header: 'text-white bg-[#3C426F] rounded-t-lg',
+          header:
+            'text-white bg-[#3C426F] rounded-t-lg group-hover:underline group-focus:underline group-active:underline',
         }}
-        className="asyncCentreCard my-4 rounded-t-lg"
+        className="asyncCentreCard group my-4 rounded-t-lg"
         title={'Anytime Question Hub'}
         extra={
           unreadCount > 0 && (
-            <Tooltip title="The number of questions that have been updated since you last visted the Anytime Question Hub">
+            <Tooltip title="The number of questions that have been updated since you last visited the Anytime Question Hub">
               <div className="mr-8 h-fit text-sm font-normal text-gray-200">
                 <span className="text-lg font-medium">{unreadCount}</span>
                 {` updated`}

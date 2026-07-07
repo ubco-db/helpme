@@ -11,6 +11,7 @@ import {
   ChatbotAskParams,
   ChatbotAskResponse,
   ChatbotAskSuggestedParams,
+  ChatbotAgentCourse,
   ChatbotProvider,
   ChatbotQueryParams,
   ChatbotQuestionResponseChatbotDB,
@@ -37,6 +38,9 @@ import {
   DesktopNotifBody,
   DesktopNotifPartial,
   EditCourseInfoParams,
+  AssignmentFeedbackExtractTextResponse,
+  AssignmentFeedbackRequest,
+  AssignmentFeedbackResponse,
   ExtraTAStatus,
   AlertDeliveryMode,
   GetAsyncQuestionsResponse,
@@ -130,6 +134,13 @@ import {
   UpsertLMSCourseParams,
   UpsertLMSOrganizationParams,
   UserMailSubscription,
+  CreateCourseResponse,
+  AcceptProfInviteParams,
+  GetProfInviteDetailsResponse,
+  CreateProfInviteParams,
+  GetProfInviteResponse,
+  ValidateEmailTokenRequest,
+  ValidateEmailTokenResponse,
   MarkReadBulkRequest,
   GetPageOfFeedAlerts,
   GetInitialAlertsResponse,
@@ -227,8 +238,10 @@ export class APIClient {
       this.request('POST', '/api/v1/auth/register', registerData),
     requestPasswordReset: async (passwordResetData: PasswordRequestResetBody) =>
       this.request('POST', '/api/v1/auth/password/reset', passwordResetData),
-    verifyEmail: async (token: string) =>
-      this.request('POST', '/api/v1/auth/registration/verify', { token }),
+    verifyEmail: async (
+      body: ValidateEmailTokenRequest,
+    ): Promise<AxiosResponse<ValidateEmailTokenResponse>> =>
+      this.request('POST', '/api/v1/auth/registration/verify', body),
     resetPassword: async (
       token: string,
       confirmation: PasswordRequestResetWithTokenBody,
@@ -310,6 +323,8 @@ export class APIClient {
         courseId: number,
       ): Promise<PreDeterminedQuestion[]> =>
         this.req('GET', `/api/v1/chatbot/question/suggested/${courseId}`),
+      getAgents: async (courseId: number): Promise<ChatbotAgentCourse[]> =>
+        this.req('GET', `/api/v1/chatbot/course/${courseId}/agents`),
       updateUserScore: async (
         courseId: number,
         questionId: number,
@@ -598,7 +613,32 @@ export class APIClient {
         ),
     },
   }
-
+  /* A series of endpoints used for the "AI Essay Feedback" feature (used specifically be LLED courses for now) */
+  aiAssignmentFeedback = {
+    extractAssignmentText: async (
+      courseId: number,
+      file: File,
+    ): Promise<AssignmentFeedbackExtractTextResponse> => {
+      const formData = new FormData()
+      formData.append('file', file)
+      return this.req(
+        'POST',
+        `/api/v1/ai-assignment-feedback/${courseId}/extract-text`,
+        undefined,
+        formData,
+      )
+    },
+    generateAssignmentFeedback: async (
+      courseId: number,
+      essay_text: string,
+    ): Promise<AssignmentFeedbackResponse> =>
+      this.req(
+        'POST',
+        `/api/v1/ai-assignment-feedback/${courseId}/generate-feedback`,
+        undefined,
+        { essay_text } satisfies AssignmentFeedbackRequest,
+      ),
+  }
   course = {
     addStudent: async (courseId: number, sid: number): Promise<void> =>
       this.req(
@@ -746,6 +786,35 @@ export class APIClient {
         undefined,
       )
     },
+  }
+  profInvites = {
+    accept: async (
+      piid: number,
+      body: AcceptProfInviteParams,
+    ): Promise<string> => // returns the url to redirect to
+      this.req('POST', `/api/v1/prof_invites/accept/${piid}`, undefined, body),
+    getDetails: async (piid: number): Promise<GetProfInviteDetailsResponse> =>
+      this.req('GET', `/api/v1/prof_invites/details/${piid}`),
+    getAll: async (
+      orgId: number,
+      courseId?: number,
+    ): Promise<GetProfInviteResponse[]> =>
+      // note to self: In order to use the response class for arrays (so that dates get auto-deserialized),
+      // we need to pass in the class[] as the generic type for req (see example below).
+      this.req<GetProfInviteResponse[]>(
+        'GET',
+        `/api/v1/prof_invites/all/${orgId}`,
+        GetProfInviteResponse,
+        undefined,
+        { courseId },
+      ),
+    create: async (
+      orgId: number,
+      body: CreateProfInviteParams,
+    ): Promise<GetProfInviteResponse> =>
+      this.req('POST', `/api/v1/prof_invites/${orgId}`, undefined, body),
+    delete: async (orgId: number, piid: number): Promise<void> =>
+      this.req('DELETE', `/api/v1/prof_invites/${orgId}/${piid}`),
   }
   mail = {
     resendVerificationCode: async () =>
@@ -1029,7 +1098,7 @@ export class APIClient {
   }
 
   queueInvites = {
-    create: async (queueId: number): Promise<void> =>
+    create: async (queueId: number): Promise<string> =>
       this.req('POST', `/api/v1/queueInvites/${queueId}`),
     delete: async (queueId: number): Promise<void> =>
       this.req('DELETE', `/api/v1/queueInvites/${queueId}`),
@@ -1244,7 +1313,7 @@ export class APIClient {
     createCourse: async (
       oid: number,
       body: UpdateOrganizationCourseDetailsParams,
-    ): Promise<void> =>
+    ): Promise<CreateCourseResponse> =>
       this.req(
         'POST',
         `/api/v1/organization/${oid}/create_course`,
@@ -1642,8 +1711,10 @@ export class APIClient {
         ),
       registerAccount: async (registerData: AccountRegistrationParams) =>
         this.request('POST', '/api/v1/lti/auth/register', registerData),
-      verifyEmail: async (token: string) =>
-        this.request('POST', '/api/v1/lti/auth/registration/verify', { token }),
+      verifyEmail: async (
+        body: ValidateEmailTokenRequest,
+      ): Promise<AxiosResponse<ValidateEmailTokenResponse>> =>
+        this.request('POST', '/api/v1/lti/auth/registration/verify', body),
       loginWithGoogle: async (organizationId: number) =>
         this.request('GET', `/api/v1/lti/auth/link/google/${organizationId}`),
       entry: (params: URLSearchParams) =>

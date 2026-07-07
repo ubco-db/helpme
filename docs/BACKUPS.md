@@ -17,6 +17,15 @@ For database backups, we are using `pg_dumpall` which back ups both our `prod` a
 
 For uploads backups, we are simply using `tar` to compress the files of the uploads directory.
 
+### Full command for creating backups:
+
+```sh
+docker exec -u postgres helpme-postgresql-1 pg_dumpall -U postgres | gzip > backups/my-backup.sql.gz
+```
+You may want to adjust this based on the docker container name (helpme-postgresql-1) or database username (postgres).
+
+You may want to consider doing this before creating a migration.
+
 ## Restoring a database backup
 
 NOTE: my database container name is `helpme-postgresql-1`, you may need to change that in the commands.

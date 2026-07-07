@@ -2,6 +2,7 @@ import { Message } from '@koh/common'
 
 export interface ChatbotQToConvertToAnytimeQ {
   messages: Message[]
+  selectedAgentName?: string
 }
 
 export const chatbotStartingMessageCourse =

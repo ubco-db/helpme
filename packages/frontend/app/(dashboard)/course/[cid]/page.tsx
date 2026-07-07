@@ -1,15 +1,16 @@
 'use client'
 
-import { Role } from '@koh/common'
-import { Col, Row, Button } from 'antd'
+import { QUERY_PARAMS, Role } from '@koh/common'
+import { Col, Row, Button, Alert } from 'antd'
 import { ReactElement, useEffect, useMemo, useState, use } from 'react'
 import QueueCard from './components/QueueCard'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { getRoleInCourse } from '@/app/utils/generalUtils'
+import { getRoleInCourse, getErrorMessage } from '@/app/utils/generalUtils'
 import { useCourse } from '@/app/hooks/useCourse'
 import CreateQueueModal from './components/CreateQueueModal'
 import AsyncCentreCard from './components/AsyncCentreCard'
+import AssignmentFeedbackStartCard from './components/AIAssignmentFeedbackStartCard'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import CoursePageCheckInButton from './components/CoursePageCheckInButton'
 import PopularTimes from './components/popularTimes/PopularTimes'
@@ -21,7 +22,7 @@ import StudentSchedulePanel from './schedule/components/StudentSchedulePanel'
 import { useChatbotContext } from './components/chatbot/ChatbotProvider'
 import Chatbot from './components/chatbot/Chatbot'
 import { useRouter } from 'next/navigation'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useSearchParams } from 'next/navigation'
 
 type CoursePageProps = {
   params: Promise<{ cid: string }>
@@ -34,13 +35,16 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
   const role = getRoleInCourse(userInfo, cid)
   const { course, error: courseError } = useCourse(cid)
 
+  const searchParams = useSearchParams()
+  const queryParamNotice = searchParams.get('notice')
   const [createQueueModalOpen, setCreateQueueModalOpen] = useState(false)
   const courseFeatures = useCourseFeatures(cid)
   const onlyChatBotEnabled = useMemo(
     () =>
       courseFeatures?.chatBotEnabled &&
       !courseFeatures?.queueEnabled &&
-      !courseFeatures?.asyncQueueEnabled,
+      !courseFeatures?.asyncQueueEnabled &&
+      !courseFeatures?.assignmentEvaluationEnabled,
     [courseFeatures],
   )
   // chatbot
@@ -123,6 +127,60 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                 md={12}
                 xs={24}
               >
+                <Row>
+                  {queryParamNotice && (
+                    <Alert
+                      message={(() => {
+                        switch (queryParamNotice) {
+                          case QUERY_PARAMS.profInvite.notice
+                            .adminAlreadyInCourse:
+                            return 'You (admin) are already in this course. Professor invite not consumed and still working'
+                          case QUERY_PARAMS.profInvite.notice
+                            .adminAcceptedInviteNotConsumed:
+                            return `Professor invite successfully accepted! You are now a professor inside this course. Since you are an admin, the professor invite was not consumed and still working`
+                          case QUERY_PARAMS.profInvite.notice.inviteAccepted: // TODO: Start the tutorial from here
+                            return (
+                              <div className="flex flex-col items-center">
+                                <p>
+                                  Professor invite successfully accepted!
+                                  Welcome to your course!
+                                </p>
+                                <p>
+                                  You can find a list of video tutorials here:
+                                </p>
+                                <ul className="flex list-disc gap-4 gap-x-6">
+                                  <li>
+                                    <a
+                                      href="https://www.youtube.com/watch?v=H9ywkvDdeZ0"
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      HelpMe Overview
+                                    </a>
+                                  </li>
+                                  <li>
+                                    <a
+                                      href="https://www.youtube.com/watch?v=Y8v8HfEpkqo"
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      Chatbot Configuration Tutorial
+                                    </a>
+                                  </li>
+                                </ul>
+                              </div>
+                            )
+                          default:
+                            return queryParamNotice
+                        }
+                      })()}
+                      type="info"
+                      className="mb-1 w-full"
+                      showIcon
+                      closable
+                    />
+                  )}
+                </Row>
                 <Row justify="space-between">
                   <h1 className="overflow-hidden whitespace-nowrap text-2xl font-semibold text-[#212934] md:text-3xl">
                     {course?.name} Help Centre
@@ -165,6 +223,10 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                       skipLinkTarget == 'async-centre' ? 'skip-link-target' : ''
                     }
                   />
+                )}
+
+                {courseFeatures.assignmentEvaluationEnabled && (
+                  <AssignmentFeedbackStartCard cid={cid} />
                 )}
 
                 {role === Role.TA ||
@@ -265,7 +327,6 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
               helpmeQuestionId={helpmeQuestionId}
               chatbotQuestionType={chatbotQuestionType}
               setChatbotQuestionType={setChatbotQuestionType}
-               
               setIsOpen={() => {}}
             />
           </div>

@@ -242,7 +242,7 @@ export function getCroppedImg(
     }
 
     image.onerror = () => {
-      reject(new Error('Failed to load image'))
+      reject(new Error('Failed to load image in cropper'))
     }
   })
 }

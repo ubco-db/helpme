@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
-import { Modal, Input, Form, message, Checkbox, Tooltip } from 'antd'
+import { Modal, Input, Form, message, Checkbox, Tooltip, Spin } from 'antd'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
 import { QuestionTagSelector } from '../../../components/QuestionTagElement'
@@ -16,6 +16,8 @@ interface FormValues {
   questionText: string
   questionTypesInput: number[]
   refreshAIAnswer: boolean
+  setVisible: boolean
+  setAnonymous: boolean
 }
 
 interface ConvertChatbotQToAnytimeQModalProps {
@@ -34,15 +36,23 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
   const courseFeatures = useCourseFeatures(courseId)
+  const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false
   const [isGeneratingAbstract, setIsGeneratingAbstract] = useState(false)
 
-  // the question text is just all of the userMessages concatenated together with a "\n" between them
-  const questionText = useMemo(() => {
+  const userQuestionText = useMemo(() => {
     return chatbotQ.messages
       .filter((msg) => msg.type === 'userMessage')
       .map((msg) => msg.message)
       .join('\n')
-  }, [chatbotQ])
+  }, [chatbotQ.messages])
+
+  const questionText = useMemo(() => {
+    if (!chatbotQ.selectedAgentName) {
+      return userQuestionText
+    }
+
+    return `Selected chatbot agent: ${chatbotQ.selectedAgentName}\n\n${userQuestionText}`
+  }, [chatbotQ.selectedAgentName, userQuestionText])
 
   const fallbackGenerateAbstract = (question: string) => {
     const words = question.split(' ').slice(0, 8)
@@ -64,7 +74,7 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
           const response = await API.chatbot.studentsOrStaff.queryChatbot(
             courseId,
             {
-              query: questionText,
+              query: userQuestionText,
               type: 'abstract',
             },
           )
@@ -85,7 +95,7 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
           form.setFieldsValue({ QuestionAbstract: generatedAbstract })
         } catch (chatbotError) {
           console.warn('Chatbot failed, using fallback', chatbotError)
-          const fallbackAbstract = fallbackGenerateAbstract(questionText)
+          const fallbackAbstract = fallbackGenerateAbstract(userQuestionText)
           form.setFieldsValue({ QuestionAbstract: fallbackAbstract })
         } finally {
           setIsGeneratingAbstract(false)
@@ -93,7 +103,7 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
       }
       generateAbstract().then()
     }
-  }, [open, courseId, form, questionText])
+  }, [open, courseId, form, questionText, userQuestionText])
 
   const getAiAnswer = async (question: string) => {
     if (!courseFeatures?.asyncCentreAIAnswers) {
@@ -155,6 +165,8 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
           answerText: aiAnswer,
           questionAbstract: values.QuestionAbstract,
           status: asyncQuestionStatus.AIAnsweredNeedsAttention,
+          isAnonymous: values.setAnonymous,
+          authorSetVisible: authorCanSetVisible ? values.setVisible : false,
         },
         courseId,
       )
@@ -208,6 +220,10 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
           layout="vertical"
           form={form}
           name="form_in_modal"
+          initialValues={{
+            setVisible: false,
+            setAnonymous: courseFeatures?.asyncCentreDefaultAnonymous ?? true,
+          }}
           clearOnDestroy
           onFinish={(values) => onFinish(values)}
         >
@@ -260,6 +276,30 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
           <QuestionTagSelector questionTags={questionTypes} />
         </Form.Item>
       )}
+      {authorCanSetVisible && (
+        <Form.Item
+          name="setVisible"
+          label="Show Publicly?"
+          tooltip={
+            'Allows other students to see your question, and maybe even give you help via comments. Note that Course Staff can make questions public or private regardless of this setting.'
+          }
+          valuePropName="checked"
+          layout="horizontal"
+        >
+          <Checkbox />
+        </Form.Item>
+      )}
+      <Form.Item
+        name="setAnonymous"
+        label="Appear Anonymous?"
+        tooltip={
+          'If toggled, your name and avatar will not be shown with the question. Staff members will still see who you are.'
+        }
+        layout="horizontal"
+        valuePropName="checked"
+      >
+        <Checkbox />
+      </Form.Item>
       {courseFeatures?.asyncCentreAIAnswers && (
         <Tooltip
           placement="topLeft"
@@ -280,11 +320,6 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
           </Form.Item>
         </Tooltip>
       )}
-      <div className="text-gray-500">
-        Only you and faculty will be able to see your question unless a faculty
-        member chooses to mark it public, in which case it will appear fully
-        anonymous to other students.
-      </div>
     </Modal>
   )
 }

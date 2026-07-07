@@ -127,6 +127,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                 username={question.creator.name}
                 photoURL={question.creator.photoURL}
                 className={isBeingReQueued ? 'grayscale' : ''}
+                userId={question.creator.id}
               />
             </Col>
           )}

@@ -360,7 +360,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           name="setVisible"
           label="Show Publicly?"
           tooltip={
-            'Let staff know whether you want your question to be visible to other students. Staff can make questions public regardless of this setting.'
+            'Allows other students to see your question, and maybe even give you help via comments. Note that Course Staff can make questions public or private regardless of this setting.'
           }
           valuePropName="checked"
           layout="horizontal"
