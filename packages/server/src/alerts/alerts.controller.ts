@@ -58,7 +58,7 @@ export class AlertsController {
   // Mark all unread FEED alerts for current user as read
   @Patch('mark-read-all-feed')
   async markReadAllFeed(@UserId() userId: number): Promise<void> {
-    await AlertModel.update(
+    const result = await AlertModel.update(
       {
         userId,
         deliveryMode: AlertDeliveryMode.FEED,
@@ -77,6 +77,8 @@ export class AlertsController {
       // Maybe I just do that here instead of using alerts.subscriber.
       // Maybe commit what I've got first.
     );
+
+    console.log('mark all read result: ', result); // mark all read result:  UpdateResult { generatedMaps: [], raw: [], affected: 2 }
   }
 
   /*
@@ -165,6 +167,7 @@ export class AlertsController {
    */
   @Get('sse')
   subscribeToSSE(@UserId() userId: number, @Res() res: Response): void {
+    // returns AlertServerSentEvent
     res.set({
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',

@@ -9,6 +9,7 @@ import { AlertModel } from './alerts.entity';
 import { SSEService } from '../sse/sse.service';
 import { Response } from 'express';
 import { formatAlertForFrontend } from './alerts.service';
+import { EntityManager } from 'typeorm';
 
 const idToRoom = (userId: number) => `uid-${userId}`;
 type AlertClientMetadata = {
@@ -35,12 +36,18 @@ export class AlertsSSEService {
   notifyUserOfNewAlert = async (
     alert: AlertModel | number, // NEEDS .course to get courseName
     eventType: AlertServerSentEventType = AlertServerSentEventType.NEW_ALERT,
+    manager?: EntityManager,
   ) => {
     if (typeof alert === 'number') {
-      alert = await AlertModel.findOne({
-        where: { id: alert },
-        relations: { course: true },
-      });
+      alert = manager
+        ? await manager.getRepository(AlertModel).findOne({
+            where: { id: alert },
+            relations: { course: true },
+          })
+        : await AlertModel.findOne({
+            where: { id: alert },
+            relations: { course: true },
+          });
     }
     if (!alert) {
       console.error(`Alert not found for ID: ${alert}`);
@@ -54,7 +61,7 @@ export class AlertsSSEService {
     }));
   };
 
-  // There isn't really any case right now where an alert is deleted, but I figured to make it more robust
+  // There isn't really any case right now where an alert is deleted other than when an admin deletes an admin-alert
   notifyUserOfDeletedAlert = async (alertId: number, userId: number) => {
     await this.sendToRoom(userId, async () => ({
       alertId: alertId,

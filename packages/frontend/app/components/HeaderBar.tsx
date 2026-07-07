@@ -539,11 +539,11 @@ const NavBar = ({
               ) : null}
               {/* DESKTOP ONLY PART OF NAVBAR */}
               <NavigationMenuItem className="!ml-auto hidden md:block">
-                <NavigationMenuItem className="!ml-auto hidden md:block">
-                  <div className="px-2">
-                    <NotificationBell />
-                  </div>
-                </NavigationMenuItem>
+                <div className="px-2">
+                  <NotificationBell />
+                </div>
+              </NavigationMenuItem>
+              <NavigationMenuItem className="hidden md:block">
                 <NavigationMenuTrigger
                   className={cn(
                     '!pl-4',
@@ -775,9 +775,6 @@ const HeaderBar: React.FC = () => {
             {queueRoom}
           </h2>
         )}
-      </div>
-      <div className="flex items-center">
-        <NotificationBell />
       </div>
       <Drawer
         direction="left"

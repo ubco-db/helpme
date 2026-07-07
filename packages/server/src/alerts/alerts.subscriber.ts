@@ -23,21 +23,27 @@ export class AlertsSubscriber implements EntitySubscriberInterface<AlertModel> {
   }
 
   async afterUpdate(event: UpdateEvent<AlertModel>): Promise<void> {
-    if (event.entity.alertId) {
+    if (event.entity.id) {
       await this.alertsSSEService.notifyUserOfNewAlert(
         event.entity.id,
         AlertServerSentEventType.MARK_READ,
+        event.manager,
       );
     } else {
       console.warn(
-        'afterUpdate in alerts.subscriber: Event does not have alertId. Please make sure the query includes it so it can be included here (otherwise user does not get notified of updated alert). Event entity:',
+        'afterUpdate in alerts.subscriber: Event does not have alert.id. Please make sure the query includes it so it can be included here (otherwise user does not get notified of updated alert). Event entity:',
         event.entity,
       );
     }
   }
 
+  // Important: remember that all of these event subscriber methods run IN A TRANSACTION and thus all queries you perform in them must also be in the transaction to have the updated data
   async afterInsert(event: InsertEvent<AlertModel>): Promise<void> {
-    await this.alertsSSEService.notifyUserOfNewAlert(event.entity.id);
+    await this.alertsSSEService.notifyUserOfNewAlert(
+      event.entity.id,
+      AlertServerSentEventType.NEW_ALERT,
+      event.manager,
+    ); // event.entity lacks `.course` relation so we need to give it the alert id with the manager to re-query it
   }
 
   async afterRemove(event: RemoveEvent<AlertModel>): Promise<void> {
