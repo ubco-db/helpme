@@ -9,6 +9,7 @@ const nextConfig = {
     serverActions: {
       allowedOrigins: ['localhost:3000'],
     },
+    webpackMemoryOptimizations: true,
   },
   images: {
     loader: 'custom',
