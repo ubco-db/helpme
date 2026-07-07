@@ -2725,7 +2725,7 @@ export class CreateAlertResponse extends Alert {}
 export enum AlertServerSentEventType {
   NEW_ALERT = 'newAlert',
   DELETE_ALERT = 'deleteAlert',
-  MARK_READ = 'markAlertAsRead',
+  UPDATE_ALERTS = 'updateAlerts',
 }
 
 export type AlertServerSentEvent =
@@ -2740,9 +2740,8 @@ export type AlertServerSentEvent =
       alert: Alert
     }
   | {
-      eventType: AlertServerSentEventType.MARK_READ
-      alertId: number
-      alert: Alert
+      eventType: AlertServerSentEventType.UPDATE_ALERTS
+      alerts: Alert[]
     }
 
 export class GetPageOfFeedAlerts {

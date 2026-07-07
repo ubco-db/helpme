@@ -95,10 +95,11 @@ export const AlertsProvider: React.FC<{
   // Subscribe to sse - note that if the user is using an old browser that doesn't have EventSource, this won't work
   // and they will need to resort to manually refreshing the page to get their alerts.
   const isEventSourceLive = useEventSource(
-    `/api/v1/alerts/sse`, // subscribe to alerts across ALL courses -> Then filter here
+    `/api/v1/alerts/alerts-sse`, // subscribe to alerts across ALL courses -> Then filter here
     `alerts`,
     useCallback(
       (data: AlertServerSentEvent) => {
+        console.log('NEW ALERT DATA:', data)
         if (initialFetchLoading) {
           // This is a weird case to think about, but I could see a weird scenario where
           // an SSE event is sent *before* initial alerts is retrieved, where it causes a modal popup to show up,
@@ -107,7 +108,7 @@ export const AlertsProvider: React.FC<{
           return
         }
         switch (data.eventType) {
-          case AlertServerSentEventType.NEW_ALERT: // like 95% of events
+          case AlertServerSentEventType.NEW_ALERT: // like 50% of events
             // First, try to find if the alert already exists in frontend state (like from a pre-emptive update). If so, update the existing (just to make sure the state matches EXACTLY as the backend)
             const matchingAlert = fetchedAlerts.find(
               (a) => a.id === data.alert.id,
@@ -195,20 +196,22 @@ export const AlertsProvider: React.FC<{
               }
             }
             break
-          case AlertServerSentEventType.MARK_READ: // The other 5% of events.
+          case AlertServerSentEventType.UPDATE_ALERTS: // The other 50% of events (like for marking an alert as read).
             mutateAlerts(
               (prev) =>
                 prev
                   ? {
                       ...prev,
-                      mostAlerts: prev.mostAlerts.map((a) =>
-                        a.id === data.alert.id
-                          ? {
-                              ...a,
-                              readAt: new Date(data.alert.readAt || Date.now()),
-                            }
-                          : a,
-                      ),
+                      mostAlerts: prev.mostAlerts.map((a) => {
+                        const matchingUpdatedAlert = data.alerts.find(
+                          (updatedAlert) => updatedAlert.id === a.id,
+                        )
+                        if (matchingUpdatedAlert) {
+                          return plainToInstance(Alert, matchingUpdatedAlert)
+                        } else {
+                          return a
+                        }
+                      }),
                     }
                   : prev,
               { revalidate: false },

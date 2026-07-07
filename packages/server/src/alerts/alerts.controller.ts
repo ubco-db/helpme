@@ -58,27 +58,23 @@ export class AlertsController {
   // Mark all unread FEED alerts for current user as read
   @Patch('mark-read-all-feed')
   async markReadAllFeed(@UserId() userId: number): Promise<void> {
-    const result = await AlertModel.update(
-      {
-        userId,
-        deliveryMode: AlertDeliveryMode.FEED,
-        readAt: IsNull(),
-      },
-      { readAt: new Date() },
-      // TODO: issue with this: alerts.subscriber.ts's afterUpdate will only get the readAt value.
-      // I'm not really sure what the best way to fix this is.
-      // If I query for a list of ids first and then run this .update(), idk what the afterUpdate()
-      // is going to do.
-      // Or maybe I add a new SSE event? I would still need a list of updated alert ids.
-      // I can't just ignore it, since I *need* to make sure the frontend state is updated (like multiple tabs open)
-      // If I end up updating over 100 items, that's over 100 individual SSE events...
-      // so yeah maybe I just create a new SSE event called MARK_MANY_READ or something
-      // and then query a list of alertIds that are about to be updated and then send that to the frontend.
-      // Maybe I just do that here instead of using alerts.subscriber.
-      // Maybe commit what I've got first.
-    );
+    await this.dataSource.transaction(async (manager) => {
+      const alertsToUpdate = await manager.find(AlertModel, {
+        relations: { course: true },
+        where: {
+          userId,
+          deliveryMode: AlertDeliveryMode.FEED,
+          readAt: IsNull(),
+        },
+      });
 
-    console.log('mark all read result: ', result); // mark all read result:  UpdateResult { generatedMaps: [], raw: [], affected: 2 }
+      if (alertsToUpdate.length === 0) return [];
+
+      const ids = alertsToUpdate.map((a) => a.id);
+      await manager.update(AlertModel, ids, { readAt: new Date() });
+
+      // await this.alertsSSEService.notifyUserOfUpdatedAlerts(alertsToUpdate); // done in alerts.subscriber instead
+    });
   }
 
   /*
@@ -165,7 +161,7 @@ export class AlertsController {
    *
    * Server-Sent Events are basically like a 1-way server -> browser websocket.
    */
-  @Get('sse')
+  @Get('alerts-sse')
   subscribeToSSE(@UserId() userId: number, @Res() res: Response): void {
     // returns AlertServerSentEvent
     res.set({
