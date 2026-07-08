@@ -22,10 +22,12 @@ import { OrganizationModule } from '../src/organization/organization.module';
 import { CourseModel } from 'course/course.entity';
 import { UserModel } from 'profile/user.entity';
 import { OrganizationModel } from 'organization/organization.entity';
+import { AdminModule } from 'admin/admin.module';
 
 describe('Calendar Integration', () => {
   const { supertest } = setupIntegrationTest(CalendarModule, undefined, [
     OrganizationModule,
+    AdminModule,
   ]);
 
   let ta1: UserModel;
