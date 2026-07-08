@@ -2,7 +2,6 @@
 
 import React from 'react'
 import {
-  CodeOutlined,
   ExperimentOutlined,
   InteractionOutlined,
   RobotOutlined,
@@ -32,7 +31,7 @@ const items = [
   },
   {
     key: 'settings',
-    label: 'Settings',
+    label: 'General Settings',
     icon: <SettingOutlined />,
     url: '/organization/settings',
   },
@@ -53,12 +52,6 @@ const items = [
     label: 'Member Role History',
     icon: <UserOutlined />,
     url: '/organization/role_history',
-  },
-  {
-    key: 'dev',
-    label: 'Development Tools',
-    icon: <CodeOutlined />,
-    url: '/organization/dev',
   },
 ]
 

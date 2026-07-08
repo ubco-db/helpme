@@ -83,6 +83,7 @@ import { CourseService } from 'course/course.service';
 import { ParseDatePipe } from '@nestjs/common/pipes/parse-date.pipe';
 import { OrgRole } from '../decorators/org-role.decorator';
 import * as crypto from 'crypto';
+import { AdminRoleGuard } from 'guards/admin-role.guard';
 
 // TODO: put the error messages in ERROR_MESSAGES object
 
@@ -98,11 +99,10 @@ export class OrganizationController {
   @Post(':oid/reset_chat_token_limit')
   @UseGuards(
     JwtAuthGuard,
-    OrganizationRolesGuard,
+    AdminRoleGuard,
     OrganizationGuard,
     EmailVerifiedGuard,
   )
-  @Roles(OrganizationRole.ADMIN)
   async resetChatTokenLimit(
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
@@ -138,8 +138,7 @@ export class OrganizationController {
    * Gets all cron jobs for the system. The :oid is just to verify that they are an admin
    */
   @Get(':oid/cronjobs')
-  @UseGuards(JwtAuthGuard, OrganizationRolesGuard, EmailVerifiedGuard)
-  @Roles(OrganizationRole.ADMIN)
+  @UseGuards(JwtAuthGuard, AdminRoleGuard, EmailVerifiedGuard)
   async getAllCronJobs(
     @Param('oid', ParseIntPipe) oid: number,
   ): Promise<any[] | CronJob[]> {
@@ -161,11 +160,10 @@ export class OrganizationController {
   @Post(':oid/populate_subscription_table')
   @UseGuards(
     JwtAuthGuard,
-    OrganizationRolesGuard,
+    AdminRoleGuard,
     OrganizationGuard,
     EmailVerifiedGuard,
   )
-  @Roles(OrganizationRole.ADMIN)
   async populateSubscriptionTable(
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
@@ -249,11 +247,10 @@ export class OrganizationController {
   @Post(':oid/populate_chat_token_table')
   @UseGuards(
     JwtAuthGuard,
-    OrganizationRolesGuard,
+    AdminRoleGuard,
     OrganizationGuard,
     EmailVerifiedGuard,
   )
-  @Roles(OrganizationRole.ADMIN)
   async populateChatTokenTable(
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
