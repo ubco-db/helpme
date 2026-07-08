@@ -18,7 +18,6 @@ export class AdminController {
    * Gets all cron jobs for the system.
    */
   @Get('cronjobs')
-  @UseGuards(JwtAuthGuard, AdminRoleGuard, EmailVerifiedGuard)
   async getAllCronJobs(): Promise<any[] | CronJob[]> {
     const jobs = this.schedulerRegistry.getCronJobs();
     const jobsArray = Array.from(jobs.entries()).map(([key, job]) => {
