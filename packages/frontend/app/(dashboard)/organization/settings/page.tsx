@@ -24,10 +24,8 @@ import {
   OrganizationSettingsDefaults,
   SemesterPartial,
 } from '@koh/common'
-import { SemesterManagement } from './components/SemesterManagement'
 import OrganizationSettingSwitch from '@/app/(dashboard)/organization/settings/components/OrganizationSettingSwitch'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
-import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
 import { AllProfInvites } from './components/AllProfInvites'
 
 export default function SettingsPage(): ReactNode {
@@ -68,9 +66,7 @@ export default function SettingsPage(): ReactNode {
   )
 
   const [organization, setOrganization] = useState<GetOrganizationResponse>()
-  const [organizationSemesters, setOrganizationSemesters] = useState<
-    SemesterPartial[]
-  >([])
+
   const organizationSettings = useOrganizationSettings(organizationId)
 
   useEffect(() => {
@@ -88,7 +84,6 @@ export default function SettingsPage(): ReactNode {
         ...response,
         semesters,
       })
-      setOrganizationSemesters(semesters)
 
       formGeneral.setFieldsValue({
         organizationName: response.name,
@@ -511,14 +506,6 @@ export default function SettingsPage(): ReactNode {
             </Form>
           </Card>
         </>
-      )}
-
-      {checkCourseCreatePermissions(userInfo, organizationSettings) && (
-        <SemesterManagement
-          orgId={organization?.id ?? -1}
-          organizationSemesters={organizationSemesters}
-          setOrganizationSemesters={setOrganizationSemesters}
-        />
       )}
 
       {userInfo.organization?.organizationRole === OrganizationRole.ADMIN && (

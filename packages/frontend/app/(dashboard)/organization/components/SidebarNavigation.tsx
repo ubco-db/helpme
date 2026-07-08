@@ -2,6 +2,7 @@
 
 import React from 'react'
 import {
+  CalendarOutlined,
   ExperimentOutlined,
   InteractionOutlined,
   RobotOutlined,
@@ -34,6 +35,12 @@ const items = [
     label: 'General Settings',
     icon: <SettingOutlined />,
     url: '/organization/settings',
+  },
+  {
+    key: 'semesters',
+    label: 'Semesters',
+    icon: <CalendarOutlined />,
+    url: '/organization/semesters',
   },
   {
     key: 'ai',
