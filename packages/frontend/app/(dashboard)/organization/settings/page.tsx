@@ -1,17 +1,7 @@
 'use client'
 
 import { EditOutlined } from '@ant-design/icons'
-import {
-  Button,
-  Card,
-  Col,
-  Form,
-  Input,
-  message,
-  Row,
-  Spin,
-  Switch,
-} from 'antd'
+import { Button, Card, Col, Form, Input, message, Row, Switch } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import { useUserInfo } from '@/app/contexts/userContext'
@@ -24,11 +14,10 @@ import {
   OrganizationSettingsDefaults,
   SemesterPartial,
 } from '@koh/common'
-import { SemesterManagement } from './components/SemesterManagement'
 import OrganizationSettingSwitch from '@/app/(dashboard)/organization/settings/components/OrganizationSettingSwitch'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
-import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
 import { AllProfInvites } from './components/AllProfInvites'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
 
 export default function SettingsPage(): ReactNode {
   // Handler to update SSO patterns
@@ -68,9 +57,7 @@ export default function SettingsPage(): ReactNode {
   )
 
   const [organization, setOrganization] = useState<GetOrganizationResponse>()
-  const [organizationSemesters, setOrganizationSemesters] = useState<
-    SemesterPartial[]
-  >([])
+
   const organizationSettings = useOrganizationSettings(organizationId)
 
   useEffect(() => {
@@ -88,7 +75,6 @@ export default function SettingsPage(): ReactNode {
         ...response,
         semesters,
       })
-      setOrganizationSemesters(semesters)
 
       formGeneral.setFieldsValue({
         organizationName: response.name,
@@ -513,19 +499,11 @@ export default function SettingsPage(): ReactNode {
         </>
       )}
 
-      {checkCourseCreatePermissions(userInfo, organizationSettings) && (
-        <SemesterManagement
-          orgId={organization?.id ?? -1}
-          organizationSemesters={organizationSemesters}
-          setOrganizationSemesters={setOrganizationSemesters}
-        />
-      )}
-
       {userInfo.organization?.organizationRole === OrganizationRole.ADMIN && (
         <AllProfInvites orgId={organization.id} />
       )}
     </div>
   ) : (
-    <Spin />
+    <CenteredSpinner tip="Loading Organization Settings..." />
   )
 }

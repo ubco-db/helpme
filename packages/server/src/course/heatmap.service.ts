@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-import { ClosedQuestionStatus, Heatmap, timeDiffInMins } from '@koh/common';
+import { ClosedQuestionStatus, Heatmap } from '@koh/common';
 import { CourseModel } from './course.entity';
 import { MoreThan } from 'typeorm';
 import { QuestionModel } from '../question/question.entity';
@@ -17,6 +17,11 @@ function arrayRotate(arr, count) {
   count -= arr.length * Math.floor(count / arr.length);
   const spliced = arr.splice(0, count);
   return [...arr, ...spliced];
+}
+
+// a - b, in minutes
+export function timeDiffInMins(a: Date, b: Date): number {
+  return (a.getTime() - b.getTime()) / (1000 * 60);
 }
 
 @Injectable()

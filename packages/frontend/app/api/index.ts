@@ -291,7 +291,10 @@ export class APIClient {
     clearCache: async (): Promise<void> =>
       this.req('DELETE', `/api/v1/profile/clear_cache`),
   }
-
+  admin = {
+    getCronJobs: async (): Promise<CronJob[]> =>
+      this.req('GET', `/api/v1/admin/cronjobs`),
+  }
   chatbot = {
     studentsOrStaff: {
       // these endpoints are the main endpoints that students and staff use
@@ -1048,7 +1051,7 @@ export class APIClient {
   }
   calendar = {
     addCalendar: async (body: Calendar, cid: number): Promise<Calendar> =>
-      this.req('POST', `/api/v1/calendar/${cid}`, undefined, body),
+      this.req('POST', `/api/v1/calendar/add_event/${cid}`, undefined, body),
     getEvents: async (cid: number): Promise<Calendar[]> =>
       this.req('GET', `/api/v1/calendar/${cid}`),
     deleteEvent: async (eventId: number, cid: number): Promise<Calendar> =>
@@ -1059,8 +1062,10 @@ export class APIClient {
       cid: number,
     ): Promise<Calendar> =>
       this.req('PATCH', `/api/v1/calendar/${eventId}/${cid}`, undefined, body),
-    resetCronJobs: async (orgId: number): Promise<void> =>
-      this.req('POST', `/api/v1/calendar/reset_cron_jobs/${orgId}`),
+    adminOnly: {
+      resetCronJobs: async (): Promise<void> =>
+        this.req('POST', `/api/v1/calendar/reset_cron_jobs`),
+    },
   }
 
   queues = {
@@ -1418,8 +1423,6 @@ export class APIClient {
         'GET',
         `/api/v1/organization/${organizationId}/get_professors/${courseId ?? '0'}`,
       ),
-    getCronJobs: async (organizationId: number): Promise<CronJob[]> =>
-      this.req('GET', `/api/v1/organization/${organizationId}/cronjobs`),
     batchCloneCourses: async (
       organizationId: number,
       body: BatchCourseCloneAttributes,
@@ -1429,6 +1432,11 @@ export class APIClient {
         `/api/v1/organization/${organizationId}/clone_courses`,
         undefined,
         body,
+      ),
+    resetChatbotTokenLimit: async (organizationId: number): Promise<string> =>
+      this.req(
+        'POST',
+        `/api/v1/organization/${organizationId}/reset_chat_token_limit`,
       ),
     getOrganizationSettings: async (
       organizationId: number,

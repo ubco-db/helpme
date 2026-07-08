@@ -5,7 +5,6 @@ import ExpandableText from '@/app/components/ExpandableText'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
-import { InfoCircleOutlined } from '@ant-design/icons'
 import { CronJob } from '@koh/common'
 import { Button, Card, message, Table, Tag, Tooltip } from 'antd'
 import { useEffect, useState } from 'react'
@@ -17,8 +16,8 @@ const DevPage: React.FC = () => {
   const [cronJobs, setCronJobs] = useState<CronJob[] | undefined>(undefined)
 
   const fetchCronJobs = async () => {
-    await API.organizations
-      .getCronJobs(userInfo.organization?.orgId || 0)
+    await API.admin
+      .getCronJobs()
       .then((cronJobs) => {
         setCronJobs(cronJobs)
       })
@@ -31,129 +30,38 @@ const DevPage: React.FC = () => {
     fetchCronJobs()
   }, [])
 
-  const resetChatUsageLimit = async () => {
-    const response = await fetch(
-      `/api/v1/organization/${userInfo.organization?.orgId}/reset_chat_token_limit`,
-      {
-        method: 'POST',
-      },
-    )
-
-    const json = await response.json()
-
-    if (response.ok) {
-      message.success(json.message)
-    } else {
-      message.error(json.message)
-    }
-  }
-  const populateTable = async () => {
-    const response = await fetch(
-      `/api/v1/organization/${userInfo.organization?.orgId}/populate_chat_token_table`,
-      {
-        method: 'POST',
-      },
-    )
-
-    const json = await response.json()
-
-    if (response.ok) {
-      message.success(json.message)
-    } else {
-      message.error(json.message)
-    }
-  }
-
-  const populateSubscriptions = async () => {
-    const response = await fetch(
-      `/api/v1/organization/${userInfo.organization?.orgId}/populate_subscription_table`,
-      {
-        method: 'POST',
-      },
-    )
-
-    const json = await response.json()
-
-    if (response.ok) {
-      message.success(json.message)
-    } else {
-      message.error(json.message)
-    }
-  }
-
   return (
     <Card>
       <div className="p-6">
-        <h2 className="mb-6 text-2xl font-bold text-gray-800">
-          Development Tools
-        </h2>
-
-        <div className="mb-6">
-          <Tooltip title="Resets the daily chatbot limit for all users in the organization">
-            <h3 className="mr-2 font-semibold text-gray-700">
-              Reset Chat Token Usage Limit
-              <InfoCircleOutlined className="ml-2 text-gray-500" />
-            </h3>
-          </Tooltip>
-          <Button
-            type="primary"
-            onClick={resetChatUsageLimit}
-            className="transform rounded bg-blue-500 px-4 py-2 font-bold text-white transition duration-300 ease-in-out hover:scale-105 hover:bg-blue-600"
-          >
-            Reset
-          </Button>
-        </div>
-
         <div>
-          <h3 className="mb-2 block font-semibold text-gray-700">
-            Populate Chat Token Table
-          </h3>
-          <Button
-            type="primary"
-            onClick={populateTable}
-            className="transform rounded bg-green-500 px-4 py-2 font-bold text-white transition duration-300 ease-in-out hover:scale-105 hover:bg-green-600"
-          >
-            Populate
-          </Button>
-        </div>
-
-        <div>
-          <h3 className="mb-2 block font-semibold text-gray-700">
-            Populate Email Subscriptions Table
-          </h3>
-          <Button
-            type="primary"
-            onClick={populateSubscriptions}
-            className="transform rounded bg-green-500 px-4 py-2 font-bold text-white transition duration-300 ease-in-out hover:scale-105 hover:bg-green-600"
-          >
-            Populate
-          </Button>
-        </div>
-
-        <div>
-          <h3 className="mb-2 block font-semibold text-gray-700">
+          <h2 className="mb-2 flex items-center gap-2 font-semibold text-gray-700">
             Active Cron Jobs
-            <Button
-              type="primary"
-              onClick={async () => {
-                await API.calendar
-                  .resetCronJobs(userInfo.organization?.orgId || 0)
-                  .then(() => {
-                    message.success('Cron jobs reset')
-                  })
-                  .catch((e) => {
-                    const errorMessage = getErrorMessage(e)
-                    message.error('Failed to reset cron jobs: ' + errorMessage)
-                  })
-                  .finally(() => {
-                    fetchCronJobs()
-                  })
-              }}
-              className="ml-4 transform rounded bg-blue-500 px-4 py-2 font-bold text-white transition duration-300 ease-in-out hover:scale-105 hover:bg-blue-600"
-            >
-              Reset Calendar Event Cron Jobs
-            </Button>
-          </h3>
+            <Tooltip title="Calendar Event refers to the 'Schedule' page's Calendar Events. When an event is created with a TA assigned, they will get some cron jobs to auto-checkout at the end of their Calendar Events. I made it robust enough that we can retroactively create them if need be (like if the server were to crash for an extended period of time). Just click this button to do so.">
+              <Button
+                type="primary"
+                onClick={async () => {
+                  await API.calendar.adminOnly
+                    .resetCronJobs()
+                    .then(() => {
+                      message.success('Cron jobs reset')
+                    })
+                    .catch((e) => {
+                      const errorMessage = getErrorMessage(e)
+                      message.error(
+                        'Failed to reset cron jobs: ' + errorMessage,
+                      )
+                    })
+                    .finally(() => {
+                      fetchCronJobs()
+                    })
+                }}
+                size="small"
+                className="ml-4"
+              >
+                Reset Calendar Event Cron Jobs
+              </Button>
+            </Tooltip>
+          </h2>
           {cronJobs && (
             <Table<CronJob>
               size="small"
