@@ -19,7 +19,7 @@
     "test:update-integration-snapshots": "cross-env NODE_OPTIONS=--experimental-vm-modules jest -i --forceExit --updateSnapshot --config ./test/jest-integration.json",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:integration": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-integration.json -i",
+    "test:integration": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-integration.json --maxWorkers=60%",
     "dev:db:reset": "yarn typeorm schema:drop",
     "migration:generate": "yarn schema:drop && yarn migration:run && yarn typeorm migration:generate",
     "migration:run": "yarn typeorm migration:run -d ./typeORMCLI.config.ts",
