@@ -37,12 +37,6 @@ export const getEnv = (): 'production' | 'dev' => {
 }
 export const isProd = (): boolean => domain() === PROD_URL
 
-// TODO: Clean this up, move it somwhere else, use moment???
-// a - b, in minutes
-export function timeDiffInMins(a: Date, b: Date): number {
-  return (a.getTime() - b.getTime()) / (1000 * 60)
-}
-
 /////////////////////////
 // API Base Data Types //
 /////////////////////////

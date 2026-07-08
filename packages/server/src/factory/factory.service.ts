@@ -9,6 +9,7 @@ import {
   MailServiceType,
   OrganizationRole,
   Role,
+  UserRole,
 } from '@koh/common';
 import { AlertModel } from '../alerts/alerts.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
@@ -120,6 +121,7 @@ export class FactoryService {
       .attr('email', `user@ubc.ca`)
       .attr('firstName', 'User')
       .attr('lastName', 'Person')
+      .attr('userRole', UserRole.USER)
       .attr('emailVerified', true)
       .attr('photoURL', 'https://example.com')
       .attr('hideInsights', [])

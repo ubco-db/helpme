@@ -36,7 +36,7 @@ const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
   }, [pathname, router])
 
   return errorGettingUser ? (
-    <main className="mt-20 flex content-center justify-center gap-3">
+    <main className="mt-20 flex flex-col content-center justify-center gap-3">
       <p>There was an error getting your user details: </p>
       <p>{errorGettingUser}</p>
       <Button

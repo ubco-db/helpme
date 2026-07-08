@@ -15,16 +15,19 @@ import {
   ERROR_MESSAGES,
   OrganizationRole,
   Role,
+  UserRole,
 } from '@koh/common';
 import { CalendarStaffModel } from '../src/calendar/calendar-staff.entity';
 import { OrganizationModule } from '../src/organization/organization.module';
 import { CourseModel } from 'course/course.entity';
 import { UserModel } from 'profile/user.entity';
 import { OrganizationModel } from 'organization/organization.entity';
+import { AdminModule } from 'admin/admin.module';
 
 describe('Calendar Integration', () => {
   const { supertest } = setupIntegrationTest(CalendarModule, undefined, [
     OrganizationModule,
+    AdminModule,
   ]);
 
   let ta1: UserModel;
@@ -46,7 +49,7 @@ describe('Calendar Integration', () => {
     // initialize course, task, and user factories
     ta1 = await UserFactory.create();
     ta2 = await UserFactory.create();
-    prof = await UserFactory.create();
+    prof = await UserFactory.create({ userRole: UserRole.ADMIN });
     course = await CourseFactory.create();
     await UserCourseFactory.create({
       user: ta1,
@@ -77,7 +80,7 @@ describe('Calendar Integration', () => {
     await CalendarModel.createQueryBuilder().delete().execute();
   });
 
-  describe('POST /calendar/:cid', () => {
+  describe('POST /calendar/add_event/:cid', () => {
     it('adds a new calendar event by TA should work', async () => {
       const user = await UserFactory.create();
       await UserCourseFactory.create({
@@ -97,7 +100,7 @@ describe('Calendar Integration', () => {
       };
 
       const res = await supertest({ userId: user.id })
-        .post(`/calendar/${course.id}`)
+        .post(`/calendar/add_event/${course.id}`)
         .send(eventData)
         .expect(201);
 
@@ -118,7 +121,7 @@ describe('Calendar Integration', () => {
       };
 
       const res = await supertest({ userId: prof.id })
-        .post(`/calendar/${course.id}`)
+        .post(`/calendar/add_event/${course.id}`)
         .send(eventData)
         .expect(201);
 
@@ -157,7 +160,7 @@ describe('Calendar Integration', () => {
       };
 
       await supertest({ userId: user.id })
-        .post(`/calendar/${course.id}`)
+        .post(`/calendar/add_event/${course.id}`)
         .send(eventData)
         .expect(403);
 
@@ -187,7 +190,7 @@ describe('Calendar Integration', () => {
       };
 
       await supertest({ userId: user.id })
-        .post(`/calendar/${course.id}`)
+        .post(`/calendar/add_event/${course.id}`)
         .send(eventData)
         .expect(404);
 
@@ -216,7 +219,7 @@ describe('Calendar Integration', () => {
       };
 
       await supertest({ userId: user.id })
-        .post(`/calendar/999`)
+        .post(`/calendar/add_event/999`)
         .send(eventData)
         .expect(404);
 
@@ -238,13 +241,13 @@ describe('Calendar Integration', () => {
         staffIds: [ta1.id, ta2.id, prof.id],
       };
       await supertest({ userId: prof.id })
-        .post(`/calendar/${course.id}`)
+        .post(`/calendar/add_event/${course.id}`)
         .send(eventData)
         .expect(201);
 
       // go through the jobs, filter and find all the auto-checkout jobs
       const jobsAfterRes = await supertest({ userId: prof.id }).get(
-        `/organization/${org.id}/cronjobs`,
+        `/admin/cronjobs`,
       );
       const jobsAfter = jobsAfterRes.body;
       const autoCheckoutJobsAfter: CronJob[] = jobsAfter.filter(
@@ -443,14 +446,14 @@ describe('Calendar Integration', () => {
         staffIds: [ta1.id, ta2.id, prof.id],
       };
       const eventRes = await supertest({ userId: prof.id })
-        .post(`/calendar/${course.id}`)
+        .post(`/calendar/add_event/${course.id}`)
         .send(eventData)
         .expect(201);
       const event: CalendarModel = eventRes.body;
 
       // go through the jobs, filter and find all the auto-checkout jobs
       const jobsBeforeRes = await supertest({ userId: prof.id }).get(
-        `/organization/${org.id}/cronjobs`,
+        `/admin/cronjobs`,
       );
       const jobsBefore = jobsBeforeRes.body;
       const autoCheckoutJobsBefore: CronJob[] = jobsBefore.filter(
@@ -487,7 +490,7 @@ describe('Calendar Integration', () => {
 
       // go through the jobs, filter and find all the auto-checkout jobs
       const jobsAfterRes = await supertest({ userId: prof.id }).get(
-        `/organization/${org.id}/cronjobs`,
+        `/admin/cronjobs`,
       );
       const jobsAfter = jobsAfterRes.body;
       const autoCheckoutJobsAfter: CronJob[] = jobsAfter.filter(
@@ -591,14 +594,14 @@ describe('Calendar Integration', () => {
         staffIds: [ta1.id, ta2.id, prof.id],
       };
       const eventRes = await supertest({ userId: prof.id })
-        .post(`/calendar/${course.id}`)
+        .post(`/calendar/add_event/${course.id}`)
         .send(eventData)
         .expect(201);
       const event: CalendarModel = eventRes.body;
 
       // go through the jobs, filter and find all the auto-checkout jobs
       const jobsBeforeRes = await supertest({ userId: prof.id }).get(
-        `/organization/${org.id}/cronjobs`,
+        `/admin/cronjobs`,
       );
       const jobsBefore = jobsBeforeRes.body;
       const autoCheckoutJobsBefore: CronJob[] = jobsBefore.filter(
@@ -643,7 +646,7 @@ describe('Calendar Integration', () => {
 
       // go through the jobs, filter and find all the auto-checkout jobs
       const jobsAfterRes = await supertest({ userId: prof.id }).get(
-        `/organization/${org.id}/cronjobs`,
+        `/admin/cronjobs`,
       );
       const jobsAfter = jobsAfterRes.body;
       const autoCheckoutJobsAfter: CronJob[] = jobsAfter.filter(

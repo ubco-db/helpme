@@ -505,7 +505,12 @@ const NavBar = ({
                               ? 'md:border-helpmeblue md:border-b-2'
                               : '',
                           )}
-                          href="/organization/settings"
+                          href={
+                            userInfo?.organization?.organizationRole ===
+                            OrganizationRole.PROFESSOR
+                              ? '/organization/semesters'
+                              : '/organization/settings'
+                          }
                           onClick={() =>
                             setIsDrawerOpen && setIsDrawerOpen(false)
                           }
