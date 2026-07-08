@@ -7,9 +7,10 @@ import { CourseChatbotSettings, OrganizationChatbotSettings } from '@koh/common'
 import OrganizationChatbotSettingsForm from '@/app/(dashboard)/organization/ai/components/OrganizationChatbotSettingsForm'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { getErrorMessage } from '@/app/utils/generalUtils'
-import { Divider, message, Tabs } from 'antd'
+import { Button, Divider, message, Tabs, Tooltip } from 'antd'
 import CourseSettingTable from '@/app/(dashboard)/organization/ai/components/CourseSettingTable'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { InfoCircleOutlined } from '@ant-design/icons'
 
 export default function OrganizationChatbotSettingsPage(): ReactElement {
   const router = useRouter()
@@ -86,6 +87,19 @@ export default function OrganizationChatbotSettingsPage(): ReactElement {
     fetchData().then()
   }, [organizationId, organizationSettings])
 
+  const resetChatUsageLimit = async () => {
+    await API.organizations
+      .resetChatbotTokenLimit(organizationId)
+      .then((msg: string) => {
+        message.success(msg)
+      })
+      .catch((err) => {
+        message.error(
+          `Failed to reset chat usage limit: ${getErrorMessage(err)}`,
+        )
+      })
+  }
+
   if (isLoading && !organizationSettings) {
     return <CenteredSpinner tip={'Loading...'} />
   }
@@ -118,11 +132,29 @@ export default function OrganizationChatbotSettingsPage(): ReactElement {
                 key: 'organization',
                 label: 'Organization Chatbot Settings',
                 children: (
-                  <OrganizationChatbotSettingsForm
-                    organizationId={organizationId}
-                    organizationSettings={organizationSettings}
-                    setSettings={setOrganizationSettings}
-                  />
+                  <>
+                    <div className="mb-6 flex items-center gap-2">
+                      <Tooltip title="Resets the daily chatbot limit for all users in the organization (30 for regular users, 300 for org professors)">
+                        <h3 className="mr-2 font-semibold text-gray-700">
+                          Reset Chatbot Usage Limit For Everyone (Normally
+                          resets daily)
+                          <InfoCircleOutlined className="ml-2 text-gray-500" />
+                        </h3>
+                      </Tooltip>
+                      <Button
+                        type="primary"
+                        size="small"
+                        onClick={resetChatUsageLimit}
+                      >
+                        Reset
+                      </Button>
+                    </div>
+                    <OrganizationChatbotSettingsForm
+                      organizationId={organizationId}
+                      organizationSettings={organizationSettings}
+                      setSettings={setOrganizationSettings}
+                    />
+                  </>
                 ),
               },
               {

@@ -5,9 +5,8 @@ import ExpandableText from '@/app/components/ExpandableText'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
-import { InfoCircleOutlined } from '@ant-design/icons'
 import { CronJob } from '@koh/common'
-import { Button, Card, Divider, message, Table, Tag, Tooltip } from 'antd'
+import { Button, Card, Divider, message, Table, Tag } from 'antd'
 import { useEffect, useState } from 'react'
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/
@@ -31,41 +30,12 @@ const DevPage: React.FC = () => {
     fetchCronJobs()
   }, [])
 
-  const resetChatUsageLimit = async () => {
-    const response = await fetch(
-      `/api/v1/organization/${userInfo.organization?.orgId}/reset_chat_token_limit`,
-      {
-        method: 'POST',
-      },
-    )
-
-    const json = await response.json()
-
-    if (response.ok) {
-      message.success(json.message)
-    } else {
-      message.error(json.message)
-    }
-  }
-
   return (
     <Card>
       <div className="p-6">
         <h2 className="mb-6 text-2xl font-bold text-gray-800">
           Development Tools
         </h2>
-
-        <div className="mb-6">
-          <Tooltip title="Resets the daily chatbot limit for all users in the organization (30 for regular users, 300 for org professors)">
-            <h3 className="mr-2 font-semibold text-gray-700">
-              Reset Chat Token Usage Limit
-              <InfoCircleOutlined className="ml-2 text-gray-500" />
-            </h3>
-          </Tooltip>
-          <Button type="primary" onClick={resetChatUsageLimit}>
-            Reset
-          </Button>
-        </div>
 
         <Divider />
 

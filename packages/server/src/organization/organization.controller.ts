@@ -99,10 +99,11 @@ export class OrganizationController {
   @Post(':oid/reset_chat_token_limit')
   @UseGuards(
     JwtAuthGuard,
-    AdminRoleGuard,
+    OrganizationRolesGuard,
     OrganizationGuard,
     EmailVerifiedGuard,
   )
+  @Roles(OrganizationRole.ADMIN)
   async resetChatTokenLimit(
     @Res() res: Response,
     @Param('oid', ParseIntPipe) oid: number,
@@ -131,7 +132,9 @@ export class OrganizationController {
       [oid],
     );
 
-    return res.sendStatus(200);
+    return res
+      .status(200)
+      .send({ message: 'Chat token limit reset successfully' });
   }
 
   /**

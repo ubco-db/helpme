@@ -1430,6 +1430,11 @@ export class APIClient {
         undefined,
         body,
       ),
+    resetChatbotTokenLimit: async (organizationId: number): Promise<string> =>
+      this.req(
+        'POST',
+        `/api/v1/organization/${organizationId}/reset_chat_token_limit`,
+      ),
     getOrganizationSettings: async (
       organizationId: number,
     ): Promise<OrganizationSettingsResponse> =>
