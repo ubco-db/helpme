@@ -77,7 +77,7 @@ describe('Calendar Integration', () => {
     await CalendarModel.createQueryBuilder().delete().execute();
   });
 
-  describe('POST /calendar/:cid', () => {
+  describe('POST /calendar/add_event/:cid', () => {
     it('adds a new calendar event by TA should work', async () => {
       const user = await UserFactory.create();
       await UserCourseFactory.create({
@@ -97,7 +97,7 @@ describe('Calendar Integration', () => {
       };
 
       const res = await supertest({ userId: user.id })
-        .post(`/calendar/${course.id}`)
+        .post(`/calendar/add_event/${course.id}`)
         .send(eventData)
         .expect(201);
 
@@ -118,7 +118,7 @@ describe('Calendar Integration', () => {
       };
 
       const res = await supertest({ userId: prof.id })
-        .post(`/calendar/${course.id}`)
+        .post(`/calendar/add_event/${course.id}`)
         .send(eventData)
         .expect(201);
 
@@ -157,7 +157,7 @@ describe('Calendar Integration', () => {
       };
 
       await supertest({ userId: user.id })
-        .post(`/calendar/${course.id}`)
+        .post(`/calendar/add_event/${course.id}`)
         .send(eventData)
         .expect(403);
 
@@ -187,7 +187,7 @@ describe('Calendar Integration', () => {
       };
 
       await supertest({ userId: user.id })
-        .post(`/calendar/${course.id}`)
+        .post(`/calendar/add_event/${course.id}`)
         .send(eventData)
         .expect(404);
 
@@ -216,7 +216,7 @@ describe('Calendar Integration', () => {
       };
 
       await supertest({ userId: user.id })
-        .post(`/calendar/999`)
+        .post(`/calendar/add_event/999`)
         .send(eventData)
         .expect(404);
 
@@ -238,7 +238,7 @@ describe('Calendar Integration', () => {
         staffIds: [ta1.id, ta2.id, prof.id],
       };
       await supertest({ userId: prof.id })
-        .post(`/calendar/${course.id}`)
+        .post(`/calendar/add_event/${course.id}`)
         .send(eventData)
         .expect(201);
 
@@ -443,7 +443,7 @@ describe('Calendar Integration', () => {
         staffIds: [ta1.id, ta2.id, prof.id],
       };
       const eventRes = await supertest({ userId: prof.id })
-        .post(`/calendar/${course.id}`)
+        .post(`/calendar/add_event/${course.id}`)
         .send(eventData)
         .expect(201);
       const event: CalendarModel = eventRes.body;
@@ -591,7 +591,7 @@ describe('Calendar Integration', () => {
         staffIds: [ta1.id, ta2.id, prof.id],
       };
       const eventRes = await supertest({ userId: prof.id })
-        .post(`/calendar/${course.id}`)
+        .post(`/calendar/add_event/${course.id}`)
         .send(eventData)
         .expect(201);
       const event: CalendarModel = eventRes.body;

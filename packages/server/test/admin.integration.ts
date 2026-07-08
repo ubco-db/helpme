@@ -7,9 +7,9 @@ import { AdminModule } from 'admin/admin.module';
 describe('Admin Integration', () => {
   const { supertest } = setupIntegrationTest(AdminModule);
 
-  describe('GET /organization/:oid/cronjobs', () => {
+  describe('GET /admin/cronjobs', () => {
     it('should return 401 when user is not logged in', async () => {
-      const res = await supertest().get('/organization/1/cronjobs');
+      const res = await supertest().get('/admin/cronjobs');
 
       expect(res.status).toBe(401);
     });
@@ -23,9 +23,7 @@ describe('Admin Integration', () => {
         organizationId: organization.id,
       }).save();
 
-      const res = await supertest({ userId: user.id }).get(
-        `/organization/${organization.id}/cronjobs`,
-      );
+      const res = await supertest({ userId: user.id }).get(`/admin/cronjobs`);
 
       expect(res.status).toBe(403);
     });
@@ -40,9 +38,7 @@ describe('Admin Integration', () => {
         role: OrganizationRole.ADMIN,
       }).save();
 
-      const res = await supertest({ userId: user.id }).get(
-        `/organization/${organization.id}/cronjobs`,
-      );
+      const res = await supertest({ userId: user.id }).get(`/admin/cronjobs`);
 
       expect(res.status).toBe(200);
     });
@@ -58,9 +54,7 @@ describe('Admin Integration', () => {
         role: OrganizationRole.MEMBER, // idk. make them just an org member should still work
       }).save();
 
-      const res = await supertest({ userId: user.id }).get(
-        `/organization/${organization.id}/cronjobs`,
-      );
+      const res = await supertest({ userId: user.id }).get(`/admin/cronjobs`);
 
       expect(res.status).toBe(200);
     });

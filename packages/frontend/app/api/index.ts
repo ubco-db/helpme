@@ -1051,7 +1051,7 @@ export class APIClient {
   }
   calendar = {
     addCalendar: async (body: Calendar, cid: number): Promise<Calendar> =>
-      this.req('POST', `/api/v1/calendar/${cid}`, undefined, body),
+      this.req('POST', `/api/v1/calendar/add_event/${cid}`, undefined, body),
     getEvents: async (cid: number): Promise<Calendar[]> =>
       this.req('GET', `/api/v1/calendar/${cid}`),
     deleteEvent: async (eventId: number, cid: number): Promise<Calendar> =>

@@ -37,7 +37,7 @@ export class CalendarController {
     await this.calendarService.resetAutoCheckoutJobs();
   }
 
-  @Post(':cid')
+  @Post('add_event/:cid')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
   async addEvent(
