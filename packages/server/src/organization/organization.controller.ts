@@ -40,7 +40,6 @@ import {
   OrganizationSettingsRequestBody,
   OrganizationSettingsResponse,
   OrgRoleChangeReason,
-  OrgUser,
   Role,
   UpdateOrganizationCourseDetailsParams,
   UpdateOrganizationDetailsParams,
@@ -71,11 +70,8 @@ import { UserCourseModel } from '../profile/user-course.entity';
 import { CourseSettingsModel } from '../course/course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
-import { v4 } from 'uuid';
 import * as sharp from 'sharp';
 import { User } from 'decorators/user.decorator';
-import { SchedulerRegistry } from '@nestjs/schedule';
-import { CronJob } from 'cron';
 import { OrgOrCourseRolesGuard } from 'guards/org-or-course-roles.guard';
 import { OrgRoles } from 'decorators/org-roles.decorator';
 import { CourseRoles } from 'decorators/course-roles.decorator';
@@ -83,7 +79,6 @@ import { CourseService } from 'course/course.service';
 import { ParseDatePipe } from '@nestjs/common/pipes/parse-date.pipe';
 import { OrgRole } from '../decorators/org-role.decorator';
 import * as crypto from 'crypto';
-import { AdminRoleGuard } from 'guards/admin-role.guard';
 
 // TODO: put the error messages in ERROR_MESSAGES object
 
@@ -92,7 +87,6 @@ export class OrganizationController {
   constructor(
     private organizationService: OrganizationService,
     private courseService: CourseService,
-    private schedulerRegistry: SchedulerRegistry,
     private dataSource: DataSource,
   ) {}
 
@@ -135,29 +129,6 @@ export class OrganizationController {
     return res
       .status(200)
       .send({ message: 'Chat token limit reset successfully' });
-  }
-
-  /**
-   * Gets all cron jobs for the system. The :oid is just to verify that they are an admin
-   */
-  @Get(':oid/cronjobs')
-  @UseGuards(JwtAuthGuard, AdminRoleGuard, EmailVerifiedGuard)
-  async getAllCronJobs(
-    @Param('oid', ParseIntPipe) oid: number,
-  ): Promise<any[] | CronJob[]> {
-    const jobs = this.schedulerRegistry.getCronJobs();
-    const jobsArray = Array.from(jobs.entries()).map(([key, job]) => {
-      const nextDates = job.running ? job.nextDates(10) : [];
-      return {
-        id: key,
-        cronTime: job.cronTime.source,
-        running: job.running,
-        nextDates: nextDates,
-        lastExecution: job.lastExecution,
-        runOnce: job.runOnce,
-      };
-    });
-    return jobsArray;
   }
 
   @Post(':oid/create_course')

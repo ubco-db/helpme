@@ -6,7 +6,7 @@ import { useUserInfo } from '@/app/contexts/userContext'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
 import { CronJob } from '@koh/common'
-import { Button, Card, Divider, message, Table, Tag } from 'antd'
+import { Button, Card, message, Table, Tag, Tooltip } from 'antd'
 import { useEffect, useState } from 'react'
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/
@@ -16,8 +16,8 @@ const DevPage: React.FC = () => {
   const [cronJobs, setCronJobs] = useState<CronJob[] | undefined>(undefined)
 
   const fetchCronJobs = async () => {
-    await API.organizations
-      .getCronJobs(userInfo.organization?.orgId || 0)
+    await API.admin
+      .getCronJobs()
       .then((cronJobs) => {
         setCronJobs(cronJobs)
       })
@@ -33,36 +33,35 @@ const DevPage: React.FC = () => {
   return (
     <Card>
       <div className="p-6">
-        <h2 className="mb-6 text-2xl font-bold text-gray-800">
-          Development Tools
-        </h2>
-
-        <Divider />
-
         <div>
-          <h3 className="mb-2 block font-semibold text-gray-700">
+          <h2 className="mb-2 flex items-center gap-2 font-semibold text-gray-700">
             Active Cron Jobs
-            <Button
-              type="primary"
-              onClick={async () => {
-                await API.calendar
-                  .resetCronJobs(userInfo.organization?.orgId || 0)
-                  .then(() => {
-                    message.success('Cron jobs reset')
-                  })
-                  .catch((e) => {
-                    const errorMessage = getErrorMessage(e)
-                    message.error('Failed to reset cron jobs: ' + errorMessage)
-                  })
-                  .finally(() => {
-                    fetchCronJobs()
-                  })
-              }}
-              className="ml-4 transform rounded bg-blue-500 px-4 py-2 font-bold text-white transition duration-300 ease-in-out hover:scale-105 hover:bg-blue-600"
-            >
-              Reset Calendar Event Cron Jobs
-            </Button>
-          </h3>
+            <Tooltip title="Calendar Event refers to the 'Schedule' page's Calendar Events. When an event is created with a TA assigned, they will get some cron jobs to auto-checkout at the end of their Calendar Events. I made it robust enough that we can retroactively create them if need be (like if the server were to crash for an extended period of time). Just click this button to do so.">
+              <Button
+                type="primary"
+                onClick={async () => {
+                  await API.calendar.adminOnly
+                    .resetCronJobs()
+                    .then(() => {
+                      message.success('Cron jobs reset')
+                    })
+                    .catch((e) => {
+                      const errorMessage = getErrorMessage(e)
+                      message.error(
+                        'Failed to reset cron jobs: ' + errorMessage,
+                      )
+                    })
+                    .finally(() => {
+                      fetchCronJobs()
+                    })
+                }}
+                size="small"
+                className="ml-4"
+              >
+                Reset Calendar Event Cron Jobs
+              </Button>
+            </Tooltip>
+          </h2>
           {cronJobs && (
             <Table<CronJob>
               size="small"

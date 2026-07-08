@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { BarChartOutlined, CodeOutlined } from '@ant-design/icons'
+import { BarChartOutlined, ClockCircleOutlined } from '@ant-design/icons'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/app/utils/generalUtils'
@@ -29,10 +29,10 @@ const items = [
     url: '/admin/lti',
   },
   {
-    key: 'dev',
-    label: 'Development Tools',
-    icon: <CodeOutlined />,
-    url: '/admin/dev',
+    key: 'cron-jobs',
+    label: 'Cron Jobs',
+    icon: <ClockCircleOutlined />,
+    url: '/admin/cron-jobs',
   },
 ]
 

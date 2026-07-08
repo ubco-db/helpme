@@ -40,6 +40,7 @@ import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { LtiModule } from './lti/lti.module';
 import { ProfInviteModule } from './course/prof-invite/prof-invite.module';
 import { AssignmentFeedbackModule } from './assignment-feedback/assignment-feedback.module';
+import { AdminModule } from 'admin/admin.module';
 
 @Module({
   imports: [
@@ -112,6 +113,7 @@ import { AssignmentFeedbackModule } from './assignment-feedback/assignment-feedb
     ]),
     LmsIntegrationModule,
     LtiModule,
+    AdminModule,
   ],
   providers: [
     {

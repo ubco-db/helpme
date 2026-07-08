@@ -15,12 +15,12 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CalendarModel } from './calendar.entity';
-import { Calendar, ERROR_MESSAGES, OrganizationRole, Role } from '@koh/common';
+import { Calendar, ERROR_MESSAGES, Role } from '@koh/common';
 import { CourseModel } from '../course/course.entity';
 import { Roles } from '../decorators/roles.decorator';
 import { CourseRolesGuard } from '../guards/course-roles.guard';
-import { OrganizationRolesGuard } from '../guards/organization-roles.guard';
 import { DataSource } from 'typeorm';
+import { AdminRoleGuard } from 'guards/admin-role.guard';
 
 @Controller('calendar')
 @UseGuards(JwtAuthGuard)
@@ -29,6 +29,14 @@ export class CalendarController {
     private readonly calendarService: CalendarService,
     private dataSource: DataSource,
   ) {}
+
+  @Post('reset_cron_jobs') // Needed to move to the start of this controller otherwise express routing will re-route it to the wrong endpoint
+  @UseGuards(AdminRoleGuard)
+  async resetCronJobs() {
+    console.warn('Resetting cron jobs');
+    await this.calendarService.resetAutoCheckoutJobs();
+  }
+
   @Post(':cid')
   @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
@@ -310,13 +318,5 @@ export class CalendarController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
-  }
-
-  @Post('reset_cron_jobs/:oid')
-  @UseGuards(OrganizationRolesGuard)
-  @Roles(OrganizationRole.ADMIN)
-  async resetCronJobs(@Param('oid', ParseIntPipe) oid: number) {
-    console.log('Resetting cron jobs');
-    await this.calendarService.resetAutoCheckoutJobs();
   }
 }
