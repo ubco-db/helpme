@@ -15,6 +15,7 @@ import {
   ERROR_MESSAGES,
   OrganizationRole,
   Role,
+  UserRole,
 } from '@koh/common';
 import { CalendarStaffModel } from '../src/calendar/calendar-staff.entity';
 import { OrganizationModule } from '../src/organization/organization.module';
@@ -46,7 +47,7 @@ describe('Calendar Integration', () => {
     // initialize course, task, and user factories
     ta1 = await UserFactory.create();
     ta2 = await UserFactory.create();
-    prof = await UserFactory.create();
+    prof = await UserFactory.create({ userRole: UserRole.ADMIN });
     course = await CourseFactory.create();
     await UserCourseFactory.create({
       user: ta1,
@@ -244,7 +245,7 @@ describe('Calendar Integration', () => {
 
       // go through the jobs, filter and find all the auto-checkout jobs
       const jobsAfterRes = await supertest({ userId: prof.id }).get(
-        `/organization/${org.id}/cronjobs`,
+        `/admin/cronjobs`,
       );
       const jobsAfter = jobsAfterRes.body;
       const autoCheckoutJobsAfter: CronJob[] = jobsAfter.filter(
@@ -450,7 +451,7 @@ describe('Calendar Integration', () => {
 
       // go through the jobs, filter and find all the auto-checkout jobs
       const jobsBeforeRes = await supertest({ userId: prof.id }).get(
-        `/organization/${org.id}/cronjobs`,
+        `/admin/cronjobs`,
       );
       const jobsBefore = jobsBeforeRes.body;
       const autoCheckoutJobsBefore: CronJob[] = jobsBefore.filter(
@@ -487,7 +488,7 @@ describe('Calendar Integration', () => {
 
       // go through the jobs, filter and find all the auto-checkout jobs
       const jobsAfterRes = await supertest({ userId: prof.id }).get(
-        `/organization/${org.id}/cronjobs`,
+        `/admin/cronjobs`,
       );
       const jobsAfter = jobsAfterRes.body;
       const autoCheckoutJobsAfter: CronJob[] = jobsAfter.filter(
@@ -598,7 +599,7 @@ describe('Calendar Integration', () => {
 
       // go through the jobs, filter and find all the auto-checkout jobs
       const jobsBeforeRes = await supertest({ userId: prof.id }).get(
-        `/organization/${org.id}/cronjobs`,
+        `/admin/cronjobs`,
       );
       const jobsBefore = jobsBeforeRes.body;
       const autoCheckoutJobsBefore: CronJob[] = jobsBefore.filter(
@@ -643,7 +644,7 @@ describe('Calendar Integration', () => {
 
       // go through the jobs, filter and find all the auto-checkout jobs
       const jobsAfterRes = await supertest({ userId: prof.id }).get(
-        `/organization/${org.id}/cronjobs`,
+        `/admin/cronjobs`,
       );
       const jobsAfter = jobsAfterRes.body;
       const autoCheckoutJobsAfter: CronJob[] = jobsAfter.filter(

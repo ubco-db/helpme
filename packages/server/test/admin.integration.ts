@@ -40,7 +40,7 @@ describe('Admin Integration', () => {
 
       const res = await supertest({ userId: user.id }).get(`/admin/cronjobs`);
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(403);
     });
     it('should return 200 when userRole is admin', async () => {
       const user = await UserFactory.create({
