@@ -27,6 +27,7 @@ import {
 import OrganizationSettingSwitch from '@/app/(dashboard)/organization/settings/components/OrganizationSettingSwitch'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 import { AllProfInvites } from './components/AllProfInvites'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
 
 export default function SettingsPage(): ReactNode {
   // Handler to update SSO patterns
@@ -513,6 +514,6 @@ export default function SettingsPage(): ReactNode {
       )}
     </div>
   ) : (
-    <Spin />
+    <CenteredSpinner tip="Loading Organization Settings..." />
   )
 }
