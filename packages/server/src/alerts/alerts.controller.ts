@@ -34,6 +34,7 @@ import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import { DataSource, IsNull } from 'typeorm';
 import { Response } from 'express';
 import { AlertsSSEService } from './alerts-sse.service';
+import { CourseRolesGuard } from 'guards/course-roles.guard';
 
 /*
 Differences between the two types of notifications:
@@ -184,7 +185,8 @@ export class AlertsController {
     }
   }
 
-  @Post()
+  @Post('create-alert/:courseId')
+  @UseGuards(CourseRolesGuard)
   @Roles(Role.TA, Role.PROFESSOR)
   async createAlert(
     @Body() body: CreateAlertParams,
