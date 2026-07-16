@@ -15,7 +15,12 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  Validate,
+  ValidateIf,
   ValidateNested,
+  ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from 'class-validator'
 import 'reflect-metadata'
 import { Cache } from 'cache-manager'
@@ -2561,21 +2566,70 @@ export class TAAwayPair {
   inProgress!: boolean
 }
 
+// Needed a custom validator to make it so one can only select at most one of: userId, orgId, or courseId for admin notice target selection
+@ValidatorConstraint({ name: 'mutuallyExclusiveTarget', async: false })
+class MutuallyExclusiveTargetConstraint
+  implements ValidatorConstraintInterface
+{
+  validate(_value: any, args: ValidationArguments) {
+    const obj = args.object as any
+    const numOfDefinedTargets = [obj.userId, obj.orgId, obj.courseId].filter(
+      (v) => v !== undefined && v !== null,
+    )
+
+    return numOfDefinedTargets.length <= 1 // at most 1 target is allowed
+  }
+  defaultMessage(_args: ValidationArguments) {
+    return 'Only one (or none) of userId, orgId, or courseId can be provided for target.'
+  }
+}
+export class AdminNoticeTarget {
+  // who the Admin Notice is targeting
+  @IsOptional()
+  @IsInt()
+  @Validate(MutuallyExclusiveTargetConstraint)
+  userId?: number
+
+  @IsOptional()
+  @IsInt()
+  @Validate(MutuallyExclusiveTargetConstraint)
+  orgId?: number
+
+  // when target is Org, can optionally specify what role
+  @ValidateIf((o) => o.orgId !== undefined && o.orgId !== null)
+  @IsEnum(OrganizationRole)
+  @IsOptional()
+  orgRole?: OrganizationRole
+
+  @IsOptional()
+  @IsInt()
+  @Validate(MutuallyExclusiveTargetConstraint)
+  courseId?: number
+
+  // when target is course, can optionally specify what role
+  @ValidateIf((o) => o.courseId !== undefined && o.courseId !== null)
+  @IsEnum(Role)
+  @IsOptional()
+  courseRole?: Role
+}
 export enum AlertType {
   REPHRASE_QUESTION = 'rephraseQuestion',
   EVENT_ENDED_CHECKOUT_STAFF = 'eventEndedCheckoutStaff',
   PROMPT_STUDENT_TO_LEAVE_QUEUE = 'promptStudentToLeaveQueue',
   DOCUMENT_PROCESSED = 'documentProcessed',
   ASYNC_QUESTION_UPDATE = 'asyncQuestionUpdate',
+  ADMIN_NOTICE = 'adminNotice',
 }
 export const FEED_ALERT_TYPES = [
   AlertType.DOCUMENT_PROCESSED,
   AlertType.ASYNC_QUESTION_UPDATE,
+  AlertType.ADMIN_NOTICE,
 ] as const
 export const MODAL_ALERT_TYPES = [
   AlertType.REPHRASE_QUESTION,
   AlertType.EVENT_ENDED_CHECKOUT_STAFF,
   AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
+  AlertType.ADMIN_NOTICE,
 ] as const
 
 export enum AlertDeliveryMode {
@@ -2629,6 +2683,22 @@ export class RephraseQuestionPayload extends AlertPayload {
   @IsInt()
   courseId!: number
 }
+export class AdminNoticePayload extends AlertPayload {
+  @IsString()
+  @IsOptional()
+  title?: string // defaults to 'Admin Notice'
+
+  @IsString()
+  message!: string
+  @IsString()
+  creatorName!: string
+  @IsInt()
+  creatorId!: number
+
+  @IsOptional() // putting the target in here since I also want to capture a history of what the target was
+  @Type(() => AdminNoticeTarget)
+  target?: AdminNoticeTarget
+}
 export class PromptStudentToLeaveQueuePayload extends AlertPayload {
   queueId!: number
   @IsInt()
@@ -2663,57 +2733,6 @@ export class AsyncQuestionUpdatePayload extends AlertPayload {
   @IsOptional()
   summary?: string
 }
-
-export class OrganizationCourseResponse {
-  @IsInt()
-  id?: number
-
-  @IsInt()
-  organizationId!: number
-
-  @IsInt()
-  courseId!: number
-
-  course?: GetCourseResponse
-
-  profIds?: number[]
-}
-
-export class OrganizationStatsResponse {
-  @IsInt()
-  members?: number
-
-  @IsInt()
-  courses?: number
-
-  @IsInt()
-  membersProfessors?: number
-}
-
-export class MarkReadBulkRequest {
-  @IsInt()
-  @IsArray()
-  alertIds!: number[]
-}
-
-export class CreateAlertParams {
-  @IsEnum(AlertType)
-  alertType!: AlertType
-
-  @IsOptional()
-  @IsEnum(AlertDeliveryMode)
-  deliveryMode?: AlertDeliveryMode
-
-  @IsInt()
-  courseId!: number
-
-  @IsObject()
-  payload!: AlertPayload
-
-  @IsInt()
-  targetUserId!: number
-}
-
 export class CreateAlertResponse extends Alert {}
 
 export enum AlertServerSentEventType {
@@ -2753,6 +2772,87 @@ export class GetInitialAlertsResponse {
 
   @IsInt()
   totalFeedAlerts!: number
+}
+export class CreateAlertParams {
+  @IsEnum(AlertType)
+  alertType!: AlertType
+
+  @IsOptional()
+  @IsEnum(AlertDeliveryMode)
+  deliveryMode?: AlertDeliveryMode
+
+  @IsInt()
+  courseId!: number
+
+  @IsObject()
+  payload!: AlertPayload
+
+  @IsInt()
+  targetUserId!: number
+}
+
+export class CreateAlertAdminRequest {
+  @IsEnum(AlertDeliveryMode)
+  deliveryMode!: AlertDeliveryMode
+
+  @Type(() => AdminNoticePayload)
+  @ValidateNested()
+  payload!: AdminNoticePayload
+}
+
+export class GetAdminNoticeAlert {
+  @IsEnum(AlertDeliveryMode)
+  deliveryMode!: AlertDeliveryMode
+
+  @IsDate()
+  @Type(() => Date)
+  sentAt!: Date
+
+  @IsString()
+  @IsOptional()
+  title?: string
+
+  @IsString()
+  message!: string
+
+  @IsString()
+  creatorName!: string
+  @IsInt()
+  creatorId!: number
+
+  @IsInt()
+  totalSent!: number
+  @IsInt()
+  totalRead!: number
+
+  @IsOptional()
+  @Type(() => AdminNoticeTarget)
+  target?: AdminNoticeTarget
+}
+export class OrganizationCourseResponse {
+  @IsInt()
+  id?: number
+
+  @IsInt()
+  organizationId!: number
+
+  @IsInt()
+  courseId!: number
+
+  course?: GetCourseResponse
+
+  profIds?: number[]
+}
+
+export class OrganizationStatsResponse {
+  @IsInt()
+  members?: number
+
+  @IsInt()
+  courses?: number
+
+  @IsInt()
+  membersProfessors?: number
 }
 
 // not used anywhere

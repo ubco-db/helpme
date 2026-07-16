@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react'
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/
 
-const DevPage: React.FC = () => {
+const CronJobsPage: React.FC = () => {
   const { userInfo } = useUserInfo()
   const [cronJobs, setCronJobs] = useState<CronJob[] | undefined>(undefined)
 
@@ -144,4 +144,4 @@ const DevPage: React.FC = () => {
   )
 }
 
-export default DevPage
+export default CronJobsPage

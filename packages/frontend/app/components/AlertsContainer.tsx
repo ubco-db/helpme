@@ -1,4 +1,5 @@
 import {
+  AdminNoticePayload,
   AlertType,
   PromptStudentToLeaveQueuePayload,
   RephraseQuestionPayload,
@@ -8,6 +9,8 @@ import StudentRephraseModal from '../(dashboard)/course/[cid]/queue/[qid]/compon
 import { useAlerts } from '@/app/contexts/AlertsContext'
 import EventEndedCheckoutStaffModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/EventEndedCheckoutStaffModal'
 import PromptStudentToLeaveQueueModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/PromptStudentToLeaveQueueModal'
+
+import AdminNoticeModal from './AdminNoticeModal'
 
 // TODO: double check the PR to make sure that this is still good
 
@@ -63,6 +66,18 @@ const AlertsContainer: React.FC<AlertsContainerProps> = ({ courseId }) => {
             }}
           />
         )
+      case AlertType.ADMIN_NOTICE: {
+        return (
+          <AdminNoticeModal
+            key={alert.id}
+            payload={alert.payload as AdminNoticePayload}
+            sentAt={alert.sentAt}
+            handleClose={async () => {
+              await markAlertRead(alert.id)
+            }}
+          />
+        )
+      }
     }
   })
 

@@ -202,16 +202,24 @@ export const AlertsProvider: React.FC<{
                 prev
                   ? {
                       ...prev,
-                      mostAlerts: prev.mostAlerts.map((a) => {
-                        const matchingUpdatedAlert = data.alerts.find(
-                          (updatedAlert) => updatedAlert.id === a.id,
-                        )
-                        if (matchingUpdatedAlert) {
-                          return plainToInstance(Alert, matchingUpdatedAlert)
-                        } else {
-                          return a
-                        }
-                      }),
+                      mostAlerts: prev.mostAlerts
+                        .map((a) => {
+                          const matchingUpdatedAlert = data.alerts.find(
+                            (updatedAlert) => updatedAlert.id === a.id,
+                          )
+                          if (matchingUpdatedAlert) {
+                            // For MODAL alerts that became readAt, we remove them from the state
+                            // Otherwise (if a modal alert attribute was update that's not readAt, or if a FEED alert became readAt, etc.) we update the local state
+                            return matchingUpdatedAlert.deliveryMode ===
+                              AlertDeliveryMode.MODAL &&
+                              matchingUpdatedAlert.readAt
+                              ? null
+                              : plainToInstance(Alert, matchingUpdatedAlert)
+                          } else {
+                            return a
+                          }
+                        })
+                        .filter((alert) => alert !== null),
                     }
                   : prev,
               { revalidate: false },

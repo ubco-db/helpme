@@ -6,6 +6,7 @@ import {
   DocumentProcessedPayload,
   AsyncQuestionUpdatePayload,
   AsyncQuestionUpdateSubtype,
+  AdminNoticePayload,
 } from '@koh/common'
 import {
   Badge,
@@ -159,6 +160,20 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
               description: payload.summary,
               ctaLabel: destination ? 'Open' : undefined,
               destination: destination,
+              onOpen: () => markAlertRead(alert.id),
+              readAt: alert.readAt,
+              sentAt: alert.sentAt,
+              courseId: courseId,
+              courseName: alert.courseName,
+            } satisfies FeedAlertFrontendItem
+          }
+          case AlertType.ADMIN_NOTICE: {
+            const payload = alert.payload as AdminNoticePayload
+            const courseId = alert.courseId
+            return {
+              alertId: alert.id,
+              title: payload.title || 'Admin Notice',
+              description: payload.message,
               onOpen: () => markAlertRead(alert.id),
               readAt: alert.readAt,
               sentAt: alert.sentAt,

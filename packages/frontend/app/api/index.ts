@@ -141,10 +141,11 @@ import {
   GetProfInviteResponse,
   ValidateEmailTokenRequest,
   ValidateEmailTokenResponse,
-  MarkReadBulkRequest,
   GetPageOfFeedAlerts,
   GetInitialAlertsResponse,
   Alert,
+  CreateAlertAdminRequest,
+  GetAdminNoticeAlert,
 } from '@koh/common'
 import Axios, { AxiosError, AxiosInstance, AxiosResponse, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -1296,9 +1297,34 @@ export class APIClient {
         },
       ),
     create: async (params: CreateAlertParams): Promise<CreateAlertResponse> =>
-      this.req('POST', `/api/v1/alerts`, CreateAlertResponse, params),
+      this.req(
+        'POST',
+        `/api/v1/alerts/create-alert/${params.courseId}`,
+        CreateAlertResponse,
+        params,
+      ),
     close: async (alertId: number): Promise<Alert> =>
       this.req<Alert>('PATCH', `/api/v1/alerts/${alertId}`, Alert),
+    adminOnly: {
+      create: async (
+        params: CreateAlertAdminRequest,
+      ): Promise<{ numSent: number }> =>
+        this.req('POST', `/api/v1/alerts/admin-notice`, undefined, params),
+      get: async (): Promise<GetAdminNoticeAlert[]> =>
+        this.req<GetAdminNoticeAlert[]>(
+          'GET',
+          `/api/v1/alerts/admin-notice`,
+          GetAdminNoticeAlert,
+        ),
+      delete: async (sentAt: string): Promise<{ numDeleted: number }> =>
+        this.req(
+          'DELETE',
+          `/api/v1/alerts/admin-notice`,
+          undefined,
+          undefined,
+          { sentAt },
+        ),
+    },
   }
 
   organizations = {

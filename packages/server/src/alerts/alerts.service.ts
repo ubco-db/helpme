@@ -7,6 +7,7 @@ import {
   DocumentProcessedPayload,
   AsyncQuestionUpdatePayload,
   AlertDeliveryMode,
+  AdminNoticeTarget,
 } from '@koh/common';
 import { validateSync } from 'class-validator';
 import { plainToClass } from 'class-transformer';
@@ -15,6 +16,9 @@ import { QuestionModel } from 'question/question.entity';
 import { QueueModel } from '../queue/queue.entity';
 import { AlertModel } from './alerts.entity';
 import { Brackets, EntityManager } from 'typeorm';
+import { UserModel } from 'profile/user.entity';
+import { OrganizationUserModel } from 'organization/organization-user.entity';
+import { UserCourseModel } from 'profile/user-course.entity';
 
 const ALERT_PAYLOAD_CLASS: Partial<Record<AlertType, new () => AlertPayload>> =
   {
@@ -203,5 +207,58 @@ export class AlertsService {
       .take(Math.min(limit, 300))
       .skip(offset)
       .getManyAndCount();
+  }
+
+  async getTargetUserIds(
+    target: AdminNoticeTarget,
+    manager: EntityManager,
+  ): Promise<number[]> {
+    let targetUserIds: number[];
+
+    if (!target) {
+      // No target specified -> send to ALL users
+      const users = await manager
+        .createQueryBuilder()
+        .select('user.id', 'id')
+        .from(UserModel, 'user')
+        .getRawMany<{ id: number }>();
+      targetUserIds = users.map((u) => u.id);
+    } else if (target.userId) {
+      // Target a specific user
+      targetUserIds = [target.userId];
+    } else if (target.orgId) {
+      // Target all users in an organization, optionally filtered by role
+      const qb = manager
+        .createQueryBuilder()
+        .select('ou."userId"', 'id')
+        .from(OrganizationUserModel, 'ou')
+        .where('ou."organizationId" = :orgId', {
+          orgId: target.orgId,
+        });
+
+      if (target.orgRole) {
+        qb.andWhere('ou.role = :role', { role: target.orgRole });
+      }
+
+      const users = await qb.getRawMany<{ id: number }>();
+      targetUserIds = users.map((u) => u.id);
+    } else if (target.courseId) {
+      // Target all users in a course, optionally filtered by role
+      const qb = manager
+        .createQueryBuilder()
+        .select('ucm."userId"', 'id')
+        .from(UserCourseModel, 'ucm')
+        .where('ucm."courseId" = :courseId', {
+          courseId: target.courseId,
+        });
+
+      if (target.courseRole) {
+        qb.andWhere('ucm.role = :role', { role: target.courseRole });
+      }
+
+      const users = await qb.getRawMany<{ id: number }>();
+      targetUserIds = users.map((u) => u.id);
+    }
+    return targetUserIds;
   }
 }

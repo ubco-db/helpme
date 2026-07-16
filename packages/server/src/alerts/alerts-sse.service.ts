@@ -52,9 +52,9 @@ export class AlertsSSEService {
       console.error(`notifyUserOfNewAlert: Alert not found for ID: ${alert}`);
       return;
     }
-    if (!alert.course) {
+    if (alert.courseId && !alert.course) {
       console.warn(
-        `notifyUserOfNewAlert: alert ${alert} doesn't have course, but was expected to have course. Re-fetching alert with course`,
+        `notifyUserOfNewAlert: alert ${JSON.stringify(alert)} doesn't have course, but was expected to have course to attach courseName. Please consider updating queries. Re-fetching alert with course`,
       );
       alert = await AlertModel.findOne({
         where: { id: alert.id },
@@ -76,13 +76,13 @@ export class AlertsSSEService {
     const userId = alerts[0].userId;
     if (alerts.some((a) => a.userId !== userId)) {
       console.warn(
-        `notifyUserOfUpdatedAlerts: alert ${alerts.find((a) => a.userId !== userId)} doesn't have the same userId as alerts[0] (${userId}). Filtering out alerts that don't have this user id`,
+        `notifyUserOfUpdatedAlerts: alert ${JSON.stringify(alerts.find((a) => a.userId !== userId))} doesn't have the same userId as alerts[0] (${userId}). Filtering out alerts that don't have this user id`,
       );
       alerts = alerts.filter((a) => a.userId === userId);
     }
     if (alerts.some((a) => !a.course)) {
       console.warn(
-        `notifyUserOfUpdatedAlerts: alert ${alerts.find((a) => !a.course)} doesn't have course, but was expected to have course. Filtering out alerts that don't have a course`,
+        `notifyUserOfUpdatedAlerts: alert ${JSON.stringify(alerts.find((a) => !a.course))} doesn't have course, but was expected to have course. Filtering out alerts that don't have a course`,
       );
       alerts = alerts.filter((a) => !!a.course);
     }

@@ -10,11 +10,16 @@ import {
   MODAL_ALERT_TYPES,
   GetInitialAlertsResponse,
   Alert,
+  CreateAlertAdminRequest,
+  UserRole,
+  MailServiceType,
+  GetAdminNoticeAlert,
 } from '@koh/common';
 import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -26,7 +31,7 @@ import {
   Res,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
-import { UserId } from 'decorators/user.decorator';
+import { User, UserId } from 'decorators/user.decorator';
 import { Roles } from '../decorators/roles.decorator';
 import { AlertModel } from './alerts.entity';
 import { AlertsService, formatAlertForFrontend } from './alerts.service';
@@ -35,6 +40,9 @@ import { DataSource, IsNull } from 'typeorm';
 import { Response } from 'express';
 import { AlertsSSEService } from './alerts-sse.service';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
+import { AdminRoleGuard } from 'guards/admin-role.guard';
+import { UserModel } from '../profile/user.entity';
+import { MailService } from 'mail/mail.service';
 
 /*
 Differences between the two types of notifications:
@@ -53,6 +61,7 @@ export class AlertsController {
   constructor(
     private alertsService: AlertsService,
     private alertsSSEService: AlertsSSEService,
+    private mailService: MailService,
     private dataSource: DataSource,
   ) {}
 
@@ -261,5 +270,131 @@ export class AlertsController {
     alert.readAt = new Date();
     await alert.save();
     return formatAlertForFrontend(alert);
+  }
+
+  @Post('admin-notice')
+  @UseGuards(AdminRoleGuard)
+  async createAdminNotice(
+    @Body() body: CreateAlertAdminRequest,
+    @User() user: UserModel,
+  ): Promise<{ numSent: number }> {
+    // we don't trust that request's given creatorName and creatorId, we'll set that ourselves
+    body.payload.creatorName = user.name;
+    body.payload.creatorId = user.id;
+    const target = body.payload.target;
+    const totalInsertedAlerts = await this.dataSource.transaction(
+      async (manager) => {
+        // Figure out who we are creating alerts for based on the target
+        const targetUserIds = await this.alertsService.getTargetUserIds(
+          target,
+          manager,
+        );
+        if (targetUserIds.length === 0) return;
+
+        if (targetUserIds.length > 1000) {
+          // mail admins that a big notification went out
+          const adminUsers = await UserModel.find({
+            where: {
+              userRole: UserRole.ADMIN,
+            },
+          });
+          await this.mailService.sendEmail({
+            receiverOrReceivers: adminUsers.map((user) => user.email),
+            subject: `HelpMe Admin: Big Notice Created (${targetUserIds.length} users)`,
+            type: MailServiceType.ADMIN_NOTICE,
+            content: `
+          <p>${user.name} (${user.email}) created an Admin Notice alert that affected ${targetUserIds.length} users with the following message: </p>
+          <p>${body.payload.message}</p>
+          <p><b>If the person sending this and the contents look normal, please disregard this message.</b> Otherwise, someone should probably remove this person's admin perms (needs a DB query since admins can't have their perms revoked through the UI).</p>
+          <p>More details:</p>
+          <p>Target: ${!target ? 'Every single user' : JSON.stringify(target)}</p>
+          <p>Delivery Mode: ${body.deliveryMode}</p>
+          `,
+          });
+        }
+
+        // bulk insert an alert for each targeted user
+        const alertValues = targetUserIds.map((targetUserId) => ({
+          alertType: AlertType.ADMIN_NOTICE,
+          deliveryMode: body.deliveryMode,
+          userId: targetUserId,
+          courseId: body.payload.target?.courseId || null,
+          payload: body.payload,
+        }));
+
+        const totalSentAlerts = (
+          await manager
+            .createQueryBuilder()
+            .insert() // note that this automatically gets pushed to everyone via alerts.subscriber (SSE)
+            .into(AlertModel)
+            .values(alertValues)
+            .execute()
+        ).raw.length;
+
+        return totalSentAlerts;
+      },
+    );
+    return totalInsertedAlerts;
+  }
+
+  @Get('admin-notice')
+  @UseGuards(AdminRoleGuard)
+  async getExistingAdminNoticeAlerts(): Promise<GetAdminNoticeAlert[]> {
+    const rawResults = await AlertModel.createQueryBuilder('alert')
+      .select('alert.sentAt', 'sentAt')
+      .addSelect('alert.deliveryMode', 'deliveryMode')
+      .addSelect('alert.payload::text', 'payload')
+      .addSelect('COUNT(*)', 'totalSent')
+      .addSelect(
+        `COUNT(*) FILTER (WHERE alert."readAt" IS NOT NULL)`,
+        'totalRead',
+      ) // neat postgres trick, nicer than needing to use CASE WHEN
+      .where('alert.alertType = :alertType', {
+        alertType: AlertType.ADMIN_NOTICE,
+      })
+      .groupBy('alert.sentAt')
+      .addGroupBy('alert.deliveryMode')
+      .addGroupBy('alert.payload::text')
+      .orderBy('alert.sentAt', 'DESC')
+      .getRawMany();
+
+    return rawResults.map((row) => {
+      const payload =
+        typeof row.payload === 'string' ? JSON.parse(row.payload) : row.payload;
+      return {
+        sentAt: row.sentAt,
+        deliveryMode: row.deliveryMode,
+        title: payload.title ?? 'Admin Notice',
+        message: payload.message,
+        creatorName: payload.creatorName,
+        creatorId: payload.creatorId,
+        target: payload.target ?? undefined,
+        totalSent: parseInt(row.totalSent, 10),
+        totalRead: parseInt(row.totalRead, 10),
+      };
+    });
+  }
+
+  @Delete('admin-notice')
+  @UseGuards(AdminRoleGuard)
+  async deleteAdminNoticeAlerts(
+    @Query('sentAt') sentAt: string,
+  ): Promise<{ numDeleted: number }> {
+    if (!sentAt) {
+      throw new BadRequestException('sentAt query parameter is required');
+    }
+    const sentAtDate = new Date(sentAt);
+    if (isNaN(sentAtDate.getTime())) {
+      throw new BadRequestException('sentAt must be a valid date string');
+    }
+
+    const result = await AlertModel.createQueryBuilder()
+      .delete()
+      .from(AlertModel)
+      .where('"alertType" = :alertType', { alertType: AlertType.ADMIN_NOTICE })
+      .andWhere('"sentAt" = :sentAt', { sentAt: sentAtDate })
+      .execute();
+
+    return { numDeleted: result.affected ?? 0 };
   }
 }
