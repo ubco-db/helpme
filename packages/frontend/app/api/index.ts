@@ -146,6 +146,9 @@ import {
   Alert,
   CreateAlertAdminRequest,
   GetAdminNoticeAlert,
+  CreateAlertAdminResponse,
+  DeleteAdminNoticeRequest,
+  DeleteAdminNoticeResponse,
 } from '@koh/common'
 import Axios, { AxiosError, AxiosInstance, AxiosResponse, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -1308,21 +1311,28 @@ export class APIClient {
     adminOnly: {
       create: async (
         params: CreateAlertAdminRequest,
-      ): Promise<{ numSent: number }> =>
-        this.req('POST', `/api/v1/alerts/admin-notice`, undefined, params),
+      ): Promise<CreateAlertAdminResponse> =>
+        this.req<CreateAlertAdminResponse>(
+          'POST',
+          `/api/v1/alerts/admin-notice`,
+          CreateAlertAdminResponse,
+          params,
+        ),
       get: async (): Promise<GetAdminNoticeAlert[]> =>
         this.req<GetAdminNoticeAlert[]>(
           'GET',
           `/api/v1/alerts/admin-notice`,
           GetAdminNoticeAlert,
         ),
-      delete: async (sentAt: string): Promise<{ numDeleted: number }> =>
+      delete: async (
+        queryParams: DeleteAdminNoticeRequest,
+      ): Promise<DeleteAdminNoticeResponse> =>
         this.req(
           'DELETE',
           `/api/v1/alerts/admin-notice`,
+          DeleteAdminNoticeResponse,
           undefined,
-          undefined,
-          { sentAt },
+          queryParams,
         ),
     },
   }

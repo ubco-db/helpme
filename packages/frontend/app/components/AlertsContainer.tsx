@@ -14,12 +14,9 @@ import AdminNoticeModal from './AdminNoticeModal'
 
 // TODO: double check the PR to make sure that this is still good
 
-type AlertsContainerProps = {
-  courseId: number
-}
-const AlertsContainer: React.FC<AlertsContainerProps> = ({ courseId }) => {
+const AlertsContainer: React.FC = () => {
   const router = useRouter()
-  const { modalAlerts, markAlertRead } = useAlerts()
+  const { modalAlerts, markAlertRead, currentCourseId: courseId } = useAlerts()
   const alerts = modalAlerts
 
   const handleCloseRephrase = async (
@@ -36,6 +33,7 @@ const AlertsContainer: React.FC<AlertsContainerProps> = ({ courseId }) => {
       case AlertType.REPHRASE_QUESTION:
         return (
           <StudentRephraseModal
+            key={alert.id}
             payload={alert.payload as RephraseQuestionPayload}
             handleClose={async (courseId, queueId) =>
               await handleCloseRephrase(alert.id, courseId, queueId)
@@ -44,27 +42,32 @@ const AlertsContainer: React.FC<AlertsContainerProps> = ({ courseId }) => {
         )
       case AlertType.EVENT_ENDED_CHECKOUT_STAFF:
         return (
-          <EventEndedCheckoutStaffModal
-            courseId={courseId}
-            handleClose={async () => {
-              await markAlertRead(alert.id)
-            }}
-          />
+          courseId && (
+            <EventEndedCheckoutStaffModal
+              key={alert.id}
+              courseId={courseId}
+              handleClose={async () => {
+                await markAlertRead(alert.id)
+              }}
+            />
+          )
         )
       case AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE:
         return (
-          <PromptStudentToLeaveQueueModal
-            key={alert.id}
-            qid={(alert.payload as PromptStudentToLeaveQueuePayload).queueId}
-            cid={courseId}
-            questionId={
-              (alert.payload as PromptStudentToLeaveQueuePayload)
-                .queueQuestionId
-            }
-            handleClose={async () => {
-              await markAlertRead(alert.id)
-            }}
-          />
+          courseId && (
+            <PromptStudentToLeaveQueueModal
+              key={alert.id}
+              qid={(alert.payload as PromptStudentToLeaveQueuePayload).queueId}
+              cid={courseId}
+              questionId={
+                (alert.payload as PromptStudentToLeaveQueuePayload)
+                  .queueQuestionId
+              }
+              handleClose={async () => {
+                await markAlertRead(alert.id)
+              }}
+            />
+          )
         )
       case AlertType.ADMIN_NOTICE: {
         return (

@@ -29,6 +29,7 @@ export class AlertsSSEService {
     userId: number,
     data: () => Promise<AlertServerSentEvent>,
   ) {
+    console.log(`Sending Event to user ${userId}`, data());
     await this.sseService.sendEvent(idToRoom(userId), data);
   }
 
@@ -74,20 +75,22 @@ export class AlertsSSEService {
     alerts: AlertModel[], // NEEDS .course to get courseName
   ) => {
     const userId = alerts[0].userId;
+    console.log(`Notifying user ${userId} of alerts:`, alerts);
     if (alerts.some((a) => a.userId !== userId)) {
       console.warn(
         `notifyUserOfUpdatedAlerts: alert ${JSON.stringify(alerts.find((a) => a.userId !== userId))} doesn't have the same userId as alerts[0] (${userId}). Filtering out alerts that don't have this user id`,
       );
       alerts = alerts.filter((a) => a.userId === userId);
     }
-    if (alerts.some((a) => !a.course)) {
+    if (alerts.some((a) => !a.course && a.courseId)) {
       console.warn(
         `notifyUserOfUpdatedAlerts: alert ${JSON.stringify(alerts.find((a) => !a.course))} doesn't have course, but was expected to have course. Filtering out alerts that don't have a course`,
       );
-      alerts = alerts.filter((a) => !!a.course);
+      alerts = alerts.filter((a) => !!a.course || a.courseId === null);
     }
     if (alerts.length === 0) return;
 
+    console.log('Sending to room');
     await this.sendToRoom(userId, async () => ({
       alerts: alerts.map((a) => formatAlertForFrontend(a)),
       eventType: AlertServerSentEventType.UPDATE_ALERTS,

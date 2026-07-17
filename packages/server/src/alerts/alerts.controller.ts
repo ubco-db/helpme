@@ -14,6 +14,9 @@ import {
   UserRole,
   MailServiceType,
   GetAdminNoticeAlert,
+  CreateAlertAdminResponse,
+  DeleteAdminNoticeRequest,
+  DeleteAdminNoticeResponse,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -277,32 +280,35 @@ export class AlertsController {
   async createAdminNotice(
     @Body() body: CreateAlertAdminRequest,
     @User() user: UserModel,
-  ): Promise<{ numSent: number }> {
+  ): Promise<CreateAlertAdminResponse> {
     // we don't trust that request's given creatorName and creatorId, we'll set that ourselves
     body.payload.creatorName = user.name;
     body.payload.creatorId = user.id;
     const target = body.payload.target;
-    const totalInsertedAlerts = await this.dataSource.transaction(
-      async (manager) => {
-        // Figure out who we are creating alerts for based on the target
-        const targetUserIds = await this.alertsService.getTargetUserIds(
-          target,
-          manager,
-        );
-        if (targetUserIds.length === 0) return;
+    return await this.dataSource.transaction(async (manager) => {
+      // Figure out who we are creating alerts for based on the target
+      const targetUserIds = await this.alertsService.getTargetUserIds(
+        target,
+        manager,
+      );
+      if (targetUserIds.length === 0)
+        return {
+          numSent: 0,
+          sentAt: new Date(),
+        };
 
-        if (targetUserIds.length > 1000) {
-          // mail admins that a big notification went out
-          const adminUsers = await UserModel.find({
-            where: {
-              userRole: UserRole.ADMIN,
-            },
-          });
-          await this.mailService.sendEmail({
-            receiverOrReceivers: adminUsers.map((user) => user.email),
-            subject: `HelpMe Admin: Big Notice Created (${targetUserIds.length} users)`,
-            type: MailServiceType.ADMIN_NOTICE,
-            content: `
+      if (targetUserIds.length > 1000) {
+        // mail admins that a big notification went out
+        const adminUsers = await UserModel.find({
+          where: {
+            userRole: UserRole.ADMIN,
+          },
+        });
+        await this.mailService.sendEmail({
+          receiverOrReceivers: adminUsers.map((user) => user.email),
+          subject: `HelpMe Admin: Big Notice Created (${targetUserIds.length} users)`,
+          type: MailServiceType.ADMIN_NOTICE,
+          content: `
           <p>${user.name} (${user.email}) created an Admin Notice alert that affected ${targetUserIds.length} users with the following message: </p>
           <p>${body.payload.message}</p>
           <p><b>If the person sending this and the contents look normal, please disregard this message.</b> Otherwise, someone should probably remove this person's admin perms (needs a DB query since admins can't have their perms revoked through the UI).</p>
@@ -310,31 +316,33 @@ export class AlertsController {
           <p>Target: ${!target ? 'Every single user' : JSON.stringify(target)}</p>
           <p>Delivery Mode: ${body.deliveryMode}</p>
           `,
-          });
-        }
+        });
+      }
 
-        // bulk insert an alert for each targeted user
-        const alertValues = targetUserIds.map((targetUserId) => ({
-          alertType: AlertType.ADMIN_NOTICE,
-          deliveryMode: body.deliveryMode,
-          userId: targetUserId,
-          courseId: body.payload.target?.courseId || null,
-          payload: body.payload,
-        }));
+      // bulk insert an alert for each targeted user
+      const alertValues = targetUserIds.map((targetUserId) => ({
+        alertType: AlertType.ADMIN_NOTICE,
+        deliveryMode: body.deliveryMode,
+        userId: targetUserId,
+        courseId: body.payload.target?.courseId || null,
+        payload: body.payload,
+      }));
 
-        const totalSentAlerts = (
-          await manager
-            .createQueryBuilder()
-            .insert() // note that this automatically gets pushed to everyone via alerts.subscriber (SSE)
-            .into(AlertModel)
-            .values(alertValues)
-            .execute()
-        ).raw.length;
-
-        return totalSentAlerts;
-      },
-    );
-    return totalInsertedAlerts;
+      const insertResult = await manager
+        .createQueryBuilder()
+        .insert() // note that this automatically gets pushed to everyone via alerts.subscriber (SSE)
+        .into(AlertModel)
+        .values(alertValues)
+        .execute();
+      const totalSentAlerts: number = insertResult.raw.length;
+      // We need the exact sentAt to update the frontend state so it has the correct
+      // timestamp. The frontend needs this since we delete alerts via their sentAt (this is the easiest way)
+      const sentAt: Date = new Date(insertResult.raw[0].sentAt);
+      return {
+        numSent: totalSentAlerts,
+        sentAt: sentAt,
+      };
+    });
   }
 
   @Get('admin-notice')
@@ -378,23 +386,18 @@ export class AlertsController {
   @Delete('admin-notice')
   @UseGuards(AdminRoleGuard)
   async deleteAdminNoticeAlerts(
-    @Query('sentAt') sentAt: string,
-  ): Promise<{ numDeleted: number }> {
-    if (!sentAt) {
-      throw new BadRequestException('sentAt query parameter is required');
-    }
-    const sentAtDate = new Date(sentAt);
-    if (isNaN(sentAtDate.getTime())) {
-      throw new BadRequestException('sentAt must be a valid date string');
-    }
-
+    @Query() query: DeleteAdminNoticeRequest,
+  ): Promise<DeleteAdminNoticeResponse> {
+    // Apparently postgres datetimestamps have microsecond precision (js Date only have ms precision)
+    // So we need to truncate to ms precision for the comparison
     const result = await AlertModel.createQueryBuilder()
       .delete()
       .from(AlertModel)
       .where('"alertType" = :alertType', { alertType: AlertType.ADMIN_NOTICE })
-      .andWhere('"sentAt" = :sentAt', { sentAt: sentAtDate })
+      .andWhere('date_trunc(\'milliseconds\', "sentAt") = :sentAt', {
+        sentAt: query.sentAt,
+      })
       .execute();
-
     return { numDeleted: result.affected ?? 0 };
   }
 }

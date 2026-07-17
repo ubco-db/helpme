@@ -1,7 +1,6 @@
 'use client'
 import { use, useEffect } from 'react'
 
-import AlertsContainer from '@/app/components/AlertsContainer'
 import { useAlerts } from '@/app/contexts/AlertsContext'
 
 type Params = Promise<{ cid: string }>
@@ -24,10 +23,5 @@ export default function Layout(props: {
     }
   }, [courseId, setCurrentCourseId])
 
-  return (
-    <>
-      <AlertsContainer courseId={courseId} />
-      {children}
-    </>
-  )
+  return <>{children}</>
 }

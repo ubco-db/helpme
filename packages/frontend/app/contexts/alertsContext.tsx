@@ -30,6 +30,7 @@ type AlertsContextValue = {
   feedPaginationLoading: boolean
   initialFetchLoading: boolean
   initialFetchError: any
+  currentCourseId: number | undefined
   setCurrentCourseId: (courseId: number | undefined) => void
   currentPageIdx: number
   setCurrentPageIdx: (pageIdx: number) => void
@@ -86,8 +87,6 @@ export const AlertsProvider: React.FC<{
     [alertsData],
   ) // used for finding total number of pages
 
-  console.log('initialAlerts', alertsData)
-
   useEffect(() => {
     setCurrentPageIdx(0) // make sure to reset the page back to 0 since the total number of pages might've changed
   }, [currentCourseId])
@@ -100,6 +99,7 @@ export const AlertsProvider: React.FC<{
     useCallback(
       (data: AlertServerSentEvent) => {
         console.log('NEW ALERT DATA:', data)
+        console.log('CURRENT COURSE', currentCourseId)
         if (initialFetchLoading) {
           // This is a weird case to think about, but I could see a weird scenario where
           // an SSE event is sent *before* initial alerts is retrieved, where it causes a modal popup to show up,
@@ -129,6 +129,7 @@ export const AlertsProvider: React.FC<{
                 { revalidate: false },
               )
             } else {
+              console.log('no matching alert found')
               // Doesn't yet exist on the frontend state (most cases)
               if (currentCourseId) {
                 // if course is selected, only add alerts that are null courseId or the same courseId
@@ -157,10 +158,13 @@ export const AlertsProvider: React.FC<{
                   )
                 }
               } else {
+                console.log('not in currentCourseId', data.alert.deliveryMode)
                 // if no course is selected (like in /courses page)
                 switch (data.alert.deliveryMode) {
                   case AlertDeliveryMode.MODAL: // For modal, ONLY allow alerts with null courseId (so you don't get like 5 different popups about rephrase question or something)
+                    console.log('MODAL delivery mofde')
                     if (!data.alert.courseId) {
+                      console.log('Adding new alert:', data)
                       mutateAlerts(
                         (prev) =>
                           prev
@@ -208,6 +212,10 @@ export const AlertsProvider: React.FC<{
                             (updatedAlert) => updatedAlert.id === a.id,
                           )
                           if (matchingUpdatedAlert) {
+                            console.log(
+                              'Found matching alert:',
+                              matchingUpdatedAlert,
+                            )
                             // For MODAL alerts that became readAt, we remove them from the state
                             // Otherwise (if a modal alert attribute was update that's not readAt, or if a FEED alert became readAt, etc.) we update the local state
                             return matchingUpdatedAlert.deliveryMode ===
@@ -332,6 +340,8 @@ export const AlertsProvider: React.FC<{
     )
   }, [fetchedAlerts])
 
+  console.log('modalAlerts', modalAlerts)
+
   const totalFetchedFeedPages = useMemo(() => {
     return Math.ceil(feedAlerts.length / FEED_PAGE_SIZE)
   }, [feedAlerts])
@@ -431,6 +441,7 @@ export const AlertsProvider: React.FC<{
     feedPaginationLoading,
     initialFetchLoading,
     initialFetchError,
+    currentCourseId,
     setCurrentCourseId,
     currentPageIdx,
     setCurrentPageIdx,

@@ -213,7 +213,7 @@ export class AlertsService {
     target: AdminNoticeTarget,
     manager: EntityManager,
   ): Promise<number[]> {
-    let targetUserIds: number[];
+    let targetUserIds: number[] = [];
 
     if (!target) {
       // No target specified -> send to ALL users
@@ -259,6 +259,7 @@ export class AlertsService {
       const users = await qb.getRawMany<{ id: number }>();
       targetUserIds = users.map((u) => u.id);
     }
+    console.log('targetUserIds', targetUserIds);
     return targetUserIds;
   }
 }

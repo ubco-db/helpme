@@ -2799,7 +2799,13 @@ export class CreateAlertAdminRequest {
   @ValidateNested()
   payload!: AdminNoticePayload
 }
-
+export class CreateAlertAdminResponse {
+  @IsNumber()
+  numSent!: number
+  @IsDate()
+  @Type(() => Date)
+  sentAt!: Date
+}
 export class GetAdminNoticeAlert {
   @IsEnum(AlertDeliveryMode)
   deliveryMode!: AlertDeliveryMode
@@ -2828,6 +2834,15 @@ export class GetAdminNoticeAlert {
   @IsOptional()
   @Type(() => AdminNoticeTarget)
   target?: AdminNoticeTarget
+}
+export class DeleteAdminNoticeRequest {
+  @IsDate()
+  @Type(() => Date)
+  sentAt!: Date
+}
+export class DeleteAdminNoticeResponse {
+  @IsNumber()
+  numDeleted!: number
 }
 export class OrganizationCourseResponse {
   @IsInt()

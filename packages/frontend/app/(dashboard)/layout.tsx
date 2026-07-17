@@ -18,6 +18,7 @@ import { LogoutOutlined, ReloadOutlined } from '@ant-design/icons'
 import VerifyEmailPage from '@/app/(auth)/verify/page'
 import { AlertsProvider } from '@/app/contexts/AlertsContext'
 import { UserRole } from '@/middlewareType'
+import AlertsContainer from '../components/AlertsContainer'
 
 const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
   children,
@@ -36,7 +37,7 @@ const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
   }, [pathname, router])
 
   return errorGettingUser ? (
-    <main className="mt-20 flex flex-col content-center justify-center gap-3">
+    <main className="mt-20 flex max-w-3xl flex-col content-center justify-center gap-3 p-2">
       <p>There was an error getting your user details: </p>
       <p>{errorGettingUser}</p>
       <Button
@@ -138,6 +139,7 @@ const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
                   {children}
                 </StandardPageContainer>
               )}
+              <AlertsContainer />
             </ChatbotContextProvider>
           </main>
         </AlertsProvider>
