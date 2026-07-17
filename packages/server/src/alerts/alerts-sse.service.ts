@@ -29,7 +29,7 @@ export class AlertsSSEService {
     userId: number,
     data: () => Promise<AlertServerSentEvent>,
   ) {
-    console.log(`Sending Event to user ${userId}`, data());
+    // console.log(`Sending Event to user ${userId}`, data());
     await this.sseService.sendEvent(idToRoom(userId), data);
   }
 

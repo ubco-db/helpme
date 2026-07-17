@@ -775,6 +775,7 @@ See https://typeorm.io/docs/listeners-and-subscribers/ for more info
 If you have any ideas on where to even start with fixing these, feel free to give them a stab!
 
 - Sometimes the HMR/hot reload/hot refresh (the thing that immediately rebuilds your running code after saving) doesn't work for the Nestjs server. Sometimes this is a result of it just taking an extra minute to rebuild. Other times it's just stuck and you will need to `ctrl`+`c` the terminal and run `yarn dev` again. 
+  - Note: I found that turning AutoSave off and then manually saving when you want to check changes helps. I think HMR gets stuck if it tries to rebuild the backend when it's already rebuilding it. 
 - Sometimes the tests will just start failing on dev (usually with database connection errors, deadlock, or some table already existing). Restarting your computer *might* help
 - There's like a 1 in 40 chance or so that the tests will fail on github actions with one of the errors listed above
 - UI randomly looking funky with no changes? This is very uncommon, but it could be antd updating their css (even though we're using a package manager so we *should* be getting the same version each time. But, I did read somewhere that yarn and other package managers will download newer minor versions of packages even though we have a smaller version in our package.json), or maybe browser caching issue (try `ctrl`+`F5`. It's usually not this but a man can dream).

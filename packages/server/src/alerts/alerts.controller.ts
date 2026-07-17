@@ -388,16 +388,26 @@ export class AlertsController {
   async deleteAdminNoticeAlerts(
     @Query() query: DeleteAdminNoticeRequest,
   ): Promise<DeleteAdminNoticeResponse> {
-    // Apparently postgres datetimestamps have microsecond precision (js Date only have ms precision)
-    // So we need to truncate to ms precision for the comparison
-    const result = await AlertModel.createQueryBuilder()
-      .delete()
-      .from(AlertModel)
-      .where('"alertType" = :alertType', { alertType: AlertType.ADMIN_NOTICE })
-      .andWhere('date_trunc(\'milliseconds\', "sentAt") = :sentAt', {
+    // I tried using queryBuilder.delete() but for whatever reason the afterRemove/beforeRemove
+    // subscribers will activate but have absolutely no information about the query or what
+    // entities were affected, making it impossible to notify users via SSE.
+    // Instead we're opting to query all the alerts first, then using AlertModel.remove()
+    const alertsToDelete = await AlertModel.createQueryBuilder('alert')
+      .where('alert."alertType" = :alertType', {
+        alertType: AlertType.ADMIN_NOTICE,
+      })
+      // Apparently postgres datetimestamps have microsecond precision (js Date only have ms precision)
+      // So we need to truncate to ms precision for the comparison
+      .andWhere('date_trunc(\'milliseconds\', alert."sentAt") = :sentAt', {
         sentAt: query.sentAt,
       })
-      .execute();
-    return { numDeleted: result.affected ?? 0 };
+      .getMany();
+
+    if (alertsToDelete.length === 0) {
+      return { numDeleted: 0 };
+    }
+
+    await AlertModel.remove(alertsToDelete);
+    return { numDeleted: alertsToDelete.length };
   }
 }

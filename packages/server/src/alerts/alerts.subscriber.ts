@@ -99,6 +99,9 @@ export class AlertsSubscriber implements EntitySubscriberInterface<AlertModel> {
     }
   }
 
+  /* VERY IMPORTANT: Using querybuilder.delete() for Alerts will NOT trigger this (typeorm gives me no WHERE query info when you do so, so there's no way I can know what users to notify).
+  If you need to use querybuilder, PLEASE first .getMany() and then use AlertModel.remove(alertsToDelete) instead. See deleteAdminNoticeAlerts in alerts.controller for example.
+  */
   async afterRemove(event: RemoveEvent<AlertModel>): Promise<void> {
     if (event.entity?.userId && event.entityId) {
       await this.alertsSSEService.notifyUserOfDeletedAlert(
