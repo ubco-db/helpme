@@ -202,9 +202,18 @@ const CreateAdminAlertsPage: React.FC = () => {
             <Form.Item<FormValues>
               label="Message"
               name="message"
-              rules={[{ required: true, message: 'Please enter a message!' }]}
+              rules={[
+                {
+                  required: true,
+                  message:
+                    'what, you were just going to message sweet nothing to people? Fill the box my guy',
+                },
+              ]}
             >
-              <Input.TextArea rows={5} />
+              <Input.TextArea
+                rows={5}
+                placeholder="Attention All Users: you're looking lovely today :)"
+              />
             </Form.Item>
             <Form.Item<FormValues> label="Delivery Mode" name="deliveryMode">
               <Segmented<AlertDeliveryMode>
@@ -232,10 +241,14 @@ const CreateAdminAlertsPage: React.FC = () => {
                 name="targetUserId"
                 tooltip="You can go to the Users page under Organization Settings to find the userId of who you want to message. I didn't want to spend the time to add a user search selector here."
                 rules={[
-                  { required: true, message: 'Target User ID is required' },
+                  {
+                    required: true,
+                    message:
+                      'look man idk what to tell you but you gotta work on your form filling out skills and enter a user id of who you want to target',
+                  },
                 ]}
               >
-                <InputNumber min={0} />
+                <InputNumber min={0} placeholder="1 or 2 or 3 or " />
               </Form.Item>
             )}
 
@@ -246,10 +259,13 @@ const CreateAdminAlertsPage: React.FC = () => {
                   name="targetCourseId"
                   tooltip="You can find course IDs in the URL of the course page or on the Courses page under Organization Settings"
                   rules={[
-                    { required: true, message: 'Target Course ID is required' },
+                    {
+                      required: true,
+                      message: 'hey bucko enter a target course id',
+                    },
                   ]}
                 >
-                  <InputNumber min={0} />
+                  <InputNumber min={0} placeholder="7 ate 9 😱" />
                 </Form.Item>
                 <Form.Item<FormValues>
                   label="Target Course Role"
@@ -274,10 +290,13 @@ const CreateAdminAlertsPage: React.FC = () => {
                   tooltip="(UBC is org ID 1)"
                   name="targetOrgId"
                   rules={[
-                    { required: true, message: 'Target Org ID is required' },
+                    {
+                      required: true,
+                      message: 'you are my enemy, you know that?',
+                    },
                   ]}
                 >
-                  <InputNumber min={0} />
+                  <InputNumber min={0} placeholder="BOO!" />
                 </Form.Item>
                 <Form.Item<FormValues>
                   label="Target Organization Role"
