@@ -9,12 +9,14 @@ export class AlertsCleanService {
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async pruneOldReadFeed(): Promise<void> {
     const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    await AlertModel.createQueryBuilder()
-      .delete()
-      .from(AlertModel)
-      .where('"deliveryMode" = :mode', { mode: AlertDeliveryMode.FEED })
-      .andWhere('"readAt" IS NOT NULL')
-      .andWhere('"readAt" < :cutoff', { cutoff })
-      .execute();
+    const alertsToDelete = await AlertModel.createQueryBuilder('alert')
+      .where('alert."deliveryMode" = :mode', { mode: AlertDeliveryMode.FEED })
+      .andWhere('alert."readAt" IS NOT NULL')
+      .andWhere('alert."readAt" < :cutoff', { cutoff })
+      .getMany();
+
+    if (alertsToDelete.length > 0) {
+      await AlertModel.remove(alertsToDelete);
+    }
   }
 }

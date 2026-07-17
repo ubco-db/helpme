@@ -141,19 +141,19 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
 
             const title =
               payload.subtype === AsyncQuestionUpdateSubtype.COMMENT_ON_MY_POST
-                ? 'New comment on your Anytime Question'
+                ? 'New Comment'
                 : payload.subtype ===
                     AsyncQuestionUpdateSubtype.COMMENT_ON_OTHERS_POST
-                  ? 'New comment on a followed Anytime Question'
+                  ? 'New Comment on Followed Post'
                   : payload.subtype ===
                       AsyncQuestionUpdateSubtype.HUMAN_ANSWERED
-                    ? 'Your Anytime Question was answered'
+                    ? 'Anytime Question Answered'
                     : payload.subtype ===
                         AsyncQuestionUpdateSubtype.STATUS_CHANGED
-                      ? 'Anytime Question status changed'
+                      ? 'Anytime Question Status Changed'
                       : payload.subtype === AsyncQuestionUpdateSubtype.UPVOTED
-                        ? 'Your Anytime Question was upvoted'
-                        : 'Anytime Question update'
+                        ? 'Anytime Question Upvoted'
+                        : 'Anytime Question Generic Update'
             return {
               alertId: alert.id,
               title,

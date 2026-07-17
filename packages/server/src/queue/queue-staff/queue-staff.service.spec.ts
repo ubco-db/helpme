@@ -442,7 +442,7 @@ describe('QueueStaffService', () => {
         payload: { queueId: queue.id },
       });
       // ensure alert IS resolved (User clicked 'Stay')
-      await AlertModel.update(alert.id, { resolved: new Date() });
+      await AlertModel.update(alert.id, { readAt: new Date() });
 
       await service.autoLeaveQueue(
         student.id,

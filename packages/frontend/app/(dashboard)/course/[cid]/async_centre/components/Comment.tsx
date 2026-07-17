@@ -1,7 +1,7 @@
 import MarkdownCustom from '@/app/components/Markdown'
 import UserAvatar from '@/app/components/UserAvatar'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
-import { Role } from '@koh/common'
+import { Role, ANONYMOUS_ANIMAL_AVATAR, getAnonAnimal } from '@koh/common'
 import { CommentProps } from '../utils/types'
 import {
   CheckCircleOutlined,
@@ -24,8 +24,7 @@ import {
 } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { API } from '@/app/api'
-import { getAnonAnimal, getAvatarTooltip } from '../utils/commonAsyncFunctions'
-import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
+import { getAvatarTooltip } from '../utils/commonAsyncFunctions'
 import { useUserInfo } from '@/app/contexts/userContext'
 
 const { TextArea } = Input

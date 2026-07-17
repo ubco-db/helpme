@@ -1,8 +1,4 @@
-import {
-  Alert,
-  AlertServerSentEvent,
-  AlertServerSentEventType,
-} from '@koh/common';
+import { AlertServerSentEvent, AlertServerSentEventType } from '@koh/common';
 import { Injectable } from '@nestjs/common';
 
 import { AlertModel } from './alerts.entity';

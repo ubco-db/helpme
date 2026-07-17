@@ -1317,6 +1317,104 @@ export enum asyncQuestionStatus {
   StudentDeleted = 'StudentDeleted',
 }
 
+/** Human-readable labels for each asyncQuestionStatus value */
+export const asyncQuestionStatusDisplayMap: Record<string, string> = {
+  [asyncQuestionStatus.AIAnsweredNeedsAttention]:
+    'AI Answered, Needs Attention',
+  [asyncQuestionStatus.AIAnsweredResolved]: 'AI Answered, Resolved',
+  [asyncQuestionStatus.HumanAnswered]: 'Human Verified',
+  [asyncQuestionStatus.AIAnswered]: 'Answered by AI',
+  [asyncQuestionStatus.TADeleted]: 'Deleted by TA',
+  [asyncQuestionStatus.StudentDeleted]: 'Deleted by Student',
+}
+
+/**
+ * Anonymous animal names used for anonymizing student identities.
+ * Each student gets a deterministic animal per question via getAnonAnimal().
+ */
+export const ANONYMOUS_ANIMAL_AVATAR = {
+  URL: '/anon_animals',
+  ANIMAL_NAMES: [
+    'Alligator',
+    'Chipmunk',
+    'Gopher',
+    'Liger',
+    'Quagga',
+    'Anteater',
+    'Chupacabra',
+    'Grizzly',
+    'Llama',
+    'Rabbit',
+    'Armadillo',
+    'Cormorant',
+    'Hedgehog',
+    'Manatee',
+    'Raccoon',
+    'Auroch',
+    'Coyote',
+    'Hippo',
+    'Mink',
+    'Rhino',
+    'Axolotl',
+    'Crow',
+    'Hyena',
+    'Monkey',
+    'Sheep',
+    'Badger',
+    'Dingo',
+    'Ibex',
+    'Moose',
+    'Shrew',
+    'Bat',
+    'Dinosaur',
+    'Ifrit',
+    'Narwhal',
+    'Skunk',
+    'Beaver',
+    'Dolphin',
+    'Iguana',
+    'Orangutan',
+    'Squirrel',
+    'Buffalo',
+    'Duck',
+    'Jackal',
+    'Otter',
+    'Tiger',
+    'Camel',
+    'Elephant',
+    'Kangaroo',
+    'Panda',
+    'Turtle',
+    'Capybara',
+    'Ferret',
+    'Koala',
+    'Penguin',
+    'Walrus',
+    'Chameleon',
+    'Fox',
+    'Kraken',
+    'Platypus',
+    'Wolf',
+    'Cheetah',
+    'Frog',
+    'Lemur',
+    'Pumpkin',
+    'Wolverine',
+    'Chinchilla',
+    'Giraffe',
+    'Leopard',
+    'Python',
+    'Wombat',
+  ],
+}
+
+/**
+ * Given an anonId (from getAnonId), returns the corresponding animal name.
+ */
+export function getAnonAnimal(anonId: number): string {
+  return ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES[anonId] ?? 'Unknown'
+}
+
 export enum resolutionSource {
   AI = 'AI',
   Human = 'Human',

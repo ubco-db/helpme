@@ -634,9 +634,9 @@ export class QueueStaffService {
       })
       .getMany();
 
-    alerts.forEach(async (alert) => {
+    for (const alert of alerts) {
       alert.readAt = new Date();
       await alert.save();
-    });
+    }
   }
 }
