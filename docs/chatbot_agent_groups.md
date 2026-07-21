@@ -31,6 +31,5 @@ chatbot request to use that agent course if it belongs to the same
 
 The seed is transactional and idempotent. Missing agent-course memberships are
 created with the `professor` role; any existing agent-course membership keeps
-its current role and favourited state. A transaction-scoped PostgreSQL advisory
-lock serializes concurrent invocations so no duplicate courses or memberships
-are produced. The seed does not manage the agent lifecycle after setup.
+its current role and favourited state. The seed does not manage the agent
+lifecycle after setup.

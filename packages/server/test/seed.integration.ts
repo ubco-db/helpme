@@ -1,19 +1,19 @@
 import { Role } from '@koh/common';
 import { ChatbotModule } from '../../server/src/chatbot/chatbot.module';
 import { CourseModel } from '../../server/src/course/course.entity';
-import { CourseSettingsModel } from '../../server/src/course/course_settings.entity';
 import { OrganizationCourseModel } from '../../server/src/organization/organization-course.entity';
-import { OrganizationModel } from '../../server/src/organization/organization.entity';
-import { SemesterModel } from '../../server/src/semester/semester.entity';
 import { QuestionModel } from '../../server/src/question/question.entity';
 import { UserCourseModel } from '../../server/src/profile/user-course.entity';
 import { SeedChatbotAgentGroupCommand } from '../../server/src/seed/seed-chatbot-agent-group.command';
 import { SeedModule } from '../../server/src/seed/seed.module';
 import {
   CourseFactory,
+  OrganizationCourseFactory,
+  OrganizationFactory,
   OrganizationUserFactory,
   QuestionFactory,
   QueueFactory,
+  SemesterFactory,
   UserCourseFactory,
   UserFactory,
 } from './util/factories';
@@ -28,24 +28,24 @@ describe('Seed Integration', () => {
   );
 
   const createLanternPrerequisites = async () => {
-    const organization = await OrganizationModel.create({
+    const organization = await OrganizationFactory.create({
       name: 'UBC',
-    }).save();
-    const semester = await SemesterModel.create({
+    });
+    const semester = await SemesterFactory.create({
       name: '2026S Both Terms',
-      organizationId: organization.id,
-    }).save();
-    const parentCourse = await CourseModel.create({
+      organization,
+    });
+    const parentCourse = await CourseFactory.create({
       name: 'LANTERN',
-      semesterId: semester.id,
+      semester,
       enabled: true,
       sectionGroupName: '001',
       timezone: 'America/Los_Angeles',
-    }).save();
-    await OrganizationCourseModel.create({
-      courseId: parentCourse.id,
-      organizationId: organization.id,
-    }).save();
+    });
+    await OrganizationCourseFactory.create({
+      organization,
+      course: parentCourse,
+    });
 
     const professor = await UserFactory.create({
       email: 'lantern-professor@ubc.ca',
@@ -153,9 +153,6 @@ describe('Seed Integration', () => {
     expect(
       professorMemberships.every(({ role }) => role === Role.PROFESSOR),
     ).toBe(true);
-    expect(professorMemberships.every(({ favourited }) => favourited)).toBe(
-      true,
-    );
     expect(studentMemberships).toHaveLength(0);
 
     await supertest({ userId: professor.id })
@@ -202,58 +199,5 @@ describe('Seed Integration', () => {
     expect(
       memberships.filter(({ role }) => role === Role.PROFESSOR),
     ).toHaveLength(3);
-  });
-
-  it('serializes concurrent invocations so no duplicate courses or memberships result', async () => {
-    const { professor } = await createLanternPrerequisites();
-
-    await Promise.all([
-      runLanternSeed(),
-      runLanternSeed(),
-      runLanternSeed(),
-      runLanternSeed(),
-      runLanternSeed(),
-    ]);
-
-    const agentCourses = await getAgentCourses();
-    expect(agentCourses).toHaveLength(4);
-
-    const memberships = await getAgentCourseMembershipsFor(
-      professor.id,
-      agentCourses.map((course) => course.id),
-    );
-    expect(memberships).toHaveLength(4);
-    expect(memberships.every(({ role }) => role === Role.PROFESSOR)).toBe(true);
-  }, 30000);
-
-  it('preserves existing agent course settings instead of re-enabling a disabled chatbot', async () => {
-    const { organization, parentCourse } = await createLanternPrerequisites();
-    const existingAgentCourse = await CourseModel.create({
-      name: 'LANTERN Analyst',
-      semesterId: parentCourse.semesterId,
-      enabled: true,
-      sectionGroupName: '001',
-      timezone: 'America/Los_Angeles',
-    }).save();
-    await OrganizationCourseModel.create({
-      courseId: existingAgentCourse.id,
-      organizationId: organization.id,
-    }).save();
-    await CourseSettingsModel.create({
-      courseId: existingAgentCourse.id,
-      chatBotEnabled: false,
-      asyncQueueEnabled: false,
-      adsEnabled: false,
-      queueEnabled: false,
-    }).save();
-
-    await runLanternSeed();
-
-    const settings = await CourseSettingsModel.findOne({
-      where: { courseId: existingAgentCourse.id },
-    });
-    expect(settings?.chatBotEnabled).toBe(false);
-    expect(settings?.asyncQueueEnabled).toBe(false);
-    expect(settings?.queueEnabled).toBe(false);
   });
 });

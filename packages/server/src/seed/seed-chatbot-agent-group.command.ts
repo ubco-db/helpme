@@ -36,7 +36,6 @@ const agents = [
 const parentCourseName = 'LANTERN';
 const organizationName = 'UBC';
 const semesterName = '2026S Both Terms';
-const SEED_CHATBOT_AGENT_GROUP_LOCK_KEY = 4_242_424_242_424_242;
 
 @Injectable()
 export class SeedChatbotAgentGroupCommand {
@@ -48,10 +47,6 @@ export class SeedChatbotAgentGroupCommand {
   })
   async createLanternAgentGroup(): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
-      await manager.query('SELECT pg_advisory_xact_lock($1)', [
-        SEED_CHATBOT_AGENT_GROUP_LOCK_KEY,
-      ]);
-
       const organization = await manager.findOneOrFail(OrganizationModel, {
         where: { name: organizationName },
       });
