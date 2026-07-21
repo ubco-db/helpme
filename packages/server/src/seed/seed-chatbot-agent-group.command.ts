@@ -1,4 +1,4 @@
-import { SuperCoursePurpose } from '@koh/common';
+import { Role, SuperCoursePurpose } from '@koh/common';
 import { Injectable } from '@nestjs/common';
 import { Command } from 'nestjs-command';
 import { CourseModel } from 'course/course.entity';
@@ -6,9 +6,10 @@ import { CourseSettingsModel } from 'course/course_settings.entity';
 import { SuperCourseModel } from 'course/super-course.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
 import { OrganizationModel } from 'organization/organization.entity';
+import { UserCourseModel } from 'profile/user-course.entity';
 import { SemesterModel } from 'semester/semester.entity';
 import * as crypto from 'crypto';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource, EntityManager, In } from 'typeorm';
 
 const agents = [
   {
@@ -70,21 +71,36 @@ export class SeedChatbotAgentGroupCommand {
         organization.id,
       );
 
+      const parentCourseProfessorMemberships = await manager.find(
+        UserCourseModel,
+        {
+          where: {
+            courseId: parentCourse.id,
+            role: Role.PROFESSOR,
+          },
+        },
+      );
+
       for (const [index, agent] of agents.entries()) {
-        const course = await this.findOrCreateCourse(
+        const agentCourse = await this.findOrCreateCourse(
           manager,
           this.getAgentCourseName(agent.name),
           semester.id,
           organization.id,
         );
-        course.chatbotAgentName = agent.name;
-        course.chatbotAgentDescription = agent.description;
-        course.chatbotAgentOrder = index + 1;
+        agentCourse.chatbotAgentName = agent.name;
+        agentCourse.chatbotAgentDescription = agent.description;
+        agentCourse.chatbotAgentOrder = index + 1;
         await this.attachCourseToGroup(
           manager,
-          course,
+          agentCourse,
           superCourse,
           organization.id,
+        );
+        await this.addMissingProfessorMemberships(
+          manager,
+          agentCourse.id,
+          parentCourseProfessorMemberships,
         );
       }
 
@@ -96,6 +112,46 @@ export class SeedChatbotAgentGroupCommand {
 
   private getAgentCourseName(agentName: string): string {
     return `${parentCourseName} ${agentName}`;
+  }
+
+  private async addMissingProfessorMemberships(
+    manager: EntityManager,
+    agentCourseId: number,
+    parentCourseProfessorMemberships: UserCourseModel[],
+  ): Promise<void> {
+    const professorIds = Array.from(
+      new Set(
+        parentCourseProfessorMemberships
+          .map((userCourse) => userCourse.userId)
+          .filter((userId): userId is number => userId !== null),
+      ),
+    );
+    if (professorIds.length === 0) {
+      return;
+    }
+
+    const existingMemberships = await manager.find(UserCourseModel, {
+      where: {
+        courseId: agentCourseId,
+        userId: In(professorIds),
+      },
+    });
+    const existingUserIds = new Set(
+      existingMemberships.map((userCourse) => userCourse.userId),
+    );
+    const missingMemberships = professorIds
+      .filter((userId) => !existingUserIds.has(userId))
+      .map((userId) =>
+        manager.create(UserCourseModel, {
+          userId,
+          courseId: agentCourseId,
+          role: Role.PROFESSOR,
+        }),
+      );
+
+    if (missingMemberships.length > 0) {
+      await manager.save(UserCourseModel, missingMemberships);
+    }
   }
 
   private async findOrCreateSuperCourse(
