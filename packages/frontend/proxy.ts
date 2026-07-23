@@ -88,7 +88,7 @@ async function fetchUser(
   }
 }
 
-export async function middleware(
+export async function proxy(
   request: NextRequest,
 ): Promise<NextResponse<unknown>> {
   const { url, nextUrl, cookies } = request
