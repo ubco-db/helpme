@@ -42,7 +42,7 @@ import {
   AssignmentFeedbackRequest,
   AssignmentFeedbackResponse,
   ExtraTAStatus,
-  GetAlertsResponse,
+  AlertDeliveryMode,
   GetAsyncQuestionsResponse,
   GetAvailableModelsBody,
   GetChatbotHistoryResponse,
@@ -141,6 +141,14 @@ import {
   GetProfInviteResponse,
   ValidateEmailTokenRequest,
   ValidateEmailTokenResponse,
+  GetPageOfFeedAlerts,
+  GetInitialAlertsResponse,
+  Alert,
+  CreateAlertAdminRequest,
+  GetAdminNoticeAlert,
+  CreateAlertAdminResponse,
+  DeleteAdminNoticeRequest,
+  DeleteAdminNoticeResponse,
 } from '@koh/common'
 import Axios, { AxiosError, AxiosInstance, AxiosResponse, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
@@ -1260,12 +1268,73 @@ export class APIClient {
   }
 
   alerts = {
-    get: async (courseId: number): Promise<GetAlertsResponse> =>
-      this.req('GET', `/api/v1/alerts/${courseId}`),
+    // Note that there's also a GET /sse endpoint, but that's to be used with an EventSource (1-way websocket to let server send new alerts to frontend)
+    markReadAllFeed: async (): Promise<void> =>
+      this.req('PATCH', `/api/v1/alerts/mark-read-all-feed`),
+    getMyFeedAlerts: async (
+      courseId: number = -1,
+      limit?: number,
+      offset?: number,
+    ): Promise<GetPageOfFeedAlerts> =>
+      this.req<GetPageOfFeedAlerts>(
+        'GET',
+        `/api/v1/alerts/feed`,
+        GetPageOfFeedAlerts,
+        undefined,
+        {
+          courseId: String(courseId),
+          ...(limit !== undefined ? { limit: String(limit) } : {}),
+          ...(offset !== undefined ? { offset: String(offset) } : {}),
+        },
+      ),
+    getMyInitialAlerts: async (
+      courseId: number = -1,
+    ): Promise<GetInitialAlertsResponse> =>
+      this.req<GetInitialAlertsResponse>(
+        'GET',
+        `/api/v1/alerts/initial`,
+        GetInitialAlertsResponse,
+        undefined,
+        {
+          courseId: String(courseId),
+        },
+      ),
     create: async (params: CreateAlertParams): Promise<CreateAlertResponse> =>
-      this.req('POST', `/api/v1/alerts`, CreateAlertResponse, params),
-    close: async (alertId: number): Promise<void> =>
-      this.req('PATCH', `/api/v1/alerts/${alertId}`),
+      this.req(
+        'POST',
+        `/api/v1/alerts/create-alert/${params.courseId}`,
+        CreateAlertResponse,
+        params,
+      ),
+    close: async (alertId: number): Promise<Alert> =>
+      this.req<Alert>('PATCH', `/api/v1/alerts/${alertId}`, Alert),
+    adminOnly: {
+      create: async (
+        params: CreateAlertAdminRequest,
+      ): Promise<CreateAlertAdminResponse> =>
+        this.req<CreateAlertAdminResponse>(
+          'POST',
+          `/api/v1/alerts/admin-notice`,
+          CreateAlertAdminResponse,
+          params,
+        ),
+      get: async (): Promise<GetAdminNoticeAlert[]> =>
+        this.req<GetAdminNoticeAlert[]>(
+          'GET',
+          `/api/v1/alerts/admin-notice`,
+          GetAdminNoticeAlert,
+        ),
+      delete: async (
+        queryParams: DeleteAdminNoticeRequest,
+      ): Promise<DeleteAdminNoticeResponse> =>
+        this.req(
+          'DELETE',
+          `/api/v1/alerts/admin-notice`,
+          DeleteAdminNoticeResponse,
+          undefined,
+          queryParams,
+        ),
+    },
   }
 
   organizations = {

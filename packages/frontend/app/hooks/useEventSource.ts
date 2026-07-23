@@ -1,3 +1,4 @@
+import { isProd } from '@koh/common'
 import { useEffect, useState } from 'react'
 import ReconnectingEventSource from 'reconnecting-eventsource'
 
@@ -17,6 +18,13 @@ const EVENTSOURCES: Record<string, SourceAndCount> = {}
  * Listen to eventsource at given url calling the given onmessage when messages are received.
  * onmessage is overwritten if listenerKey is the same.
  * Returns whether the event source is connected
+ *
+ * Adam: I believe this was implemented for if the browser is listening to multiple different EventSources (i.e. SSE endpoints).
+ * Multiple browser tabs with the queue open, for example - I want to guess it re-uses the same EventSource somehow in this case, but I'm not sure.
+ * I think another example is you could have an Alerts EventSource and a Queue EventSource,
+ * and I think this would just be a unified area for them all so they get closed on exit?
+ *
+ *
  * @param url URL to subscribe event source to
  * @param listenerKey key of the listener. eg: "queue" or "question"
  * @param onmessage callback when messages are received
@@ -28,13 +36,23 @@ export const useEventSource = (
 ): boolean => {
   const [isLive, setIsLive] = useState<boolean>(false)
   useEffect(() => {
+    console.log('current EventSOurces', EVENTSOURCES)
     if (url) {
       let source: SourceAndCount
       if (url in EVENTSOURCES) {
         source = EVENTSOURCES[url]
       } else {
+        console.log(
+          'establishing new ReconnectingEventSource',
+          url,
+          listenerKey,
+        )
         source = {
-          eventSource: new ReconnectingEventSource(url),
+          eventSource: new ReconnectingEventSource(url, {
+            max_retry_time: isProd()
+              ? 15 * 1000 // 15s
+              : 60 * 5 * 1000, // 5min
+          }),
           listeners: {},
           isLiveSetters: new Set(),
         }
@@ -64,6 +82,7 @@ export const useEventSource = (
 
       return () => {
         // Close event source if no one is listening
+        console.log('Closing  event source for', url) // TODO: why does this run?? Maybe copy-paste https://github.com/childrentime/reactuse/blob/fa7ce799d8548a564091669d59a72260bc8f68fc/packages/core/src/useEventSource/index.ts#L7 and modify it so it has a callback?
         listener.count--
         source.isLiveSetters.delete(setIsLive)
         if (listener.count === 0) {

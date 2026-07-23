@@ -144,7 +144,12 @@ const UsersTable: React.FC<UsersTableProps> = ({
                       />
                     }
                     title={item.firstName + ' ' + (item.lastName ?? '')}
-                    description={item.email}
+                    description={
+                      <div className="flex flex-row gap-2">
+                        <div className="font-semibold">{item.userId}</div>
+                        <div>{item.email}</div>
+                      </div>
+                    }
                   />
                 </List.Item>
               </>

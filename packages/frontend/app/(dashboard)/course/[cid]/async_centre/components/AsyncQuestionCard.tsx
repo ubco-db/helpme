@@ -3,8 +3,11 @@ import { Button, Col, message, Row, Tag, Tooltip } from 'antd'
 import {
   AsyncQuestion,
   asyncQuestionStatus,
+  asyncQuestionStatusDisplayMap as statusDisplayMap,
   parseThinkBlock,
   Role,
+  ANONYMOUS_ANIMAL_AVATAR,
+  getAnonAnimal,
 } from '@koh/common'
 import {
   CheckCircleOutlined,
@@ -23,25 +26,13 @@ import StudentAsyncQuestionCardButtons from './StudentAsyncQuestionCardButtons'
 import { ArrowBigDown, ArrowBigUp } from 'lucide-react'
 import MarkdownCustom from '@/app/components/Markdown'
 import CommentSection from './CommentSection'
-import { getAnonAnimal, getAvatarTooltip } from '../utils/commonAsyncFunctions'
-import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
+import { getAvatarTooltip } from '../utils/commonAsyncFunctions'
 import styles from './AsyncQuestionCard.module.css'
 import {
   AsyncQuestionCardUIReducer,
   initialUIState,
 } from './AsyncQuestionCardUIReducer'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
-
-const statusDisplayMap = {
-  // if the question has no answer text, it will say "awaiting answer"
-  [asyncQuestionStatus.AIAnsweredNeedsAttention]:
-    'AI Answered, Needs Attention',
-  [asyncQuestionStatus.AIAnsweredResolved]: 'AI Answered, Resolved',
-  [asyncQuestionStatus.HumanAnswered]: 'Human Verified',
-  [asyncQuestionStatus.AIAnswered]: 'Answered by AI',
-  [asyncQuestionStatus.TADeleted]: 'Deleted by TA',
-  [asyncQuestionStatus.StudentDeleted]: 'Deleted by Student',
-}
 
 interface AsyncQuestionCardProps {
   question: AsyncQuestion

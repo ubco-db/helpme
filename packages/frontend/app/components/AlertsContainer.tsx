@@ -1,37 +1,30 @@
 import {
+  AdminNoticePayload,
   AlertType,
   PromptStudentToLeaveQueuePayload,
   RephraseQuestionPayload,
 } from '@koh/common'
-import useSWR from 'swr'
 import { useRouter } from 'next/navigation'
 import StudentRephraseModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/StudentRephraseModal'
-import { API } from '../api'
+import { useAlerts } from '@/app/contexts/AlertsContext'
 import EventEndedCheckoutStaffModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/EventEndedCheckoutStaffModal'
 import PromptStudentToLeaveQueueModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/PromptStudentToLeaveQueueModal'
 
-type AlertsContainerProps = {
-  courseId: number
-}
-const AlertsContainer: React.FC<AlertsContainerProps> = ({ courseId }) => {
+import AdminNoticeModal from './AdminNoticeModal'
+
+// TODO: double check the PR to make sure that this is still good
+
+const AlertsContainer: React.FC = () => {
   const router = useRouter()
-  const { data, mutate: mutateAlerts } = useSWR(
-    '/api/v1/alerts',
-    async () => API.alerts.get(courseId),
-    {
-      refreshInterval: 60000, // revalidate every minute
-    },
-  )
-  const alerts = data?.alerts
+  const { modalAlerts, markAlertRead, currentCourseId: courseId } = useAlerts()
+  const alerts = modalAlerts
 
   const handleCloseRephrase = async (
     alertId: number,
     courseId: number,
     queueId: number,
   ) => {
-    await API.alerts.close(alertId)
-
-    await mutateAlerts()
+    await markAlertRead(alertId)
     router.push(`/course/${courseId}/queue/${queueId}?edit_question=true`)
   }
 
@@ -40,6 +33,7 @@ const AlertsContainer: React.FC<AlertsContainerProps> = ({ courseId }) => {
       case AlertType.REPHRASE_QUESTION:
         return (
           <StudentRephraseModal
+            key={alert.id}
             payload={alert.payload as RephraseQuestionPayload}
             handleClose={async (courseId, queueId) =>
               await handleCloseRephrase(alert.id, courseId, queueId)
@@ -48,30 +42,45 @@ const AlertsContainer: React.FC<AlertsContainerProps> = ({ courseId }) => {
         )
       case AlertType.EVENT_ENDED_CHECKOUT_STAFF:
         return (
-          <EventEndedCheckoutStaffModal
-            courseId={courseId}
-            handleClose={async () => {
-              await API.alerts.close(alert.id)
-              await mutateAlerts()
-            }}
-          />
+          courseId && (
+            <EventEndedCheckoutStaffModal
+              key={alert.id}
+              courseId={courseId}
+              handleClose={async () => {
+                await markAlertRead(alert.id)
+              }}
+            />
+          )
         )
       case AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE:
         return (
-          <PromptStudentToLeaveQueueModal
+          courseId && (
+            <PromptStudentToLeaveQueueModal
+              key={alert.id}
+              qid={(alert.payload as PromptStudentToLeaveQueuePayload).queueId}
+              cid={courseId}
+              questionId={
+                (alert.payload as PromptStudentToLeaveQueuePayload)
+                  .queueQuestionId
+              }
+              handleClose={async () => {
+                await markAlertRead(alert.id)
+              }}
+            />
+          )
+        )
+      case AlertType.ADMIN_NOTICE: {
+        return (
+          <AdminNoticeModal
             key={alert.id}
-            qid={(alert.payload as PromptStudentToLeaveQueuePayload).queueId}
-            cid={courseId}
-            questionId={
-              (alert.payload as PromptStudentToLeaveQueuePayload)
-                .queueQuestionId
-            }
+            payload={alert.payload as AdminNoticePayload}
+            sentAt={alert.sentAt}
             handleClose={async () => {
-              await API.alerts.close(alert.id)
-              await mutateAlerts()
+              await markAlertRead(alert.id)
             }}
           />
         )
+      }
     }
   })
 

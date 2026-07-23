@@ -5921,11 +5921,6 @@ cjs-module-lexer@^2.1.0:
   resolved "https://registry.yarnpkg.com/cjs-module-lexer/-/cjs-module-lexer-2.1.0.tgz#586e87d4341cb2661850ece5190232ccdebcff8b"
   integrity sha512-UX0OwmYRYQQetfrLEZeewIFFI+wSTofC+pMBLNuH3RUuu/xzG1oz84UCEDOSoQlN3fZ4+AzmV50ZYvGqkMh9yA==
 
-class-transformer@0.3.1:
-  version "0.3.1"
-  resolved "https://registry.yarnpkg.com/class-transformer/-/class-transformer-0.3.1.tgz#ee681a5439ff2230fc57f5056412d3befa70d597"
-  integrity sha512-cKFwohpJbuMovS8xVLmn8N2AUbAuc8pVo4zEfsUVo8qgECOogns1WVk/FkOZoxhOPTyTYFckuoH+13FO+MQ8GA==
-
 class-transformer@^0.5.1:
   version "0.5.1"
   resolved "https://registry.yarnpkg.com/class-transformer/-/class-transformer-0.5.1.tgz#24147d5dffd2a6cea930a3250a677addf96ab336"

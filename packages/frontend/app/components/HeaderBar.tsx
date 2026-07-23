@@ -54,6 +54,7 @@ import { Popconfirm } from 'antd'
 import { sortQueues } from '../(dashboard)/course/[cid]/utils/commonCourseFunctions'
 import { useCourseFeatures } from '../hooks/useCourseFeatures'
 import CenteredSpinner from './CenteredSpinner'
+import NotificationBell from './NotificationBell'
 import Image from 'next/image'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 import { useCourse } from '@/app/hooks/useCourse'
@@ -543,6 +544,11 @@ const NavBar = ({
               ) : null}
               {/* DESKTOP ONLY PART OF NAVBAR */}
               <NavigationMenuItem className="!ml-auto hidden md:block">
+                <div className="px-2">
+                  <NotificationBell />
+                </div>
+              </NavigationMenuItem>
+              <NavigationMenuItem className="hidden md:block">
                 <NavigationMenuTrigger
                   className={cn(
                     '!pl-4',

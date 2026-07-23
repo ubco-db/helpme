@@ -1,7 +1,7 @@
 'use client'
-import { use } from 'react'
+import { use, useEffect } from 'react'
 
-import AlertsContainer from '@/app/components/AlertsContainer'
+import { useAlerts } from '@/app/contexts/AlertsContext'
 
 type Params = Promise<{ cid: string }>
 
@@ -10,15 +10,18 @@ export default function Layout(props: {
   params: Params
 }) {
   const params = use(props.params)
-
   const { children } = props
-
   const { cid } = params
+  const courseId = Number(cid)
 
-  return (
-    <>
-      <AlertsContainer courseId={Number(cid)} />
-      {children}
-    </>
-  )
+  const { setCurrentCourseId } = useAlerts()
+
+  useEffect(() => {
+    setCurrentCourseId(courseId)
+    return () => {
+      setCurrentCourseId(-1)
+    }
+  }, [courseId, setCurrentCourseId])
+
+  return <>{children}</>
 }

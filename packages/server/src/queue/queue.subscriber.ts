@@ -15,7 +15,6 @@ export class QueueSubscriber implements EntitySubscriberInterface<QueueModel> {
     dataSource.subscribers.push(this);
   }
 
-   
   listenTo() {
     return QueueModel;
   }

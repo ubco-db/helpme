@@ -15,7 +15,12 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  Validate,
+  ValidateIf,
   ValidateNested,
+  ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from 'class-validator'
 import 'reflect-metadata'
 import { Cache } from 'cache-manager'
@@ -742,6 +747,7 @@ export class OllamaModelDescription {
   model!: string
 
   @IsDate()
+  @Type(() => Date)
   modifiedAt!: Date
 
   @IsInt()
@@ -1311,6 +1317,104 @@ export enum asyncQuestionStatus {
   StudentDeleted = 'StudentDeleted',
 }
 
+/** Human-readable labels for each asyncQuestionStatus value */
+export const asyncQuestionStatusDisplayMap: Record<string, string> = {
+  [asyncQuestionStatus.AIAnsweredNeedsAttention]:
+    'AI Answered, Needs Attention',
+  [asyncQuestionStatus.AIAnsweredResolved]: 'AI Answered, Resolved',
+  [asyncQuestionStatus.HumanAnswered]: 'Human Verified',
+  [asyncQuestionStatus.AIAnswered]: 'Answered by AI',
+  [asyncQuestionStatus.TADeleted]: 'Deleted by TA',
+  [asyncQuestionStatus.StudentDeleted]: 'Deleted by Student',
+}
+
+/**
+ * Anonymous animal names used for anonymizing student identities.
+ * Each student gets a deterministic animal per question via getAnonAnimal().
+ */
+export const ANONYMOUS_ANIMAL_AVATAR = {
+  URL: '/anon_animals',
+  ANIMAL_NAMES: [
+    'Alligator',
+    'Chipmunk',
+    'Gopher',
+    'Liger',
+    'Quagga',
+    'Anteater',
+    'Chupacabra',
+    'Grizzly',
+    'Llama',
+    'Rabbit',
+    'Armadillo',
+    'Cormorant',
+    'Hedgehog',
+    'Manatee',
+    'Raccoon',
+    'Auroch',
+    'Coyote',
+    'Hippo',
+    'Mink',
+    'Rhino',
+    'Axolotl',
+    'Crow',
+    'Hyena',
+    'Monkey',
+    'Sheep',
+    'Badger',
+    'Dingo',
+    'Ibex',
+    'Moose',
+    'Shrew',
+    'Bat',
+    'Dinosaur',
+    'Ifrit',
+    'Narwhal',
+    'Skunk',
+    'Beaver',
+    'Dolphin',
+    'Iguana',
+    'Orangutan',
+    'Squirrel',
+    'Buffalo',
+    'Duck',
+    'Jackal',
+    'Otter',
+    'Tiger',
+    'Camel',
+    'Elephant',
+    'Kangaroo',
+    'Panda',
+    'Turtle',
+    'Capybara',
+    'Ferret',
+    'Koala',
+    'Penguin',
+    'Walrus',
+    'Chameleon',
+    'Fox',
+    'Kraken',
+    'Platypus',
+    'Wolf',
+    'Cheetah',
+    'Frog',
+    'Lemur',
+    'Pumpkin',
+    'Wolverine',
+    'Chinchilla',
+    'Giraffe',
+    'Leopard',
+    'Python',
+    'Wombat',
+  ],
+}
+
+/**
+ * Given an anonId (from getAnonId), returns the corresponding animal name.
+ */
+export function getAnonAnimal(anonId: number): string {
+  return ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES[anonId] ?? 'Unknown'
+}
+
 export enum resolutionSource {
   AI = 'AI',
   Human = 'Human',
@@ -1535,6 +1639,7 @@ export class QueueChatPartial {
   questionId!: number
 
   @IsDate()
+  @Type(() => Date)
   startedAt!: Date
 
   messages?: QueueChatMessagePartial[]
@@ -1563,6 +1668,7 @@ export class QueueChatMessagePartial {
   message!: string
 
   @IsDate()
+  @Type(() => Date)
   timestamp!: Date
 }
 
@@ -2004,14 +2110,17 @@ export class LMSAssignment {
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   due?: Date
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   modified?: Date
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   uploaded?: Date
 }
 
@@ -2027,6 +2136,7 @@ export class LMSAnnouncement {
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   posted?: Date
 
   @IsOptional()
@@ -2035,10 +2145,12 @@ export class LMSAnnouncement {
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   modified?: Date
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   uploaded?: Date
 }
 
@@ -2065,10 +2177,12 @@ export class LMSPage {
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   modified?: Date
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   uploaded?: Date
 }
 
@@ -2094,10 +2208,12 @@ export class LMSFile {
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   modified?: Date
 
   @IsOptional()
   @IsDate()
+  @Type(() => Date)
   uploaded?: Date
 }
 
@@ -2548,11 +2664,79 @@ export class TAAwayPair {
   inProgress!: boolean
 }
 
+// Needed a custom validator to make it so one can only select at most one of: userId, orgId, or courseId for admin notice target selection
+@ValidatorConstraint({ name: 'mutuallyExclusiveTarget', async: false })
+class MutuallyExclusiveTargetConstraint
+  implements ValidatorConstraintInterface
+{
+  validate(_value: any, args: ValidationArguments) {
+    const obj = args.object as any
+    const numOfDefinedTargets = [obj.userId, obj.orgId, obj.courseId].filter(
+      (v) => v !== undefined && v !== null,
+    )
+
+    return numOfDefinedTargets.length <= 1 // at most 1 target is allowed
+  }
+  defaultMessage(_args: ValidationArguments) {
+    return 'Only one (or none) of userId, orgId, or courseId can be provided for target.'
+  }
+}
+export class AdminNoticeTarget {
+  // who the Admin Notice is targeting
+  @IsOptional()
+  @IsInt()
+  @Validate(MutuallyExclusiveTargetConstraint)
+  userId?: number
+
+  @IsOptional()
+  @IsInt()
+  @Validate(MutuallyExclusiveTargetConstraint)
+  orgId?: number
+
+  // when target is Org, can optionally specify what role
+  @ValidateIf((o) => o.orgId !== undefined && o.orgId !== null)
+  @IsEnum(OrganizationRole)
+  @IsOptional()
+  orgRole?: OrganizationRole
+
+  @IsOptional()
+  @IsInt()
+  @Validate(MutuallyExclusiveTargetConstraint)
+  courseId?: number
+
+  // when target is course, can optionally specify what role
+  @ValidateIf((o) => o.courseId !== undefined && o.courseId !== null)
+  @IsEnum(Role)
+  @IsOptional()
+  courseRole?: Role
+}
 export enum AlertType {
   REPHRASE_QUESTION = 'rephraseQuestion',
   EVENT_ENDED_CHECKOUT_STAFF = 'eventEndedCheckoutStaff',
   PROMPT_STUDENT_TO_LEAVE_QUEUE = 'promptStudentToLeaveQueue',
+  DOCUMENT_PROCESSED = 'documentProcessed',
+  ASYNC_QUESTION_UPDATE = 'asyncQuestionUpdate',
+  ADMIN_NOTICE = 'adminNotice',
 }
+export const FEED_ALERT_TYPES = [
+  AlertType.DOCUMENT_PROCESSED,
+  AlertType.ASYNC_QUESTION_UPDATE,
+  AlertType.ADMIN_NOTICE,
+] as const
+export const MODAL_ALERT_TYPES = [
+  AlertType.REPHRASE_QUESTION,
+  AlertType.EVENT_ENDED_CHECKOUT_STAFF,
+  AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
+  AlertType.ADMIN_NOTICE,
+] as const
+
+export enum AlertDeliveryMode {
+  MODAL = 'modal',
+  FEED = 'feed',
+}
+export const AlertQueryMode = { ...AlertDeliveryMode, ALL: 'all' } as const
+export type AlertQueryMode =
+  (typeof AlertQueryMode)[keyof typeof AlertQueryMode]
 
 export class AlertPayload {}
 
@@ -2560,14 +2744,31 @@ export class Alert {
   @IsEnum(AlertType)
   alertType!: AlertType
 
+  @IsEnum(AlertDeliveryMode)
+  deliveryMode!: AlertDeliveryMode
+
   @IsDate()
-  sent!: Date
+  @Type(() => Date)
+  sentAt!: Date
 
   @Type(() => AlertPayload)
   payload!: AlertPayload
 
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  readAt?: Date
+
   @IsInt()
   id!: number
+
+  @IsOptional()
+  @IsInt()
+  courseId?: number | null
+
+  @IsOptional()
+  @IsString()
+  courseName?: string // used by FEED alerts to show what course the alert is from (since you can see ALL feed alerts when on /courses. Not the case with Modal alerts)
 }
 
 export class RephraseQuestionPayload extends AlertPayload {
@@ -2580,14 +2781,167 @@ export class RephraseQuestionPayload extends AlertPayload {
   @IsInt()
   courseId!: number
 }
+export class AdminNoticePayload extends AlertPayload {
+  @IsString()
+  @IsOptional()
+  title?: string // defaults to 'Admin Notice'
 
+  @IsString()
+  message!: string
+  @IsString()
+  creatorName!: string
+  @IsInt()
+  creatorId!: number
+
+  @IsOptional() // putting the target in here since I also want to capture a history of what the target was
+  @Type(() => AdminNoticeTarget)
+  target?: AdminNoticeTarget
+}
 export class PromptStudentToLeaveQueuePayload extends AlertPayload {
   queueId!: number
   @IsInt()
   @IsOptional()
   queueQuestionId?: number
 }
+export class DocumentProcessedPayload extends AlertPayload {
+  @IsInt()
+  documentId!: number
 
+  @IsString()
+  documentName!: string
+}
+export enum AsyncQuestionUpdateSubtype {
+  COMMENT_ON_MY_POST = 'commentOnMyPost',
+  COMMENT_ON_OTHERS_POST = 'commentOnOthersPost',
+  HUMAN_ANSWERED = 'humanAnswered',
+  STATUS_CHANGED = 'statusChanged',
+  UPVOTED = 'upvoted',
+}
+export class AsyncQuestionUpdatePayload extends AlertPayload {
+  @IsInt()
+  questionId!: number
+
+  @IsInt()
+  courseId!: number
+
+  @IsEnum(AsyncQuestionUpdateSubtype)
+  subtype!: AsyncQuestionUpdateSubtype
+
+  @IsString()
+  @IsOptional()
+  summary?: string
+}
+export class CreateAlertResponse extends Alert {}
+
+export enum AlertServerSentEventType {
+  NEW_ALERT = 'newAlert',
+  DELETE_ALERT = 'deleteAlert',
+  UPDATE_ALERTS = 'updateAlerts',
+}
+
+export type AlertServerSentEvent =
+  | {
+      eventType: AlertServerSentEventType.DELETE_ALERT
+      alertId: number
+      alert?: Alert
+    }
+  | {
+      eventType: AlertServerSentEventType.NEW_ALERT
+      alertId: number
+      alert: Alert
+    }
+  | {
+      eventType: AlertServerSentEventType.UPDATE_ALERTS
+      alerts: Alert[]
+    }
+
+export class GetPageOfFeedAlerts {
+  @Type(() => Alert)
+  @ValidateNested({ each: true })
+  pageOfFeedAlerts!: Alert[]
+
+  @IsInt()
+  totalFeedAlerts!: number // includes both read and unread alerts
+}
+export class GetInitialAlertsResponse {
+  @Type(() => Alert)
+  @ValidateNested({ each: true })
+  mostAlerts!: Alert[] // includes all (max 20) unread modal alerts and most feed alerts - need to fetch subsequent pages
+
+  @IsInt()
+  totalFeedAlerts!: number
+}
+export class CreateAlertParams {
+  @IsEnum(AlertType)
+  alertType!: AlertType
+
+  @IsOptional()
+  @IsEnum(AlertDeliveryMode)
+  deliveryMode?: AlertDeliveryMode
+
+  @IsInt()
+  courseId!: number
+
+  @IsObject()
+  payload!: AlertPayload
+
+  @IsInt()
+  targetUserId!: number
+}
+
+export class CreateAlertAdminRequest {
+  @IsEnum(AlertDeliveryMode)
+  deliveryMode!: AlertDeliveryMode
+
+  @Type(() => AdminNoticePayload)
+  @ValidateNested()
+  payload!: AdminNoticePayload
+}
+export class CreateAlertAdminResponse {
+  @IsNumber()
+  numSent!: number
+  @IsDate()
+  @Type(() => Date)
+  sentAt!: Date
+}
+export class GetAdminNoticeAlert {
+  @IsEnum(AlertDeliveryMode)
+  deliveryMode!: AlertDeliveryMode
+
+  @IsDate()
+  @Type(() => Date)
+  sentAt!: Date
+
+  @IsString()
+  @IsOptional()
+  title?: string
+
+  @IsString()
+  message!: string
+
+  @IsString()
+  creatorName!: string
+  @IsInt()
+  creatorId!: number
+
+  @IsInt()
+  totalSent!: number
+  @IsInt()
+  totalRead!: number
+
+  @IsOptional()
+  @Type(() => AdminNoticeTarget)
+  target?: AdminNoticeTarget
+}
+export class DeleteAdminNoticeRequest {
+  @IsDate()
+  @Type(() => Date)
+  sentAt!: Date
+}
+export class DeleteAdminNoticeResponse {
+  @IsNumber()
+  numDeleted!: number
+}
 export class OrganizationCourseResponse {
   @IsInt()
   id?: number
@@ -2612,27 +2966,6 @@ export class OrganizationStatsResponse {
 
   @IsInt()
   membersProfessors?: number
-}
-
-export class CreateAlertParams {
-  @IsEnum(AlertType)
-  alertType!: AlertType
-
-  @IsInt()
-  courseId!: number
-
-  @IsObject()
-  payload!: AlertPayload
-
-  @IsInt()
-  targetUserId!: number
-}
-
-export class CreateAlertResponse extends Alert {}
-
-export class GetAlertsResponse {
-  @Type(() => Alert)
-  alerts!: Alert[]
 }
 
 // not used anywhere
@@ -2729,7 +3062,7 @@ export class EditCourseInfoParams {
   isCourseInviteEnabled?: boolean
 }
 
-export enum antdTagColor {
+export enum StandardAntdTagColor {
   blue = 'blue',
   gold = 'gold',
   green = 'green',
@@ -2742,6 +3075,8 @@ export enum antdTagColor {
   geekblue = 'geekblue',
   magenta = 'magenta',
   volcano = 'volcano',
+}
+export enum InverseAntdTagColor {
   blueInverse = 'blue-inverse',
   goldInverse = 'gold-inverse',
   greenInverse = 'green-inverse',
@@ -2754,12 +3089,26 @@ export enum antdTagColor {
   geekblueInverse = 'geekblue-inverse',
   magentaInverse = 'magenta-inverse',
   volcanoInverse = 'volcano-inverse',
+}
+export enum StatusAntdTagColor {
   success = 'success',
   processing = 'processing',
   error = 'error',
   default = 'default',
   warning = 'warning',
 }
+export const antdTagColor = {
+  ...StandardAntdTagColor,
+  ...InverseAntdTagColor,
+  ...StatusAntdTagColor,
+} as const
+export type antdTagColor =
+  | StandardAntdTagColor
+  | InverseAntdTagColor
+  | StatusAntdTagColor
+/** Array version of antd tag colors (standard ones - not inverse or status colors) */
+export const STANDARD_ANTD_TAG_COLORS: readonly StandardAntdTagColor[] =
+  Object.values(StandardAntdTagColor) as StandardAntdTagColor[]
 
 export class SemesterPartial {
   @IsOptional()
@@ -3303,6 +3652,7 @@ export class OrgRoleHistory {
   id!: number
 
   @IsDate()
+  @Type(() => Date)
   timestamp!: Date
 
   @IsEnum(OrganizationRole)
@@ -3334,10 +3684,12 @@ export class OrganizationRoleHistoryFilter {
   toRole?: OrganizationRole
 
   @IsDate()
+  @Type(() => Date)
   @IsOptional()
   minDate?: Date
 
   @IsDate()
+  @Type(() => Date)
   @IsOptional()
   maxDate?: Date
 
@@ -4578,7 +4930,7 @@ export const ERROR_MESSAGES = {
   },
   alertController: {
     duplicateAlert: 'This alert has already been sent',
-    notActiveAlert: "This is not an alert that's open for the current user",
+    notActiveAlert: 'This alert does not exist for this user',
     incorrectPayload: 'The payload provided was not of the correct type',
   },
   sseService: {

@@ -42,6 +42,7 @@ export class SSEService<T> implements OnModuleDestroy {
     redisSub.on('message', (channel, message) => {
       const id = /sse::client-(\d+)/.exec(channel);
       if (id && id[1] in this.directConnnections) {
+        console.log(`Writing data for client ${id[1]}: ${message}`);
         this.directConnnections[id[1]].res.write(`data: ${message}\n\n`);
       }
     });
@@ -145,9 +146,11 @@ export class SSEService<T> implements OnModuleDestroy {
       console.error('problem payload: ' + payload.toString());
       console.error(err);
     });
+    console.log('room', room);
 
     if (room && roomInfo) {
       const clients: RedisClientInfo<T>[] = roomInfo.map((s) => JSON.parse(s));
+      console.log('clients', clients);
       await each(clients, async ({ clientId, metadata }) => {
         const toSend = serialize(
           await payload(metadata).catch((err) => {
@@ -155,6 +158,7 @@ export class SSEService<T> implements OnModuleDestroy {
             console.error(err);
           }),
         );
+        console.log('toSend', toSend);
         await redisPub
           .publish(this.idToChannel(clientId), toSend)
           .catch((err) => {
