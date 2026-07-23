@@ -1,3 +1,4 @@
+import { isProd } from '@koh/common'
 import { useEffect, useState } from 'react'
 import ReconnectingEventSource from 'reconnecting-eventsource'
 
@@ -35,13 +36,23 @@ export const useEventSource = (
 ): boolean => {
   const [isLive, setIsLive] = useState<boolean>(false)
   useEffect(() => {
+    console.log('current EventSOurces', EVENTSOURCES)
     if (url) {
       let source: SourceAndCount
       if (url in EVENTSOURCES) {
         source = EVENTSOURCES[url]
       } else {
+        console.log(
+          'establishing new ReconnectingEventSource',
+          url,
+          listenerKey,
+        )
         source = {
-          eventSource: new ReconnectingEventSource(url),
+          eventSource: new ReconnectingEventSource(url, {
+            max_retry_time: isProd()
+              ? 15 * 1000 // 15s
+              : 60 * 5 * 1000, // 5min
+          }),
           listeners: {},
           isLiveSetters: new Set(),
         }
@@ -71,6 +82,7 @@ export const useEventSource = (
 
       return () => {
         // Close event source if no one is listening
+        console.log('Closing  event source for', url) // TODO: why does this run?? Maybe copy-paste https://github.com/childrentime/reactuse/blob/fa7ce799d8548a564091669d59a72260bc8f68fc/packages/core/src/useEventSource/index.ts#L7 and modify it so it has a callback?
         listener.count--
         source.isLiveSetters.delete(setIsLive)
         if (listener.count === 0) {

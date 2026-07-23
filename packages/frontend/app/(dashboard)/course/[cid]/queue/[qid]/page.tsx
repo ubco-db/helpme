@@ -67,7 +67,6 @@ import CircleButton from './components/CircleButton'
 import JoinZoomNowModal from './components/modals/JoinZoomNowModal'
 import JoinZoomButton from './components/JoinZoomButton'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
-import { useUpdateAlertsWhenLastStaffChecksOut } from '@/app/hooks/useUpdateAlertsWhenLastStaffChecksOut'
 import { useQueueChatsMetadatas } from '@/app/hooks/useQueueChatsMetadatas'
 import QueueChats from '../../components/QueueChats'
 import {
@@ -128,7 +127,6 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
       isStaff,
     )
   const [taskTree, setTaskTree] = useState<TaskTree>({} as TaskTree)
-  useUpdateAlertsWhenLastStaffChecksOut(cid, queue?.staffList, isStaff)
   const [isJoiningQuestion, setIsJoiningQuestion] = useState(
     queueQuestions &&
       studentQuestions &&

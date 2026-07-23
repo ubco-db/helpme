@@ -91,6 +91,8 @@ export const AlertsProvider: React.FC<{
     setCurrentPageIdx(0) // make sure to reset the page back to 0 since the total number of pages might've changed
   }, [currentCourseId])
 
+  // const onEventSourceMessage = useEffectEvent
+
   // Subscribe to sse - note that if the user is using an old browser that doesn't have EventSource, this won't work
   // and they will need to resort to manually refreshing the page to get their alerts.
   const isEventSourceLive = useEventSource(
@@ -254,6 +256,9 @@ export const AlertsProvider: React.FC<{
             break
         }
       },
+      // TODO: this depedency array needs to be AS MINIMAL AS POSSIBLE since every time it runs it re-creates the event source
+      // even though it doesn't need to. It should actually only really run once... but then the useCallback will be outdated.
+      // Or better yet useEventSource is changed so it doesn't keep re-creating a new connection each time it changes.
       [initialFetchLoading, fetchedAlerts, mutateAlerts, currentCourseId],
     ),
   )
