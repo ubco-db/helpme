@@ -18,7 +18,7 @@ import { LogoutOutlined, ReloadOutlined } from '@ant-design/icons'
 import VerifyEmailPage from '@/app/(auth)/verify/page'
 import { AlertsProvider } from '@/app/contexts/AlertsContext'
 import { UserRole } from '@/proxyType'
-import AlertsContainer from '../components/AlertsContainer'
+import ModalAlertsContainer from '../components/ModalAlertsContainer'
 
 const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
   children,
@@ -139,7 +139,7 @@ const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
                   {children}
                 </StandardPageContainer>
               )}
-              <AlertsContainer />
+              <ModalAlertsContainer />
             </ChatbotContextProvider>
           </main>
         </AlertsProvider>
