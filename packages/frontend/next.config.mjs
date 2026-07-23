@@ -9,7 +9,6 @@ const nextConfig = {
     serverActions: {
       allowedOrigins: ['localhost:3000'],
     },
-    webpackMemoryOptimizations: true,
   },
   images: {
     loader: 'custom',
@@ -31,12 +30,18 @@ const nextConfig = {
       }
     ],
   },
+  // NOTE: why-did-you-render uses a custom Webpack config, which is IGNORED when using Turbopack (the default in Next.js 16).
+  // To enable why-did-you-render for deep React debugging:
+  //   1. Change your dev script in package.json from "next dev" to "next dev --webpack"
+  //   2. Set NEXT_PUBLIC_WHY_DID_YOU_RENDER=true in your .env
+  //   3. Run `yarn dev` as usual — it will use Webpack instead of Turbopack
+  //   Remember to revert the dev script when done debugging.
   webpack: (config, context) => {
     if (process.env.NEXT_PUBLIC_WHY_DID_YOU_RENDER === 'true') {
-		injectWhyDidYouRender(config, context)
+      injectWhyDidYouRender(config, context)
     }
-		return config;
-	}
+    return config;
+  }
 };
 
 export default withSentryConfig(nextConfig, {
@@ -63,7 +68,7 @@ enabled: true,
 
 // Uncomment to route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
 // This can increase your server load as well as your hosting bill.
-// Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
+// Note: Check that the configured route will not match with your Next.js proxy, otherwise reporting of client-
 // side errors will fail.
 tunnelRoute: "/sentry-tunnel",
 

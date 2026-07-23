@@ -2,7 +2,7 @@
 
 import { isProd } from '@koh/common'
 import { Button, Divider } from 'antd'
-import DefaultErrorPage from 'next/error'
+import { notFound } from 'next/navigation'
 import React, { ReactElement } from 'react'
 import { message } from 'antd'
 import { getErrorMessage } from '../utils/generalUtils'
@@ -11,7 +11,7 @@ import { API } from '../api'
 export default function DevPanel(): ReactElement {
   if (isProd()) {
     // shouldn't be needed due to the redirect in layout.tsx but just in case
-    return <DefaultErrorPage statusCode={404} />
+    notFound()
   }
   return (
     <div className="mt-10 flex flex-col items-center justify-center gap-y-10">

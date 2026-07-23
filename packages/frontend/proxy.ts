@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { isProd, OrganizationRole, User, UserRole } from './middlewareType'
+import { isProd, OrganizationRole, User, UserRole } from './proxyType'
 import * as Sentry from '@sentry/nextjs'
-import { RequestCookies } from 'next/dist/compiled/@edge-runtime/cookies'
 import { getAuthTokenString } from '@/app/api/cookie-utils'
 
 // These are files that do not require authentication. Used for displaying logos outside of HelpMe.
@@ -44,7 +43,7 @@ const isEmailVerified = (userData: User): boolean => {
 }
 
 async function fetchUser(
-  cookies: RequestCookies,
+  cookies: NextRequest['cookies'],
   cookieName = 'auth_token',
 ): Promise<Response | undefined> {
   if (!cookies.has(cookieName)) {
@@ -379,7 +378,7 @@ async function handleRetry(
 
     // I realize that setting cookies like this essentially turns it into a counter variable, but I tried adding a counter variable to middleware() instead and it didn't work
     cookies.set('retry_attempts', (currentRetries + 1).toString())
-    return await middleware(request) // try again
+    return await proxy(request) // try again
   } else {
     // Exceeded retry attempts
     return failureCallback()
@@ -394,7 +393,7 @@ function sleep(ms: number) {
 }
 
 export const config = {
-  unstable_allowDynamic: [
+  allowDynamic: [
     '../common/node_modules/reflect-metadata/**',
     '../common/index.ts',
   ],

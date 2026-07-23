@@ -155,7 +155,7 @@ import { plainToClass } from 'class-transformer'
 import { ClassType } from 'class-transformer/ClassTransformer'
 import * as Sentry from '@sentry/nextjs'
 import { SetStateAction } from 'react'
-import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
+import type { AppRouterInstance } from 'next/navigation'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { GetOrganizationUsersPaginatedResponse } from '@koh/common'
 
@@ -798,7 +798,8 @@ export class APIClient {
     accept: async (
       piid: number,
       body: AcceptProfInviteParams,
-    ): Promise<string> => // returns the url to redirect to
+    ): Promise<string> =>
+      // returns the url to redirect to
       this.req('POST', `/api/v1/prof_invites/accept/${piid}`, undefined, body),
     getDetails: async (piid: number): Promise<GetProfInviteDetailsResponse> =>
       this.req('GET', `/api/v1/prof_invites/details/${piid}`),

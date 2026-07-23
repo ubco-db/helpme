@@ -2483,9 +2483,9 @@ export class GetStudentQuestionResponse extends Question {
 }
 
 export enum QuestionLocations {
-  'Online' = 'Online',
-  'InPerson' = 'In-Person',
-  'Unselected' = 'Unselected',
+  Online = 'Online',
+  InPerson = 'In-Person',
+  Unselected = 'Unselected',
 }
 
 export class CreateQuestionParams {
@@ -2666,9 +2666,7 @@ export class TAAwayPair {
 
 // Needed a custom validator to make it so one can only select at most one of: userId, orgId, or courseId for admin notice target selection
 @ValidatorConstraint({ name: 'mutuallyExclusiveTarget', async: false })
-class MutuallyExclusiveTargetConstraint
-  implements ValidatorConstraintInterface
-{
+class MutuallyExclusiveTargetConstraint implements ValidatorConstraintInterface {
   validate(_value: any, args: ValidationArguments) {
     const obj = args.object as any
     const numOfDefinedTargets = [obj.userId, obj.orgId, obj.courseId].filter(
@@ -3103,9 +3101,7 @@ export const antdTagColor = {
   ...StatusAntdTagColor,
 } as const
 export type antdTagColor =
-  | StandardAntdTagColor
-  | InverseAntdTagColor
-  | StatusAntdTagColor
+  StandardAntdTagColor | InverseAntdTagColor | StatusAntdTagColor
 /** Array version of antd tag colors (standard ones - not inverse or status colors) */
 export const STANDARD_ANTD_TAG_COLORS: readonly StandardAntdTagColor[] =
   Object.values(StandardAntdTagColor) as StandardAntdTagColor[]
@@ -3339,13 +3335,9 @@ export type UserMailSubscription = {
 }
 
 export type AssignmentFeedbackFunctionDimension =
-  | 'content'
-  | 'interpersonal'
-  | 'organization'
+  'content' | 'interpersonal' | 'organization'
 export type AssignmentFeedbackLinguisticLevel =
-  | 'text'
-  | 'section'
-  | 'clause_word'
+  'text' | 'section' | 'clause_word'
 export type AssignmentFeedbackSeverity = 'low' | 'medium' | 'high'
 export type AssignmentFeedbackCitationType = 'rubric' | 'course_material'
 
@@ -5058,5 +5050,5 @@ export const QUERY_PARAMS = {
       badCourseInviteCode: 'queue_invite_bad_course_invite_code',
     },
   },
-  // TODO: add the /login redirect query params here. Avoided doing so right now since that would require middleware.ts to import this file and iirc there is errors when you try to do that
+  // TODO: add the /login redirect query params here. Avoided doing so right now since that would require proxy.ts to import this file and iirc there is errors when you try to do that
 }

@@ -17,7 +17,7 @@ import { AsyncToasterProvider } from '../contexts/AsyncToasterContext'
 import { LogoutOutlined, ReloadOutlined } from '@ant-design/icons'
 import VerifyEmailPage from '@/app/(auth)/verify/page'
 import { AlertsProvider } from '@/app/contexts/AlertsContext'
-import { UserRole } from '@/middlewareType'
+import { UserRole } from '@/proxyType'
 import AlertsContainer from '../components/AlertsContainer'
 
 const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
@@ -86,7 +86,7 @@ const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
       </p>
     </main>
   ) : !profile.emailVerified ? (
-    // should never happen since middleware.ts will redirect to /verify but just in case
+    // should never happen since proxy.ts will redirect to /verify but just in case
     <VerifyEmailPage />
   ) : adminPage && profile.userRole != UserRole.ADMIN ? (
     <main className="mt-20 flex flex-col items-center justify-center gap-2">
