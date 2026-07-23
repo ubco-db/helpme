@@ -27,66 +27,25 @@ const publicPages: string[] = [
   '/lti/password*',
 ]
 
-const isPublicPage = (url: string) => {
-  return publicPages.some((page) => {
-    const regex = new RegExp(`^${page.replace('*', '.*')}$`)
-    return regex.test(url)
-  })
-}
+/* This represents the proxy on the FRONTEND NEXT.JS server.
 
-const isPublicFile = (url: string) => {
-  return publicFiles.some((file) => file.test(url))
-}
+  This will run when trying to access ANY PAGE (or public files). It does NOT run for requests to our
+  Nest.js backend (which has its own middleware stuff). 
 
-const isEmailVerified = (userData: User): boolean => {
-  return userData.emailVerified
-}
+  This should not to be confused with our devProxy. 
+  Our devProxy is a Reverse Proxy that makes it so requests to localhost:3001 goes to our frontend 
+  (which goes through this proxy.ts file) and localhost:3001/api goes to localhost:3002 (our nest.js backend). 
+  For prod we use httpd.conf in a separate service for our proxy, but it does the same thing.
 
-async function fetchUser(
-  cookies: NextRequest['cookies'],
-  cookieName = 'auth_token',
-): Promise<Response | undefined> {
-  if (!cookies.has(cookieName)) {
-    return undefined
-  }
+  Basically, what this does is that for each page request, it does a fetch from the backend to get the user's
+  profile data to see if they're allowed to see the page they're trying to visit. If they don't have permission,
+  they get redirected elsewhere.
+  Some may argue against this approach due to performance/UX reasons and to instead place this check on each page itself,
+  this works well enough for us because Next.js prefetches all page links and we also cache the backend's profile response
+  with redis so it's fast.
 
-  const authToken = await getAuthTokenString()
-  const response: Response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/profile`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: authToken,
-        Cookie: authToken,
-      },
-      credentials: 'include',
-    },
-  ).then((res) => res)
-
-  const contentType = response?.headers?.get('Content-Type')
-  if (contentType?.includes('application/json')) {
-    if (response.status >= 400) {
-      const body = response.json()
-      return Promise.reject(body)
-    }
-    return response // Type assertion needed due to conditional return type
-  } else if (contentType?.includes('text/html')) {
-    const text = response.text()
-    Sentry.captureEvent({
-      message: `Unknown error in getUser ${response.status}: ${response.statusText}`,
-      level: 'error',
-      extra: {
-        text,
-        response,
-      },
-    })
-    return Promise.reject(text)
-  } else {
-    return Promise.reject('Unknown error in getUser' + JSON.stringify(response))
-  }
-}
-
+  Used to be called middleware.ts in Next.js versions 15 and below.
+*/
 export async function proxy(
   request: NextRequest,
 ): Promise<NextResponse<unknown>> {
@@ -354,6 +313,66 @@ export async function proxy(
   }
 
   return NextResponse.next()
+}
+
+const isPublicPage = (url: string) => {
+  return publicPages.some((page) => {
+    const regex = new RegExp(`^${page.replace('*', '.*')}$`)
+    return regex.test(url)
+  })
+}
+
+const isPublicFile = (url: string) => {
+  return publicFiles.some((file) => file.test(url))
+}
+
+const isEmailVerified = (userData: User): boolean => {
+  return userData.emailVerified
+}
+
+async function fetchUser(
+  cookies: NextRequest['cookies'],
+  cookieName = 'auth_token',
+): Promise<Response | undefined> {
+  if (!cookies.has(cookieName)) {
+    return undefined
+  }
+
+  const authToken = await getAuthTokenString()
+  const response: Response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/profile`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: authToken,
+        Cookie: authToken,
+      },
+      credentials: 'include',
+    },
+  ).then((res) => res)
+
+  const contentType = response?.headers?.get('Content-Type')
+  if (contentType?.includes('application/json')) {
+    if (response.status >= 400) {
+      const body = response.json()
+      return Promise.reject(body)
+    }
+    return response // Type assertion needed due to conditional return type
+  } else if (contentType?.includes('text/html')) {
+    const text = response.text()
+    Sentry.captureEvent({
+      message: `Unknown error in getUser ${response.status}: ${response.statusText}`,
+      level: 'error',
+      extra: {
+        text,
+        response,
+      },
+    })
+    return Promise.reject(text)
+  } else {
+    return Promise.reject('Unknown error in getUser' + JSON.stringify(response))
+  }
 }
 
 /**
