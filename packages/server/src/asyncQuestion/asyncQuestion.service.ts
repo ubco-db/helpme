@@ -470,6 +470,7 @@ export class AsyncQuestionService {
       payload: {
         courseId: question.courseId,
         questionId: question.id,
+        commentId: comment.id,
         subtype: AsyncQuestionUpdateSubtype.COMMENT_ON_MY_POST,
         summary: `${commenterIsStaff ? commenter.name : 'Someone'} commented "${this.shortenedCommentText(comment)}" on your Anytime Question "${this.shortenedQuestionText(question)}"`,
       } satisfies AsyncQuestionUpdatePayload,
@@ -560,6 +561,7 @@ export class AsyncQuestionService {
           payload: {
             courseId: updatedQuestion.courseId,
             questionId: updatedQuestion.id,
+            commentId: comment.id,
             subtype: AsyncQuestionUpdateSubtype.COMMENT_ON_OTHERS_POST,
             summary: `${commenterIsStaff ? commenter.name : 'Someone'} commented "${this.shortenedCommentText(comment)}" on the Anytime Question: ${this.shortenedQuestionText(updatedQuestion)}`,
           } satisfies AsyncQuestionUpdatePayload,
@@ -815,6 +817,26 @@ export class AsyncQuestionService {
         } satisfies AsyncQuestionUpdatePayload,
       }).save();
     }
+  }
+
+  async sendEndorseCommentAlert(
+    parentQuestion: AsyncQuestionModel,
+    comment: AsyncQuestionCommentModel,
+    endorser: UserModel,
+  ) {
+    await AlertModel.create({
+      alertType: AlertType.ASYNC_QUESTION_UPDATE,
+      deliveryMode: AlertDeliveryMode.FEED,
+      userId: comment.creatorId,
+      courseId: parentQuestion.courseId,
+      payload: {
+        courseId: parentQuestion.courseId,
+        questionId: parentQuestion.id,
+        commentId: comment.id,
+        subtype: AsyncQuestionUpdateSubtype.COMMENT_ON_OTHERS_POST,
+        summary: `${endorser.name} endorsed your comment "${this.shortenedCommentText(comment)}"`,
+      } satisfies AsyncQuestionUpdatePayload,
+    }).save();
   }
 
   async createUnreadNotificationsForQuestion(question: AsyncQuestionModel) {

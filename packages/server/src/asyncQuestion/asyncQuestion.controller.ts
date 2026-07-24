@@ -1,9 +1,12 @@
 import {
+  AlertDeliveryMode,
+  AlertType,
   AsyncCreator,
   AsyncQuestion,
   AsyncQuestionCommentEndorseParams,
   AsyncQuestionCommentParams,
   asyncQuestionStatus,
+  AsyncQuestionUpdatePayload,
   CreateAsyncQuestions,
   ERROR_MESSAGES,
   GetAsyncQuestionsResponse,
@@ -47,6 +50,7 @@ import { AsyncQuestionService } from './asyncQuestion.service';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 import { CourseSettingsModel } from '../course/course_settings.entity';
 import { CourseRole } from '../decorators/course-role.decorator';
+import { AlertModel } from 'alerts/alerts.entity';
 
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -603,7 +607,7 @@ export class asyncQuestionController {
     @Param('qid', ParseIntPipe) qid: number,
     @Param('commentId', ParseIntPipe) commentId: number,
     @Body() body: AsyncQuestionCommentEndorseParams,
-    @User() user: UserModel,
+    @User() endorser: UserModel,
   ): Promise<void> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: qid },
@@ -621,7 +625,7 @@ export class asyncQuestionController {
       );
     }
 
-    comment.endorsedById = body.isEndorsed ? user.id : null;
+    comment.endorsedById = body.isEndorsed ? endorser.id : null;
     await comment.save();
 
     const updatedQuestion = await AsyncQuestionModel.findOne({
@@ -641,6 +645,12 @@ export class asyncQuestionController {
     await this.redisQueueService.updateAsyncQuestion(
       `c:${question.courseId}:aq`,
       updatedQuestion,
+    );
+
+    await this.asyncQuestionService.sendEndorseCommentAlert(
+      updatedQuestion,
+      comment,
+      endorser,
     );
   }
 

@@ -2820,6 +2820,10 @@ export class AsyncQuestionUpdatePayload extends AlertPayload {
   questionId!: number
 
   @IsInt()
+  @IsOptional()
+  commentId?: number
+
+  @IsInt()
   courseId!: number
 
   @IsEnum(AsyncQuestionUpdateSubtype)
