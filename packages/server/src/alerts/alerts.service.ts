@@ -93,10 +93,7 @@ export class AlertsService {
           }
           break;
         }
-        case AlertType.EVENT_ENDED_CHECKOUT_STAFF:
-        case AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE:
-        case AlertType.DOCUMENT_PROCESSED:
-        case AlertType.ASYNC_QUESTION_UPDATE:
+        default:
           nonStaleAlerts.push(formatAlertForFrontend(alert));
           break;
       }
