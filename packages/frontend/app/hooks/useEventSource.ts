@@ -12,22 +12,53 @@ interface SourceAndCount {
   listeners: Record<string, ListenerAndCount>
   isLiveSetters: Set<(live: boolean) => void>
 }
-// This is BS nonsense. The person who implemented this thought this would work like a global
-// state variable. It does not (you would need a Context for that).
-// Plus, what would be the purpose? SWR already holds the state.
-// And like whenever url or listenerKey changes, the old connection is destroyed (that's what the cleanup function does)
-// and an new one is created
+/* This "EVENTSOURCES" is BS nonsense. 
+The person who implemented this thought this would work like a global state variable. 
+It sorta does, but it seems that's only the case if they're all on the same page 
+(like it's setting a regular global javascript variable).
+Regardless, this is hard to understand or follow. They should've used a context instead.
+
+But I figured out the reason why this exists:
+Normally, you wouldn't want to put a data fetcher call into a hook unless you're certain the hook
+is only going to get called once (since if it gets called in multiple components on the same page,
+you would get multiple API calls and duplicate state etc.).
+SWR has some features to remedy this (which presumably didn't exist in react like it does now): 
+- SWR manages its own global state
+- SWR will deduplicate multiple components making the same request
+- SWR will also do the whole polling/revalidating things to give the impression of getting live-ish data.
+
+This allows people to make data fetcher hooks that live in many components since SWR will solve
+it all for them. This is probably how useQueue and useQuestions was first implemented.
+
+But the person who went and implemented the "live" aspect of the queue (with EventSource/SSE)
+probably made a simple useEventSource hook and realized that if each useQueue or useQuestions 
+is creating a new EventSource, it ends up creating a lot of excess connections all subscribed
+to the same endpoints.
+
+To get around this, they created this ""global"" state variable (EVENTSOURCES) that keeps track of
+each EventSource and will re-assign subsequent useEventSource calls to re-use existing connections.  
+
+This feels fragile, hard to understand (there were like 0 comments here before, and this feels like
+a HUGE anti-pattern for react), and probably not very performant.
+
+TODO: Make a context for queue and questions and whatever else that holds the queue or question state and is setup with a single EventSource.
+I also realized that this approach of having multiple components all calling the same hook 
+can result in a TON of extra unnecessary processing 
+(like how useQuestions does the data sorting/filtering - that's duplicated work for every useQuestions), so
+having a single context hold all the data should be a lot better.
+
+tl;dr: EVENTSOURCES is used for deduplication. But it was implemented in a sus way.
+*/
 const EVENTSOURCES: Record<string, SourceAndCount> = {}
 
 /**
  * Listen to eventsource at given url calling the given onMessage when messages are received.
  * onMessage is overwritten if listenerKey is the same.
- * Returns whether the event source is connected
+ * Adam: I figured out why onMessage gets overwritten for duplicate listenerKeys:
+ * It's so that multiple useQueue or useQuestion hooks don't all run the exact same callback
+ * function to update SWR's state. It's another deduplication thing.
  *
- * Adam: I believe this was implemented for if the browser is listening to multiple different EventSources (i.e. SSE endpoints).
- * Multiple browser tabs with the queue open, for example - I want to guess it re-uses the same EventSource somehow in this case, but I'm not sure.
- * I think another example is you could have an Alerts EventSource and a Queue EventSource,
- * and I think this would just be a unified area for them all so they get closed on exit?
+ * Returns whether the event source is connected
  *
  *
  * @param url URL to subscribe event source to
@@ -133,6 +164,7 @@ export const useEventSource = (
 
       if (source.listeners[listenerKey]) {
         listener.count++
+        console.log('new listener for', url, 'total listeners:', listener.count)
       } else {
         listener = { listener: onMessageEvent, count: 1 }
         source.listeners[listenerKey] = listener
@@ -140,7 +172,7 @@ export const useEventSource = (
 
       return () => {
         // Close event source if no one is listening
-        console.log('Closing  event source for', url) // TODO: why does this run?? Maybe copy-paste https://github.com/childrentime/reactuse/blob/fa7ce799d8548a564091669d59a72260bc8f68fc/packages/core/src/useEventSource/index.ts#L7 and modify it so it has a callback?
+        console.log('Closing  event source for', url)
         listener.count--
         source.isLiveSetters.delete(setIsLive)
         if (listener.count === 0) {

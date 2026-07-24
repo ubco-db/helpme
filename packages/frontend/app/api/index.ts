@@ -149,15 +149,16 @@ import {
   CreateAlertAdminResponse,
   DeleteAdminNoticeRequest,
   DeleteAdminNoticeResponse,
+  isProd,
 } from '@koh/common'
 import Axios, { AxiosError, AxiosInstance, AxiosResponse, Method } from 'axios'
 import { plainToClass } from 'class-transformer'
 import { ClassType } from 'class-transformer/ClassTransformer'
 import * as Sentry from '@sentry/nextjs'
 import { SetStateAction } from 'react'
-import type { AppRouterInstance } from 'next/navigation'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { GetOrganizationUsersPaginatedResponse } from '@koh/common'
+import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 
 // Return type of array item, if T is an array
 type ItemIfArray<T> = T extends (infer I)[] ? I : T
