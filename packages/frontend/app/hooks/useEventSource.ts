@@ -1,14 +1,13 @@
 import { isProd } from '@koh/common'
 import { useEffect, useEffectEvent, useState } from 'react'
-import ReconnectingEventSource from 'reconnecting-eventsource'
+import { createEventSource, EventSourceClient } from 'eventsource-client'
 
 interface ListenerAndCount {
   listener: (d: any) => void
   count: number
 }
-
 interface SourceAndCount {
-  eventSource: EventSource
+  eventSource: EventSourceClient
   listeners: Record<string, ListenerAndCount>
   isLiveSetters: Set<(live: boolean) => void>
 }
@@ -125,40 +124,92 @@ export const useEventSource = (
 
   const [isLive, setIsLive] = useState<boolean>(false)
   useEffect(() => {
-    console.log('current EventSOurces', EVENTSOURCES)
+    console.log('current EventSources', EVENTSOURCES)
     if (url) {
       let source: SourceAndCount
       if (url in EVENTSOURCES) {
         source = EVENTSOURCES[url]
+        setIsLive(source.eventSource.readyState === 'open')
+        source.isLiveSetters.add(setIsLive)
       } else {
-        console.log(
-          'establishing new ReconnectingEventSource',
+        console.log('establishing new EventSourceClient', url, listenerKey)
+
+        let retries = 0
+        const MAX_RETRIES = isProd() ? 15 : 5
+        const INITIAL_BACKOFF = 1000
+        const MAX_BACKOFF = 30000
+        // jitter: so if the server goes down, all clients aren't spamming the backend at the exact same time while it's booting up again
+        const JITTER = 0.5
+
+        const client = createEventSource({
           url,
-          listenerKey,
-        )
+          onMessage: (event) => {
+            if (event.data) {
+              // Reset retries here (not in onConnect) because the library fires
+              // onConnect on ANY HTTP response, including 504s. Only receiving
+              // actual SSE data proves the connection is truly healthy.
+              retries = 0
+              const eventData = JSON.parse(event.data)
+              const values = Object.values(source.listeners)
+              values.forEach((lac) => lac.listener(eventData))
+            }
+          },
+          onConnect: () => {
+            source.isLiveSetters.forEach((set) => set(true))
+          },
+          onDisconnect: () => {
+            source.isLiveSetters.forEach((set) => set(false))
+          },
+          // Adam: idk i let the llm figure out the implementation details for jitter + backoff. It wrote some stuff:
+          // Override the library's built-in reconnect with exponential backoff + jitter.
+          //
+          // Why close() + connect() is safe here (not a recursive loop):
+          // By the time onScheduleReconnect fires, the fetch promise chain has already
+          // settled (request is null). So controller.abort() in close() is a no-op on
+          // the promise — it can't re-trigger the .catch() handler. After close(),
+          // scheduleReconnect() checks controller.signal.aborted → true → returns
+          // early without setting the library's own reconnect timer. Our setTimeout
+          // then calls connect(), which creates a fresh AbortController and fetch.
+          onScheduleReconnect: () => {
+            retries++
+            if (retries >= MAX_RETRIES) {
+              console.error(
+                `Max retries (${MAX_RETRIES}) reached for ${url}. Closing connection.`,
+              )
+              client.close()
+              return
+            }
+
+            // Cancel the library's built-in reconnect
+            client.close()
+
+            // Exponential backoff with jitter
+            const backoff = Math.min(
+              MAX_BACKOFF,
+              INITIAL_BACKOFF * Math.pow(2, retries - 1),
+            )
+            const jitteredBackoff = backoff * (1 - JITTER * Math.random())
+
+            console.log(
+              `Connection to ${url} lost. Retrying in ${Math.round(jitteredBackoff)}ms (Attempt ${retries} of ${MAX_RETRIES})`,
+            )
+
+            setTimeout(() => {
+              client.connect()
+            }, jitteredBackoff)
+          },
+        })
+
         source = {
-          eventSource: new ReconnectingEventSource(url, {
-            max_retry_time: isProd()
-              ? 15 * 1000 // 15s
-              : 60 * 5 * 1000, // 5min
-          }),
+          eventSource: client,
           listeners: {},
           isLiveSetters: new Set(),
         }
         EVENTSOURCES[url] = source
-        source.eventSource.onmessage = function logEvents(event) {
-          const values = Object.values(source.listeners)
-          const eventData = JSON.parse(event.data)
-          values.forEach((lac) => lac.listener(eventData))
-        }
-        source.eventSource.onopen = () =>
-          source.isLiveSetters.forEach((set) => set(true))
-        source.eventSource.onerror = () =>
-          source.isLiveSetters.forEach((set) => set(false))
-      }
 
-      setIsLive(source.eventSource.readyState === EventSource.OPEN)
-      source.isLiveSetters.add(setIsLive)
+        setIsLive(source.eventSource.readyState === 'open')
+        source.isLiveSetters.add(setIsLive)
+      }
 
       let listener = source.listeners[listenerKey]
 
@@ -172,7 +223,7 @@ export const useEventSource = (
 
       return () => {
         // Close event source if no one is listening
-        console.log('Closing  event source for', url)
+        console.log('Closing event source for', url)
         listener.count--
         source.isLiveSetters.delete(setIsLive)
         if (listener.count === 0) {

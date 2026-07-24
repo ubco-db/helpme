@@ -312,20 +312,21 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
                 it's not really expected to actually be pressed. It's usually expected for the user to just close
                 the popover to have it reset.
                 */}
-              {(pagesOfFeedAlerts.length === 0 ||
-                (currentPageIdx + 1 === pagesOfFeedAlerts.length &&
-                  totalFeedAlerts > totalUnreadFeedAlerts)) && (
-                <li className="flex items-center justify-center">
-                  <Button
-                    type="link"
-                    size="small"
-                    onClick={() => setShowReadAtAlerts(!showReadAtAlerts)}
-                    className="text-xs text-zinc-600 underline transition-opacity hover:opacity-80 focus:opacity-80 active:opacity-80"
-                  >
-                    {showReadAtAlerts ? 'Hide' : 'Show'} dismissed notifications
-                  </Button>
-                </li>
-              )}
+              {(pagesOfFeedAlerts.length === 0 || // if there's no alerts (meaning no unread alerts)
+                currentPageIdx + 1 === pagesOfFeedAlerts.length) && // or we're on the last page
+                totalFeedAlerts > totalUnreadFeedAlerts && ( // and there are readAt alerts
+                  <li className="flex items-center justify-center">
+                    <Button
+                      type="link"
+                      size="small"
+                      onClick={() => setShowReadAtAlerts(!showReadAtAlerts)}
+                      className="text-xs text-zinc-600 underline transition-opacity hover:opacity-80 focus:opacity-80 active:opacity-80"
+                    >
+                      {showReadAtAlerts ? 'Hide' : 'Show'} dismissed
+                      notifications
+                    </Button>
+                  </li>
+                )}
             </ul>
           )}
           {initialFetchError && (
