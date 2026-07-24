@@ -105,10 +105,10 @@ export async function proxy(
         ? ((await response.json()) as User)
         : undefined
   } catch (error) {
-    return await handleRetry(request, () => {
-      console.error('Error fetching user data in middleware:', error)
+    return await handleRetry(request, async () => {
+      console.error('Error fetching user data in proxy.ts:', await error)
       Sentry.captureEvent({
-        message: `Unknown error in middleware`,
+        message: `Unknown error in proxy.ts`,
         level: 'error',
         extra: {
           requestedRoute: nextUrl.pathname,
@@ -130,7 +130,7 @@ export async function proxy(
     if (response.status === 401) {
       // I have no clue if the session is actually expired or what exactly.
       return await handleRetry(
-        request, // pass in the request (gets sent to middleware() again)
+        request, // pass in the request (gets sent to proxy() again)
         () => {
           // run this function once out of retry attempts
           const response = NextResponse.redirect(
@@ -146,7 +146,7 @@ export async function proxy(
         1, // retry only once
       )
     } else if (response.status >= 300 && response.status < 400) {
-      // The user was redirected (from some other part of our app, maybe even this middleware)
+      // The user was redirected (from some other part of our app, maybe even this proxy)
       // We should just let them through to the next page
       return NextResponse.next()
     } else if (response.status === 429) {
@@ -163,7 +163,7 @@ export async function proxy(
       if (contentType?.includes('application/json')) {
         const userData: User = (await response.json()) as User
         Sentry.captureEvent({
-          message: `Unknown error in middleware ${response.status}: ${response.statusText}`,
+          message: `Unknown error in proxy.ts ${response.status}: ${response.statusText}`,
           level: 'error',
           extra: {
             requestedRoute: nextUrl.pathname,
@@ -177,7 +177,7 @@ export async function proxy(
       } else if (contentType?.includes('text/html')) {
         const text = (await response.text()) as string
         Sentry.captureEvent({
-          message: `Unknown error in middleware ${response.status}: ${response.statusText}`,
+          message: `Unknown error in proxy.ts ${response.status}: ${response.statusText}`,
           level: 'error',
           extra: {
             requestedRoute: nextUrl.pathname,
@@ -188,7 +188,7 @@ export async function proxy(
         })
       } else {
         Sentry.captureEvent({
-          message: `Unknown error in middleware ${response.status}: ${response.statusText}`,
+          message: `Unknown error in proxy.ts ${response.status}: ${response.statusText}`,
           level: 'error',
           extra: {
             requestedRoute: nextUrl.pathname,
@@ -381,7 +381,7 @@ async function fetchUser(
  *  */
 async function handleRetry(
   request: NextRequest,
-  failureCallback: () => NextResponse,
+  failureCallback: () => NextResponse | Promise<NextResponse>,
   maxRetries = 3,
 ) {
   const { cookies } = request
@@ -395,17 +395,17 @@ async function handleRetry(
     const waitTime = WAIT_TIMES[currentRetries] ?? 2000
     await sleep(waitTime)
 
-    // I realize that setting cookies like this essentially turns it into a counter variable, but I tried adding a counter variable to middleware() instead and it didn't work
+    // I realize that setting cookies like this essentially turns it into a counter variable, but I tried adding a counter variable to proxy() instead and it didn't work
     cookies.set('retry_attempts', (currentRetries + 1).toString())
     return await proxy(request) // try again
   } else {
     // Exceeded retry attempts
-    return failureCallback()
+    return await failureCallback()
   }
 }
 
 /**
- * Small helper to pause execution in middleware.
+ * Small helper to pause execution in proxy.
  */
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
