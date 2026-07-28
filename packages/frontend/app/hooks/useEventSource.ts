@@ -47,6 +47,10 @@ can result in a TON of extra unnecessary processing
 having a single context hold all the data should be a lot better.
 
 tl;dr: EVENTSOURCES is used for deduplication. But it was implemented in a sus way.
+
+EDIT1: Actually I guess this would be taking advantage of how the bundler works then?
+Since if multiple components on the same page import the same thing, it only does the import once
+or something I think. Meaning there's only 1 shared EVENTSOURCES variable between all the imports.
 */
 const EVENTSOURCES: Record<string, SourceAndCount> = {}
 

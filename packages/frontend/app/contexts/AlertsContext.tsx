@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useEffectEvent,
   useMemo,
   useState,
 } from 'react'
@@ -90,8 +91,6 @@ export const AlertsProvider: React.FC<{
   useEffect(() => {
     setCurrentPageIdx(0) // make sure to reset the page back to 0 since the total number of pages might've changed
   }, [currentCourseId])
-
-  // const onEventSourceMessage = useEffectEvent
 
   // Subscribe to sse - note that if the user is using an old browser that doesn't have EventSource, this won't work
   // and they will need to resort to manually refreshing the page to get their alerts.
@@ -364,77 +363,79 @@ export const AlertsProvider: React.FC<{
     }
   }, [showReadAtAlerts, unreadFeedAlerts.length, totalFeedAlerts])
 
-  const [feedPaginationLoading, setFeedPaginationLoading] = useState(false)
   // Pagination fetcher for FEED alerts (modal alerts don't need pagination, but they are included in the initial fetch)
+  const [feedPaginationLoading, setFeedPaginationLoading] = useState(false)
+  const handleFetchNextPagesOfFeedAlerts = useEffectEvent(
+    (currentPageIdx: number) => {
+      if (initialFetchLoading) return // IMPORTANT otherwise this could run during the initial fetch.
+      if (feedPaginationLoading) return // prevents concurrent fetches. Technically could be an issue for someone with a slow network spamming the next page button.
+
+      // If on second-to-last page (and there's more alerts left to fetch), eager-fetch the next NUM_PAGES_FETCHED (4) pages
+      if (
+        currentPageIdx + 1 >= totalFetchedFeedPages - 2 &&
+        totalFeedAlerts > fetchedAlerts.length // Don't fetch if we've already fetched everything
+      ) {
+        setFeedPaginationLoading(true)
+        // So getInitialAlerts gets the first 100 alerts, order by readAt NULLS FIRST.
+        // And then we use getMyFeedAlerts for subsequent pages (we do 4 pages at a time, so we fetch 20).
+        // When a new event is created, SSE will send it here, meaning we will have the first 101 alerts.
+        // So our offset for getting the next page will simply be fetchedAlerts.length.
+        // However, if for whatever reason an event gets created in the backend but the SSE fails here,
+        // the offset will be off: we will have the first 100 alerts so length = 100 = offset, but the newly created alert
+        // on the backend becomes the FIRST one (because we do readAt NULLS FIRST), meaning we will end up retrieving
+        // an alert we already have.
+        // All this is to say that we should not blindly add on the new page of alerts and first verify that it doesn't
+        // already exist (you'd want to do that anyway due to duplicate or overlap requests).
+        // There's also probably some other edge consequences like this that I haven't yet thought of due to
+        // how I architected the initialFetch + SSE + pagination solution.
+        // EDIT: oh like if an alert was deleted... though I think I'm still fine, it should work.
+        const nextFetchOffset = fetchedAlerts.length
+        const limit = FEED_PAGE_SIZE * NUM_PAGES_FETCHED // how many alerts we want to fetch
+
+        API.alerts
+          .getMyFeedAlerts(currentCourseId, limit, nextFetchOffset)
+          .then((newData) => {
+            mutateAlerts(
+              (prev) => {
+                if (!prev) return prev
+                const existingIds = new Set(prev.mostAlerts.map((a) => a.id))
+                return {
+                  totalFeedAlerts: newData.totalFeedAlerts,
+                  mostAlerts: [
+                    ...prev.mostAlerts,
+                    ...newData.pageOfFeedAlerts.filter(
+                      (a) => !existingIds.has(a.id),
+                    ),
+                  ],
+                }
+              },
+              { revalidate: false },
+            )
+          })
+          .catch((e) => {
+            console.error(
+              `Failed to fetch pages ${nextFetchOffset / FEED_PAGE_SIZE + 1}-${nextFetchOffset / FEED_PAGE_SIZE + NUM_PAGES_FETCHED} of feed alerts: `,
+              e,
+            )
+            // I would rather *not* need to notify the user, but I don't want to lead to some scenario
+            // where the user can't go to the next page because it's erroring and they don't know that it's erroring.
+            message.error(
+              `Failed to fetch pages ${nextFetchOffset / FEED_PAGE_SIZE + 1}-${nextFetchOffset / FEED_PAGE_SIZE + NUM_PAGES_FETCHED} of feed alerts: ${getErrorMessage(e)}.`,
+            )
+          })
+          .finally(() => {
+            setFeedPaginationLoading(false)
+          })
+      }
+    },
+  )
   useEffect(() => {
-    if (initialFetchLoading) return // IMPORTANT otherwise this would run during the initial fetch.
-    if (feedPaginationLoading) return // prevents concurrent fetches
-
-    // If on second-to-last page (and we've fetched close to the cap of 100), eager-fetch the next NUM_PAGES_FETCHED (4) pages
-    if (
-      fetchedAlerts.length >= 100 &&
-      currentPageIdx + 1 >= totalFetchedFeedPages - 2
-    ) {
-      setFeedPaginationLoading(true)
-      // So getInitialAlerts gets the first 100 alerts, order by readAt NULLS FIRST.
-      // And then we use getMyFeedAlerts for subsequent pages (we do 4 pages at a time, so we fetch 20).
-      // When a new event is created, SSE will send it here, meaning we will have the first 101 alerts.
-      // So our offset for getting the next page will simply be fetchedAlerts.length.
-      // However, if for whatever reason an event gets created in the backend but the SSE fails here,
-      // the offset will be off: we will have the first 100 alerts so length = 100 = offset, but the newly created alert
-      // on the backend becomes the FIRST one (because we do readAt NULLS FIRST), meaning we will end up retrieving
-      // an alert we already have.
-      // All this is to say that we should not blindly add on the new page of alerts and first verify that it doesn't
-      // already exist (you'd want to do that anyway due to duplicate or overlap requests).
-      // There's also probably some other edge consequences like this that I haven't yet thought of due to
-      // how I architected the initialFetch + SSE + pagination solution.
-      // EDIT: oh like if an alert was deleted... though I think I'm still fine, it should work.
-      const nextFetchOffset = fetchedAlerts.length
-      const limit = FEED_PAGE_SIZE * NUM_PAGES_FETCHED // how many alerts we want to fetch
-
-      API.alerts
-        .getMyFeedAlerts(currentCourseId, limit, nextFetchOffset)
-        .then((newData) => {
-          mutateAlerts(
-            (prev) => {
-              if (!prev) return prev
-              const existingIds = new Set(prev.mostAlerts.map((a) => a.id))
-              return {
-                totalFeedAlerts: newData.totalFeedAlerts,
-                mostAlerts: [
-                  ...prev.mostAlerts,
-                  ...newData.pageOfFeedAlerts.filter(
-                    (a) => !existingIds.has(a.id),
-                  ),
-                ],
-              }
-            },
-            { revalidate: false },
-          )
-        })
-        .catch((e) => {
-          console.error(
-            `Failed to fetch pages ${nextFetchOffset / FEED_PAGE_SIZE + 1}-${nextFetchOffset / FEED_PAGE_SIZE + NUM_PAGES_FETCHED} of feed alerts: `,
-            e,
-          )
-          // I would rather *not* need to notify the user, but I don't want to lead to some scenario
-          // where the user can't go to the next page because it's erroring and they don't know that it's erroring.
-          message.error(
-            `Failed to fetch pages ${nextFetchOffset / FEED_PAGE_SIZE + 1}-${nextFetchOffset / FEED_PAGE_SIZE + NUM_PAGES_FETCHED} of feed alerts: ${getErrorMessage(e)}.`,
-          )
-        })
-        .finally(() => {
-          setFeedPaginationLoading(false)
-        })
-    }
+    handleFetchNextPagesOfFeedAlerts(currentPageIdx)
   }, [
-    currentCourseId,
+    // We ONLY want this handler function running when the currentPageIdx changes.
+    // Not even if currentCourseId changes (since when that changes, a separate useEffect hook resets stuff anyways).
+    // Thus, we use a useEffectEvent.
     currentPageIdx,
-    feedPaginationLoading,
-    fetchedAlerts.length,
-    initialFetchLoading,
-    mutateAlerts,
-    totalFetchedFeedPages,
   ])
 
   const value: AlertsContextValue = {
