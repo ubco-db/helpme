@@ -1011,7 +1011,10 @@ export class APIClient {
       ),
     getAllQuestions: async (cid: number): Promise<questions[]> =>
       this.req('GET', `/api/v1/questions/allQuestions/${cid}`, undefined),
-    update: async (questionId: number, params: UpdateQuestionParams) =>
+    update: async (
+      questionId: number,
+      params: UpdateQuestionParams,
+    ): Promise<UpdateQuestionResponse> =>
       this.req(
         'PATCH',
         `/api/v1/questions/${questionId}`,
