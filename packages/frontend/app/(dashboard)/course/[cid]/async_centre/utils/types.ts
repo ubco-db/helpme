@@ -21,4 +21,5 @@ export interface CommentProps {
   numOtherComments: number
   endorsedBy: EndorserInfo | null
   onEndorseSuccess: () => void
+  className?: string
 }

@@ -34,6 +34,7 @@ interface CommentSectionProps {
   className?: string
   defaultAnonymousSetting: boolean
   mutateAsyncQuestions: () => void
+  highlightCommentId?: number
 }
 
 const CommentSection: React.FC<CommentSectionProps> = ({
@@ -46,6 +47,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   className,
   defaultAnonymousSetting,
   mutateAsyncQuestions,
+  highlightCommentId,
 }) => {
   const [commentInputValue, setCommentInputValue] = useState('')
   const [isPostCommentLoading, setIsPostCommentLoading] = useState(false)
@@ -169,7 +171,15 @@ const CommentSection: React.FC<CommentSectionProps> = ({
             className="overflow-hidden"
             dataSource={comments}
             renderItem={(props: CommentProps) => (
-              <Comment key={props.commentId} {...props} />
+              <Comment
+                key={props.commentId}
+                className={
+                  props.commentId === highlightCommentId
+                    ? 'rounded-md border border-green-500/50'
+                    : ''
+                }
+                {...props}
+              />
             )}
           />
         </div>
@@ -376,7 +386,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     </div>
   )
 }
-
+// adam: tbh idk why i put this into a function way over here. It'd be easier to maintain by just putting it inside the List component
 function generateCommentProps(
   questionId: number,
   questionIsAnonymous: boolean,

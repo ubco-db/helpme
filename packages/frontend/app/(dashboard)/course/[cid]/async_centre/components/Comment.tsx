@@ -62,6 +62,7 @@ const Comment: React.FC<CommentProps> = ({
   numOtherComments,
   endorsedBy,
   onEndorseSuccess,
+  className,
 }) => {
   const { userInfo } = useUserInfo()
   const [deleteLoading, setDeleteLoading] = useState(false)
@@ -116,7 +117,10 @@ const Comment: React.FC<CommentProps> = ({
   const anonAnimal = getAnonAnimal(author.anonId)
 
   return (
-    <div className="overflow-auto border-b border-gray-200 py-3">
+    <div
+      className={cn('overflow-auto border-b border-gray-200 py-3', className)}
+      id={`async-question-comment-${commentId}`}
+    >
       {/* Avatar */}
       <figure className="float-left mr-3 hidden h-10 w-10 md:flex">
         {/* Desktop Avatar */}

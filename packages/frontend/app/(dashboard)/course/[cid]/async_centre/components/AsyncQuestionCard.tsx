@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from 'react'
+import { useEffect, useEffectEvent, useReducer, useState } from 'react'
 import { Button, Col, message, Row, Tag, Tooltip } from 'antd'
 import {
   AsyncQuestion,
@@ -41,6 +41,8 @@ interface AsyncQuestionCardProps {
   courseId: number
   mutateAsyncQuestions: () => void
   showStudents: boolean
+  highlightCommentId?: number
+  className?: string
 }
 
 const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
@@ -50,6 +52,8 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   courseId,
   mutateAsyncQuestions,
   showStudents,
+  highlightCommentId,
+  className,
 }) => {
   const [uiState, dispatch] = useReducer(
     AsyncQuestionCardUIReducer,
@@ -72,6 +76,33 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
       dispatch({ type: 'EXPAND_QUESTION' })
     }
   }, [shouldFlash])
+
+  // When there's a highlightCommentId that belongs to this question, expand the card and scroll to the comment.
+  // We want the useEffect to react to highlightCommentId, but not the rest of it (like we don't want the useEffect to re-run every time the question's comments change).
+  const handleHighlightComment = useEffectEvent(
+    (highlightCommentId: number) => {
+      if (
+        question.comments?.find((comment) => comment.id === highlightCommentId)
+      ) {
+        dispatch({
+          type: 'SHOW_COMMENTS',
+          numOfComments: question.comments.length,
+        })
+        // find the comment elment and scroll to it after the comments are shown
+        setTimeout(() => {
+          const element = document.getElementById(
+            `async-question-comment-${highlightCommentId}`,
+          )
+          element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 300)
+      }
+    },
+  )
+  useEffect(() => {
+    if (highlightCommentId) {
+      handleHighlightComment(highlightCommentId)
+    }
+  }, [highlightCommentId])
 
   const isStaff =
     userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
@@ -166,6 +197,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
 
   return (
     <div
+      id={`async-question-${question.id}`}
       className={cn(
         'mb-2 mt-2 flex flex-col rounded-lg bg-white px-2 pt-2 shadow-lg',
         isStaff &&
@@ -174,6 +206,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
             !question.answerText)
           ? 'outline outline-1 outline-offset-1 outline-yellow-500'
           : '',
+        className,
       )}
       onClick={toggleExpandQuestion}
     >
@@ -421,6 +454,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   courseFeatures?.asyncCentreDefaultAnonymous ?? true
                 }
                 mutateAsyncQuestions={mutateAsyncQuestions}
+                highlightCommentId={highlightCommentId}
               />
             </div>
             <div className="flex flex-wrap">

@@ -7,6 +7,7 @@ import {
   AsyncQuestionUpdatePayload,
   AsyncQuestionUpdateSubtype,
   AdminNoticePayload,
+  QUERY_PARAMS,
 } from '@koh/common'
 import {
   Badge,
@@ -137,23 +138,34 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
           case AlertType.ASYNC_QUESTION_UPDATE: {
             const payload = alert.payload as AsyncQuestionUpdatePayload
             const courseId = alert.courseId ?? payload.courseId
-            const destination = `/course/${alert.courseId}/async_centre`
+            const query = new URLSearchParams()
+            query.set(
+              QUERY_PARAMS.asyncQuestion.highlightAsyncQuestionId,
+              payload.questionId.toString(),
+            )
+            if (payload.commentId) {
+              query.set(
+                QUERY_PARAMS.asyncQuestion.highlightCommentId,
+                payload.commentId.toString(),
+              )
+            }
+            const destination = courseId
+              ? `/course/${courseId}/async_centre?${query.toString()}`
+              : undefined
 
+            const subtitleMap: Record<string, string> = {
+              [AsyncQuestionUpdateSubtype.COMMENT_ON_MY_POST]: 'New Comment',
+              [AsyncQuestionUpdateSubtype.COMMENT_ON_OTHERS_POST]:
+                'New Comment on Followed Post',
+              [AsyncQuestionUpdateSubtype.HUMAN_ANSWERED]:
+                'Anytime Question Answered',
+              [AsyncQuestionUpdateSubtype.ENDORSED]: 'Comment Endorsed',
+              [AsyncQuestionUpdateSubtype.STATUS_CHANGED]:
+                'Anytime Question Status Changed',
+              [AsyncQuestionUpdateSubtype.UPVOTED]: 'Anytime Question Upvoted',
+            }
             const title =
-              payload.subtype === AsyncQuestionUpdateSubtype.COMMENT_ON_MY_POST
-                ? 'New Comment'
-                : payload.subtype ===
-                    AsyncQuestionUpdateSubtype.COMMENT_ON_OTHERS_POST
-                  ? 'New Comment on Followed Post'
-                  : payload.subtype ===
-                      AsyncQuestionUpdateSubtype.HUMAN_ANSWERED
-                    ? 'Anytime Question Answered'
-                    : payload.subtype ===
-                        AsyncQuestionUpdateSubtype.STATUS_CHANGED
-                      ? 'Anytime Question Status Changed'
-                      : payload.subtype === AsyncQuestionUpdateSubtype.UPVOTED
-                        ? 'Anytime Question Upvoted'
-                        : 'Anytime Question Generic Update'
+              subtitleMap[payload.subtype] ?? 'Anytime Question Generic Update'
             return {
               alertId: alert.id,
               title,

@@ -1,11 +1,17 @@
 'use client'
 
-import { asyncQuestionStatus, QuestionType, Role } from '@koh/common'
+import {
+  asyncQuestionStatus,
+  QUERY_PARAMS,
+  QuestionType,
+  Role,
+} from '@koh/common'
 import React, {
   ReactElement,
   use,
   useCallback,
   useEffect,
+  useEffectEvent,
   useMemo,
   useState,
 } from 'react'
@@ -111,6 +117,13 @@ export default function AsyncCentrePage(
   const convertQueueQSearchParam = searchParams.get('convertQueueQ')
   const queueQuestionId = Number(searchParams.get('queueQuestionId'))
   const queueId = Number(searchParams.get('queueId'))
+  // for question/comment highlighting
+  const highlightAsyncQuestionId = Number(
+    searchParams.get(QUERY_PARAMS.asyncQuestion.highlightAsyncQuestionId),
+  )
+  const highlightCommentId = Number(
+    searchParams.get(QUERY_PARAMS.asyncQuestion.highlightCommentId),
+  )
 
   useEffect(() => {
     if (convertChatbotQSearchParam && messages.length > 1) {
@@ -240,6 +253,42 @@ export default function AsyncCentrePage(
     const endIndex = startIndex + pageSize // and where to stop slicing
     return displayedQuestions.slice(startIndex, endIndex)
   }, [page, pageSize, displayedQuestions])
+
+  // When the highlightAsyncQuestionId or highlightCommentId changes, switch the page to the correct one and scroll it into view
+  // We use useEffectEvent since this function is pretty much a handler that runs in the useEffect below
+  // (otherwise we would need displayedQuestions inside dependency array which would cause it to scroll anytime the questions change) - See useEventSource for more details about this
+  const handleHighlightQuestion = useEffectEvent(
+    (highlightAsyncQuestionId: number, highlightCommentId: number) => {
+      // first check to make sure it's in the current page. If not switch the page to the correct one
+      if (!paginatedQuestions.some((q) => q.id === highlightAsyncQuestionId)) {
+        if (displayedQuestions.some((q) => q.id === highlightAsyncQuestionId)) {
+          const questionIndex = displayedQuestions.findIndex(
+            (q) => q.id === highlightAsyncQuestionId,
+          )
+          const targetPage = Math.ceil((questionIndex + 1) / pageSize)
+          setPage(targetPage)
+        } else {
+          console.warn(
+            `highlightAsyncQuestionId ${highlightAsyncQuestionId} for course ${courseId} not found in displayedQuestions. This means that either the user wrote in a different highlightAsyncQuestionId, the question was deleted/hidden for some reason, or some other reason.`,
+          )
+          return
+        }
+      }
+
+      // only perform this scroll if there isn't a highlightCommentId since there's a separate scroll for comments in CommentSection.tsx
+      if (highlightAsyncQuestionId && !highlightCommentId) {
+        const element = document.getElementById(
+          `async-question-${highlightAsyncQuestionId}`,
+        )
+        element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    },
+  )
+  useEffect(() => {
+    if (highlightAsyncQuestionId) {
+      handleHighlightQuestion(highlightAsyncQuestionId, highlightCommentId)
+    }
+  }, [highlightAsyncQuestionId, highlightCommentId])
 
   // This endpoint will be called to update unread count back to 0 when this page is entered
   // May seem more inefficient but this is the only way to ensure that the unread count is accurate given that userInfo no longer tracks it
@@ -474,6 +523,12 @@ export default function AsyncCentrePage(
                   userCourseRole={role}
                   courseId={courseId}
                   showStudents={showStudents}
+                  highlightCommentId={highlightCommentId}
+                  className={
+                    question.id === highlightAsyncQuestionId
+                      ? 'outline outline-1 outline-offset-1 outline-green-500/50'
+                      : ''
+                  }
                 />
               ))}
 

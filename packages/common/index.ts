@@ -2814,6 +2814,7 @@ export enum AsyncQuestionUpdateSubtype {
   HUMAN_ANSWERED = 'humanAnswered',
   STATUS_CHANGED = 'statusChanged',
   UPVOTED = 'upvoted',
+  ENDORSED = 'endorsed',
 }
 export class AsyncQuestionUpdatePayload extends AlertPayload {
   @IsInt()
@@ -5053,6 +5054,10 @@ export const QUERY_PARAMS = {
       courseNotFound: 'queue_invite_course_not_found',
       badCourseInviteCode: 'queue_invite_bad_course_invite_code',
     },
+  },
+  asyncQuestion: {
+    highlightAsyncQuestionId: 'highlight_async_question_id',
+    highlightCommentId: 'highlight_comment_id',
   },
   // TODO: add the /login redirect query params here. Avoided doing so right now since that would require proxy.ts to import this file and iirc there is errors when you try to do that
 }
