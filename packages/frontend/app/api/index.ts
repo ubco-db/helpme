@@ -1194,6 +1194,8 @@ export class APIClient {
     fillQueue: async () => this.req('GET', `/api/v1/seeds/fill_queue`),
     fillAnytimeQuestions: async () =>
       this.req('GET', `/api/v1/seeds/fill_anytime_questions`),
+    createMailServices: async (): Promise<string> =>
+      this.req('POST', `/api/v1/seeds/mail-services`),
   }
   semesters = {
     get: async (oid: number): Promise<SemesterPartial[]> =>

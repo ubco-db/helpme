@@ -1,7 +1,7 @@
 'use client'
 
 import { isProd } from '@koh/common'
-import { Button, Divider } from 'antd'
+import { Button, Divider, Tooltip } from 'antd'
 import { notFound } from 'next/navigation'
 import React, { ReactElement } from 'react'
 import { message } from 'antd'
@@ -99,6 +99,27 @@ export default function DevPanel(): ReactElement {
           >
             Generate 100 Anytime Questions
           </Button>
+          <Tooltip title="Note that 'Seed Data' already does this .">
+            <Button
+              style={{ marginRight: '15px' }}
+              type="default"
+              onClick={() => {
+                API.seeds
+                  .createMailServices()
+                  .then((msg) => {
+                    message.success(msg)
+                  })
+                  .catch((error) => {
+                    const errorMessage = getErrorMessage(error)
+                    message.error(
+                      `Error occurred while creating mail services: ${errorMessage}`,
+                    )
+                  })
+              }}
+            >
+              Create Mail Services & Populate mail subscriptions
+            </Button>
+          </Tooltip>
         </div>
       </div>
     </div>

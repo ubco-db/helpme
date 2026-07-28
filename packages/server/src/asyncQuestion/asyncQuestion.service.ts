@@ -451,7 +451,7 @@ export class AsyncQuestionService {
                       : 'anon-animal',
                 })}
                 <br>
-                <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre${this.highlightQuestionQueryParams(question.id, comment.id)}"><b>View and Answer It Here</b></a> <br>`,
+                <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre?${this.highlightQuestionQueryParams(question.id, comment.id)}"><b>View and Answer It Here</b></a> <br>`,
         })
         .catch((err) => {
           console.error(
@@ -533,7 +533,7 @@ export class AsyncQuestionService {
                     <p>The new comment:</p>
                     ${this.constructCommentCard(comment, { showAuthor: commenterIsStaff || !comment.isAnonymous ? true : 'anon-animal' })}
                     <br>
-                    <br> Note: Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${updatedQuestion.courseId}/async_centre${this.highlightQuestionQueryParams(updatedQuestion.id, comment.id)}">View and Reply Here</a> <br>`,
+                    <br> Note: Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${updatedQuestion.courseId}/async_centre?${this.highlightQuestionQueryParams(updatedQuestion.id, comment.id)}">View and Reply Here</a> <br>`,
         }),
       ),
     ).then((sendEmailResults) => {
@@ -618,7 +618,7 @@ export class AsyncQuestionService {
                       displayAnswerAsAiAnswer: true,
                     })}
                     <br>
-                    <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre${this.highlightQuestionQueryParams(question.id)}">View and Answer It Here</a> <br>`,
+                    <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre?${this.highlightQuestionQueryParams(question.id)}">View and Answer It Here</a> <br>`,
         track: true,
         metadata: {
           asyncQuestionId: question.id,
@@ -660,7 +660,7 @@ export class AsyncQuestionService {
                 showVisibilityPill: true,
                 showAiAnswerBeforeAfter: true,
               })}
-              <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre${this.highlightQuestionQueryParams(question.id)}">View Here</a> <br>`,
+              <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre?${this.highlightQuestionQueryParams(question.id)}">View Here</a> <br>`,
         })
         .catch((err) => {
           console.error('Failed to send email Human Answered email: ' + err);
@@ -707,7 +707,7 @@ export class AsyncQuestionService {
              showAiAnswerBeforeAfter: true,
            })}
            <br>
-           <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre${this.highlightQuestionQueryParams(question.id)}">View It Here</a> <br>`,
+           <br> Do NOT reply to this email. <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre?${this.highlightQuestionQueryParams(question.id)}">View It Here</a> <br>`,
           ),
         ),
       ]).then((results) => {
@@ -751,7 +751,7 @@ export class AsyncQuestionService {
                   ${this.constructAsyncQuestionCard(question, {
                     showStatusPill: true,
                   })}
-                  <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre${this.highlightQuestionQueryParams(question.id)}">View Here</a> <br>`,
+                  <br> <a href="${process.env.DOMAIN}/course/${question.courseId}/async_centre?${this.highlightQuestionQueryParams(question.id)}">View Here</a> <br>`,
         })
         .catch((err) => {
           console.error('Failed to send email Status Changed email: ' + err);

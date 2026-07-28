@@ -5,7 +5,7 @@ import {
   QueueConfig,
   Role,
 } from '@koh/common';
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AlertModel } from 'alerts/alerts.entity';
 import { DesktopNotifModel } from 'notification/desktop-notif.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
@@ -184,44 +184,7 @@ export class SeedController {
     const tomorrow = new Date();
     tomorrow.setUTCHours(now.getUTCHours() + 19);
 
-    const facultyMailService =
-      await this.factoryService.mailServiceFactory.create({
-        mailType: OrganizationRole.PROFESSOR,
-        serviceType: MailServiceType.ASYNC_QUESTION_FLAGGED,
-        name: 'Notify when a new anytime question is flagged as needing attention',
-      });
-    const studentMailService =
-      await this.factoryService.mailServiceFactory.create({
-        mailType: OrganizationRole.MEMBER,
-        serviceType: MailServiceType.ASYNC_QUESTION_HUMAN_ANSWERED,
-        name: 'Notify when your anytime question has been answered by faculty',
-      });
-
-    const studentMailService2 =
-      await this.factoryService.mailServiceFactory.create({
-        mailType: OrganizationRole.MEMBER,
-        serviceType: MailServiceType.ASYNC_QUESTION_STATUS_CHANGED,
-        name: 'Notify when the status of your anytime question has changed',
-      });
-
-    const studentMailService3 =
-      await this.factoryService.mailServiceFactory.create({
-        mailType: OrganizationRole.MEMBER,
-        serviceType: MailServiceType.ASYNC_QUESTION_UPVOTED,
-        name: 'Notify when your anytime question has been upvoted',
-      });
-    const studentMailService4 =
-      await this.factoryService.mailServiceFactory.create({
-        mailType: OrganizationRole.MEMBER,
-        serviceType: MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_MY_POST,
-        name: 'Notify when someone comments on your anytime question',
-      });
-    const studentMailService5 =
-      await this.factoryService.mailServiceFactory.create({
-        mailType: OrganizationRole.MEMBER,
-        serviceType: MailServiceType.ASYNC_QUESTION_NEW_COMMENT_ON_OTHERS_POST,
-        name: 'Notify when someone comments on an anytime question you commented on',
-      });
+    await this.seedService.createMailServices();
     const course1Exists = await CourseModel.findOne({
       where: { name: 'CS 304' },
     });
@@ -354,31 +317,6 @@ export class SeedController {
         role: Role.STUDENT,
         course: course2,
       });
-      await this.factoryService.userSubscriptionFactory.create({
-        isSubscribed: true,
-        user: user1,
-        service: studentMailService,
-      });
-      await this.factoryService.userSubscriptionFactory.create({
-        isSubscribed: true,
-        user: user1,
-        service: studentMailService2,
-      });
-      await this.factoryService.userSubscriptionFactory.create({
-        isSubscribed: true,
-        user: user1,
-        service: studentMailService3,
-      });
-      await this.factoryService.userSubscriptionFactory.create({
-        isSubscribed: true,
-        user: user1,
-        service: studentMailService4,
-      });
-      await this.factoryService.userSubscriptionFactory.create({
-        isSubscribed: true,
-        user: user1,
-        service: studentMailService5,
-      });
 
       // Student 2
       const user2 = await this.factoryService.UserFactory.create({
@@ -408,11 +346,6 @@ export class SeedController {
         course: course2,
       });
 
-      await this.factoryService.userSubscriptionFactory.create({
-        isSubscribed: true,
-        user: user2,
-        service: studentMailService,
-      });
       // TA 1
       const user3 = await this.factoryService.UserFactory.create({
         email: 'TaOne@ubc.ca',
@@ -502,12 +435,6 @@ export class SeedController {
         course: course2,
       });
 
-      await this.factoryService.userSubscriptionFactory.create({
-        isSubscribed: true,
-        user: user5,
-        service: facultyMailService,
-      });
-
       // Professor for COSC 310
       const user6 = await this.factoryService.UserFactory.create({
         email: 'orgProfessor@ubc.ca',
@@ -528,12 +455,6 @@ export class SeedController {
         user: user6,
         role: Role.PROFESSOR,
         course: course2,
-      });
-
-      await this.factoryService.userSubscriptionFactory.create({
-        isSubscribed: true,
-        user: user6,
-        service: facultyMailService,
       });
 
       await this.factoryService.OrganizationUserFactory.create({
@@ -746,6 +667,8 @@ export class SeedController {
       questionTypes: [questionType2],
     });
 
+    await this.seedService.populateMailSubscriptionTable();
+
     return 'Data successfully seeded';
   }
 
@@ -800,5 +723,14 @@ export class SeedController {
     });
 
     return `Successfully created 100 test Anytime Questions for course: ${course.name}`;
+  }
+
+  @Post('mail-services')
+  async createMailServices(): Promise<string> {
+    // TODO: note that createSeeds() already does this
+    const numCreated = await this.seedService.createMailServices();
+    await this.seedService.populateMailSubscriptionTable();
+
+    return `Successfully created ${numCreated} new Mail Services and populated subscription table`;
   }
 }
