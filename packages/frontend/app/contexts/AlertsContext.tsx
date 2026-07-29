@@ -471,3 +471,9 @@ export const useAlerts = (): AlertsContextValue => {
   if (!ctx) throw new Error('useAlerts must be used within AlertsProvider')
   return ctx
 }
+
+/* Use this if you want to use useAlerts in a component that might be used outside of AlertsContext, such as the HeaderBar */
+export const useAlertsOptional = (): AlertsContextValue | undefined => {
+  const ctx = useContext(AlertsContext)
+  return ctx
+}

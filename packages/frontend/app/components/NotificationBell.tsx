@@ -405,17 +405,16 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
         </div>
       }
       trigger="click"
-      placement="bottomRight"
       open={open}
       onOpenChange={(visible) => handlePopoverOpenChange(visible)}
-      classNames={{}}
+      getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
     >
       <Badge count={totalUnreadFeedAlerts} size="small">
         <Button
           type="text"
-          className={`flex items-center p-0 ${className ?? ''}`.trim()}
+          className={`flex items-center p-1 md:p-2 ${className ?? ''}`.trim()}
         >
-          <Bell aria-label="notifications bell" size={20} />
+          <Bell aria-label="notifications bell" strokeWidth={1.7} />
         </Button>
       </Badge>
     </Popover>

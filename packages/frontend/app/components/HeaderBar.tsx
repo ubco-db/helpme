@@ -50,7 +50,7 @@ import {
   MailOutlined,
   SyncOutlined,
 } from '@ant-design/icons'
-import { Popconfirm } from 'antd'
+import { Badge, Popconfirm } from 'antd'
 import { sortQueues } from '../(dashboard)/course/[cid]/utils/commonCourseFunctions'
 import { useCourseFeatures } from '../hooks/useCourseFeatures'
 import CenteredSpinner from './CenteredSpinner'
@@ -58,6 +58,7 @@ import NotificationBell from './NotificationBell'
 import Image from 'next/image'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 import { useCourse } from '@/app/hooks/useCourse'
+import { useAlerts, useAlertsOptional } from '../contexts/AlertsContext'
 
 /**
  * This custom Link is wrapped around nextjs's Link to improve accessibility and styling. Not to be used outside of this navigation menu.
@@ -544,9 +545,7 @@ const NavBar = ({
               ) : null}
               {/* DESKTOP ONLY PART OF NAVBAR */}
               <NavigationMenuItem className="!ml-auto hidden md:block">
-                <div className="px-2">
-                  <NotificationBell />
-                </div>
+                <NotificationBell />
               </NavigationMenuItem>
               <NavigationMenuItem className="hidden md:block">
                 <NavigationMenuTrigger
@@ -712,6 +711,8 @@ const HeaderBar: React.FC = () => {
     ? course?.queues?.find((queue) => queue.id === queueId)?.room
     : ''
 
+  const alertsContextValue = useAlertsOptional()
+
   // DESKTOP HEADER
   return isDesktop ? (
     <NavBar
@@ -786,33 +787,50 @@ const HeaderBar: React.FC = () => {
         open={isDrawerOpen}
         onOpenChange={setIsDrawerOpen}
       >
-        <DrawerTrigger>
-          <MenuIcon size={40} className="ml-2" />
+        <DrawerTrigger className="flex items-center justify-center">
+          <Badge
+            count={alertsContextValue?.totalUnreadFeedAlerts}
+            size="small"
+            offset={[-7, 7]}
+          >
+            <MenuIcon size={40} className="ml-2" />
+          </Badge>
         </DrawerTrigger>
         <DrawerContent aria-description="Drawer for main navigation menu">
           {/* INSIDE DRAWER */}
           <div className="flex h-screen flex-col items-start justify-start">
-            <DrawerTitle className="my-1 flex w-full items-center justify-center border-b border-b-zinc-200 bg-white py-1 pr-5">
-              {!userInfo ? (
-                <Image
-                  width={48}
-                  height={48}
-                  className="h-12 object-contain"
-                  alt="UBC Logo"
-                  src={`/actually_public/ubc_logo.png`}
-                />
-              ) : (
-                <Image
-                  width={48}
-                  height={48}
-                  className="h-12 object-contain"
-                  alt="Organization Logo"
-                  src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo`}
-                />
+            <DrawerTitle className="my-1 flex w-full items-center justify-between border-b border-b-zinc-200 bg-white py-1 pr-2">
+              {/* Empty div for justify-between to counterbalanace the notificationbell */}
+              {userInfo && <div></div>}
+              <div className="flex items-center justify-center gap-1">
+                {!userInfo ? (
+                  <Image
+                    width={48}
+                    height={48}
+                    className="h-12 object-contain"
+                    alt="UBC Logo"
+                    src={`/actually_public/ubc_logo.png`}
+                  />
+                ) : (
+                  <Image
+                    width={48}
+                    height={48}
+                    className="h-12 object-contain"
+                    alt="Organization Logo"
+                    src={`/api/v1/organization/${userInfo.organization?.orgId}/get_logo`}
+                  />
+                )}
+                <span className="text-2xl font-semibold leading-none">
+                  {!userInfo
+                    ? 'HelpMe'
+                    : userInfo.organization?.organizationName}
+                </span>
+              </div>
+              {userInfo && (
+                <div className="">
+                  <NotificationBell />
+                </div>
               )}
-              <span className="text-2xl font-semibold leading-none">
-                {!userInfo ? 'HelpMe' : userInfo.organization?.organizationName}
-              </span>
             </DrawerTitle>
             <NavBar
               userInfo={userInfo}

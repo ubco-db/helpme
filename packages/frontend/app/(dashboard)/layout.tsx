@@ -88,7 +88,7 @@ const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
   ) : !profile.emailVerified ? (
     // should never happen since proxy.ts will redirect to /verify but just in case
     <VerifyEmailPage />
-  ) : adminPage && profile.userRole != UserRole.ADMIN ? (
+  ) : adminPage && profile.userRole !== UserRole.ADMIN ? (
     <main className="mt-20 flex flex-col items-center justify-center gap-2">
       <p>You do not have permission to view this page.</p>
       <p>
