@@ -224,8 +224,11 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
 
   return (
     <Popover
+      classNames={{
+        root: 'w-screen md:w-96',
+      }}
       content={
-        <div className="flex w-80 max-w-xs flex-col gap-2">
+        <div className="flex max-w-md flex-col gap-2">
           {initialFetchLoading ? (
             <div className="py-6 text-center">
               <Spin size="small" />
