@@ -206,6 +206,24 @@ export class AlertsService {
       .getManyAndCount();
   }
 
+  /* 
+    TOAST alerts
+    - ALL unread alerts (limit 20)
+    - Ignore courseId, always fetch all of them
+    */
+  async getToastAlerts(
+    userId: number,
+    manager: EntityManager,
+  ): Promise<AlertModel[]> {
+    const qb = manager
+      .createQueryBuilder(AlertModel, 'alert')
+      .where('alert.userId = :userId', { userId })
+      .andWhere('alert.deliveryMode = :mode', { mode: AlertDeliveryMode.TOAST })
+      .andWhere('alert.readAt IS NULL');
+
+    return qb.take(20).orderBy('alert.sentAt', 'DESC').getMany();
+  }
+
   async getTargetUserIds(
     target: AdminNoticeTarget,
     manager: EntityManager,

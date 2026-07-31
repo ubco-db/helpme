@@ -17,6 +17,9 @@ import {
   CreateAlertAdminResponse,
   DeleteAdminNoticeRequest,
   DeleteAdminNoticeResponse,
+  TOAST_ALERT_TYPES,
+  AdminNoticePayload,
+  AdminNoticeToastPayload,
 } from '@koh/common';
 import {
   BadRequestException,
@@ -32,6 +35,7 @@ import {
   UseGuards,
   NotFoundException,
   Res,
+  HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'guards/jwt-auth.guard';
 import { User, UserId } from 'decorators/user.decorator';
@@ -134,6 +138,9 @@ export class AlertsController {
 		- ALL unread alerts (limit 20 since when would you ever have more than like 2 tbh)
 		- When given no courseId: Fetch alerts ONLY with null courseId
 		- When given courseId: same as FEED 
+  - TOAST alerts
+    - ALL unread alerts (limit 20)
+    - Ignore courseId, always fetch all of them
   */
   @Get('/initial')
   async getMyInitialAlerts(
@@ -142,24 +149,26 @@ export class AlertsController {
   ): Promise<GetInitialAlertsResponse> {
     let response: GetInitialAlertsResponse = null;
     await this.dataSource.transaction(async (manager) => {
-      const modalAlertModels = await this.alertsService.getModalAlerts(
-        userId,
-        manager,
-        courseId,
-      );
-
-      const [feedAlertModels, totalFeedAlerts] =
-        await this.alertsService.getFeedAlerts(
+      const [
+        modalAlertModels,
+        toastAlertModels,
+        [feedAlertModels, totalFeedAlerts],
+      ] = await Promise.all([
+        this.alertsService.getModalAlerts(userId, manager, courseId),
+        this.alertsService.getToastAlerts(userId, manager),
+        this.alertsService.getFeedAlerts(
           userId,
           manager,
           100,
           0,
           'all',
           courseId,
-        );
+        ),
+      ]);
+
       response = {
         mostAlerts: await this.alertsService.removeStaleAlerts(
-          [...modalAlertModels, ...feedAlertModels],
+          [...modalAlertModels, ...toastAlertModels, ...feedAlertModels],
           manager,
         ),
         totalFeedAlerts,
@@ -217,7 +226,9 @@ export class AlertsController {
       (parsedMode === AlertDeliveryMode.FEED &&
         !(FEED_ALERT_TYPES as readonly AlertType[]).includes(alertType)) ||
       (parsedMode === AlertDeliveryMode.MODAL &&
-        !(MODAL_ALERT_TYPES as readonly AlertType[]).includes(alertType))
+        !(MODAL_ALERT_TYPES as readonly AlertType[]).includes(alertType)) ||
+      (parsedMode === AlertDeliveryMode.TOAST &&
+        !(TOAST_ALERT_TYPES as readonly AlertType[]).includes(alertType))
     ) {
       throw new BadRequestException(
         'Invalid alert type for selected delivery mode',
@@ -228,7 +239,7 @@ export class AlertsController {
       const anotherAlert = await AlertModel.findOne({
         where: {
           alertType,
-          deliveryMode: parsedMode,
+          deliveryMode: AlertDeliveryMode.MODAL,
           userId: targetUserId,
           readAt: IsNull(),
         },
@@ -256,6 +267,7 @@ export class AlertsController {
   async closeAlert(
     @UserId() userId: number,
     @Param('alertId', ParseIntPipe) alertId: number,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<Alert> {
     const alert = await AlertModel.findOne({
       where: {
@@ -270,8 +282,16 @@ export class AlertsController {
       );
     }
 
-    alert.readAt = new Date();
-    await alert.save();
+    // if the alert was already read, give them a 202 accepted (even though it's not really the correct use for it)
+    // Simply because I don't really want this endpoint to error for that case,
+    // but I still want to signify that the call didn't actually affect anything
+    if (alert.readAt) {
+      res.status(HttpStatus.ACCEPTED);
+    } else {
+      alert.readAt = new Date();
+      await alert.save();
+      res.status(HttpStatus.OK);
+    }
     return formatAlertForFrontend(alert);
   }
 
@@ -310,7 +330,7 @@ export class AlertsController {
           type: MailServiceType.ADMIN_NOTICE,
           content: `
           <p>${user.name} (${user.email}) created an Admin Notice alert that affected ${targetUserIds.length} users with the following message: </p>
-          <p>${body.payload.message}</p>
+          <p>${'message' in body.payload ? body.payload.message : body.payload.description}</p>
           <p><b>If the person sending this and the contents look normal, please disregard this message.</b> Otherwise, someone should probably remove this person's admin perms (needs a DB query since admins can't have their perms revoked through the UI).</p>
           <p>More details:</p>
           <p>Target: ${!target ? 'Every single user' : JSON.stringify(target)}</p>
@@ -367,13 +387,13 @@ export class AlertsController {
       .getRawMany();
 
     return rawResults.map((row) => {
-      const payload =
+      const payload: AdminNoticePayload | AdminNoticeToastPayload =
         typeof row.payload === 'string' ? JSON.parse(row.payload) : row.payload;
       return {
         sentAt: row.sentAt,
         deliveryMode: row.deliveryMode,
         title: payload.title ?? 'Admin Notice',
-        message: payload.message,
+        message: 'message' in payload ? payload.message : payload.description,
         creatorName: payload.creatorName,
         creatorId: payload.creatorId,
         target: payload.target ?? undefined,

@@ -12,6 +12,8 @@ import {
   Role,
   CreateAlertAdminRequest,
   AdminNoticeTarget,
+  ToastType,
+  ToastPosition,
 } from '@koh/common'
 import {
   Button,
@@ -30,6 +32,7 @@ import {
   Input,
   Segmented,
   InputNumber,
+  Select,
 } from 'antd'
 import { useState } from 'react'
 import useSWRImmutable from 'swr/immutable'
@@ -54,6 +57,11 @@ type FormValues = {
   title: string
   message: string
   deliveryMode: AlertDeliveryMode
+
+  // Toast-specific fields
+  toastType?: ToastType
+  toastPosition?: ToastPosition
+  durationMs?: number
 }
 
 const CreateAdminAlertsPage: React.FC = () => {
@@ -120,16 +128,31 @@ const CreateAdminAlertsPage: React.FC = () => {
                 }
               : undefined
 
-    const requestBody: CreateAlertAdminRequest = {
-      deliveryMode: values.deliveryMode,
-      payload: {
-        title: values.title || 'Admin Notice',
-        message: values.message,
-        creatorId: userInfo.id,
-        creatorName: userInfo.name,
-        target: target,
-      },
-    }
+    const requestBody: CreateAlertAdminRequest =
+      values.deliveryMode === AlertDeliveryMode.TOAST
+        ? {
+            deliveryMode: AlertDeliveryMode.TOAST,
+            payload: {
+              title: values.title || 'Admin Notice',
+              description: values.message,
+              toastType: values.toastType || ToastType.INFO,
+              position: values.toastPosition,
+              durationMs: values.durationMs,
+              creatorId: userInfo.id,
+              creatorName: userInfo.name,
+              target: target,
+            },
+          }
+        : {
+            deliveryMode: values.deliveryMode,
+            payload: {
+              title: values.title || 'Admin Notice',
+              message: values.message,
+              creatorId: userInfo.id,
+              creatorName: userInfo.name,
+              target: target,
+            },
+          }
     await API.alerts.adminOnly
       .create(requestBody)
       .then(({ numSent, sentAt }) => {
@@ -150,7 +173,7 @@ const CreateAdminAlertsPage: React.FC = () => {
           ])
         }
         message.success(
-          `Successfully sent a ${values.deliveryMode === AlertDeliveryMode.MODAL ? 'modal' : 'feed'} alert to ${numSent} user${numSent === 1 ? '' : 's'}.`,
+          `Successfully sent a ${values.deliveryMode} alert to ${numSent} user${numSent === 1 ? '' : 's'}.`,
         )
       })
       .catch((error) => {
@@ -162,6 +185,7 @@ const CreateAdminAlertsPage: React.FC = () => {
   }
 
   const targetTypeValue = Form.useWatch('targetType', form)
+  const deliveryModeValue = Form.useWatch('deliveryMode', form)
 
   return (
     <>
@@ -175,7 +199,7 @@ const CreateAdminAlertsPage: React.FC = () => {
               </h1>
               <p className="mt-1 text-sm text-gray-500">
                 Create alerts targeting any number of users in the system. You
-                can choose to make it a Modal alert or a Feed alert.
+                can choose to make it a Modal, Feed, or Toast alert.
               </p>
             </div>
           </div>
@@ -192,6 +216,8 @@ const CreateAdminAlertsPage: React.FC = () => {
               message: '',
               targetOrgId: 1,
               title: 'Admin Notice',
+              toastType: ToastType.INFO,
+              toastPosition: ToastPosition.BOTTOM_LEFT,
             }}
             onFinish={onFinish}
           >
@@ -226,9 +252,81 @@ const CreateAdminAlertsPage: React.FC = () => {
                     value: AlertDeliveryMode.FEED,
                     label: 'Feed',
                   },
+                  {
+                    value: AlertDeliveryMode.TOAST,
+                    label: 'Toast',
+                  },
                 ]}
               />
             </Form.Item>
+
+            {deliveryModeValue === AlertDeliveryMode.TOAST && (
+              <div
+                style={{
+                  marginLeft: 32,
+                  borderLeft: '2px solid #e5e7eb',
+                  paddingLeft: 16,
+                  marginBottom: 16,
+                }}
+              >
+                <Form.Item<FormValues>
+                  label="Toast Type"
+                  name="toastType"
+                  labelCol={{ span: 7 }}
+                  wrapperCol={{ span: 17 }}
+                >
+                  <Segmented<ToastType>
+                    size="small"
+                    options={[
+                      { value: ToastType.INFO, label: 'Info' },
+                      { value: ToastType.SUCCESS, label: 'Success' },
+                      { value: ToastType.WARNING, label: 'Warning' },
+                      { value: ToastType.ERROR, label: 'Error' },
+                      { value: ToastType.DEFAULT, label: 'Default' },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item<FormValues>
+                  label="Position"
+                  name="toastPosition"
+                  labelCol={{ span: 7 }}
+                  wrapperCol={{ span: 17 }}
+                >
+                  <Select<ToastPosition>
+                    options={[
+                      {
+                        value: ToastPosition.BOTTOM_LEFT,
+                        label: 'Bottom Left',
+                      },
+                      {
+                        value: ToastPosition.BOTTOM_CENTER,
+                        label: 'Bottom Center',
+                      },
+                      {
+                        value: ToastPosition.BOTTOM_RIGHT,
+                        label: 'Bottom Right',
+                      },
+                      { value: ToastPosition.TOP_LEFT, label: 'Top Left' },
+                      { value: ToastPosition.TOP_CENTER, label: 'Top Center' },
+                      { value: ToastPosition.TOP_RIGHT, label: 'Top Right' },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item<FormValues>
+                  label="Duration (ms)"
+                  name="durationMs"
+                  labelCol={{ span: 7 }}
+                  wrapperCol={{ span: 17 }}
+                >
+                  <InputNumber
+                    min={1}
+                    precision={0}
+                    placeholder="Infinity"
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+              </div>
+            )}
             <Form.Item<FormValues> label="Target Type" name="targetType">
               <Segmented<TargetType>
                 options={['User', 'Course', 'Org', 'All']}
@@ -354,12 +452,17 @@ const CreateAdminAlertsPage: React.FC = () => {
                 width: 90,
                 render: (mode: AlertDeliveryMode) => {
                   const color =
-                    mode === AlertDeliveryMode.MODAL ? 'orange' : 'cyan'
+                    mode === AlertDeliveryMode.MODAL
+                      ? 'orange'
+                      : mode === AlertDeliveryMode.TOAST
+                        ? 'green'
+                        : 'cyan'
                   return <Tag color={color}>{mode.toUpperCase()}</Tag>
                 },
                 filters: [
                   { text: 'MODAL', value: AlertDeliveryMode.MODAL },
                   { text: 'FEED', value: AlertDeliveryMode.FEED },
+                  { text: 'TOAST', value: AlertDeliveryMode.TOAST },
                 ],
                 onFilter: (value: any, record: GetAdminNoticeAlert) =>
                   record.deliveryMode === value,

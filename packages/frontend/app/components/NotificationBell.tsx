@@ -53,7 +53,6 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
   const [open, setOpen] = useState(false)
 
   const {
-    modalAlerts,
     feedAlerts,
     totalFeedAlerts,
     totalPagesShown,
@@ -61,7 +60,6 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
     feedPaginationLoading,
     initialFetchLoading,
     initialFetchError,
-    setCurrentCourseId,
     currentPageIdx,
     setCurrentPageIdx,
     showReadAtAlerts,

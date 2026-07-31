@@ -24,6 +24,7 @@ import { message } from 'antd'
 
 type AlertsContextValue = {
   modalAlerts: Alert[]
+  toastAlerts: Alert[]
   feedAlerts: Alert[]
   totalFeedAlerts: number
   totalPagesShown: number
@@ -59,6 +60,13 @@ export const AlertsProvider: React.FC<{
 
   const [currentPageIdx, setCurrentPageIdx] = useState(0)
   const [showReadAtAlerts, setShowReadAtAlerts] = useState(false)
+
+  // TODO:
+  // try to match AddChatbotDocumentModal's file upload state based on documentName (or maybe save uid as part of the payload!!!!!!!!)
+  // make this function run for NEW_ALERTs, doesn't matter for update or deletes
+  // on upload, use setOnNewDocumentProcessAlert and pass a big callback function
+  // to update its local state with uploaded alerts.
+  // const [onNewDocumentProcessedAlert, setOnNewDocumentProcessedAlert] = useState((documentName: string) => {})
 
   // At one point in time I had 3 different state variables: modalAlerts, unreadFeedAlerts, and readAtFeedAlerts.
   // I did this thinking it would reduce the amount of calculations and therefore speed up the frontend.
@@ -132,7 +140,22 @@ export const AlertsProvider: React.FC<{
             } else {
               console.log('no matching alert found')
               // Doesn't yet exist on the frontend state (most cases)
-              if (currentCourseId) {
+              if (data.alert.deliveryMode === AlertDeliveryMode.TOAST) {
+                // toast alerts will always be added regardless of currentCourseId
+                mutateAlerts(
+                  (prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          mostAlerts: [
+                            plainToInstance(Alert, data.alert),
+                            ...prev.mostAlerts,
+                          ],
+                        }
+                      : prev,
+                  { revalidate: false },
+                )
+              } else if (currentCourseId) {
                 // if course is selected, only add alerts that are null courseId or the same courseId
                 console.log('alertbefore', data.alert)
                 console.log('alertafter', plainToInstance(Alert, data.alert))
@@ -217,10 +240,12 @@ export const AlertsProvider: React.FC<{
                               'Found matching alert:',
                               matchingUpdatedAlert,
                             )
-                            // For MODAL alerts that became readAt, we remove them from the state
+                            // For MODAL or TOAST alerts that became readAt, we remove them from the state
                             // Otherwise (if a modal alert attribute was update that's not readAt, or if a FEED alert became readAt, etc.) we update the local state
-                            return matchingUpdatedAlert.deliveryMode ===
-                              AlertDeliveryMode.MODAL &&
+                            return (matchingUpdatedAlert.deliveryMode ===
+                              AlertDeliveryMode.MODAL ||
+                              matchingUpdatedAlert.deliveryMode ===
+                                AlertDeliveryMode.TOAST) &&
                               matchingUpdatedAlert.readAt
                               ? null
                               : plainToInstance(Alert, matchingUpdatedAlert)
@@ -255,9 +280,6 @@ export const AlertsProvider: React.FC<{
             break
         }
       },
-      // TODO: this depedency array needs to be AS MINIMAL AS POSSIBLE since every time it runs it re-creates the event source
-      // even though it doesn't need to. It should actually only really run once... but then the useCallback will be outdated.
-      // Or better yet useEventSource is changed so it doesn't keep re-creating a new connection each time it changes.
       [initialFetchLoading, fetchedAlerts, mutateAlerts, currentCourseId],
     ),
   )
@@ -344,7 +366,12 @@ export const AlertsProvider: React.FC<{
     )
   }, [fetchedAlerts])
 
-  console.log('modalAlerts', modalAlerts)
+  const toastAlerts = useMemo(() => {
+    // these toast alerts will always be unread
+    return fetchedAlerts.filter(
+      (a) => a.deliveryMode === AlertDeliveryMode.TOAST,
+    )
+  }, [fetchedAlerts])
 
   const totalFetchedFeedPages = useMemo(() => {
     return Math.ceil(feedAlerts.length / FEED_PAGE_SIZE)
@@ -440,6 +467,7 @@ export const AlertsProvider: React.FC<{
 
   const value: AlertsContextValue = {
     modalAlerts,
+    toastAlerts,
     feedAlerts,
     totalFeedAlerts,
     totalPagesShown,

@@ -1,4 +1,4 @@
-import { Exclude, Type } from 'class-transformer'
+import { Exclude, plainToInstance, Transform, Type } from 'class-transformer'
 import {
   IsArray,
   IsBoolean,
@@ -2717,7 +2717,6 @@ export enum AlertType {
   ADMIN_NOTICE = 'adminNotice',
 }
 export const FEED_ALERT_TYPES = [
-  AlertType.DOCUMENT_PROCESSED,
   AlertType.ASYNC_QUESTION_UPDATE,
   AlertType.ADMIN_NOTICE,
 ] as const
@@ -2727,16 +2726,52 @@ export const MODAL_ALERT_TYPES = [
   AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
   AlertType.ADMIN_NOTICE,
 ] as const
-
+export const TOAST_ALERT_TYPES = [
+  AlertType.DOCUMENT_PROCESSED,
+  AlertType.ADMIN_NOTICE,
+] as const
 export enum AlertDeliveryMode {
   MODAL = 'modal',
   FEED = 'feed',
+  TOAST = 'toast',
 }
-export const AlertQueryMode = { ...AlertDeliveryMode, ALL: 'all' } as const
-export type AlertQueryMode =
-  (typeof AlertQueryMode)[keyof typeof AlertQueryMode]
 
 export class AlertPayload {}
+
+export enum ToastType {
+  SUCCESS = 'success',
+  ERROR = 'error',
+  INFO = 'info',
+  WARNING = 'warning',
+  DEFAULT = 'default', // has no icon/styling
+}
+export enum ToastPosition {
+  TOP_RIGHT = 'top-right',
+  TOP_CENTER = 'top-center',
+  TOP_LEFT = 'top-left',
+  BOTTOM_RIGHT = 'bottom-right',
+  BOTTOM_CENTER = 'bottom-center',
+  BOTTOM_LEFT = 'bottom-left',
+}
+export class AlertPayloadToast extends AlertPayload {
+  @IsOptional()
+  @IsInt()
+  durationMs?: number // default: error = Infinity, rest = 3.5s
+
+  @IsEnum(ToastType)
+  toastType!: ToastType
+
+  @IsString()
+  title!: string
+
+  @IsString()
+  @IsOptional()
+  description?: string
+
+  @IsEnum(ToastPosition)
+  @IsOptional()
+  position?: ToastPosition // default: bottom-left
+}
 
 export class Alert {
   @IsEnum(AlertType)
@@ -2795,18 +2830,33 @@ export class AdminNoticePayload extends AlertPayload {
   @Type(() => AdminNoticeTarget)
   target?: AdminNoticeTarget
 }
+export class AdminNoticeToastPayload extends AlertPayloadToast {
+  @IsString()
+  creatorName!: string
+  @IsInt()
+  creatorId!: number
+
+  @IsOptional() // putting the target in here since I also want to capture a history of what the target was
+  @Type(() => AdminNoticeTarget)
+  target?: AdminNoticeTarget
+}
 export class PromptStudentToLeaveQueuePayload extends AlertPayload {
   queueId!: number
   @IsInt()
   @IsOptional()
   queueQuestionId?: number
 }
-export class DocumentProcessedPayload extends AlertPayload {
+export class DocumentProcessedPayload extends AlertPayloadToast {
   @IsInt()
   documentId!: number
 
   @IsString()
   documentName!: string
+
+  @IsString()
+  uid!: string // fairly certain this stands for upload id, it's part of RcFile
+  // TODO: WAIT CRAP IDK HOW BACKEND WOULD HAVE ACCESS TO THIS UNLESS PASSED (maybe do this???). NEED TO MATCH BY DOCUMENT NAME PROBALBY
+  // Actually yeah pass uid to backend
 }
 export enum AsyncQuestionUpdateSubtype {
   COMMENT_ON_MY_POST = 'commentOnMyPost',
@@ -2896,9 +2946,14 @@ export class CreateAlertAdminRequest {
   @IsEnum(AlertDeliveryMode)
   deliveryMode!: AlertDeliveryMode
 
-  @Type(() => AdminNoticePayload)
+  @Transform(({ obj }) => {
+    if (obj.deliveryMode === AlertDeliveryMode.TOAST) {
+      return plainToInstance(AdminNoticeToastPayload, obj.payload)
+    }
+    return plainToInstance(AdminNoticePayload, obj.payload)
+  })
   @ValidateNested()
-  payload!: AdminNoticePayload
+  payload!: AdminNoticePayload | AdminNoticeToastPayload
 }
 export class CreateAlertAdminResponse {
   @IsNumber()

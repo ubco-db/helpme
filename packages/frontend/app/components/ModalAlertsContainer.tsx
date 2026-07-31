@@ -14,7 +14,7 @@ import AdminNoticeModal from './AdminNoticeModal'
 
 // TODO: double check the PR to make sure that this is still good
 
-/* This just holds all of the modal alert components */
+/* This just holds all of the modal alert components. Similar idea with ToastAlertsContainer */
 const ModalAlertsContainer: React.FC = () => {
   const router = useRouter()
   const { modalAlerts, markAlertRead, currentCourseId: courseId } = useAlerts()
