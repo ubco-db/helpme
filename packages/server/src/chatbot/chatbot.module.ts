@@ -7,11 +7,22 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { ChatbotDataSourceService } from './chatbot-datasource/chatbot-datasource.service';
 import { ChatbotDataSourceModule } from './chatbot-datasource/chatbot-datasource.module';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import { BullModule } from '@nestjs/bullmq';
+import { ChatbotDocumentUploadConsumer } from './chatbot-document-upload.consumer';
 
 @Module({
   controllers: [ChatbotController],
-  imports: [CacheModule.register(), ChatbotDataSourceModule],
-  providers: [ChatbotService, ChatbotApiService, ChatbotSettingsSubscriber],
+  imports: [
+    CacheModule.register(),
+    ChatbotDataSourceModule,
+    BullModule.registerQueue({ name: 'chatbot-document-upload' }),
+  ],
+  providers: [
+    ChatbotService,
+    ChatbotApiService,
+    ChatbotSettingsSubscriber,
+    ChatbotDocumentUploadConsumer,
+  ],
   exports: [ChatbotApiService],
 })
 export class ChatbotModule {
@@ -21,8 +32,14 @@ export class ChatbotModule {
       imports: [
         CacheModule.register(),
         ChatbotDataSourceModule.forRoot(connectionOptions),
+        BullModule.registerQueue({ name: 'chatbot-document-upload' }),
       ],
-      providers: [ChatbotService, ChatbotApiService, ChatbotSettingsSubscriber],
+      providers: [
+        ChatbotService,
+        ChatbotApiService,
+        ChatbotSettingsSubscriber,
+        ChatbotDocumentUploadConsumer,
+      ],
       exports: [ChatbotApiService],
     };
   }

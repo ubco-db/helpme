@@ -37,6 +37,7 @@ import { RateLimitExceptionFilter } from 'exception_filters/429-exception.filter
 import { LmsIntegrationModule } from './lmsIntegration/lmsIntegration.module';
 import { BaseExceptionFilter } from 'exception_filters/generic-exception.filter';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { BullModule } from '@nestjs/bullmq';
 import { LtiModule } from './lti/lti.module';
 import { ProfInviteModule } from './course/prof-invite/prof-invite.module';
 import { AssignmentFeedbackModule } from './assignment-feedback/assignment-feedback.module';
@@ -67,6 +68,12 @@ import { AdminModule } from 'admin/admin.module';
           namespace: 'pub',
         },
       ],
+    }),
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: 6379,
+      },
     }),
     ScheduleModule.forRoot(),
     ApplicationConfigModule,

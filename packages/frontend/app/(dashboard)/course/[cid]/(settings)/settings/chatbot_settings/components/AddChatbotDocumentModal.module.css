@@ -1,0 +1,3 @@
+.chatbotDragger :global(.ant-upload-list-item-done .ant-upload-list-item-name) {
+  color: #16a34a !important;
+}

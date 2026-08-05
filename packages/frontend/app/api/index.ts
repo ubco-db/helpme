@@ -150,8 +150,15 @@ import {
   DeleteAdminNoticeRequest,
   DeleteAdminNoticeResponse,
   isProd,
+  UploadChatbotDocumentRequest,
 } from '@koh/common'
-import Axios, { AxiosError, AxiosInstance, AxiosResponse, Method } from 'axios'
+import Axios, {
+  AxiosError,
+  AxiosInstance,
+  AxiosResponse,
+  Method,
+  AxiosProgressEvent,
+} from 'axios'
 import { plainToClass } from 'class-transformer'
 import { ClassType } from 'class-transformer/ClassTransformer'
 import * as Sentry from '@sentry/nextjs'
@@ -180,6 +187,7 @@ export class APIClient {
    * @param responseClass Class with class-transformer decorators to deserialize response to
    * @param body body to send with req
    * @param params any query parameters to include in req URL
+   * @param onUploadProgress callback function to handle upload progress
    */
   private async req<T>(
     method: Method,
@@ -187,6 +195,7 @@ export class APIClient {
     responseClass?: ClassType<ItemIfArray<T>>,
     body?: any,
     params?: any,
+    onUploadProgress?: (progressEvent: AxiosProgressEvent) => void,
   ): Promise<T>
   private async req<T>(
     method: Method,
@@ -194,10 +203,18 @@ export class APIClient {
     responseClass?: ClassType<T>,
     body?: any,
     params?: any,
+    onUploadProgress?: (progressEvent: AxiosProgressEvent) => void,
   ): Promise<T> {
     const headers = this.authToken ? { cookie: this.authToken } : undefined
     const res = (
-      await this.axios.request({ method, url, data: body, params, headers })
+      await this.axios.request({
+        method,
+        url,
+        data: body,
+        params,
+        headers,
+        onUploadProgress,
+      })
     ).data
     return responseClass
       ? plainToClass(responseClass, res, {
@@ -429,14 +446,25 @@ export class APIClient {
         this.req('DELETE', `/api/v1/chatbot/document/${courseId}/${docId}`),
       uploadDocument: async (
         courseId: number,
-        body: FormData,
-      ): Promise<{ success: boolean; documentId?: string }> =>
-        this.req(
+        file: File,
+        restOfBody: UploadChatbotDocumentRequest,
+        onUploadProgress?: (progressEvent: AxiosProgressEvent) => void,
+      ): Promise<void> => {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('parseAsPng', String(restOfBody.parseAsPng))
+        if (restOfBody.uploadId) {
+          formData.append('uploadId', restOfBody.uploadId)
+        }
+        return this.req(
           'POST',
           `/api/v1/chatbot/document/${courseId}/upload`,
           undefined,
-          body,
-        ),
+          formData,
+          undefined,
+          onUploadProgress,
+        )
+      },
       addDocumentFromGithub: async (
         courseId: number,
         url: string,

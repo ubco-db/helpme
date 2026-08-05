@@ -162,6 +162,7 @@ export const ToastAlertsContainer: React.FC = () => {
               <Link
                 href={`/course/${alert.courseId}/settings/chatbot_knowledge_base`}
                 onClick={() => markAlertRead(alert.id)}
+                className="text-nowrap"
               >
                 View
               </Link>

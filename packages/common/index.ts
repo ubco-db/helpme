@@ -1020,6 +1020,15 @@ export type GetChatbotHistoryResponse = {
   history: InteractionResponse[]
 }
 
+export class UploadChatbotDocumentRequest {
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  parseAsPng!: boolean
+
+  @IsString()
+  @IsOptional()
+  uploadId?: string
+}
 /**
  * A Queue that students can join with their tickets.
  * @param id - The unique id number for a Queue.
@@ -2854,9 +2863,7 @@ export class DocumentProcessedPayload extends AlertPayloadToast {
   documentName!: string
 
   @IsString()
-  uid!: string // fairly certain this stands for upload id, it's part of RcFile
-  // TODO: WAIT CRAP IDK HOW BACKEND WOULD HAVE ACCESS TO THIS UNLESS PASSED (maybe do this???). NEED TO MATCH BY DOCUMENT NAME PROBALBY
-  // Actually yeah pass uid to backend
+  uploadId!: string
 }
 export enum AsyncQuestionUpdateSubtype {
   COMMENT_ON_MY_POST = 'commentOnMyPost',
