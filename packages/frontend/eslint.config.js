@@ -20,14 +20,13 @@ const compat = new FlatCompat({
 });
 
 module.exports = defineConfig([
+    ...compat.extends(
+        "plugin:@typescript-eslint/eslint-recommended",
+        "plugin:@typescript-eslint/recommended",
+        "prettier",
+    ),
+    ...require("eslint-config-next/core-web-vitals"),
     {
-        extends: compat.extends(
-            "plugin:@typescript-eslint/eslint-recommended",
-            "plugin:@typescript-eslint/recommended",
-            "prettier",
-            "next/core-web-vitals",
-        ),
-
         languageOptions: {
             parser: tsParser,
             sourceType: "module",
