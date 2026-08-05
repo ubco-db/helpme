@@ -15,6 +15,24 @@ This is also where you can configure global antd stuff. See:
 - https://ant.design/components/config-provider
 - https://ant.design/docs/react/customize-theme
 */
+// Suppress antd static function context warning (e.g. message.success/error)
+if (typeof window !== 'undefined') {
+  ;(['error', 'warn'] as const).forEach((method) => {
+    const original = console[method]
+    console[method] = (...args: unknown[]) => {
+      const match = args.some(
+        (arg) =>
+          typeof arg === 'string' &&
+          arg.includes(
+            '[antd: message] Static function can not consume context',
+          ),
+      )
+      if (match) return
+      original(...args)
+    }
+  })
+}
+
 const AntdProvider: FC<PropsWithChildren> = ({ children }) => {
   return (
     <StyleProvider>

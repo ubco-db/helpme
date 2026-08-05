@@ -6,24 +6,6 @@ import AntdProvider from './components/AntdProvider'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { Suspense } from 'react'
 
-// Suppressing that annoying antd warning that says to not use message.success()/info()/error()
-// It's a lot more annoying and more work to use their context stuff as opposed to just being able to import
-// `message` function and use it right away.
-if (typeof window !== 'undefined') {
-  const originalWarn = console.warn
-  console.warn = (...args: unknown[]) => {
-    if (
-      typeof args[0] === 'string' &&
-      args[0].includes(
-        '[antd: message] Static function can not consume context',
-      )
-    ) {
-      return
-    }
-    originalWarn(...args)
-  }
-}
-
 const interFontSans = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
