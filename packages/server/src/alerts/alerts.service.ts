@@ -217,11 +217,15 @@ export class AlertsService {
   ): Promise<AlertModel[]> {
     const qb = manager
       .createQueryBuilder(AlertModel, 'alert')
+      .leftJoinAndSelect(
+        'alert.course', // joining to get course.name for formatAlertForFrontend
+        'course',
+      )
       .where('alert.userId = :userId', { userId })
       .andWhere('alert.deliveryMode = :mode', { mode: AlertDeliveryMode.TOAST })
       .andWhere('alert.readAt IS NULL');
 
-    return qb.take(20).orderBy('alert.sentAt', 'DESC').getMany();
+    return qb.take(20).orderBy('alert.sentAt', 'ASC').getMany();
   }
 
   async getTargetUserIds(
