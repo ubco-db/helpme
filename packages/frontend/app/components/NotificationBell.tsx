@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertType,
-  DocumentProcessedPayload,
+  ChatbotDocumentProcessedPayload,
   AsyncQuestionUpdatePayload,
   AsyncQuestionUpdateSubtype,
   AdminNoticePayload,
@@ -114,8 +114,8 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
       })
       .map((alert) => {
         switch (alert.alertType) {
-          case AlertType.DOCUMENT_PROCESSED: {
-            const payload = alert.payload as DocumentProcessedPayload
+          case AlertType.CHATBOT_DOCUMENT_PROCESSED: {
+            const payload = alert.payload as ChatbotDocumentProcessedPayload
             const destination = alert.courseId // courseId *should* always be defined here, but no sense erroring if it doesn't have it
               ? `/course/${alert.courseId}/settings/chatbot_knowledge_base`
               : undefined

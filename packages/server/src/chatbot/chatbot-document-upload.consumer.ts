@@ -8,7 +8,7 @@ import { Readable } from 'stream';
 import {
   AlertDeliveryMode,
   AlertType,
-  DocumentProcessedPayload,
+  ChatbotDocumentProcessedPayload,
   ToastType,
 } from '@koh/common';
 import { ChatbotApiService } from './chatbot-api.service';
@@ -296,7 +296,7 @@ export class ChatbotDocumentUploadConsumer extends WorkerHost {
 
       // Create success TOAST alert for the user
       await AlertModel.create({
-        alertType: AlertType.DOCUMENT_PROCESSED,
+        alertType: AlertType.CHATBOT_DOCUMENT_PROCESSED,
         deliveryMode: AlertDeliveryMode.TOAST,
         userId,
         courseId,
@@ -307,7 +307,7 @@ export class ChatbotDocumentUploadConsumer extends WorkerHost {
           documentId: chatbotDocPdf.idHelpMeDB,
           documentName: originalname,
           uploadId: uploadId || '',
-        } as DocumentProcessedPayload,
+        } as ChatbotDocumentProcessedPayload,
       }).save();
     } catch (error) {
       this.logger.error(
@@ -331,7 +331,7 @@ export class ChatbotDocumentUploadConsumer extends WorkerHost {
       // Create error TOAST alert for the user
       try {
         await AlertModel.create({
-          alertType: AlertType.DOCUMENT_PROCESSED,
+          alertType: AlertType.CHATBOT_DOCUMENT_PROCESSED,
           deliveryMode: AlertDeliveryMode.TOAST,
           userId,
           courseId,
@@ -344,7 +344,7 @@ export class ChatbotDocumentUploadConsumer extends WorkerHost {
             documentId: 0,
             documentName: originalname,
             uploadId: uploadId || '',
-          } as DocumentProcessedPayload,
+          } as ChatbotDocumentProcessedPayload,
         }).save();
       } catch (alertError) {
         // need to catch this one separately otherwise the original exception won't propagate

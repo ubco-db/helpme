@@ -4,7 +4,7 @@ import {
   AlertType,
   RephraseQuestionPayload,
   PromptStudentToLeaveQueuePayload,
-  DocumentProcessedPayload,
+  ChatbotDocumentProcessedPayload,
   AsyncQuestionUpdatePayload,
 } from '@koh/common';
 import { Exclude } from 'class-transformer';
@@ -64,6 +64,6 @@ export class AlertModel extends BaseEntity {
     | AlertPayload
     | RephraseQuestionPayload
     | PromptStudentToLeaveQueuePayload
-    | DocumentProcessedPayload
+    | ChatbotDocumentProcessedPayload
     | AsyncQuestionUpdatePayload;
 }

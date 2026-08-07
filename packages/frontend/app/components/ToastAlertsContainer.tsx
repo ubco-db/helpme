@@ -158,7 +158,7 @@ export const ToastAlertsContainer: React.FC = () => {
           position: payload.position || 'bottom-left',
           duration: payload.durationMs || Infinity,
           action:
-            alert.alertType === AlertType.DOCUMENT_PROCESSED ? (
+            alert.alertType === AlertType.CHATBOT_DOCUMENT_PROCESSED ? (
               <Link
                 href={`/course/${alert.courseId}/settings/chatbot_knowledge_base`}
                 onClick={() => markAlertRead(alert.id)}

@@ -4,10 +4,10 @@ import {
   AlertType,
   RephraseQuestionPayload,
   PromptStudentToLeaveQueuePayload,
-  DocumentProcessedPayload,
   AsyncQuestionUpdatePayload,
   AlertDeliveryMode,
   AdminNoticeTarget,
+  ChatbotDocumentProcessedPayload,
 } from '@koh/common';
 import { validateSync } from 'class-validator';
 import { plainToClass } from 'class-transformer';
@@ -24,7 +24,7 @@ const ALERT_PAYLOAD_CLASS: Partial<Record<AlertType, new () => AlertPayload>> =
   {
     [AlertType.REPHRASE_QUESTION]: RephraseQuestionPayload,
     [AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE]: PromptStudentToLeaveQueuePayload,
-    [AlertType.DOCUMENT_PROCESSED]: DocumentProcessedPayload,
+    [AlertType.CHATBOT_DOCUMENT_PROCESSED]: ChatbotDocumentProcessedPayload,
     [AlertType.ASYNC_QUESTION_UPDATE]: AsyncQuestionUpdatePayload,
   };
 

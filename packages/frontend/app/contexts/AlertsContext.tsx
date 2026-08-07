@@ -15,6 +15,7 @@ import {
   AlertDeliveryMode,
   AlertServerSentEvent,
   AlertServerSentEventType,
+  AlertType,
 } from '@koh/common'
 import { useEventSource } from '../hooks/useEventSource'
 import { getErrorMessage } from '../utils/generalUtils'
@@ -23,8 +24,27 @@ import useSWRImmutable from 'swr/immutable'
 import { message } from 'antd'
 
 type AlertsContextValue = {
+  /** List of all Modal alerts for currentCourseId (modal alerts with `null` courseId will also be included).
+  If currentCourseId is null, it will ONLY include modal alerts with `null` courseId.
+
+  When first loading a page (or currentCourseId changes), all modal alerts (limit 20) will be fetched and put here. Then any subsequent
+  modal alerts made by the backend will appear here automatically (via EventSource/SSE).
+  */
   modalAlerts: Alert[]
+  /** List of all Toast alerts (does not care about currentCourseId).
+   *
+   * When first loading a page (or currentCourseId changes), all toast alerts (limit 20) will be fetched and put here. Then any subsequent
+   * toast alerts made by the backend will appear here automatically (via EventSource/SSE).
+   */
   toastAlerts: Alert[]
+  /** List of all Feed alerts for currentCourseId (modal alerts with `null` courseId will also be included).
+  If currentCourseId is null, it will include ALL feed alerts across ALL courses (and null courseId feed alerts).
+
+  When first loading a page (or currentCourseId changes), *most* feed alerts are fetched (limit 100) and put here. Then any subsequent
+  feed alerts made by the backend will appear here automatically (via EventSource/SSE).
+  Additionally, feed alerts are paginated, where once the currentPageIdx gets close to the end (and that there's more feed alerts to fetch),
+  it will auto-fetch the next handful of pages.  
+   */
   feedAlerts: Alert[]
   totalFeedAlerts: number
   totalPagesShown: number
@@ -34,14 +54,44 @@ type AlertsContextValue = {
   initialFetchError: any
   currentCourseId: number | undefined
   setCurrentCourseId: (courseId: number | undefined) => void
+  /**
+   * Used for determining which page of **FEED** alerts to show.
+   */
   currentPageIdx: number
+  /**
+   * Set which page of **FEED** alerts to show. If getting close to the end and there's more feed alerts to fetch, it will fetch more pages.
+   */
   setCurrentPageIdx: (pageIdx: number) => void
+  /**
+   * Used for determining if read at **FEED** alerts should be shown (default = false)
+   */
   showReadAtAlerts: boolean
+  /**
+   * Determines if read at **FEED** alerts should be shown (default = false)
+   */
   setShowReadAtAlerts: (showReadAtAlerts: boolean) => void
   markAllFeedAlertsRead: () => Promise<void>
   markAlertRead: (alertId: number) => Promise<void>
   totalFetchedFeedPages: number
   isEventSourceLive: boolean
+  /** Registers a callback function that will get ran whenever there is a NEW ALERT. 
+    The `key` is just a string used to identify the callback function so that it can be removed later (e.g. "course-clone-handler").
+    Make sure to have a `useEffect` with a return statement that runs unregisterNewAlertHandler(key) so that the handler gets removed on unmount!
+
+    Can optionally specify a`deliveryMode` if you only want your handler to run for specific events.
+  */
+  registerNewAlertHandler: (
+    key: string,
+    handler: (alert: Alert) => void,
+    deliveryMode?: AlertDeliveryMode,
+    alertType?: AlertType,
+  ) => void
+  /** Unregisters a callback function that was previously registered with registerNewAlertHandler.
+   *
+   * Please put this function in the return cleanup function of a useEffect in your component so
+   * that the handler gets removed on unmount!
+   */
+  unregisterNewAlertHandler: (key: string) => void
 }
 
 export const FEED_PAGE_SIZE = 5
@@ -49,7 +99,7 @@ const NUM_PAGES_FETCHED = 4
 
 const AlertsContext = createContext<AlertsContextValue | undefined>(undefined)
 
-/* 
+/** 
   This is the one source of truth that obtains ALL alerts from the backend (both FEED and MODAL).
   It will filter based on what course the user is currently on (Need to set with setCurrentCourseId).
 */
@@ -61,12 +111,36 @@ export const AlertsProvider: React.FC<{
   const [currentPageIdx, setCurrentPageIdx] = useState(0)
   const [showReadAtAlerts, setShowReadAtAlerts] = useState(false)
 
-  // TODO:
-  // try to match AddChatbotDocumentModal's file upload state based on documentName (or maybe save uid as part of the payload!!!!!!!!)
-  // make this function run for NEW_ALERTs, doesn't matter for update or deletes
-  // on upload, use setOnNewDocumentProcessAlert and pass a big callback function
-  // to update its local state with uploaded alerts.
-  // const [onNewDocumentProcessedAlert, setOnNewDocumentProcessedAlert] = useState((documentName: string) => {})
+  // Allows components to register their own handler functions that run when this receives a NEW_ALERT
+  // Note as an idea, you could easily modify this to allow you to specify different event types (new vs update vs delete), but meh I'm lazy and don't want to deal with the different return values of the different event types (e.g. Alert vs Alert[])
+  const [newAlertHandlers, setNewAlertHandlers] = useState<
+    {
+      key: string
+      handler: (alert: Alert) => void
+      deliveryMode?: AlertDeliveryMode
+      alertType?: AlertType
+    }[]
+  >([])
+  const registerNewAlertHandler = useCallback(
+    (
+      key: string,
+      handler: (alert: Alert) => void,
+      deliveryMode?: AlertDeliveryMode,
+      alertType?: AlertType,
+    ) => {
+      setNewAlertHandlers((prev) => [
+        ...prev,
+        { key, handler, deliveryMode, alertType },
+      ])
+    },
+    [setNewAlertHandlers],
+  )
+  const unregisterNewAlertHandler = useCallback(
+    (key: string) => {
+      setNewAlertHandlers((prev) => prev.filter((h) => h.key !== key))
+    },
+    [setNewAlertHandlers],
+  )
 
   // At one point in time I had 3 different state variables: modalAlerts, unreadFeedAlerts, and readAtFeedAlerts.
   // I did this thinking it would reduce the amount of calculations and therefore speed up the frontend.
@@ -223,6 +297,14 @@ export const AlertsProvider: React.FC<{
                 }
               }
             }
+
+            // run any registered handler functions (other components would register them to be ran here)
+            newAlertHandlers.forEach(({ handler, deliveryMode, alertType }) => {
+              if (deliveryMode && data.alert.deliveryMode !== deliveryMode)
+                return
+              if (alertType && data.alert.alertType !== alertType) return
+              handler(data.alert)
+            })
             break
           case AlertServerSentEventType.UPDATE_ALERTS: // The other 50% of events (like for marking an alert as read).
             mutateAlerts(
@@ -483,6 +565,8 @@ export const AlertsProvider: React.FC<{
     setShowReadAtAlerts,
     markAllFeedAlertsRead,
     markAlertRead,
+    registerNewAlertHandler,
+    unregisterNewAlertHandler,
 
     // stuff I don't think will be used other than for debugging maybe?
     totalFetchedFeedPages,

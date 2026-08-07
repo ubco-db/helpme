@@ -2721,7 +2721,7 @@ export enum AlertType {
   REPHRASE_QUESTION = 'rephraseQuestion',
   EVENT_ENDED_CHECKOUT_STAFF = 'eventEndedCheckoutStaff',
   PROMPT_STUDENT_TO_LEAVE_QUEUE = 'promptStudentToLeaveQueue',
-  DOCUMENT_PROCESSED = 'documentProcessed',
+  CHATBOT_DOCUMENT_PROCESSED = 'chatbotDocumentProcessed',
   ASYNC_QUESTION_UPDATE = 'asyncQuestionUpdate',
   ADMIN_NOTICE = 'adminNotice',
 }
@@ -2736,7 +2736,7 @@ export const MODAL_ALERT_TYPES = [
   AlertType.ADMIN_NOTICE,
 ] as const
 export const TOAST_ALERT_TYPES = [
-  AlertType.DOCUMENT_PROCESSED,
+  AlertType.CHATBOT_DOCUMENT_PROCESSED,
   AlertType.ADMIN_NOTICE,
 ] as const
 export enum AlertDeliveryMode {
@@ -2855,7 +2855,7 @@ export class PromptStudentToLeaveQueuePayload extends AlertPayload {
   @IsOptional()
   queueQuestionId?: number
 }
-export class DocumentProcessedPayload extends AlertPayloadToast {
+export class ChatbotDocumentProcessedPayload extends AlertPayloadToast {
   @IsInt()
   documentId!: number
 
