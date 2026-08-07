@@ -12,10 +12,12 @@ import {
   Alert,
   AlertPayloadToast,
   AlertType,
+  CloneCoursePayload,
   TOAST_ALERT_TYPES,
   ToastType,
 } from '@koh/common'
 import Link from 'next/link'
+import { useUserInfo } from '../contexts/userContext'
 
 /**
  * This file contains a context that allows for running async api calls with a callback
@@ -66,6 +68,8 @@ const standardDefaultToastOptions: ExternalToast = {
   - Has a <Toaster> component, meaning you can import sonner `toast` from 'sonner' and use `toast.info/error/success/etc.` (if you wanted something different instead of antd's `message`)
 */
 export const ToastAlertsContainer: React.FC = () => {
+  const { setUserInfo } = useUserInfo()
+
   const runAsyncToast = (
     apiCall: () => Promise<any>,
     callback: AsyncCallback,
@@ -117,7 +121,7 @@ export const ToastAlertsContainer: React.FC = () => {
       console.log('current toasts', toasts)
       // we only create toasts for alerts that don't already have one
       const newAlertsToMakeToast = updatedToastAlerts.filter((alert) => {
-        return !toasts.some((t) => t.id === alert.id)
+        return !toasts.some((t) => t.id === alert.id) && !alert.readAt
       })
       // If there's a toast who doesn't have a corresponding alert, the alert was either deleted or read, so we can dismiss it here
       const toastsToDismiss = toasts.filter((t) => {
@@ -166,6 +170,16 @@ export const ToastAlertsContainer: React.FC = () => {
               >
                 View
               </Link>
+            ) : alert.alertType === AlertType.COURSE_CLONED &&
+              (alert.payload as CloneCoursePayload).toastType ===
+                ToastType.SUCCESS ? (
+              <Link
+                href={`/course/${(alert.payload as CloneCoursePayload).newCourseId}`}
+                onClick={() => markAlertRead(alert.id)}
+                className="text-nowrap"
+              >
+                View
+              </Link>
             ) : undefined,
         }
         switch (payload.toastType) {
@@ -184,6 +198,26 @@ export const ToastAlertsContainer: React.FC = () => {
           default:
             toast(payload.title, toastOptions)
             break
+        }
+
+        // whenever a new TOAST notification is created notifying about a new cloned course, add it to the UserInfo context
+        if (
+          alert.alertType === AlertType.COURSE_CLONED &&
+          (payload as AlertPayloadToast).toastType === ToastType.SUCCESS
+        ) {
+          const newUserCourse = (payload as CloneCoursePayload).newUserCourse
+          if (newUserCourse) {
+            setUserInfo((prev) => {
+              const alreadyExists = prev.courses.some(
+                (c) => c.course.id === newUserCourse.course.id,
+              )
+              if (alreadyExists) return prev
+              return {
+                ...prev,
+                courses: [...prev.courses, newUserCourse],
+              }
+            })
+          }
         }
       })
     },

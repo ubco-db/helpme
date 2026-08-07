@@ -1,4 +1,8 @@
 import {
+  AlertDeliveryMode,
+  AlertPayloadToast,
+  AlertType,
+  CloneCoursePayload,
   CourseCloneAttributes,
   CourseSettingsRequestBody,
   CourseSettingsResponse,
@@ -18,6 +22,7 @@ import {
   SetTAExtraStatusParams,
   TACheckinTimesResponse,
   TACheckoutResponse,
+  ToastType,
   ToolUsageExportData,
   ToolUsageType,
   UBCOuserParam,
@@ -76,6 +81,8 @@ import { OrganizationService } from '../organization/organization.service';
 import { QueueStaffService } from 'queue/queue-staff/queue-staff.service';
 import { DataSource } from 'typeorm';
 import { QueueService } from '../queue/queue.service';
+import { AlertModel } from 'alerts/alerts.entity';
+import * as Sentry from '@sentry/nestjs';
 enum TimeGrouping {
   DAY = 'day',
   WEEK = 'week',
@@ -1446,36 +1453,73 @@ export class CourseController {
     @Param('courseId', ParseIntPipe) courseId: number,
     @User({ chat_token: true, organizationUser: true }) user: UserModel,
     @Body() body: CourseCloneAttributes,
-  ): Promise<UserCourse | null> {
-    const orgSettings = await this.organizationService.getOrganizationSettings(
-      user.organizationUser?.organizationId,
-    );
-    if (
-      !orgSettings.allowProfCourseCreate &&
-      user.organizationUser?.role == OrganizationRole.PROFESSOR
-    ) {
-      throw new UnauthorizedException(
-        ERROR_MESSAGES.organizationController.notAllowedToCreateCourse(
-          user.organizationUser?.role,
-        ),
+  ): Promise<void> {
+    try {
+      const orgSettings =
+        await this.organizationService.getOrganizationSettings(
+          user.organizationUser?.organizationId,
+        );
+      if (
+        !orgSettings.allowProfCourseCreate &&
+        user.organizationUser?.role == OrganizationRole.PROFESSOR
+      ) {
+        throw new UnauthorizedException(
+          ERROR_MESSAGES.organizationController.notAllowedToCreateCourse(
+            user.organizationUser?.role,
+          ),
+        );
+      }
+
+      if (!user || !user.chat_token) {
+        console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
+        throw new HttpException(
+          ERROR_MESSAGES.profileController.accountNotAvailable,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      const { newUserCourse, newCourse } = await this.courseService.cloneCourse(
+        courseId,
+        user.id,
+        body,
+        user.chat_token.token,
       );
+
+      await AlertModel.create({
+        alertType: AlertType.COURSE_CLONED,
+        deliveryMode: AlertDeliveryMode.TOAST,
+        userId: user.id,
+        courseId: courseId, // deciding to make the Alert "belong" to the original course since that's where the operation started
+        payload: {
+          toastType: ToastType.SUCCESS,
+          title: 'Course Cloned',
+          description: `${newCourse.name} has been successfully cloned.`,
+          newUserCourse,
+          newCourseId: newCourse.id,
+        } satisfies CloneCoursePayload,
+      }).save();
+    } catch (error) {
+      Sentry.captureException(error, {
+        extra: {
+          body: body,
+          userId: user.id,
+          courseId,
+        },
+      });
+      const originalCourse = await CourseModel.findOne({
+        where: { id: courseId },
+      });
+      await AlertModel.create({
+        alertType: AlertType.COURSE_CLONED,
+        deliveryMode: AlertDeliveryMode.TOAST,
+        userId: user.id,
+        courseId: courseId,
+        payload: {
+          toastType: ToastType.ERROR,
+          title: 'Failed to Clone Course',
+          description: `Failed to clone course ${originalCourse ? `${originalCourse?.name} (${courseId})` : courseId}. Error: ${error.message}.`,
+        } satisfies AlertPayloadToast,
+      }).save();
     }
-
-    if (!user || !user.chat_token) {
-      console.error(ERROR_MESSAGES.profileController.accountNotAvailable);
-      throw new HttpException(
-        ERROR_MESSAGES.profileController.accountNotAvailable,
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    const newUserCourse = await this.courseService.cloneCourse(
-      courseId,
-      user.id,
-      body,
-      user.chat_token.token,
-    );
-
-    return newUserCourse;
   }
 }

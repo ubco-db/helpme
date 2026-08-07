@@ -114,25 +114,6 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
       })
       .map((alert) => {
         switch (alert.alertType) {
-          case AlertType.CHATBOT_DOCUMENT_PROCESSED: {
-            const payload = alert.payload as ChatbotDocumentProcessedPayload
-            const destination = alert.courseId // courseId *should* always be defined here, but no sense erroring if it doesn't have it
-              ? `/course/${alert.courseId}/settings/chatbot_knowledge_base`
-              : undefined
-
-            return {
-              alertId: alert.id,
-              title: `Document "${payload.documentName}" is ready`,
-              description: 'Uploaded course document finished processing.',
-              ctaLabel: destination ? 'View' : undefined,
-              destination: destination,
-              onOpen: () => markAlertRead(alert.id), // this is an async function, but we're calling it synchronously so it happens in the background
-              readAt: alert.readAt,
-              sentAt: alert.sentAt,
-              courseId: alert.courseId,
-              courseName: alert.courseName,
-            } satisfies FeedAlertFrontendItem
-          }
           case AlertType.ASYNC_QUESTION_UPDATE: {
             const payload = alert.payload as AsyncQuestionUpdatePayload
             const courseId = alert.courseId ?? payload.courseId
@@ -170,7 +151,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
               description: payload.summary,
               ctaLabel: destination ? 'Open' : undefined,
               destination: destination,
-              onOpen: () => markAlertRead(alert.id),
+              onOpen: () => markAlertRead(alert.id), // this is an async function, but we're calling it synchronously so it happens in the background
               readAt: alert.readAt,
               sentAt: alert.sentAt,
               courseId: courseId,

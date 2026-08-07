@@ -307,7 +307,7 @@ export class ChatbotDocumentUploadConsumer extends WorkerHost {
           documentId: chatbotDocPdf.idHelpMeDB,
           documentName: originalname,
           uploadId: uploadId || '',
-        } as ChatbotDocumentProcessedPayload,
+        } satisfies ChatbotDocumentProcessedPayload,
       }).save();
     } catch (error) {
       this.logger.error(
@@ -344,7 +344,7 @@ export class ChatbotDocumentUploadConsumer extends WorkerHost {
             documentId: 0,
             documentName: originalname,
             uploadId: uploadId || '',
-          } as ChatbotDocumentProcessedPayload,
+          } satisfies ChatbotDocumentProcessedPayload,
         }).save();
       } catch (alertError) {
         // need to catch this one separately otherwise the original exception won't propagate

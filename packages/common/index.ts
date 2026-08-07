@@ -2722,6 +2722,7 @@ export enum AlertType {
   EVENT_ENDED_CHECKOUT_STAFF = 'eventEndedCheckoutStaff',
   PROMPT_STUDENT_TO_LEAVE_QUEUE = 'promptStudentToLeaveQueue',
   CHATBOT_DOCUMENT_PROCESSED = 'chatbotDocumentProcessed',
+  COURSE_CLONED = 'courseCloned',
   ASYNC_QUESTION_UPDATE = 'asyncQuestionUpdate',
   ADMIN_NOTICE = 'adminNotice',
 }
@@ -2864,6 +2865,14 @@ export class ChatbotDocumentProcessedPayload extends AlertPayloadToast {
 
   @IsString()
   uploadId!: string
+}
+export class CloneCoursePayload extends AlertPayloadToast {
+  @IsInt()
+  newCourseId!: number
+
+  @IsOptional()
+  @IsObject() // idk i don't want to convert UserCourse and UserPartial to a class atm
+  newUserCourse?: UserCourse
 }
 export enum AsyncQuestionUpdateSubtype {
   COMMENT_ON_MY_POST = 'commentOnMyPost',

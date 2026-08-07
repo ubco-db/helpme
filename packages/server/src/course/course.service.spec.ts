@@ -848,12 +848,15 @@ describe('CourseService', () => {
       );
 
       expect(result).toBeTruthy();
-      expect(result?.course.name).toBe('Test Course');
-      expect(result?.course.sectionGroupName).toBe('002');
-      expect(result?.role).toBe(Role.PROFESSOR);
+      expect(result?.newUserCourse?.course.name).toBe('Test Course');
+      expect(result?.newUserCourse?.course.sectionGroupName).toBe('002');
+      expect(result?.newUserCourse?.role).toBe(Role.PROFESSOR);
 
       // Verify all cloned data is correct
-      await ensureCloneWasSuccessful(course.id, result.course.id);
+      await ensureCloneWasSuccessful(
+        course.id,
+        result.newUserCourse?.course.id,
+      );
     });
 
     it('should successfully clone a course with a new semester', async () => {
@@ -886,12 +889,15 @@ describe('CourseService', () => {
       );
 
       expect(result).toBeTruthy();
-      expect(result?.course.name).toBe('Test Course');
-      expect(result?.course.sectionGroupName).toBe('001');
-      expect(result?.role).toBe(Role.PROFESSOR);
+      expect(result?.newUserCourse?.course.name).toBe('Test Course');
+      expect(result?.newUserCourse?.course.sectionGroupName).toBe('001');
+      expect(result?.newUserCourse?.role).toBe(Role.PROFESSOR);
 
       // Verify all cloned data is correct
-      await ensureCloneWasSuccessful(course.id, result.course.id);
+      await ensureCloneWasSuccessful(
+        course.id,
+        result.newUserCourse?.course.id,
+      );
     });
 
     it('should clone a course and add it to an existing super course if the original course already had a super course', async () => {
@@ -926,9 +932,9 @@ describe('CourseService', () => {
       );
 
       expect(result).toBeTruthy();
-      expect(result?.course.name).toBe(course.name);
-      expect(result?.course.sectionGroupName).toBe('001');
-      expect(result?.role).toBe(Role.PROFESSOR);
+      expect(result?.newUserCourse?.course.name).toBe(course.name);
+      expect(result?.newUserCourse?.course.sectionGroupName).toBe('001');
+      expect(result?.newUserCourse?.role).toBe(Role.PROFESSOR);
 
       // not verifying if cloned data is correct for this one. Just testing to see if the supercourse got a new course appended to it
       const updatedSuperCourse = await SuperCourseModel.findOne({
@@ -942,7 +948,7 @@ describe('CourseService', () => {
       expect(updatedSuperCourse.courses.length).toEqual(3);
       expect(updatedSuperCourse.courses.map((course) => course.id)).toEqual(
         expect.arrayContaining([
-          result.course.id,
+          result.newUserCourse.course.id,
           extraTempCourse.id,
           course.id,
         ]),

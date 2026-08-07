@@ -151,6 +151,7 @@ import {
   DeleteAdminNoticeResponse,
   isProd,
   UploadChatbotDocumentRequest,
+  UserCourse,
 } from '@koh/common'
 import Axios, {
   AxiosError,
@@ -791,7 +792,10 @@ export class APIClient {
           notes,
         },
       ),
-    createClone: async (courseId: number, toClone: CourseCloneAttributes) => {
+    createClone: async (
+      courseId: number,
+      toClone: CourseCloneAttributes,
+    ): Promise<UserCourse | null> => {
       return this.req(
         'POST',
         `/api/v1/courses/${courseId}/clone_course`,

@@ -1,4 +1,6 @@
 import {
+  AlertDeliveryMode,
+  AlertType,
   asyncQuestionStatus,
   CourseCloneAttributes,
   ERROR_MESSAGES,
@@ -8,11 +10,13 @@ import {
   Role,
   SuperCoursePurpose,
   TACheckinTimesResponse,
+  ToastType,
   UserCourse,
   validFeatures,
 } from '@koh/common';
 import { EventModel, EventType } from 'profile/event-model.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
+import { AlertModel } from 'alerts/alerts.entity';
 import { CourseModule } from '../src/course/course.module';
 import { QueueModel } from '../src/queue/queue.entity';
 import {
@@ -2993,17 +2997,23 @@ describe('Course Integration', () => {
         cloneCourse: jest
           .fn()
           .mockImplementation((courseId, userId, body, token) => {
-            return Promise.resolve({
-              course: {
-                id: courseId,
-                name: 'Test Sample Course',
-                semesterId: 1,
-                enabled: true,
-                sectionGroupName: '001',
-              },
+            const newCourse = {
+              id: courseId,
+              name: 'Test Sample Course',
+              semesterId: 1,
+              enabled: true,
+              sectionGroupName: '001',
+            };
+            const newUserCourse = {
+              course: newCourse,
               role: Role.PROFESSOR,
               favourited: true,
-            } as UserCourse);
+            } as UserCourse;
+
+            return Promise.resolve({
+              newCourse,
+              newUserCourse,
+            });
           }),
       });
     };
@@ -3154,7 +3164,7 @@ describe('Course Integration', () => {
         semesterId: 1,
       };
 
-      const response = await supertest({ userId: professor.id })
+      await supertest({ userId: professor.id })
         .post(`/courses/${course.id}/clone_course`)
         .send(cloneParams)
         .expect(201);
@@ -3169,16 +3179,31 @@ describe('Course Integration', () => {
         chatToken.token,
       );
 
-      expect(response.body).toEqual({
-        course: {
-          id: course.id,
-          name: 'Test Sample Course',
-          semesterId: 1,
-          enabled: true,
-          sectionGroupName: '001',
+      const alert = await AlertModel.findOne({
+        where: {
+          userId: professor.id,
+          courseId: course.id,
+          alertType: AlertType.COURSE_CLONED,
         },
-        role: Role.PROFESSOR,
-        favourited: true,
+      });
+      expect(alert).toBeDefined();
+      expect(alert?.deliveryMode).toBe(AlertDeliveryMode.TOAST);
+      expect(alert?.payload).toEqual({
+        toastType: ToastType.SUCCESS,
+        title: 'Course Cloned',
+        description: 'Test Sample Course has been successfully cloned.',
+        newUserCourse: {
+          course: {
+            id: course.id,
+            name: 'Test Sample Course',
+            semesterId: 1,
+            enabled: true,
+            sectionGroupName: '001',
+          },
+          role: Role.PROFESSOR,
+          favourited: true,
+        },
+        newCourseId: course.id,
       });
     });
 
@@ -3207,21 +3232,36 @@ describe('Course Integration', () => {
         semesterId: 1,
       };
 
-      const response = await supertest({ userId: adminUser.id })
+      await supertest({ userId: adminUser.id })
         .post(`/courses/${course.id}/clone_course`)
         .send(cloneParams)
         .expect(201);
 
-      expect(response.body).toEqual({
-        course: {
-          id: course.id,
-          name: 'Test Sample Course',
-          semesterId: 1,
-          enabled: true,
-          sectionGroupName: '001',
+      const alert = await AlertModel.findOne({
+        where: {
+          userId: adminUser.id,
+          courseId: course.id,
+          alertType: AlertType.COURSE_CLONED,
         },
-        role: Role.PROFESSOR,
-        favourited: true,
+      });
+      expect(alert).toBeDefined();
+      expect(alert?.deliveryMode).toBe(AlertDeliveryMode.TOAST);
+      expect(alert?.payload).toEqual({
+        toastType: ToastType.SUCCESS,
+        title: 'Course Cloned',
+        description: 'Test Sample Course has been successfully cloned.',
+        newUserCourse: {
+          course: {
+            id: course.id,
+            name: 'Test Sample Course',
+            semesterId: 1,
+            enabled: true,
+            sectionGroupName: '001',
+          },
+          role: Role.PROFESSOR,
+          favourited: true,
+        },
+        newCourseId: course.id,
       });
     });
   });
