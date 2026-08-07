@@ -27,7 +27,8 @@ export class QuestionModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne((type) => QueueModel, (q) => q.questions)
+  // I'd rather do onDelete SET NULL but then we'd need to deal with nullish queueId in like a million different areas
+  @ManyToOne((type) => QueueModel, (q) => q.questions, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'queueId' })
   @Exclude()
   queue: QueueModel;
