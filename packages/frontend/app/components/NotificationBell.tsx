@@ -213,7 +213,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
               <Spin size="small" />
             </div>
           ) : (
-            <ul className="flex w-full flex-col gap-y-2">
+            <ul className="flex max-h-[28.5rem] w-full flex-col gap-y-2 overflow-y-auto">
               {pagesOfFeedAlerts.length === 0 ? (
                 <Empty
                   description="You're all caught up!"
@@ -234,7 +234,10 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
                     </p>
                     <div className="flex w-full flex-row flex-wrap items-center gap-1">
                       <Tooltip
-                        title={dayjs(item.sentAt).format('YYYY-MM-DD h:mma')}
+                        title={
+                          'Sent at ' +
+                          dayjs(item.sentAt).format('YYYY-MM-DD h:mma')
+                        }
                       >
                         <p className="text-xs text-zinc-600">
                           {dayjs(item.sentAt).fromNow()}{' '}
@@ -256,7 +259,10 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
 
                       {item.readAt && (
                         <Tooltip
-                          title={dayjs(item.readAt).format('YYYY-MM-DD h:mma')}
+                          title={
+                            'Read at ' +
+                            dayjs(item.readAt).format('YYYY-MM-DD h:mma')
+                          }
                         >
                           <p className="ml-auto text-xs text-zinc-600">
                             Read {dayjs(item.readAt).fromNow()}
@@ -268,9 +274,16 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
                       <Paragraph
                         className="text-xs text-zinc-600"
                         ellipsis={{
-                          rows: 5,
+                          rows: 4,
                           expandable: false,
-                          tooltip: <Linkify>{item.description}</Linkify>,
+                          tooltip: {
+                            children: <Linkify>{item.description}</Linkify>,
+                            getPopupContainer: (trigger) =>
+                              trigger.parentNode as HTMLElement, // otherwise it won't show up on mobile
+                            classNames: {
+                              body: 'w-72 max-h-80 overflow-y-auto', // max-h with overflow-auto means really big tooltips will still look okayish
+                            },
+                          },
                         }}
                       >
                         <Linkify>{item.description}</Linkify>
