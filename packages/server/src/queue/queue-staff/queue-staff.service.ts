@@ -263,6 +263,22 @@ export class QueueStaffService {
       await manager.update(QueueModel, queueId, {
         allowQuestions: false,
       });
+      // Remove any RephraseQuestion alerts
+      const rephraseAlerts = await AlertModel.createQueryBuilder()
+        .where('"alertType" = :alertType', {
+          alertType: AlertType.REPHRASE_QUESTION,
+        })
+        .andWhere('"readAt" IS NULL')
+        .andWhere('payload @> :payload', {
+          payload: {
+            queueId,
+          },
+        })
+        .getMany();
+      for (const alert of rephraseAlerts) {
+        alert.readAt = new Date();
+        await alert.save();
+      }
       // (this needs to be after deleting the queue staff since this service also checks if the stafflist is empty)
       await this.promptStudentsToLeaveQueue(queueId, manager);
     }
@@ -359,8 +375,8 @@ export class QueueStaffService {
     ]).getMany();
     const alerts = await AlertModel.createQueryBuilder('alert')
       .where('alert.readAt IS NULL')
-      .andWhere("(alert.payload ->> 'queueId')::INTEGER = :queueId ", {
-        queueId,
+      .andWhere('alert.payload @> :payload', {
+        payload: JSON.stringify({ queueId }),
       })
       .andWhere('alert."deliveryMode" = :deliveryMode', {
         deliveryMode: AlertDeliveryMode.MODAL,
@@ -462,7 +478,7 @@ export class QueueStaffService {
             alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
           })
           .andWhere('alert.readAt IS NULL')
-          .andWhere('alert.payload::jsonb @> :payload', {
+          .andWhere('alert.payload @> :payload', {
             payload: JSON.stringify({ queueId }),
           })
           .andWhere('alert."deliveryMode" = :deliveryMode', {

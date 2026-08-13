@@ -120,8 +120,7 @@ export class AlertsController {
           courseId,
         );
       response = {
-        pageOfFeedAlerts:
-          await this.alertsService.removeStaleAlerts(feedAlertModels),
+        pageOfFeedAlerts: feedAlertModels.map((a) => formatAlertForFrontend(a)),
         totalFeedAlerts: totalFeedAlerts,
       };
     });
@@ -167,10 +166,11 @@ export class AlertsController {
       ]);
 
       response = {
-        mostAlerts: await this.alertsService.removeStaleAlerts(
-          [...modalAlertModels, ...toastAlertModels, ...feedAlertModels],
-          manager,
-        ),
+        mostAlerts: [
+          ...modalAlertModels,
+          ...toastAlertModels,
+          ...feedAlertModels,
+        ].map((a) => formatAlertForFrontend(a)),
         totalFeedAlerts,
       };
     });
@@ -236,15 +236,19 @@ export class AlertsController {
     }
 
     if (parsedMode === AlertDeliveryMode.MODAL) {
-      const anotherAlert = await AlertModel.findOne({
-        where: {
-          alertType,
+      // don't allow duplicate modal alerts
+      const qb = AlertModel.createQueryBuilder()
+        .where('"alertType" = :alertType', { alertType })
+        .andWhere('"deliveryMode" = :deliveryMode', {
           deliveryMode: AlertDeliveryMode.MODAL,
-          userId: targetUserId,
-          readAt: IsNull(),
-        },
-      });
-
+        })
+        .andWhere('"userId" = :targetUserId', { targetUserId })
+        .andWhere('"readAt" IS NULL')
+        .andWhere('payload @> :payload', { payload });
+      if (courseId && courseId !== -1) {
+        qb.andWhere('"courseId" = :courseId', { courseId });
+      }
+      const anotherAlert = await qb.getOne();
       if (anotherAlert) {
         throw new BadRequestException(
           ERROR_MESSAGES.alertController.duplicateAlert,

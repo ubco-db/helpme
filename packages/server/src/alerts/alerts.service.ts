@@ -45,62 +45,6 @@ export const formatAlertForFrontend = (alert: AlertModel): Alert => {
 export class AlertsService {
   constructor() {}
 
-  /* resolves any alerts that should've been resolved automatically and formats the payload for the frontend */
-  async removeStaleAlerts(
-    alerts: AlertModel[],
-    manager?: EntityManager,
-  ): Promise<Alert[]> {
-    const nonStaleAlerts: Alert[] = [];
-
-    for (const alert of alerts) {
-      switch (alert.alertType) {
-        case AlertType.REPHRASE_QUESTION: {
-          const payload = alert.payload as RephraseQuestionPayload;
-          const question = manager
-            ? await manager.findOne(QuestionModel, {
-                where: { id: payload.questionId },
-              })
-            : await QuestionModel.findOne({
-                where: { id: payload.questionId },
-              });
-
-          const queue = manager
-            ? await manager.findOne(QueueModel, {
-                where: { id: payload.queueId },
-                relations: {
-                  queueStaff: true,
-                },
-              })
-            : await QueueModel.findOne({
-                where: { id: payload.queueId },
-                relations: {
-                  queueStaff: true,
-                },
-              });
-
-          const isQueueOpen =
-            queue && queue.queueStaff.length > 0 && !queue.isDisabled;
-          if (question?.closedAt || !isQueueOpen) {
-            // if the question is done or the queue isn't open anymore, then the alert doesn't matter anymore so we can close it for them
-            alert.readAt = new Date();
-            if (manager) {
-              await manager.save(alert);
-            } else {
-              await alert.save();
-            }
-          } else {
-            nonStaleAlerts.push(formatAlertForFrontend(alert));
-          }
-          break;
-        }
-        default:
-          nonStaleAlerts.push(formatAlertForFrontend(alert));
-          break;
-      }
-    }
-
-    return nonStaleAlerts;
-  }
   assertPayloadType(alertType: AlertType, payload: AlertPayload): boolean {
     const PayloadClass = ALERT_PAYLOAD_CLASS[alertType];
     if (!PayloadClass) return true; // no specific payload class (e.g. EVENT_ENDED_CHECKOUT_STAFF), allow it

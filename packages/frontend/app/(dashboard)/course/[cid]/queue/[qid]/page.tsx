@@ -53,7 +53,7 @@ import QueueInfoColumn from './components/QueueInfoColumn'
 import TACheckinButton from '../../components/TACheckinButton'
 import { API } from '@/app/api'
 import QueueQuestions from './components/QueueQuestions'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import CreateQuestionModal from './components/modals/CreateQuestionModal'
 import StudentRemovedFromQueueModal from './components/modals/StudentRemovedFromQueueModal'
 import StudentBanner from './components/StudentBanner'
@@ -83,6 +83,7 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
   const params = use(props.params)
   const isMobile = useMediaQuery('(max-width: 768px)')
   const cid = Number(params.cid)
+  const searchParams = useSearchParams()
   const qid = Number(params.qid)
   const router = useRouter()
   const { queue } = useQueue(qid)
@@ -109,6 +110,22 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
   const { course } = useCourse(cid)
   const [editQuestionModalOpen, setEditQuestionModalOpen] = useState(false)
   const [editDemoModalOpen, setEditDemoModalOpen] = useState(false)
+  const pathname = usePathname()
+
+  const editQuestionQueryParam = searchParams.get('edit_question') === 'true'
+  useEffect(() => {
+    if (editQuestionQueryParam && studentQuestion) {
+      setEditQuestionModalOpen(true)
+      // Create a copy of current searchParams and remove 'edit_question'
+      const params = new URLSearchParams(searchParams.toString())
+      params.delete('edit_question')
+
+      const newUrl = params.toString()
+        ? `${pathname}?${params.toString()}`
+        : pathname
+      router.replace(newUrl, { scroll: false })
+    }
+  }, [editQuestionQueryParam, studentQuestion])
 
   const role = getRoleInCourse(userInfo, cid)
   const isStaff = role === Role.TA || role === Role.PROFESSOR

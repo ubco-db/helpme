@@ -77,38 +77,6 @@ describe('Alerts service', () => {
     });
   }
 
-  describe('remove stale alerts', () => {
-    it('removes stale alerts', async () => {
-      const course = await CourseFactory.create();
-      const ta = await TACourseFactory.create({
-        user: await UserFactory.create(),
-        course: course,
-      });
-
-      const queue = await QueueFactory.create({
-        course,
-      });
-      await QueueStaffFactory.create({
-        queue,
-        user: ta.user,
-      });
-
-      const openAlert = await createAlerts(queue);
-
-      expect(
-        (await AlertModel.find({ where: { courseId: queue.course.id } }))
-          .length,
-      ).toBe(2);
-
-      const nonStaleAlerts = await service.removeStaleAlerts(
-        await AlertModel.find({ where: { courseId: queue.course.id } }),
-      );
-
-      expect(nonStaleAlerts.length).toBe(1);
-      expect(nonStaleAlerts[0].id).toBe(openAlert.id);
-    });
-  });
-
   describe('check payload type', () => {
     it('correct rephrase question payloads pass', () => {
       expect(
@@ -161,9 +129,6 @@ describe('Alerts service', () => {
         user: ta.user,
       });
       const openAlert = await createAlerts(queue);
-      await service.removeStaleAlerts(
-        await AlertModel.find({ where: { courseId: queue.course.id } }),
-      );
 
       const unresolvedAlerts = await service.getUnresolvedRephraseQuestionAlert(
         queue.id,

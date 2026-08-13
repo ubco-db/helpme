@@ -59,7 +59,7 @@ export class AlertModel extends BaseEntity {
   @Exclude()
   courseId: number;
 
-  @Column({ type: 'json' })
+  @Column({ type: 'jsonb' })
   payload:
     | AlertPayload
     | RephraseQuestionPayload

@@ -20,15 +20,6 @@ const ModalAlertsContainer: React.FC = () => {
   const { modalAlerts, markAlertRead, currentCourseId: courseId } = useAlerts()
   const alerts = modalAlerts
 
-  const handleCloseRephrase = async (
-    alertId: number,
-    courseId: number,
-    queueId: number,
-  ) => {
-    await markAlertRead(alertId)
-    router.push(`/course/${courseId}/queue/${queueId}?edit_question=true`)
-  }
-
   const alertDivs = alerts?.map((alert) => {
     switch (alert.alertType) {
       case AlertType.REPHRASE_QUESTION:
@@ -36,9 +27,13 @@ const ModalAlertsContainer: React.FC = () => {
           <StudentRephraseModal
             key={alert.id}
             payload={alert.payload as RephraseQuestionPayload}
-            handleClose={async (courseId, queueId) =>
-              await handleCloseRephrase(alert.id, courseId, queueId)
-            }
+            handleEdit={async (courseId, queueId) => {
+              await markAlertRead(alert.id)
+              router.push(
+                `/course/${courseId}/queue/${queueId}?edit_question=true`,
+              )
+            }}
+            handleClose={async () => await markAlertRead(alert.id)}
           />
         )
       case AlertType.EVENT_ENDED_CHECKOUT_STAFF:

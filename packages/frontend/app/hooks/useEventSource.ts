@@ -139,7 +139,7 @@ export const useEventSource = (
         console.log('establishing new EventSourceClient', url, listenerKey)
 
         let retries = 0
-        const MAX_RETRIES = isProd() ? 15 : 5
+        const MAX_RETRIES = isProd() ? 15 : 7
         const INITIAL_BACKOFF = 1000
         const MAX_BACKOFF = 30000
         // jitter: so if the server goes down, all clients aren't spamming the backend at the exact same time while it's booting up again
