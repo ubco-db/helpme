@@ -233,10 +233,10 @@ export class AsyncQuestionService {
           const bgColor = qt.color || '#e5e7eb';
           const textColor =
             this.getBrightness(bgColor) < 128 ? '#ffffff' : '#000000';
-          return `<span style="display:inline-block;background-color:${bgColor};color:${textColor};border-radius:12px;padding:2px 10px;font-size:12px;margin-right:4px;margin-bottom:4px;">${qt.name}</span>`;
+          return `<td style="padding:0 2px 0 0;"><span style="display:inline-block;background-color:${bgColor};color:${textColor};border-radius:10px;padding:1px 7px;font-size:11px;white-space:nowrap;">${qt.name}</span></td>`;
         })
         .join('');
-      questionTypePillsHtml = `<div style="margin-bottom:8px;">${pills}</div>`;
+      questionTypePillsHtml = pills;
     }
 
     // --- Status pill ---
@@ -250,7 +250,7 @@ export class AsyncQuestionService {
       const statusBg = isHumanAnswered ? '#dcfce7' : '#fef9c3';
       const statusColor = isHumanAnswered ? '#166534' : '#854d0e';
       const statusBorder = isHumanAnswered ? '#bbf7d0' : '#fde68a';
-      statusPillHtml = `<span style="display:inline-block;background-color:${statusBg};color:${statusColor};border:1px solid ${statusBorder};border-radius:12px;padding:2px 10px;font-size:12px;margin-right:4px;margin-bottom:4px;">${statusLabel}</span>`;
+      statusPillHtml = `<td style="padding:0 2px;"><span style="display:inline-block;background-color:${statusBg};color:${statusColor};border:1px solid ${statusBorder};border-radius:10px;padding:1px 7px;font-size:11px;white-space:nowrap;">${statusLabel}</span></td>`;
     }
 
     // --- Visibility pill ---
@@ -259,17 +259,27 @@ export class AsyncQuestionService {
       const isPublic =
         question.staffSetVisible === true ||
         (question.staffSetVisible == null && question.authorSetVisible);
-      const visLabel = isPublic ? '👁 Public' : '🔒 Private';
+      const visLabel = isPublic ? 'Public' : 'Private';
+      const visTitle = isPublic
+        ? 'Visible to Other Students'
+        : 'Only visible to Staff';
       const visBg = isPublic ? '#dbeafe' : '#f3f4f6';
       const visColor = isPublic ? '#1e40af' : '#6b7280';
       const visBorder = isPublic ? '#bfdbfe' : '#e5e7eb';
-      visibilityPillHtml = `<span style="display:inline-block;background-color:${visBg};color:${visColor};border:1px solid ${visBorder};border-radius:12px;padding:2px 10px;font-size:12px;margin-right:4px;margin-bottom:4px;">${visLabel}</span>`;
+      visibilityPillHtml = `<td style="padding:0 2px;"><span title="${visTitle}" style="display:inline-block;background-color:${visBg};color:${visColor};border:1px solid ${visBorder};border-radius:10px;padding:1px 7px;font-size:11px;white-space:nowrap;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;">${visLabel}</span></td>`;
     }
 
-    // --- Pills row ---
+    // --- Pills row (table-based for email client horizontal layout) ---
+    // Format: (questionType pills) | (status pill) | (visibility pill)
+    // Vertical separators between groups, but only when both sides have content
+    const separator = `<td style="padding:0 4px;color:#d1d5db;font-size:13px;">|</td>`;
+    const pillGroups: string[] = [];
+    if (questionTypePillsHtml) pillGroups.push(questionTypePillsHtml);
+    if (statusPillHtml) pillGroups.push(statusPillHtml);
+    if (visibilityPillHtml) pillGroups.push(visibilityPillHtml);
     const pillsHtml =
-      questionTypePillsHtml || statusPillHtml || visibilityPillHtml
-        ? `<div style="margin-bottom:10px;">${questionTypePillsHtml}${visibilityPillHtml}${statusPillHtml}</div>`
+      pillGroups.length > 0
+        ? `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:8px;"><tr>${pillGroups.join(separator)}</tr></table>`
         : '';
 
     // --- Question abstract ---
@@ -317,13 +327,13 @@ export class AsyncQuestionService {
     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;border-collapse:collapse;margin:12px 0;">
       <tr>
         <td style="padding:0;">
-          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background-color:#ffffff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background-color:#ffffff;border:1px solid #d1d5db;border-radius:10px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.12),0 1px 3px rgba(0,0,0,0.06);">
             <tr>
               ${voteHtml}
               <td style="vertical-align:top;padding:16px ${showVotes ? '16px 16px 8px' : '16px'};">
                 ${authorHtml}
-                ${pillsHtml}
                 ${abstractHtml}
+                ${pillsHtml}
                 ${questionTextHtml}
                 ${answerHtml}
               </td>
@@ -362,15 +372,17 @@ export class AsyncQuestionService {
       } else {
         authorName = 'Anonymous';
       }
-      authorHtml = `<div style="font-size:12px;font-weight:600;color:#6b7280;margin-bottom:4px;">${authorName}</div>`;
+      authorHtml = `<div style="font-size:13px;color:#6b7280;margin-bottom:6px;">
+        <span style="font-weight:600;color:#374151;">${authorName}</span>
+      </div>`;
     }
 
     return `
-    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;border-collapse:collapse;margin:6px 0 6px 20px;">
+    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;border-collapse:collapse;margin:6px 0;">
       <tr>
-        <td style="padding:10px 14px;background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;">
+        <td style="padding:14px 16px;background-color:#ffffff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.12),0 1px 3px rgba(0,0,0,0.06);">
           ${authorHtml}
-          <div style="font-size:13px;color:#374151;line-height:1.5;">${commentHtml}</div>
+          <div style="font-size:14px;color:#374151;line-height:1.6;">${commentHtml}</div>
         </td>
       </tr>
     </table>`;
