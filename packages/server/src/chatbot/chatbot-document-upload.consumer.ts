@@ -303,7 +303,7 @@ export class ChatbotDocumentUploadConsumer extends WorkerHost {
         payload: {
           toastType: ToastType.SUCCESS,
           title: 'Chatbot Document Processed',
-          description: `"${originalname}" has been successfully uploaded and processed.`,
+          description: `"${originalname}" was successfully processed.`,
           documentId: chatbotDocPdf.idHelpMeDB,
           documentName: originalname,
           uploadId: uploadId || '',
