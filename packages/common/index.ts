@@ -2723,7 +2723,7 @@ export enum AlertType {
   PROMPT_STUDENT_TO_LEAVE_QUEUE = 'promptStudentToLeaveQueue',
   CHATBOT_DOCUMENT_PROCESSED = 'chatbotDocumentProcessed',
   COURSE_CLONED = 'courseCloned',
-  ASYNC_QUESTION_UPDATE = 'asyncQuestionUpdate',
+  ASYNC_QUESTION_UPDATE = 'asyncQuestionUpdate', // see AsyncQuestionUpdateSubtype
   ADMIN_NOTICE = 'adminNotice',
 }
 export const FEED_ALERT_TYPES = [

@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  ExclamationCircleFilled,
   FileAddOutlined,
   GithubOutlined,
   UploadOutlined,
@@ -13,7 +12,6 @@ import {
   Input,
   message,
   Modal,
-  Popconfirm,
   Segmented,
   Switch,
   UploadFile,
@@ -59,13 +57,12 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
 
   const { registerNewAlertHandler, unregisterNewAlertHandler } = useAlerts()
 
+  // Registers a handler for whenever a new CHATBOT_DOCUMENT_PROCESSED alert comes in to update the state in the modal here
+  // (this assumes they didn't click off the page. This is mostly a little extra thing, but mostly so that the list of documents gets updated)
   useEffect(() => {
-    console.log('reguistering things')
-
     registerNewAlertHandler(
       'add-chatbot-document-handler',
       (alert) => {
-        console.log('New alert for file processing', alert)
         const payload = alert.payload as ChatbotDocumentProcessedPayload
         if (payload.toastType === ToastType.ERROR) {
           setFileList((prevFileList) =>
@@ -92,7 +89,6 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
 
     return () => {
       unregisterNewAlertHandler('add-chatbot-document-handler')
-      console.log('unregistering things')
     }
   }, [registerNewAlertHandler, unregisterNewAlertHandler])
 
@@ -144,14 +140,15 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
       ),
     )
 
-    console.log('fileToUpload', fileToUpload)
-
+    // This API call uploads the document and creates a new job for it to be processed in the background.
+    // Later, once it's done processing it creates a Toast alert that gets handled in AlertsContext
     await API.chatbot.staffOnly
       .uploadDocument(
         courseId,
         fileToUpload,
         { parseAsPng: isSlideDeck, uploadId: fileToUpload.uid },
         (progressEvent) => {
+          // uses axios onUploadProgress callback that allows us to make the progress bar move
           if (progressEvent.total) {
             const percent = Math.round(
               (progressEvent.loaded * 100) / progressEvent.total,
@@ -354,8 +351,6 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
                   }}
                   maxCount={10}
                   beforeUpload={(file) => {
-                    console.log('new file added', file)
-                    // setFileList([...fileList, { ...file, status: 'adding' }]);
                     return false
                   }}
                   showUploadList={{

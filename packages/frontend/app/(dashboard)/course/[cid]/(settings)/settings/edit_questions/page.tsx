@@ -238,7 +238,7 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
         <Input
           ref={searchInput}
           placeholder={`Search ${dataIndex}`}
-          value={selectedKeys[0]}
+          value={selectedKeys[0].toString()}
           onChange={(e) =>
             setSelectedKeys(e.target.value ? [e.target.value] : [])
           }

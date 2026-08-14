@@ -37,8 +37,7 @@ type AlertsContextValue = {
    * toast alerts made by the backend will appear here automatically (via EventSource/SSE).
    */
   toastAlerts: Alert[]
-  /** List of all Feed alerts for currentCourseId (modal alerts with `null` courseId will also be included).
-  If currentCourseId is null, it will include ALL feed alerts across ALL courses (and null courseId feed alerts).
+  /** List of all Feed alerts (does not care about currentCourseId)
 
   When first loading a page (or currentCourseId changes), *most* feed alerts are fetched (limit 100) and put here. Then any subsequent
   feed alerts made by the backend will appear here automatically (via EventSource/SSE).
@@ -100,7 +99,7 @@ const NUM_PAGES_FETCHED = 4
 const AlertsContext = createContext<AlertsContextValue | undefined>(undefined)
 
 /** 
-  This is the one source of truth that obtains ALL alerts from the backend (both FEED and MODAL).
+  This is the one source of truth that obtains ALL alerts from the backend (both FEED and MODAL and TOAST).
   It will filter based on what course the user is currently on (Need to set with setCurrentCourseId).
 */
 export const AlertsProvider: React.FC<{
@@ -214,8 +213,11 @@ export const AlertsProvider: React.FC<{
             } else {
               console.log('no matching alert found')
               // Doesn't yet exist on the frontend state (most cases)
-              if (data.alert.deliveryMode === AlertDeliveryMode.TOAST) {
-                // toast alerts will always be added regardless of currentCourseId
+              if (
+                data.alert.deliveryMode === AlertDeliveryMode.TOAST ||
+                data.alert.deliveryMode === AlertDeliveryMode.FEED
+              ) {
+                // toast and feed alerts will always be added regardless of currentCourseId
                 mutateAlerts(
                   (prev) =>
                     prev
@@ -225,12 +227,16 @@ export const AlertsProvider: React.FC<{
                             plainToInstance(Alert, data.alert),
                             ...prev.mostAlerts,
                           ],
+                          totalFeedAlerts:
+                            data.alert.deliveryMode === AlertDeliveryMode.FEED
+                              ? prev.totalFeedAlerts + 1
+                              : prev.totalFeedAlerts,
                         }
                       : prev,
                   { revalidate: false },
                 )
               } else if (currentCourseId) {
-                // if course is selected, only add alerts that are null courseId or the same courseId
+                // if course is selected, only add alerts that are null courseId or the same courseId (only MODAL alerts atm)
                 console.log('alertbefore', data.alert)
                 console.log('alertafter', plainToInstance(Alert, data.alert))
                 if (
@@ -246,10 +252,6 @@ export const AlertsProvider: React.FC<{
                               plainToInstance(Alert, data.alert),
                               ...prev.mostAlerts,
                             ],
-                            totalFeedAlerts:
-                              data.alert.deliveryMode === AlertDeliveryMode.FEED
-                                ? prev.totalFeedAlerts + 1
-                                : prev.totalFeedAlerts,
                           }
                         : prev,
                     { revalidate: false },
@@ -258,42 +260,23 @@ export const AlertsProvider: React.FC<{
               } else {
                 console.log('not in currentCourseId', data.alert.deliveryMode)
                 // if no course is selected (like in /courses page)
-                switch (data.alert.deliveryMode) {
-                  case AlertDeliveryMode.MODAL: // For modal, ONLY allow alerts with null courseId (so you don't get like 5 different popups about rephrase question or something)
-                    console.log('MODAL delivery mofde')
-                    if (!data.alert.courseId) {
-                      console.log('Adding new alert:', data)
-                      mutateAlerts(
-                        (prev) =>
-                          prev
-                            ? {
-                                ...prev,
-                                mostAlerts: [
-                                  plainToInstance(Alert, data.alert),
-                                  ...prev.mostAlerts,
-                                ],
-                              }
-                            : prev,
-                        { revalidate: false },
-                      )
-                    }
-                    break
-                  case AlertDeliveryMode.FEED: // For feed, just allow alerts from ALL courses (or null)
-                    mutateAlerts(
-                      (prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              mostAlerts: [
-                                plainToInstance(Alert, data.alert),
-                                ...prev.mostAlerts,
-                              ],
-                              totalFeedAlerts: prev.totalFeedAlerts + 1,
-                            }
-                          : prev,
-                      { revalidate: false },
-                    )
-                    break
+                // For modal, ONLY allow alerts with null courseId (so you don't get like 5 different popups about rephrase question or something)
+                console.log('MODAL delivery mofde')
+                if (!data.alert.courseId) {
+                  console.log('Adding new alert:', data)
+                  mutateAlerts(
+                    (prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            mostAlerts: [
+                              plainToInstance(Alert, data.alert),
+                              ...prev.mostAlerts,
+                            ],
+                          }
+                        : prev,
+                    { revalidate: false },
+                  )
                 }
               }
             }

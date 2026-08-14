@@ -131,14 +131,13 @@ export class AlertsController {
   - When page first loads, do query that fetches:
 	- FEED alerts
     - Limit 100 alerts, choosing unread first, then by sentAt
-		- When given no courseId: Fetch alerts across ALL courses
-		- When given courseId: Fetch alerts with both null courseId and the courseId
+		- Ignore courseId, always fetch all of them
 	- MODAL alerts
 		- ALL unread alerts (limit 20 since when would you ever have more than like 2 tbh)
 		- When given no courseId: Fetch alerts ONLY with null courseId
-		- When given courseId: same as FEED 
+		- When given courseId: Fetch alerts with both null courseId and the courseId
   - TOAST alerts
-    - ALL unread alerts (limit 20)
+    - ALL unread alerts (limit 60)
     - Ignore courseId, always fetch all of them
   */
   @Get('/initial')
@@ -161,7 +160,7 @@ export class AlertsController {
           100,
           0,
           'all',
-          courseId,
+          // courseId, // can specify a courseId if you want it to behave the same as MODAL alerts (fetch null courseId or the given courseId)
         ),
       ]);
 

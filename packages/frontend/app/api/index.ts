@@ -160,8 +160,7 @@ import Axios, {
   Method,
   AxiosProgressEvent,
 } from 'axios'
-import { plainToClass } from 'class-transformer'
-import { ClassType } from 'class-transformer/ClassTransformer'
+import { ClassConstructor, plainToInstance } from 'class-transformer'
 import * as Sentry from '@sentry/nextjs'
 import { SetStateAction } from 'react'
 import { getErrorMessage } from '@/app/utils/generalUtils'
@@ -193,7 +192,7 @@ export class APIClient {
   private async req<T>(
     method: Method,
     url: string,
-    responseClass?: ClassType<ItemIfArray<T>>,
+    responseClass?: ClassConstructor<ItemIfArray<T>>,
     body?: any,
     params?: any,
     onUploadProgress?: (progressEvent: AxiosProgressEvent) => void,
@@ -201,7 +200,7 @@ export class APIClient {
   private async req<T>(
     method: Method,
     url: string,
-    responseClass?: ClassType<T>,
+    responseClass?: ClassConstructor<T>,
     body?: any,
     params?: any,
     onUploadProgress?: (progressEvent: AxiosProgressEvent) => void,
@@ -218,7 +217,7 @@ export class APIClient {
       })
     ).data
     return responseClass
-      ? plainToClass(responseClass, res, {
+      ? plainToInstance(responseClass, res, {
           enableImplicitConversion: true, // needed otherwise dates won't be deserialized (converted from string to date object)
         })
       : res
@@ -285,13 +284,21 @@ export class APIClient {
       const response = await this.profile.fullResponse()
       const contentType = response.headers['content-type'] ?? ''
 
-      if (contentType.includes('application/json')) {
+      if (
+        typeof contentType !== 'number' &&
+        typeof contentType !== 'boolean' &&
+        contentType.includes('application/json')
+      ) {
         if (response.status >= 400) {
           const body = response.data
           return Promise.reject(body)
         }
         return response.data as any // Type assertion needed due to conditional return type
-      } else if (contentType.includes('text/html')) {
+      } else if (
+        typeof contentType !== 'number' &&
+        typeof contentType !== 'boolean' &&
+        contentType.includes('text/html')
+      ) {
         const text = response.data as string
         Sentry.captureEvent({
           message: `Unknown error in getUser ${response.status}: ${response.statusText}`,

@@ -169,7 +169,7 @@ export class AlertsService {
       .andWhere('alert.deliveryMode = :mode', { mode: AlertDeliveryMode.TOAST })
       .andWhere('alert.readAt IS NULL');
 
-    return qb.take(20).orderBy('alert.sentAt', 'ASC').getMany();
+    return qb.take(60).orderBy('alert.sentAt', 'ASC').getMany();
   }
 
   async getTargetUserIds(
