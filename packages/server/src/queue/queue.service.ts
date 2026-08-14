@@ -115,12 +115,6 @@ export class QueueService {
       .leftJoinAndSelect('question.taHelped', 'taHelped')
       .getMany();
 
-    const unresolvedRephraseQuestionAlerts =
-      await this.alertsService.getUnresolvedRephraseQuestionAlert(
-        queueId,
-        manager,
-      );
-
     const queueQuestions = new ListQuestionsResponse();
 
     queueQuestions.questions = questionsFromDb.filter((question) =>
@@ -154,10 +148,6 @@ export class QueueService {
     );
 
     queueQuestions.groups = [];
-
-    queueQuestions.unresolvedAlerts = unresolvedRephraseQuestionAlerts.map(
-      (alert) => alert.payload,
-    );
 
     queueQuestions.questions = queueQuestions.questions.map((question) => {
       const temp = pick(question, [

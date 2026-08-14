@@ -87,7 +87,6 @@ export function useQuestionsWithQueueInvite(
     yourQuestions: [], // this is public data. There are no yourQuestions
     priorityQueue: queueQuestions?.priorityQueue || [],
     groups: queueQuestions?.groups || [],
-    unresolvedAlerts: queueQuestions?.unresolvedAlerts || [],
   }
 
   return { queueQuestions: newQueueQuestions, questionsError, mutateQuestions }

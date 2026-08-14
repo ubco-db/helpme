@@ -89,7 +89,6 @@ export function useQuestions(qid: number): UseQuestionReturn {
     yourQuestions: yourQuestionsWithWaitTime,
     priorityQueue: queueQuestions?.priorityQueue || [],
     groups: queueQuestions?.groups || [],
-    unresolvedAlerts: queueQuestions?.unresolvedAlerts || [],
   }
 
   return { queueQuestions: newQueueQuestions, questionsError, mutateQuestions }
