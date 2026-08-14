@@ -37,6 +37,21 @@ const parentCourseName = 'LANTERN';
 const organizationName = 'UBC';
 const semesterName = '2026S Both Terms';
 
+/**
+ * Seeds the LANTERN chatbot agent group. Run with
+ * `yarn seed:chatbot-agent-group` after the UBC organization and
+ * 2026S Both Terms semester have been created.
+ *
+ * The command creates or reuses the visible LANTERN parent course, its four
+ * agent courses, and their chatbot agent super course. It enables the chatbot
+ * only when creating missing course settings, so existing settings remain
+ * unchanged. Professors in the parent course are enrolled in each agent course
+ * with the professor role unless they already have a membership there.
+ *
+ * Students remain enrolled only in the parent course and access an agent course
+ * through the shared chatbot agent group. The seed is transactional and
+ * idempotent; it fills in missing setup without managing the group afterward.
+ */
 @Injectable()
 export class SeedChatbotAgentGroupCommand {
   constructor(private dataSource: DataSource) {}
