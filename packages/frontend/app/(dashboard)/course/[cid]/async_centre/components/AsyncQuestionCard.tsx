@@ -395,6 +395,15 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
             </div>
             <div className="flex-grow">
               <h4 className="font-bold">{question.questionAbstract}</h4>
+              <div className="flex flex-wrap">
+                {question.questionTypes?.map((questionType, index) => (
+                  <QuestionTagElement
+                    key={index}
+                    tagName={questionType.name}
+                    tagColor={questionType.color}
+                  />
+                ))}
+              </div>
               {/* When not expanded, show only 1 line of the questionText */}
               <div
                 className={cn(
@@ -456,15 +465,6 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                 mutateAsyncQuestions={mutateAsyncQuestions}
                 highlightCommentId={highlightCommentId}
               />
-            </div>
-            <div className="flex flex-wrap">
-              {question.questionTypes?.map((questionType, index) => (
-                <QuestionTagElement
-                  key={index}
-                  tagName={questionType.name}
-                  tagColor={questionType.color}
-                />
-              ))}
             </div>
           </div>
           {question.status === asyncQuestionStatus.AIAnswered &&
