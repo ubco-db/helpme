@@ -11,7 +11,7 @@ import {
 } from '@koh/common';
 import { validateSync } from 'class-validator';
 import { plainToClass } from 'class-transformer';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { AlertModel } from './alerts.entity';
 import { Brackets, EntityManager } from 'typeorm';
 import { UserModel } from 'profile/user.entity';
@@ -185,7 +185,16 @@ export class AlertsService {
         .getRawMany<{ id: number }>();
       targetUserIds = users.map((u) => u.id);
     } else if (target.userId) {
-      // Target a specific user
+      // Target a specific user (first verify they exist)
+      await manager
+        .findOneByOrFail(UserModel, {
+          id: target.userId,
+        })
+        .catch(() => {
+          throw new NotFoundException(
+            `User with id ${target.userId} not found`,
+          );
+        });
       targetUserIds = [target.userId];
     } else if (target.orgId) {
       // Target all users in an organization, optionally filtered by role
@@ -220,7 +229,6 @@ export class AlertsService {
       const users = await qb.getRawMany<{ id: number }>();
       targetUserIds = users.map((u) => u.id);
     }
-    console.log('targetUserIds', targetUserIds);
     return targetUserIds;
   }
 }
