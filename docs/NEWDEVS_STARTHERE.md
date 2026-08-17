@@ -592,7 +592,7 @@ If you want to add/delete/edit a table column, note that you must also generate 
 You can generate a migration file with: `yarn migration:generate ./migration/your-migration-name -d ./typeORMCLI.config.ts`. Note that this will wipe your dev database. If you want to keep it, you can make a backup by running the commands:
 
 - `docker exec -u postgres helpme-postgresql-1 pg_dumpall -U postgres | gzip > backups/my_dev_backup.sql.gz` Creates backup (do before running migration)
-- `docker exec -i helpme-postgresql-1 psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS dev; DROP DATABASE IF EXISTS chatbot;"` Wipes the databases (do after running migration)
+- `docker exec -i helpme-postgresql-1 psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS dev;" && docker exec -i helpme-postgresql-1 psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS chatbot;"` Wipes the databases (do after running migration)
 - `gunzip -c backups/my_dev_backup.sql | docker exec -i helpme-postgresql-1 psql -U postgres` to restore the backup.
 
 You may need to adjust the commands slightly depending on the name of your docker container name or postgres admin username (they might also incorrect, I haven't tested them in a bit -Adam).
