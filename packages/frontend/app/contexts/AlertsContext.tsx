@@ -33,7 +33,7 @@ type AlertsContextValue = {
   modalAlerts: Alert[]
   /** List of all Toast alerts (does not care about currentCourseId).
    *
-   * When first loading a page (or currentCourseId changes), all toast alerts (limit 20) will be fetched and put here. Then any subsequent
+   * When first loading a page (or currentCourseId changes), all toast alerts (limit 60) will be fetched and put here. Then any subsequent
    * toast alerts made by the backend will appear here automatically (via EventSource/SSE).
    */
   toastAlerts: Alert[]
@@ -149,7 +149,7 @@ export const AlertsProvider: React.FC<{
   // like for example if an unreadFeedAlert had a readAt != null alert (should be in readAtAlerts),
   // or if there is a MODAL alert inside unreadFeedAlerts, or vise-versa.
 
-  // Initial fetch (ALL modal alerts (limit 20),MOST feed alerts (limit 100, with unread first))
+  // Initial fetch (ALL modal alerts (limit 20), ALL toast alerts (limit 60), MOST feed alerts (limit 100, with unread first))
   // Note that this is COURSE-SPECIFIC and will reset and refetch everything when courseId changes
   const {
     data: alertsData,

@@ -128,7 +128,6 @@ export const useEventSource = (
 
   const [isLive, setIsLive] = useState<boolean>(false)
   useEffect(() => {
-    console.log('current EventSources', EVENTSOURCES)
     if (url) {
       let source: SourceAndCount
       if (url in EVENTSOURCES) {
@@ -136,8 +135,6 @@ export const useEventSource = (
         setIsLive(source.eventSource.readyState === 'open')
         source.isLiveSetters.add(setIsLive)
       } else {
-        console.log('establishing new EventSourceClient', url, listenerKey)
-
         let retries = 0
         const MAX_RETRIES = isProd() ? 15 : 7
         const INITIAL_BACKOFF = 1000
@@ -219,7 +216,6 @@ export const useEventSource = (
 
       if (source.listeners[listenerKey]) {
         listener.count++
-        console.log('new listener for', url, 'total listeners:', listener.count)
       } else {
         listener = { listener: onMessageEvent, count: 1 }
         source.listeners[listenerKey] = listener
@@ -227,7 +223,6 @@ export const useEventSource = (
 
       return () => {
         // Close event source if no one is listening
-        console.log('Closing event source for', url)
         listener.count--
         source.isLiveSetters.delete(setIsLive)
         if (listener.count === 0) {

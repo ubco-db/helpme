@@ -727,7 +727,6 @@ export class SeedController {
 
   @Post('mail-services')
   async createMailServices(): Promise<string> {
-    // TODO: note that createSeeds() already does this
     const numCreated = await this.seedService.createMailServices();
     await this.seedService.populateMailSubscriptionTable();
 

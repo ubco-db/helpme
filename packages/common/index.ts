@@ -2479,9 +2479,6 @@ export class ListQuestionsResponse {
 
   @Type(() => QuestionGroup)
   groups!: Array<QuestionGroup>
-
-  @Type(() => AlertPayload)
-  unresolvedAlerts?: Array<AlertPayload>
 }
 
 export class GetQuestionResponse extends Question {}

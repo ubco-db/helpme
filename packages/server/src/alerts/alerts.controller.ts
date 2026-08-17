@@ -51,17 +51,6 @@ import { AdminRoleGuard } from 'guards/admin-role.guard';
 import { UserModel } from '../profile/user.entity';
 import { MailService } from 'mail/mail.service';
 
-/*
-Differences between the two types of notifications:
-    FEED
-      - Paginated (page size of like 5). For this reason we're using useSWRInfinite
-      - Needs to also fetch already-read alerts to hide in the frontend and show on click (hence why pagination is necessary).
-      - When on `(dashboard)` level, includes both alerts with a courseId and alerts without a courseId
-    MODAL
-      - Number of them is very small, so no pagination necessary
-      - Should NOT include already-read alerts
-      - When on `(dashboard)` level, needs to ONLY include alerts WITHOUT a courseId (that way, users won't get bombarded with "you should rephrase your question" etc. when they are in a different course entirely)
-  */
 @Controller('alerts')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
 export class AlertsController {
@@ -160,7 +149,10 @@ export class AlertsController {
           100,
           0,
           'all',
-          // courseId, // can specify a courseId if you want it to behave the same as MODAL alerts (fetch null courseId or the given courseId)
+          // Initially, I used to specify a courseId so that it only gives feed alerts that match
+          // the currentCourseId, but I realised it makes a lot more sense to just put ALL feed alerts
+          // inside the notification bell. Plus each alert also has a tag saying what course it's from.
+          // courseId,
         ),
       ]);
 

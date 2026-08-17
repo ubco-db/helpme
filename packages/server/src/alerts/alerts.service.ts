@@ -12,8 +12,6 @@ import {
 import { validateSync } from 'class-validator';
 import { plainToClass } from 'class-transformer';
 import { Injectable } from '@nestjs/common';
-import { QuestionModel } from 'question/question.entity';
-import { QueueModel } from '../queue/queue.entity';
 import { AlertModel } from './alerts.entity';
 import { Brackets, EntityManager } from 'typeorm';
 import { UserModel } from 'profile/user.entity';
