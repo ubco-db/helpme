@@ -13,7 +13,6 @@ import { ApplicationConfigModule } from 'config/application_config.module';
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
 import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { MailService } from 'mail/mail.service';
-import { RedisMemoryServer } from 'redis-memory-server';
 import { Redis } from 'ioredis';
 import { RedisModule, RedisService } from '@liaoliaots/nestjs-redis';
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
@@ -95,7 +94,7 @@ export function setupIntegrationTest(
   let testModule: TestingModule;
   let redisService: RedisService;
 
-  let redisTestServer: RedisMemoryServer;
+  // let redisTestServer: RedisMemoryServer;
   let redisHost: string;
   let redisPort: number;
 
@@ -227,9 +226,9 @@ export function setupIntegrationTest(
       }
     }
 
-    if (redisTestServer) {
-      await redisTestServer.stop();
-    }
+    // if (redisTestServer) {
+    //   await redisTestServer.stop();
+    // }
   }, 10000);
 
   beforeEach(async () => {
