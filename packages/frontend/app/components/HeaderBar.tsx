@@ -793,7 +793,7 @@ const HeaderBar: React.FC = () => {
                   height={48}
                   className="h-12 object-contain"
                   alt="UBC Logo"
-                  src={`/actually_public/ubc_logo.png`}
+                  src={`/actually_public/images/ubc_logo.png`}
                 />
               ) : (
                 <Image
