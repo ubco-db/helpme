@@ -4,6 +4,8 @@ import {
   AlertType,
   Role,
   ClosedQuestionStatus,
+  RephraseQuestionPayload,
+  AlertDeliveryMode,
 } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
@@ -183,11 +185,12 @@ describe('QueueStaffService', () => {
       const openAlert = await AlertFactory.create({
         user: openQuestion.creator,
         course: queue.course,
+        deliveryMode: AlertDeliveryMode.MODAL,
         payload: {
           questionId: openQuestion.id,
           queueId: queue.id,
           courseId: queue.course.id,
-        },
+        } satisfies RephraseQuestionPayload,
       });
       expect(openAlert.readAt).toBeNull();
 
@@ -361,6 +364,7 @@ describe('QueueStaffService', () => {
       await AlertFactory.create({
         user: student,
         course: queue.course,
+        deliveryMode: AlertDeliveryMode.MODAL,
         alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
         payload: { queueId: queue.id },
       });

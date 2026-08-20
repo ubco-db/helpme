@@ -36,7 +36,7 @@ export class QuestionSubscriber implements EntitySubscriberInterface<QuestionMod
   async afterUpdate(event: UpdateEvent<QuestionModel>): Promise<void> {
     if (!event.entity || !event.entity.queueId) {
       console.error(
-        `WARNING in afterUpdate in question.subscriber.ts: There exists a .update() query somewhere that does not pass enough information (queueId) so users won't be notified of a queue update. Event: ${JSON.stringify(event, null, 2)}`,
+        `WARNING in afterUpdate in question.subscriber.ts: There exists a .update() query somewhere that does not pass enough information (queueId) so users won't be notified of a queue update. Event.entity: ${JSON.stringify(event.entity, null, 2)}`,
       );
       return;
     }
