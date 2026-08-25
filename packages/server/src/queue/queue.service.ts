@@ -23,7 +23,7 @@ import {
   Inject,
   forwardRef,
 } from '@nestjs/common';
-import { classToClass } from 'class-transformer';
+import { instanceToInstance } from 'class-transformer';
 import { pick } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
 import { DataSource, EntityManager, In } from 'typeorm';
@@ -115,12 +115,6 @@ export class QueueService {
       .leftJoinAndSelect('question.taHelped', 'taHelped')
       .getMany();
 
-    const unresolvedRephraseQuestionAlerts =
-      await this.alertsService.getUnresolvedRephraseQuestionAlert(
-        queueId,
-        manager,
-      );
-
     const queueQuestions = new ListQuestionsResponse();
 
     queueQuestions.questions = questionsFromDb.filter((question) =>
@@ -154,10 +148,6 @@ export class QueueService {
     );
 
     queueQuestions.groups = [];
-
-    queueQuestions.unresolvedAlerts = unresolvedRephraseQuestionAlerts.map(
-      (alert) => alert.payload,
-    );
 
     queueQuestions.questions = queueQuestions.questions.map((question) => {
       const temp = pick(question, [
@@ -214,8 +204,8 @@ export class QueueService {
             question.creator.id === userId
               ? question.creator
               : pick(question.creator, ['id']);
-          // classToClass transformer will apply the @Excludes
-          return classToClass<Question>(
+          // instanceToInstance transformer will apply the @Excludes
+          return instanceToInstance<Question>(
             QuestionModel.create({ ...question, creator }),
           );
         });
@@ -228,8 +218,8 @@ export class QueueService {
               question.creator.id === userId
                 ? question.creator
                 : pick(question.creator, ['id']);
-            // classToClass transformer will apply the @Excludes
-            return classToClass<Question>(
+            // instanceToInstance transformer will apply the @Excludes
+            return instanceToInstance<Question>(
               QuestionModel.create({ ...question, creator }),
             );
           },

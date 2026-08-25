@@ -42,7 +42,6 @@ exports[`Queue Integration GET /queues/:id/questions returns questions in the qu
     },
   ],
   "questionsGettingHelp": [],
-  "unresolvedAlerts": [],
   "yourQuestions": [],
 }
 `;

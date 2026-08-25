@@ -20,6 +20,14 @@ const compat = new FlatCompat({
 });
 
 module.exports = defineConfig([
+    ...compat.extends(
+        "plugin:@typescript-eslint/eslint-recommended",
+        "plugin:@typescript-eslint/recommended",
+        "prettier",
+    ).map(config => ({
+        ...config,
+        files: ['./packages/**/*']
+    })),
     {
         files: ['./packages/**/*'],
         ignores: ['langchain-services/**/*'],
@@ -42,12 +50,6 @@ module.exports = defineConfig([
             "@typescript-eslint": typescriptEslintEslintPlugin,
             "no-only-tests": noOnlyTests,
         },
-
-        extends: compat.extends(
-            "plugin:@typescript-eslint/eslint-recommended",
-            "plugin:@typescript-eslint/recommended",
-            "prettier",
-        ),
 
         rules: {
             "@typescript-eslint/interface-name-prefix": "off",

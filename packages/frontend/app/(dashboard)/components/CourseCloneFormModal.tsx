@@ -12,7 +12,6 @@ import {
 import { API } from '@/app/api'
 import { useUserInfo } from '@/app/contexts/userContext'
 import { ExclamationCircleFilled } from '@ant-design/icons'
-import { useAsyncToaster } from '@/app/contexts/AsyncToasterContext'
 import CourseCloneForm from './CourseCloneForm'
 
 type CourseCloneFormModalProps = {
@@ -30,8 +29,7 @@ const CourseCloneFormModal: React.FC<CourseCloneFormModalProps> = ({
 }) => {
   const [visible, setVisible] = useState(false)
   const [form] = Form.useForm<CourseCloneAttributes>()
-  const { userInfo, setUserInfo } = useUserInfo()
-  const { runAsyncToast } = useAsyncToaster()
+  const { userInfo } = useUserInfo()
   const courseName = userInfo?.courses.find((uc) => uc.course.id === courseId)
     ?.course.name
 
@@ -56,22 +54,12 @@ const CourseCloneFormModal: React.FC<CourseCloneFormModalProps> = ({
     } else {
       cloneData.professorIds = [userInfo.id]
     }
-
-    runAsyncToast(
-      () => API.course.createClone(courseId, cloneData),
-      (userCourse) => {
-        if (userCourse)
-          setUserInfo({
-            ...userInfo,
-            courses: [...userInfo.courses, userCourse as UserCourse],
-          })
-      },
-      {
-        successMsg: `${courseName} has been cloned successfully`,
-        errorMsg: `Failed to clone ${courseName}`,
-        appendApiError: true,
-      },
+    API.course.createClone(courseId, cloneData)
+    message.info(
+      'Cloning process has started. It is safe to close this tab',
+      4.5,
     )
+
     form.resetFields()
     setVisible(false)
   }
@@ -133,13 +121,13 @@ const CourseCloneFormModal: React.FC<CourseCloneFormModalProps> = ({
                   <p>
                     Note that you may want to review and remove any out-of-date
                     or irrelevant chatbot documents and chunks after the course
-                    is cloned.
+                    is cloned (under &quot;Chatbot Settings&quot; and
+                    &quot;Knowledge Base&quot; pages).
                   </p>
                 )}
                 <p>
-                  This process will take a minute to complete. You will be
-                  notified on the bottom corner of the screen once the cloning
-                  completes.
+                  This process may take a minute to complete. You will be
+                  notified once finished.
                 </p>
               </div>
             }

@@ -1,8 +1,17 @@
-import { AlertPayload, AlertType } from '@koh/common';
+import {
+  AlertDeliveryMode,
+  AlertPayload,
+  AlertType,
+  RephraseQuestionPayload,
+  PromptStudentToLeaveQueuePayload,
+  ChatbotDocumentProcessedPayload,
+  AsyncQuestionUpdatePayload,
+} from '@koh/common';
 import { Exclude } from 'class-transformer';
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -19,11 +28,18 @@ export class AlertModel extends BaseEntity {
   @Column({ type: 'enum', enum: AlertType })
   alertType: AlertType;
 
-  @Column()
-  sent: Date;
+  @Column({
+    type: 'enum',
+    enum: AlertDeliveryMode,
+    default: AlertDeliveryMode.MODAL,
+  })
+  deliveryMode: AlertDeliveryMode;
 
-  @Column({ nullable: true })
-  resolved: Date;
+  @CreateDateColumn({ type: 'timestamptz' })
+  sentAt: Date;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  readAt: Date; // for MODAL alerts, it's when the user closes the modal. For FEED alerts, it's when the user reads/dismisses the alert.
 
   @ManyToOne((type) => UserModel, (user) => user.alerts)
   @JoinColumn({ name: 'userId' })
@@ -43,6 +59,11 @@ export class AlertModel extends BaseEntity {
   @Exclude()
   courseId: number;
 
-  @Column({ type: 'json' })
-  payload: AlertPayload;
+  @Column({ type: 'jsonb' })
+  payload:
+    | AlertPayload
+    | RephraseQuestionPayload
+    | PromptStudentToLeaveQueuePayload
+    | ChatbotDocumentProcessedPayload
+    | AsyncQuestionUpdatePayload;
 }

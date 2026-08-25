@@ -4,22 +4,27 @@ import Modal from 'antd/lib/modal/Modal'
 
 type StudentRephraseModalProps = {
   payload: RephraseQuestionPayload
-  handleClose: (courseId: number, queueId: number) => void
+  handleClose: () => void
+  handleEdit: (courseId: number, queueId: number) => void
 }
 const StudentRephraseModal: React.FC<StudentRephraseModalProps> = ({
   payload,
   handleClose,
+  handleEdit,
 }) => {
   return (
     <Modal
       open={true}
       footer={[
+        <Button type={'default'} key={'close'} onClick={() => handleClose()}>
+          Dismiss
+        </Button>,
         <Button
           type={'primary'}
           key={'continue'}
-          onClick={() => handleClose(payload.courseId, payload.queueId)}
+          onClick={() => handleEdit(payload.courseId, payload.queueId)}
         >
-          Close
+          Edit Question
         </Button>,
       ]}
       closable={false}

@@ -180,7 +180,7 @@ export class QueueController {
    *  */
   @Get(':queueId/sse')
   @Roles(Role.TA, Role.PROFESSOR, Role.STUDENT)
-  sendEvent(
+  subscribeToSSE(
     @Param('queueId', ParseIntPipe) queueId: number,
     @QueueRole() role: Role,
     @UserId() userId: number,

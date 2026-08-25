@@ -2,7 +2,6 @@ import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { asyncQuestionStatus, QuestionType, Role } from '@koh/common'
 import { message } from 'antd'
-import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
 import { CommentAuthorType } from './types'
 
 /**
@@ -43,10 +42,6 @@ export async function deleteAsyncQuestion(
         message.error('Error deleting question:' + errorMessage)
       })
   }
-}
-
-export function getAnonAnimal(anonId: number) {
-  return ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES[anonId]
 }
 
 /**

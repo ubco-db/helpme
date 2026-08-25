@@ -1,7 +1,7 @@
 import MarkdownCustom from '@/app/components/Markdown'
 import UserAvatar from '@/app/components/UserAvatar'
 import { cn, getErrorMessage } from '@/app/utils/generalUtils'
-import { Role } from '@koh/common'
+import { Role, ANONYMOUS_ANIMAL_AVATAR, getAnonAnimal } from '@koh/common'
 import { CommentProps } from '../utils/types'
 import {
   CheckCircleOutlined,
@@ -24,8 +24,7 @@ import {
 } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { API } from '@/app/api'
-import { getAnonAnimal, getAvatarTooltip } from '../utils/commonAsyncFunctions'
-import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
+import { getAvatarTooltip } from '../utils/commonAsyncFunctions'
 import { useUserInfo } from '@/app/contexts/userContext'
 
 const { TextArea } = Input
@@ -63,6 +62,7 @@ const Comment: React.FC<CommentProps> = ({
   numOtherComments,
   endorsedBy,
   onEndorseSuccess,
+  className,
 }) => {
   const { userInfo } = useUserInfo()
   const [deleteLoading, setDeleteLoading] = useState(false)
@@ -117,7 +117,10 @@ const Comment: React.FC<CommentProps> = ({
   const anonAnimal = getAnonAnimal(author.anonId)
 
   return (
-    <div className="overflow-auto border-b border-gray-200 py-3">
+    <div
+      className={cn('overflow-auto border-b border-gray-200 py-3', className)}
+      id={`async-question-comment-${commentId}`}
+    >
       {/* Avatar */}
       <figure className="float-left mr-3 hidden h-10 w-10 md:flex">
         {/* Desktop Avatar */}

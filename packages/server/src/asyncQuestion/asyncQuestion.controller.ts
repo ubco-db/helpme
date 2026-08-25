@@ -1,9 +1,12 @@
 import {
+  AlertDeliveryMode,
+  AlertType,
   AsyncCreator,
   AsyncQuestion,
   AsyncQuestionCommentEndorseParams,
   AsyncQuestionCommentParams,
   asyncQuestionStatus,
+  AsyncQuestionUpdatePayload,
   CreateAsyncQuestions,
   ERROR_MESSAGES,
   GetAsyncQuestionsResponse,
@@ -47,6 +50,7 @@ import { AsyncQuestionService } from './asyncQuestion.service';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 import { CourseSettingsModel } from '../course/course_settings.entity';
 import { CourseRole } from '../decorators/course-role.decorator';
+import { AlertModel } from 'alerts/alerts.entity';
 
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -125,7 +129,7 @@ export class asyncQuestionController {
 
     // Check if the question was upvoted and send email if subscribed
     if (newValue === 1 && userId !== updatedQuestion.creator.id) {
-      await this.asyncQuestionService.sendUpvotedEmail(updatedQuestion);
+      await this.asyncQuestionService.sendUpvotedEmailAndAlert(updatedQuestion);
     }
 
     return res.status(HttpStatus.OK).send({
@@ -387,7 +391,7 @@ export class asyncQuestionController {
       // don't send status change email if its deleted
       // (I don't like the vibes of notifying a student that their question was deleted by staff)
       // Though technically speaking this isn't even really used yet since there isn't a status that the TA would really turn it to that isn't HumanAnswered or TADeleted
-      await this.asyncQuestionService.sendGenericStatusChangeEmail(
+      await this.asyncQuestionService.sendGenericStatusChangeEmailAndAlert(
         question,
         body.status,
       );
@@ -526,7 +530,7 @@ export class asyncQuestionController {
 
     // don't send email if its a comment on your own post
     if (question.creatorId !== user.id) {
-      await this.asyncQuestionService.sendNewCommentOnMyQuestionEmail(
+      await this.asyncQuestionService.sendNewCommentOnMyQuestionEmailAndAlert(
         user,
         courseRole,
         updatedQuestion,
@@ -534,7 +538,7 @@ export class asyncQuestionController {
       );
     }
     // send emails out to all users that have posted a comment on this question (it also performs checks)
-    await this.asyncQuestionService.sendNewCommentOnOtherQuestionEmail(
+    await this.asyncQuestionService.sendNewCommentOnOtherQuestionEmailAndAlert(
       user,
       courseRole,
       question.creatorId,
@@ -603,7 +607,7 @@ export class asyncQuestionController {
     @Param('qid', ParseIntPipe) qid: number,
     @Param('commentId', ParseIntPipe) commentId: number,
     @Body() body: AsyncQuestionCommentEndorseParams,
-    @User() user: UserModel,
+    @User() endorser: UserModel,
   ): Promise<void> {
     const question = await AsyncQuestionModel.findOne({
       where: { id: qid },
@@ -621,7 +625,7 @@ export class asyncQuestionController {
       );
     }
 
-    comment.endorsedById = body.isEndorsed ? user.id : null;
+    comment.endorsedById = body.isEndorsed ? endorser.id : null;
     await comment.save();
 
     const updatedQuestion = await AsyncQuestionModel.findOne({
@@ -641,6 +645,12 @@ export class asyncQuestionController {
     await this.redisQueueService.updateAsyncQuestion(
       `c:${question.courseId}:aq`,
       updatedQuestion,
+    );
+
+    await this.asyncQuestionService.sendEndorseCommentAlert(
+      updatedQuestion,
+      comment,
+      endorser,
     );
   }
 

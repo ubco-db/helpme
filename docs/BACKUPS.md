@@ -52,12 +52,3 @@ Prod's postgres docker container is called `helpme_2024_03_18-postgresql-1`
 
 To avoid filename conflicts, delete all files in the uploads folder before beginning the data restoration process. You can do this through an available GUI (decompress the backup) or through the command: `tar -xzf ../../backups/uploads-daily/uploads_backup-YYYY-MM-DD.tar.gz -C ./uploads/`. Bear in mind that this should be run from the ```./packages/server``` directory.
 
-## Adam's commands
-
-I'm lazy so I'm putting some commands here to make my life easier
-
-```
-docker exec -i helpme-postgresql-1 psql -U postgresa -d postgres -c "DROP DATABASE IF EXISTS dev;"
-
-docker exec -i helpme-postgresql-1 psql -U postgresa -d postgres -c "DROP DATABASE IF EXISTS chatbot;"
-```

@@ -16,9 +16,7 @@ import { QuestionModel } from './question.entity';
 import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
 
 @EventSubscriber()
-export class QuestionSubscriber
-  implements EntitySubscriberInterface<QuestionModel>
-{
+export class QuestionSubscriber implements EntitySubscriberInterface<QuestionModel> {
   private notifService: NotificationService;
   private queueSSEService: QueueSSEService;
   constructor(
@@ -38,7 +36,7 @@ export class QuestionSubscriber
   async afterUpdate(event: UpdateEvent<QuestionModel>): Promise<void> {
     if (!event.entity || !event.entity.queueId) {
       console.error(
-        "WARNING in afterUpdate in question.subscriber.ts: There exists a .update() query somewhere that does not pass enough information (queueId) so users won't be notified of a queue update",
+        `WARNING in afterUpdate in question.subscriber.ts: There exists a .update() query somewhere that does not pass enough information (queueId) so users won't be notified of a queue update. Event.entity: ${JSON.stringify(event.entity, null, 2)}`,
       );
       return;
     }

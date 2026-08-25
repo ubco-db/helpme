@@ -3,7 +3,7 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from '@sentry/nextjs'
-import { isProd } from './middlewareType'
+import { isProd } from './proxyType'
 
 if (isProd()) {
   console.log('Initializing Sentry on frontend: sentry.server.config.ts')

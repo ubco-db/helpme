@@ -201,15 +201,19 @@ export class OrganizationService {
         new Brackets((q) => {
           q.where(`user.email ILIKE :search1`, {
             search1: `%${search}%`,
-          }).orWhere(`user.name ILIKE :search2`, {
-            search2: `%${search}%`,
-          });
+          })
+            .orWhere(`user.name ILIKE :search2`, {
+              search2: `%${search}%`,
+            })
+            .orWhere(`CAST(user.id AS TEXT) = :search3`, {
+              search3: `${search}`,
+            });
         }),
       );
     }
 
     organizationUsers
-      .orderBy('user.lastName', 'ASC')
+      .orderBy('user.id', 'ASC')
       .skip((page - 1) * pageSize)
       .take(pageSize);
 

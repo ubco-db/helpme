@@ -888,7 +888,10 @@ export class CourseService {
     userId: number,
     cloneData: CourseCloneAttributes,
     chatToken: string,
-  ): Promise<UserCourse | null> {
+  ): Promise<{
+    newCourse: CourseModel;
+    newUserCourse: UserCourse | null;
+  }> {
     if (!cloneData.professorIds || cloneData.professorIds.length === 0) {
       throw new BadRequestException(
         'At least one professor must be provided for your course clone.',
@@ -898,7 +901,7 @@ export class CourseService {
     return await this.dataSource.transaction(async (manager) => {
       const originalCourse = await manager.findOne(CourseModel, {
         where: { id: courseId },
-        relations: ['courseSettings', 'semester'],
+        relations: { courseSettings: true, semester: true },
       });
       if (!originalCourse) {
         throw new NotFoundException(`Course with id ${courseId} not found`);
@@ -984,14 +987,9 @@ export class CourseService {
         const clonedSettings = new CourseSettingsModel();
         clonedSettings.courseId = clonedCourse.id;
         if (cloneData.toClone.courseFeatureConfig) {
-          clonedSettings.chatBotEnabled = origSettings.chatBotEnabled;
-          clonedSettings.asyncQueueEnabled = origSettings.asyncQueueEnabled;
-          clonedSettings.queueEnabled = origSettings.queueEnabled;
-          clonedSettings.scheduleOnFrontPage = origSettings.scheduleOnFrontPage;
-          clonedSettings.asyncCentreAIAnswers =
-            origSettings.asyncCentreAIAnswers;
-          clonedSettings.assignmentEvaluationEnabled =
-            origSettings.assignmentEvaluationEnabled;
+          const { courseId, course, ...settingValues } =
+            originalCourse.courseSettings;
+          Object.assign(clonedSettings, settingValues);
         }
         await manager.save(clonedSettings);
       } else {
@@ -1106,18 +1104,24 @@ export class CourseService {
 
       if (professorIds.includes(userId)) {
         return {
-          course: {
-            id: clonedCourse.id,
-            name: clonedCourse.name,
-            semesterId: clonedCourse.semesterId,
-            enabled: clonedCourse.enabled,
-            sectionGroupName: clonedCourse.sectionGroupName,
-          },
-          role: Role.PROFESSOR,
-          favourited: true,
+          newCourse: clonedCourse,
+          newUserCourse: {
+            course: {
+              id: clonedCourse.id,
+              name: clonedCourse.name,
+              semesterId: clonedCourse.semesterId,
+              enabled: clonedCourse.enabled,
+              sectionGroupName: clonedCourse.sectionGroupName,
+            },
+            role: Role.PROFESSOR,
+            favourited: true,
+          } satisfies UserCourse,
         };
       } else {
-        return null;
+        return {
+          newCourse: clonedCourse,
+          newUserCourse: null,
+        };
       }
     });
   }

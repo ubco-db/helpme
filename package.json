@@ -88,7 +88,6 @@
     "tsx": "^4.19.2"
   },
   "resolutions": {
-    "**/brace-expansion": "^2.0.2",
     "**/cheerio": "^1.1.2",
     "**/cross-spawn": "^7.0.6",
     "**/degenerator": "^5.0.1",
@@ -102,7 +101,8 @@
     "**/nanoid": "^5.1.5",
     "**/katex": "^0.16.22",
     "**/prismjs": "^1.30.0",
-    "**/pug": "^3.0.3"
+    "**/pug": "^3.0.3",
+    "**/js-yaml": "^4.3.1"
   },
   "percy": {
     "snapshot": {

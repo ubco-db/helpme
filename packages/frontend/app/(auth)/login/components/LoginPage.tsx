@@ -210,7 +210,13 @@ const LoginPage: React.FC = () => {
       ? API.lti.auth.loginWithGoogle(id)
       : API.auth.loginWithGoogle(id))
 
-    if (response.headers['content-type']?.includes('application/json')) {
+    const contentType = response.headers['content-type'] || ''
+
+    if (
+      typeof contentType !== 'number' &&
+      typeof contentType !== 'boolean' &&
+      contentType.includes('application/json')
+    ) {
       const data = response.data
       if (response.status !== 200) {
         message.error(data.message)

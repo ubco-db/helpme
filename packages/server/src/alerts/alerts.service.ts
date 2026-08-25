@@ -4,87 +4,52 @@ import {
   AlertType,
   RephraseQuestionPayload,
   PromptStudentToLeaveQueuePayload,
+  AsyncQuestionUpdatePayload,
+  AlertDeliveryMode,
+  AdminNoticeTarget,
+  ChatbotDocumentProcessedPayload,
 } from '@koh/common';
-import { pick } from 'lodash';
-import { Injectable } from '@nestjs/common';
-import { QuestionModel } from 'question/question.entity';
-import { QueueModel } from '../queue/queue.entity';
+import { validateSync } from 'class-validator';
+import { plainToClass } from 'class-transformer';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { AlertModel } from './alerts.entity';
-import { EntityManager } from 'typeorm';
+import { Brackets, EntityManager } from 'typeorm';
+import { UserModel } from 'profile/user.entity';
+import { OrganizationUserModel } from 'organization/organization-user.entity';
+import { UserCourseModel } from 'profile/user-course.entity';
+
+const ALERT_PAYLOAD_CLASS: Partial<Record<AlertType, new () => AlertPayload>> =
+  {
+    [AlertType.REPHRASE_QUESTION]: RephraseQuestionPayload,
+    [AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE]: PromptStudentToLeaveQueuePayload,
+    [AlertType.CHATBOT_DOCUMENT_PROCESSED]: ChatbotDocumentProcessedPayload,
+    [AlertType.ASYNC_QUESTION_UPDATE]: AsyncQuestionUpdatePayload,
+  };
+
+export const formatAlertForFrontend = (alert: AlertModel): Alert => {
+  return {
+    sentAt: alert.sentAt,
+    alertType: alert.alertType,
+    payload: alert.payload,
+    id: alert.id,
+    deliveryMode: alert.deliveryMode,
+    readAt: alert.readAt,
+    courseId: alert.courseId,
+    courseName: alert.course ? alert.course.name : undefined,
+  };
+};
 
 @Injectable()
 export class AlertsService {
-  async removeStaleAlerts(alerts: AlertModel[]): Promise<Alert[]> {
-    const nonStaleAlerts = [];
-
-    for (const alert of alerts) {
-      // Might be one of the few usecases for ReasonML
-
-      switch (alert.alertType) {
-        case AlertType.REPHRASE_QUESTION:
-          const payload = alert.payload as RephraseQuestionPayload;
-          const question = await QuestionModel.findOne({
-            where: { id: payload.questionId },
-          });
-
-          const queue = await QueueModel.findOne({
-            where: { id: payload.queueId },
-            relations: {
-              queueStaff: true,
-            },
-          });
-
-          const isQueueOpen = queue.queueStaff.length > 0 && !queue.isDisabled;
-          if (question.closedAt || !isQueueOpen) {
-            alert.resolved = new Date();
-            await alert.save();
-          } else {
-            nonStaleAlerts.push(
-              pick(alert, ['sent', 'alertType', 'payload', 'id']),
-            );
-          }
-          break;
-        case AlertType.EVENT_ENDED_CHECKOUT_STAFF:
-          nonStaleAlerts.push(
-            pick(alert, ['sent', 'alertType', 'payload', 'id']),
-          );
-          break;
-        case AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE:
-          nonStaleAlerts.push(
-            pick(alert, ['sent', 'alertType', 'payload', 'id']),
-          );
-      }
-    }
-
-    return nonStaleAlerts;
-  }
+  constructor() {}
 
   assertPayloadType(alertType: AlertType, payload: AlertPayload): boolean {
-    switch (alertType) {
-      case AlertType.REPHRASE_QUESTION:
-        const castPayload = payload as RephraseQuestionPayload;
+    const PayloadClass = ALERT_PAYLOAD_CLASS[alertType];
+    if (!PayloadClass) return true; // no specific payload class (e.g. EVENT_ENDED_CHECKOUT_STAFF), allow it
 
-        return (
-          !!castPayload.courseId &&
-          !!castPayload.questionId &&
-          !!castPayload.queueId &&
-          typeof castPayload.courseId === 'number' &&
-          typeof castPayload.questionId === 'number' &&
-          typeof castPayload.queueId === 'number'
-        );
-
-      case AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE:
-        const promptPayload = payload as PromptStudentToLeaveQueuePayload;
-        return (
-          !!promptPayload.queueId &&
-          typeof promptPayload.queueId === 'number' &&
-          (promptPayload.queueQuestionId === undefined ||
-            typeof promptPayload.queueQuestionId === 'number')
-        );
-
-      default:
-        return true;
-    }
+    const instance = plainToClass(PayloadClass, payload);
+    const errors = validateSync(instance);
+    return errors.length === 0;
   }
 
   async getUnresolvedRephraseQuestionAlert(
@@ -96,11 +61,174 @@ export class AlertsService {
       ? manager.getRepository(AlertModel).createQueryBuilder('alert')
       : AlertModel.createQueryBuilder('alert');
     return await alertQueryBuilder
-      .where('alert.resolved IS NULL')
+      .where('alert.readAt IS NULL')
       .andWhere('alert.alertType = :alertType', { alertType })
       .andWhere("(alert.payload ->> 'queueId')::INTEGER = :queueId ", {
         queueId,
       })
       .getMany();
+  }
+
+  /* 
+    MODAL alerts
+		- ALL unread alerts (limit 20 since when would you ever have more than like 2 tbh. If you are ever getting more than that, then you're probably being spammed)
+		- When given no courseId: Fetch alerts ONLY with null courseId
+		- When given courseId: Fetch alerts with both null courseId and the courseId
+    */
+  async getModalAlerts(
+    userId: number,
+    manager: EntityManager,
+    courseId?: number,
+  ): Promise<AlertModel[]> {
+    const qb = manager
+      .createQueryBuilder(AlertModel, 'alert')
+      .where('alert.userId = :userId', { userId })
+      .andWhere('alert.deliveryMode = :mode', { mode: AlertDeliveryMode.MODAL })
+      .andWhere('alert.readAt IS NULL');
+
+    if (courseId && courseId > 0) {
+      qb.andWhere(
+        new Brackets((tempQb) => {
+          tempQb
+            .where('alert.courseId = :courseId', { courseId })
+            .orWhere('alert.courseId IS NULL');
+        }),
+      );
+    } else {
+      qb.andWhere('alert.courseId IS NULL');
+    }
+
+    return qb.take(20).orderBy('alert.sentAt', 'DESC').getMany();
+  }
+
+  /*
+    FEED alerts
+		- When given no courseId: Fetch alerts across ALL courses (or null courseId)
+		- When given courseId: Fetch alerts with both null courseId and the courseId (same as modal alerts)
+    */
+  async getFeedAlerts(
+    userId: number,
+    manager: EntityManager,
+    limit: number,
+    offset: number,
+    status: 'unread' | 'dismissed' | 'all',
+    courseId?: number,
+  ): Promise<[AlertModel[], number]> {
+    const qb = manager
+      .createQueryBuilder(AlertModel, 'alert')
+      .leftJoinAndSelect(
+        // only joining to get course name for FEED alerts (to show what course the alert is from when on /courses page) since it's not needed for MODAL ones
+        'alert.course',
+        'course',
+      )
+      .where('alert.userId = :userId', { userId })
+      .andWhere('alert.deliveryMode = :mode', { mode: AlertDeliveryMode.FEED });
+
+    if (status === 'unread') {
+      qb.andWhere('alert.readAt IS NULL');
+    } else if (status === 'dismissed') {
+      qb.andWhere('alert.readAt IS NOT NULL');
+    }
+
+    if (courseId && courseId > 0) {
+      qb.andWhere(
+        new Brackets((tempQb) => {
+          tempQb
+            .where('alert.courseId = :courseId', { courseId })
+            .orWhere('alert.courseId IS NULL');
+        }),
+      );
+    } // if no courseId, get alerts across ALL courses or null
+
+    return await qb
+      .orderBy('alert.readAt', 'DESC', 'NULLS FIRST')
+      .addOrderBy('alert.sentAt', 'DESC')
+      .take(Math.min(limit, 300))
+      .skip(offset)
+      .getManyAndCount();
+  }
+
+  /* 
+    TOAST alerts
+    - ALL unread alerts (limit 20)
+    - Ignore courseId, always fetch all of them
+    */
+  async getToastAlerts(
+    userId: number,
+    manager: EntityManager,
+  ): Promise<AlertModel[]> {
+    const qb = manager
+      .createQueryBuilder(AlertModel, 'alert')
+      .leftJoinAndSelect(
+        'alert.course', // joining to get course.name for formatAlertForFrontend
+        'course',
+      )
+      .where('alert.userId = :userId', { userId })
+      .andWhere('alert.deliveryMode = :mode', { mode: AlertDeliveryMode.TOAST })
+      .andWhere('alert.readAt IS NULL');
+
+    return qb.take(60).orderBy('alert.sentAt', 'ASC').getMany();
+  }
+
+  async getTargetUserIds(
+    target: AdminNoticeTarget,
+    manager: EntityManager,
+  ): Promise<number[]> {
+    let targetUserIds: number[] = [];
+
+    if (!target) {
+      // No target specified -> send to ALL users
+      const users = await manager
+        .createQueryBuilder()
+        .select('user.id', 'id')
+        .from(UserModel, 'user')
+        .getRawMany<{ id: number }>();
+      targetUserIds = users.map((u) => u.id);
+    } else if (target.userId) {
+      // Target a specific user (first verify they exist)
+      await manager
+        .findOneByOrFail(UserModel, {
+          id: target.userId,
+        })
+        .catch(() => {
+          throw new NotFoundException(
+            `User with id ${target.userId} not found`,
+          );
+        });
+      targetUserIds = [target.userId];
+    } else if (target.orgId) {
+      // Target all users in an organization, optionally filtered by role
+      const qb = manager
+        .createQueryBuilder()
+        .select('ou."userId"', 'id')
+        .from(OrganizationUserModel, 'ou')
+        .where('ou."organizationId" = :orgId', {
+          orgId: target.orgId,
+        });
+
+      if (target.orgRole) {
+        qb.andWhere('ou.role = :role', { role: target.orgRole });
+      }
+
+      const users = await qb.getRawMany<{ id: number }>();
+      targetUserIds = users.map((u) => u.id);
+    } else if (target.courseId) {
+      // Target all users in a course, optionally filtered by role
+      const qb = manager
+        .createQueryBuilder()
+        .select('ucm."userId"', 'id')
+        .from(UserCourseModel, 'ucm')
+        .where('ucm."courseId" = :courseId', {
+          courseId: target.courseId,
+        });
+
+      if (target.courseRole) {
+        qb.andWhere('ucm.role = :role', { role: target.courseRole });
+      }
+
+      const users = await qb.getRawMany<{ id: number }>();
+      targetUserIds = users.map((u) => u.id);
+    }
+    return targetUserIds;
   }
 }

@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/app/utils/generalUtils'
 import { Image } from 'antd'
+import { Newspaper } from 'lucide-react'
 
 const items = [
   {
@@ -33,6 +34,12 @@ const items = [
     label: 'Cron Jobs',
     icon: <ClockCircleOutlined />,
     url: '/admin/cron-jobs',
+  },
+  {
+    key: 'create-alert',
+    label: 'Create Notice',
+    icon: <Newspaper />,
+    url: '/admin/create-alerts',
   },
 ]
 

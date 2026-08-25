@@ -9,9 +9,11 @@ import {
   AlertType,
   asyncQuestionStatus,
   ClosedQuestionStatus,
+  PromptStudentToLeaveQueuePayload,
 } from '@koh/common'
 import { QuestionCircleOutlined } from '@ant-design/icons'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
+import { useAlerts } from '@/app/contexts/AlertsContext'
 
 interface FormValues {
   QuestionAbstract: string
@@ -50,6 +52,8 @@ const ConvertQueueQToAnytimeQModal: React.FC<
   const [isGeneratingAbstract, setIsGeneratingAbstract] = useState(false)
   // Get both anytime question tags and queue tags.
   const [anytimeQuestionTypes] = useQuestionTypes(courseId, null)
+
+  const { modalAlerts, markAlertRead } = useAlerts()
 
   const fallbackGenerateAbstract = (question: string) => {
     const words = question.split(' ').slice(0, 8)
@@ -172,14 +176,14 @@ const ConvertQueueQToAnytimeQModal: React.FC<
 
       try {
         if (queueId) {
-          const alerts = await API.alerts.get(courseId)
-          const queueAlert = alerts.alerts?.find(
+          const queueAlert = modalAlerts.find(
             (alert) =>
               alert.alertType === AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE &&
-              (alert.payload as any)?.queueId === queueId,
+              (alert.payload as PromptStudentToLeaveQueuePayload).queueId ===
+                queueId,
           )
           if (queueAlert) {
-            await API.alerts.close(queueAlert.id)
+            await markAlertRead(queueAlert.id)
           }
         }
       } catch (alertError) {

@@ -4,6 +4,8 @@ import {
   AlertType,
   Role,
   ClosedQuestionStatus,
+  RephraseQuestionPayload,
+  AlertDeliveryMode,
 } from '@koh/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
@@ -183,18 +185,19 @@ describe('QueueStaffService', () => {
       const openAlert = await AlertFactory.create({
         user: openQuestion.creator,
         course: queue.course,
+        deliveryMode: AlertDeliveryMode.MODAL,
         payload: {
           questionId: openQuestion.id,
           queueId: queue.id,
           courseId: queue.course.id,
-        },
+        } satisfies RephraseQuestionPayload,
       });
-      expect(openAlert.resolved).toBeNull();
+      expect(openAlert.readAt).toBeNull();
 
       await service.cleanQueue(queue.id);
 
       await openAlert.reload();
-      expect(openAlert.resolved).not.toBeNull();
+      expect(openAlert.readAt).not.toBeNull();
     });
   });
 
@@ -361,6 +364,7 @@ describe('QueueStaffService', () => {
       await AlertFactory.create({
         user: student,
         course: queue.course,
+        deliveryMode: AlertDeliveryMode.MODAL,
         alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
         payload: { queueId: queue.id },
       });
@@ -412,7 +416,7 @@ describe('QueueStaffService', () => {
         payload: { queueId: queue.id },
       });
       // ensure alert is unresolved
-      await AlertModel.update(alert.id, { resolved: null });
+      await AlertModel.update(alert.id, { readAt: null });
 
       await service.autoLeaveQueue(
         student.id,
@@ -424,7 +428,7 @@ describe('QueueStaffService', () => {
       await alert.reload();
       await question.reload();
 
-      expect(alert.resolved).not.toBeNull();
+      expect(alert.readAt).not.toBeNull();
       expect(question.status).toEqual(ClosedQuestionStatus.LeftDueToNoStaff);
 
       expect(schedulerRegistry.deleteCronJob).toHaveBeenCalledWith(
@@ -442,7 +446,7 @@ describe('QueueStaffService', () => {
         payload: { queueId: queue.id },
       });
       // ensure alert IS resolved (User clicked 'Stay')
-      await AlertModel.update(alert.id, { resolved: new Date() });
+      await AlertModel.update(alert.id, { readAt: new Date() });
 
       await service.autoLeaveQueue(
         student.id,

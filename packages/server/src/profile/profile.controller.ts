@@ -44,7 +44,7 @@ export class ProfileController {
     private redisProfileService: RedisProfileService,
   ) {}
 
-  // Don't throttle this endpoint since the middleware calls this for every page (and if it prefetches like 30 pages, it will hit the throttle limit and can cause issue for the user)
+  // Don't throttle this endpoint since the proxy.ts calls this for every page (and if it prefetches like 30 pages, it will hit the throttle limit and can cause issue for the user)
   @SkipThrottle()
   @Get()
   @UseGuards(JwtAuthGuard)

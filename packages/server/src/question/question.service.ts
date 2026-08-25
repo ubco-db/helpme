@@ -1,4 +1,5 @@
 import {
+  AlertType,
   ClosedQuestionStatus,
   ERROR_MESSAGES,
   LimboQuestionStatus,
@@ -33,6 +34,7 @@ import { RedisQueueService } from '../redisQueue/redis-queue.service';
 import { QueueChatService } from 'queueChats/queue-chats.service';
 import { QueueSSEService } from 'queue/queue-sse.service';
 import * as Sentry from '@sentry/nestjs';
+import { AlertModel } from 'alerts/alerts.entity';
 @Injectable()
 export class QuestionService {
   constructor(
@@ -153,6 +155,26 @@ export class QuestionService {
       else question.groupId = null;
     }
 
+    // Remove any RephraseQuestion alerts
+    if (newStatus in ClosedQuestionStatus) {
+      const rephraseAlerts = await AlertModel.createQueryBuilder()
+        .where('"alertType" = :alertType', {
+          alertType: AlertType.REPHRASE_QUESTION,
+        })
+        .andWhere('"readAt" IS NULL')
+        .andWhere('payload @> :payload', {
+          payload: {
+            questionId: question.id,
+          },
+        })
+        .getMany();
+
+      for (const alert of rephraseAlerts) {
+        alert.readAt = now;
+        await alert.save();
+      }
+    }
+
     // For Queue Chats
     try {
       if (isResolving) {
@@ -235,13 +257,15 @@ export class QuestionService {
     const jsonConfig = queue.config;
     if (!jsonConfig) {
       throw new BadRequestException(
-        ERROR_MESSAGES.questionController.studentTaskProgress.configDoesNotExist,
+        ERROR_MESSAGES.questionController.studentTaskProgress
+          .configDoesNotExist,
       );
     }
     const assignmentName = jsonConfig.assignment_id;
     if (!assignmentName) {
       throw new BadRequestException(
-        ERROR_MESSAGES.questionController.studentTaskProgress.assignmentDoesNotExist,
+        ERROR_MESSAGES.questionController.studentTaskProgress
+          .assignmentDoesNotExist,
       );
     }
 
@@ -348,13 +372,15 @@ export class QuestionService {
       const configTasks = queue.config?.tasks;
       if (!configTasks) {
         throw new BadRequestException(
-          ERROR_MESSAGES.questionController.studentTaskProgress.configDoesNotExist,
+          ERROR_MESSAGES.questionController.studentTaskProgress
+            .configDoesNotExist,
         );
       }
       for (const task of tasks) {
         if (!configTasks.hasOwnProperty(task)) {
           throw new BadRequestException(
-            ERROR_MESSAGES.questionController.studentTaskProgress.taskNotInConfig,
+            ERROR_MESSAGES.questionController.studentTaskProgress
+              .taskNotInConfig,
           );
         }
       }

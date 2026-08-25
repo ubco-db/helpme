@@ -1,4 +1,5 @@
 import { API } from '@/app/api'
+import { useUserInfo } from '@/app/contexts/userContext'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import {
   GetOrganizationResponse,
@@ -17,12 +18,19 @@ const DeleteCourse: React.FC<DeleteCourseProps> = ({
   organization,
 }) => {
   const router = useRouter()
+  const { setUserInfo } = useUserInfo()
 
   const handleDelete = async () => {
     await API.organizations
       .deleteCourse(organization.id, Number(courseData.courseId))
       .then(() => {
         message.success('Course deleted')
+        setUserInfo((prev) => ({
+          ...prev,
+          courses: prev.courses.filter(
+            (uc) => uc.course.id !== courseData.courseId,
+          ),
+        }))
         router.push('/courses')
       })
       .catch((error) => {

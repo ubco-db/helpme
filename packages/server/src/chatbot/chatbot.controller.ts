@@ -6,7 +6,6 @@ import {
   Get,
   HttpException,
   HttpStatus,
-  InternalServerErrorException,
   NotFoundException,
   Param,
   ParseIntPipe,
@@ -14,11 +13,15 @@ import {
   Post,
   Req,
   Res,
+  ServiceUnavailableException,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ChatbotService } from './chatbot.service';
+import {
+  ChatbotService,
+  buildChatbotDocumentUploadPipe,
+} from './chatbot.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { EmailVerifiedGuard } from 'guards/email-verified.guard';
 import {
@@ -59,6 +62,7 @@ import {
   UpdateDocumentChunkParams,
   UpdateLLMTypeBody,
   UpsertCourseChatbotSettings,
+  UploadChatbotDocumentRequest,
 } from '@koh/common';
 import { CourseRolesGuard } from 'guards/course-roles.guard';
 import { Roles } from 'decorators/roles.decorator';
@@ -68,10 +72,8 @@ import { UserModel } from '../profile/user.entity';
 import { User, UserId } from '../decorators/user.decorator';
 import * as Sentry from '@sentry/nestjs';
 import { CourseRolesConditionalBypassGuard } from 'guards/course-roles-conditional-bypass.guard';
-import { LibreOffice, MarkdownConverter } from 'chromiumly';
 import { CourseModel } from 'course/course.entity';
 import { SuperCourseModel } from 'course/super-course.entity';
-import { generateHTMLForMarkdownToPDF } from './markdown-to-pdf-styles';
 import { ChatbotDocPdfModel } from './chatbot-doc-pdf.entity';
 import { Request, Response } from 'express';
 import { OrganizationRolesGuard } from '../guards/organization-roles.guard';
@@ -90,6 +92,16 @@ import {
   IgnoreableClassSerializerInterceptor,
   IgnoreSerializer,
 } from '../interceptors/IgnoreableClassSerializerInterceptor';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import * as checkDiskSpaceModule from 'check-disk-space';
+import * as fs from 'fs';
+import * as path from 'path';
+import { ChatbotDocumentUploadJobData } from './chatbot-document-upload.consumer';
+import { memoryStorage } from 'multer';
+
+const checkDiskSpace =
+  (checkDiskSpaceModule as any).default || checkDiskSpaceModule;
 
 @Controller('chatbot')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -98,6 +110,8 @@ export class ChatbotController {
   constructor(
     private readonly chatbotService: ChatbotService,
     private readonly chatbotApiService: ChatbotApiService,
+    @InjectQueue('chatbot-document-upload')
+    private readonly documentUploadQueue: Queue<ChatbotDocumentUploadJobData>,
   ) {}
 
   //
@@ -667,17 +681,20 @@ export class ChatbotController {
   @Roles(Role.PROFESSOR, Role.TA)
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: {
-        fileSize: 1024 * 1024 * 80, // 80MB
-      },
+      storage: memoryStorage(),
     }),
   )
   async uploadDocument(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @UploadedFile() file: Express.Multer.File,
-    @Body() { parseAsPng }: { parseAsPng: boolean | string },
+    @UploadedFile(buildChatbotDocumentUploadPipe())
+    file: Express.Multer.File,
+    @Body()
+    body: UploadChatbotDocumentRequest,
     @User({ chat_token: true }) user: UserModel,
+    @Res({ passthrough: true }) res: Response,
   ) {
+    const { uploadId } = body;
+    let { parseAsPng } = body;
     handleChatbotTokenCheck(user);
     if (!file) {
       throw new BadRequestException('No file uploaded');
@@ -697,10 +714,66 @@ export class ChatbotController {
       }
     }
 
-    if (parseAsPng === 'true') {
-      parseAsPng = true;
-    } else {
-      parseAsPng = false;
+    // Check server disk space (same pattern as profile.service.ts)
+    const serverSpaceLeft = await checkDiskSpace(
+      path.parse(process.cwd()).root,
+    );
+    if (serverSpaceLeft.free < 1_000_000_000) {
+      const err = new ServiceUnavailableException(
+        ERROR_MESSAGES.common.noDiskSpace,
+      );
+      Sentry.captureException(err, {
+        extra: {
+          freeSpace: serverSpaceLeft.free,
+          location: 'server root',
+        },
+      });
+      throw err;
+    }
+
+    // Check temp upload directory disk space (max 4GB of temp files allowed)
+    const tempUploadDir = path.resolve(
+      process.env.UPLOAD_LOCATION,
+      'temp_chatbot_uploads',
+    );
+    // Ensure the temp upload directory exists
+    if (!fs.existsSync(tempUploadDir)) {
+      fs.mkdirSync(tempUploadDir, { recursive: true });
+    }
+    const tempSpaceLeft = await checkDiskSpace(tempUploadDir);
+    if (tempSpaceLeft.free < 1_000_000_000) {
+      const err = new ServiceUnavailableException(
+        'Not enough disk space available for temporary file uploads',
+      );
+      Sentry.captureException(err, {
+        extra: {
+          freeSpace: tempSpaceLeft.free,
+          location: tempUploadDir,
+        },
+      });
+      throw err;
+    }
+
+    // Also check if the temp directory itself has exceeded the 4GB cap
+    const dirFiles = fs.readdirSync(tempUploadDir);
+    let totalSize = 0;
+    for (const f of dirFiles) {
+      const stats = fs.statSync(path.join(tempUploadDir, f));
+      totalSize += stats.size;
+    }
+    const MAX_TEMP_DIR_SIZE = 4 * 1024 * 1024 * 1024; // 4GB
+    if (totalSize + file.size > MAX_TEMP_DIR_SIZE) {
+      const err = new ServiceUnavailableException(
+        'Temporary upload directory is full (4GB limit). Please try again later.',
+      );
+      Sentry.captureException(err, {
+        extra: {
+          currentSize: totalSize,
+          fileSize: file.size,
+          maxSize: MAX_TEMP_DIR_SIZE,
+        },
+      });
+      throw err;
     }
 
     // if it's an image, make parseAsPng true
@@ -708,144 +781,34 @@ export class ChatbotController {
       parseAsPng = true;
     }
 
-    // get the course name (for pdf metadata)
-    const course = await CourseModel.findOne({
-      where: { id: courseId },
-    });
+    // Save file to disk
+    const tempFileName = `${user.id}-${Date.now()}-${path
+      .basename(file.originalname)
+      .replace(/[^a-zA-Z0-9._-]/g, '_')
+      .slice(0, 200)}.tempfile`;
+    const tempFilePath = path.join(tempUploadDir, tempFileName);
+    await fs.promises.writeFile(tempFilePath, file.buffer);
 
-    // use Chromiumly to convert all files to pdf (except files that are already pdfs)
-    const startTime = Date.now();
-    console.log(
-      `Starting file conversion for ${file.originalname} (${file.mimetype})`,
-    );
-
-    if (fileExtension === 'pdf') {
-      // if it's already a pdf, don't convert it (also the converter doesn't work for converting pdfs to pdfs for some reason i guess)
-    } else if (
-      fileExtension === 'md' ||
-      fileExtension === 'txt' ||
-      fileExtension === 'csv'
-    ) {
-      // Generate an HTML template for the markdown conversion
-      const htmlTemplate = generateHTMLForMarkdownToPDF({
-        title: file.originalname,
-        author: `${user.firstName} ${user.lastName}`,
-        courseName: course?.name || '',
-        isCsv: fileExtension === 'csv',
-      });
-      // Convert the HTML template string to a Buffer (since that's what .convert wants)
-      const htmlBuffer = Buffer.from(htmlTemplate, 'utf-8');
-
-      // NOTE: Gotenberg's markdown converter is outdated and seems to convert markdown to pdf with weird lists and line breaks. TODO: make an issue on their github for this (use userguide and changelog as evidence)
-      const markdownConverter = new MarkdownConverter();
-      const buffer = await markdownConverter.convert({
-        html: htmlBuffer,
-        markdown: file.buffer,
-        pdfUA: true,
-      });
-      file.buffer = buffer;
-      // if it's a supported file type for libreoffice conversion, use LibreOfficeConverter
-    } else if (
-      supportedFileExtensionsForLibreOfficeConversion.includes(
-        fileExtension as FileExtension,
-      )
-    ) {
-      const buffer = await LibreOffice.convert({
-        files: [{ data: file.buffer, ext: fileExtension as FileExtension }],
-        // All config options here: https://github.com/cherfia/chromiumly
-        pdfUA: true, // enables Universal Access (for improved accessibility)
-        metadata: {
-          title: file.originalname,
-          author: user.firstName + ' ' + user.lastName,
-          creator: 'HelpMe Chatbot System', // Identifies the system as the creator of the pdf file (different from the author)
-          producer: 'Chromiumly/LibreOffice',
-          subject: 'Chatbot Document',
-          keywords: 'course material, ' + course.name,
-          creationDate: new Date().toISOString(), // Add creation timestamp
-        },
-        losslessImageCompression: true,
-        reduceImageResolution: true,
-        maxImageResolution: 150, // apparently 150dpi is good for presentations, with at least 72 being good for web usage
-        flatten: true, // flatten the pdf to remove any annotations
-      });
-      file.buffer = buffer;
-    } else {
-      // if it's not a supported file type for conversion, throw an error
-      throw new BadRequestException(
-        `Unsupported file type: ${file.mimetype}. Supported types include: .pdf, .docx, .pptx, .xlsx, .txt, .md, .csv, and various image formats.`,
-      );
-    }
-
-    const endTime = Date.now();
-    console.log(
-      `${file.originalname} (${file.mimetype}) pdf conversion completed in ${endTime - startTime}ms`,
-    );
-
-    let chatbotDocPdf = new ChatbotDocPdfModel();
-    chatbotDocPdf.docName = file.originalname;
-    chatbotDocPdf.courseId = courseId;
-    chatbotDocPdf.docSizeBytes = file.buffer.length;
-    chatbotDocPdf = await chatbotDocPdf.save(); // so that we have an idHelpMeDB to generate the url
-    const docUrl =
-      '/api/v1/chatbot/document/' + courseId + '/' + chatbotDocPdf.idHelpMeDB;
-    chatbotDocPdf.docData = file.buffer;
-    // Save file to database and upload to chatbot service in parallel with error handling
-    const [savedDocPdf, uploadResult] = await Promise.allSettled([
-      chatbotDocPdf.save(),
-      this.chatbotApiService.uploadDocument(
-        file,
-        docUrl,
+    // Enqueue the job for background processing
+    await this.documentUploadQueue.add(
+      'process-document',
+      {
+        filePath: tempFilePath,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        courseId,
+        userId: user.id,
         parseAsPng,
-        courseId,
-        user.chat_token.token,
-      ),
-    ]);
+        uploadId: uploadId || '',
+      },
+      {
+        removeOnComplete: 100,
+        removeOnFail: 100,
+      },
+    );
 
-    // Check if either promise rejected
-    if (
-      savedDocPdf.status === 'fulfilled' &&
-      uploadResult.status === 'rejected'
-    ) {
-      // If DB save succeeded but upload failed, clean up the DB entry
-      await ChatbotDocPdfModel.remove(savedDocPdf.value);
-      throw uploadResult.reason;
-    } else if (
-      savedDocPdf.status === 'rejected' &&
-      uploadResult.status === 'fulfilled'
-    ) {
-      // If upload succeeded but DB save failed, clean up the uploaded document
-      await this.chatbotApiService.deleteDocument(
-        uploadResult.value.docId,
-        courseId,
-        user.chat_token.token,
-      );
-      throw savedDocPdf.reason;
-    } else if (
-      savedDocPdf.status === 'rejected' &&
-      uploadResult.status === 'rejected'
-    ) {
-      // Both failed, throw combined error (i'm doing a 500 level error since that's usually what would happen if both fail)
-      throw new InternalServerErrorException(
-        `Failed to save document: ${savedDocPdf.reason}.\n Failed to upload: ${uploadResult.reason}`,
-      );
-    } else if (
-      savedDocPdf.status === 'fulfilled' &&
-      uploadResult.status === 'fulfilled'
-    ) {
-      // if both succeed, then save the docId to the database
-      chatbotDocPdf.docIdChatbotDB = uploadResult.value.docId;
-      await chatbotDocPdf.save();
-
-      const endTime2 = Date.now();
-      console.log(
-        `${file.originalname} (${file.mimetype}) upload chatbot service and save in db completed in ${endTime2 - endTime}ms for a total processing time of ${endTime2 - startTime}ms`,
-      );
-      return uploadResult.value;
-    } else {
-      throw new InternalServerErrorException(
-        "Unexpected error. Somehow both the upload and save didn't fulfill nor reject",
-      );
-    }
+    res.status(HttpStatus.ACCEPTED);
+    return { message: 'Document upload queued for processing' };
   }
 
   @Post('document/:courseId/github')
@@ -1348,161 +1311,3 @@ function handleChatbotTokenCheck(user: UserModel) {
     throw new HttpException('User has no chat token', HttpStatus.FORBIDDEN);
   }
 }
-
-const supportedFileExtensionsForLibreOfficeConversion: FileExtension[] = [
-  'doc',
-  'docx',
-  'xls',
-  'xlsx',
-  'ppt',
-  'pptx',
-  'odt',
-  'ods',
-  'odp',
-  'csv',
-  'txt',
-  'png',
-  'jpg',
-  'jpeg',
-  'gif',
-  'tiff',
-  'svg',
-  'pdf',
-  'html',
-  'rtf',
-  'vsd',
-  'vsdx',
-];
-
-// Type definition for LibreOffice file extensions (this is gathered from the Chromiumly package (it doesn't export it for some reason so i had to copy it here))
-type FileExtension =
-  | '123' // omg prettier why this used to be 1 line
-  | '602'
-  | 'abw'
-  | 'bib'
-  | 'bmp'
-  | 'cdr'
-  | 'cgm'
-  | 'cmx'
-  | 'csv'
-  | 'cwk'
-  | 'dbf'
-  | 'dif'
-  | 'doc'
-  | 'docm'
-  | 'docx'
-  | 'dot'
-  | 'dotm'
-  | 'dotx'
-  | 'dxf'
-  | 'emf'
-  | 'eps'
-  | 'epub'
-  | 'fodg'
-  | 'fodp'
-  | 'fods'
-  | 'fodt'
-  | 'fopd'
-  | 'gif'
-  | 'htm'
-  | 'html'
-  | 'hwp'
-  | 'jpeg'
-  | 'jpg'
-  | 'key'
-  | 'ltx'
-  | 'lwp'
-  | 'mcw'
-  | 'met'
-  | 'mml'
-  | 'mw'
-  | 'numbers'
-  | 'odd'
-  | 'odg'
-  | 'odm'
-  | 'odp'
-  | 'ods'
-  | 'odt'
-  | 'otg'
-  | 'oth'
-  | 'otp'
-  | 'ots'
-  | 'ott'
-  | 'pages'
-  | 'pbm'
-  | 'pcd'
-  | 'pct'
-  | 'pcx'
-  | 'pdb'
-  | 'pdf'
-  | 'pgm'
-  | 'png'
-  | 'pot'
-  | 'potm'
-  | 'potx'
-  | 'ppm'
-  | 'pps'
-  | 'ppt'
-  | 'pptm'
-  | 'pptx'
-  | 'psd'
-  | 'psw'
-  | 'pub'
-  | 'pwp'
-  | 'pxl'
-  | 'ras'
-  | 'rtf'
-  | 'sda'
-  | 'sdc'
-  | 'sdd'
-  | 'sdp'
-  | 'sdw'
-  | 'sgl'
-  | 'slk'
-  | 'smf'
-  | 'stc'
-  | 'std'
-  | 'sti'
-  | 'stw'
-  | 'svg'
-  | 'svm'
-  | 'swf'
-  | 'sxc'
-  | 'sxd'
-  | 'sxg'
-  | 'sxi'
-  | 'sxm'
-  | 'sxw'
-  | 'tga'
-  | 'tif'
-  | 'tiff'
-  | 'txt'
-  | 'uof'
-  | 'uop'
-  | 'uos'
-  | 'uot'
-  | 'vdx'
-  | 'vor'
-  | 'vsd'
-  | 'vsdm'
-  | 'vsdx'
-  | 'wb2'
-  | 'wk1'
-  | 'wks'
-  | 'wmf'
-  | 'wpd'
-  | 'wpg'
-  | 'wps'
-  | 'xbm'
-  | 'xhtml'
-  | 'xls'
-  | 'xlsb'
-  | 'xlsm'
-  | 'xlsx'
-  | 'xlt'
-  | 'xltm'
-  | 'xltx'
-  | 'xlw'
-  | 'xml'
-  | 'xpm'
-  | 'zabw';

@@ -61,7 +61,6 @@ ListQuestionsResponse {
     },
   ],
   "questionsGettingHelp": [],
-  "unresolvedAlerts": [],
   "yourQuestions": [
     {
       "closedAt": null,

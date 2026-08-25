@@ -1,10 +1,10 @@
 import { API } from '@/app/api'
 import { message, Modal } from 'antd'
-import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 import { QueuePartial, UserPartial } from '@koh/common'
 import { ExclamationCircleOutlined } from '@ant-design/icons'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { orderBy } from 'lodash'
+import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 
 export async function checkInTA(
   courseId: number,

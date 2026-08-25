@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  ParseFilePipeBuilder,
 } from '@nestjs/common';
 import { InteractionModel } from './interaction.entity';
 import { ChatbotQuestionModel } from './question.entity';
@@ -1373,3 +1374,179 @@ export class ChatbotService {
     return visionModelNames;
   }
 }
+
+export const buildChatbotDocumentUploadPipe = () => {
+  return new ParseFilePipeBuilder()
+    .addFileTypeValidator({
+      // Note that nestjs filetypevalidator comes with mime type and magic number validation build in
+      fileType: [
+        'csv',
+        'txt',
+        'md',
+        ...supportedFileExtensionsForLibreOfficeConversion,
+      ].join('|'),
+    })
+    .addMaxSizeValidator({
+      maxSize: 80 * 1024 * 1024, // 80MB limit per file
+    })
+    .build();
+};
+
+// Type definition for LibreOffice file extensions (this is gathered from the Chromiumly package (it doesn't export it for some reason so i had to copy it here))
+export type LibreOfficeFileExtension =
+  | '123' // omg prettier why this used to be 1 line
+  | '602'
+  | 'abw'
+  | 'bib'
+  | 'bmp'
+  | 'cdr'
+  | 'cgm'
+  | 'cmx'
+  | 'csv'
+  | 'cwk'
+  | 'dbf'
+  | 'dif'
+  | 'doc'
+  | 'docm'
+  | 'docx'
+  | 'dot'
+  | 'dotm'
+  | 'dotx'
+  | 'dxf'
+  | 'emf'
+  | 'eps'
+  | 'epub'
+  | 'fodg'
+  | 'fodp'
+  | 'fods'
+  | 'fodt'
+  | 'fopd'
+  | 'gif'
+  | 'htm'
+  | 'html'
+  | 'hwp'
+  | 'jpeg'
+  | 'jpg'
+  | 'key'
+  | 'ltx'
+  | 'lwp'
+  | 'mcw'
+  | 'met'
+  | 'mml'
+  | 'mw'
+  | 'numbers'
+  | 'odd'
+  | 'odg'
+  | 'odm'
+  | 'odp'
+  | 'ods'
+  | 'odt'
+  | 'otg'
+  | 'oth'
+  | 'otp'
+  | 'ots'
+  | 'ott'
+  | 'pages'
+  | 'pbm'
+  | 'pcd'
+  | 'pct'
+  | 'pcx'
+  | 'pdb'
+  | 'pdf'
+  | 'pgm'
+  | 'png'
+  | 'pot'
+  | 'potm'
+  | 'potx'
+  | 'ppm'
+  | 'pps'
+  | 'ppt'
+  | 'pptm'
+  | 'pptx'
+  | 'psd'
+  | 'psw'
+  | 'pub'
+  | 'pwp'
+  | 'pxl'
+  | 'ras'
+  | 'rtf'
+  | 'sda'
+  | 'sdc'
+  | 'sdd'
+  | 'sdp'
+  | 'sdw'
+  | 'sgl'
+  | 'slk'
+  | 'smf'
+  | 'stc'
+  | 'std'
+  | 'sti'
+  | 'stw'
+  | 'svg'
+  | 'svm'
+  | 'swf'
+  | 'sxc'
+  | 'sxd'
+  | 'sxg'
+  | 'sxi'
+  | 'sxm'
+  | 'sxw'
+  | 'tga'
+  | 'tif'
+  | 'tiff'
+  | 'txt'
+  | 'uof'
+  | 'uop'
+  | 'uos'
+  | 'uot'
+  | 'vdx'
+  | 'vor'
+  | 'vsd'
+  | 'vsdm'
+  | 'vsdx'
+  | 'wb2'
+  | 'wk1'
+  | 'wks'
+  | 'wmf'
+  | 'wpd'
+  | 'wpg'
+  | 'wps'
+  | 'xbm'
+  | 'xhtml'
+  | 'xls'
+  | 'xlsb'
+  | 'xlsm'
+  | 'xlsx'
+  | 'xlt'
+  | 'xltm'
+  | 'xltx'
+  | 'xlw'
+  | 'xml'
+  | 'xpm'
+  | 'zabw';
+
+export const supportedFileExtensionsForLibreOfficeConversion: LibreOfficeFileExtension[] =
+  [
+    'doc',
+    'docx',
+    'xls',
+    'xlsx',
+    'ppt',
+    'pptx',
+    'odt',
+    'ods',
+    'odp',
+    'csv',
+    'txt',
+    'png',
+    'jpg',
+    'jpeg',
+    'gif',
+    'tiff',
+    'svg',
+    'pdf',
+    'html',
+    'rtf',
+    'vsd',
+    'vsdx',
+  ];

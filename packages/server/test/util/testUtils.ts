@@ -11,6 +11,7 @@ import { LoginModule } from '../../src/login/login.module';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { ApplicationConfigModule } from 'config/application_config.module';
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
+import { BullModule } from '@nestjs/bullmq';
 import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { MailService } from 'mail/mail.service';
 import { Redis } from 'ioredis';
@@ -151,6 +152,12 @@ export function setupIntegrationTest(
               namespace: 'pub',
             },
           ],
+        }),
+        BullModule.forRoot({
+          connection: {
+            host: redisHost,
+            port: redisPort,
+          },
         }),
       ],
       providers: [

@@ -112,7 +112,6 @@ describe('QueueService', () => {
         questionsGettingHelp: ['Helping', 'Paused'],
         questions: ['Queued', 'Drafting', 'ReQueueing'],
         groups: [],
-        unresolvedAlerts: [],
       });
     });
 

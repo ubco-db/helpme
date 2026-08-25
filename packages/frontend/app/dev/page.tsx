@@ -1,8 +1,8 @@
 'use client'
 
 import { isProd } from '@koh/common'
-import { Button, Divider } from 'antd'
-import DefaultErrorPage from 'next/error'
+import { Button, Divider, Tooltip } from 'antd'
+import { notFound } from 'next/navigation'
 import React, { ReactElement } from 'react'
 import { message } from 'antd'
 import { getErrorMessage } from '../utils/generalUtils'
@@ -11,7 +11,7 @@ import { API } from '../api'
 export default function DevPanel(): ReactElement {
   if (isProd()) {
     // shouldn't be needed due to the redirect in layout.tsx but just in case
-    return <DefaultErrorPage statusCode={404} />
+    notFound()
   }
   return (
     <div className="mt-10 flex flex-col items-center justify-center gap-y-10">
@@ -99,6 +99,27 @@ export default function DevPanel(): ReactElement {
           >
             Generate 100 Anytime Questions
           </Button>
+          <Tooltip title="Note that 'Seed Data' already does this .">
+            <Button
+              style={{ marginRight: '15px' }}
+              type="default"
+              onClick={() => {
+                API.seeds
+                  .createMailServices()
+                  .then((msg) => {
+                    message.success(msg)
+                  })
+                  .catch((error) => {
+                    const errorMessage = getErrorMessage(error)
+                    message.error(
+                      `Error occurred while creating mail services: ${errorMessage}`,
+                    )
+                  })
+              }}
+            >
+              Create Mail Services & Populate mail subscriptions
+            </Button>
+          </Tooltip>
         </div>
       </div>
     </div>

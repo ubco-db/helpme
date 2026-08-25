@@ -234,7 +234,7 @@ export default function ChatbotSettings(
       <AddChatbotDocumentModal
         open={addDocumentModalOpen}
         courseId={courseId}
-        onClose={() => setAddDocumentModalOpen(false)}
+        setModalOpen={setAddDocumentModalOpen}
         getDocuments={getDocuments}
       />
       <div className="flex w-full items-center justify-between">

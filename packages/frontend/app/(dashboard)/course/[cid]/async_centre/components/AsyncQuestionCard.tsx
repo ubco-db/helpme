@@ -1,10 +1,13 @@
-import { useEffect, useReducer, useState } from 'react'
+import { useEffect, useEffectEvent, useReducer, useState } from 'react'
 import { Button, Col, message, Row, Tag, Tooltip } from 'antd'
 import {
   AsyncQuestion,
   asyncQuestionStatus,
+  asyncQuestionStatusDisplayMap as statusDisplayMap,
   parseThinkBlock,
   Role,
+  ANONYMOUS_ANIMAL_AVATAR,
+  getAnonAnimal,
 } from '@koh/common'
 import {
   CheckCircleOutlined,
@@ -23,25 +26,13 @@ import StudentAsyncQuestionCardButtons from './StudentAsyncQuestionCardButtons'
 import { ArrowBigDown, ArrowBigUp } from 'lucide-react'
 import MarkdownCustom from '@/app/components/Markdown'
 import CommentSection from './CommentSection'
-import { getAnonAnimal, getAvatarTooltip } from '../utils/commonAsyncFunctions'
-import { ANONYMOUS_ANIMAL_AVATAR } from '@/app/utils/constants'
+import { getAvatarTooltip } from '../utils/commonAsyncFunctions'
 import styles from './AsyncQuestionCard.module.css'
 import {
   AsyncQuestionCardUIReducer,
   initialUIState,
 } from './AsyncQuestionCardUIReducer'
 import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
-
-const statusDisplayMap = {
-  // if the question has no answer text, it will say "awaiting answer"
-  [asyncQuestionStatus.AIAnsweredNeedsAttention]:
-    'AI Answered, Needs Attention',
-  [asyncQuestionStatus.AIAnsweredResolved]: 'AI Answered, Resolved',
-  [asyncQuestionStatus.HumanAnswered]: 'Human Verified',
-  [asyncQuestionStatus.AIAnswered]: 'Answered by AI',
-  [asyncQuestionStatus.TADeleted]: 'Deleted by TA',
-  [asyncQuestionStatus.StudentDeleted]: 'Deleted by Student',
-}
 
 interface AsyncQuestionCardProps {
   question: AsyncQuestion
@@ -50,6 +41,8 @@ interface AsyncQuestionCardProps {
   courseId: number
   mutateAsyncQuestions: () => void
   showStudents: boolean
+  highlightCommentId?: number
+  className?: string
 }
 
 const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
@@ -59,6 +52,8 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   courseId,
   mutateAsyncQuestions,
   showStudents,
+  highlightCommentId,
+  className,
 }) => {
   const [uiState, dispatch] = useReducer(
     AsyncQuestionCardUIReducer,
@@ -81,6 +76,33 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
       dispatch({ type: 'EXPAND_QUESTION' })
     }
   }, [shouldFlash])
+
+  // When there's a highlightCommentId that belongs to this question, expand the card and scroll to the comment.
+  // We want the useEffect to react to highlightCommentId, but not the rest of it (like we don't want the useEffect to re-run every time the question's comments change).
+  const handleHighlightComment = useEffectEvent(
+    (highlightCommentId: number) => {
+      if (
+        question.comments?.find((comment) => comment.id === highlightCommentId)
+      ) {
+        dispatch({
+          type: 'SHOW_COMMENTS',
+          numOfComments: question.comments.length,
+        })
+        // find the comment elment and scroll to it after the comments are shown
+        setTimeout(() => {
+          const element = document.getElementById(
+            `async-question-comment-${highlightCommentId}`,
+          )
+          element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 300)
+      }
+    },
+  )
+  useEffect(() => {
+    if (highlightCommentId) {
+      handleHighlightComment(highlightCommentId)
+    }
+  }, [highlightCommentId])
 
   const isStaff =
     userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
@@ -175,6 +197,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
 
   return (
     <div
+      id={`async-question-${question.id}`}
       className={cn(
         'mb-2 mt-2 flex flex-col rounded-lg bg-white px-2 pt-2 shadow-lg',
         isStaff &&
@@ -183,6 +206,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
             !question.answerText)
           ? 'outline outline-1 outline-offset-1 outline-yellow-500'
           : '',
+        className,
       )}
       onClick={toggleExpandQuestion}
     >
@@ -371,6 +395,15 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
             </div>
             <div className="flex-grow">
               <h4 className="font-bold">{question.questionAbstract}</h4>
+              <div className="flex flex-wrap">
+                {question.questionTypes?.map((questionType, index) => (
+                  <QuestionTagElement
+                    key={index}
+                    tagName={questionType.name}
+                    tagColor={questionType.color}
+                  />
+                ))}
+              </div>
               {/* When not expanded, show only 1 line of the questionText */}
               <div
                 className={cn(
@@ -430,16 +463,8 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                   courseFeatures?.asyncCentreDefaultAnonymous ?? true
                 }
                 mutateAsyncQuestions={mutateAsyncQuestions}
+                highlightCommentId={highlightCommentId}
               />
-            </div>
-            <div className="flex flex-wrap">
-              {question.questionTypes?.map((questionType, index) => (
-                <QuestionTagElement
-                  key={index}
-                  tagName={questionType.name}
-                  tagColor={questionType.color}
-                />
-              ))}
             </div>
           </div>
           {question.status === asyncQuestionStatus.AIAnswered &&

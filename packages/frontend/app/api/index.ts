@@ -42,7 +42,7 @@ import {
   AssignmentFeedbackRequest,
   AssignmentFeedbackResponse,
   ExtraTAStatus,
-  GetAlertsResponse,
+  AlertDeliveryMode,
   GetAsyncQuestionsResponse,
   GetAvailableModelsBody,
   GetChatbotHistoryResponse,
@@ -141,15 +141,31 @@ import {
   GetProfInviteResponse,
   ValidateEmailTokenRequest,
   ValidateEmailTokenResponse,
+  GetPageOfFeedAlerts,
+  GetInitialAlertsResponse,
+  Alert,
+  CreateAlertAdminRequest,
+  GetAdminNoticeAlert,
+  CreateAlertAdminResponse,
+  DeleteAdminNoticeRequest,
+  DeleteAdminNoticeResponse,
+  isProd,
+  UploadChatbotDocumentRequest,
+  UserCourse,
 } from '@koh/common'
-import Axios, { AxiosError, AxiosInstance, AxiosResponse, Method } from 'axios'
-import { plainToClass } from 'class-transformer'
-import { ClassType } from 'class-transformer/ClassTransformer'
+import Axios, {
+  AxiosError,
+  AxiosInstance,
+  AxiosResponse,
+  Method,
+  AxiosProgressEvent,
+} from 'axios'
+import { ClassConstructor, plainToInstance } from 'class-transformer'
 import * as Sentry from '@sentry/nextjs'
 import { SetStateAction } from 'react'
-import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import { GetOrganizationUsersPaginatedResponse } from '@koh/common'
+import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 
 // Return type of array item, if T is an array
 type ItemIfArray<T> = T extends (infer I)[] ? I : T
@@ -171,27 +187,37 @@ export class APIClient {
    * @param responseClass Class with class-transformer decorators to deserialize response to
    * @param body body to send with req
    * @param params any query parameters to include in req URL
+   * @param onUploadProgress callback function to handle upload progress
    */
   private async req<T>(
     method: Method,
     url: string,
-    responseClass?: ClassType<ItemIfArray<T>>,
+    responseClass?: ClassConstructor<ItemIfArray<T>>,
     body?: any,
     params?: any,
+    onUploadProgress?: (progressEvent: AxiosProgressEvent) => void,
   ): Promise<T>
   private async req<T>(
     method: Method,
     url: string,
-    responseClass?: ClassType<T>,
+    responseClass?: ClassConstructor<T>,
     body?: any,
     params?: any,
+    onUploadProgress?: (progressEvent: AxiosProgressEvent) => void,
   ): Promise<T> {
     const headers = this.authToken ? { cookie: this.authToken } : undefined
     const res = (
-      await this.axios.request({ method, url, data: body, params, headers })
+      await this.axios.request({
+        method,
+        url,
+        data: body,
+        params,
+        headers,
+        onUploadProgress,
+      })
     ).data
     return responseClass
-      ? plainToClass(responseClass, res, {
+      ? plainToInstance(responseClass, res, {
           enableImplicitConversion: true, // needed otherwise dates won't be deserialized (converted from string to date object)
         })
       : res
@@ -258,13 +284,21 @@ export class APIClient {
       const response = await this.profile.fullResponse()
       const contentType = response.headers['content-type'] ?? ''
 
-      if (contentType.includes('application/json')) {
+      if (
+        typeof contentType !== 'number' &&
+        typeof contentType !== 'boolean' &&
+        contentType.includes('application/json')
+      ) {
         if (response.status >= 400) {
           const body = response.data
           return Promise.reject(body)
         }
         return response.data as any // Type assertion needed due to conditional return type
-      } else if (contentType.includes('text/html')) {
+      } else if (
+        typeof contentType !== 'number' &&
+        typeof contentType !== 'boolean' &&
+        contentType.includes('text/html')
+      ) {
         const text = response.data as string
         Sentry.captureEvent({
           message: `Unknown error in getUser ${response.status}: ${response.statusText}`,
@@ -420,14 +454,25 @@ export class APIClient {
         this.req('DELETE', `/api/v1/chatbot/document/${courseId}/${docId}`),
       uploadDocument: async (
         courseId: number,
-        body: FormData,
-      ): Promise<{ success: boolean; documentId?: string }> =>
-        this.req(
+        file: File,
+        restOfBody: UploadChatbotDocumentRequest,
+        onUploadProgress?: (progressEvent: AxiosProgressEvent) => void,
+      ): Promise<void> => {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('parseAsPng', String(restOfBody.parseAsPng))
+        if (restOfBody.uploadId) {
+          formData.append('uploadId', restOfBody.uploadId)
+        }
+        return this.req(
           'POST',
           `/api/v1/chatbot/document/${courseId}/upload`,
           undefined,
-          body,
-        ),
+          formData,
+          undefined,
+          onUploadProgress,
+        )
+      },
       addDocumentFromGithub: async (
         courseId: number,
         url: string,
@@ -754,7 +799,10 @@ export class APIClient {
           notes,
         },
       ),
-    createClone: async (courseId: number, toClone: CourseCloneAttributes) => {
+    createClone: async (
+      courseId: number,
+      toClone: CourseCloneAttributes,
+    ): Promise<UserCourse | null> => {
       return this.req(
         'POST',
         `/api/v1/courses/${courseId}/clone_course`,
@@ -790,7 +838,8 @@ export class APIClient {
     accept: async (
       piid: number,
       body: AcceptProfInviteParams,
-    ): Promise<string> => // returns the url to redirect to
+    ): Promise<string> =>
+      // returns the url to redirect to
       this.req('POST', `/api/v1/prof_invites/accept/${piid}`, undefined, body),
     getDetails: async (piid: number): Promise<GetProfInviteDetailsResponse> =>
       this.req('GET', `/api/v1/prof_invites/details/${piid}`),
@@ -1001,7 +1050,10 @@ export class APIClient {
       ),
     getAllQuestions: async (cid: number): Promise<questions[]> =>
       this.req('GET', `/api/v1/questions/allQuestions/${cid}`, undefined),
-    update: async (questionId: number, params: UpdateQuestionParams) =>
+    update: async (
+      questionId: number,
+      params: UpdateQuestionParams,
+    ): Promise<UpdateQuestionResponse> =>
       this.req(
         'PATCH',
         `/api/v1/questions/${questionId}`,
@@ -1184,6 +1236,8 @@ export class APIClient {
     fillQueue: async () => this.req('GET', `/api/v1/seeds/fill_queue`),
     fillAnytimeQuestions: async () =>
       this.req('GET', `/api/v1/seeds/fill_anytime_questions`),
+    createMailServices: async (): Promise<string> =>
+      this.req('POST', `/api/v1/seeds/mail-services`),
   }
   semesters = {
     get: async (oid: number): Promise<SemesterPartial[]> =>
@@ -1260,12 +1314,73 @@ export class APIClient {
   }
 
   alerts = {
-    get: async (courseId: number): Promise<GetAlertsResponse> =>
-      this.req('GET', `/api/v1/alerts/${courseId}`),
+    // Note that there's also a GET /sse endpoint, but that's to be used with an EventSource (1-way websocket to let server send new alerts to frontend)
+    markReadAllFeed: async (): Promise<void> =>
+      this.req('PATCH', `/api/v1/alerts/mark-read-all-feed`),
+    getMyFeedAlerts: async (
+      courseId: number = -1,
+      limit?: number,
+      offset?: number,
+    ): Promise<GetPageOfFeedAlerts> =>
+      this.req<GetPageOfFeedAlerts>(
+        'GET',
+        `/api/v1/alerts/feed`,
+        GetPageOfFeedAlerts,
+        undefined,
+        {
+          courseId: String(courseId),
+          ...(limit !== undefined ? { limit: String(limit) } : {}),
+          ...(offset !== undefined ? { offset: String(offset) } : {}),
+        },
+      ),
+    getMyInitialAlerts: async (
+      courseId: number = -1,
+    ): Promise<GetInitialAlertsResponse> =>
+      this.req<GetInitialAlertsResponse>(
+        'GET',
+        `/api/v1/alerts/initial`,
+        GetInitialAlertsResponse,
+        undefined,
+        {
+          courseId: String(courseId),
+        },
+      ),
     create: async (params: CreateAlertParams): Promise<CreateAlertResponse> =>
-      this.req('POST', `/api/v1/alerts`, CreateAlertResponse, params),
-    close: async (alertId: number): Promise<void> =>
-      this.req('PATCH', `/api/v1/alerts/${alertId}`),
+      this.req(
+        'POST',
+        `/api/v1/alerts/create-alert/${params.courseId}`,
+        CreateAlertResponse,
+        params,
+      ),
+    close: async (alertId: number): Promise<Alert> =>
+      this.req<Alert>('PATCH', `/api/v1/alerts/${alertId}`, Alert),
+    adminOnly: {
+      create: async (
+        params: CreateAlertAdminRequest,
+      ): Promise<CreateAlertAdminResponse> =>
+        this.req<CreateAlertAdminResponse>(
+          'POST',
+          `/api/v1/alerts/admin-notice`,
+          CreateAlertAdminResponse,
+          params,
+        ),
+      get: async (): Promise<GetAdminNoticeAlert[]> =>
+        this.req<GetAdminNoticeAlert[]>(
+          'GET',
+          `/api/v1/alerts/admin-notice`,
+          GetAdminNoticeAlert,
+        ),
+      delete: async (
+        queryParams: DeleteAdminNoticeRequest,
+      ): Promise<DeleteAdminNoticeResponse> =>
+        this.req(
+          'DELETE',
+          `/api/v1/alerts/admin-notice`,
+          DeleteAdminNoticeResponse,
+          undefined,
+          queryParams,
+        ),
+    },
   }
 
   organizations = {

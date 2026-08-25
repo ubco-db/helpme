@@ -6,13 +6,15 @@ import { User } from '@koh/common'
 import { Button, Spin } from 'antd'
 import { LayoutProps } from '@/app/typings/types'
 import ChatbotContextProvider from '../../../(dashboard)/course/[cid]/components/chatbot/ChatbotProvider'
-import { AsyncToasterProvider } from '@/app/contexts/AsyncToasterContext'
 import { ReloadOutlined } from '@ant-design/icons'
 import { fetchUserDetails } from '@/app/api'
 import StandardPageContainer from '@/app/components/standardPageContainer'
 import HeaderBar from '@/app/components/HeaderBar'
 import { useLtiContext } from '@/app/contexts/LtiContext'
 import VerifyEmailPage from '@/app/(auth)/verify/page'
+import { AlertsProvider } from '@/app/contexts/AlertsContext'
+import ModalAlertsContainer from '@/app/components/ModalAlertsContainer'
+import { ToastAlertsContainer } from '@/app/components/ToastAlertsContainer'
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [profile, setProfile] = useState<User>()
@@ -53,7 +55,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   ) : !profile.emailVerified ? (
     <VerifyEmailPage />
   ) : (
-    <AsyncToasterProvider>
+    <AlertsProvider>
       <UserInfoProvider profile={profile}>
         <header className={`border-b border-b-zinc-200 bg-white`}>
           <StandardPageContainer className="!pl-0">
@@ -69,10 +71,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             >
               {children}
             </div>
+            <ModalAlertsContainer />
+            <ToastAlertsContainer />
           </ChatbotContextProvider>
         </IFrameWrapper>
       </UserInfoProvider>
-    </AsyncToasterProvider>
+    </AlertsProvider>
   )
 }
 

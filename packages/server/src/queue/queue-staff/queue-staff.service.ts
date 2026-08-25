@@ -3,6 +3,7 @@ import {
   StaffMember,
   ExtraTAStatus,
   GetQueueResponse,
+  AlertDeliveryMode,
   AlertType,
   ClosedQuestionStatus,
   LimboQuestionStatus,
@@ -262,6 +263,22 @@ export class QueueStaffService {
       await manager.update(QueueModel, queueId, {
         allowQuestions: false,
       });
+      // Remove any RephraseQuestion alerts
+      const rephraseAlerts = await AlertModel.createQueryBuilder()
+        .where('"alertType" = :alertType', {
+          alertType: AlertType.REPHRASE_QUESTION,
+        })
+        .andWhere('"readAt" IS NULL')
+        .andWhere('payload @> :payload', {
+          payload: {
+            queueId,
+          },
+        })
+        .getMany();
+      for (const alert of rephraseAlerts) {
+        alert.readAt = new Date();
+        await alert.save();
+      }
       // (this needs to be after deleting the queue staff since this service also checks if the stafflist is empty)
       await this.promptStudentsToLeaveQueue(queueId, manager);
     }
@@ -357,9 +374,12 @@ export class QueueStaffService {
       ...Object.values(LimboQuestionStatus),
     ]).getMany();
     const alerts = await AlertModel.createQueryBuilder('alert')
-      .where('alert.resolved IS NULL')
-      .andWhere("(alert.payload ->> 'queueId')::INTEGER = :queueId ", {
-        queueId,
+      .where('alert.readAt IS NULL')
+      .andWhere('alert.payload @> :payload', {
+        payload: JSON.stringify({ queueId }),
+      })
+      .andWhere('alert."deliveryMode" = :deliveryMode', {
+        deliveryMode: AlertDeliveryMode.MODAL,
       })
       .getMany();
 
@@ -368,7 +388,7 @@ export class QueueStaffService {
       q.closedAt = new Date();
     });
     alerts.forEach((a: AlertModel) => {
-      a.resolved = new Date();
+      a.readAt = new Date();
     });
 
     await QuestionModel.save(questions);
@@ -457,9 +477,12 @@ export class QueueStaffService {
           .andWhere('alert.alertType = :alertType', {
             alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
           })
-          .andWhere('alert.resolved IS NULL')
-          .andWhere('alert.payload::jsonb @> :payload', {
+          .andWhere('alert.readAt IS NULL')
+          .andWhere('alert.payload @> :payload', {
             payload: JSON.stringify({ queueId }),
+          })
+          .andWhere('alert."deliveryMode" = :deliveryMode', {
+            deliveryMode: AlertDeliveryMode.MODAL,
           })
           .getOne();
         if (existingAlert) {
@@ -471,7 +494,12 @@ export class QueueStaffService {
             sent: new Date(),
             userId: student.studentId,
             courseId: student.courseId,
-            payload: { queueId, queueQuestionId: student.questionId },
+            payload: {
+              queueId,
+              ...(student.questionId !== undefined
+                ? { queueQuestionId: student.questionId }
+                : {}),
+            },
           })
           .save();
         // if the student does not respond in 10 minutes, resolve the alert and mark the question as LeftDueToNoStaff
@@ -520,10 +548,10 @@ export class QueueStaffService {
       return;
     }
     // if the alert is not resolved, resolve the alert and mark the question as LeftDueToNoStaff
-    if (alert.resolved === null) {
+    if (alert.readAt === null) {
       // resolve the alert
       try {
-        alert.resolved = new Date();
+        alert.readAt = new Date();
         await alert.save();
       } catch (err) {
         console.error(
@@ -616,15 +644,15 @@ export class QueueStaffService {
       .where('alert.alertType = :alertType', {
         alertType: AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
       })
-      .andWhere('alert.resolved IS NULL')
+      .andWhere('alert.readAt IS NULL')
       .andWhere('alert.payload::jsonb @> :payload', {
         payload: JSON.stringify({ queueId }),
       })
       .getMany();
 
-    alerts.forEach(async (alert) => {
-      alert.resolved = new Date();
+    for (const alert of alerts) {
+      alert.readAt = new Date();
       await alert.save();
-    });
+    }
   }
 }

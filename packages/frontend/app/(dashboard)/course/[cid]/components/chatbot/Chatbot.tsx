@@ -44,6 +44,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useCourse } from '@/app/hooks/useCourse'
 import {
+  isProd,
   Message,
   parseThinkBlock,
   PreDeterminedQuestion,
@@ -141,7 +142,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
           setPreDeterminedQuestions(questions)
         })
         .catch((err) => {
-          console.error(err)
+          if (isProd()) {
+            console.error(err)
+          } // ignore on dev since it's annoying seeing nextjs give a red warning on every page
         })
     }
     if (userInfo.chat_token) {

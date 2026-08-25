@@ -13,10 +13,12 @@ import StandardPageContainer from '../components/standardPageContainer'
 import Image from 'next/image'
 import ChatbotContextProvider from './course/[cid]/components/chatbot/ChatbotProvider'
 import FooterBar from './components/FooterBar'
-import { AsyncToasterProvider } from '../contexts/AsyncToasterContext'
+import { ToastAlertsContainer } from '../components/ToastAlertsContainer'
 import { LogoutOutlined, ReloadOutlined } from '@ant-design/icons'
 import VerifyEmailPage from '@/app/(auth)/verify/page'
-import { UserRole } from '@/middlewareType'
+import { AlertsProvider } from '@/app/contexts/AlertsContext'
+import { UserRole } from '@/proxyType'
+import ModalAlertsContainer from '../components/ModalAlertsContainer'
 
 const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
   children,
@@ -35,7 +37,7 @@ const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
   }, [pathname, router])
 
   return errorGettingUser ? (
-    <main className="mt-20 flex flex-col content-center justify-center gap-3">
+    <main className="mt-20 flex max-w-3xl flex-col content-center justify-center gap-3 p-2">
       <p>There was an error getting your user details: </p>
       <p>{errorGettingUser}</p>
       <Button
@@ -84,9 +86,9 @@ const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
       </p>
     </main>
   ) : !profile.emailVerified ? (
-    // should never happen since middleware.ts will redirect to /verify but just in case
+    // should never happen since proxy.ts will redirect to /verify but just in case
     <VerifyEmailPage />
-  ) : adminPage && profile.userRole != UserRole.ADMIN ? (
+  ) : adminPage && profile.userRole !== UserRole.ADMIN ? (
     <main className="mt-20 flex flex-col items-center justify-center gap-2">
       <p>You do not have permission to view this page.</p>
       <p>
@@ -105,8 +107,8 @@ const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
       </p>
     </main>
   ) : (
-    <AsyncToasterProvider>
-      <UserInfoProvider profile={profile}>
+    <UserInfoProvider profile={profile}>
+      <AlertsProvider>
         <header className={`border-b border-b-zinc-200 bg-white`}>
           <StandardPageContainer className="!pl-0">
             <Link href={'#skip-link-target'} className="skip-link">
@@ -136,11 +138,13 @@ const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
                 {children}
               </StandardPageContainer>
             )}
+            <ModalAlertsContainer />
+            <ToastAlertsContainer />
           </ChatbotContextProvider>
         </main>
         <FooterBar />
-      </UserInfoProvider>
-    </AsyncToasterProvider>
+      </AlertsProvider>
+    </UserInfoProvider>
   )
 }
 

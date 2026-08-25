@@ -352,7 +352,7 @@ describe('CalendarService', () => {
         payload: {},
       });
       // ensure null resolved for the test condition
-      await AlertModel.update(alert.id, { resolved: null });
+      await AlertModel.update(alert.id, { readAt: null });
 
       const calendarId = 1;
 
@@ -366,7 +366,7 @@ describe('CalendarService', () => {
       expect(remainingStaff).toBeNull();
 
       await alert.reload();
-      expect(alert.resolved).not.toBeNull();
+      expect(alert.readAt).not.toBeNull();
 
       expect(service.questionService.resolveQuestions).toHaveBeenCalledWith(
         queue.id,
@@ -404,7 +404,7 @@ describe('CalendarService', () => {
         payload: {},
       });
       // ensure resolved
-      await AlertModel.update(alert.id, { resolved: new Date() });
+      await AlertModel.update(alert.id, { readAt: new Date() });
 
       const calendarId = 1;
 
@@ -441,7 +441,7 @@ describe('CalendarService', () => {
       });
       // ensure resolved long ago
       const fifteenMinsAgo = new Date(new Date().getTime() - 15 * 60 * 1000);
-      await AlertModel.update(alert.id, { resolved: fifteenMinsAgo });
+      await AlertModel.update(alert.id, { readAt: fifteenMinsAgo });
 
       const calendarId = 1;
 

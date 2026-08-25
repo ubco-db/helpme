@@ -3,6 +3,8 @@ import {
   OrganizationRole,
   OrganizationSettingsResponse,
   Role,
+  StandardAntdTagColor,
+  STANDARD_ANTD_TAG_COLORS,
   User,
 } from '@koh/common'
 import { type ClassValue, clsx } from 'clsx'
@@ -70,6 +72,25 @@ export default function stringToHexColor(str: string): string {
   }
 
   return color
+}
+
+/**
+ * Deterministically maps a string to a standard (non-inverse, non-status) antd Tag color.
+ * The same input string will always produce the same color.
+ * @param str The string to convert (e.g. a course name)
+ * @returns A StandardAntdTagColor value
+ */
+export function stringToAntdTagColor(str: string): StandardAntdTagColor {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  // Ensure the hash is a positive index
+  const index =
+    ((hash % STANDARD_ANTD_TAG_COLORS.length) +
+      STANDARD_ANTD_TAG_COLORS.length) %
+    STANDARD_ANTD_TAG_COLORS.length
+  return STANDARD_ANTD_TAG_COLORS[index]
 }
 
 /**
