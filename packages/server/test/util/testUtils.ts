@@ -41,6 +41,10 @@ export interface SupertestOptions {
   userId?: number;
 }
 export type ModuleModifier = (t: TestingModuleBuilder) => TestingModuleBuilder;
+// Each Jest worker gets its own schema for parallel test isolation
+const TEST_WORKER_SCHEMA = `test_worker_${process.env.JEST_WORKER_ID || '1'}`;
+const TEST_WORKER_REDIS_DB = parseInt(process.env.JEST_WORKER_ID || '1');
+
 export const TestTypeOrmConfig: PostgresConnectionOptions = {
   type: 'postgres',
   host: 'localhost',
@@ -48,6 +52,7 @@ export const TestTypeOrmConfig: PostgresConnectionOptions = {
   username: process.env.POSTGRES_NONROOT_USER,
   password: process.env.POSTGRES_NONROOT_PASSWORD,
   database: 'test',
+  schema: TEST_WORKER_SCHEMA,
   entities: ['./**/*.entity.ts', '../../src/**/*.entity.ts'],
   synchronize: true,
 };
@@ -140,6 +145,7 @@ export function setupIntegrationTest(
           commonOptions: {
             host: redisHost,
             port: redisPort,
+            db: TEST_WORKER_REDIS_DB,
           },
           config: [
             {

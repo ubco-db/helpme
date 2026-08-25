@@ -2,6 +2,8 @@
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
   "setupFiles": ["<rootDir>/setup/jest-env.ts"],
+  "globalSetup": "<rootDir>/setup/global-setup.ts",
+  "globalTeardown": "<rootDir>/setup/global-teardown.ts",
   "testEnvironment": "node",
   "testRegex": ".integration.ts$",
   "transform": {
