@@ -11,7 +11,7 @@ export async function getFetchErrorMessage(
   response: Response,
   defaultMessage = 'An error occurred',
 ): Promise<string> {
-  const contentType = response.headers.get('content-type') || '';
+  const contentType = response.headers?.get('content-type') || '';
 
   if (contentType.toLowerCase().includes('application/json')) {
     try {

@@ -1252,10 +1252,10 @@ export class ChatbotService {
               ...headers,
             },
           })
-            .then((res) => {
+            .then(async (res) => {
               if (!res.ok) {
                 throw new HttpException(
-                  `Error contacting local LLM server: ${getFetchErrorMessage(res)}`,
+                  `Error contacting local LLM server: ${await getFetchErrorMessage(res)}`,
                   res.status,
                 );
               }
@@ -1274,7 +1274,7 @@ export class ChatbotService {
         } else {
           if (!res.ok) {
             throw new HttpException(
-              `Error contacting Local LLM Server: ${getFetchErrorMessage(res)}`,
+              `Error contacting Local LLM Server: ${await getFetchErrorMessage(res)}`,
               res.status,
             );
           }
@@ -1354,10 +1354,10 @@ export class ChatbotService {
         Authorization: `Bearer ${apiKey}`,
       },
     })
-      .then((res) => {
+      .then(async (res) => {
         if (!res.ok) {
           throw new HttpException(
-            `Error contacting OpenAI API: ${getFetchErrorMessage(res)}`,
+            `Error contacting OpenAI API: ${await getFetchErrorMessage(res)}`,
             res.status,
           );
         }
