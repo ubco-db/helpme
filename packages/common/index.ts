@@ -660,11 +660,6 @@ export interface LLMType {
   providerNotes?: string[]
 }
 
-export interface OllamaLLMType extends LLMType {
-  parameterSize: string
-  families: string[]
-}
-
 export interface LocalLLMType extends LLMType {
   parameterSize: string
   families: string[]
@@ -721,7 +716,6 @@ export const ChatbotAllowedHeadersList = Object.keys(
 
 export enum ChatbotServiceProvider {
   OpenAI = 'openai',
-  Ollama = 'ollama',
   LocalLLM = 'local_llm',
 }
 export class LLamaCppModelArchitecture {
@@ -785,43 +779,6 @@ export class LLamaCppModelV1Meta {
   @IsNumber()
   @IsOptional()
   size?: number
-}
-export class OllamaModelDetails {
-  @IsString()
-  parent_model!: string
-
-  @IsString()
-  format!: string
-
-  @IsString()
-  family!: string
-
-  @IsArray()
-  families!: string[]
-
-  @IsString()
-  parameter_size!: string
-
-  @IsString()
-  quantization_level!: string
-}
-
-export class OllamaModelDescription {
-  @IsString()
-  name!: string
-
-  @IsString()
-  model!: string
-
-  @IsDate()
-  @Type(() => Date)
-  modifiedAt!: Date
-
-  @IsInt()
-  size!: number
-
-  @IsInstance(OllamaModelDetails)
-  details!: OllamaModelDetails
 }
 
 export class OpenAIModelDescription {

@@ -1,3 +1,36 @@
+## Version 1.10.0 - New Alerts System, New AI models
+
+*Aug xxx, 2026*
+
+
+#### New Features
+
+- ***General***
+  - Reworked the [landing page](https://coursehelp.ubc.ca/)
+    - Now with a lot more information and screenshots
+  - Added an [About](https://coursehelp.ubc.ca/about) page
+    - Has our Privacy Policy, Terms of Service, Changelog, an FAQ, our team, and more
+  - Course Staff can now "Endorse" Anytime Question Comments
+    - Endorsed comments appear first
+    - Useful if you have "Allow Anytime Question Authors to make their Questions Public" enabled under Course Settings and you encourage your students to help each other
+
+
+- ***Faculty-only***
+  - Added Weekly Summary emails for professors
+    - Includes activity, any pending Anytime Questions, and recommendations
+  - Added a "Save to Chatbot" feature when posting a response to an Anytime Question
+    - Allows your Chatbot to keep getting better as it gets used
+  - Added a "Export Tool Usage to CSV" button under Course Settings → Export Data
+    - Could be used to chart what tools (Chatbot, Anytime Questions, Queues) each student is using over time
+    - Could be used to assign participation marks
+  - Added "Professor Invites"
+    - Works as a regular course invite except it promotes the user to a professor right away
+    - Useful if you are creating the course for a fellow professor
+
+
+#### Improvements
+
+
 ## Version 1.9.0 - New Landing Page, Weekly Summary Emails, Save to Chatbot, and More
 
 *July 1st, 2026 - Happy Canada Day!*

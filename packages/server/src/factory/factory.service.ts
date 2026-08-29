@@ -390,9 +390,9 @@ export class FactoryService {
         'organizationChatbotSettings',
         this.OrganizationChatbotSettingsFactory,
       )
-      .attr('baseUrl', 'https://fake-ollama-url.com')
-      .attr('providerType', ChatbotServiceProvider.Ollama)
-      .attr('nickname', 'Ollama Provider');
+      .attr('baseUrl', 'https://fake-local-llm-url.com')
+      .attr('providerType', ChatbotServiceProvider.LocalLLM)
+      .attr('nickname', 'LocalLLM Provider');
 
     this.OrganizationChatbotSettingsFactory.assocOne(
       'defaultProvider',

@@ -490,9 +490,9 @@ describe('ChatbotController Integration', () => {
       });
     const provider = await ChatbotProviderFactory.create({
       organizationChatbotSettings: organizationSettings,
-      providerType: ChatbotServiceProvider.Ollama,
+      providerType: ChatbotServiceProvider.LocalLLM,
       baseUrl: 'https://fake-url.com',
-      nickname: 'Ollama Provider',
+      nickname: 'LocalLLM Provider',
     });
     const llm = await LLMTypeFactory.create({
       provider,
@@ -607,7 +607,7 @@ describe('ChatbotController Integration', () => {
       const params: CreateOrganizationChatbotSettingsBody = {
         providers: [
           {
-            providerType: ChatbotServiceProvider.Ollama,
+            providerType: ChatbotServiceProvider.LocalLLM,
             defaultModelName: 'model1',
             defaultVisionModelName: 'model2',
             models: [
@@ -833,7 +833,7 @@ describe('ChatbotController Integration', () => {
         .send({
           defaultModelName: '',
           defaultVisionModelName: '',
-          providerType: ChatbotServiceProvider.Ollama,
+          providerType: ChatbotServiceProvider.LocalLLM,
         })
         .expect(400);
       await supertest({ userId: user.id })
@@ -841,7 +841,7 @@ describe('ChatbotController Integration', () => {
         .send({
           models: [],
           defaultVisionModelName: '',
-          providerType: ChatbotServiceProvider.Ollama,
+          providerType: ChatbotServiceProvider.LocalLLM,
         })
         .expect(400);
       await supertest({ userId: user.id })
@@ -849,7 +849,7 @@ describe('ChatbotController Integration', () => {
         .send({
           defaultModelName: '',
           models: [],
-          providerType: ChatbotServiceProvider.Ollama,
+          providerType: ChatbotServiceProvider.LocalLLM,
         })
         .expect(400);
       await supertest({ userId: user.id })
@@ -866,7 +866,7 @@ describe('ChatbotController Integration', () => {
           models: [],
           defaultModelName: '',
           defaultVisionModelName: '',
-          providerType: ChatbotServiceProvider.Ollama,
+          providerType: ChatbotServiceProvider.LocalLLM,
         })
         .expect(404);
       expect(res.body).toHaveProperty(
@@ -879,10 +879,10 @@ describe('ChatbotController Integration', () => {
       const user = await getUser(OrganizationRole.ADMIN);
       await getChatbotSettingsDataSet();
       const params = {
-        providerType: ChatbotServiceProvider.Ollama,
+        providerType: ChatbotServiceProvider.LocalLLM,
         baseUrl: 'https://fake-url.com',
         headers: { Authorization: 'Bearer fake-key' },
-        nickname: 'Ollama Provider',
+        nickname: 'LocalLLM Provider',
         models: [
           {
             modelName: 'model1',
@@ -1593,7 +1593,7 @@ describe('ChatbotController Integration', () => {
             hasApiKey: undefined,
             providerType:
               i % 2 == 0
-                ? ChatbotServiceProvider.Ollama
+                ? ChatbotServiceProvider.LocalLLM
                 : ChatbotServiceProvider.OpenAI,
             defaultVisionModel: undefined,
             defaultModel: undefined,
@@ -1635,9 +1635,10 @@ describe('ChatbotController Integration', () => {
     const url =
       passedUrl ?? `/chatbot/organization/${organization.id}/${provider}`;
     const mock = jest.fn();
-    const originalOllama = ChatbotService.prototype.getOllamaAvailableModels;
+    const originalLocalLLM =
+      ChatbotService.prototype.getLocalLLMAvailableModels;
     const originalOpenAI = ChatbotService.prototype.getOpenAIAvailableModels;
-    ChatbotService.prototype.getOllamaAvailableModels = mock;
+    ChatbotService.prototype.getLocalLLMAvailableModels = mock;
     ChatbotService.prototype.getOpenAIAvailableModels = mock;
 
     mock.mockResolvedValue([
@@ -1667,16 +1668,16 @@ describe('ChatbotController Integration', () => {
     }
     expect(res.body).toMatchSnapshot();
 
-    ChatbotService.prototype.getOllamaAvailableModels = originalOllama;
+    ChatbotService.prototype.getLocalLLMAvailableModels = originalLocalLLM;
     ChatbotService.prototype.getOpenAIAvailableModels = originalOpenAI;
     mock.mockClear();
   };
 
-  describe('POST organization/:oid/ollama', () => {
+  describe('POST organization/:oid/local-llm', () => {
     it('should fail if accessing user is not an admin', async () => {
       const organization = await OrganizationFactory.create();
       await testRolesForbidden(
-        `/chatbot/organization/${organization.id}/ollama`,
+        `/chatbot/organization/${organization.id}/local-llm`,
         'POST',
         organization,
         [OrganizationRole.PROFESSOR, OrganizationRole.MEMBER],
@@ -1686,7 +1687,7 @@ describe('ChatbotController Integration', () => {
     it('should fail if baseUrl is omitted', async () => {
       const user = await getUser(OrganizationRole.ADMIN);
       const res = await supertest({ userId: user.id })
-        .post(`/chatbot/organization/${organization.id}/ollama`)
+        .post(`/chatbot/organization/${organization.id}/local-llm`)
         .expect(400);
       expect(res.body).toHaveProperty(
         'message',
@@ -1694,9 +1695,13 @@ describe('ChatbotController Integration', () => {
       );
     });
 
-    it('should return a series of LLM descriptions from Ollama', async () => {
+    it('should return a series of LLM descriptions from local-llm', async () => {
       const user = await getUser(OrganizationRole.ADMIN);
-      await getAvailableModelsTest(user, ChatbotServiceProvider.Ollama, 'POST');
+      await getAvailableModelsTest(
+        user,
+        ChatbotServiceProvider.LocalLLM,
+        'POST',
+      );
     });
   });
 
@@ -1750,7 +1755,7 @@ describe('ChatbotController Integration', () => {
       );
     });
 
-    it.each([ChatbotServiceProvider.Ollama, ChatbotServiceProvider.OpenAI])(
+    it.each([ChatbotServiceProvider.LocalLLM, ChatbotServiceProvider.OpenAI])(
       'should return the available models for the provider (%s)',
       async (type) => {
         const user = await getUser(OrganizationRole.ADMIN);
