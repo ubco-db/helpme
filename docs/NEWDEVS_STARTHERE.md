@@ -589,7 +589,7 @@ For more general information around entities and different column types, check o
 
 If you want to add/delete/edit a table column, note that you must also generate a migration file. The migration files works as a history of database schema changes and can be re-used to reconstruct or roll-back the database schema. 
 
-You can generate a migration file with: `yarn migration:generate ./migration/your-migration-name -d ./typeORMCLI.config.ts`. Note that this will wipe your dev database. If you want to keep it, you can make a backup by running the commands:
+You can generate a migration file with: `yarn migration:generate ./migration/your-migration-name`. Note that this will wipe your dev database. If you want to keep it, you can make a backup by running the commands:
 
 - `docker exec -u postgres helpme-postgresql-1 pg_dumpall -U postgres | gzip > backups/my_dev_backup.sql.gz` Creates backup (do before running migration)
 - `docker exec -i helpme-postgresql-1 psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS dev;" && docker exec -i helpme-postgresql-1 psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS chatbot;"` Wipes the databases (do after running migration)
