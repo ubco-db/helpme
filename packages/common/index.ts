@@ -5279,7 +5279,7 @@ export function getModelSpeedAndQualityEstimate<T extends LLMType>(model: T) {
         return { speed, quality, notes }
       }
       paramSize = 7
-      notes.push('Could not determine model size. Assuming 7B parameters.')
+      //notes.push('Could not determine model size. Assuming 7B parameters.')
     }
 
     let quantMultiplier = 1
@@ -5288,30 +5288,22 @@ export function getModelSpeedAndQualityEstimate<T extends LLMType>(model: T) {
       if (quantization.includes('Q2') || quantization.includes('Q3')) {
         quantMultiplier = 1.3
         quantQualityModifier = 0.8
-        notes.push(
-          'High quantization (Q2/Q3). Faster, but noticeable quality degradation.',
-        )
+        // notes.push(  'High quantization (Q2/Q3). Faster, but noticeable quality degradation.',)
       } else if (quantization.includes('Q4') || quantization.includes('Q5')) {
         quantMultiplier = 1.1
         quantQualityModifier = 0.95
-        notes.push(
-          'Medium quantization (Q4/Q5). Good balance of speed and quality.',
-        )
+        // notes.push(  'Medium quantization (Q4/Q5). Good balance of speed and quality.',)
       } else if (quantization.includes('Q8')) {
         quantMultiplier = 0.9
         quantQualityModifier = 0.99
-        notes.push(
-          'Low quantization (Q8). Near original quality, but requires more memory.',
-        )
+        // notes.push(  'Low quantization (Q8). Near original quality, but requires more memory.',)
       } else if (
         quantization.includes('FP16') ||
         quantization.includes('BF16')
       ) {
         quantMultiplier = 0.7
         quantQualityModifier = 1.0
-        notes.push(
-          'Unquantized (FP16/BF16). Highest quality, requires significant memory and compute.',
-        )
+        // notes.push(  'Unquantized (FP16/BF16). Highest quality, requires significant memory and compute.',)
       }
     }
 

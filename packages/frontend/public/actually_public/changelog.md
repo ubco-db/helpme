@@ -1,6 +1,6 @@
 ## Version 1.10.0 - Notification Bell, New AI models
 
-*Aug xxx, 2026*
+*Aug 29th, 2026*
 
 
 #### New Features
