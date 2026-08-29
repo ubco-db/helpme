@@ -1792,7 +1792,7 @@ describe('ChatbotService', () => {
       await expect(
         service.getOpenAIAvailableModels('abcdefghijklmnop', {}),
       ).rejects.toThrow(
-        new HttpException(`Failed to contact OpenAI API: Not Authorized`, 401),
+        new HttpException(`Error contacting OpenAI API: Not Authorized`, 401),
       );
       mockFetch.mockRejectedValue({});
       await expect(

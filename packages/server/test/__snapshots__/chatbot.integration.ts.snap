@@ -45,7 +45,7 @@ exports[`ChatbotController Integration GET course/:courseId should return course
       "id": 1,
       "nickname": "LocalLLM Provider",
       "orgChatbotSettingsId": 1,
-      "providerType": "local-llm",
+      "providerType": "local_llm",
     },
     "providerId": 1,
     "providerNotes": [],
@@ -110,7 +110,7 @@ exports[`ChatbotController Integration GET course/:courseId should return course
       "id": 1,
       "nickname": "LocalLLM Provider",
       "orgChatbotSettingsId": 1,
-      "providerType": "local-llm",
+      "providerType": "local_llm",
     },
     "providerId": 1,
     "providerNotes": [],
@@ -175,7 +175,7 @@ exports[`ChatbotController Integration GET course/:courseId should return course
       "id": 1,
       "nickname": "LocalLLM Provider",
       "orgChatbotSettingsId": 1,
-      "providerType": "local-llm",
+      "providerType": "local_llm",
     },
     "providerId": 1,
     "providerNotes": [],
@@ -258,7 +258,7 @@ exports[`ChatbotController Integration GET course/:courseId should upsert if cou
       "id": 1,
       "nickname": "LocalLLM Provider",
       "orgChatbotSettingsId": 1,
-      "providerType": "local-llm",
+      "providerType": "local_llm",
     },
     "providerId": 1,
     "providerNotes": [],
@@ -351,7 +351,7 @@ exports[`ChatbotController Integration GET course/:courseId should upsert if cou
       "id": 1,
       "nickname": "LocalLLM Provider",
       "orgChatbotSettingsId": 1,
-      "providerType": "local-llm",
+      "providerType": "local_llm",
     },
     "providerId": 1,
     "providerNotes": [],
@@ -444,7 +444,7 @@ exports[`ChatbotController Integration GET course/:courseId should upsert if cou
       "id": 1,
       "nickname": "LocalLLM Provider",
       "orgChatbotSettingsId": 1,
-      "providerType": "local-llm",
+      "providerType": "local_llm",
     },
     "providerId": 1,
     "providerNotes": [],
@@ -510,7 +510,7 @@ exports[`ChatbotController Integration GET course/:courseId/provider should get 
     "id": 1,
     "nickname": "LocalLLM Provider",
     "orgChatbotSettingsId": 1,
-    "providerType": "local-llm",
+    "providerType": "local_llm",
   },
   {
     "additionalNotes": [],
@@ -557,7 +557,7 @@ exports[`ChatbotController Integration GET course/:courseId/provider should get 
     "id": 2,
     "nickname": "LocalLLM Provider",
     "orgChatbotSettingsId": 1,
-    "providerType": "local-llm",
+    "providerType": "local_llm",
   },
 ]
 `;
@@ -598,7 +598,7 @@ exports[`ChatbotController Integration GET course/:courseId/provider should get 
     "id": 1,
     "nickname": "LocalLLM Provider",
     "orgChatbotSettingsId": 1,
-    "providerType": "local-llm",
+    "providerType": "local_llm",
   },
   {
     "additionalNotes": [],
@@ -645,7 +645,7 @@ exports[`ChatbotController Integration GET course/:courseId/provider should get 
     "id": 2,
     "nickname": "LocalLLM Provider",
     "orgChatbotSettingsId": 1,
-    "providerType": "local-llm",
+    "providerType": "local_llm",
   },
 ]
 `;
@@ -686,7 +686,7 @@ exports[`ChatbotController Integration GET course/:courseId/provider should get 
     "id": 1,
     "nickname": "LocalLLM Provider",
     "orgChatbotSettingsId": 1,
-    "providerType": "local-llm",
+    "providerType": "local_llm",
   },
   {
     "additionalNotes": [],
@@ -733,7 +733,7 @@ exports[`ChatbotController Integration GET course/:courseId/provider should get 
     "id": 2,
     "nickname": "LocalLLM Provider",
     "orgChatbotSettingsId": 1,
-    "providerType": "local-llm",
+    "providerType": "local_llm",
   },
 ]
 `;
@@ -803,45 +803,45 @@ exports[`ChatbotController Integration GET organization/:oid/provider should ret
     "id": 1,
     "nickname": "LocalLLM Provider",
     "orgChatbotSettingsId": 1,
-    "providerType": "local-llm",
+    "providerType": "local_llm",
   },
 ]
 `;
 
-exports[`ChatbotController Integration GET organization/:oid/provider/:providerId/available should return the available models for the provider (local-llm) 1`] = `
+exports[`ChatbotController Integration GET organization/:oid/provider/:providerId/available should return the available models for the provider (local_llm) 1`] = `
 [
   [
     {
       "families": [
-        "local-llm",
+        "local_llm",
       ],
       "id": 1,
       "isText": false,
       "isThinking": false,
       "isVision": false,
-      "modelName": "local-llm-model-1",
+      "modelName": "local_llm-model-1",
       "parameterSize": "0M",
     },
     {
       "families": [
-        "local-llm",
+        "local_llm",
       ],
       "id": 2,
       "isText": false,
       "isThinking": false,
       "isVision": false,
-      "modelName": "local-llm-model-2",
+      "modelName": "local_llm-model-2",
       "parameterSize": "0M",
     },
     {
       "families": [
-        "local-llm",
+        "local_llm",
       ],
       "id": 3,
       "isText": false,
       "isThinking": false,
       "isVision": false,
-      "modelName": "local-llm-model-3",
+      "modelName": "local_llm-model-3",
       "parameterSize": "0M",
     },
   ],
@@ -934,7 +934,7 @@ exports[`ChatbotController Integration PATCH organization/:oid/provider/:provide
   "id": 1,
   "nickname": "LocalLLM Provider",
   "orgChatbotSettingsId": 1,
-  "providerType": "local-llm",
+  "providerType": "local_llm",
 }
 `;
 
@@ -996,7 +996,7 @@ exports[`ChatbotController Integration POST organization/:oid should create orga
     "id": 1,
     "nickname": null,
     "orgChatbotSettingsId": 1,
-    "providerType": "local-llm",
+    "providerType": "local_llm",
   },
   "defaultProviderId": 1,
   "default_prompt": null,
@@ -1063,46 +1063,46 @@ exports[`ChatbotController Integration POST organization/:oid should create orga
       "id": 1,
       "nickname": null,
       "orgChatbotSettingsId": 1,
-      "providerType": "local-llm",
+      "providerType": "local_llm",
     },
   ],
 }
 `;
 
-exports[`ChatbotController Integration POST organization/:oid/local-llm should return a series of LLM descriptions from local-llm 1`] = `
+exports[`ChatbotController Integration POST organization/:oid/local_llm should return a series of LLM descriptions from local_llm 1`] = `
 [
   [
     {
       "families": [
-        "local-llm",
+        "local_llm",
       ],
       "id": 1,
       "isText": false,
       "isThinking": false,
       "isVision": false,
-      "modelName": "local-llm-model-1",
+      "modelName": "local_llm-model-1",
       "parameterSize": "0M",
     },
     {
       "families": [
-        "local-llm",
+        "local_llm",
       ],
       "id": 2,
       "isText": false,
       "isThinking": false,
       "isVision": false,
-      "modelName": "local-llm-model-2",
+      "modelName": "local_llm-model-2",
       "parameterSize": "0M",
     },
     {
       "families": [
-        "local-llm",
+        "local_llm",
       ],
       "id": 3,
       "isText": false,
       "isThinking": false,
       "isVision": false,
-      "modelName": "local-llm-model-3",
+      "modelName": "local_llm-model-3",
       "parameterSize": "0M",
     },
   ],

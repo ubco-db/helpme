@@ -1673,11 +1673,11 @@ describe('ChatbotController Integration', () => {
     mock.mockClear();
   };
 
-  describe('POST organization/:oid/local-llm', () => {
+  describe('POST organization/:oid/local_llm', () => {
     it('should fail if accessing user is not an admin', async () => {
       const organization = await OrganizationFactory.create();
       await testRolesForbidden(
-        `/chatbot/organization/${organization.id}/local-llm`,
+        `/chatbot/organization/${organization.id}/local_llm`,
         'POST',
         organization,
         [OrganizationRole.PROFESSOR, OrganizationRole.MEMBER],
@@ -1687,7 +1687,7 @@ describe('ChatbotController Integration', () => {
     it('should fail if baseUrl is omitted', async () => {
       const user = await getUser(OrganizationRole.ADMIN);
       const res = await supertest({ userId: user.id })
-        .post(`/chatbot/organization/${organization.id}/local-llm`)
+        .post(`/chatbot/organization/${organization.id}/local_llm`)
         .expect(400);
       expect(res.body).toHaveProperty(
         'message',
@@ -1695,7 +1695,7 @@ describe('ChatbotController Integration', () => {
       );
     });
 
-    it('should return a series of LLM descriptions from local-llm', async () => {
+    it('should return a series of LLM descriptions from local_llm', async () => {
       const user = await getUser(OrganizationRole.ADMIN);
       await getAvailableModelsTest(
         user,

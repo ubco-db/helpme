@@ -390,7 +390,7 @@ export class FactoryService {
         'organizationChatbotSettings',
         this.OrganizationChatbotSettingsFactory,
       )
-      .attr('baseUrl', 'https://fake-local-llm-url.com')
+      .attr('baseUrl', 'https://fake-local_llm-url.com')
       .attr('providerType', ChatbotServiceProvider.LocalLLM)
       .attr('nickname', 'LocalLLM Provider');
 
