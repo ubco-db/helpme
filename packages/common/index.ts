@@ -665,6 +665,11 @@ export interface OllamaLLMType extends LLMType {
   families: string[]
 }
 
+export interface LocalLLMType extends LLMType {
+  parameterSize: string
+  families: string[]
+}
+
 export interface OpenAILLMType extends LLMType {
   families: string[]
 }
@@ -717,8 +722,70 @@ export const ChatbotAllowedHeadersList = Object.keys(
 export enum ChatbotServiceProvider {
   OpenAI = 'openai',
   Ollama = 'ollama',
+  LocalLLM = 'local_llm',
+}
+export class LLamaCppModelArchitecture {
+  @IsArray()
+  @IsString({ each: true })
+  input_modalities!: string[]
+
+  @IsArray()
+  @IsString({ each: true })
+  output_modalities!: string[]
+}
+export class LLamaCppModelStatus {
+  @IsString()
+  value!: string
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  args?: string[]
+}
+export class LlamaCppModelDescription {
+  @IsString()
+  id!: string
+
+  @IsString()
+  path!: string
+
+  @Type(() => LLamaCppModelStatus)
+  @ValidateNested()
+  status!: LLamaCppModelStatus
+
+  @Type(() => LLamaCppModelArchitecture)
+  @ValidateNested()
+  architecture!: LLamaCppModelArchitecture
 }
 
+/**
+ * Extra metadata that can be included when hitting the /v1/models endpoint of llama.cpp
+ */
+export class LLamaCppModelV1Meta {
+  @IsNumber()
+  @IsOptional()
+  vocab_type?: number
+
+  @IsNumber()
+  @IsOptional()
+  n_vocab?: number
+
+  @IsNumber()
+  @IsOptional()
+  n_ctx_train?: number
+
+  @IsNumber()
+  @IsOptional()
+  n_embd?: number
+
+  @IsNumber()
+  @IsOptional()
+  n_params?: number
+
+  @IsNumber()
+  @IsOptional()
+  size?: number
+}
 export class OllamaModelDetails {
   @IsString()
   parent_model!: string
@@ -764,11 +831,16 @@ export class OpenAIModelDescription {
   @IsString()
   object!: string
 
-  @IsString()
-  created!: string
+  @IsNumber()
+  created!: number
 
   @IsString()
   owned_by!: string
+
+  @Type(() => LLamaCppModelV1Meta)
+  @ValidateNested()
+  @IsOptional()
+  meta?: LLamaCppModelV1Meta
 }
 
 export class GetAvailableModelsBody {
@@ -5128,4 +5200,183 @@ export const QUERY_PARAMS = {
     highlightCommentId: 'highlight_comment_id',
   },
   // TODO: add the /login redirect query params here. Avoided doing so right now since that would require proxy.ts to import this file and iirc there is errors when you try to do that
+}
+
+export function extractModelSizeAndQuantization(modelName: string): {
+  sizeBillion: number
+  quantization: string
+} {
+  const parts = modelName.split('/')
+  const modelNameWithQuantization =
+    parts.length > 1 ? parts[parts.length - 1] : modelName
+
+  const splitByColon = modelNameWithQuantization.split(':')
+  const baseName = splitByColon[0]
+  let quantization = splitByColon.length > 1 ? splitByColon[1] : ''
+
+  if (!quantization) {
+    const qMatch = baseName.match(
+      /[-_](q[0-9]_[0-9a-z_]+|fp16|fp32|bf16)(?:[-_]|$)/i,
+    )
+    if (qMatch) {
+      quantization = qMatch[1].toUpperCase()
+    }
+  }
+
+  const cleanName = baseName.replace(/[-_](?:GGUF|gguf)$/i, '')
+  const paramMatches = [
+    ...cleanName.matchAll(/(?:^|[-_a-zA-Z])(\d+\.?\d*)[bB](?:[-_]|$)/g),
+  ]
+  const mMatches = [
+    ...cleanName.matchAll(/(?:^|[-_a-zA-Z])(\d+\.?\d*)[mM](?:[-_]|$)/g),
+  ]
+
+  let sizeBillion = 0
+  if (paramMatches.length > 0) {
+    let maxSize = 0
+    for (const match of paramMatches) {
+      const size = parseFloat(match[1])
+      if (size > maxSize) {
+        maxSize = size
+        sizeBillion = size
+      }
+    }
+  } else if (mMatches.length > 0) {
+    let maxSize = 0
+    for (const match of mMatches) {
+      const size = parseFloat(match[1])
+      if (size > maxSize) {
+        maxSize = size
+        sizeBillion = size / 1000
+      }
+    }
+  }
+
+  return { sizeBillion, quantization: quantization.toUpperCase() }
+}
+
+export function getModelSpeedAndQualityEstimate<T extends LLMType>(model: T) {
+  const notes: string[] = []
+  let speed = 0
+  let quality = 0
+
+  if (model.modelName.startsWith('gpt-')) {
+    let suffix = -1
+    const suffixes = ['-mini', '-turbo', '-nano']
+    let i = 0
+    while (suffix == -1 && i < suffixes.length) {
+      suffix = model.modelName.indexOf(suffixes[i])
+      i++
+    }
+    const number = parseFloat(
+      model.modelName
+        .substring('gpt-'.length, suffix != -1 ? suffix : undefined)
+        .replace(/o/, '.0'),
+    )
+    const miniMultiplier = model.modelName.includes('mini')
+      ? 1
+      : model.modelName.includes('nano')
+        ? 2
+        : 0
+
+    if (miniMultiplier == 0) {
+      notes.push(
+        'This model is likely to be expensive for each use. It may offer more cost-effective versions (mini, nano).',
+      )
+    } else {
+      notes.push(
+        'This model is a smaller, faster version of a larger model. It is cheaper, but responses can be less accurate.',
+      )
+    }
+
+    speed = 100 - 10 * number + miniMultiplier * 10
+    quality = 20 * number + miniMultiplier * -10
+  } else {
+    const { sizeBillion, quantization } = extractModelSizeAndQuantization(
+      model.modelName,
+    )
+    let paramSize = sizeBillion
+
+    if (paramSize == 0 && 'parameterSize' in model && model['parameterSize']) {
+      const match = (model.parameterSize as string).match(/[0-9.]*/)
+      if (match != null && !isNaN(parseFloat(match[0]))) {
+        const val = parseFloat(match[0])
+        const str = (model.parameterSize as string)
+          .toLowerCase()
+          .substring(match[0].length)
+        if (str.includes('m')) {
+          paramSize = val / 1000
+        } else {
+          paramSize = val
+        }
+      }
+    }
+
+    if (paramSize == 0) {
+      if (model.modelName.toLowerCase().includes('embed')) {
+        notes.push(
+          'This is an embedding model. Speed and quality estimates are not directly comparable to text generation models.',
+        )
+        speed = 100
+        quality = 100
+        return { speed, quality, notes }
+      }
+      paramSize = 7
+      notes.push('Could not determine model size. Assuming 7B parameters.')
+    }
+
+    let quantMultiplier = 1
+    let quantQualityModifier = 1
+    if (quantization) {
+      if (quantization.includes('Q2') || quantization.includes('Q3')) {
+        quantMultiplier = 1.3
+        quantQualityModifier = 0.8
+        notes.push(
+          'High quantization (Q2/Q3). Faster, but noticeable quality degradation.',
+        )
+      } else if (quantization.includes('Q4') || quantization.includes('Q5')) {
+        quantMultiplier = 1.1
+        quantQualityModifier = 0.95
+        notes.push(
+          'Medium quantization (Q4/Q5). Good balance of speed and quality.',
+        )
+      } else if (quantization.includes('Q8')) {
+        quantMultiplier = 0.9
+        quantQualityModifier = 0.99
+        notes.push(
+          'Low quantization (Q8). Near original quality, but requires more memory.',
+        )
+      } else if (
+        quantization.includes('FP16') ||
+        quantization.includes('BF16')
+      ) {
+        quantMultiplier = 0.7
+        quantQualityModifier = 1.0
+        notes.push(
+          'Unquantized (FP16/BF16). Highest quality, requires significant memory and compute.',
+        )
+      }
+    }
+
+    paramSize = Math.max(0.001, Math.min(paramSize, 100))
+    const log = -Math.log10(paramSize / 100) / 5
+    speed =
+      Math.max(
+        0,
+        Math.min(
+          1,
+          (0.5 + log) * (model.isThinking ? 0.75 : 1) * quantMultiplier,
+        ),
+      ) * 100
+    quality =
+      Math.max(
+        0,
+        Math.min(
+          1,
+          ((model.isThinking ? 1.25 : 1) * (1 - log) - log) *
+            quantQualityModifier,
+        ),
+      ) * 100
+  }
+  return { speed, quality, notes }
 }

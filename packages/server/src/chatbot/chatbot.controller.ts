@@ -50,6 +50,7 @@ import {
   GetInteractionsAndQuestionsResponse,
   InteractionResponse,
   LLMType,
+  LocalLLMType,
   OllamaLLMType,
   OpenAILLMType,
   OrganizationChatbotSettings,
@@ -1269,12 +1270,30 @@ export class ChatbotController {
     return await this.chatbotService.getOpenAIAvailableModels(apiKey, headers);
   }
 
+  @Post('organization/:oid/local_llm')
+  @UseGuards(OrganizationRolesGuard, OrganizationGuard)
+  @Roles(OrganizationRole.ADMIN)
+  async getAvailableLocalLLMModels(
+    @Body() body: GetAvailableModelsBody,
+  ): Promise<LocalLLMType[]> {
+    const { baseUrl, headers } = body;
+    if (!baseUrl) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.chatbotController.invalidProviderParams(['Base URL']),
+      );
+    }
+    return await this.chatbotService.getLocalLLMAvailableModels(
+      baseUrl,
+      headers,
+    );
+  }
+
   @Get('organization/:oid/provider/:providerId/available')
   @UseGuards(OrganizationRolesGuard, OrganizationGuard)
   @Roles(OrganizationRole.ADMIN)
   async getProviderAvailableModels(
     @Param('providerId', ParseIntPipe) providerId: number,
-  ): Promise<(OllamaLLMType | OpenAILLMType)[]> {
+  ): Promise<(OllamaLLMType | OpenAILLMType | LocalLLMType)[]> {
     const provider = await ChatbotProviderModel.findOne({
       where: {
         id: providerId,
@@ -1295,6 +1314,11 @@ export class ChatbotController {
       case ChatbotServiceProvider.OpenAI:
         return await this.chatbotService.getOpenAIAvailableModels(
           provider.apiKey,
+          provider.headers,
+        );
+      case ChatbotServiceProvider.LocalLLM:
+        return await this.chatbotService.getLocalLLMAvailableModels(
+          provider.baseUrl,
           provider.headers,
         );
       default:

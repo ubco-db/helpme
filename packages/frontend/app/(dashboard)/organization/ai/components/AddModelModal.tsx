@@ -61,7 +61,8 @@ const AddModelModal = <T extends LLMType>({
     }
 
     if (
-      providerType == ChatbotServiceProvider.Ollama &&
+      (providerType == ChatbotServiceProvider.Ollama ||
+        providerType == ChatbotServiceProvider.LocalLLM) &&
       (baseUrl == undefined || baseUrl == '')
     ) {
       if (calledFromRetry) {

@@ -22,6 +22,7 @@ import {
   CreateOrganizationChatbotSettingsBody,
   dropUndefined,
   ERROR_MESSAGES,
+  LocalLLMType,
   OllamaLLMType,
   OllamaModelDescription,
   OpenAILLMType,
@@ -29,6 +30,8 @@ import {
   UpdateChatbotProviderBody,
   UpdateLLMTypeBody,
   UpsertCourseChatbotSettings,
+  extractModelSizeAndQuantization,
+  OpenAIModelDescription,
 } from '@koh/common';
 import { ChatbotProviderModel } from './chatbot-infrastructure-models/chatbot-provider.entity';
 import { LLMTypeModel } from './chatbot-infrastructure-models/llm-type.entity';
@@ -40,6 +43,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { ChatbotApiService } from './chatbot-api.service';
 import { ChatbotDataSourceService } from './chatbot-datasource/chatbot-datasource.service';
+import { getFetchErrorMessage } from 'utils';
 
 // OpenAI makes it really annoying to scrape any data related
 // to the model capabilities (text, image processing) (selfish, much?)
@@ -1232,7 +1236,7 @@ export class ChatbotService {
       .then((res) => {
         if (!res.ok) {
           throw new HttpException(
-            `Failed to contact Ollama Server: ${res.statusText}`,
+            `Error contacting Ollama server: ${getFetchErrorMessage(res)}`,
             res.status,
           );
         }
@@ -1283,6 +1287,136 @@ export class ChatbotService {
     return models;
   }
 
+  /**
+   * Heuristic check for whether a llama.cpp model supports "thinking" / reasoning.
+   * TODO: llama.cpp supports specifying thinking in the /completions request itself,
+   * so in a future refactor we could try to utilize that instead of this heuristic.
+   */
+  private isLocalLLMThinkingModel(modelId: string): boolean {
+    const lowerName = modelId.toLowerCase();
+    return /(?:^|[-_/])(?:deepseek-r1|qwq|o1|thinking)(?:[-_/]|$)/.test(
+      lowerName,
+    );
+  }
+
+  async getLocalLLMAvailableModels(
+    baseUrl: string,
+    headers: ChatbotAllowedHeaders,
+  ): Promise<LocalLLMType[]> {
+    const cached = await this.cacheManager.get<LocalLLMType[]>(
+      `localllm-models-${baseUrl}`,
+    );
+    if (cached != undefined) {
+      return cached;
+    }
+
+    if (!baseUrl.startsWith('http')) {
+      baseUrl = `https://${baseUrl}`;
+    }
+
+    // Hit the llama.cpp native /models endpoint
+    const response:
+      { data: OllamaModelDescription[] } | { data: OpenAIModelDescription[] } =
+      await fetch(`${baseUrl}/models?reload=1`, {
+        method: 'GET',
+        headers: {
+          ...headers,
+        },
+      })
+        .then(async (res) => {
+          if (res.status === HttpStatus.NOT_FOUND) {
+            // if the llama.cpp /models endpoint doesn't exist, call the generic openAI /v1/models endpoint
+            return await fetch(`${baseUrl}/v1/models`, {
+              method: 'GET',
+              headers: {
+                ...headers,
+              },
+            })
+              .then((res) => {
+                if (!res.ok) {
+                  throw new HttpException(
+                    `Error contacting local LLM server: ${getFetchErrorMessage(res)}`,
+                    res.status,
+                  );
+                }
+                return res.json();
+              })
+              .catch((err) => {
+                if (err instanceof HttpException) {
+                  throw err;
+                } else {
+                  throw new BadRequestException(
+                    'Failed to contact generic local LLM Server',
+                    err,
+                  );
+                }
+              });
+          } else {
+            if (!res.ok) {
+              throw new HttpException(
+                `Error contacting Local LLM Server: ${getFetchErrorMessage(res)}`,
+                res.status,
+              );
+            }
+            return res.json();
+          }
+        })
+        .catch((err) => {
+          if (err instanceof HttpException) {
+            throw err;
+          } else {
+            throw new BadRequestException('Failed to contact llama.cpp Server');
+          }
+        });
+
+    const models: LocalLLMType[] = response.data.map((model, id) => {
+      let sizeBillion = 0;
+      let isText = true;
+      let isVision = false;
+
+      if ('architecture' in model) {
+        const inputModalities = model.architecture?.input_modalities ?? [];
+        const outputModalities = model.architecture?.output_modalities ?? [];
+
+        isText =
+          inputModalities.includes('text') && outputModalities.includes('text');
+        isVision = inputModalities.includes('image');
+      } else if ('meta' in model && model.meta) {
+        if (model.meta.n_params) {
+          sizeBillion = Math.round(model.meta.n_params / 1_000_000_000);
+        } else if (model.meta.size) {
+          sizeBillion = Math.round(model.meta.size / 1_000_000_000);
+        }
+      }
+
+      if (sizeBillion === 0) {
+        sizeBillion = extractModelSizeAndQuantization(model.id).sizeBillion;
+      }
+
+      const isThinking = this.isLocalLLMThinkingModel(model.id);
+
+      return {
+        id,
+        modelName: model.id,
+        families: ['Local'],
+        parameterSize: sizeBillion > 0 ? `${sizeBillion}B` : 'unknown',
+        isRecommended: false,
+        isText,
+        isVision,
+        isThinking,
+        provider: null,
+      };
+    });
+
+    // Cache for 5 minutes
+    await this.cacheManager.set(
+      `localllm-models-${baseUrl}`,
+      models,
+      5 * 60 * 1000,
+    );
+    return models;
+  }
+
   async getOpenAIAvailableModels(
     apiKey: string,
     headers: ChatbotAllowedHeaders,
@@ -1303,7 +1437,7 @@ export class ChatbotService {
       .then((res) => {
         if (!res.ok) {
           throw new HttpException(
-            `Failed to contact OpenAI API: ${res.statusText}`,
+            `Error contacting OpenAI API: ${getFetchErrorMessage(res)}`,
             res.status,
           );
         }
@@ -1341,7 +1475,7 @@ export class ChatbotService {
       .then((res) => {
         if (!res.ok) {
           throw new HttpException(
-            `Failed to contact Ollama Library: ${res.statusText}`,
+            `Error contacting Ollama Library: ${getFetchErrorMessage(res)}`,
             res.status,
           );
         }
