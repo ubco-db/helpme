@@ -4,7 +4,6 @@ import {
   ChatbotServiceProvider,
   ChatbotServiceType,
   LLMType,
-  OllamaLLMType,
   OpenAILLMType,
 } from '@koh/common'
 import { API } from '@/app/api'
@@ -61,7 +60,7 @@ const AddModelModal = <T extends LLMType>({
     }
 
     if (
-      providerType == ChatbotServiceProvider.Ollama &&
+      providerType == ChatbotServiceProvider.LocalLLM &&
       (baseUrl == undefined || baseUrl == '')
     ) {
       if (calledFromRetry) {

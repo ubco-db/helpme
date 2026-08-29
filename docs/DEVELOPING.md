@@ -112,7 +112,7 @@ Also, you must update the `seed.controller.ts` file to reflect the new database 
 
 #### Migrations
 
-If you change an entity, you MUST run `yarn migration:generate ./migration/your-migration-name -d ./typeORMCLI.config.ts`, to make the migration file, then `yarn migration:run` will automatically run on deployment to staging/production. Commit the migration file to Git!
+If you change an entity, you MUST run `yarn migration:generate ./migration/your-migration-name`, to make the migration file, then `yarn migration:run` will automatically run on deployment to staging/production. Commit the migration file to Git!
 
 ### Adding an API Route
 

@@ -169,7 +169,7 @@ describe('ChatbotService', () => {
     providers.push(
       await ChatbotProviderFactory.create({
         organizationChatbotSettings: orgSettings,
-        providerType: ChatbotServiceProvider.Ollama,
+        providerType: ChatbotServiceProvider.LocalLLM,
         baseUrl: 'https://fake-url.com',
       }),
     );
@@ -472,7 +472,7 @@ describe('ChatbotService', () => {
         default_similarityThresholdQuestions: 0.5,
         providers: [
           {
-            providerType: ChatbotServiceProvider.Ollama,
+            providerType: ChatbotServiceProvider.LocalLLM,
             baseUrl: 'https://fake-url.com/',
             defaultModelName: 'model1',
             defaultVisionModelName: 'model2',
@@ -655,7 +655,7 @@ describe('ChatbotService', () => {
           id: 1,
         });
         const params: CreateChatbotProviderBody = {
-          providerType: ChatbotServiceProvider.Ollama,
+          providerType: ChatbotServiceProvider.LocalLLM,
           baseUrl: 'https://fake-url.com/',
           defaultModelName: model == 'text' ? 'model3' : 'model1',
           defaultVisionModelName: model == 'vision' ? 'model3' : 'model2',
@@ -692,7 +692,7 @@ describe('ChatbotService', () => {
         id: 1,
       });
       const params: CreateChatbotProviderBody = {
-        providerType: ChatbotServiceProvider.Ollama,
+        providerType: ChatbotServiceProvider.LocalLLM,
         baseUrl: 'https://fake-url.com/',
         defaultModelName: 'model1',
         defaultVisionModelName: 'model2',
@@ -861,10 +861,10 @@ describe('ChatbotService', () => {
 
       const params: UpdateChatbotProviderBody = {
         providerType:
-          provider.providerType == ChatbotServiceProvider.Ollama
+          provider.providerType == ChatbotServiceProvider.LocalLLM
             ? ChatbotServiceProvider.OpenAI
-            : ChatbotServiceProvider.Ollama,
-        nickname: 'new nickname',
+            : ChatbotServiceProvider.LocalLLM,
+        nickname: 'LocalLLM Provider',
         headers: { Authorization: 'Bearer fake-token' },
         baseUrl: 'https://new-url.com',
         apiKey: 'zyxnotarealkey',
@@ -1609,7 +1609,7 @@ describe('ChatbotService', () => {
     );
   });
 
-  const ollamaModels = {
+  const localllmModels = {
     models: [
       {
         name: 'qwen2.5vl',
@@ -1707,103 +1707,77 @@ describe('ChatbotService', () => {
     ],
   };
 
-  const visions = ['gemma3', 'qwen2.5vl'];
-  const thinking = ['qwen3', 'deepseek-r1'];
-  const embedding = ['nomic-embed-text', 'mxbai-embed-large'];
-
-  const mockOllamaFetch = async (url: string) => {
-    const res = (() => {
-      switch (url) {
-        case 'https://ollama.com/search?c=vision':
-          return `
-              <a href="/library/qwen2.5vl"></a>
-              <a href="/library/gemma3"></a>
-            `;
-        case 'https://ollama.com/search?c=thinking':
-          return `
-              <a href="/library/qwen3"></a>
-              <a href="/library/deepseek-r1"></a>
-            `;
-        case 'https://ollama.com/search?c=embedding':
-          return `
-              <a href="/library/nomic-embed-text"></a>
-              <a href="/library/mxbai-embed-large"></a>
-            `;
-        default:
-          return ollamaModels;
-      }
-    })();
-    return {
-      ok: true,
-      json: () => res,
-      text: () => res,
-    };
-  };
-
-  describe('getOllamaAvailableModels', () => {
-    let ollamaModelsByTagSpy: jest.SpyInstance;
-
-    beforeEach(() => {
-      ollamaModelsByTagSpy = jest.spyOn(service, 'getKnownOllamaModelsByTag');
-    });
-
-    afterEach(() => {
-      ollamaModelsByTagSpy.mockRestore();
-    });
-
-    it('should fail if fetch request to API fails', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 404,
-        statusText: 'Not Found',
+  describe('getLocalLLMAvailableModels', () => {
+    it('should fetch models from the local LLM server and parse them correctly', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: [
+            { id: 'qwen3', meta: { n_params: 7000000000 } },
+            { id: 'deepseek-r1', meta: { size: 14000000000 } },
+            {
+              id: 'gemma3',
+              architecture: {
+                input_modalities: ['text', 'image'],
+                output_modalities: ['text'],
+              },
+            },
+          ],
+        }),
       });
-      ollamaModelsByTagSpy.mockImplementation(() => []);
-      await expect(
-        service.getOllamaAvailableModels('https://fake-url', {
-          Authorization: 'Bearer fake-key',
-        }),
-      ).rejects.toThrow(
-        new HttpException(`Failed to contact Ollama Server: Not Found`, 404),
+
+      const models = await service.getLocalLLMAvailableModels(
+        'https://fake-local-url',
+        {},
       );
-      mockFetch.mockRejectedValue({});
-      await expect(
-        service.getOllamaAvailableModels('https://fake-url', {
-          Authorization: 'Bearer fake-key',
-        }),
-      ).rejects.toThrow(
-        new HttpException(`Failed to contact Ollama Server`, 400),
-      );
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(models).toHaveLength(3);
+      expect(models[0].modelName).toBe('qwen3');
+      expect(models[0].parameterSize).toBe('7B');
+
+      expect(models[1].modelName).toBe('deepseek-r1');
+      expect(models[1].parameterSize).toBe('14B');
+
+      expect(models[2].modelName).toBe('gemma3');
+      expect(models[2].isVision).toBe(true);
+      expect(models[2].isText).toBe(true);
     });
 
-    it('should return the available ollama models with tags for vision, thinking and cut those with embedding', async () => {
-      mockFetch.mockImplementation(mockOllamaFetch);
-      const models = await service.getOllamaAvailableModels(
-        'https://fake-url',
-        { Authorization: 'Bearer fake-key' },
-      );
-      expect(ollamaModelsByTagSpy).toHaveBeenCalledTimes(3);
-      expect(ollamaModelsByTagSpy).toHaveBeenNthCalledWith(1, 'vision');
-      expect(ollamaModelsByTagSpy).toHaveBeenNthCalledWith(2, 'thinking');
-      expect(ollamaModelsByTagSpy).toHaveBeenNthCalledWith(3, 'embedding');
-
-      expect(models).toEqual(
-        ollamaModels.models
-          .filter((m) => !m.model.includes('embed'))
-          .map((model, id) => {
-            const isVision = visions.includes(model.model);
-            const isThinking = thinking.includes(model.model);
-            return {
-              id,
-              modelName: model.model,
-              families: model.details.families,
-              parameterSize: model.details.parameter_size,
-              isRecommended: false,
-              isText: true,
-              isVision,
-              isThinking,
-              provider: null,
-            };
+    it('should fallback to /v1/models if /models returns 404', async () => {
+      mockFetch
+        .mockResolvedValueOnce({ status: 404 }) // First fetch fails with 404
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            data: [{ id: 'fallback-model', meta: { n_params: 1000000000 } }],
           }),
+        }); // Second fetch succeeds
+
+      const models = await service.getLocalLLMAvailableModels(
+        'https://fake-local-url',
+        {},
+      );
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(models).toHaveLength(1);
+      expect(models[0].modelName).toBe('fallback-model');
+    });
+
+    it('should throw an error if the fallback /v1/models also fails', async () => {
+      mockFetch.mockResolvedValueOnce({ status: 404 }).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+      });
+
+      await expect(
+        service.getLocalLLMAvailableModels('https://fake-local-url', {}),
+      ).rejects.toThrow(
+        new HttpException(
+          `Error contacting local LLM server: Unauthorized`,
+          401,
+        ),
       );
     });
   });
@@ -1818,7 +1792,7 @@ describe('ChatbotService', () => {
       await expect(
         service.getOpenAIAvailableModels('abcdefghijklmnop', {}),
       ).rejects.toThrow(
-        new HttpException(`Failed to contact OpenAI API: Not Authorized`, 401),
+        new HttpException(`Error contacting OpenAI API: Not Authorized`, 401),
       );
       mockFetch.mockRejectedValue({});
       await expect(
@@ -1836,44 +1810,5 @@ describe('ChatbotService', () => {
       );
       expect(result).toEqual(openAIModels.map((v, i) => ({ id: i, ...v })));
     });
-  });
-
-  describe('getKnownOllamaModelsByTags', () => {
-    it.each(['vision', 'thinking', 'embedding'])(
-      'should fail if fetch request to API fails (tag = %s)',
-      async (tag: 'vision' | 'thinking' | 'embedding') => {
-        mockFetch.mockResolvedValue({
-          ok: false,
-          status: 404,
-          statusText: 'Not Found',
-        });
-        await expect(service.getKnownOllamaModelsByTag(tag)).rejects.toThrow(
-          new HttpException(`Failed to contact Ollama Library: Not Found`, 401),
-        );
-        mockFetch.mockRejectedValue({});
-        await expect(service.getKnownOllamaModelsByTag(tag)).rejects.toThrow(
-          new BadRequestException('Failed to contact Ollama Library'),
-        );
-      },
-    );
-
-    it.each(['vision', 'thinking', 'embedding'])(
-      'should return the retrieved models based on tags (tag = %s)',
-      async (tag: 'vision' | 'thinking' | 'embedding') => {
-        mockFetch.mockImplementation(mockOllamaFetch);
-        const result = await service.getKnownOllamaModelsByTag(tag);
-        expect(result).toEqual(
-          ollamaModels.models
-            .map((v) => v.model)
-            .filter((v) =>
-              tag == 'vision'
-                ? visions.includes(v)
-                : tag == 'thinking'
-                  ? thinking.includes(v)
-                  : embedding.includes(v),
-            ),
-        );
-      },
-    );
   });
 });

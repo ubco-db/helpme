@@ -598,8 +598,8 @@ const OrganizationChatbotSettingsForm: React.FC<
             just one.
           </p>
           <p>
-            If you are using Ollama, for instance, you can define multiple ways
-            to connect to Ollama, in case some of your models are hosted
+            If you are using llama.cpp, for instance, you can define multiple
+            ways to connect to llama.cpp, in case some of your models are hosted
             elsewhere.
           </p>
         </div>

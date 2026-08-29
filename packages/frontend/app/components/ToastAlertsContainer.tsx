@@ -121,11 +121,9 @@ export const ToastAlertsContainer: React.FC = () => {
           ),
           id: alert.id,
           onDismiss: () => {
-            console.log('onDismiss()', alert)
             markAlertRead(alert.id)
           },
           onAutoClose: () => {
-            console.log('onAutoClose()', alert)
             markAlertRead(alert.id)
           },
           position: payload.position || 'bottom-left',

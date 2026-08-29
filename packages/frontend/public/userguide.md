@@ -174,7 +174,7 @@ The navigation elements are as follows:
 
 HelpMe is hosted on UBCO servers, and no data is shared with external providers. This means your interactions stay within UBC’s infrastructure and comply with UBC’s policies on data safety and security. All course interaction data is stored securely in Canada and does not leave the country.
 
-All LLM models are hosted locally on UBCO servers using Ollama. No external API calls are made.
+All LLM models are hosted locally on UBCO servers using llama.cpp. No external API calls are made.
 
 If you're curious about certain models (e.g. Qwen 2.5, Deepseek R1), these LLMs were trained by external companies that released their weights to the public, allowing anyone to run these models on their local hardware. These companies also host their models on their own server hardware and their own websites, but these are unaffiliated with UBC and HelpMe and are subject to different data privacy laws. So, in short, it's safe to use models like Deepseek R1 on HelpMe since it's hosted on UBCO servers, but it is not data safe to go to Deepseek's website and ask questions there.
 

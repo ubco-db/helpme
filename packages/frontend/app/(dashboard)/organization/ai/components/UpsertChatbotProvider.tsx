@@ -317,13 +317,22 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
               setIsLoading(false)
             })
         } else {
+          const newModels = models.map((model) => {
+            return {
+              ...model,
+              id: undefined,
+              families: undefined,
+              parameterSize: undefined,
+              provider: undefined,
+            }
+          })
           API.chatbot.adminOnly
             .createChatbotProvider(organizationId, {
               ...(values as CreateChatbotProviderBody),
               headers,
               defaultModelName,
               defaultVisionModelName,
-              models,
+              models: newModels,
               additionalNotes: notes,
             })
             .then((provider) => {
@@ -498,7 +507,7 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
                     },
                   ]}
                 >
-                  <Input addonBefore={'https://'} />
+                  <Input placeholder="https://some-ai-provider.com" />
                 </Form.Item>
               )}
               {providerType == ChatbotServiceProvider.OpenAI &&

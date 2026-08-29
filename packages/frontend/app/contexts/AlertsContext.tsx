@@ -180,8 +180,6 @@ export const AlertsProvider: React.FC<{
     `alerts`,
     useCallback(
       (data: AlertServerSentEvent) => {
-        console.log('NEW ALERT DATA:', data)
-        console.log('CURRENT COURSE', currentCourseId)
         if (initialFetchLoading) {
           // This is a weird case to think about, but I could see a weird scenario where
           // an SSE event is sent *before* initial alerts is retrieved, where it causes a modal popup to show up,
@@ -211,7 +209,6 @@ export const AlertsProvider: React.FC<{
                 { revalidate: false },
               )
             } else {
-              console.log('no matching alert found')
               // Doesn't yet exist on the frontend state (most cases)
               if (
                 data.alert.deliveryMode === AlertDeliveryMode.TOAST ||
@@ -237,8 +234,6 @@ export const AlertsProvider: React.FC<{
                 )
               } else if (currentCourseId) {
                 // if course is selected, only add alerts that are null courseId or the same courseId (only MODAL alerts atm)
-                console.log('alertbefore', data.alert)
-                console.log('alertafter', plainToInstance(Alert, data.alert))
                 if (
                   data.alert.courseId === currentCourseId ||
                   !data.alert.courseId
@@ -258,12 +253,9 @@ export const AlertsProvider: React.FC<{
                   )
                 }
               } else {
-                console.log('not in currentCourseId', data.alert.deliveryMode)
                 // if no course is selected (like in /courses page)
                 // For modal, ONLY allow alerts with null courseId (so you don't get like 5 different popups about rephrase question or something)
-                console.log('MODAL delivery mofde')
                 if (!data.alert.courseId) {
-                  console.log('Adding new alert:', data)
                   mutateAlerts(
                     (prev) =>
                       prev
@@ -301,10 +293,6 @@ export const AlertsProvider: React.FC<{
                             (updatedAlert) => updatedAlert.id === a.id,
                           )
                           if (matchingUpdatedAlert) {
-                            console.log(
-                              'Found matching alert:',
-                              matchingUpdatedAlert,
-                            )
                             // For MODAL or TOAST alerts that became readAt, we remove them from the state
                             // Otherwise (if a modal alert attribute was update that's not readAt, or if a FEED alert became readAt, etc.) we update the local state
                             return (matchingUpdatedAlert.deliveryMode ===

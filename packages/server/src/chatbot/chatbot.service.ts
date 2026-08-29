@@ -22,24 +22,26 @@ import {
   CreateOrganizationChatbotSettingsBody,
   dropUndefined,
   ERROR_MESSAGES,
-  OllamaLLMType,
-  OllamaModelDescription,
+  LocalLLMType,
   OpenAILLMType,
   OrganizationChatbotSettingsDefaults,
   UpdateChatbotProviderBody,
   UpdateLLMTypeBody,
   UpsertCourseChatbotSettings,
+  extractModelSizeAndQuantization,
+  OpenAIModelDescription,
+  LlamaCppModelDescription,
 } from '@koh/common';
 import { ChatbotProviderModel } from './chatbot-infrastructure-models/chatbot-provider.entity';
 import { LLMTypeModel } from './chatbot-infrastructure-models/llm-type.entity';
 import { cloneDeep, pick } from 'lodash';
 import { DataSource, DeepPartial, EntityManager, In, IsNull } from 'typeorm';
 import { CourseChatbotSettingsModel } from './chatbot-infrastructure-models/course-chatbot-settings.entity';
-import { JSDOM } from 'jsdom';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { ChatbotApiService } from './chatbot-api.service';
 import { ChatbotDataSourceService } from './chatbot-datasource/chatbot-datasource.service';
+import { getFetchErrorMessage } from 'utils';
 
 // OpenAI makes it really annoying to scrape any data related
 // to the model capabilities (text, image processing) (selfish, much?)
@@ -1202,26 +1204,38 @@ export class ChatbotService {
     };
   }
 
-  async getOllamaAvailableModels(
+  /**
+   * Heuristic check for whether a llama.cpp model supports "thinking" / reasoning.
+   * TODO: llama.cpp supports specifying thinking in the /completions request itself,
+   * so in a future refactor we could try to utilize that instead of this heuristic.
+   */
+  private isLocalLLMThinkingModel(modelId: string): boolean {
+    const lowerName = modelId.toLowerCase();
+    return /(?:^|[-_/])(?:deepseek-r1|qwq|o1|thinking)(?:[-_/]|$)/.test(
+      lowerName,
+    );
+  }
+
+  async getLocalLLMAvailableModels(
     baseUrl: string,
     headers: ChatbotAllowedHeaders,
-  ): Promise<OllamaLLMType[]> {
-    const cached = await this.cacheManager.get<OllamaLLMType[]>(
-      `ollama-models-${baseUrl}`,
+  ): Promise<LocalLLMType[]> {
+    const cached = await this.cacheManager.get<LocalLLMType[]>(
+      `localllm-models-${baseUrl}`,
     );
     if (cached != undefined) {
       return cached;
     }
-    const visionModels = await this.getKnownOllamaModelsByTag('vision');
-    const thinkingModels = await this.getKnownOllamaModelsByTag('thinking');
-    const embeddingModels = await this.getKnownOllamaModelsByTag('embedding');
 
     if (!baseUrl.startsWith('http')) {
       baseUrl = `https://${baseUrl}`;
     }
 
-    const response: { models: OllamaModelDescription[] } = await fetch(
-      `${baseUrl}/api/tags`,
+    // Hit the llama.cpp native /models endpoint
+    const response:
+      | { data: LlamaCppModelDescription[] }
+      | { data: OpenAIModelDescription[] } = await fetch(
+      `${baseUrl}/models?reload=1`,
       {
         method: 'GET',
         headers: {
@@ -1229,54 +1243,94 @@ export class ChatbotService {
         },
       },
     )
-      .then((res) => {
-        if (!res.ok) {
-          throw new HttpException(
-            `Failed to contact Ollama Server: ${res.statusText}`,
-            res.status,
-          );
+      .then(async (res) => {
+        if (res.status === HttpStatus.NOT_FOUND) {
+          // if the llama.cpp /models endpoint doesn't exist, call the generic openAI /v1/models endpoint
+          return await fetch(`${baseUrl}/v1/models`, {
+            method: 'GET',
+            headers: {
+              ...headers,
+            },
+          })
+            .then(async (res) => {
+              if (!res.ok) {
+                throw new HttpException(
+                  `Error contacting local LLM server: ${await getFetchErrorMessage(res)}`,
+                  res.status,
+                );
+              }
+              return res.json();
+            })
+            .catch((err) => {
+              if (err instanceof HttpException) {
+                throw err;
+              } else {
+                throw new BadRequestException(
+                  'Failed to contact generic local LLM Server',
+                  err,
+                );
+              }
+            });
+        } else {
+          if (!res.ok) {
+            throw new HttpException(
+              `Error contacting Local LLM Server: ${await getFetchErrorMessage(res)}`,
+              res.status,
+            );
+          }
+          return res.json();
         }
-        return res.json();
       })
       .catch((err) => {
         if (err instanceof HttpException) {
           throw err;
         } else {
-          throw new BadRequestException('Failed to contact Ollama Server');
+          throw new BadRequestException('Failed to contact llama.cpp Server');
         }
       });
 
-    const models = response.models
-      .filter(
-        (model) =>
-          !embeddingModels.some((em) =>
-            (model.model ?? model.name).startsWith(em),
-          ),
-      )
-      .map((model, id) => {
-        const isVision = visionModels.some((vm) =>
-          (model.model ?? model.name).startsWith(vm),
-        );
-        const isThinking = thinkingModels.some((tm) =>
-          (model.model ?? model.name).startsWith(tm),
-        );
+    const models: LocalLLMType[] = response.data.map((model, id) => {
+      let sizeBillion = 0;
+      let isText = true;
+      let isVision = false;
 
-        return {
-          id,
-          modelName: model.model ?? model.name,
-          families: model.details.families ?? [model.details.family],
-          parameterSize: model.details.parameter_size,
-          isRecommended: false,
-          isText: true,
-          isVision,
-          isThinking,
-          provider: null,
-        };
-      });
+      if ('architecture' in model) {
+        const inputModalities = model.architecture?.input_modalities ?? [];
+        const outputModalities = model.architecture?.output_modalities ?? [];
 
-    // Live for 5 minutes
+        isText =
+          inputModalities.includes('text') && outputModalities.includes('text');
+        isVision = inputModalities.includes('image');
+      } else if ('meta' in model && model.meta) {
+        if (model.meta.n_params) {
+          sizeBillion = Math.round(model.meta.n_params / 1_000_000_000);
+        } else if (model.meta.size) {
+          sizeBillion = Math.round(model.meta.size / 1_000_000_000);
+        }
+      }
+
+      if (sizeBillion === 0) {
+        sizeBillion = extractModelSizeAndQuantization(model.id).sizeBillion;
+      }
+
+      const isThinking = this.isLocalLLMThinkingModel(model.id);
+
+      return {
+        id,
+        modelName: model.id,
+        families: ['Local'],
+        parameterSize: sizeBillion > 0 ? `${sizeBillion}B` : 'unknown',
+        isRecommended: false,
+        isText,
+        isVision,
+        isThinking,
+        provider: null,
+      };
+    });
+
+    // Cache for 5 minutes
     await this.cacheManager.set(
-      `ollama-models-${baseUrl}`,
+      `localllm-models-${baseUrl}`,
       models,
       5 * 60 * 1000,
     );
@@ -1300,10 +1354,10 @@ export class ChatbotService {
         Authorization: `Bearer ${apiKey}`,
       },
     })
-      .then((res) => {
+      .then(async (res) => {
         if (!res.ok) {
           throw new HttpException(
-            `Failed to contact OpenAI API: ${res.statusText}`,
+            `Error contacting OpenAI API: ${await getFetchErrorMessage(res)}`,
             res.status,
           );
         }
@@ -1323,55 +1377,6 @@ export class ChatbotService {
 
     await this.cacheManager.set(`openai-models`, openAIModels, 5 * 60 * 1000);
     return openAIModels;
-  }
-
-  async getKnownOllamaModelsByTag(
-    tag: 'vision' | 'thinking' | 'embedding',
-  ): Promise<string[]> {
-    const url = `https://ollama.com/search?c=${tag}`;
-    const cached = await this.cacheManager.get<string[]>(
-      `ollama-models-${url}`,
-    );
-    if (cached != undefined) {
-      return cached;
-    }
-    const response = await fetch(url, {
-      method: 'GET',
-    })
-      .then((res) => {
-        if (!res.ok) {
-          throw new HttpException(
-            `Failed to contact Ollama Library: ${res.statusText}`,
-            res.status,
-          );
-        }
-        return res.text();
-      })
-      .catch((err) => {
-        if (err instanceof HttpException) {
-          throw err;
-        } else {
-          throw new BadRequestException('Failed to contact Ollama Library');
-        }
-      });
-
-    const { document } = new JSDOM(response).window;
-
-    const visionModelNames: string[] = [];
-    document.querySelectorAll('a').forEach((anchor) => {
-      const libraryLink = anchor.href;
-      const regexMatch = libraryLink.match(/\/library\/[a-zA-Z.0-9]*/);
-      if (regexMatch != null && regexMatch.length > 0) {
-        visionModelNames.push(libraryLink.substring('/library/'.length));
-      }
-    });
-    // Let it live for one day since it's an external resource
-    await this.cacheManager.set(
-      `ollama-models-${url}`,
-      visionModelNames,
-      24 * 60 * 60 * 1000,
-    );
-    return visionModelNames;
   }
 }
 
