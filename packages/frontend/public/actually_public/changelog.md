@@ -1,4 +1,4 @@
-## Version 1.10.0 - New Alerts System, New AI models
+## Version 1.10.0 - Notification Bell, New AI models
 
 *Aug xxx, 2026*
 
@@ -6,30 +6,30 @@
 #### New Features
 
 - ***General***
-  - Reworked the [landing page](https://coursehelp.ubc.ca/)
-    - Now with a lot more information and screenshots
-  - Added an [About](https://coursehelp.ubc.ca/about) page
-    - Has our Privacy Policy, Terms of Service, Changelog, an FAQ, our team, and more
-  - Course Staff can now "Endorse" Anytime Question Comments
-    - Endorsed comments appear first
-    - Useful if you have "Allow Anytime Question Authors to make their Questions Public" enabled under Course Settings and you encourage your students to help each other
+  - Added a new Notification Bell
+    - Mostly used for storing Anytime Question notifications for now
+    - Keeps a history of read notifications for 30? days  
+  - 2x (TODO verify) the speed of the Chatbot by optimizing it for our server hardware
+    - Nerd details: We changed out part of the Chatbot's AI back end to improve performance   (specifically, we switched out Ollama with llama.cpp and optimized it for our server hardware)
+    - Please email me at adam.fipke@ubc.ca if you run into any issues with the Chatbot
+  - Clicking on notifications regarding Anytime Questions now takes you directly to the specific question/comment
 
 
 - ***Faculty-only***
-  - Added Weekly Summary emails for professors
-    - Includes activity, any pending Anytime Questions, and recommendations
-  - Added a "Save to Chatbot" feature when posting a response to an Anytime Question
-    - Allows your Chatbot to keep getting better as it gets used
-  - Added a "Export Tool Usage to CSV" button under Course Settings → Export Data
-    - Could be used to chart what tools (Chatbot, Anytime Questions, Queues) each student is using over time
-    - Could be used to assign participation marks
-  - Added "Professor Invites"
-    - Works as a regular course invite except it promotes the user to a professor right away
-    - Useful if you are creating the course for a fellow professor
+  - Added new AI models and updated the default model
+  - Uploading Chatbot Documents now properly get processed in the background, allowing you to close the tab and come back later
 
 
 #### Improvements
-
+- Improved the Anytime Question update emails to now include more information and better styling
+- Reworked the Alerts system to be more robust and performant
+- Added a new notification for when your Anytime Question Comment gets endorsed
+- Moved an Anytime Question's "tags" to appear underneath the abstract rather than underneath the comments (should look a little nicer when the comments section is open)
+- Fixed an issue where the "Ask student to rephrase their question" popup wouldn't show up right away
+- Improved the "Ask student to rephrase their question" popup with 2 buttons: one that opens the modal to edit their question and one that just dismisses the popup (previously, there was an "Edit question" button that would just dismiss the modal).
+- Fixed a bug where after Full Deleting a course it would still show up 
+- Fixed a bug where Full Delete course would not work if there was any queue questions or chatbot questions
+- Fixed an issue where not all course settings were getting copied over when cloning a course
 
 ## Version 1.9.0 - New Landing Page, Weekly Summary Emails, Save to Chatbot, and More
 
