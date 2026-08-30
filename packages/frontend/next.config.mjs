@@ -7,6 +7,7 @@ const nextConfig = {
   reactStrictMode: false, // disabled since it messes with antd forms unfortunately
   experimental: {
     webpackMemoryOptimizations: true,
+    webpackBuildWorker: true,
     serverActions: {
       allowedOrigins: ['localhost:3000'],
     },
