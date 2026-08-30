@@ -1,6 +1,6 @@
 ## Version 1.10.0 - Notification Bell, New AI models
 
-*Aug 29th, 2026*
+*Aug 30th, 2026*
 
 
 #### New Features
@@ -9,14 +9,18 @@
   - Added a new Notification Bell
     - Mostly used for storing Anytime Question notifications for now
     - Keeps a history of read notifications for 30? days  
-  - 2x (TODO verify) the speed of the Chatbot by optimizing it for our server hardware
+  - Increased the speed of the Chatbot by ~70% by optimizing it for our server hardware. The default model is also changed to a smarter one.
     - Nerd details: We changed out part of the Chatbot's AI back end to improve performance   (specifically, we switched out Ollama with llama.cpp and optimized it for our server hardware)
     - Please email me at adam.fipke@ubc.ca if you run into any issues with the Chatbot
   - Clicking on notifications regarding Anytime Questions now takes you directly to the specific question/comment
 
 
 - ***Faculty-only***
-  - Added new AI models and updated the default model
+  - Added new AI models
+    - Gemma-4-26B-A4B: Good balance between speed and accuracy. New Default
+    - Qwen3.8-Flash-Next-177B-A6B: Slow, but accurate.
+    - Qwen2.5-14b: Previous default model. Leaving it as an option in case you prefer the old model.
+    - More new models may be on the horizon!
   - Uploading Chatbot Documents now properly get processed in the background, allowing you to close the tab and come back later
 
 
@@ -30,6 +34,7 @@
 - Fixed a bug where after Full Deleting a course it would still show up 
 - Fixed a bug where Full Delete course would not work if there was any queue questions or chatbot questions
 - Fixed an issue where not all course settings were getting copied over when cloning a course
+- Fixed an issue where some professors were not getting weekly summary emails
 
 ## Version 1.9.0 - New Landing Page, Weekly Summary Emails, Save to Chatbot, and More
 
