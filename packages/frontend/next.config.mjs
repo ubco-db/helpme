@@ -6,6 +6,7 @@ import injectWhyDidYouRender from './scripts/why-did-you-render/index.mjs';
 const nextConfig = {
   reactStrictMode: false, // disabled since it messes with antd forms unfortunately
   experimental: {
+    webpackMemoryOptimizations: true,
     serverActions: {
       allowedOrigins: ['localhost:3000'],
     },
