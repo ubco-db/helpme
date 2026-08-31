@@ -14,7 +14,7 @@ import {
   TableColumnType,
   Typography,
 } from 'antd'
-import { useEffect, useRef, useState } from 'react'
+import { use, useEffect, useRef, useState } from 'react'
 import type { FilterConfirmProps } from 'antd/es/table/interface'
 import { questions, QuestionType, UpdateQuestionParams } from '@koh/common'
 import { getErrorMessage } from '@/app/utils/generalUtils'
@@ -26,9 +26,7 @@ import {
 import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
 
 type EditQuestionsPageProps = {
-  params: {
-    cid: string
-  }
+  params: Promise<{ cid: string }>
 }
 
 /*
@@ -96,7 +94,7 @@ const EditableCell: React.FC<React.PropsWithChildren<EditableCellProps>> = ({
  * Combines multiple examples from antd's offical docs for Table, plus some custom logic.
  */
 const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
-  const params = props.params
+  const params = use(props.params)
   const cid = Number(params.cid)
   const [editingKey, setEditingKey] = useState(-1)
 
@@ -238,7 +236,7 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
         <Input
           ref={searchInput}
           placeholder={`Search ${dataIndex}`}
-          value={selectedKeys[0].toString()}
+          value={selectedKeys[0]?.toString()}
           onChange={(e) =>
             setSelectedKeys(e.target.value ? [e.target.value] : [])
           }

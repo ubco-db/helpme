@@ -1,3 +1,14 @@
+## Version 1.10.1
+
+*Aug 31st, 2026*
+
+
+#### Improvements
+- Fixed issue where Edit Queue Questions page would crash
+- Added a Back button to the generic error page and replaced the "Back to Login" button with a "My Courses" button
+
+***
+
 ## Version 1.10.0 - Notification Bell, New AI models
 
 *Aug 30th, 2026*
@@ -35,6 +46,8 @@
 - Fixed a bug where Full Delete course would not work if there was any queue questions or chatbot questions
 - Fixed an issue where not all course settings were getting copied over when cloning a course
 - Fixed an issue where some professors were not getting weekly summary emails
+
+***
 
 ## Version 1.9.0 - New Landing Page, Weekly Summary Emails, Save to Chatbot, and More
 
