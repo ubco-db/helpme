@@ -1,3 +1,16 @@
+## Version 1.10.2
+
+*Sep 2nd, 2026*
+
+
+#### Improvements
+- Improved the speed at which the default model (Gemma-4-26B-A4B) performs by about 40% at the expense of the output being slightly less accurate. 
+  - It should now at least match the speed that the previous default model (Qwen2.5-14B) was before the v1.10 update, but with better responses
+- Adjusted the system-wide Chatbot prompt to include the current date
+- Moved the "you may utilize markdown in your answers" from the default course prompt to the system-wide Chatbot prompt
+
+***
+
 ## Version 1.10.1
 
 *Aug 31st, 2026*
@@ -9,7 +22,7 @@
 
 ***
 
-## Version 1.10.0 - Notification Bell, New AI models
+## Version 1.10.0 - Notification Bell, Faster Chatbot, New AI models
 
 *Aug 30th, 2026*
 
