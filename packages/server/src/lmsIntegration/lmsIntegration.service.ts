@@ -1432,6 +1432,9 @@ export class LMSIntegrationService {
   ): Promise<Buffer> {
     console.log('Downloading LMS file', {
       url,
+      headers: {
+        Authorization: `Bearer ${adapter['integration'].apiKey}`,
+      },
     });
     // Download the file as a buffer using the same approach as the chatbot service
     const response = await fetch(url);
