@@ -22,12 +22,11 @@ const ThirdPartyCookiesWarning: React.FC = () => {
               <>
                 <p>
                   This Canvas question needs third-party site data so HelpMe can
-                  keep the question-specific session secure.
+                  keep the ordinary HelpMe LTI session secure.
                 </p>
                 <p>
                   Allow third-party site data for HelpMe, then reopen this quiz
-                  in Canvas. Opening the normal HelpMe site cannot restore this
-                  question session.
+                  in Canvas.
                 </p>
               </>
             ) : (

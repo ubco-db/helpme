@@ -1848,27 +1848,6 @@ export class APIClient {
       selectAction: (ltik: string): string =>
         `/api/v1/lti/deep-link/selection?ltik=${encodeURIComponent(ltik)}`,
     },
-    embeddableResource: {
-      getOne: async (
-        courseId: number,
-        questionId: number,
-      ): Promise<EmbeddableQuestion> =>
-        this.req(
-          'GET',
-          `/api/v1/lti/embeddable-resource/${courseId}/${questionId}`,
-        ),
-      getFeedback: async (
-        courseId: number,
-        questionId: number,
-        responseText: string,
-      ): Promise<EmbeddableQuestionFeedback> =>
-        this.req(
-          'POST',
-          `/api/v1/lti/embeddable-resource/${courseId}/${questionId}/feedback`,
-          undefined,
-          { responseText },
-        ),
-    },
     embeddableQuestion: {
       create: async (
         courseId: number,

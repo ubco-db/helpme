@@ -122,14 +122,6 @@ export default function EmbeddableQuestionFeedback({
           <div className="w-full whitespace-pre-wrap rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-800">
             {feedback.comment}
           </div>
-          {feedback.needsHumanReview && (
-            <Alert
-              type="warning"
-              message="Instructor review recommended"
-              description="This automated result was flagged for instructor review. Treat the score as provisional."
-              showIcon
-            />
-          )}
           <p className="text-sm font-medium text-zinc-700">
             {`Provisional score: ${feedback.score}/${feedback.maxScore}`}
           </p>

@@ -118,9 +118,10 @@ describe('LTI question launch', () => {
     ).toBe(false);
 
     const encodedToken = cookie.split(';')[0].slice('lti_auth_token='.length);
-    const payload = getAppAuthPayload(
-      getTestModule().get<JwtService>(JwtService).verify<unknown>(encodedToken),
-    );
+    const rawJwtToken: unknown = getTestModule()
+      .get<JwtService>(JwtService)
+      .verify(encodedToken);
+    const payload = getAppAuthPayload(rawJwtToken);
     expect(payload.userId).toBe(user.id);
     const { iat, exp } = payload;
     if (typeof iat !== 'number' || typeof exp !== 'number') {

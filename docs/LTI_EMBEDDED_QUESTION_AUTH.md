@@ -88,6 +88,12 @@ Question launches still require an existing Canvas-course-to-HelpMe-course mappi
 
 One-click LTI-only course mapping remains deferred. The existing LMS integration record also represents Canvas API configuration, so silently creating that record from an LTI launch would mix course identity with API authorization. Revisit that product decision separately if the professor needs a one-click setup flow.
 
+## Question and rubric versioning is Git-only
+
+Approved question text, criteria, instructions, sentence limits, and grading-profile definitions (`policyKind`, `systemPrompt`, `allowedScores`, `reasonCodes`) are versioned by checking them into Git alongside the reviewed code/prompt version. The Git-versioned prompt defaults live in `packages/common`; record any approved course-specific question/profile values in Git in the same change that reviews them.
+
+This is deliberately simple: there is no exporter, framework, or version table. Staff UI edits write to the mutable `EmbeddableQuestionModel` / `EmbeddableGradingProfileModel` rows and are not automatically Git-versioned. Feedback rows in `EmbeddableQuestionFeedbackModel` store the submission, score, comment, and reasons, but do not capture a historical snapshot of the question text, criteria, or profile/prompt in effect at grading time.
+
 ## Deadline decision for the MVP
 
 HelpMe does not currently receive a sufficiently trusted per-question or quiz deadline from the nested external-tool launch used by this placement. We therefore do **not** add HelpMe-side deadline enforcement in this MVP.
