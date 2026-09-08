@@ -527,18 +527,18 @@ Mechanical facts in the user message (\`sentence_count\`, \`required_minimum\`, 
 
 Work through the criteria below in order and collect every one that applies. Then score.
 
-Two outcomes keep full marks:
+Outcomes that keep full marks:
 
 - **\`meets_requirements\`** — the answer addresses the question and nothing was worth raising.
 - **\`proofreading_note\`** — the answer is sound, but one small mechanical slip is worth mentioning to the student: a missing apostrophe, a typo, \`learnt\` for \`learned\`, a digit where a word belongs, a mild fragment. These do not affect the mark.
+- **Reminder-only \`indigenous_capitalization\`** (never reduces the score, even on repeated occurrences for now) — lowercase \`indigenous\` with the approved reminder comment. Keep score 2. Combine with \`proofreading_note\` at 2 when both apply, or with any independent deduction reason when one applies. There is no prior-offence tracking.
 
-Everything in the criteria list costs marks. A single criterion lands at 1; several stacked stay at 1. Use 0.5 or 1.5 only when an answer genuinely sits between two grades. Reserve 0 for the cases named below.
+Everything else in the criteria list costs marks. A single criterion lands at 1; several stacked stay at 1. Use 0.5 or 1.5 only when an answer genuinely sits between two grades. Reserve 0 for the cases named below.
 
 ### Criteria that affect the mark
 
 - **Addresses the question.** An answer that does not respond to what was asked → 0, \`off_topic\`, \`needs_human_review\` true.
 - **Readability.** Grammar broken enough that you had to work to recover the meaning, while the answer still responds to the question → 1, \`unreadable\`. If you followed the answer on first read, this criterion does not apply; a slip you noticed but understood belongs under \`proofreading_note\`.
-- **Capitalization of Indigenous.** Lowercase \`indigenous\` → 1, \`indigenous_capitalization\`. This is a course convention the students are told about, so it is scored rather than noted.
 - **Terminology.** Aboriginal, Indian, or Native used as the general term for Indigenous peoples → 1, \`terminology_review\`. Proper and legal names are correct usage and are never penalized: \`Indian Act\`, \`Osoyoos Indian Band\`, and similar. \`Native American\` in a United States context is acceptable.
 - **Sentence requirement.** When \`below_minimum\` is true → 1, \`too_short\`, stacked with any other criterion that applies. When \`below_minimum\` is false, do not use \`too_short\`. An answer longer than \`required_maximum\` is not penalized.
 - **Sensitive, racist, or otherwise problematic content** → 0, \`sensitive_content\`, \`needs_human_review\` true.

@@ -48,8 +48,10 @@ export function buildSystemPrompt(
     `- \`reasons\` is a non-empty list drawn only from: ${reasonList}.`,
   ];
   const indgRules = [
-    '- `meets_requirements` and `proofreading_note` are each used alone, never with another reason, and only at a score of 2.',
-    '- Any other reason costs marks, so a score of 2 cannot carry one, and a score below 2 must carry at least one.',
+    '- `meets_requirements` is used alone, never with another reason, and only at a score of 2.',
+    '- `proofreading_note` is used alone or with `indigenous_capitalization`, and only at a score of 2.',
+    '- `indigenous_capitalization` is reminder-only and never reduces the score, even on repeated occurrences: it may appear alone or with `proofreading_note` at 2, or alongside an independent deduction reason below 2. This rule takes precedence over any older saved prompt wording that scored capitalization.',
+    '- Any other reason costs marks, so a score of 2 cannot carry one, and a score below 2 must carry at least one (besides the reminder).',
     '- `needs_human_review` is true for `off_topic`, `sensitive_content`, or terminology you are unsure is a proper-noun or legal use.',
   ];
   const rules =
@@ -57,13 +59,29 @@ export function buildSystemPrompt(
       ? [...sharedRules, ...indgRules]
       : sharedRules;
 
+  // Keep the JSON exemplar consistent with the profile: prefer the INDG
+  // full-mark example when the contract allows it, otherwise fall back to the
+  // profile's own values so a generic contract never shows a contradiction.
+  const exampleScore = profile.allowedScores.includes(2)
+    ? 2
+    : (profile.allowedScores[0] ?? 2);
+  const exampleReason = profile.reasonCodes.includes('meets_requirements')
+    ? 'meets_requirements'
+    : (profile.reasonCodes[0] ?? 'meets_requirements');
+  const example = JSON.stringify({
+    score: exampleScore,
+    comment: 'string',
+    reasons: [exampleReason],
+    needs_human_review: false,
+  });
+
   return [
     profile.systemPrompt,
     trimmedRubric,
     '## Output',
     'Return JSON only, no markdown:',
     '',
-    '{"score": 0, "comment": "string", "reasons": ["meets_requirements"], "needs_human_review": false}',
+    example,
     '',
     ...rules,
   ]
@@ -76,8 +94,16 @@ const FULL_MARK_REASONS: ReadonlySet<string> = new Set<string>([
   'proofreading_note',
 ]);
 
+// 2026-09-07 clarification reported by Stavan: capitalization is reminder-only,
+// never itself reduces a score (even on repeats, no tracking for now).
+const REMINDER_REASONS: ReadonlySet<string> = new Set<string>([
+  'indigenous_capitalization',
+]);
+
 const DEDUCTION_REASONS: ReadonlySet<string> = new Set<string>(
-  INDIGENOUS_REASON_CODES.filter((code) => !FULL_MARK_REASONS.has(code)),
+  INDIGENOUS_REASON_CODES.filter(
+    (code) => !FULL_MARK_REASONS.has(code) && !REMINDER_REASONS.has(code),
+  ),
 );
 
 const TOO_SHORT_COMMENT =
@@ -123,8 +149,19 @@ export function validateGradePayload(
   const fullMarkReason = [...FULL_MARK_REASONS].find((reason) =>
     cleanedReasons.includes(reason),
   );
-  if (fullMarkReason && cleanedReasons.length > 1) {
+  if (fullMarkReason === 'meets_requirements' && cleanedReasons.length > 1) {
     throw new Error(`${fullMarkReason} cannot be combined with another reason`);
+  }
+  if (fullMarkReason === 'proofreading_note') {
+    const others = cleanedReasons.filter(
+      (reason) => reason !== 'proofreading_note',
+    );
+    const onlyReminder = others.length === 1 && REMINDER_REASONS.has(others[0]);
+    if (others.length > 0 && !onlyReminder) {
+      throw new Error(
+        `${fullMarkReason} cannot be combined with another reason`,
+      );
+    }
   }
 
   const hasDeductions = cleanedReasons.some((r) => DEDUCTION_REASONS.has(r));
