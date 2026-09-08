@@ -1003,6 +1003,7 @@ export class LMSIntegrationService {
 
     const model = await this.getDocumentModel(type);
 
+    // TODO: this sucks. Make a permanent ChatTokenModel for backend services
     const tempUser = await UserModel.create({
       email: 'tempemail@example.com',
     }).save();
@@ -1433,16 +1434,15 @@ export class LMSIntegrationService {
     console.log('Downloading LMS file', {
       url,
       headers: {
-        Authorization: `Bearer ${adapter['integration'].apiKey}`,
+        Authorization: await adapter.getAuthorization(),
       },
     });
     // Download the file as a buffer using the same approach as the chatbot service
-    const response = await fetch(url);
-    // , {
-    //   headers: {
-    //     Authorization: `Bearer ${adapter['integration'].apiKey}`,
-    //   },
-    // });
+    const response = await fetch(url, {
+      headers: {
+        Authorization: await adapter.getAuthorization(),
+      },
+    });
 
     if (!response.ok) {
       throw new Error(
