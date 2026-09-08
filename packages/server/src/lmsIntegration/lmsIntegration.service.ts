@@ -1434,11 +1434,12 @@ export class LMSIntegrationService {
       url,
     });
     // Download the file as a buffer using the same approach as the chatbot service
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${adapter['integration'].apiKey}`,
-      },
-    });
+    const response = await fetch(url);
+    // , {
+    //   headers: {
+    //     Authorization: `Bearer ${adapter['integration'].apiKey}`,
+    //   },
+    // });
 
     if (!response.ok) {
       throw new Error(
