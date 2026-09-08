@@ -45,6 +45,7 @@ import { Cache } from 'cache-manager';
 import { LMSAccessTokenModel } from './lms-access-token.entity';
 import { pick } from 'lodash';
 import { LMSAuthStateModel } from './lms-auth-state.entity';
+import { getFetchErrorMessage } from 'utils';
 
 export enum LMSGet {
   Course,
@@ -65,11 +66,7 @@ export enum LMSUpload {
 }
 
 type ExtendedLMSItem = (
-  | LMSAnnouncement
-  | LMSAssignment
-  | LMSPage
-  | LMSFile
-  | LMSQuiz
+  LMSAnnouncement | LMSAssignment | LMSPage | LMSFile | LMSQuiz
 ) & {
   chatbotDocumentId: string;
 };
@@ -1352,12 +1349,10 @@ export class LMSIntegrationService {
     }
     return await this.chatbotApiService
       .deleteDocument(item.chatbotDocumentId, courseId, token.token)
-      .then(
-        (): LMSFileUploadResponse => ({
-          id: item.id,
-          success: true,
-        }),
-      )
+      .then((): LMSFileUploadResponse => ({
+        id: item.id,
+        success: true,
+      }))
       .catch((error): LMSFileUploadResponse => {
         console.error(error);
         // 404 = Already deleted/didn't exist
@@ -1435,6 +1430,9 @@ export class LMSIntegrationService {
     url: string,
     adapter: AbstractLMSAdapter,
   ): Promise<Buffer> {
+    console.log('Downloading LMS file', {
+      url,
+    });
     // Download the file as a buffer using the same approach as the chatbot service
     const response = await fetch(url, {
       headers: {
@@ -1444,7 +1442,7 @@ export class LMSIntegrationService {
 
     if (!response.ok) {
       throw new Error(
-        `Failed to download file: ${response.status} ${response.statusText}`,
+        await getFetchErrorMessage(response, 'Failed to download LMS file'),
       );
     }
 
