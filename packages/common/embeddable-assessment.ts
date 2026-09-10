@@ -210,7 +210,41 @@ export interface GradingSnapshot {
 export type GradingEvaluation = EmbeddableQuestionFeedback & {
   model: string | null
   gradingSnapshot: GradingSnapshot
+  /** Validated reason codes reported by the model, plus host-set codes like blank/too_short. */
+  reasons: string[]
+  needsHumanReview: boolean
 }
+
+// Fixed vocabulary for grading outcomes. Full-mark codes keep full marks,
+// reminder codes never cost marks, deduction codes affect the score.
+export const GRADING_REASON_CODES = [
+  'meets_requirements',
+  'proofreading_note',
+  'indigenous_capitalization',
+  'terminology_review',
+  'too_short',
+  'off_topic',
+  'sensitive_content',
+  'blank',
+] as const
+
+export type GradingReasonCode = (typeof GRADING_REASON_CODES)[number]
+
+// Codes the grading model may emit; blank is host-only because blank
+// submissions are graded by code without an AI call.
+export const MODEL_GRADING_REASON_CODES: readonly GradingReasonCode[] =
+  GRADING_REASON_CODES.filter((code) => code !== 'blank')
+
+export const GRADING_FULL_MARK_REASONS: ReadonlySet<string> = new Set<string>([
+  'meets_requirements',
+  'proofreading_note',
+])
+export const GRADING_DEDUCTION_REASONS: ReadonlySet<string> = new Set<string>([
+  'terminology_review',
+  'too_short',
+  'off_topic',
+  'sensitive_content',
+])
 
 export const GRADING_PRESETS = {
   generic: {

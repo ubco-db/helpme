@@ -31,8 +31,8 @@ const validAnswer = (
   answer: {
     score,
     comment,
-    reasons: ['legacy_reason'],
-    needs_human_review: true,
+    reasons: ['too_short'],
+    needs_human_review: false,
   },
   model: 'test-model',
 });
@@ -71,6 +71,8 @@ describe('QuestionGradingService', () => {
       appliedRequirements: [],
       maxScore: 10,
       model: 'test-model',
+      reasons: ['too_short'],
+      needsHumanReview: false,
     });
     expect(result.gradingSnapshot).toEqual({
       version: 1,
@@ -112,13 +114,25 @@ describe('QuestionGradingService', () => {
     expect(result.comment).toBe('');
     expect(result.maxScore).toBe(10);
     expect(result.model).toBeNull();
+    expect(result.reasons).toEqual(['blank']);
+    expect(result.needsHumanReview).toBe(false);
     expect(result.appliedRequirements).toEqual([
       'No answer was provided; the blank response scores 0 without an AI call.',
     ]);
   });
 
   it('sends triggered checks and their cap before the AI call', async () => {
-    const api = chatbot([validAnswer(1)]);
+    const api = chatbot([
+      {
+        answer: {
+          score: 1,
+          comment: 'Brief.',
+          reasons: ['off_topic'],
+          needs_human_review: false,
+        },
+        model: 'test-model',
+      },
+    ]);
     const gradingSettings = settings({
       checks: [{ kind: 'minimum_sentences', minimum: 3, scoreCap: 2 }],
     });
@@ -135,11 +149,20 @@ describe('QuestionGradingService', () => {
     expect(userPrompt).toContain('"automatic_checks_triggered"');
     expect(call[3].systemPrompt).toContain('effective cap of 2');
     expect(result.score).toBe(1);
+    // The model omitted too_short; the host adds it after validation.
+    expect(result.reasons).toEqual(['off_topic', 'too_short']);
   });
 
   it('retries once after an invalid answer and stops on the next valid one', async () => {
     const api = chatbot([
-      { answer: { score: 11, comment: 'Too high.' } },
+      {
+        answer: {
+          score: 11,
+          comment: 'Too high.',
+          reasons: ['too_short'],
+          needs_human_review: false,
+        },
+      },
       validAnswer(5),
     ]);
     const result = await new QuestionGradingService(api).evaluate({
@@ -156,6 +179,32 @@ describe('QuestionGradingService', () => {
     expect(retryPrompt).toContain('score 11');
     expect(result.score).toBe(5);
     expect(result.model).toBe('test-model');
+  });
+
+  it('retries an unknown reason code and succeeds on the corrected output', async () => {
+    const api = chatbot([
+      {
+        answer: {
+          score: 5,
+          comment: 'Made up reason.',
+          reasons: ['not_a_code'],
+          needs_human_review: false,
+        },
+      },
+      validAnswer(5),
+    ]);
+    const result = await new QuestionGradingService(api).evaluate({
+      courseId: 12,
+      questionText: 'Explain the idea.',
+      gradingSettings: settings(),
+      submission: 'A complete answer.',
+    });
+
+    expect(api.queryChatbotForCourse).toHaveBeenCalledTimes(2);
+    const retryPrompt: string = (api.queryChatbotForCourse as jest.Mock).mock
+      .calls[1][0];
+    expect(retryPrompt).toContain('unknown reason codes');
+    expect(result.score).toBe(5);
   });
 
   it('exhausts four calls on invalid answers and throws without a result', async () => {
@@ -280,7 +329,15 @@ describe('QuestionGradingService through the real adapter (mocked HTTP boundary)
       answer: { score: 'high', comment: 'Malformed.' },
       model: 'test-model',
     });
-    respond(fetchMock, { answer: { score: 8, comment: 'Good.' }, model: 'm' });
+    respond(fetchMock, {
+      answer: {
+        score: 8,
+        comment: 'Good.',
+        reasons: ['too_short'],
+        needs_human_review: false,
+      },
+      model: 'm',
+    });
 
     const result = await service.evaluate(evaluateArgs);
 

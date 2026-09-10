@@ -169,6 +169,8 @@ describe('Embeddable question grading', () => {
       appliedRequirements: [],
       maxScore: 10,
       model: 'grading-model',
+      reasons: ['too_short'],
+      needsHumanReview: false,
       gradingSnapshot: {
         version: 1,
         questionText: question.questionText,
@@ -222,6 +224,8 @@ describe('Embeddable question grading', () => {
 
     expect(feedback.maxScore).toBe(10);
     expect(feedback.aiModel).toBe('grading-model');
+    expect(feedback.reasons).toEqual(['too_short']);
+    expect(feedback.needsHumanReview).toBe(false);
     expect(feedback.gradingSnapshot).toEqual({
       version: 1,
       questionText: question.questionText,

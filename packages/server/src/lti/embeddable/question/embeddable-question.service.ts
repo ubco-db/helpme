@@ -66,6 +66,8 @@ export class EmbeddableQuestionService {
       aiModel: evaluation.model,
       maxScore: evaluation.maxScore,
       gradingSnapshot: evaluation.gradingSnapshot,
+      reasons: evaluation.reasons,
+      needsHumanReview: evaluation.needsHumanReview,
     }).save();
 
     return {

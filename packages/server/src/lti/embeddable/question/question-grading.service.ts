@@ -17,6 +17,7 @@ import {
   effectiveScoreCap,
   GradingConstraintError,
   GradingFailedError,
+  postProcessFeedback,
   validateGradePayload,
   validateGradingSettings,
 } from './grading';
@@ -66,6 +67,8 @@ export class QuestionGradingService {
         maxScore,
         model: null,
         gradingSnapshot: snapshot,
+        reasons: ['blank'],
+        needsHumanReview: false,
       };
     }
 
@@ -80,6 +83,7 @@ export class QuestionGradingService {
       snapshot.questionText,
       submission,
       facts,
+      settings.checks,
     );
     let userPrompt = baseUserPrompt;
 
@@ -93,11 +97,11 @@ export class QuestionGradingService {
         { systemPrompt },
       );
       try {
-        const { score, comment } = validateGradePayload(
-          response.answer,
-          settings,
-          effectiveCap,
-        );
+        const { score, comment, reasons, needsHumanReview } =
+          postProcessFeedback(
+            validateGradePayload(response.answer, settings, effectiveCap),
+            facts,
+          );
         return {
           score,
           comment,
@@ -105,6 +109,8 @@ export class QuestionGradingService {
           maxScore,
           model: response.model ?? null,
           gradingSnapshot: snapshot,
+          reasons,
+          needsHumanReview,
         };
       } catch (error) {
         if (!(error instanceof GradingConstraintError)) {
