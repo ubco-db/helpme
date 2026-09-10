@@ -235,7 +235,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           valuePropName="checked"
           label="Inserted LMS Data"
           layout="horizontal"
-          tooltip="Clone over any LMS data (e.g. assignment descriptions, announcements) that was inserted into the chatbot knowledge base. Defaulted to false since announcements usually have outdated information."
+          tooltip="Clone over any LMS data (e.g. files, pages) that was inserted into the chatbot knowledge base. Defaulted to false since previous semesters' course content usually contains outdated information."
           className={`${formItemClassNames}`}
         >
           <Checkbox />

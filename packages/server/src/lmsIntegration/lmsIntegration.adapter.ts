@@ -22,6 +22,7 @@ import { ConfigService } from '@nestjs/config';
 import express from 'express';
 import { LMSAccessToken, LMSAccessTokenModel } from './lms-access-token.entity';
 import * as crypto from 'crypto';
+import { getFetchErrorMessage } from 'utils';
 
 @Injectable()
 export class LMSIntegrationAdapter {
@@ -448,7 +449,16 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
         Authorization: await this.getAuthorization(),
       },
     })
-      .then((response) => {
+      .then(async (response) => {
+        let data = null;
+        if (url.includes('quizzes')) {
+          console.log(
+            `Response for calling ${url}`,
+            !response.ok
+              ? await getFetchErrorMessage(response)
+              : { data: response.json() },
+          );
+        }
         let nextLink: string | undefined = undefined;
         const linkHeader = response.headers.get('link');
         if (linkHeader) {
@@ -785,6 +795,13 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
   }> {
     const { status, data } = await this.GetPaginated(
       `courses/${this.integration.apiCourseId}/quizzes`,
+    );
+    console.log(
+      `Response for calling courses/${this.integration.apiCourseId}/quizzes`,
+      {
+        data,
+        status,
+      },
     );
 
     if (status != LMSApiResponseStatus.Success) return { status, quizzes: [] };

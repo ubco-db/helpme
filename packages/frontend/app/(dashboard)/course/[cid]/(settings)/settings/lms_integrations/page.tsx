@@ -925,15 +925,15 @@ export default function CourseLMSIntegrationPage(props: {
                                 <Col xs={24} sm={12} md={8}>
                                   <Checkbox value="quizzes">Quizzes</Checkbox>
                                 </Col>
-                                <Col xs={24} sm={12} md={8}>
+                                {/* <Col xs={24} sm={12} md={8}>
                                   <Checkbox value="Syllabus" disabled={true}>
-                                    <Tooltip title="Coming Soon!">
+                                    <Tooltip title="Coming Soon! Note that if your Syllabus is a Canvas Page or File and you have those boxes checked, then it will already be synchronized">
                                       <span className="text-gray-400 line-through">
                                         Syllabus
                                       </span>
                                     </Tooltip>
                                   </Checkbox>
-                                </Col>
+                                </Col> */}
                               </Row>
                             </Checkbox.Group>
                             <Button
