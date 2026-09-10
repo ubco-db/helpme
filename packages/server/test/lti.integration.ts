@@ -19,6 +19,7 @@ import express from 'express';
 import {
   AuthMethodEnum,
   CreateLtiPlatform,
+  createGradingPreset,
   ERROR_MESSAGES,
   LtiPlatform,
   Role,
@@ -96,7 +97,9 @@ describe('LtiController', () => {
     customToken = undefined;
     ltiService = getTestModule().get<LtiService>(LtiService);
     configService = getTestModule().get<ConfigService>(ConfigService);
-    originalCanvasClientId ??= configService.get<string>('LTI_CANVAS_CLIENT_ID');
+    originalCanvasClientId ??= configService.get<string>(
+      'LTI_CANVAS_CLIENT_ID',
+    );
 
     provider = await register(testEncryptionKey, testLtiDbOptions, {});
     ltiService.provider = provider;
@@ -225,9 +228,12 @@ describe('LtiController', () => {
       await setupDeepLinkLaunch(Role.PROFESSOR);
       const question = await EmbeddableQuestionModel.create({
         courseId: course.id,
-        name: 'Reflection 1',
+        title: 'Reflection 1',
         questionText: 'Question text',
-        criteriaText: 'Criteria text',
+        gradingSettings: {
+          ...createGradingPreset('generic'),
+          rubric: 'Criteria text',
+        },
       }).save();
 
       const res = await supertest().get('/lti/deep-link/questions').expect(200);
@@ -236,7 +242,7 @@ describe('LtiController', () => {
         expect.objectContaining({
           id: question.id,
           courseId: course.id,
-          name: 'Reflection 1',
+          title: 'Reflection 1',
         }),
       ]);
     });
@@ -252,9 +258,12 @@ describe('LtiController', () => {
       const otherCourse = await CourseFactory.create();
       const otherQuestion = await EmbeddableQuestionModel.create({
         courseId: otherCourse.id,
-        name: 'Other course question',
+        title: 'Other course question',
         questionText: 'Question text',
-        criteriaText: 'Criteria text',
+        gradingSettings: {
+          ...createGradingPreset('generic'),
+          rubric: 'Criteria text',
+        },
       }).save();
 
       await supertest()

@@ -6,11 +6,15 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 import { CourseModel } from '../../../course/course.entity';
 import { Exclude } from 'class-transformer';
+import { EmbeddableQuizModel } from '../quiz/embeddable-quiz.entity';
+import { QuestionGradingSettings } from '@koh/common';
 
 @Entity('embeddable_question_model')
+@Unique(['id', 'courseId'])
 export class EmbeddableQuestionModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
@@ -26,21 +30,22 @@ export class EmbeddableQuestionModel extends BaseEntity {
   @Column({ type: 'integer', nullable: false })
   courseId: number;
 
-  @Column({ type: 'text', nullable: true })
-  name: string | null;
+  @Column({ type: 'text', nullable: false })
+  title: string;
 
   @Column({ type: 'text', nullable: false })
   questionText: string;
 
-  @Column({ type: 'text', nullable: false })
-  criteriaText: string;
+  @Column({ type: 'integer', nullable: true })
+  quizId: number | null;
 
-  @Column({ type: 'text', nullable: true })
-  instructions: string | null;
+  @ManyToOne(() => EmbeddableQuizModel, {
+    nullable: true,
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({ name: 'quizId' })
+  quiz: EmbeddableQuizModel | null;
 
-  @Column({ type: 'integer', nullable: false, default: 3 })
-  minSentences: number;
-
-  @Column({ type: 'integer', nullable: false, default: 5 })
-  maxSentences: number;
+  @Column({ type: 'jsonb', nullable: false })
+  gradingSettings: QuestionGradingSettings;
 }

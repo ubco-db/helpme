@@ -10,6 +10,7 @@ import {
 import { CourseModel } from '../../../course/course.entity';
 import { UserModel } from '../../../profile/user.entity';
 import { EmbeddableQuestionModel } from './embeddable-question.entity';
+import { GradingSnapshot } from '@koh/common';
 
 @Entity('embeddable_question_feedback_model')
 export class EmbeddableQuestionFeedbackModel extends BaseEntity {
@@ -29,7 +30,7 @@ export class EmbeddableQuestionFeedbackModel extends BaseEntity {
   @Column({ type: 'integer', nullable: false })
   questionId: number;
 
-  @ManyToOne(() => EmbeddableQuestionModel, { onDelete: 'CASCADE' })
+  @ManyToOne(() => EmbeddableQuestionModel, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'questionId' })
   embeddableQuestion: EmbeddableQuestionModel;
 
@@ -50,11 +51,14 @@ export class EmbeddableQuestionFeedbackModel extends BaseEntity {
   aiGrade: number;
 
   @Column({ type: 'text', array: true, nullable: false, default: [] })
-  reasons: string[];
-
-  @Column({ type: 'boolean', default: false })
-  needsHumanReview: boolean;
+  appliedRequirements: string[];
 
   @Column({ type: 'text', nullable: true })
   aiModel: string | null;
+
+  @Column({ type: 'double precision', nullable: true })
+  maxScore: number | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  gradingSnapshot: GradingSnapshot | null;
 }

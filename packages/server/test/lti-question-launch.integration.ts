@@ -1,7 +1,7 @@
 import express from 'express';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Role } from '@koh/common';
+import { createGradingPreset, Role } from '@koh/common';
 import { setupIntegrationTest } from './util/testUtils';
 import { LtiModule } from '../src/lti/lti.module';
 import {
@@ -85,8 +85,12 @@ describe('LTI question launch', () => {
     });
     const question = await EmbeddableQuestionModel.create({
       courseId: course.id,
+      title: 'Question',
       questionText: 'Question text',
-      criteriaText: 'Hidden criteria',
+      gradingSettings: {
+        ...createGradingPreset('generic'),
+        rubric: 'Hidden criteria',
+      },
     }).save();
 
     userId = user.id;
@@ -157,8 +161,12 @@ describe('LTI question launch', () => {
     const otherCourse = await CourseFactory.create();
     const otherQuestion = await EmbeddableQuestionModel.create({
       courseId: otherCourse.id,
+      title: 'Other question',
       questionText: 'Other question',
-      criteriaText: 'Hidden criteria',
+      gradingSettings: {
+        ...createGradingPreset('generic'),
+        rubric: 'Hidden criteria',
+      },
     }).save();
 
     token = buildLaunchToken({

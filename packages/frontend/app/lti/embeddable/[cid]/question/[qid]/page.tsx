@@ -5,14 +5,9 @@ import { useParams } from 'next/navigation'
 import { Card } from 'antd'
 import axios from 'axios'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
-import type { EmbeddableQuestion } from '@koh/common'
+import type { StudentEmbeddableQuestion } from '@koh/common'
 import { API } from '@/app/api'
 import EmbeddableQuestionFeedback from '@/app/lti/embeddable/[cid]/components/EmbeddableQuestionFeedback'
-
-type StudentEmbeddableQuestion = Pick<
-  EmbeddableQuestion,
-  'id' | 'courseId' | 'questionText' | 'minSentences' | 'maxSentences'
->
 
 type QuestionState =
   | { status: 'loading'; routeKey: string }
@@ -120,8 +115,6 @@ function EmbeddableQuestionView() {
           courseId={courseId}
           questionId={question.id}
           questionText={question.questionText}
-          minSentences={question.minSentences}
-          maxSentences={question.maxSentences}
         />
       </div>
     </>

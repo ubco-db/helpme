@@ -39,10 +39,11 @@ import {
   DesktopNotifPartial,
   EditCourseInfoParams,
   EmbeddableQuestion,
+  EmbeddableQuiz,
   EmbeddableQuestionFeedback,
-  GradingProfile,
+  StudentEmbeddableQuestion,
   UpsertEmbeddableQuestionParams,
-  UpsertGradingProfileParams,
+  UpsertEmbeddableQuizParams,
   AssignmentFeedbackExtractTextResponse,
   AssignmentFeedbackRequest,
   AssignmentFeedbackResponse,
@@ -1864,7 +1865,7 @@ export class APIClient {
       getOne: async (
         courseId: number,
         questionId: number,
-      ): Promise<EmbeddableQuestion> =>
+      ): Promise<StudentEmbeddableQuestion> =>
         this.req(
           'GET',
           `/api/v1/lti/embeddable-question/${courseId}/${questionId}`,
@@ -1896,21 +1897,33 @@ export class APIClient {
           'DELETE',
           `/api/v1/lti/embeddable-question/${courseId}/${questionId}`,
         ),
-      getProfile: async (courseId: number): Promise<GradingProfile> =>
-        this.req(
-          'GET',
-          `/api/v1/lti/embeddable-question/${courseId}/grading-profile`,
-        ),
-      updateProfile: async (
+    },
+    embeddableQuiz: {
+      create: async (
         courseId: number,
-        body: UpsertGradingProfileParams,
-      ): Promise<GradingProfile> =>
+        body: UpsertEmbeddableQuizParams,
+      ): Promise<EmbeddableQuiz> =>
         this.req(
-          'PATCH',
-          `/api/v1/lti/embeddable-question/${courseId}/grading-profile`,
+          'POST',
+          `/api/v1/lti/embeddable-quiz/${courseId}`,
           undefined,
           body,
         ),
+      getAll: async (courseId: number): Promise<EmbeddableQuiz[]> =>
+        this.req('GET', `/api/v1/lti/embeddable-quiz/${courseId}`),
+      update: async (
+        courseId: number,
+        quizId: number,
+        body: UpsertEmbeddableQuizParams,
+      ): Promise<EmbeddableQuiz> =>
+        this.req(
+          'PATCH',
+          `/api/v1/lti/embeddable-quiz/${courseId}/${quizId}`,
+          undefined,
+          body,
+        ),
+      delete: async (courseId: number, quizId: number): Promise<void> =>
+        this.req('DELETE', `/api/v1/lti/embeddable-quiz/${courseId}/${quizId}`),
     },
   }
 }

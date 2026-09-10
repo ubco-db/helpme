@@ -128,7 +128,7 @@ export default function DeepLinkPage() {
             >
               {questions.map((q) => (
                 <Radio key={q.id} value={q.id}>
-                  <Text strong>{q.name ?? `Question ${q.id}`}</Text>
+                  <Text strong>{q.title || `Question ${q.id}`}</Text>
                   <Paragraph
                     ellipsis={{ rows: 2 }}
                     type="secondary"

@@ -13,16 +13,12 @@ interface EmbeddableQuestionFeedbackProps {
   courseId: number
   questionId: number
   questionText: string
-  minSentences: number
-  maxSentences: number
 }
 
 export default function EmbeddableQuestionFeedback({
   courseId,
   questionId,
   questionText,
-  minSentences,
-  maxSentences,
 }: EmbeddableQuestionFeedbackProps) {
   const [inputText, setInputText] = useState('')
   const [feedback, setFeedback] = useState<EmbeddableQuestionFeedback | null>(
@@ -74,17 +70,9 @@ export default function EmbeddableQuestionFeedback({
     }
   }
 
-  const sentenceRequirement =
-    minSentences === maxSentences
-      ? `${minSentences} sentence${minSentences === 1 ? '' : 's'}`
-      : `${minSentences}-${maxSentences} sentences`
-
   return (
     <div className="flex w-full flex-col gap-2">
       <p className="text-sm font-medium text-zinc-700">{questionText}</p>
-      <p className="text-xs text-zinc-500">
-        Suggested response length: {sentenceRequirement}.
-      </p>
 
       <TextArea
         value={inputText}
@@ -118,13 +106,24 @@ export default function EmbeddableQuestionFeedback({
 
       {feedback && !isLoading && (
         <div className="flex flex-col gap-1">
-          <p className="text-sm font-medium text-zinc-700">Feedback</p>
-          <div className="w-full whitespace-pre-wrap rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-800">
-            {feedback.comment}
-          </div>
           <p className="text-sm font-medium text-zinc-700">
             {`Provisional score: ${feedback.score}/${feedback.maxScore}`}
           </p>
+          <div className="w-full whitespace-pre-wrap rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-800">
+            {feedback.comment}
+          </div>
+          {feedback.appliedRequirements.length > 0 && (
+            <div>
+              <p className="text-sm font-medium text-zinc-700">
+                Applied requirements
+              </p>
+              <ul className="mb-0 list-disc pl-5 text-xs text-zinc-600">
+                {feedback.appliedRequirements.map((requirement, index) => (
+                  <li key={`${requirement}-${index}`}>{requirement}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           <p className="text-xs text-zinc-500">
             This is feedback only, not your final grade. Submit the full quiz to
             receive your final grade.

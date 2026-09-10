@@ -495,7 +495,7 @@ export class LtiService {
     );
     const item: LtiResourceLinkContentItem = {
       type: 'ltiResourceLink',
-      title: question.name ?? `HelpMe Question ${question.id}`,
+      title: question.title,
       url: launchUrl,
       custom: {
         [HELPME_QUESTION_ID_PARAM]: String(question.id),

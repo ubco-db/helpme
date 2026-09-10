@@ -14,17 +14,14 @@ import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 
-// Structural outer shape only. The course grading profile in
-// `lti/embeddable/question/grading.ts` enforces the strict score/reason contract.
-const feedbackAnswerSchema = z.object({
-  score: z.number(),
-  comment: z.string(),
-  reasons: z.array(z.string()),
-  needs_human_review: z.boolean(),
-});
-
+// Outer envelope only. The model's answer payload stays `unknown` at this
+// boundary and is validated by the grading boundary (validateGradePayload),
+// so malformed model output is retried there instead of failing outside the
+// retry loop. Legacy transports may still return reasons/needs_human_review;
+// they are unknown data here and are ignored downstream (the grader derives
+// requirement notes deterministically).
 const feedbackResponseSchema = z.object({
-  answer: feedbackAnswerSchema,
+  answer: z.unknown(),
   model: z.string().optional(),
 });
 
@@ -171,14 +168,8 @@ export class ChatbotApiService {
   }
 
   /**
-   * Calls the chatbot `POST /chatbot/query` endpoint with a `courseId`, so the
-   * chatbot routes the prompt through the course's generatorLLM (the same LLM
-   * configured in Chatbot Settings for that course). No user token is required
-   * by the chatbot's `/query` route, so this method intentionally omits it.
-   *
-   * Adam: So `/query` calls always use the org's default model, despite what it might look like in the code.
-   * I'm assuming this is the case because stuff like abstract generation wouldn't need big models that the prof may pick.
-   * So for the AI Assignment/Essay Feedback feature, it will need its own ChatbotQueryType eventually.
+   * Feedback uses the course's feedback model and the supplied grading prompt.
+   * The chatbot does not retrieve course documents for this request.
    */
   queryChatbotForCourse(
     query: string,

@@ -1,24 +1,18 @@
 import { Exclude, plainToInstance, Transform, Type } from 'class-transformer'
 import {
-  ArrayMaxSize,
-  ArrayMinSize,
-  ArrayUnique,
   IsArray,
   IsBoolean,
   IsDate,
   IsEnum,
   IsHexColor,
   IsIn,
-  IsInstance,
   IsInt,
   IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
   IsString,
-  Max,
   MaxLength,
-  Min,
   MinLength,
   Validate,
   ValidateIf,
@@ -499,191 +493,7 @@ export interface ChatbotAskSuggestedParams {
   vectorStoreId: string
 }
 
-export const INDIGENOUS_REASON_CODES = [
-  'blank',
-  'too_short',
-  'indigenous_capitalization',
-  'terminology_review',
-  'unreadable',
-  'off_topic',
-  'sensitive_content',
-  'meets_requirements',
-  'proofreading_note',
-] as const
-
-export const ALLOWED_INDIGENOUS_SCORES = [0, 0.5, 1, 1.5, 2] as const
-
-export const GRADING_POLICY_KINDS = ['generic', 'indg-reflection'] as const
-
-export type GradingPolicyKind = (typeof GRADING_POLICY_KINDS)[number]
-
-export const INDG_DEFAULT_SYSTEM_PROMPT = `You are grading one short reflective answer from an Indigenous Studies self-assessment.
-
-You see exactly one question and one student answer. You have no memory of other students, other questions, or this student's earlier submissions.
-
-Mechanical facts in the user message (\`sentence_count\`, \`required_minimum\`, \`required_maximum\`, \`below_minimum\`) were computed by code. Trust them; do not recount sentences yourself.
-
-## How to decide
-
-Work through the criteria below in order and collect every one that applies. Then score.
-
-Outcomes that keep full marks:
-
-- **\`meets_requirements\`** — the answer addresses the question and nothing was worth raising.
-- **\`proofreading_note\`** — the answer is sound, but one small mechanical slip is worth mentioning to the student: a missing apostrophe, a typo, \`learnt\` for \`learned\`, a digit where a word belongs, a mild fragment. These do not affect the mark.
-- **Reminder-only \`indigenous_capitalization\`** (never reduces the score, even on repeated occurrences for now) — lowercase \`indigenous\` with the approved reminder comment. Keep score 2. Combine with \`proofreading_note\` at 2 when both apply, or with any independent deduction reason when one applies. There is no prior-offence tracking.
-
-Everything else in the criteria list costs marks. A single criterion lands at 1; several stacked stay at 1. Use 0.5 or 1.5 only when an answer genuinely sits between two grades. Reserve 0 for the cases named below.
-
-### Criteria that affect the mark
-
-- **Addresses the question.** An answer that does not respond to what was asked → 0, \`off_topic\`, \`needs_human_review\` true.
-- **Readability.** Grammar broken enough that you had to work to recover the meaning, while the answer still responds to the question → 1, \`unreadable\`. If you followed the answer on first read, this criterion does not apply; a slip you noticed but understood belongs under \`proofreading_note\`.
-- **Terminology.** Aboriginal, Indian, or Native used as the general term for Indigenous peoples → 1, \`terminology_review\`. Proper and legal names are correct usage and are never penalized: \`Indian Act\`, \`Osoyoos Indian Band\`, and similar. \`Native American\` in a United States context is acceptable.
-- **Sentence requirement.** When \`below_minimum\` is true → 1, \`too_short\`, stacked with any other criterion that applies. When \`below_minimum\` is false, do not use \`too_short\`. An answer longer than \`required_maximum\` is not penalized.
-- **Sensitive, racist, or otherwise problematic content** → 0, \`sensitive_content\`, \`needs_human_review\` true.
-
-### Calibration
-
-Most answers in this course meet the requirement, and full marks are the ordinary result. Two errors are equally wrong: taking marks for something not on the criteria list, and passing an answer that clearly meets one. Judge the answer against the criteria as written, and do not invent additional standards — thin, brief, or unambitious writing is not a criterion, and neither is the student's opinion or attitude.
-
-## Comments
-
-Always write a short student-facing comment. Use these exact wordings where they apply, and combine them when several criteria apply:
-
-- Capitalization: \`Remember to always capitalize the I in the word Indigenous in all of your writing.\`
-- Terminology: \`Remember to always use the word Indigenous in all of your writing.\`
-- Readability: \`Marks were deducted due to improper grammar in this question.\`
-- Proofreading note: one short sentence naming the slip, making clear it did not cost marks.
-- Full marks: one short sentence stating that the answer met the requirement and addressed the question.
-
-The host program prepends the sentence-requirement comment when the answer is short, so do not write your own sentence-count wording. Still set \`too_short\` and the score yourself.`
-
-export const GENERIC_DEFAULT_SYSTEM_PROMPT = `You are grading one short student answer.
-
-You see exactly one question and one student answer. Grade only against the rubric, instructions, and mechanical facts provided.
-
-Mechanical facts in the user message (\`sentence_count\`, \`required_minimum\`, \`required_maximum\`, \`below_minimum\`) were computed by code. Trust them; do not recount sentences yourself.`
-
-export const INDG_DEFAULT_ALLOWED_SCORES: number[] = [
-  ...ALLOWED_INDIGENOUS_SCORES,
-]
-export const INDG_DEFAULT_REASON_CODES: string[] = [...INDIGENOUS_REASON_CODES]
-
-export const GENERIC_DEFAULT_ALLOWED_SCORES: number[] = [0, 1, 2]
-export const GENERIC_DEFAULT_REASON_CODES: string[] = [
-  'meets_requirements',
-  'too_short',
-  'off_topic',
-  'unreadable',
-  'sensitive_content',
-]
-
-export interface EmbeddableQuestionFeedback {
-  score: number
-  comment: string
-  reasons: string[]
-  needsHumanReview: boolean
-  maxScore: number
-}
-
-export class UpsertGradingProfileParams {
-  @IsIn([...GRADING_POLICY_KINDS])
-  policyKind!: GradingPolicyKind
-
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(15000)
-  systemPrompt!: string
-
-  @IsArray()
-  @ArrayMinSize(1)
-  @ArrayMaxSize(20)
-  @IsNumber({}, { each: true })
-  @Min(0, { each: true })
-  @Max(100, { each: true })
-  @ArrayUnique()
-  allowedScores!: number[]
-
-  @IsArray()
-  @ArrayMinSize(1)
-  @ArrayMaxSize(50)
-  @IsString({ each: true })
-  @MinLength(1, { each: true })
-  @MaxLength(64, { each: true })
-  @ArrayUnique()
-  reasonCodes!: string[]
-}
-
-export type GradingProfile = UpsertGradingProfileParams & {
-  id: number
-  courseId: number
-}
-
-export interface EmbeddableQuestion {
-  id: number
-  name: string | null
-  createdAt: string
-  courseId: number
-  questionText: string
-  criteriaText: string
-  instructions: string | null
-  minSentences: number
-  maxSentences: number
-}
-
-export class UpsertEmbeddableQuestionParams {
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim() || null : value,
-  )
-  @IsString()
-  @IsOptional()
-  @MaxLength(255)
-  name?: string | null
-
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(15000)
-  questionText!: string
-
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim() || null : value,
-  )
-  @IsString()
-  @IsOptional()
-  @MaxLength(15000)
-  criteriaText?: string | null
-
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim() || null : value,
-  )
-  @IsString()
-  @IsOptional()
-  @MaxLength(15000)
-  instructions?: string | null
-
-  @IsInt()
-  @IsOptional()
-  @Min(1)
-  @Max(100)
-  minSentences?: number
-
-  @IsInt()
-  @IsOptional()
-  @Min(1)
-  @Max(100)
-  maxSentences?: number
-}
-
-export class EmbeddableQuestionFeedbackParams {
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(15000)
-  responseText!: string
-}
+export * from './embeddable-assessment'
 
 export interface ChatbotAgentCourse {
   courseId: number

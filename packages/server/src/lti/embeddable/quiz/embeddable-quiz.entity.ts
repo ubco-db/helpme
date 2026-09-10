@@ -7,23 +7,18 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   Unique,
-  UpdateDateColumn,
 } from 'typeorm';
 import { CourseModel } from '../../../course/course.entity';
-import { GradingPolicyKind } from '@koh/common';
 import { Exclude } from 'class-transformer';
 
-@Entity('embeddable_grading_profile_model')
-@Unique(['courseId'])
-export class EmbeddableGradingProfileModel extends BaseEntity {
+@Entity('embeddable_quiz_model')
+@Unique(['id', 'courseId'])
+export class EmbeddableQuizModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
   @CreateDateColumn({ type: 'timestamptz', nullable: false })
   createdAt: Date;
-
-  @UpdateDateColumn({ type: 'timestamptz', nullable: false })
-  updatedAt: Date;
 
   @ManyToOne(() => CourseModel, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'courseId' })
@@ -33,15 +28,12 @@ export class EmbeddableGradingProfileModel extends BaseEntity {
   @Column({ type: 'integer', nullable: false })
   courseId: number;
 
-  @Column({ type: 'text', nullable: false, default: 'generic' })
-  policyKind: GradingPolicyKind;
-
   @Column({ type: 'text', nullable: false })
-  systemPrompt: string;
+  title: string;
 
-  @Column({ type: 'double precision', array: true, nullable: false })
-  allowedScores: number[];
+  @Column({ type: 'text', nullable: false, default: '' })
+  objective: string;
 
-  @Column({ type: 'text', array: true, nullable: false })
-  reasonCodes: string[];
+  @Column({ type: 'text', nullable: false, default: '' })
+  background: string;
 }

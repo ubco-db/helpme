@@ -1,3 +1,4 @@
+import type { GradingCheck } from '@koh/common';
 import { computeMechanicalFacts } from './deterministic-checks';
 
 describe('computeMechanicalFacts', () => {
@@ -26,33 +27,51 @@ describe('computeMechanicalFacts', () => {
     ];
 
     it.each(cases)('%s', (_label, text, expected) => {
-      expect(computeMechanicalFacts(text, 3, 5).sentenceCount).toBe(expected);
+      expect(computeMechanicalFacts(text, []).sentenceCount).toBe(expected);
     });
   });
 
-  describe('indigenousCapitalizationVariants', () => {
-    const cases: [string, string, string[]][] = [
-      [
-        'properly capitalized',
-        'We recognize Indigenous peoples and their rights.',
-        [],
-      ],
-      [
-        'lowercase',
-        'We recognize indigenous communities across Canada.',
-        ['indigenous'],
-      ],
-      [
-        'mixed variants',
-        'INDIGENOUS and indigenous and indigENOUS.',
-        ['INDIGENOUS', 'indigenous', 'indigENOUS'],
-      ],
+  it('only computes checks selected for the question', () => {
+    const checks: GradingCheck[] = [
+      {
+        kind: 'minimum_sentences',
+        minimum: 3,
+        scoreCap: 1,
+      },
+      {
+        kind: 'capitalization',
+        term: 'Example',
+        scoreCap: null,
+      },
     ];
 
-    it.each(cases)('%s', (_label, text, expected) => {
-      expect(
-        computeMechanicalFacts(text, 3, 5).indigenousCapitalizationVariants,
-      ).toEqual(expected);
+    expect(computeMechanicalFacts('example.', checks).triggeredChecks).toEqual([
+      checks[0],
+      checks[1],
+    ]);
+    expect(
+      computeMechanicalFacts('Example. Another sentence. Third sentence.', [
+        checks[0],
+      ]).triggeredChecks,
+    ).toEqual([]);
+  });
+
+  it('reports blank as a fact and handles maximum sentence checks', () => {
+    const checks: GradingCheck[] = [
+      {
+        kind: 'maximum_sentences',
+        maximum: 1,
+        scoreCap: null,
+      },
+    ];
+
+    expect(computeMechanicalFacts('   ', checks)).toMatchObject({
+      blank: true,
+      triggeredChecks: [],
     });
+    expect(computeMechanicalFacts('One. Two.', checks).triggeredChecks).toEqual(
+      [checks[0]],
+    );
+    expect(computeMechanicalFacts('One.', checks).blank).toBe(false);
   });
 });

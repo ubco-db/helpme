@@ -1,189 +1,81 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   InternalServerErrorException,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { EmbeddableQuestionModel } from './embeddable-question.entity';
-import { EmbeddableGradingProfileModel } from './grading-profile.entity';
 import {
   EmbeddableQuestionFeedback,
+  EmbeddableQuestionFeedbackParams,
   ERROR_MESSAGES,
-  GENERIC_DEFAULT_ALLOWED_SCORES,
-  GENERIC_DEFAULT_REASON_CODES,
-  GENERIC_DEFAULT_SYSTEM_PROMPT,
-  INDG_DEFAULT_ALLOWED_SCORES,
-  INDG_DEFAULT_REASON_CODES,
+  GradingEvaluation,
+  QuizContext,
+  StudentEmbeddableQuestion,
   UpsertEmbeddableQuestionParams,
-  UpsertGradingProfileParams,
 } from '@koh/common';
+import { EmbeddableQuestionModel } from './embeddable-question.entity';
 import { EmbeddableQuestionFeedbackModel } from './embeddable-question-feedback.entity';
-import {
-  ChatbotApiService,
-  FeedbackQueryResult,
-} from '../../../chatbot/chatbot-api.service';
-import { computeMechanicalFacts } from './deterministic-checks';
-import {
-  buildSystemPrompt,
-  buildUserPrompt,
-  postProcessFeedback,
-  validateGradePayload,
-  ValidatedGradePayload,
-} from './grading';
-
-function matchesIndgContract(scores: number[], reasons: string[]): boolean {
-  return (
-    scores.length === INDG_DEFAULT_ALLOWED_SCORES.length &&
-    reasons.length === INDG_DEFAULT_REASON_CODES.length &&
-    scores.every((score) => INDG_DEFAULT_ALLOWED_SCORES.includes(score)) &&
-    reasons.every((reason) => INDG_DEFAULT_REASON_CODES.includes(reason))
-  );
-}
+import { EmbeddableQuizModel } from '../quiz/embeddable-quiz.entity';
+import { QuestionGradingService } from './question-grading.service';
 
 @Injectable()
 export class EmbeddableQuestionService {
-  private readonly logger = new Logger(EmbeddableQuestionService.name);
+  constructor(
+    private readonly questionGradingService: QuestionGradingService,
+  ) {}
 
-  constructor(private readonly chatbotApiService: ChatbotApiService) {}
-
-  /**
-   * Evaluates a course member's draft against the course grading profile and
-   * returns/saves validated feedback attributed to their HelpMe user account.
-   */
   async getFeedback({
     submission,
     questionId,
     courseId,
     userId,
   }: {
-    submission: string;
+    submission: EmbeddableQuestionFeedbackParams['responseText'];
     questionId: number;
     courseId: number;
     userId: number;
   }): Promise<EmbeddableQuestionFeedback> {
     const question = await this.findOne(courseId, questionId);
-    const profile = await this.getProfile(courseId);
+    const quizContext = await this.getQuizContext(question);
 
-    const facts = computeMechanicalFacts(
-      submission,
-      question.minSentences,
-      question.maxSentences,
-    );
-
-    const userPrompt = buildUserPrompt(
-      question.questionText,
-      submission,
-      facts,
-      question.instructions,
-      profile,
-    );
-
-    let chatbotResult: FeedbackQueryResult;
+    let evaluation: GradingEvaluation;
     try {
-      chatbotResult = await this.chatbotApiService.queryChatbotForCourse(
-        userPrompt,
+      evaluation = await this.questionGradingService.evaluate({
         courseId,
-        'feedback',
-        { systemPrompt: buildSystemPrompt(profile, question.criteriaText) },
-      );
-    } catch (err) {
-      this.logger.error(`Chatbot service call failed: ${err}`);
-      throw new InternalServerErrorException(
-        'Failed to connect to chatbot service',
-      );
-    }
-
-    let validatedPayload: ValidatedGradePayload;
-    try {
-      validatedPayload = validateGradePayload(chatbotResult.answer, profile);
+        questionText: question.questionText,
+        gradingSettings: question.gradingSettings,
+        quizContext,
+        submission,
+        mode: 'feedback',
+      });
     } catch {
-      this.logger.error('Grading profile validation failed');
       throw new InternalServerErrorException(
-        'Model output was not valid feedback JSON.',
+        'Failed to generate feedback for this answer.',
       );
     }
 
-    const postProcessed = postProcessFeedback(validatedPayload, facts, profile);
-
-    const feedback = EmbeddableQuestionFeedbackModel.create({
+    const saved = await EmbeddableQuestionFeedbackModel.create({
       courseId,
       questionId,
       userId,
       submission,
-      aiFeedback: postProcessed.comment,
-      aiGrade: postProcessed.score,
-      reasons: postProcessed.reasons,
-      needsHumanReview: postProcessed.needsHumanReview,
-      aiModel: chatbotResult.model ?? null,
-    });
-
-    const saved = await feedback.save();
+      aiFeedback: evaluation.comment,
+      aiGrade: evaluation.score,
+      appliedRequirements: evaluation.appliedRequirements,
+      aiModel: evaluation.model,
+      maxScore: evaluation.maxScore,
+      gradingSnapshot: evaluation.gradingSnapshot,
+    }).save();
 
     return {
       score: saved.aiGrade,
       comment: saved.aiFeedback,
-      reasons: saved.reasons,
-      needsHumanReview: saved.needsHumanReview,
-      maxScore: Math.max(...profile.allowedScores),
+      appliedRequirements: saved.appliedRequirements,
+      maxScore: saved.maxScore ?? evaluation.maxScore,
     };
   }
 
-  /**
-   * Returns the course's grading profile, creating the generic default on
-   * first use. The insert ignores conflicts so concurrent first calls still
-   * leave exactly one row per course.
-   */
-  async getProfile(courseId: number): Promise<EmbeddableGradingProfileModel> {
-    await EmbeddableGradingProfileModel.createQueryBuilder()
-      .insert()
-      .into(EmbeddableGradingProfileModel)
-      .values({
-        courseId,
-        policyKind: 'generic',
-        systemPrompt: GENERIC_DEFAULT_SYSTEM_PROMPT,
-        allowedScores: [...GENERIC_DEFAULT_ALLOWED_SCORES],
-        reasonCodes: [...GENERIC_DEFAULT_REASON_CODES],
-      })
-      .orIgnore()
-      .execute();
-    const profile = await EmbeddableGradingProfileModel.findOne({
-      where: { courseId },
-    });
-    if (!profile) {
-      throw new InternalServerErrorException('Failed to load grading profile');
-    }
-    return profile;
-  }
-
-  /**
-   * Updates the course's single grading profile. The INDG policy is only
-   * valid with the INDG scores and reason codes; its system prompt stays
-   * editable.
-   */
-  async updateProfile(
-    courseId: number,
-    params: UpsertGradingProfileParams,
-  ): Promise<EmbeddableGradingProfileModel> {
-    if (
-      params.policyKind === 'indg-reflection' &&
-      !matchesIndgContract(params.allowedScores, params.reasonCodes)
-    ) {
-      throw new BadRequestException(
-        'indg-reflection profiles must use the INDG scores and reason codes',
-      );
-    }
-    const profile = await this.getProfile(courseId);
-    profile.policyKind = params.policyKind;
-    profile.systemPrompt = params.systemPrompt;
-    profile.allowedScores = [...params.allowedScores];
-    profile.reasonCodes = [...params.reasonCodes];
-    return profile.save();
-  }
-
-  /**
-   * Finds all embeddable questions for a given course.
-   */
   async findAllForCourse(courseId: number): Promise<EmbeddableQuestionModel[]> {
     return EmbeddableQuestionModel.find({
       where: { courseId },
@@ -191,11 +83,6 @@ export class EmbeddableQuestionService {
     });
   }
 
-  /**
-   * Finds one question scoped to a course. This returns the complete server
-   * model because grading needs the hidden criteria. Controllers are
-   * responsible for exposing only student-safe fields.
-   */
   async findOne(
     courseId: number,
     questionId: number,
@@ -209,48 +96,80 @@ export class EmbeddableQuestionService {
     return question;
   }
 
-  /**
-   * Creates or updates an embeddable question.
-   */
   async upsert(
     courseId: number,
     params: UpsertEmbeddableQuestionParams,
     questionId?: number,
   ): Promise<EmbeddableQuestionModel> {
-    const minSentences = params.minSentences ?? 3;
-    const maxSentences = params.maxSentences ?? 5;
-
-    if (minSentences > maxSentences) {
-      throw new BadRequestException(
-        'minSentences cannot be greater than maxSentences.',
-      );
-    }
-
+    const quiz =
+      params.quizId === null
+        ? null
+        : await this.findQuiz(courseId, params.quizId);
     const question =
       questionId === undefined
         ? EmbeddableQuestionModel.create({ courseId })
         : await this.findOne(courseId, questionId);
 
     EmbeddableQuestionModel.merge(question, {
-      name: params.name ?? null,
+      title: params.title,
       questionText: params.questionText,
-      criteriaText: params.criteriaText ?? '',
-      instructions: params.instructions ?? null,
-      minSentences,
-      maxSentences,
+      quizId: params.quizId,
+      quiz,
+      gradingSettings: structuredClone(params.gradingSettings),
     });
-
     return question.save();
   }
 
-  /**
-   * Deletes an embeddable question.
-   */
   async delete(courseId: number, questionId: number): Promise<void> {
     await this.findOne(courseId, questionId);
-    await EmbeddableQuestionModel.delete({
-      id: questionId,
-      courseId,
+    const feedbackCount = await EmbeddableQuestionFeedbackModel.count({
+      where: { courseId, questionId },
     });
+    if (feedbackCount > 0) {
+      throw new ConflictException(
+        'Cannot delete a question that has feedback history.',
+      );
+    }
+    await EmbeddableQuestionModel.delete({ id: questionId, courseId });
+  }
+
+  async getStudentQuestion(
+    courseId: number,
+    questionId: number,
+  ): Promise<StudentEmbeddableQuestion> {
+    const question = await this.findOne(courseId, questionId);
+    return {
+      id: question.id,
+      courseId: question.courseId,
+      questionText: question.questionText,
+    };
+  }
+
+  private async findQuiz(
+    courseId: number,
+    quizId: number,
+  ): Promise<EmbeddableQuizModel> {
+    const quiz = await EmbeddableQuizModel.findOne({
+      where: { id: quizId, courseId },
+    });
+    if (!quiz) {
+      throw new BadRequestException(
+        'The selected quiz does not belong to this course.',
+      );
+    }
+    return quiz;
+  }
+
+  private async getQuizContext(
+    question: EmbeddableQuestionModel,
+  ): Promise<QuizContext | null> {
+    if (question.quizId === null) return null;
+    const quiz = await this.findQuiz(question.courseId, question.quizId);
+    return {
+      id: quiz.id,
+      title: quiz.title,
+      objective: quiz.objective,
+      background: quiz.background,
+    };
   }
 }

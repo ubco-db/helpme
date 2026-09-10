@@ -48,7 +48,9 @@ export const TestTypeOrmConfig: PostgresConnectionOptions = {
   port: 5432,
   username: process.env.POSTGRES_NONROOT_USER,
   password: process.env.POSTGRES_NONROOT_PASSWORD,
-  database: 'test',
+  // Overridable so integration runs can target a disposable database
+  // (POSTGRES_TEST_DB) instead of the shared dev "test" database.
+  database: process.env.POSTGRES_TEST_DB || 'test',
   entities: ['./**/*.entity.ts', '../../src/**/*.entity.ts'],
   synchronize: true,
 };

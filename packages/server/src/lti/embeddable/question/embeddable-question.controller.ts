@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   ClassSerializerInterceptor,
   Controller,
@@ -11,26 +12,30 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import {
+  embeddableQuestionFeedbackSchema,
+  EmbeddableQuestionFeedback,
+  Role,
+  upsertEmbeddableQuestionSchema,
+} from '@koh/common';
 import { JwtAuthGuard } from '../../../guards/jwt-auth.guard';
 import { CourseRolesGuard } from '../../../guards/course-roles.guard';
 import { Roles } from '../../../decorators/roles.decorator';
-import {
-  EmbeddableQuestionFeedbackParams,
-  EmbeddableQuestionFeedback,
-  GradingProfile,
-  Role,
-  UpsertEmbeddableQuestionParams,
-  UpsertGradingProfileParams,
-} from '@koh/common';
 import { EmbeddableQuestionService } from './embeddable-question.service';
 import { EmbeddableQuestionModel } from './embeddable-question.entity';
-import { EmbeddableGradingProfileModel } from './grading-profile.entity';
 import { UserId } from '../../../decorators/user.decorator';
 
-type StudentEmbeddableQuestion = Pick<
-  EmbeddableQuestionModel,
-  'id' | 'courseId' | 'questionText' | 'minSentences' | 'maxSentences'
->;
+function parseBody<T>(
+  schema: { parse(value: unknown): T },
+  body: unknown,
+  message: string,
+): T {
+  try {
+    return schema.parse(body);
+  } catch {
+    throw new BadRequestException(message);
+  }
+}
 
 @Controller('lti/embeddable-question')
 @UseGuards(JwtAuthGuard, CourseRolesGuard)
@@ -40,26 +45,6 @@ export class EmbeddableQuestionController {
     private readonly embeddableQuestionService: EmbeddableQuestionService,
   ) {}
 
-  @Get(':courseId/grading-profile')
-  @Roles(Role.TA, Role.PROFESSOR)
-  async getProfile(
-    @Param('courseId', ParseIntPipe) courseId: number,
-  ): Promise<EmbeddableGradingProfileModel> {
-    return this.embeddableQuestionService.getProfile(courseId);
-  }
-
-  @Patch(':courseId/grading-profile')
-  @Roles(Role.TA, Role.PROFESSOR)
-  async updateProfile(
-    @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() body: UpsertGradingProfileParams,
-  ): Promise<GradingProfile> {
-    return this.embeddableQuestionService.updateProfile(courseId, body);
-  }
-
-  /**
-   * Staff use the full list for question management, including criteria.
-   */
   @Get(':courseId')
   @Roles(Role.TA, Role.PROFESSOR)
   async findAll(
@@ -68,41 +53,33 @@ export class EmbeddableQuestionController {
     return this.embeddableQuestionService.findAllForCourse(courseId);
   }
 
-  /**
-   * Course members can load the question, but grading criteria stay server-side.
-   */
   @Get(':courseId/:questionId')
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async findOne(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
-  ): Promise<StudentEmbeddableQuestion> {
-    const question = await this.embeddableQuestionService.findOne(
+  ) {
+    return this.embeddableQuestionService.getStudentQuestion(
       courseId,
       questionId,
     );
-    return {
-      id: question.id,
-      courseId: question.courseId,
-      questionText: question.questionText,
-      minSentences: question.minSentences,
-      maxSentences: question.maxSentences,
-    };
   }
 
-  /**
-   * Feedback is always attributed to the authenticated HelpMe user.
-   */
   @Post(':courseId/:questionId/feedback')
   @Roles(Role.STUDENT, Role.TA, Role.PROFESSOR)
   async getFeedback(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
-    @Body() body: EmbeddableQuestionFeedbackParams,
+    @Body() body: unknown,
     @UserId() userId: number,
   ): Promise<EmbeddableQuestionFeedback> {
+    const { responseText } = parseBody(
+      embeddableQuestionFeedbackSchema,
+      body,
+      'Invalid feedback request.',
+    );
     return this.embeddableQuestionService.getFeedback({
-      submission: body.responseText,
+      submission: responseText,
       questionId,
       courseId,
       userId,
@@ -113,9 +90,16 @@ export class EmbeddableQuestionController {
   @Roles(Role.TA, Role.PROFESSOR)
   async create(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() body: UpsertEmbeddableQuestionParams,
+    @Body() body: unknown,
   ): Promise<EmbeddableQuestionModel> {
-    return this.embeddableQuestionService.upsert(courseId, body);
+    return this.embeddableQuestionService.upsert(
+      courseId,
+      parseBody(
+        upsertEmbeddableQuestionSchema,
+        body,
+        'Invalid embeddable question configuration.',
+      ),
+    );
   }
 
   @Patch(':courseId/:questionId')
@@ -123,9 +107,17 @@ export class EmbeddableQuestionController {
   async update(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
-    @Body() body: UpsertEmbeddableQuestionParams,
+    @Body() body: unknown,
   ): Promise<EmbeddableQuestionModel> {
-    return this.embeddableQuestionService.upsert(courseId, body, questionId);
+    return this.embeddableQuestionService.upsert(
+      courseId,
+      parseBody(
+        upsertEmbeddableQuestionSchema,
+        body,
+        'Invalid embeddable question configuration.',
+      ),
+      questionId,
+    );
   }
 
   @Delete(':courseId/:questionId')
