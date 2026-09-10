@@ -974,7 +974,7 @@ export class LMSIntegrationService {
       | LMSQuizModel,
     type: LMSUpload,
     action: 'Sync' | 'Clear',
-  ) {
+  ): Promise<LMSFileUploadResponse> {
     switch (action) {
       case 'Sync':
         return await this.syncDocument(courseId, item, type);
@@ -992,7 +992,7 @@ export class LMSIntegrationService {
       | LMSFileModel
       | LMSQuizModel,
     type: LMSUpload,
-  ) {
+  ): Promise<LMSFileUploadResponse> {
     const adapter = await this.getAdapter(courseId);
     if (!adapter.isImplemented()) {
       throw new HttpException(
@@ -1031,7 +1031,7 @@ export class LMSIntegrationService {
     await ChatTokenModel.remove(token);
     await UserModel.remove(tempUser);
 
-    return status.success;
+    return status;
   }
 
   private async clearDocument(
@@ -1067,7 +1067,7 @@ export class LMSIntegrationService {
     await ChatTokenModel.remove(token);
     await UserModel.remove(tempUser);
 
-    return status.success;
+    return status;
   }
 
   private getTypeName(type: LMSUpload) {
@@ -1115,7 +1115,7 @@ export class LMSIntegrationService {
         id: item.id,
         success: true,
         documentId: item.chatbotDocumentId,
-      };
+      } satisfies LMSFileUploadResponse;
     }
 
     let documentText = '';
@@ -1219,7 +1219,7 @@ export class LMSIntegrationService {
               id: item.id,
               success: true,
               documentId: uploadResult.docId,
-            } as LMSFileUploadResponse;
+            } satisfies LMSFileUploadResponse;
           } catch (error) {
             console.error(
               `Failed to upload LMS file ${f.name} to chatbot:`,
@@ -1228,14 +1228,16 @@ export class LMSIntegrationService {
             return {
               id: item.id,
               success: false,
-            } as LMSFileUploadResponse;
+              errorMsg: error.message || JSON.stringify(error),
+            } satisfies LMSFileUploadResponse;
           }
         } else {
           // Skip unsupported file types for now
           return {
             id: item.id,
             success: false,
-          } as LMSFileUploadResponse;
+            errorMsg: 'Unsupported file type',
+          } satisfies LMSFileUploadResponse;
         }
       }
       case LMSUpload.Quizzes: {
@@ -1249,7 +1251,8 @@ export class LMSIntegrationService {
         return {
           id: item.id,
           success: false,
-        } as LMSFileUploadResponse;
+          errorMsg: 'Unsupported LMS item type',
+        } satisfies LMSFileUploadResponse;
     }
 
     let textIsPrefix = false;
@@ -1263,7 +1266,8 @@ export class LMSIntegrationService {
       return {
         id: item.id,
         success: false,
-      };
+        errorMsg: 'No document text could be retrieved for this item',
+      } satisfies LMSFileUploadResponse;
     }
 
     const computedDocLink = adapter.getDocumentLink(item.id, type);
@@ -1296,14 +1300,15 @@ export class LMSIntegrationService {
             id: item.id,
             success: true,
             documentId: item.chatbotDocumentId,
-          };
+          } satisfies LMSFileUploadResponse;
         })
         .catch((error): LMSFileUploadResponse => {
           console.error(error);
           return {
             id: item.id,
             success: false,
-          } as LMSFileUploadResponse;
+            errorMsg: error.message || JSON.stringify(error),
+          } satisfies LMSFileUploadResponse;
         });
     } else {
       return await this.chatbotApiService
@@ -1319,14 +1324,15 @@ export class LMSIntegrationService {
             id: item.id,
             success: true,
             documentId: body.id,
-          };
+          } satisfies LMSFileUploadResponse;
         })
         .catch((error): LMSFileUploadResponse => {
           console.error(error);
           return {
             id: item.id,
             success: false,
-          } as LMSFileUploadResponse;
+            errorMsg: error.message || JSON.stringify(error),
+          } satisfies LMSFileUploadResponse;
         });
     }
   }
@@ -1340,13 +1346,13 @@ export class LMSIntegrationService {
       | LMSFileModel
       | LMSQuizModel,
     token: ChatTokenModel,
-  ) {
+  ): Promise<LMSFileUploadResponse> {
     // Already deleted in this case
     if (!item.chatbotDocumentId) {
       return {
         id: item.id,
         success: true,
-      };
+      } satisfies LMSFileUploadResponse;
     }
     return await this.chatbotApiService
       .deleteDocument(item.chatbotDocumentId, courseId, token.token)
@@ -1361,12 +1367,13 @@ export class LMSIntegrationService {
           return {
             id: item.id,
             success: true,
-          } as LMSFileUploadResponse;
+          } satisfies LMSFileUploadResponse;
         }
         return {
           id: item.id,
           success: false,
-        };
+          errorMsg: error.message || JSON.stringify(error),
+        } satisfies LMSFileUploadResponse;
       });
   }
 

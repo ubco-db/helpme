@@ -1275,15 +1275,15 @@ export class LMSIntegrationController {
         newState ? 'Sync' : 'Clear',
       );
 
-      if (!result) {
-        throw new Error();
+      if (!result.success) {
+        throw new Error(result.errorMsg);
       }
     } catch (err) {
       console.error(err);
       throw new HttpException(
         newState
-          ? ERROR_MESSAGES.lmsController.failedToSyncOne
-          : ERROR_MESSAGES.lmsController.failedToClearOne,
+          ? `${ERROR_MESSAGES.lmsController.failedToSyncOne} ${err.message || JSON.stringify(err)}`
+          : `${ERROR_MESSAGES.lmsController.failedToClearOne} ${err.message || JSON.stringify(err)}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
