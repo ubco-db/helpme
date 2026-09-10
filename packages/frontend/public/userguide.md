@@ -329,13 +329,14 @@ There is currently **no** integration made between the LMS (Canvas) integration 
 
 Right now, the only things integrated with LMSs (like Canvas) are:
 - **Course Roster**: Lets you compare what students are in your HelpMe course but not your Canvas course (or vise-versa). This is useful for knowing if there is someone in your HelpMe course that shouldn't be or how many people in your Canvas course never once joined your HelpMe course. It compares by checking if the user's name matches in both courses. This information does *not* get inserted to the chatbot or anywhere else in the system, it is purely used for comparing the Canvas course with the HelpMe course.
+
 It synchronizes the following into the chatbot:
-- **Course Assignments**: Will automatically pull the assignment's **name**, **due date**, and **description** and insert it into the chatbot. Note that it will ***not*** insert attached documents, images, or rubrics of the assignment to the chatbot (but this is being looked into as a future feature).
-- **Course Announcements**: Will automatically pull announcements' **titles**, **date posted**, and **announcement message** and insert it into the chatbot. Note that it does *not* insert attached documents or images from the announcements into the chatbot (but this is being looked into as a future feature)
+- **Course Assignments**: Will automatically pull the assignment's **name**, **due date**, and **description** and insert it into the chatbot. Note that it will ***not*** insert attached documents, images, or rubrics of the assignment to the chatbot at this time.
+- **Course Announcements**: Will automatically pull announcements' **titles**, **date posted**, and **announcement message** and insert it into the chatbot. Note that it does *not* insert attached documents or images from the announcements into the chatbot at this time.
 - **Pages**
 - **Files**
-- **Quizzes** (soon)
+- **Quizzes**
 
-Note that all citations to synchronized resources will link to their specific resource on Canvas directly, meaning students won't be able to access resources they lack access priveldges for on Canvas (e.g. they can't access a hidden slide deck from a future week).
+Note that all citations to synchronized resources will link to their specific resource on Canvas directly, meaning students won't be able to access resources they lack access privileges for on Canvas (e.g. they can't access a hidden slide deck from a future week), and it will only synchronize **published resources** to the chatbot.
 
 Also, you can always upload resources (e.g. slide decks) yourself by going to Course Settings -> Chatbot Settings -> Add Documents
