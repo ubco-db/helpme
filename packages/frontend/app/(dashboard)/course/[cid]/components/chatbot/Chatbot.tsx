@@ -30,6 +30,7 @@ import { useUserInfo } from '@/app/contexts/userContext'
 import {
   cn,
   convertPathnameToPageName,
+  getErrorMessage,
   getRoleInCourse,
 } from '@/app/utils/generalUtils'
 import { Feedback } from './Feedback'
@@ -204,7 +205,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
       })
       .catch((err) => {
         console.error(err)
-        const answer = "Sorry, I couldn't find the answer"
+        const answer = `Sorry, I couldn't find the answer. An error occurred: ${getErrorMessage(err)}`
         setMessages((prevMessages: Message[]) => [
           ...prevMessages,
           { type: 'userMessage', message: input },
