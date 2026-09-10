@@ -2295,15 +2295,11 @@ export enum CommonMimeToExtensionMap {
   md = 'text/markdown',
 }
 
-export type LMSErrorType = {
-  deleteError: "Couldn't remove pre-existing documents"
-}
-
 export type LMSFileUploadResponse = {
   id: number
   success: boolean
   documentId?: string
-  reason?: LMSErrorType
+  errorMsg?: string
 }
 
 export type LMSSyncDocumentsResult = {
