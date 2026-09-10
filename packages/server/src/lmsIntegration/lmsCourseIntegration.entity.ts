@@ -46,6 +46,8 @@ export class LMSCourseIntegrationModel extends BaseEntity {
       LMSResourceType.ASSIGNMENTS,
       LMSResourceType.ANNOUNCEMENTS,
       LMSResourceType.PAGES,
+      LMSResourceType.FILES,
+      LMSResourceType.QUIZZES,
     ],
   })
   selectedResourceTypes: LMSResourceType[];
