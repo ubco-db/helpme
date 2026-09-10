@@ -27,6 +27,9 @@ Main features (all can be toggled off):
 Note: the new Chatbot feature has been integrated through a different API service that is not part of this system. It has its own private repo. If you're looking to contribute in tasks related to the chatbot, you will need permission to access the repo.
 
 ## Installation (for Production)
+
+### Docker (Production)
+
 The easiest way to spin up the system is through Docker.
 
 The Docker container uses an environment variable file that can be found [here](packages/server/.env.docker). This file should stay up to date within other environment variable files. Change the environment variables to match your environment.
@@ -43,6 +46,32 @@ docker-compose build && docker-compose up
 
 3. Visit the app at http://localhost:80 (or http://localhost)
 
+### PM2 (Production)
+
+You can also run the server using pm2:
+
+```bash
+# (run inside the root helpme directory)
+pm2 start pm2.config.js
+```
+
+This creates two pm2 processes: helpme-backend and helpme-frontend. Here are some helpful pm2 commands:
+
+```bash
+pm2 log helpme-backend --lines 100
+
+pm2 restart pm2.config.js
+# OR
+pm2 restart helpme-backend helpme-frontend
+
+pm2 stop helpme-backend
+pm2 delete helpme-backend
+
+# To make pm2 auto-restart after a reboot (run the command that this command gives)
+# pm2 startup
+# To make it so pm2 will restart the processes after a reboot
+pm2 save
+```
 
 ## Developing
 

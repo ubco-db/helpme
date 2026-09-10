@@ -15,7 +15,7 @@
     - [Installing new packages](#installing-new-packages)
   - [Code Formatting](#code-formatting)
   - [Tips](#tips)
-  - [Testing the Production Environment](#testing-the-production-environment)
+  - [Testing the Production Environment locally](#testing-the-production-environment-locally)
   - [Production](#production)
     - [Changelog](#changelog)
   - [Misc](#misc)
@@ -177,11 +177,11 @@ package, `cd packages/app` and then `yarn add <FRONTEND PACKAGE>`
 - In VSCode settings, enable `Explorer > File Nesting: Enabled` and `Explorer > File Nesting: Expand`, and especially set `Explorer: Sort Order` to **filesFirst**. This will make the file tree much more navigable.
 - Want to get to the course page, queue page, or another page quickly? In the top search bar in VSCode, try just searching "queue page" or "course page" and it will show related pages (should be easier than searching through the file folders manually)
 
-## Testing the Production Environment
+## Testing the Production Environment locally
 
 Want to try running the prod environment on your local machine? Follow these steps:
 - run `yarn build` in the root directory (you may need to run the terminal as administrator)
-- Once done, run `yarn prod:start` in the root directory
+- Once done, run `yarn prod:start:standalone` in the root directory
 - run `yarn dev:proxy` in a separate terminal in the root directory
 
 Once done, you should be able to visit the website at http://localhost:3001

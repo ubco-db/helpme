@@ -28,7 +28,7 @@
     "build": "cross-env NODE_OPTIONS=--openssl-legacy-provider yarn workspace @koh/server run build && yarn workspace @koh/frontend run build",
     "build:dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider yarn workspace @koh/server run build:dev && yarn workspace @koh/frontend run build",
     "ci:start": "yarn concurrently \"yarn dev:proxy\" \"yarn workspace @koh/server prod:start\" \"yarn workspace @koh/frontend start\"",
-    "prod:start": "cross-env NODE_OPTIONS=--openssl-legacy-provider yarn concurrently \"yarn workspace @koh/server prod:start\" \"yarn workspace @koh/frontend start\"",
+    "prod:start:standalone": "cross-env NODE_OPTIONS=--openssl-legacy-provider yarn concurrently \"yarn workspace @koh/server prod:start\" \"yarn workspace @koh/frontend start\"",
     "prepare": "husky install"
   },
   "workspaces": {
