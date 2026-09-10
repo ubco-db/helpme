@@ -136,13 +136,13 @@ export function buildSystemPrompt(
     [
       'meets_requirements: the answer fully meets the rubric.',
       'proofreading_note: a minor proofreading issue that did not cost marks.',
-      'indigenous_capitalization: reminder that a specific term must be capitalized exactly as configured; never costs marks.',
+      'term_capitalization: reminder that a specific term must be capitalized exactly as configured; never costs marks.',
       'terminology_review: general use of terminology that may be incorrect; needs human review.',
       'too_short: the answer is below the minimum length.',
       'off_topic: the answer does not address the question or cannot be understood.',
       'sensitive_content: sensitive or harmful content; score 0.',
     ].join('\n'),
-    'Reasons must be non-empty and drawn only from the list above (blank is host-only and must never be emitted). Contract: meets_requirements is used alone and only at full marks; proofreading_note is used alone or only with indigenous_capitalization; full marks cannot carry a deduction reason (terminology_review, too_short, off_topic, sensitive_content); a score below full marks must carry at least one deduction reason. sensitive_content requires score 0 and needs_human_review true. Set needs_human_review true also when you are unsure a term is a proper-noun or legal use. When the length verdict says the answer is below the minimum, include too_short; the host enforces this regardless. Your reasons are rubric-level judgments, not restatements of the host requirement notes.',
+    'Reasons must be non-empty and drawn only from the list above (blank is host-only and must never be emitted). Contract: meets_requirements is used alone and only at full marks; proofreading_note is used alone or only with term_capitalization; full marks cannot carry a deduction reason (terminology_review, too_short, off_topic, sensitive_content); a score below full marks must carry at least one deduction reason. sensitive_content requires score 0 and needs_human_review true. Set needs_human_review true also when you are unsure a term is a proper-noun or legal use. When the length verdict says the answer is below the minimum, include too_short; the host enforces this regardless. Your reasons are rubric-level judgments, not restatements of the host requirement notes.',
   ].join('\n\n');
 }
 
@@ -270,12 +270,11 @@ export function validateGradePayload(
   if (reasons.includes('proofreading_note')) {
     const extra = reasons.filter(
       (reason) =>
-        reason !== 'proofreading_note' &&
-        reason !== 'indigenous_capitalization',
+        reason !== 'proofreading_note' && reason !== 'term_capitalization',
     );
     if (extra.length) {
       throw new GradingConstraintError(
-        'Model returned "proofreading_note" with other reasons; it may appear alone or only with "indigenous_capitalization". Remove the other reasons.',
+        'Model returned "proofreading_note" with other reasons; it may appear alone or only with "term_capitalization". Remove the other reasons.',
       );
     }
   }

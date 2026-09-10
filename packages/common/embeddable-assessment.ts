@@ -220,7 +220,7 @@ export type GradingEvaluation = EmbeddableQuestionFeedback & {
 export const GRADING_REASON_CODES = [
   'meets_requirements',
   'proofreading_note',
-  'indigenous_capitalization',
+  'term_capitalization',
   'terminology_review',
   'too_short',
   'off_topic',

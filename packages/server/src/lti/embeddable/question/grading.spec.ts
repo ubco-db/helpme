@@ -195,7 +195,7 @@ describe('question grading contract', () => {
         {
           score: 1,
           comment: 'Good but brief.',
-          reasons: ['indigenous_capitalization'],
+          reasons: ['term_capitalization'],
           needs_human_review: false,
         },
         settings,
@@ -208,7 +208,7 @@ describe('question grading contract', () => {
     const settings = makeSettings({ checks: [] });
     for (const reasons of [
       ['proofreading_note'],
-      ['proofreading_note', 'indigenous_capitalization'],
+      ['proofreading_note', 'term_capitalization'],
     ]) {
       expect(
         validateGradePayload(
@@ -234,7 +234,7 @@ describe('question grading contract', () => {
         settings,
         null,
       ),
-    ).toThrow(/only with "indigenous_capitalization"/);
+    ).toThrow(/only with "term_capitalization"/);
   });
 
   it('adds too_short and drops full-mark reasons for below-minimum answers', () => {
