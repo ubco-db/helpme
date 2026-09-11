@@ -455,8 +455,8 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
           console.log(
             `Response for calling ${url}`,
             !response.ok
-              ? await getFetchErrorMessage(response)
-              : { data: response.json() },
+              ? await getFetchErrorMessage(response.clone())
+              : { data: await response.clone().json() },
           );
         }
         let nextLink: string | undefined = undefined;

@@ -1,5 +1,9 @@
 import { isProd } from '@koh/common';
-import { INestApplication, ValidationPipe, Logger } from '@nestjs/common';
+import {
+  INestApplication,
+  ValidationPipe,
+  ConsoleLogger,
+} from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import * as cookieParser from 'cookie-parser';
 import * as morgan from 'morgan';
@@ -14,13 +18,16 @@ import helmet from 'helmet';
 import LtiMiddleware from './lti/lti.middleware';
 
 export async function bootstrap(hot: any): Promise<void> {
-  const logger = new Logger('System');
+  const logger = new ConsoleLogger('System', { timestamp: false }); // timestamp not necessary since pm2 includes one
   console.log = (...args) => logger.log(args.join(' '));
   console.error = (...args) => logger.error(args.join(' '));
   console.warn = (...args) => logger.warn(args.join(' '));
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+    logger: new ConsoleLogger('', {
+      timestamp: false,
+      logLevels: ['error', 'warn', 'log', 'debug', 'verbose'],
+    }),
   });
 
   app.enableShutdownHooks(); // So we can clean up SSE.
