@@ -1,3 +1,23 @@
+## Version 1.10.3 - Chatbot and Canvas Integration Bug Fixes
+
+*Sep 11th, 2026*
+
+
+#### Improvements
+- (!) Fixed an issue where Canvas Files were failing to synchronize to the Chatbot (fix applied on Sep 8th)
+- Fixed an issue where Canvas Quizzes were failing to synchronize to the Chatbot
+- (!) Made new Canvas integrations default to synchronize Canvas Files since many courses upload their Assignments/Syllabus/etc. as a File on Canvas (this is in addition to Canvas Pages, Assignments, and Announcements).
+  - Existing configurations for have been updated for courses created in the past month.
+  - As always, this can be adjusted by heading to Course Settings -> LMS Integrations -> Resource Selector -> Uncheck/Check what you want synced, and then "Save & Re-Sync Documents"
+- Improved the error message when uploading a chatbot document that had no text to process
+- Improved the error message when a Force Sync on an individual LMS file fails
+- Improved the tooltip on the LMS Integrations page to explain that it only synchronizes published items
+- Improved the Chatbot "Sorry, I couldn't find the answer" error message to include the full error
+- (!) Fixed an issue where the Anytime Question Abstract Generator wasn't working
+- Fixed an issue with the RAG system (specifically, the chunker) which may have occasionally caused the Chatbot to not give an answer (fix applied on Sep 10th)
+
+***
+
 ## Version 1.10.2
 
 *Sep 2nd, 2026*
