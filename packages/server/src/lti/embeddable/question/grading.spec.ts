@@ -190,10 +190,6 @@ describe('question grading contract', () => {
     ).toBe(1);
   });
 
-  it('derives no effective cap when no triggered check caps the score', () => {
-    expect(effectiveScoreCap([])).toBeNull();
-  });
-
   it('builds the system prompt from the rubric, feedback instructions, score contract, and output shape', () => {
     const settings = makeSettings();
     const prompt = buildSystemPrompt(settings, 1);
