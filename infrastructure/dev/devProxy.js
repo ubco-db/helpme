@@ -17,7 +17,7 @@ const proxy = createProxyMiddleware({
   },
   ws: true,
   logLevel: 'debug',
-  changeOrigin: true,
+  changeOrigin: false,
 })
 
 app.use('/', proxy)

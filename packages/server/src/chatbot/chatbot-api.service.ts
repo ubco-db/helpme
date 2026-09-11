@@ -12,6 +12,19 @@ import {
 } from '@koh/common';
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { z } from 'zod';
+
+// Outer envelope only: the grading boundary (validateGradePayload) validates
+// the whole answer, including reasons and needs_human_review, before persistence.
+const feedbackResponseSchema = z.object({
+  answer: z.unknown(),
+  model: z.string().optional(),
+});
+
+// One non-retrying call: 65s covers the chatbot's 60s retry budget plus a 5s grace window.
+const FEEDBACK_TIMEOUT_MS = 65000;
+
+export type FeedbackQueryResult = z.infer<typeof feedbackResponseSchema>;
 
 @Injectable()
 /* This is a list of all endpoints from the chatbot repo.
@@ -154,26 +167,49 @@ export class ChatbotApiService {
   }
 
   /**
-   * Calls the chatbot `POST /chatbot/query` endpoint with a `courseId`, so the
-   * chatbot routes the prompt through the course's generatorLLM (the same LLM
-   * configured in Chatbot Settings for that course). No user token is required
-   * by the chatbot's `/query` route, so this method intentionally omits it.
-   *
-   * Adam: So `/query` calls always use the org's default model, despite what it might look like in the code.
-   * I'm assuming this is the case because stuff like abstract generation wouldn't need big models that the prof may pick.
-   * So for the AI Assignment/Essay Feedback feature, it will need its own ChatbotQueryType eventually.
+   * Feedback uses the course's feedback model and the supplied grading prompt.
+   * The chatbot service owns provider retries for this request; the host
+   * deadline only bounds the single transport call.
    */
+  async queryFeedback(
+    query: string,
+    courseId: number,
+    systemPrompt: string,
+  ): Promise<FeedbackQueryResult> {
+    const resp: unknown = await this.request(
+      'POST',
+      `chatbot/query`,
+      '',
+      { query, type: 'feedback', courseId, params: { systemPrompt } },
+      undefined,
+      FEEDBACK_TIMEOUT_MS,
+    );
+    return feedbackResponseSchema.parse(resp);
+  }
+
   async queryChatbotForCourse(
     query: string,
     courseId: number,
     type: 'default' | 'abstract' = 'default',
   ): Promise<string> {
-    const resp: { answer: string } = await this.request(
-      'POST',
-      `chatbot/query`,
-      '',
-      { query, type, courseId },
-    );
+    const resp: unknown = await this.request('POST', `chatbot/query`, '', {
+      query,
+      type,
+      courseId,
+    });
+
+    if (
+      typeof resp !== 'object' ||
+      resp === null ||
+      !('answer' in resp) ||
+      typeof resp.answer !== 'string'
+    ) {
+      throw new HttpException(
+        'Invalid response from chatbot service: expected string answer',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
     return resp.answer;
   }
 

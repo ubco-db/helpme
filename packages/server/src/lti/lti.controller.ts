@@ -5,7 +5,9 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
+  Header,
   Param,
   Patch,
   Post,
@@ -44,8 +46,9 @@ import {
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { CourseModel } from '../course/course.entity';
 import { UserCourseModel } from '../profile/user-course.entity';
-import { restrictPaths } from './lti-auth.controller';
+import { LTI_APP_SESSION_SECONDS, restrictPaths } from './lti-auth.controller';
 import { LoginService } from '../login/login.service';
+import { EmbeddableQuestionModel } from './embeddable/question/embeddable-question.entity';
 
 @Controller('lti')
 @UseInterceptors(IgnoreableClassSerializerInterceptor)
@@ -67,6 +70,22 @@ export class LtiController {
     course?: CourseModel,
     @Query('lti_storage_target') lti_storage_target?: string,
   ) {
+    const questionLaunch = LtiService.hasQuestionLaunch(token)
+      ? await this.ltiService.validateQuestionLaunch(token)
+      : undefined;
+
+    if (questionLaunch && course?.id !== questionLaunch.courseId) {
+      throw new ForbiddenException(
+        'Verified Canvas course does not match the HelpMe launch course',
+      );
+    }
+
+    const ltiLoginOptions = {
+      cookieName: 'lti_auth_token',
+      cookieOptions: LtiService.cookieOptions,
+      restrictPaths,
+      expiresIn: LTI_APP_SESSION_SECONDS,
+    };
     const qry = new URLSearchParams();
 
     try {
@@ -100,6 +119,8 @@ export class LtiController {
     }
 
     // If the user does not exist, redirect to login.
+    // Exact-question return through first-time registration is intentionally
+    // deferred. After registration, reopen the Canvas question for a fresh LTI launch.
     if (!user) {
       return res
         .clearCookie('lti_auth_token', LtiService.cookieOptions)
@@ -129,12 +150,22 @@ export class LtiController {
         (v) => v.toLowerCase() == token.platformInfo.product_family_code,
       ) ?? LMSIntegrationPlatform.None;
     const apiCid = LtiService.extractCourseId(token);
-    qry.set('api_course_id', String(apiCid));
-    qry.set('lms_platform', platformMatch);
+    const hasLtiCourseContext =
+      typeof apiCid === 'string' &&
+      apiCid.length > 0 &&
+      platformMatch !== LMSIntegrationPlatform.None;
 
+    if (hasLtiCourseContext) {
+      qry.set('api_course_id', apiCid);
+      qry.set('lms_platform', platformMatch);
+    }
     if (lti_storage_target) {
       qry.set('lti_storage_target', lti_storage_target);
     }
+
+    const destination = questionLaunch
+      ? `/lti/embeddable/${questionLaunch.courseId}/question/${questionLaunch.questionId}`
+      : `/lti${course ? `/${course.id}` : ''}`;
 
     await this.loginService.enter(
       req,
@@ -143,13 +174,30 @@ export class LtiController {
       undefined,
       this.ltiService,
       {
-        cookieName: 'lti_auth_token',
-        cookieOptions: LtiService.cookieOptions,
-        restrictPaths,
-        expiresIn: 60 * 10,
-        redirect: `/lti${course ? `/${course.id}` : ''}${qry.size > 0 ? '?' + qry.toString() : ''}`,
+        ...ltiLoginOptions,
+        redirect: `${destination}${qry.size > 0 ? '?' + qry.toString() : ''}`,
       },
     );
+  }
+
+  @Get('deep-link/questions')
+  @UseGuards(LtiGuard)
+  @IgnoreSerializer()
+  async getDeepLinkQuestions(
+    @LtiToken() token: IdToken,
+  ): Promise<EmbeddableQuestionModel[]> {
+    return this.ltiService.getDeepLinkingQuestions(token);
+  }
+
+  @Post('deep-link/selection')
+  @UseGuards(LtiGuard)
+  @Header('Content-Type', 'text/html')
+  @IgnoreSerializer()
+  async selectDeepLinkQuestion(
+    @LtiToken() token: IdToken,
+    @Body() body: { questionId?: unknown },
+  ): Promise<string> {
+    return this.ltiService.createDeepLinkingResponse(token, body?.questionId);
   }
 
   @Get('/platform')

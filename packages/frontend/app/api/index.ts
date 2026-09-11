@@ -38,6 +38,10 @@ import {
   DesktopNotifBody,
   DesktopNotifPartial,
   EditCourseInfoParams,
+  EmbeddableQuestion,
+  EmbeddableQuestionFeedback,
+  StudentEmbeddableQuestion,
+  UpsertEmbeddableQuestionParams,
   AssignmentFeedbackExtractTextResponse,
   AssignmentFeedbackRequest,
   AssignmentFeedbackResponse,
@@ -1828,6 +1832,69 @@ export class APIClient {
         this.req('PATCH', `/api/v1/lti/platform/${id}/toggle`),
       checkRegistration: async (id: string): Promise<LtiPlatform> =>
         this.req('GET', `/api/v1/lti/platform/${id}/registration`),
+    },
+    deepLink: {
+      getQuestions: async (ltik: string): Promise<EmbeddableQuestion[]> =>
+        this.req(
+          'GET',
+          '/api/v1/lti/deep-link/questions',
+          undefined,
+          undefined,
+          {
+            ltik,
+          },
+        ),
+      selectAction: (ltik: string): string =>
+        `/api/v1/lti/deep-link/selection?ltik=${encodeURIComponent(ltik)}`,
+    },
+    embeddableQuestion: {
+      create: async (
+        courseId: number,
+        body: UpsertEmbeddableQuestionParams,
+      ): Promise<EmbeddableQuestion> =>
+        this.req(
+          'POST',
+          `/api/v1/lti/embeddable-question/${courseId}`,
+          undefined,
+          body,
+        ),
+      getAll: async (courseId: number): Promise<EmbeddableQuestion[]> =>
+        this.req('GET', `/api/v1/lti/embeddable-question/${courseId}`),
+      getOne: async (
+        courseId: number,
+        questionId: number,
+      ): Promise<StudentEmbeddableQuestion> =>
+        this.req(
+          'GET',
+          `/api/v1/lti/embeddable-question/${courseId}/${questionId}`,
+        ),
+      getFeedback: async (
+        courseId: number,
+        questionId: number,
+        responseText: string,
+      ): Promise<EmbeddableQuestionFeedback> =>
+        this.req(
+          'POST',
+          `/api/v1/lti/embeddable-question/${courseId}/${questionId}/feedback`,
+          undefined,
+          { responseText },
+        ),
+      update: async (
+        courseId: number,
+        questionId: number,
+        body: UpsertEmbeddableQuestionParams,
+      ): Promise<EmbeddableQuestion> =>
+        this.req(
+          'PATCH',
+          `/api/v1/lti/embeddable-question/${courseId}/${questionId}`,
+          undefined,
+          body,
+        ),
+      delete: async (courseId: number, questionId: number): Promise<void> =>
+        this.req(
+          'DELETE',
+          `/api/v1/lti/embeddable-question/${courseId}/${questionId}`,
+        ),
     },
   }
 }

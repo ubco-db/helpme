@@ -3,6 +3,7 @@
 import {
   BellOutlined,
   DownloadOutlined,
+  FormOutlined,
   LinkOutlined,
   QrcodeOutlined,
   RobotOutlined,
@@ -24,6 +25,7 @@ enum CourseAdminOptions {
   EXPORT_DATA = 'EXPORT_DATA',
   QUEUE_INVITES = 'QUEUE_INVITES',
   EDIT_QUESTIONS = 'EDIT_QUESTIONS',
+  EMBEDDABLE_QUESTIONS = 'EMBEDDABLE_QUESTIONS',
   SETTINGS = 'SETTINGS',
   LMS_SETTINGS = 'LMS_SETTINGS',
   CHATBOT_SETTINGS = 'CHATBOT_SETTINGS',
@@ -45,9 +47,9 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
   const router = useRouter()
   const pathname = usePathname()
 
-  const handleMenuClick = (item: any) => {
+  const handleMenuClick = (key: string) => {
     const basePath = `/course/${courseId}/settings`
-    switch (item.key) {
+    switch (key) {
       case CourseAdminOptions.SETTINGS:
         router.push(basePath)
         break
@@ -65,6 +67,9 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
         break
       case CourseAdminOptions.EDIT_QUESTIONS:
         router.push(`${basePath}/edit_questions`)
+        break
+      case CourseAdminOptions.EMBEDDABLE_QUESTIONS:
+        router.push(`${basePath}/embeddable_questions`)
         break
       case CourseAdminOptions.LMS_SETTINGS:
         router.push(`${basePath}/lms_integrations`)
@@ -101,6 +106,11 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       key: CourseAdminOptions.EDIT_QUESTIONS,
       icon: <TableOutlined />,
       label: 'Edit Queue Questions',
+    },
+    {
+      key: CourseAdminOptions.EMBEDDABLE_QUESTIONS,
+      icon: <FormOutlined />,
+      label: 'Embeddable Questions',
     },
     {
       key: CourseAdminOptions.EXPORT_DATA,
@@ -174,14 +184,14 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       <div className="md:hidden">
         <Select
           value={currentMenuItem}
-          onChange={(value) => handleMenuClick({ key: value })}
+          onChange={(value) => handleMenuClick(value)}
           className="w-full"
           options={mobileOptions}
         />
       </div>
       <Menu
         selectedKeys={[currentMenuItem]}
-        onClick={(item) => handleMenuClick(item)}
+        onClick={(item) => handleMenuClick(item.key)}
         className="hidden bg-[#f8f9fb] md:block"
         items={menuItems}
       />

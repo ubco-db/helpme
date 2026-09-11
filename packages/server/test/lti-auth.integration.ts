@@ -16,9 +16,17 @@ import { AccountType } from '@koh/common';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { LoginTicket, OAuth2Client } from 'google-auth-library';
 import { LtiModule } from '../src/lti/lti.module';
-import { restrictPaths } from '../src/lti/lti-auth.controller';
+import {
+  LTI_APP_SESSION_SECONDS,
+  restrictPaths,
+} from '../src/lti/lti-auth.controller';
 import { UserCourseModel } from '../src/profile/user-course.entity';
 import { UserLtiIdentityModel } from '../src/lti/user_lti_identity.entity';
+import {
+  APP_AUTH_KIND,
+  getAppAuthPayload,
+  LOGIN_ENTRY_KIND,
+} from '../src/login/auth-token';
 
 jest.mock('google-auth-library', () => ({
   OAuth2Client: jest.fn().mockImplementation(
@@ -60,10 +68,13 @@ describe('LTI Auth Integration', () => {
   });
 
   describe('POST /lti/auth/entry', () => {
-    it('entry as user with courses goes to lti page', async () => {
+    it('exchanges a login-entry token for the normal five-hour LTI session', async () => {
       const user = await UserFactory.create();
-      await UserCourseFactory.create({ user: user });
-      const token = await jwtService.signAsync({ userId: user.id });
+      await UserCourseFactory.create({ user });
+      const token = await jwtService.signAsync({
+        kind: LOGIN_ENTRY_KIND,
+        userId: user.id,
+      });
 
       const res = await supertest()
         .get(`/lti/auth/entry?token=${token}`)
@@ -78,29 +89,36 @@ describe('LTI Auth Integration', () => {
 
       expect(name).toEqual('lti_auth_token');
 
-      const jwtToken = jwtService.decode(value);
-
+      const rawJwtToken: unknown = jwtService.verify(value);
+      const jwtToken = getAppAuthPayload(rawJwtToken);
       expect(jwtToken).toEqual(
         expect.objectContaining({
+          kind: APP_AUTH_KIND,
           userId: user.id,
           restrictPaths,
-          expiresIn: 10 * 60,
-          iat: expect.anything(),
         }),
       );
+      const { iat, exp } = jwtToken;
+      if (typeof iat !== 'number' || typeof exp !== 'number') {
+        throw new Error('Expected standard JWT iat and exp claims');
+      }
+      expect(exp - iat).toBe(LTI_APP_SESSION_SECONDS);
 
       const parts = secondPart.split(';').map((v) => v.trim());
       const flags = parts.slice(1);
 
-      expect(flags).toHaveLength(3);
-      expect(flags[0]).toBe('HttpOnly');
-      expect(flags[1]).toBe('Secure');
-      expect(flags[2]).toBe('SameSite=None');
+      expect(flags).toHaveLength(2);
+      expect(flags).toContain('HttpOnly');
+      expect(flags).not.toContain('Secure');
+      expect(flags).toContain('SameSite=Lax');
     });
 
-    it('should fail with 401 if token is invalid', async () => {
+    it('rejects an invalid login-entry token', async () => {
       const user = await UserFactory.create();
-      const token = await jwtService.signAsync({ userId: user.id });
+      const token = await jwtService.signAsync({
+        kind: LOGIN_ENTRY_KIND,
+        userId: user.id,
+      });
 
       const spy = jest.spyOn(JwtService.prototype, 'verifyAsync');
       spy.mockResolvedValue(null);

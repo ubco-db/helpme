@@ -27,6 +27,7 @@ import { CourseModel } from '../course/course.entity';
 import { LtiCourseInviteModel } from './lti-course-invite.entity';
 import { LtiIdentityTokenModel } from './lti_identity_token.entity';
 import { UserLtiIdentityModel } from './user_lti_identity.entity';
+import { EmbeddableQuestionService } from './embeddable/question/embeddable-question.service';
 
 const idToken = {
   iss: 'http://canvas.docker/',
@@ -51,6 +52,10 @@ describe('LtiService', () => {
   let service: LtiService;
   let dataSource: DataSource;
   let jwtService: JwtService;
+  const embeddableQuestionService = {
+    findAllForCourse: jest.fn(),
+    findOne: jest.fn(),
+  };
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -66,16 +71,20 @@ describe('LtiService', () => {
           }),
         }),
       ],
-      providers: [LtiService],
+      providers: [
+        LtiService,
+        {
+          provide: EmbeddableQuestionService,
+          useValue: embeddableQuestionService,
+        },
+      ],
     }).compile();
 
     service = module.get<LtiService>(LtiService);
     dataSource = module.get<DataSource>(DataSource);
     jwtService = module.get<JwtService>(JwtService);
 
-    // Grab FactoriesService from Nest
     const factories = module.get<FactoryService>(FactoryService);
-    // Initialize the named exports to point to the actual factories
     initFactoriesFromService(factories);
   });
 

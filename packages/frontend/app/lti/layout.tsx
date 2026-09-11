@@ -1,27 +1,31 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
-import { LayoutProps } from 'antd'
+import { Suspense, useEffect, useState, type ReactNode } from 'react'
+import type { LayoutProps } from 'antd'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import ThirdPartyCookiesWarning from '@/app/lti/components/ThirdPartyCookiesWarning'
 
-export function CookieWrapper({ children }: { children: React.ReactNode }) {
+export function CookieWrapper({ children }: { children: ReactNode }) {
   const [hasCookieAccess, setHasCookieAccess] = useState<boolean>(true)
 
   useEffect(() => {
-    const checkThirdPartyCookieStatus = async () => {
+    const checkCookieAccess = window.setTimeout(() => {
       try {
-        const storageAccessible =
-          document.hasStorageAccess &&
-          typeof document.hasStorageAccess === 'function'
-            ? await document.hasStorageAccess()
-            : false
-        setHasCookieAccess(storageAccessible)
-      } catch (err: any) {
+        const testCookie = '__helpme_cookie_test=1'
+        const cookieAttributes =
+          window.location.protocol === 'https:'
+            ? '; SameSite=None; Secure'
+            : '; SameSite=Lax'
+        document.cookie = `${testCookie}; path=/${cookieAttributes}`
+        setHasCookieAccess(document.cookie.split('; ').includes(testCookie))
+        document.cookie = `__helpme_cookie_test=; Max-Age=0; path=/${cookieAttributes}`
+      } catch (err: unknown) {
         console.error(err)
+        setHasCookieAccess(false)
       }
-    }
-    checkThirdPartyCookieStatus().then()
+    }, 0)
+
+    return () => window.clearTimeout(checkCookieAccess)
   }, [])
 
   if (!hasCookieAccess) {

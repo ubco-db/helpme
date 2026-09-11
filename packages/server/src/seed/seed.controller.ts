@@ -42,6 +42,8 @@ import { QueueChatsModel } from 'queueChats/queue-chats.entity';
 import { DataSource } from 'typeorm';
 import { FactoryService } from 'factory/factory.service';
 import { SuperCourseModel } from '../course/super-course.entity';
+import { EmbeddableQuestionFeedbackModel } from '../lti/embeddable/question/embeddable-question-feedback.entity';
+import { EmbeddableQuestionModel } from '../lti/embeddable/question/embeddable-question.entity';
 
 const exampleConfig = {
   fifo_queue_view_enabled: true,
@@ -129,6 +131,8 @@ export class SeedController {
   async deleteAll(): Promise<string> {
     // NOTE: order of deletion matters for tables with foreign keys.
     // Children tables should be removed as early as possible.
+    await this.seedService.deleteAll(EmbeddableQuestionFeedbackModel);
+    await this.seedService.deleteAll(EmbeddableQuestionModel);
     await this.seedService.deleteAll(QueueChatsModel);
     await this.seedService.deleteAll(UnreadAsyncQuestionModel);
     await this.seedService.deleteAll(LMSAssignmentModel);

@@ -69,6 +69,8 @@ import { DataSource, In } from 'typeorm';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { CourseSettingsModel } from '../course/course_settings.entity';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
+import { EmbeddableQuestionModel } from '../lti/embeddable/question/embeddable-question.entity';
+import { EmbeddableQuestionFeedbackModel } from '../lti/embeddable/question/embeddable-question-feedback.entity';
 import { ChatTokenModel } from '../chatbot/chat-token.entity';
 import * as sharp from 'sharp';
 import { User } from 'decorators/user.decorator';
@@ -504,7 +506,17 @@ export class OrganizationController {
       });
     }
 
-    await course.remove();
+    // Embeddable content is protected by restrict foreign keys when feedback
+    // or questions still reference it, so delete it child-first. The deletes
+    // and the course removal share one transaction so a failure partway
+    // through leaves the course and its content intact.
+    await this.dataSource.transaction(async (manager) => {
+      await manager.delete(EmbeddableQuestionFeedbackModel, {
+        courseId: cid,
+      });
+      await manager.delete(EmbeddableQuestionModel, { courseId: cid });
+      await manager.remove(course);
+    });
 
     return res.status(HttpStatus.OK).send({
       message: 'Course deleted successfully',

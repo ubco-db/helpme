@@ -1,5 +1,6 @@
 import { JwtService } from '@nestjs/jwt';
 import { LoginModule } from '../src/login/login.module';
+import { APP_AUTH_KIND, LOGIN_ENTRY_KIND } from '../src/login/auth-token';
 import { OrganizationFactory, UserFactory } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import * as bcrypt from 'bcrypt';
@@ -106,6 +107,7 @@ describe('Login Integration', () => {
       const token = '' + res.body.token;
       const decoded = jwtService.decode(token);
       expect(decoded).toEqual({
+        kind: LOGIN_ENTRY_KIND,
         userId: user.id,
         exp: expect.any(Number),
         iat: expect.any(Number),
@@ -163,7 +165,10 @@ describe('Login Integration', () => {
   describe('POST /login/entry', () => {
     it('request to entry with correct jwt payload works', async () => {
       const user = await UserFactory.create();
-      const token = await jwtService.signAsync({ userId: user.id });
+      const token = await jwtService.signAsync({
+        kind: LOGIN_ENTRY_KIND,
+        userId: user.id,
+      });
 
       const res = await supertest()
         .get(`/login/entry?token=${token}`)
@@ -181,12 +186,9 @@ describe('Login Integration', () => {
       const jwtToken = jwtService.decode(value);
 
       expect(jwtToken).toEqual(
-        expect.objectContaining({
-          userId: user.id,
-          expiresIn: 24 * 30 * 60 * 60,
-          iat: expect.anything(),
-        }),
+        expect.objectContaining({ kind: APP_AUTH_KIND, userId: user.id }),
       );
+      expect(jwtToken.exp - jwtToken.iat).toBe(24 * 30 * 60 * 60);
 
       const parts = secondPart.split(';').map((v) => v.trim());
       const flags = parts.slice(1);

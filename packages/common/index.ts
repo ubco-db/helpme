@@ -6,7 +6,6 @@ import {
   IsEnum,
   IsHexColor,
   IsIn,
-  IsInstance,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -493,6 +492,8 @@ export interface ChatbotAskSuggestedParams {
   responseText: string
   vectorStoreId: string
 }
+
+export * from './embeddable-assessment'
 
 export interface ChatbotAgentCourse {
   courseId: number
@@ -5110,6 +5111,9 @@ export const ERROR_MESSAGES = {
       `Members with role ${role} are not allowed to alter semesters`,
     notAllowedToDeleteSemester: (role: OrganizationRole) =>
       `Members with role ${role} are not allowed to delete semesters`,
+  },
+  embeddableModule: {
+    notFound: 'Question not found.',
   },
 }
 

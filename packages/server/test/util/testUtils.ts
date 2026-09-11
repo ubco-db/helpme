@@ -8,6 +8,7 @@ import * as supertest from 'supertest';
 import { DataSource } from 'typeorm';
 import { addGlobalsToApp } from '../../src/bootstrap';
 import { LoginModule } from '../../src/login/login.module';
+import { APP_AUTH_KIND } from '../../src/login/auth-token';
 import { ApplicationConfigService } from 'config/application_config.service';
 import { ApplicationConfigModule } from 'config/application_config.module';
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
@@ -263,7 +264,10 @@ export function setupIntegrationTest(
     ): supertest.SuperTest<supertest.Test> => {
       const agent = supertest.agent(app.getHttpServer());
       if (options?.userId) {
-        const token = jwtService.sign({ userId: options.userId });
+        const token = jwtService.sign({
+          kind: APP_AUTH_KIND,
+          userId: options.userId,
+        });
         agent.set('Cookie', [`auth_token=${token}`]);
       }
       return agent;

@@ -152,6 +152,12 @@
 
 **How to get:** If testing with LTI locally, create any secret key. Make sure to not change it or else existing database rows in the LTI database can't be decrypted.
 
+###### LTI_CANVAS_CLIENT_ID
+
+**Purpose:** Pins this environment to one verified Canvas LTI registration. Question launches and Deep Linking fail closed if the launch's client ID is missing or different.
+
+**How to get:** Copy the client ID of the Canvas platform already registered in the LTI admin settings. See [LOCAL_CANVAS_SETUP.md](LOCAL_CANVAS_SETUP.md).
+
 ## client .env (place in packages/app)
 
 ###### NEXT_PUBLIC_RECAPTCHA_SITE_KEY
