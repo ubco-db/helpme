@@ -1,20 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Alert, Button, Card, Radio, Typography } from 'antd'
 import axios from 'axios'
-import type { EmbeddableQuestion } from '@koh/common'
+import useSWR from 'swr'
 import { API } from '@/app/api'
 import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 
 const { Paragraph, Text } = Typography
-
-type QuestionsState =
-  | { status: 'loading' }
-  | { status: 'ready'; ltik: string; questions: EmbeddableQuestion[] }
-  | { status: 'error'; ltik: string; message: string }
 
 function getDeepLinkErrorMessage(err: unknown): string {
   if (axios.isAxiosError(err)) {
@@ -37,43 +32,18 @@ function getDeepLinkErrorMessage(err: unknown): string {
 export default function DeepLinkPage() {
   const searchParams = useSearchParams()
   const ltik = searchParams.get('ltik') ?? ''
-  const [questionsState, setQuestionsState] = useState<QuestionsState>({
-    status: 'loading',
-  })
   const [selectedId, setSelectedId] = useState<number>()
 
-  useEffect(() => {
-    if (!ltik) {
-      return
-    }
-
-    let cancelled = false
-    API.lti.deepLink
-      .getQuestions(ltik)
-      .then((questions) => {
-        if (!cancelled) {
-          setQuestionsState({ status: 'ready', ltik, questions })
-        }
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setQuestionsState({
-            status: 'error',
-            ltik,
-            message: getDeepLinkErrorMessage(err),
-          })
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [ltik])
+  const { data: questions, error } = useSWR(
+    ltik ? `lti/deep-link/questions/${ltik}` : null,
+    () => API.lti.deepLink.getQuestions(ltik),
+    { shouldRetryOnError: false, revalidateOnFocus: false },
+  )
 
   const errorMessage = !ltik
     ? 'This page must be opened from Canvas.'
-    : questionsState.status === 'error' && questionsState.ltik === ltik
-      ? questionsState.message
+    : error
+      ? getDeepLinkErrorMessage(error)
       : undefined
 
   if (errorMessage) {
@@ -89,11 +59,9 @@ export default function DeepLinkPage() {
     )
   }
 
-  if (questionsState.status !== 'ready' || questionsState.ltik !== ltik) {
+  if (!questions) {
     return <CenteredSpinner tip="Loading questions..." />
   }
-
-  const { questions } = questionsState
 
   if (questions.length === 0) {
     return (

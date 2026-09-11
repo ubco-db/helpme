@@ -410,18 +410,13 @@ export default function EmbeddableQuestionForm({
     if (isLoading) return
     setIsLoading(true)
     try {
-      const payload: UpsertEmbeddableQuestionParams = {
-        ...values,
-        title: values.title.trim(),
-        questionText: values.questionText.trim(),
-      }
       await (editingQuestion
         ? API.lti.embeddableQuestion.update(
             courseId,
             editingQuestion.id,
-            payload,
+            values,
           )
-        : API.lti.embeddableQuestion.create(courseId, payload))
+        : API.lti.embeddableQuestion.create(courseId, values))
       message.success(
         `Successfully ${editingQuestion ? 'updated' : 'created'} embeddable question!`,
       )

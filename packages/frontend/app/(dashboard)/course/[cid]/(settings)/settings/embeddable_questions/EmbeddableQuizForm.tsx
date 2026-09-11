@@ -41,14 +41,9 @@ export default function EmbeddableQuizForm({
     if (isLoading) return
     setIsLoading(true)
     try {
-      const payload: UpsertEmbeddableQuizParams = {
-        title: values.title.trim(),
-        objective: values.objective.trim(),
-        background: values.background.trim(),
-      }
       await (editingQuiz
-        ? API.lti.embeddableQuiz.update(courseId, editingQuiz.id, payload)
-        : API.lti.embeddableQuiz.create(courseId, payload))
+        ? API.lti.embeddableQuiz.update(courseId, editingQuiz.id, values)
+        : API.lti.embeddableQuiz.create(courseId, values))
       message.success(
         `Quiz ${editingQuiz ? 'updated' : 'created'} successfully.`,
       )
