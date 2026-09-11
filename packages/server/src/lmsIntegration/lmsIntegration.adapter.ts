@@ -452,7 +452,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
       .then(async (response) => {
         if (url.includes('/quizzes/')) {
           console.log(
-            `Response for calling ${url} with auth ${await this.getAuthorization()}`,
+            `Response for calling ${url}`,
             !response.ok
               ? { json: await response.clone().json(), status: response.status }
               : { json: await response.clone().json() },
@@ -808,13 +808,15 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     const quizzes: LMSQuiz[] = [];
 
     for (const quiz of data.filter((q: any) => q.published)) {
-      const { status: quizStatus, data: quizData } = await this.Get(
-        `courses/${this.integration.apiCourseId}/quizzes/${quiz.id}`,
-      );
+      // This isn't necessary? the /quizzes endpoint already retrieves all the metadata for each quiz I believe
+      // Also it fails with an "insufficient scopes" error
+      // const { status: quizStatus, data: quizData } = await this.Get(
+      //   `courses/${this.integration.apiCourseId}/quizzes/${quiz.id}`,
+      // );
 
       let questionsData = [];
 
-      if (quizData?.question_count > 0) {
+      if (quiz.question_count > 0) {
         const { status: questionsStatus, data: questionsResponse } =
           await this.Get(
             `courses/${this.integration.apiCourseId}/quizzes/${quiz.id}/questions`,
@@ -825,11 +827,11 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
       }
 
       // Placeholder questions if no questions fetched from the API
-      if (questionsData.length === 0 && quizData?.question_count > 0) {
+      if (questionsData.length === 0 && quiz.question_count > 0) {
         console.log(
-          `Quiz ${quiz.id}: No question details available (likely permissions), using question_count: ${quizData.question_count}`,
+          `Quiz ${quiz.id}: No question details available (likely permissions), using question_count: ${quiz.question_count}`,
         );
-        for (let i = 1; i <= quizData.question_count; i++) {
+        for (let i = 1; i <= quiz.question_count; i++) {
           questionsData.push({
             id: `placeholder_${quiz.id}_${i}`,
             question_text: `Question ${i} (content not accessible via API)`,
@@ -838,29 +840,27 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
         }
       }
 
-      if (quizStatus === LMSApiResponseStatus.Success) {
-        // Helper function to safely parse dates
-        const safeParseDate = (
-          dateString: string | null | undefined,
-        ): Date | undefined => {
-          if (!dateString) return undefined;
-          const parsed = new Date(dateString);
-          return isNaN(parsed.getTime()) ? undefined : parsed;
-        };
+      // Helper function to safely parse dates
+      const safeParseDate = (
+        dateString: string | null | undefined,
+      ): Date | undefined => {
+        if (!dateString) return undefined;
+        const parsed = new Date(dateString);
+        return isNaN(parsed.getTime()) ? undefined : parsed;
+      };
 
-        quizzes.push({
-          id: quiz.id,
-          title: quiz.title,
-          description: quiz.description,
-          due: safeParseDate(quiz.due_at),
-          unlock: safeParseDate(quiz.unlock_at),
-          lock: safeParseDate(quiz.lock_at),
-          timeLimit: quiz.time_limit,
-          allowedAttempts: quiz.allowed_attempts,
-          questions: questionsData,
-          modified: safeParseDate(quiz.updated_at) || new Date(),
-        } as LMSQuiz);
-      }
+      quizzes.push({
+        id: quiz.id,
+        title: quiz.title,
+        description: quiz.description,
+        due: safeParseDate(quiz.due_at),
+        unlock: safeParseDate(quiz.unlock_at),
+        lock: safeParseDate(quiz.lock_at),
+        timeLimit: quiz.time_limit,
+        allowedAttempts: quiz.allowed_attempts,
+        questions: questionsData,
+        modified: safeParseDate(quiz.updated_at) || new Date(),
+      } satisfies LMSQuiz);
     }
 
     return { status: LMSApiResponseStatus.Success, quizzes };
