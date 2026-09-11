@@ -43,11 +43,10 @@ export class LMSCourseIntegrationModel extends BaseEntity {
     enum: LMSResourceType,
     array: true,
     default: [
-      LMSResourceType.ASSIGNMENTS,
+      LMSResourceType.ASSIGNMENTS, // note that this overlaps a lot with QUIZZES, hence why it's not here by default
       LMSResourceType.ANNOUNCEMENTS,
       LMSResourceType.PAGES,
       LMSResourceType.FILES,
-      LMSResourceType.QUIZZES,
     ],
   })
   selectedResourceTypes: LMSResourceType[];
