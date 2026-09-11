@@ -152,6 +152,14 @@
 
 **How to get:** If testing with LTI locally, create any secret key. Make sure to not change it or else existing database rows in the LTI database can't be decrypted.
 
+###### LTI_CANVAS_CLIENT_ID
+
+**Purpose:** Pins this environment to one verified Canvas LTI registration. Question launches and Deep Linking require the verified LTI token's client ID to match this value; if it is missing or different, Canvas launches fail closed.
+
+**How to get:** The Canvas LTI platform must already be registered in the existing LTI configuration (LTI admin settings); copy its client ID here. See LTI_EMBEDDED_QUESTION_AUTH.md and LOCAL_CANVAS_SETUP.md.
+
+**Session migration behavior:** Application-session JWTs now carry a `kind` claim. Users with an old `auth_token` cookie issued before this change can no longer use it as an application session: HelpMe ignores such stale cookies, and if a valid `lti_auth_token` LTI session is present it is used instead, so LTI users keep working without logging in again. Ordinary (non-LTI) users with a stale cookie must simply sign in again.
+
 ## client .env (place in packages/app)
 
 ###### NEXT_PUBLIC_RECAPTCHA_SITE_KEY
