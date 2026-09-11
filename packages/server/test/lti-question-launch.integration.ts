@@ -1,7 +1,7 @@
 import express from 'express';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { createGradingPreset, Role } from '@koh/common';
+import { Role } from '@koh/common';
 import { setupIntegrationTest } from './util/testUtils';
 import { LtiModule } from '../src/lti/lti.module';
 import {
@@ -14,6 +14,14 @@ import { UserCourseModel } from '../src/profile/user-course.entity';
 import { LTI_APP_SESSION_SECONDS } from '../src/lti/lti-auth.controller';
 import { LTI_MEMBERSHIP_LEARNER_ROLE } from '../src/lti/lti.service';
 import { getAppAuthPayload } from '../src/login/auth-token';
+
+const gradingSettings = (rubric: string) => ({
+  rubric,
+  feedbackInstructions:
+    'Give concise, constructive feedback grounded in the rubric.',
+  scoreScale: { max: 10, step: 1 },
+  checks: [],
+});
 
 const buildLaunchToken = ({
   email,
@@ -87,10 +95,7 @@ describe('LTI question launch', () => {
       courseId: course.id,
       title: 'Question',
       questionText: 'Question text',
-      gradingSettings: {
-        ...createGradingPreset('generic'),
-        rubric: 'Hidden criteria',
-      },
+      gradingSettings: gradingSettings('Hidden criteria'),
     }).save();
 
     userId = user.id;
@@ -163,10 +168,7 @@ describe('LTI question launch', () => {
       courseId: otherCourse.id,
       title: 'Other question',
       questionText: 'Other question',
-      gradingSettings: {
-        ...createGradingPreset('generic'),
-        rubric: 'Hidden criteria',
-      },
+      gradingSettings: gradingSettings('Hidden criteria'),
     }).save();
 
     token = buildLaunchToken({

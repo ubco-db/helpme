@@ -58,8 +58,8 @@ describe('question grading contract', () => {
     });
   });
 
-  it('keeps only the lowest triggered cap for a capitalization-only cap', () => {
-    const settings = makeSettings({
+  it('applies the lowest triggered cap: rejects above it and accepts at it', () => {
+    const capSettings = makeSettings({
       checks: [
         { kind: 'capitalization', term: 'Indigenous', scoreCap: 1 },
         { kind: 'capitalization', term: 'Example', scoreCap: null },
@@ -67,56 +67,38 @@ describe('question grading contract', () => {
     });
     expect(
       effectiveScoreCap(
-        facts('the indigenous example.', settings).triggeredChecks,
+        facts('the indigenous example.', capSettings).triggeredChecks,
       ),
     ).toBe(1);
-    expect(() =>
-      validateGradePayload(
-        {
-          score: 2,
-          comment: 'Good answer.',
-          reasons: ['off topic'],
-          needs_human_review: false,
-        },
-        settings,
-        1,
-      ),
-    ).toThrow(/effective cap of 1/);
-    expect(
-      validateGradePayload(
-        {
-          score: 1,
-          comment: 'Good answer.',
-          reasons: ['mostly complete'],
-          needs_human_review: false,
-        },
-        settings,
-        1,
-      ).score,
-    ).toBe(1);
-  });
 
-  it('applies the lowest cap for a maximum-length cap', () => {
-    const settings = makeSettings({
+    const longSettings = makeSettings({
       checks: [{ kind: 'maximum_sentences', maximum: 2, scoreCap: 1 }],
     });
-    const long = facts('One. Two. Three.', settings);
+    const long = facts('One. Two. Three.', longSettings);
     expect(
       long.triggeredChecks.some((check) => check.kind === 'maximum_sentences'),
     ).toBe(true);
     expect(effectiveScoreCap(long.triggeredChecks)).toBe(1);
-    expect(() =>
-      validateGradePayload(
-        {
-          score: 2,
-          comment: 'Good.',
-          reasons: ['complete'],
-          needs_human_review: false,
-        },
-        settings,
-        1,
-      ),
-    ).toThrow(/effective cap of 1/);
+
+    const aboveCap = {
+      score: 2,
+      comment: 'Good answer.',
+      reasons: ['off topic'],
+      needs_human_review: false,
+    };
+    const atCap = {
+      score: 1,
+      comment: 'Good answer.',
+      reasons: ['mostly complete'],
+      needs_human_review: false,
+    };
+    expect(() => validateGradePayload(aboveCap, capSettings, 1)).toThrow(
+      /effective cap of 1/,
+    );
+    expect(() => validateGradePayload(aboveCap, longSettings, 1)).toThrow(
+      /effective cap of 1/,
+    );
+    expect(validateGradePayload(atCap, capSettings, 1).score).toBe(1);
   });
 
   it('rejects malformed output and disallowed scores', () => {
@@ -152,34 +134,6 @@ describe('question grading contract', () => {
     ).toThrow(/not allowed by the score contract/);
   });
 
-  it('rejects scores above the effective cap instead of clamping', () => {
-    const settings = makeSettings({ checks: [] });
-    expect(() =>
-      validateGradePayload(
-        {
-          score: 2,
-          comment: 'Good answer.',
-          reasons: ['off topic'],
-          needs_human_review: false,
-        },
-        settings,
-        1,
-      ),
-    ).toThrow(/effective cap of 1/);
-    expect(
-      validateGradePayload(
-        {
-          score: 1,
-          comment: 'Good answer.',
-          reasons: ['below the rubric level'],
-          needs_human_review: false,
-        },
-        settings,
-        1,
-      ).score,
-    ).toBe(1);
-  });
-
   it('passes caller-supplied data into the prompts', () => {
     const settings = makeSettings();
     expect(buildSystemPrompt(settings, 1)).toContain(
@@ -187,12 +141,7 @@ describe('question grading contract', () => {
     );
     const submission = 'One. Two. Three.';
     expect(
-      buildUserPrompt(
-        'Explain.',
-        submission,
-        facts(submission, settings),
-        settings.checks,
-      ),
+      buildUserPrompt('Explain.', submission, facts(submission, settings)),
     ).toContain(JSON.stringify(submission));
   });
 

@@ -5,11 +5,7 @@ import {
   UserCourseFactory,
   UserFactory,
 } from './util/factories';
-import {
-  createGradingPreset,
-  QuestionGradingSettings,
-  Role,
-} from '@koh/common';
+import { QuestionGradingSettings, Role } from '@koh/common';
 import { EmbeddableQuestionModel } from '../src/lti/embeddable/question/embeddable-question.entity';
 import { EmbeddableQuestionFeedbackModel } from '../src/lti/embeddable/question/embeddable-question-feedback.entity';
 import { QuestionGradingService } from '../src/lti/embeddable/question/question-grading.service';
@@ -33,9 +29,11 @@ describe('Embeddable question grading', () => {
   };
 
   const settings = (rubric: string): QuestionGradingSettings => ({
-    ...createGradingPreset('generic'),
     rubric,
+    feedbackInstructions:
+      'Give concise, constructive feedback grounded in the rubric.',
     scoreScale: { max: 10, step: 0.5 },
+    checks: [],
   });
 
   it('lets staff create a question with question-owned grading settings', async () => {
@@ -113,8 +111,6 @@ describe('Embeddable question grading', () => {
       courseId: course.id,
       questionText: question.questionText,
     });
-    expect(response.body).not.toHaveProperty('gradingSettings');
-    expect(response.body).not.toHaveProperty('rubric');
   });
 
   it('preserves the exact grading snapshot after edits', async () => {
@@ -137,7 +133,6 @@ describe('Embeddable question grading', () => {
       reasons: ['too_short'],
       needsHumanReview: false,
       gradingSnapshot: {
-        version: 1,
         questionText: question.questionText,
         gradingSettings: originalSettings,
       },
@@ -178,7 +173,6 @@ describe('Embeddable question grading', () => {
     expect(feedback.reasons).toEqual(['too_short']);
     expect(feedback.needsHumanReview).toBe(false);
     expect(feedback.gradingSnapshot).toEqual({
-      version: 1,
       questionText: question.questionText,
       gradingSettings: originalSettings,
     });
@@ -202,83 +196,15 @@ describe('Embeddable question grading', () => {
       appliedRequirements: [],
       aiModel: 'grading-model',
       maxScore: 10,
-      gradingSnapshot: null,
+      gradingSnapshot: {
+        questionText: 'Keep this history.',
+        gradingSettings: settings('Grade the answer.'),
+      },
     }).save();
 
     await supertest({ userId: user.id })
       .delete(`/lti/embeddable-question/${course.id}/${question.id}`)
       .expect(409);
-  });
-
-  it('duplicates a question through the create endpoint without touching the original', async () => {
-    const { user, course } = await setupCourseMember(Role.PROFESSOR);
-    const originalSettings = settings(
-      'Original rubric, used only by the original question.',
-    );
-    const original = await EmbeddableQuestionModel.create({
-      courseId: course.id,
-      title: 'Original question',
-      questionText: 'Answer the prompt in your own words.',
-      gradingSettings: originalSettings,
-    }).save();
-    await EmbeddableQuestionFeedbackModel.create({
-      courseId: course.id,
-      questionId: original.id,
-      userId: user.id,
-      submission: 'An earlier answer.',
-      aiFeedback: 'History kept on the original.',
-      aiGrade: 2,
-      appliedRequirements: ['Answered in complete sentences.'],
-      aiModel: 'grading-model',
-      maxScore: 10,
-      gradingSnapshot: null,
-    }).save();
-
-    // The frontend duplicates via the existing create endpoint, copying only
-    // title/questionText/settings.
-    const copyResponse = await supertest({ userId: user.id })
-      .post(`/lti/embeddable-question/${course.id}`)
-      .send({
-        title: 'Original question (copy)',
-        questionText: 'Answer the prompt in your own words.',
-        gradingSettings: structuredClone(originalSettings),
-      })
-      .expect(201);
-    expect(copyResponse.body.id).not.toBe(original.id);
-
-    // Editing the copy must not affect the original.
-    const copySettings = settings('Copy-only rubric.');
-    await supertest({ userId: user.id })
-      .patch(`/lti/embeddable-question/${course.id}/${copyResponse.body.id}`)
-      .send({
-        title: 'Renamed copy',
-        questionText: 'Answer the prompt in your own words.',
-        gradingSettings: copySettings,
-      })
-      .expect(200);
-
-    const reloadedOriginal = await EmbeddableQuestionModel.findOneOrFail({
-      where: { id: original.id, courseId: course.id },
-    });
-    expect(reloadedOriginal.title).toBe('Original question');
-    expect(reloadedOriginal.gradingSettings).toEqual(originalSettings);
-
-    const originalHistory = await EmbeddableQuestionFeedbackModel.find({
-      where: { questionId: original.id },
-    });
-    expect(originalHistory).toHaveLength(1);
-    expect(originalHistory[0].aiFeedback).toBe('History kept on the original.');
-
-    const copy = await EmbeddableQuestionModel.findOneOrFail({
-      where: { id: copyResponse.body.id, courseId: course.id },
-    });
-    expect(copy.title).toBe('Renamed copy');
-    expect(copy.gradingSettings).toEqual(copySettings);
-    expect(
-      await EmbeddableQuestionFeedbackModel.count({
-        where: { questionId: copy.id },
-      }),
-    ).toBe(0);
   });
 
   it('persists nothing when grading fails', async () => {

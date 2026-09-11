@@ -19,7 +19,6 @@ import express from 'express';
 import {
   AuthMethodEnum,
   CreateLtiPlatform,
-  createGradingPreset,
   ERROR_MESSAGES,
   LtiPlatform,
   Role,
@@ -31,6 +30,14 @@ import { LtiService } from '../src/lti/lti.service';
 import { EmbeddableQuestionModel } from '../src/lti/embeddable/question/embeddable-question.entity';
 import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
+
+const gradingSettings = (rubric: string) => ({
+  rubric,
+  feedbackInstructions:
+    'Give concise, constructive feedback grounded in the rubric.',
+  scoreScale: { max: 10, step: 1 },
+  checks: [],
+});
 
 const testEncryptionKey = 'abcdefg';
 const testLtiDbOptions: any = {
@@ -49,32 +56,26 @@ describe('LtiController', () => {
   let platforms: LtiPlatform[] = [];
   let user: UserModel;
   let course: CourseModel;
-  let customToken: Record<string, unknown> | null | undefined;
+  let customToken: Record<string, unknown> | undefined;
   let configService: ConfigService;
   let originalCanvasClientId: string | undefined;
+
+  const defaultToken = {
+    iss: 'fake-issuer',
+    user: '0',
+    userInfo: { email: 'fake_email@example.com' },
+    platformInfo: { product_family_code: 'canvas' },
+    platformContext: { custom: { canvas_course_id: 'abcdefg' } },
+  };
 
   const mockMiddleware = (
     _: express.Request,
     res: express.Response,
     next: express.NextFunction,
   ) => {
-    if (customToken === null) {
-      res.locals.token = undefined;
-    } else if (customToken !== undefined) {
-      res.locals.token = customToken;
-      res.locals.userId = user?.id;
-      res.locals.courseId = course?.id;
-    } else {
-      res.locals.token = {
-        iss: 'fake-issuer',
-        user: '0',
-        userInfo: { email: 'fake_email@example.com' },
-        platformInfo: { product_family_code: 'canvas' },
-        platformContext: { custom: { canvas_course_id: 'abcdefg' } },
-      };
-      res.locals.userId = user?.id;
-      res.locals.courseId = course?.id;
-    }
+    res.locals.token = customToken ?? defaultToken;
+    res.locals.userId = user?.id;
+    res.locals.courseId = course?.id;
 
     next();
   };
@@ -232,10 +233,7 @@ describe('LtiController', () => {
         courseId: course.id,
         title: 'Reflection 1',
         questionText: 'Question text',
-        gradingSettings: {
-          ...createGradingPreset('generic'),
-          rubric: 'Criteria text',
-        },
+        gradingSettings: gradingSettings('Criteria text'),
       }).save();
 
       const res = await supertest().get('/lti/deep-link/questions').expect(200);
@@ -262,10 +260,7 @@ describe('LtiController', () => {
         courseId: otherCourse.id,
         title: 'Other course question',
         questionText: 'Question text',
-        gradingSettings: {
-          ...createGradingPreset('generic'),
-          rubric: 'Criteria text',
-        },
+        gradingSettings: gradingSettings('Criteria text'),
       }).save();
 
       await supertest()
@@ -280,10 +275,7 @@ describe('LtiController', () => {
         courseId: course.id,
         title: 'Reflection 2',
         questionText: 'Question text',
-        gradingSettings: {
-          ...createGradingPreset('generic'),
-          rubric: 'Criteria text',
-        },
+        gradingSettings: gradingSettings('Criteria text'),
       }).save();
 
       const res = await supertest()

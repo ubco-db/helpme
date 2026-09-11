@@ -58,7 +58,10 @@ describe('Organization course deletion with embeddable content', () => {
       aiFeedback: 'Feedback.',
       aiGrade: 2,
       maxScore: 2,
-      gradingSnapshot: null,
+      gradingSnapshot: {
+        questionText: 'What is being tested?',
+        gradingSettings,
+      },
     };
     await EmbeddableQuestionFeedbackModel.create({
       ...feedbackBase,
