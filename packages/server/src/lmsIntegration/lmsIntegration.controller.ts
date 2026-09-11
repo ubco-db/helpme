@@ -841,7 +841,10 @@ export class LMSIntegrationController {
     });
 
     if (!quiz) {
-      throw new HttpException('Quiz not found', HttpStatus.NOT_FOUND);
+      throw new HttpException(
+        'Quiz not found. Did you make sure to Enable Synchronization for the quiz first?',
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     const previewQuiz = {

@@ -1491,7 +1491,9 @@ export class LMSIntegrationService {
       });
 
       if (!quiz) {
-        throw new Error('Quiz not found');
+        throw new Error(
+          'Quiz not found. Did you make sure to Enable Synchronization for the quiz first?',
+        );
       }
 
       quiz.accessLevel = accessLevel;

@@ -5,6 +5,7 @@ import { Modal, Select, Typography, Spin, Alert, Button } from 'antd'
 import { EyeOutlined } from '@ant-design/icons'
 import { LMSQuiz, LMSQuizAccessLevel } from '@koh/common'
 import { API } from '@/app/api'
+import { getErrorMessage } from '@/app/utils/generalUtils'
 
 const { Option } = Select
 const { Text } = Typography
@@ -64,7 +65,7 @@ export const QuizContentPreviewModal: React.FC<
       )
       setPreviewContent(response.content)
     } catch (err) {
-      setError('Failed to load preview content')
+      setError(`Failed to load preview content: ${getErrorMessage(err)}.`)
       console.error('Preview error:', err)
     } finally {
       setLoading(false)
@@ -116,7 +117,7 @@ export const QuizContentPreviewModal: React.FC<
       {selectedAccessLevel !== currentAccessLevel && (
         <Alert
           message="Preview Mode"
-          description={`This shows what the chatbot would see if access level was changed to "${ACCESS_LEVEL_LABELS[selectedAccessLevel]}". Current level is "${ACCESS_LEVEL_LABELS[currentAccessLevel]}".`}
+          description={`This shows what the chatbot would see if access level was changed to "${ACCESS_LEVEL_LABELS[selectedAccessLevel]}". Current level is "${ACCESS_LEVEL_LABELS[currentAccessLevel]}" (You can change it on the page below).`}
           type="info"
           showIcon
           style={{ marginBottom: 16 }}

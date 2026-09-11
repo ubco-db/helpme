@@ -632,6 +632,7 @@ export default function CourseLMSIntegrationPage(props: {
           <LMSQuizDocumentList
             courseId={courseId}
             documents={quizzes}
+            lmsApiPlatformName={integration.apiPlatform}
             loadingLMSData={isLoadingQuizzes}
             lmsSynchronize={integration.lmsSynchronize}
             onUpdateCallback={() => setUpdateFlag(!updateFlag)}
@@ -860,19 +861,19 @@ export default function CourseLMSIntegrationPage(props: {
                             )}
                             <div
                               className={
-                                'mt-4 flex flex-col gap-2 text-gray-500'
+                                'mt-4 flex flex-col gap-2 text-zinc-500'
                               }
                             >
                               <p>
                                 By enabling synchronization with{' '}
-                                {integration.apiPlatform}, documents will be
-                                imported and used to tune Chatbot responses to
-                                student questions.
+                                {integration.apiPlatform}, <b>published</b>{' '}
+                                items will be imported and used to tune Chatbot
+                                responses to student questions.
                               </p>
                               <p>
-                                By default, the documents will be updated once a
-                                day. You can force synchronization at any time
-                                to update documents at will.
+                                By default, the items will be updated each
+                                midnight. You can force synchronization at any
+                                time to update documents at will.
                               </p>
                             </div>
                             <Tooltip
