@@ -25,7 +25,7 @@ enum CourseAdminOptions {
   QUEUE_INVITES = 'QUEUE_INVITES',
   EDIT_QUESTIONS = 'EDIT_QUESTIONS',
   SETTINGS = 'SETTINGS',
-  LMS_SETTINGS = 'LMS_SETTINGS',
+  LMS_INTEGRATIONS = 'LMS_INTEGRATIONS',
   CHATBOT_SETTINGS = 'CHATBOT_SETTINGS',
   CHATBOT_KNOWLEDGE_BASE = 'CHATBOT_KNOWLEDGE_BASE',
   CHATBOT_QUESTIONS = 'CHATBOT_QUESTIONS',
@@ -66,7 +66,7 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       case CourseAdminOptions.EDIT_QUESTIONS:
         router.push(`${basePath}/edit_questions`)
         break
-      case CourseAdminOptions.LMS_SETTINGS:
+      case CourseAdminOptions.LMS_INTEGRATIONS:
         router.push(`${basePath}/lms_integrations`)
         break
       case CourseAdminOptions.CHATBOT_SETTINGS:
@@ -139,7 +139,7 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       label: 'Course Roster',
     },
     {
-      key: CourseAdminOptions.LMS_SETTINGS,
+      key: CourseAdminOptions.LMS_INTEGRATIONS,
       icon: <LinkOutlined />,
       label: 'LMS Integrations',
     },
