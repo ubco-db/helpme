@@ -29,9 +29,13 @@ export default function EmbeddableQuestionPage() {
     const content = contentRef.current
     if (!content || window.parent === window) return
 
-    const parentOrigin = document.referrer
+    const referrerOrigin = document.referrer
       ? new URL(document.referrer).origin
-      : '*'
+      : undefined
+    const parentOrigin =
+      referrerOrigin && referrerOrigin !== window.location.origin
+        ? referrerOrigin
+        : '*'
     const resize = () =>
       window.parent.postMessage(
         { subject: 'lti.frameResize', height: content.scrollHeight },
