@@ -2,14 +2,13 @@ import { ChatbotApiService } from '../../../chatbot/chatbot-api.service';
 import type { FeedbackQueryResult } from '../../../chatbot/chatbot-api.service';
 import { ConfigService } from '@nestjs/config';
 import type { QuestionGradingSettings, QuizContext } from '@koh/common';
-import { GradingFailedError } from './grading';
+import { GradingConstraintError } from './grading';
 import { QuestionGradingService } from './question-grading.service';
 
 function settings(overrides: Partial<QuestionGradingSettings> = {}) {
   const value: QuestionGradingSettings = {
     rubric: 'Award points for an accurate answer.',
     feedbackInstructions: 'Be concise.',
-    finalGradingInstructions: 'Record the final grade neutrally.',
     scoreScale: { kind: 'range', max: 10, step: 1 },
     checks: [],
   };
@@ -31,14 +30,14 @@ const validAnswer = (
   answer: {
     score,
     comment,
-    reasons: ['too_short'],
+    reasons: ['the rubric’s accuracy criterion was met'],
     needs_human_review: false,
   },
   model: 'test-model',
 });
 
 describe('QuestionGradingService', () => {
-  it('makes one valid-first feedback call and returns a question-owned snapshot', async () => {
+  it('makes exactly one feedback call and returns a question-owned snapshot', async () => {
     const api = chatbot([validAnswer()]);
     const service = new QuestionGradingService(api);
     const quizContext: QuizContext = {
@@ -71,7 +70,7 @@ describe('QuestionGradingService', () => {
       appliedRequirements: [],
       maxScore: 10,
       model: 'test-model',
-      reasons: ['too_short'],
+      reasons: ['the rubric’s accuracy criterion was met'],
       needsHumanReview: false,
     });
     expect(result.gradingSnapshot).toEqual({
@@ -79,25 +78,30 @@ describe('QuestionGradingService', () => {
       questionText: 'Explain the idea.',
       gradingSettings,
       quizContext,
-      mode: 'feedback',
     });
   });
 
-  it('keeps feedback-mode instructions out of final mode and vice versa', async () => {
-    const api = chatbot([validAnswer()]);
-    const result = await new QuestionGradingService(api).evaluate({
-      courseId: 12,
-      questionText: 'Explain the idea.',
-      gradingSettings: settings(),
-      submission: 'A complete answer.',
-      mode: 'final',
-    });
+  it('errors on an invalid grade and makes no second call', async () => {
+    const api = chatbot([
+      {
+        answer: {
+          score: 11,
+          comment: 'Too high.',
+          reasons: ['invented reason'],
+          needs_human_review: false,
+        },
+      },
+    ]);
 
-    const call = (api.queryChatbotForCourse as jest.Mock).mock.calls[0];
-    const prompt: string = call[3].systemPrompt;
-    expect(prompt).toContain('Record the final grade neutrally.');
-    expect(prompt).not.toContain('Be concise.');
-    expect(result.gradingSnapshot.mode).toBe('final');
+    await expect(
+      new QuestionGradingService(api).evaluate({
+        courseId: 12,
+        questionText: 'Explain the idea.',
+        gradingSettings: settings(),
+        submission: 'A complete answer.',
+      }),
+    ).rejects.toThrow(GradingConstraintError);
+    expect(api.queryChatbotForCourse).toHaveBeenCalledTimes(1);
   });
 
   it('short-circuits a blank submission without calling the model', async () => {
@@ -127,7 +131,7 @@ describe('QuestionGradingService', () => {
         answer: {
           score: 1,
           comment: 'Brief.',
-          reasons: ['off_topic'],
+          reasons: ['below the rubric length'],
           needs_human_review: false,
         },
         model: 'test-model',
@@ -149,84 +153,9 @@ describe('QuestionGradingService', () => {
     expect(userPrompt).toContain('"automatic_checks_triggered"');
     expect(call[3].systemPrompt).toContain('effective cap of 2');
     expect(result.score).toBe(1);
-    // The model omitted too_short; the host adds it after validation.
-    expect(result.reasons).toEqual(['off_topic', 'too_short']);
   });
 
-  it('retries once after an invalid answer and stops on the next valid one', async () => {
-    const api = chatbot([
-      {
-        answer: {
-          score: 11,
-          comment: 'Too high.',
-          reasons: ['too_short'],
-          needs_human_review: false,
-        },
-      },
-      validAnswer(5),
-    ]);
-    const result = await new QuestionGradingService(api).evaluate({
-      courseId: 12,
-      questionText: 'Explain the idea.',
-      gradingSettings: settings(),
-      submission: 'A complete answer.',
-    });
-
-    expect(api.queryChatbotForCourse).toHaveBeenCalledTimes(2);
-    const retryPrompt: string = (api.queryChatbotForCourse as jest.Mock).mock
-      .calls[1][0];
-    expect(retryPrompt).toContain('Correction required');
-    expect(retryPrompt).toContain('score 11');
-    expect(result.score).toBe(5);
-    expect(result.model).toBe('test-model');
-  });
-
-  it('retries an unknown reason code and succeeds on the corrected output', async () => {
-    const api = chatbot([
-      {
-        answer: {
-          score: 5,
-          comment: 'Made up reason.',
-          reasons: ['not_a_code'],
-          needs_human_review: false,
-        },
-      },
-      validAnswer(5),
-    ]);
-    const result = await new QuestionGradingService(api).evaluate({
-      courseId: 12,
-      questionText: 'Explain the idea.',
-      gradingSettings: settings(),
-      submission: 'A complete answer.',
-    });
-
-    expect(api.queryChatbotForCourse).toHaveBeenCalledTimes(2);
-    const retryPrompt: string = (api.queryChatbotForCourse as jest.Mock).mock
-      .calls[1][0];
-    expect(retryPrompt).toContain('unknown reason codes');
-    expect(result.score).toBe(5);
-  });
-
-  it('exhausts four calls on invalid answers and throws without a result', async () => {
-    const api = chatbot([
-      { answer: { score: 11, comment: 'No.' } },
-      { answer: { score: 1.5, comment: 'No.' } },
-      { answer: { score: 3, comment: '' } },
-      { answer: { score: 11, comment: 'Still no.' } },
-    ]);
-
-    await expect(
-      new QuestionGradingService(api).evaluate({
-        courseId: 12,
-        questionText: 'Explain the idea.',
-        gradingSettings: settings(),
-        submission: 'A complete answer.',
-      }),
-    ).rejects.toThrow(GradingFailedError);
-    expect(api.queryChatbotForCourse).toHaveBeenCalledTimes(4);
-  });
-
-  it('propagates transport failures immediately without retrying', async () => {
+  it('propagates transport failures immediately', async () => {
     const api = {
       queryChatbotForCourse: jest
         .fn()
@@ -323,17 +252,13 @@ describe('QuestionGradingService through the real adapter (mocked HTTP boundary)
       }),
     );
 
-  it('retries malformed model output at the grading boundary and succeeds on the next valid answer (2 calls)', async () => {
+  it('grades once through the adapter and keeps the model provenance', async () => {
     const { service, fetchMock } = harness();
-    respond(fetchMock, {
-      answer: { score: 'high', comment: 'Malformed.' },
-      model: 'test-model',
-    });
     respond(fetchMock, {
       answer: {
         score: 8,
         comment: 'Good.',
-        reasons: ['too_short'],
+        reasons: ['complete'],
         needs_human_review: false,
       },
       model: 'm',
@@ -341,29 +266,25 @@ describe('QuestionGradingService through the real adapter (mocked HTTP boundary)
 
     const result = await service.evaluate(evaluateArgs);
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    const retryBody = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));
-    expect(retryBody.query).toContain('Correction required');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(result.score).toBe(8);
     expect(result.model).toBe('m');
   });
 
-  it('exhausts the maximum of 4 calls when the model answer stays malformed', async () => {
+  it('errors after exactly 1 call when the model answer is malformed, leaving nothing to persist', async () => {
     const { service, fetchMock } = harness();
-    for (let i = 0; i < 4; i++) {
-      respond(fetchMock, {
-        answer: { score: 'still not a number', comment: 'No.' },
-        model: 'test-model',
-      });
-    }
+    respond(fetchMock, {
+      answer: { score: 'still not a number', comment: 'No.' },
+      model: 'test-model',
+    });
 
     await expect(service.evaluate(evaluateArgs)).rejects.toThrow(
-      GradingFailedError,
+      GradingConstraintError,
     );
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('propagates an HTTP failure from the adapter after exactly 1 call without retrying', async () => {
+  it('propagates an HTTP failure from the adapter after exactly 1 call', async () => {
     const { service, fetchMock } = harness();
     respond(fetchMock, { error: 'chatbot exploded' }, 500);
 

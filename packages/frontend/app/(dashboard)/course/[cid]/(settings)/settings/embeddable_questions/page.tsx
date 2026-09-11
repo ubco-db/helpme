@@ -1,13 +1,6 @@
 'use client'
 
-import {
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactElement,
-} from 'react'
+import { use, useMemo, useState, type ReactElement } from 'react'
 import {
   Button,
   Card,
@@ -26,6 +19,7 @@ import {
   EditOutlined,
   PlusOutlined,
 } from '@ant-design/icons'
+import useSWR from 'swr'
 import type { EmbeddableQuestion, EmbeddableQuiz } from '@koh/common'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
@@ -52,9 +46,6 @@ export default function EmbeddableQuestionsPage(
 ): ReactElement {
   const params = use(props.params)
   const courseId = Number(params.cid)
-  const [questions, setQuestions] = useState<EmbeddableQuestion[]>([])
-  const [quizzes, setQuizzes] = useState<EmbeddableQuiz[]>([])
-  const [loading, setLoading] = useState(true)
   const [questionModalOpen, setQuestionModalOpen] = useState(false)
   const [quizModalOpen, setQuizModalOpen] = useState(false)
   const [editingQuestion, setEditingQuestion] = useState<EmbeddableQuestion>()
@@ -62,32 +53,33 @@ export default function EmbeddableQuestionsPage(
   const [initialQuizId, setInitialQuizId] = useState<number | undefined>()
   const [quizFilter, setQuizFilter] = useState<QuizFilter>()
 
+  // SWR owns the fetched data and loading state; saves and deletes just
+  // revalidate it.
+  const {
+    data,
+    isLoading,
+    mutate: refetch,
+  } = useSWR(
+    `lti/embeddable-questions/${courseId}`,
+    () =>
+      Promise.all([
+        API.lti.embeddableQuestion.getAll(courseId),
+        API.lti.embeddableQuiz.getAll(courseId),
+      ]),
+    {
+      onError: (err) =>
+        message.error(
+          `Failed to load feedback questions: ${getErrorMessage(err)}`,
+        ),
+    },
+  )
+  const questions = useMemo(() => data?.[0] ?? [], [data])
+  const quizzes = useMemo(() => data?.[1] ?? [], [data])
+
   const quizNames = useMemo(
     () => new Map(quizzes.map((quiz) => [quiz.id, quiz.title])),
     [quizzes],
   )
-
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [nextQuestions, nextQuizzes] = await Promise.all([
-        API.lti.embeddableQuestion.getAll(courseId),
-        API.lti.embeddableQuiz.getAll(courseId),
-      ])
-      setQuestions(nextQuestions)
-      setQuizzes(nextQuizzes)
-    } catch (err) {
-      message.error(
-        `Failed to load feedback questions: ${getErrorMessage(err)}`,
-      )
-    } finally {
-      setLoading(false)
-    }
-  }, [courseId])
-
-  useEffect(() => {
-    void fetchData()
-  }, [fetchData])
 
   const filteredQuestions = useMemo(
     () =>
@@ -105,7 +97,7 @@ export default function EmbeddableQuestionsPage(
     try {
       await API.lti.embeddableQuestion.delete(courseId, question.id)
       message.success('Question deleted.')
-      void fetchData()
+      void refetch()
     } catch (err) {
       message.error(`Failed to delete question: ${getErrorMessage(err)}`)
     }
@@ -123,7 +115,7 @@ export default function EmbeddableQuestionsPage(
       message.success(
         'Question duplicated. Student responses and feedback are not copied.',
       )
-      void fetchData()
+      void refetch()
     } catch (err) {
       message.error(`Failed to duplicate question: ${getErrorMessage(err)}`)
     }
@@ -133,7 +125,7 @@ export default function EmbeddableQuestionsPage(
     try {
       await API.lti.embeddableQuiz.delete(courseId, quiz.id)
       message.success('Quiz deleted.')
-      void fetchData()
+      void refetch()
     } catch (err) {
       message.error(`Failed to delete quiz: ${getErrorMessage(err)}`)
     }
@@ -336,8 +328,8 @@ export default function EmbeddableQuestionsPage(
     >
       <p className="mb-4 text-gray-600">
         A quiz provides optional shared objective and background. Each question
-        has its own main grading prompt, feedback and final grading
-        instructions, score scale, and optional answer requirements.
+        has its own main grading prompt, feedback instructions, score scale, and
+        optional answer requirements.
       </p>
 
       <Card title="Quizzes" size="small" className="mb-4">
@@ -345,7 +337,7 @@ export default function EmbeddableQuestionsPage(
           dataSource={quizzes}
           columns={quizColumns}
           rowKey="id"
-          loading={loading}
+          loading={isLoading}
           pagination={false}
           locale={{
             emptyText:
@@ -372,7 +364,7 @@ export default function EmbeddableQuestionsPage(
         dataSource={filteredQuestions}
         columns={questionColumns}
         rowKey="id"
-        loading={loading}
+        loading={isLoading}
         pagination={false}
         locale={{
           emptyText:
@@ -385,7 +377,7 @@ export default function EmbeddableQuestionsPage(
         open={quizModalOpen}
         setOpen={setQuizModalOpen}
         editingQuiz={editingQuiz}
-        onSaveCallback={() => void fetchData()}
+        onSaveCallback={() => void refetch()}
       />
       <EmbeddableQuestionForm
         courseId={courseId}
@@ -394,7 +386,7 @@ export default function EmbeddableQuestionsPage(
         setOpen={setQuestionModalOpen}
         editingQuestion={editingQuestion}
         initialQuizId={initialQuizId}
-        onSaveCallback={() => void fetchData()}
+        onSaveCallback={() => void refetch()}
       />
     </Card>
   )

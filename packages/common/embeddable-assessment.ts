@@ -1,4 +1,16 @@
 import { z } from 'zod'
+import {
+  IsDefined,
+  IsInt,
+  IsNotEmpty,
+  IsString,
+  MaxLength,
+  Validate,
+  ValidateIf,
+  ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from 'class-validator'
 
 const text = z.string().trim().max(15000)
 const score = z.number().finite().min(0).max(100000)
@@ -66,7 +78,6 @@ export const questionGradingSettingsSchema = z
     feedbackInstructions: text,
     scoreScale: scoreScaleSchema,
     checks: z.array(gradingCheckSchema).max(20),
-    finalGradingInstructions: text,
   })
   .superRefine((settings, ctx) => {
     const scale = settings.scoreScale
@@ -139,16 +150,41 @@ export type QuestionGradingSettings = z.infer<
   typeof questionGradingSettingsSchema
 >
 
-export const upsertEmbeddableQuestionSchema = z.object({
-  title: z.string().trim().min(1).max(255),
-  questionText: text.min(1),
-  quizId: z.number().int().positive().nullable(),
-  gradingSettings: questionGradingSettingsSchema,
-})
+// The single shared Zod validator owns every cross-field grading rule. It is
+// enforced on the server through the class-validator constraint below and
+// used directly by the question form on the frontend.
+@ValidatorConstraint({ name: 'questionGradingSettings', async: false })
+class QuestionGradingSettingsConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    return questionGradingSettingsSchema.safeParse(value).success
+  }
+  defaultMessage(args: ValidationArguments): string {
+    const result = questionGradingSettingsSchema.safeParse(args.value)
+    return result.success
+      ? 'gradingSettings is invalid.'
+      : (result.error.issues[0]?.message ?? 'gradingSettings is invalid.')
+  }
+}
 
-export type UpsertEmbeddableQuestionParams = z.infer<
-  typeof upsertEmbeddableQuestionSchema
->
+export class UpsertEmbeddableQuestionParams {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  title!: string
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(15000)
+  questionText!: string
+
+  @IsDefined()
+  @ValidateIf((_, value) => value !== null)
+  @IsInt()
+  quizId!: number | null
+
+  @Validate(QuestionGradingSettingsConstraint)
+  gradingSettings!: QuestionGradingSettings
+}
 
 export type EmbeddableQuestion = UpsertEmbeddableQuestionParams & {
   id: number
@@ -156,15 +192,20 @@ export type EmbeddableQuestion = UpsertEmbeddableQuestionParams & {
   createdAt: string
 }
 
-export const upsertEmbeddableQuizSchema = z.object({
-  title: z.string().trim().min(1).max(255),
-  objective: text,
-  background: text,
-})
+export class UpsertEmbeddableQuizParams {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  title!: string
 
-export type UpsertEmbeddableQuizParams = z.infer<
-  typeof upsertEmbeddableQuizSchema
->
+  @IsString()
+  @MaxLength(15000)
+  objective!: string
+
+  @IsString()
+  @MaxLength(15000)
+  background!: string
+}
 
 export type EmbeddableQuiz = UpsertEmbeddableQuizParams & {
   id: number
@@ -182,13 +223,12 @@ export type StudentEmbeddableQuestion = Pick<
   'id' | 'courseId' | 'questionText'
 >
 
-export const embeddableQuestionFeedbackSchema = z.object({
-  responseText: text.min(1, 'Enter an answer before requesting feedback.'),
-})
-
-export type EmbeddableQuestionFeedbackParams = z.infer<
-  typeof embeddableQuestionFeedbackSchema
->
+export class EmbeddableQuestionFeedbackParams {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(15000)
+  responseText!: string
+}
 
 export interface EmbeddableQuestionFeedback {
   score: number
@@ -197,54 +237,20 @@ export interface EmbeddableQuestionFeedback {
   appliedRequirements: string[]
 }
 
-export type GradingMode = 'feedback' | 'final'
-
 export interface GradingSnapshot {
   version: 1
   questionText: string
   gradingSettings: QuestionGradingSettings
   quizContext: QuizContext | null
-  mode: GradingMode
 }
 
 export type GradingEvaluation = EmbeddableQuestionFeedback & {
   model: string | null
   gradingSnapshot: GradingSnapshot
-  /** Validated reason codes reported by the model, plus host-set codes like blank/too_short. */
+  /** Free-form explanation strings reported by the model, plus host codes like blank. */
   reasons: string[]
   needsHumanReview: boolean
 }
-
-// Fixed vocabulary for grading outcomes. Full-mark codes keep full marks,
-// reminder codes never cost marks, deduction codes affect the score.
-export const GRADING_REASON_CODES = [
-  'meets_requirements',
-  'proofreading_note',
-  'term_capitalization',
-  'terminology_review',
-  'too_short',
-  'off_topic',
-  'sensitive_content',
-  'blank',
-] as const
-
-export type GradingReasonCode = (typeof GRADING_REASON_CODES)[number]
-
-// Codes the grading model may emit; blank is host-only because blank
-// submissions are graded by code without an AI call.
-export const MODEL_GRADING_REASON_CODES: readonly GradingReasonCode[] =
-  GRADING_REASON_CODES.filter((code) => code !== 'blank')
-
-export const GRADING_FULL_MARK_REASONS: ReadonlySet<string> = new Set<string>([
-  'meets_requirements',
-  'proofreading_note',
-])
-export const GRADING_DEDUCTION_REASONS: ReadonlySet<string> = new Set<string>([
-  'terminology_review',
-  'too_short',
-  'off_topic',
-  'sensitive_content',
-])
 
 export const GRADING_PRESETS = {
   generic: {
@@ -254,48 +260,8 @@ export const GRADING_PRESETS = {
         'Describe what a complete, partial, and incorrect answer should contain.',
       feedbackInstructions:
         'Give concise, constructive feedback grounded in the rubric.',
-      finalGradingInstructions:
-        'Record the final grade in one or two neutral sentences. Do not address the student directly.',
       scoreScale: { kind: 'range', max: 10, step: 1 },
       checks: [],
-    },
-  },
-  indigenous_reflection: {
-    label: 'Indigenous reflection',
-    gradingSettings: {
-      rubric: `Grade a short Indigenous Studies reflection only against these criteria. Do not grade the student's opinion or attitude, or deduct marks for being brief or unambitious.
-
-Award full marks when the answer addresses the question and is readable. Minor typos and proofreading issues do not cost marks.
-
-An answer that does not address the question receives zero. Sensitive or racist content receives zero.
-
-Deduct for grammar only when it is difficult to recover the meaning. Deduct for Aboriginal, Indian, or Native used as a general term for Indigenous peoples. Proper and legal names such as Indian Act and Osoyoos Indian Band are acceptable, as is Native American in a United States context.
-
-Use the configured score scale consistently. Reserve intermediate scores for answers that clearly fall between the rubric levels.
-
-Sentence requirements and capitalization are handled by the selected automatic checks. Do not deduct for them yourself.`,
-      feedbackInstructions:
-        'Give a short, constructive explanation. Minor proofreading comments must make clear that they did not cost marks. Do not repeat notes supplied by automatic checks.',
-      finalGradingInstructions:
-        'Record the final grade in one or two neutral sentences that summarize the main rubric reasons. Do not address the student directly.',
-      scoreScale: { kind: 'range', max: 2, step: 0.5 },
-      checks: [
-        {
-          kind: 'minimum_sentences',
-          minimum: 3,
-          scoreCap: 1,
-        },
-        {
-          kind: 'maximum_sentences',
-          maximum: 5,
-          scoreCap: null,
-        },
-        {
-          kind: 'capitalization',
-          term: 'Indigenous',
-          scoreCap: null,
-        },
-      ],
     },
   },
 } satisfies Record<

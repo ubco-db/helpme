@@ -14,7 +14,7 @@ import { EmbeddableQuestionModel } from '../src/lti/embeddable/question/embeddab
 import { EmbeddableQuestionFeedbackModel } from '../src/lti/embeddable/question/embeddable-question-feedback.entity';
 import { EmbeddableQuizModel } from '../src/lti/embeddable/quiz/embeddable-quiz.entity';
 import { QuestionGradingService } from '../src/lti/embeddable/question/question-grading.service';
-import { GradingFailedError } from '../src/lti/embeddable/question/grading';
+import { GradingConstraintError } from '../src/lti/embeddable/question/grading';
 
 describe('Embeddable question grading', () => {
   const mockQuestionGradingService = { evaluate: jest.fn() };
@@ -181,7 +181,6 @@ describe('Embeddable question grading', () => {
           objective: quiz.objective,
           background: quiz.background,
         },
-        mode: 'feedback',
       },
     });
 
@@ -210,7 +209,6 @@ describe('Embeddable question grading', () => {
           objective: quiz.objective,
           background: quiz.background,
         },
-        mode: 'feedback',
       }),
     );
 
@@ -236,7 +234,6 @@ describe('Embeddable question grading', () => {
         objective: quiz.objective,
         background: quiz.background,
       },
-      mode: 'feedback',
     });
   });
 
@@ -375,7 +372,7 @@ describe('Embeddable question grading', () => {
       gradingSettings: settings('Grade the answer.'),
     }).save();
     mockQuestionGradingService.evaluate.mockRejectedValueOnce(
-      new GradingFailedError('The grader kept producing invalid output.'),
+      new GradingConstraintError('The grader returned an invalid grade.'),
     );
 
     await supertest({ userId: user.id })
@@ -386,6 +383,48 @@ describe('Embeddable question grading', () => {
     expect(
       await EmbeddableQuestionFeedbackModel.count({
         where: { questionId: question.id },
+      }),
+    ).toBe(0);
+  });
+
+  it('rejects invalid feedback bodies and question configurations without persisting', async () => {
+    const { user, course } = await setupCourseMember(Role.STUDENT);
+    const question = await EmbeddableQuestionModel.create({
+      courseId: course.id,
+      title: 'Validation question',
+      questionText: 'Answer this.',
+      quizId: null,
+      gradingSettings: settings('Grade the answer.'),
+    }).save();
+
+    // An empty answer fails the request DTO before grading runs.
+    await supertest({ userId: user.id })
+      .post(`/lti/embeddable-question/${course.id}/${question.id}/feedback`)
+      .send({ responseText: '   ' })
+      .expect(400);
+
+    // A blank rubric fails the shared grading-settings validator.
+    await supertest({ userId: user.id })
+      .post(`/lti/embeddable-question/${course.id}`)
+      .send({
+        title: 'No rubric',
+        questionText: 'This must be rejected.',
+        quizId: null,
+        gradingSettings: {
+          ...settings(''),
+          rubric: '   ',
+        },
+      })
+      .expect(400);
+
+    expect(
+      await EmbeddableQuestionFeedbackModel.count({
+        where: { questionId: question.id },
+      }),
+    ).toBe(0);
+    expect(
+      await EmbeddableQuestionModel.count({
+        where: { courseId: course.id, title: 'No rubric' },
       }),
     ).toBe(0);
   });

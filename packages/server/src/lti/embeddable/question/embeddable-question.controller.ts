@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   ClassSerializerInterceptor,
   Controller,
@@ -13,10 +12,10 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import {
-  embeddableQuestionFeedbackSchema,
   EmbeddableQuestionFeedback,
+  EmbeddableQuestionFeedbackParams,
   Role,
-  upsertEmbeddableQuestionSchema,
+  UpsertEmbeddableQuestionParams,
 } from '@koh/common';
 import { JwtAuthGuard } from '../../../guards/jwt-auth.guard';
 import { CourseRolesGuard } from '../../../guards/course-roles.guard';
@@ -24,18 +23,6 @@ import { Roles } from '../../../decorators/roles.decorator';
 import { EmbeddableQuestionService } from './embeddable-question.service';
 import { EmbeddableQuestionModel } from './embeddable-question.entity';
 import { UserId } from '../../../decorators/user.decorator';
-
-function parseBody<T>(
-  schema: { parse(value: unknown): T },
-  body: unknown,
-  message: string,
-): T {
-  try {
-    return schema.parse(body);
-  } catch {
-    throw new BadRequestException(message);
-  }
-}
 
 @Controller('lti/embeddable-question')
 @UseGuards(JwtAuthGuard, CourseRolesGuard)
@@ -70,16 +57,11 @@ export class EmbeddableQuestionController {
   async getFeedback(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
-    @Body() body: unknown,
+    @Body() body: EmbeddableQuestionFeedbackParams,
     @UserId() userId: number,
   ): Promise<EmbeddableQuestionFeedback> {
-    const { responseText } = parseBody(
-      embeddableQuestionFeedbackSchema,
-      body,
-      'Invalid feedback request.',
-    );
     return this.embeddableQuestionService.getFeedback({
-      submission: responseText,
+      submission: body.responseText,
       questionId,
       courseId,
       userId,
@@ -90,16 +72,9 @@ export class EmbeddableQuestionController {
   @Roles(Role.TA, Role.PROFESSOR)
   async create(
     @Param('courseId', ParseIntPipe) courseId: number,
-    @Body() body: unknown,
+    @Body() body: UpsertEmbeddableQuestionParams,
   ): Promise<EmbeddableQuestionModel> {
-    return this.embeddableQuestionService.upsert(
-      courseId,
-      parseBody(
-        upsertEmbeddableQuestionSchema,
-        body,
-        'Invalid embeddable question configuration.',
-      ),
-    );
+    return this.embeddableQuestionService.upsert(courseId, body);
   }
 
   @Patch(':courseId/:questionId')
@@ -107,17 +82,9 @@ export class EmbeddableQuestionController {
   async update(
     @Param('courseId', ParseIntPipe) courseId: number,
     @Param('questionId', ParseIntPipe) questionId: number,
-    @Body() body: unknown,
+    @Body() body: UpsertEmbeddableQuestionParams,
   ): Promise<EmbeddableQuestionModel> {
-    return this.embeddableQuestionService.upsert(
-      courseId,
-      parseBody(
-        upsertEmbeddableQuestionSchema,
-        body,
-        'Invalid embeddable question configuration.',
-      ),
-      questionId,
-    );
+    return this.embeddableQuestionService.upsert(courseId, body, questionId);
   }
 
   @Delete(':courseId/:questionId')

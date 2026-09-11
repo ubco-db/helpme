@@ -43,7 +43,6 @@ interface EmbeddableQuestionFormProps {
   onSaveCallback: () => void
 }
 
-/** New questions start from the authoritative built-in template in common. */
 /** New questions start with a blank main grading prompt (placeholder shown). */
 const defaultGradingSettings = { ...createGradingPreset('generic'), rubric: '' }
 
@@ -84,19 +83,14 @@ function GradingSettingsEditor({
   onChange?: (settings: QuestionGradingSettings) => void
 }): ReactElement {
   const settings = value ?? defaultGradingSettings
-  const [explicitScoreText, setExplicitScoreText] = useState(
-    settings.scoreScale.kind === 'values'
-      ? settings.scoreScale.values.join(', ')
-      : '',
-  )
-
-  useEffect(() => {
-    setExplicitScoreText(
-      settings.scoreScale.kind === 'values'
-        ? settings.scoreScale.values.join(', ')
-        : '',
-    )
-  }, [settings.scoreScale.kind])
+  // The typed score text is owned by this editor and only stored once the
+  // user edits it; until then it derives from the incoming settings, so an
+  // externally replaced value (e.g. editing another question) always shows.
+  const [editedScoreText, setEditedScoreText] = useState<string | null>(null)
+  const valuesScale =
+    settings.scoreScale.kind === 'values' ? settings.scoreScale : null
+  const explicitScoreText =
+    editedScoreText ?? (valuesScale ? valuesScale.values.join(', ') : '')
 
   const update = (changes: Partial<QuestionGradingSettings>) =>
     onChange?.({ ...settings, ...changes })
@@ -124,6 +118,9 @@ function GradingSettingsEditor({
 
   const setScoreKind = (kind: ScoreScale['kind']) => {
     if (kind === settings.scoreScale.kind) return
+    // Any typed score text belongs to the previous scale, so reset it and
+    // derive from the new scale instead.
+    setEditedScoreText(null)
     update({
       scoreScale:
         kind === 'range'
@@ -254,7 +251,7 @@ function GradingSettingsEditor({
       <Form.Item
         label="Main grading prompt"
         required
-        tooltip="Describe what earns each score. Feedback and final grading instructions are added to this prompt."
+        tooltip="Describe what earns each score. Feedback instructions are added to this prompt."
       >
         <Input.TextArea
           value={settings.rubric}
@@ -279,22 +276,6 @@ function GradingSettingsEditor({
           maxLength={15000}
           aria-label="Feedback instructions"
           placeholder="How should the feedback comment be written?"
-        />
-      </Form.Item>
-
-      <Form.Item
-        label="Final grading instructions"
-        tooltip="Added to the main grading prompt when calculating the final grade."
-      >
-        <Input.TextArea
-          value={settings.finalGradingInstructions}
-          onChange={(event) =>
-            update({ finalGradingInstructions: event.target.value })
-          }
-          rows={3}
-          maxLength={15000}
-          aria-label="Final grading instructions"
-          placeholder="How should the final grade be decided?"
         />
       </Form.Item>
 
@@ -360,7 +341,7 @@ function GradingSettingsEditor({
               aria-label="Allowed scores"
               onChange={(event) => {
                 const text = event.target.value
-                setExplicitScoreText(text)
+                setEditedScoreText(text)
                 update({
                   scoreScale: {
                     kind: 'values',

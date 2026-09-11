@@ -15,15 +15,18 @@ import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 
 // Outer envelope only. The model's answer payload stays `unknown` at this
-// boundary and is validated by the grading boundary (validateGradePayload),
-// so malformed model output is retried there instead of failing outside the
-// retry loop. Legacy transports may still return reasons/needs_human_review;
-// they are unknown data here and are ignored downstream (the grader derives
-// requirement notes deterministically).
+// boundary and is validated by the grading boundary (validateGradePayload);
+// malformed model output errors there without any feedback being persisted.
+// Legacy transports may still return reasons/needs_human_review; they are
+// unknown data here and are ignored downstream.
 const feedbackResponseSchema = z.object({
   answer: z.unknown(),
   model: z.string().optional(),
 });
+
+// The chatbot service owns provider retries (max 4 total attempts); this
+// timeout bounds one request within that retry budget.
+const FEEDBACK_TIMEOUT_MS = 60000;
 
 export type FeedbackQueryResult = z.infer<typeof feedbackResponseSchema>;
 
@@ -169,7 +172,7 @@ export class ChatbotApiService {
 
   /**
    * Feedback uses the course's feedback model and the supplied grading prompt.
-   * The chatbot does not retrieve course documents for this request.
+   * The chatbot service owns provider retries for this request (60s budget).
    */
   queryChatbotForCourse(
     query: string,
@@ -193,7 +196,14 @@ export class ChatbotApiService {
         ? { query, type, courseId, params }
         : { query, type, courseId };
 
-    const resp: unknown = await this.request('POST', `chatbot/query`, '', data);
+    const resp: unknown = await this.request(
+      'POST',
+      `chatbot/query`,
+      '',
+      data,
+      undefined,
+      type === 'feedback' ? FEEDBACK_TIMEOUT_MS : undefined,
+    );
 
     if (type === 'feedback') {
       return feedbackResponseSchema.parse(resp);

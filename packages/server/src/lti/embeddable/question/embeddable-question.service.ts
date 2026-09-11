@@ -47,7 +47,6 @@ export class EmbeddableQuestionService {
         gradingSettings: question.gradingSettings,
         quizContext,
         submission,
-        mode: 'feedback',
       });
     } catch {
       throw new InternalServerErrorException(

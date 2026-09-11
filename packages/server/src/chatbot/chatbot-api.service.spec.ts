@@ -94,7 +94,7 @@ describe('ChatbotApiService', () => {
     ).rejects.toThrow();
   });
 
-  it('passes a malformed model answer through the envelope for the grading boundary to validate and retry', async () => {
+  it('passes a malformed model answer through the envelope for the grading boundary to validate', async () => {
     const configService = new ConfigService({
       CHATBOT_API_URL: 'https://chatbot.test',
       CHATBOT_API_KEY: 'test-chatbot-api-key',
@@ -142,5 +142,40 @@ describe('ChatbotApiService', () => {
       },
       model: 'test-model',
     });
+  });
+
+  it('bounds one feedback request with the chatbot-owned 60s retry budget', async () => {
+    const configService = new ConfigService({
+      CHATBOT_API_URL: 'https://chatbot.test',
+      CHATBOT_API_KEY: 'test-chatbot-api-key',
+    });
+    const service = new ChatbotApiService(configService);
+
+    const mockFetch = jest.fn<
+      ReturnType<typeof fetch>,
+      Parameters<typeof fetch>
+    >();
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          answer: {
+            score: 1,
+            comment: 'Feedback.',
+            reasons: ['complete'],
+            needs_human_review: false,
+          },
+          model: 'test-model',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+    global.fetch = mockFetch;
+
+    await service.queryChatbotForCourse('user prompt', 42, 'feedback', {
+      systemPrompt: 'system prompt',
+    });
+
+    const [, requestInit] = mockFetch.mock.calls[0];
+    expect(requestInit?.signal).toBeInstanceOf(AbortSignal);
   });
 });

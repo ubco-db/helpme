@@ -125,8 +125,7 @@ export default function EmbeddableQuestionFeedback({
             </div>
           )}
           <p className="text-xs text-zinc-500">
-            This is feedback only, not your final grade. Submit the full quiz to
-            receive your final grade.
+            This is provisional feedback only; it is not your final grade.
           </p>
         </div>
       )}
