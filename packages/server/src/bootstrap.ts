@@ -17,15 +17,22 @@ import { Chromiumly } from 'chromiumly';
 import helmet from 'helmet';
 import LtiMiddleware from './lti/lti.middleware';
 
+class CustomLogger extends ConsoleLogger {
+  // remove the timestamp on each message since pm2 already has a timestamp
+  // NOTE: that doing `timestamp: false` only removes the +ms offset between each message, which we want to keep
+  protected getTimestamp(): string {
+    return '';
+  }
+}
+
 export async function bootstrap(hot: any): Promise<void> {
-  const logger = new ConsoleLogger('System', { timestamp: false }); // timestamp not necessary since pm2 includes one
+  const logger = new CustomLogger('System');
   console.log = (...args) => logger.log(args.join(' '));
   console.error = (...args) => logger.error(args.join(' '));
   console.warn = (...args) => logger.warn(args.join(' '));
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    logger: new ConsoleLogger('', {
-      timestamp: false,
+    logger: new CustomLogger('', {
       logLevels: ['error', 'warn', 'log', 'debug', 'verbose'],
     }),
   });
