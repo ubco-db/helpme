@@ -69,7 +69,7 @@ export class LtiAuthController {
       {
         cookieName: 'lti_auth_token',
         restrictPaths,
-        redirect,
+        redirect: redirect,
         cookieOptions: LtiService.cookieOptions,
         expiresIn: LTI_APP_SESSION_SECONDS,
       },
@@ -130,7 +130,9 @@ export class LtiAuthController {
       req,
       res,
       userId,
-      { cookieOptions: LtiService.cookieOptions },
+      {
+        cookieOptions: LtiService.cookieOptions,
+      },
       undefined,
       this.ltiService,
     );

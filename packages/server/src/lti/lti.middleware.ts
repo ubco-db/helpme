@@ -120,13 +120,16 @@ export default class LtiMiddleware {
       {
         type: 'LtiResourceLinkRequest',
         placements: [
+          // CANVAS
           'link_selection',
           'course_home_sub_navigation',
           'course_navigation',
           'module_menu',
         ],
+        // CANVAS PROPERTIES
         'https://canvas.instructure.com/lti/launch_height': '100%',
         'https://canvas.instructure.com/lti/launch_width': '100%',
+        // possible values: "default" | "full_width" | "full_width_in_context" | "full_width_with_nav" | "in_nav_context" | "borderless" | "new_window"
         'https://canvas.instructure.com/lti/display_type':
           'full_width_in_context',
       },

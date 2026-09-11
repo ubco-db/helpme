@@ -53,7 +53,6 @@ export class LtiService {
   ) {}
 
   private _provider: Provider | undefined;
-
   get provider(): Provider {
     if (!this._provider) {
       throw new Error('LTI Provider not initialized!');
@@ -90,7 +89,10 @@ export class LtiService {
       code = crypto.randomBytes(64).toString('hex');
     } while (await LtiIdentityTokenModel.findOne({ where: { code } }));
 
-    await LtiIdentityTokenModel.delete({ issuer, ltiUserId });
+    await LtiIdentityTokenModel.delete({
+      issuer,
+      ltiUserId,
+    });
 
     await LtiIdentityTokenModel.create({
       code,
@@ -99,7 +101,10 @@ export class LtiService {
       ltiEmail,
     }).save();
 
-    const token = this.jwtService.sign({ code });
+    const token = this.jwtService.sign({
+      code,
+    });
+
     if (!token) {
       throw new BadRequestException(ERROR_MESSAGES.ltiService.errorSigningJwt);
     }
@@ -111,16 +116,24 @@ export class LtiService {
     userId: number,
     signedToken: string,
   ): Promise<boolean> {
-    const token = this.jwtService.decode<{ code: string }>(signedToken);
+    const token = this.jwtService.decode<{
+      code: string;
+    }>(signedToken);
+
     if (!token || !token.code) {
       throw new BadRequestException(
         ERROR_MESSAGES.ltiService.invalidIdentityJwt,
       );
     }
 
+    const { code } = token;
+
     const matchingToken = await LtiIdentityTokenModel.findOne({
-      where: { code: token.code },
+      where: {
+        code,
+      },
     });
+
     if (!matchingToken) {
       return false;
     }
@@ -134,6 +147,8 @@ export class LtiService {
       return false;
     }
 
+    // If user has logged in with a different account prior, remove the identity entry for that account for
+    // this ISS + user ID combo
     await UserLtiIdentityModel.delete({
       userId: Not(userId),
       issuer: matchingToken.issuer,
@@ -144,6 +159,9 @@ export class LtiService {
       userId,
       ...pick(matchingToken, ['issuer', 'ltiEmail', 'ltiUserId']),
     }).save();
+
+    // The matching token is not removed as it may be re-used later
+    // await matchingToken.remove();
 
     return true;
   }
@@ -162,7 +180,11 @@ export class LtiService {
       email,
     }).save();
 
-    const token = this.jwtService.sign({ courseId, inviteCode });
+    const token = this.jwtService.sign({
+      courseId,
+      inviteCode,
+    });
+
     if (!token) {
       throw new BadRequestException(ERROR_MESSAGES.ltiService.errorSigningJwt);
     }
@@ -186,13 +208,26 @@ export class LtiService {
     }
 
     const { courseId, inviteCode } = token;
+
     const user = await UserModel.findOne({
-      where: { id: userId },
-      relations: { organizationUser: true },
+      where: {
+        id: userId,
+      },
+      relations: {
+        organizationUser: true,
+      },
     });
+
     const matchingInvite = await LtiCourseInviteModel.findOne({
-      where: { inviteCode, courseId },
-      relations: { course: { organizationCourse: true } },
+      where: {
+        inviteCode,
+        courseId,
+      },
+      relations: {
+        course: {
+          organizationCourse: true,
+        },
+      },
     });
 
     if (!matchingInvite) {
@@ -228,15 +263,22 @@ export class LtiService {
     }
 
     const enrollment = await UserCourseModel.findOne({
-      where: { userId, courseId },
+      where: {
+        userId,
+        courseId: courseId,
+      },
     });
 
-    await LtiCourseInviteModel.delete({ email: user.email, courseId });
+    // Delete any invites for this course for this email
+    await LtiCourseInviteModel.delete({
+      email: user.email,
+      courseId,
+    });
 
     if (!enrollment) {
       await UserCourseModel.create({
         userId,
-        courseId,
+        courseId: courseId,
         role: Role.STUDENT,
       }).save();
     }
@@ -248,7 +290,7 @@ export class LtiService {
     token: IdToken,
   ): Promise<{ userId?: number; courseId?: number }> {
     let userId: number | undefined;
-    let courseId: number | undefined;
+    let courseId: number | undefined = undefined;
 
     const matchingUserIds: number[] = (
       await UserModel.createQueryBuilder('user_model')
@@ -257,29 +299,42 @@ export class LtiService {
           UserLtiIdentityModel,
           'lti_user',
           'lti_user."userId" = user_model.id AND lti_user.issuer = :issuer AND lti_user."ltiUserId" = :ltiUserId',
-          { issuer: token.iss, ltiUserId: token.user },
+          {
+            issuer: token.iss,
+            ltiUserId: token.user,
+          },
         )
         .addSelect('lti_user.issuer', 'ltiIssuer')
         .addSelect('lti_user."ltiUserId"', 'ltiUserId')
-        .where('email = :email', { email: token.userInfo.email })
+        .where('email = :email', {
+          email: token.userInfo.email,
+        })
         .orWhere('lti_user."userId" IS NOT NULL')
         .orderBy('lti_user."userId"', 'ASC', 'NULLS LAST')
         .getRawMany<{ userId: number }>()
-    ).map(({ userId: matchingUserId }) => matchingUserId);
+    ).map(({ userId }) => userId);
     userId = matchingUserIds[0];
+
+    let lmsCourseIntegration: LMSCourseIntegrationModel;
 
     const platformCourseId = LtiService.extractCourseId(token);
     if (platformCourseId != undefined) {
-      const lmsCourseIntegration = await LMSCourseIntegrationModel.findOne({
-        where: { apiCourseId: platformCourseId },
+      lmsCourseIntegration = await LMSCourseIntegrationModel.findOne({
+        where: {
+          apiCourseId: platformCourseId,
+        },
       });
       courseId = lmsCourseIntegration?.courseId;
     }
 
+    // We only need to narrow it down if there's > 1
     if (matchingUserIds.length > 1 && courseId != undefined) {
       for (const matchingUserId of matchingUserIds) {
         const userCourse = await UserCourseModel.findOne({
-          where: { userId: matchingUserId, courseId },
+          where: {
+            userId: matchingUserId,
+            courseId,
+          },
         });
         if (!userCourse) {
           continue;
@@ -289,7 +344,10 @@ export class LtiService {
       }
     }
 
+    // Refresh identity in case it's changed and the user was found
     if (userId != undefined) {
+      // If user has logged in with a different account prior, remove the identity entry for that account for
+      // this ISS + user ID combo
       await UserLtiIdentityModel.delete({
         userId: Not(userId),
         issuer: token.iss,
@@ -304,7 +362,10 @@ export class LtiService {
       }).save();
     }
 
-    return { userId, courseId };
+    return {
+      userId,
+      courseId,
+    };
   }
 
   static extractCourseId(token: IdToken) {

@@ -89,25 +89,36 @@ export class LtiController {
     const qry = new URLSearchParams();
 
     try {
+      /*
+      This is essentially a secondary 'session' cookie/token which carries
+      a key to unlock information regarding the user who launched the LTI
+      tool. Used to set auto-login when the HelpMe email of the user doesn't
+      match their Canvas email.
+      */
       const identity = await this.ltiService.createLtiIdentityToken(
         token.iss,
         token.user,
         token.userInfo.email,
       );
       res.cookie('__LTI_IDENTITY', identity, LtiService.cookieOptions);
-    } catch {}
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_ignored) {}
 
+    // If the user does not exist, but the course was found, create an invite and set it as a cookie
     if (!user && course && token.userInfo.email != undefined) {
       qry.set('redirect', `/lti/${course.id}`);
+
       try {
         const invite = await this.ltiService.createCourseInvite(
           course.id,
           token.userInfo.email,
         );
         res.cookie('__COURSE_INVITE', invite, LtiService.cookieOptions);
-      } catch {}
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_ignored) {}
     }
 
+    // If the user does not exist, redirect to login.
     // Exact-question return through first-time registration is intentionally
     // deferred. After registration, reopen the Canvas question for a fresh LTI launch.
     if (!user) {
@@ -118,8 +129,13 @@ export class LtiController {
 
     if (course) {
       const enrollment = await UserCourseModel.findOne({
-        where: { userId: user.id, courseId: course.id },
+        where: {
+          userId: user.id,
+          courseId: course?.id,
+        },
       });
+
+      // If the user has no enrollment.
       if (!enrollment) {
         await UserCourseModel.create({
           userId: user.id,
@@ -274,5 +290,9 @@ export function mapToLocalPlatform(platform: PlatformModel): LtiPlatform {
   if (authToken.method !== AuthTokenMethodEnum.JWK_SET) {
     authToken.key = '********************************';
   }
-  return plainToClass(LtiPlatform, { ...platform, authToken });
+
+  return plainToClass(LtiPlatform, {
+    ...platform,
+    authToken,
+  });
 }
