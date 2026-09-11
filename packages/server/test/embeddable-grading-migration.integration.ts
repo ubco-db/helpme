@@ -2,11 +2,14 @@ import { config } from 'dotenv';
 import * as fs from 'fs';
 import { Client } from 'pg';
 import { DataSource } from 'typeorm';
+import {
+  QuestionGradingSettings,
+  questionGradingSettingsSchema,
+} from '@koh/common';
 import { EmbeddableQuestion1788000000000 } from '../migration/1788000000000-embeddable-question';
 
 // Load the standard server env files (.env, falling back to .env.development,
-// then postgres.env) exactly like ormconfig.ts, BEFORE reading credentials.
-// Credentials are never logged or printed.
+// then postgres.env) exactly like ormconfig.ts.
 if (fs.existsSync('.env')) {
   config();
 } else {
@@ -17,8 +20,7 @@ if (fs.existsSync('postgres.env')) {
 }
 
 // Runs the real final migration against a uniquely named disposable database
-// created for this run and dropped afterwards. No shared or env-selected
-// database is ever touched.
+// created and dropped by this test alone; no shared database is touched.
 const TEST_DB = `helpme_embeddable_migration_${process.pid}`;
 
 // The pg client option is "user"; the typeorm option is "username".
@@ -55,13 +57,22 @@ const schemaSnapshot = (ds: DataSource) =>
     ),
   ]);
 
-const REALISTIC_SETTINGS = {
+// The settled grading-settings contract drops finalGradingInstructions; it is
+// omitted here and stubbed only for the one-time schema check below, until the
+// shared schema is updated at integration.
+const REALISTIC_SETTINGS: Omit<
+  QuestionGradingSettings,
+  'finalGradingInstructions'
+> = {
   rubric: 'Award full marks for a complete, accurate answer.',
   feedbackInstructions: 'Explain what the answer is missing.',
-  finalGradingInstructions: '',
   scoreScale: { kind: 'values', values: [0, 1, 2] },
   checks: [{ kind: 'minimum_sentences', minimum: 3, scoreCap: 1 }],
 };
+questionGradingSettingsSchema.parse({
+  ...REALISTIC_SETTINGS,
+  finalGradingInstructions: '',
+});
 
 const withAdminClient = async <T>(
   database: string,
@@ -117,7 +128,7 @@ describe('Embeddable grading migration', () => {
         admin.query(`DROP DATABASE IF EXISTS "${TEST_DB}"`),
       );
     }
-  }, 30000);
+  }, 60000);
 
   it('creates the settled final schema', async () => {
     const columns = await ds.query<Record<string, unknown>[]>(
@@ -130,7 +141,6 @@ describe('Embeddable grading migration', () => {
     const column = (table: string, name: string) =>
       columns.find((c) => c.table_name === table && c.column_name === name);
 
-    // Quiz and question configuration.
     expect(column('embeddable_quiz_model', 'title')).toMatchObject({
       data_type: 'text',
       is_nullable: 'NO',
@@ -143,7 +153,6 @@ describe('Embeddable grading migration', () => {
       column('embeddable_question_model', 'gradingSettings'),
     ).toMatchObject({ data_type: 'jsonb', is_nullable: 'NO' });
 
-    // Durable submission/history fields.
     expect(
       column('embeddable_question_feedback_model', 'submission'),
     ).toMatchObject({ data_type: 'text', is_nullable: 'NO' });
@@ -169,7 +178,6 @@ describe('Embeddable grading migration', () => {
       column('embeddable_question_feedback_model', 'needsHumanReview'),
     ).toMatchObject({ data_type: 'boolean', is_nullable: 'NO' });
 
-    // Exactly the settled foreign keys.
     const [, fks] = await schemaSnapshot(ds);
     expect(fks).toEqual([
       {
@@ -229,7 +237,7 @@ describe('Embeddable grading migration', () => {
     );
     await ds.query(
       `INSERT INTO "embeddable_question_feedback_model" ("courseId", "questionId", "userId", "submission", "aiFeedback", "aiGrade", "appliedRequirements", "aiModel", "maxScore", "gradingSnapshot", "reasons", "needsHumanReview")
-       VALUES (1, 1, 1, 'The passage shows a conflict.', 'Strong answer; cite the passage next time.', 2, '{}', 'glm-test-model', 2, $1::jsonb, '{too_short,term_capitalization}', true)`,
+       VALUES (1, 1, 1, 'The passage shows a conflict.', 'Strong answer; cite the passage next time.', 2, '{}', 'glm-test-model', 2, $1::jsonb, '{The answer addresses the rubric but cites no passage details,Feedback stays grounded in the submission text}', true)`,
       [
         JSON.stringify({
           version: 1,
@@ -258,7 +266,10 @@ describe('Embeddable grading migration', () => {
       appliedRequirements: [],
       aiModel: 'glm-test-model',
       maxScore: 2,
-      reasons: ['too_short', 'term_capitalization'],
+      reasons: [
+        'The answer addresses the rubric but cites no passage details',
+        'Feedback stays grounded in the submission text',
+      ],
       needsHumanReview: true,
     });
     // The snapshot is stored as opaque historical JSON and comes back intact.

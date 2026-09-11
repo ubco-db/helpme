@@ -86,23 +86,29 @@ Question launches still require an existing Canvas-course-to-HelpMe-course mappi
 
 One-click LTI-only course mapping remains deferred. The existing LMS integration record also represents Canvas API configuration, so silently creating that record from an LTI launch would mix course identity with API authorization. Revisit that product decision separately if the professor needs a one-click setup flow.
 
-## Question, settings, and snapshot versioning is Git-only
+## Snapshots are database JSON; prompts are Git code
 
-Approved question text, titles, quiz context text, and grading settings (rubric, feedback instructions, score scale, automatic checks) are versioned by checking them into Git alongside the reviewed code/prompt version. The Git-versioned prompt defaults and grading presets live in `packages/common`; record any approved course-specific question values in Git in the same change that reviews them.
+There is no exporter, framework, or version table for course configuration. The two kinds of durability are kept apart:
 
-This is deliberately simple: there is no exporter, framework, or version table. Staff UI edits write to the mutable `EmbeddableQuestionModel` / `EmbeddableQuizModel` rows and are not automatically Git-versioned.
+- **Grading prompts and validators are code.** The shared prompt code and validators live in `packages/common` and are reviewed and versioned through Git like any other code.
+- **Durable snapshots are database JSON.** Feedback rows in `EmbeddableQuestionFeedbackModel` durably keep the submission, score, comment, grounded explanations (`reasons`), human-review flag, model name, maximum score, and a `gradingSnapshot` JSON of the question text, grading settings, and quiz context in effect at grading time. The snapshot is historical: editing a question later never rewrites past feedback. The learner response itself only ever returns the current score, comment, applied requirements, and maximum score.
 
-Feedback rows in `EmbeddableQuestionFeedbackModel` durably keep the submission, score, comment, reason codes, human-review flag, model name, maximum score, and a `gradingSnapshot` JSON of the question text, grading settings, and quiz context in effect at grading time. The snapshot is historical: editing a question later never rewrites past feedback. The learner response itself only ever returns the current score, comment, applied requirements, and maximum score.
+Staff edits to question and quiz configuration write to the mutable `EmbeddableQuestionModel` / `EmbeddableQuizModel` rows. Those edits are not versioned — not by Git and not by any history table. HelpMe does not currently provide course configuration versioning; revisit that only if the professor needs rollback of question configuration.
 
 ## Grading and retry behavior
 
 Deployments must roll out the chatbot backend before HelpMe, so the chatbot API the grading service depends on is already in place when new HelpMe code goes live.
 
-HelpMe never retries a failed grade on its own and never stores an invalid grade. The chatbot provider applies its own single retry budget (at most 4 attempts, 60 seconds). If the model's output does not satisfy the question's grading contract after that budget, the request fails with a server error and nothing is saved. Students can simply resubmit.
+Two different validations can reject a grade, and they fail differently:
 
-## Request validation: one shared Zod grading validator
+- **Chatbot structural retries.** The chatbot backend repairs structurally invalid model output within its own retry budget (at most 4 attempts, 60 seconds).
+- **HelpMe score validation.** The chatbot cannot know a host course's score scale or caps, so a grade that is structurally fine but violates HelpMe's score-scale/cap validation fails immediately, after the single chatbot call — retrying could not fix it.
 
-Most HelpMe HTTP endpoints use class-validator DTOs. The embeddable question and quiz endpoints intentionally deviate for the complex grading payload: their request bodies are `unknown` and are validated with the single shared Zod schema from `packages/common` (`upsertEmbeddableQuestionSchema`, which nests `questionGradingSettingsSchema`), reusing the exact validator the frontend, entity checks, and grading service already use. This is deliberate narrow reuse of the existing Zod schema — not a second validation framework — because duplicating the deeply nested grading-settings shape with class-validator decorators would drift from the source of truth. A rejected body becomes a `BadRequestException`.
+In both cases nothing invalid is ever saved; the request fails and the student can simply resubmit.
+
+## Request validation: class-validator DTOs with a shared Zod settings validator
+
+HelpMe HTTP endpoints use class-validator DTO classes, and the embeddable question and quiz endpoints follow that same pattern. Their request bodies are plain class-validator DTOs; the only delegated piece is the deeply nested `gradingSettings`, which uses a custom class-validator rule that hands the value to the single shared Zod schema from `packages/common` (`questionGradingSettingsSchema`). This reuses the exact validator the frontend, entities, and grading service already use instead of duplicating the nested grading-settings shape with decorators. A rejected body becomes a `BadRequestException`.
 
 ## Deadline decision for the MVP
 
