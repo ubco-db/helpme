@@ -11,7 +11,6 @@ Publish Canvas on port `80`, not `8080`. The local Canvas dynamic-registration U
 If port `80` is already occupied, stop the conflicting service before following this guide.
 
 Keep `NODE_ENV=development`. You do not need Portless or HTTPS certificates for this workflow.
-This guide documents the configuration needed for a fresh setup. The complete procedure still needs verification on a fresh developer machine, including Windows and Linux.
 
 ## Prepare the applications
 
@@ -190,7 +189,6 @@ A missing client ID blocks launches. A mismatched client ID returns `403`.
 5. Save the content. Open it with a local student account and submit a response.
 
 Expect feedback inside Canvas. An instructor preview exercises staff authorization, so use a student account to check the learner flow.
-In your PR, record the Canvas version, operating system, and which steps you verified. Distinguish a successful launch from a successful chatbot response.
 
 ## Start another development session
 
