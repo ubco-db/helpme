@@ -450,14 +450,6 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
       },
     })
       .then(async (response) => {
-        if (url.includes('/quizzes/')) {
-          console.log(
-            `Response for calling ${url}`,
-            !response.ok
-              ? { json: await response.clone().json(), status: response.status }
-              : { json: await response.clone().json() },
-          );
-        }
         let nextLink: string | undefined = undefined;
         const linkHeader = response.headers.get('link');
         if (linkHeader) {
@@ -794,13 +786,6 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
   }> {
     const { status, data } = await this.GetPaginated(
       `courses/${this.integration.apiCourseId}/quizzes`,
-    );
-    console.log(
-      `Response for calling courses/${this.integration.apiCourseId}/quizzes`,
-      {
-        data,
-        status,
-      },
     );
 
     if (status !== LMSApiResponseStatus.Success) return { status, quizzes: [] };
