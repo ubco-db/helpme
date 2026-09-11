@@ -20,7 +20,7 @@ import type {
   QuestionGradingSettings,
   UpsertEmbeddableQuestionParams,
 } from '@koh/common'
-import { createGradingPreset, questionGradingSettingsSchema } from '@koh/common'
+import { questionGradingSettingsSchema } from '@koh/common'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 
@@ -33,7 +33,13 @@ interface EmbeddableQuestionFormProps {
 }
 
 /** New questions start with a blank main grading prompt (placeholder shown). */
-const defaultGradingSettings = { ...createGradingPreset('generic'), rubric: '' }
+const defaultGradingSettings: QuestionGradingSettings = {
+  rubric: '',
+  feedbackInstructions:
+    'Give concise, constructive feedback grounded in the rubric.',
+  scoreScale: { max: 10, step: 1 },
+  checks: [],
+}
 
 const checkOptions: Array<{ value: GradingCheck['kind']; label: string }> = [
   { value: 'minimum_sentences', label: 'Minimum sentences' },
@@ -81,9 +87,7 @@ function GradingSettingsEditor({
     })
 
   const addCheck = (kind: GradingCheck['kind']) => {
-    if (kind) {
-      update({ checks: [...settings.checks, newCheck(kind)] })
-    }
+    update({ checks: [...settings.checks, newCheck(kind)] })
   }
 
   const removeCheck = (index: number) =>

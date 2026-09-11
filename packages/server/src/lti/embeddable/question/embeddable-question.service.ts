@@ -70,7 +70,7 @@ export class EmbeddableQuestionService {
       score: saved.aiGrade,
       comment: saved.aiFeedback,
       appliedRequirements: saved.appliedRequirements,
-      maxScore: saved.maxScore ?? evaluation.maxScore,
+      maxScore: saved.maxScore,
     };
   }
 

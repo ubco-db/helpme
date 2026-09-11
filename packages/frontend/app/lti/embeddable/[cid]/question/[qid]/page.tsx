@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { Card } from 'antd'
 import axios from 'axios'
@@ -9,7 +9,7 @@ import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { API } from '@/app/api'
 import EmbeddableQuestionFeedback from '@/app/lti/embeddable/[cid]/components/EmbeddableQuestionFeedback'
 
-function EmbeddableQuestionView() {
+export default function EmbeddableQuestionPage() {
   const routeParams = useParams<{ cid: string; qid: string }>()
   const contentRef = useRef<HTMLDivElement>(null)
 
@@ -79,13 +79,5 @@ function EmbeddableQuestionView() {
         />
       </div>
     </>
-  )
-}
-
-export default function EmbeddableQuestionPage() {
-  return (
-    <Suspense fallback={<CenteredSpinner tip="Loading..." />}>
-      <EmbeddableQuestionView />
-    </Suspense>
   )
 }

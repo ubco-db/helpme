@@ -193,7 +193,6 @@ export interface EmbeddableQuestionFeedback {
 }
 
 export interface GradingSnapshot {
-  version: 1
   questionText: string
   gradingSettings: QuestionGradingSettings
 }
@@ -204,29 +203,4 @@ export type GradingEvaluation = EmbeddableQuestionFeedback & {
   /** Free-form explanation strings reported by the model, plus host codes like blank. */
   reasons: string[]
   needsHumanReview: boolean
-}
-
-export const GRADING_PRESETS = {
-  generic: {
-    label: 'Start from scratch',
-    gradingSettings: {
-      rubric:
-        'Describe what a complete, partial, and incorrect answer should contain.',
-      feedbackInstructions:
-        'Give concise, constructive feedback grounded in the rubric.',
-      scoreScale: { max: 10, step: 1 },
-      checks: [],
-    },
-  },
-} satisfies Record<
-  string,
-  { label: string; gradingSettings: QuestionGradingSettings }
->
-
-export type GradingPreset = keyof typeof GRADING_PRESETS
-
-export function createGradingPreset(
-  preset: GradingPreset,
-): QuestionGradingSettings {
-  return structuredClone(GRADING_PRESETS[preset].gradingSettings)
 }

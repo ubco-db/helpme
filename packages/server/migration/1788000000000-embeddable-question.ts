@@ -12,7 +12,7 @@ export class EmbeddableQuestion1788000000000 implements MigrationInterface {
       `CREATE TABLE "embeddable_question_model" ("id" SERIAL NOT NULL, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "courseId" integer NOT NULL, "title" text NOT NULL, "questionText" text NOT NULL, "gradingSettings" jsonb NOT NULL, CONSTRAINT "PK_7221480303ac557d4312f9f7e55" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "embeddable_question_feedback_model" ("id" SERIAL NOT NULL, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "courseId" integer NOT NULL, "questionId" integer NOT NULL, "userId" integer NOT NULL, "submission" text NOT NULL, "aiFeedback" text NOT NULL, "aiGrade" double precision NOT NULL, "appliedRequirements" text array NOT NULL DEFAULT '{}', "aiModel" text, "maxScore" double precision, "gradingSnapshot" jsonb, "reasons" text array NOT NULL DEFAULT '{}', "needsHumanReview" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_44f928f5436a18d1c85c1152ad9" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "embeddable_question_feedback_model" ("id" SERIAL NOT NULL, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "courseId" integer NOT NULL, "questionId" integer NOT NULL, "userId" integer NOT NULL, "submission" text NOT NULL, "aiFeedback" text NOT NULL, "aiGrade" double precision NOT NULL, "appliedRequirements" text array NOT NULL DEFAULT '{}', "aiModel" text, "maxScore" double precision NOT NULL, "gradingSnapshot" jsonb NOT NULL, "reasons" text array NOT NULL DEFAULT '{}', "needsHumanReview" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_44f928f5436a18d1c85c1152ad9" PRIMARY KEY ("id"))`,
     );
 
     await queryRunner.query(

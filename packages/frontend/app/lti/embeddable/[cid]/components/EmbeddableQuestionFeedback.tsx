@@ -46,19 +46,16 @@ export default function EmbeddableQuestionFeedback({
       )
       setFeedback(response)
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        const authMessage =
-          'Your HelpMe session has expired. Reopen this quiz in Canvas to continue.'
-        setError(authMessage)
-        message.warning(authMessage)
-        return
+      const statusMessages: Record<number, string> = {
+        401: 'Your HelpMe session has expired. Reopen this quiz in Canvas to continue.',
+        429: 'Too many attempts. Please wait a few minutes before requesting more feedback.',
       }
-
-      if (axios.isAxiosError(err) && err.response?.status === 429) {
-        const rateLimitMessage =
-          'Too many attempts. Please wait a few minutes before requesting more feedback.'
-        setError(rateLimitMessage)
-        message.warning(rateLimitMessage)
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined
+      const statusMessage =
+        status !== undefined ? statusMessages[status] : undefined
+      if (statusMessage) {
+        setError(statusMessage)
+        message.warning(statusMessage)
         return
       }
 
@@ -104,7 +101,7 @@ export default function EmbeddableQuestionFeedback({
         />
       )}
 
-      {feedback && !isLoading && (
+      {feedback && (
         <div className="flex flex-col gap-1">
           <p className="text-sm font-medium text-zinc-700">
             {`Provisional score: ${feedback.score}/${feedback.maxScore}`}

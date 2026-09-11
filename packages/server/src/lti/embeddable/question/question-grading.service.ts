@@ -38,7 +38,6 @@ export class QuestionGradingService {
       throw new Error('Question grading settings are invalid.');
     }
     const snapshot: GradingSnapshot = structuredClone({
-      version: 1,
       questionText,
       gradingSettings: parsed.data,
     });
@@ -69,17 +68,15 @@ export class QuestionGradingService {
       snapshot.questionText,
       submission,
       facts,
-      settings.checks,
     );
 
     // The chatbot service owns provider retries; HelpMe makes exactly one
     // call and validates the answer once. An invalid grade errors out and
     // the caller persists nothing.
-    const response = await this.chatbotApiService.queryChatbotForCourse(
+    const response = await this.chatbotApiService.queryFeedback(
       userPrompt,
       courseId,
-      'feedback',
-      { systemPrompt },
+      systemPrompt,
     );
     const { score, comment, reasons, needsHumanReview } = validateGradePayload(
       response.answer,

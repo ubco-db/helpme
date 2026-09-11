@@ -44,11 +44,10 @@ describe('ChatbotApiService', () => {
     );
     global.fetch = mockFetch;
 
-    const result = await service.queryChatbotForCourse(
+    const result = await service.queryFeedback(
       'user prompt',
       42,
-      'feedback',
-      { systemPrompt: 'system prompt' },
+      'system prompt',
     );
 
     expect(result).toEqual({
@@ -89,9 +88,7 @@ describe('ChatbotApiService', () => {
     global.fetch = mockFetch;
 
     await expect(
-      service.queryChatbotForCourse('user prompt', 42, 'feedback', {
-        systemPrompt: 'system prompt',
-      }),
+      service.queryFeedback('user prompt', 42, 'system prompt'),
     ).rejects.toThrow();
   });
 
@@ -125,9 +122,7 @@ describe('ChatbotApiService', () => {
     global.fetch = mockFetch;
 
     await expect(
-      service.queryChatbotForCourse('user prompt', 42, 'feedback', {
-        systemPrompt: 'system prompt',
-      }),
+      service.queryFeedback('user prompt', 42, 'system prompt'),
     ).rejects.toThrow('Failed to connect to chatbot service');
 
     expect(timeoutSpy).toHaveBeenCalledWith(65000);

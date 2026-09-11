@@ -171,40 +171,32 @@ export class ChatbotApiService {
    * The chatbot service owns provider retries for this request; the host
    * deadline only bounds the single transport call.
    */
-  queryChatbotForCourse(
+  async queryFeedback(
     query: string,
     courseId: number,
-    type?: 'default' | 'abstract',
-  ): Promise<string>;
-  queryChatbotForCourse(
-    query: string,
-    courseId: number,
-    type: 'feedback',
-    params: { systemPrompt: string },
-  ): Promise<FeedbackQueryResult>;
-  async queryChatbotForCourse(
-    query: string,
-    courseId: number,
-    type: 'default' | 'abstract' | 'feedback' = 'default',
-    params?: { systemPrompt: string },
-  ): Promise<string | FeedbackQueryResult> {
-    const data =
-      type === 'feedback'
-        ? { query, type, courseId, params }
-        : { query, type, courseId };
-
+    systemPrompt: string,
+  ): Promise<FeedbackQueryResult> {
     const resp: unknown = await this.request(
       'POST',
       `chatbot/query`,
       '',
-      data,
+      { query, type: 'feedback', courseId, params: { systemPrompt } },
       undefined,
-      type === 'feedback' ? FEEDBACK_TIMEOUT_MS : undefined,
+      FEEDBACK_TIMEOUT_MS,
     );
+    return feedbackResponseSchema.parse(resp);
+  }
 
-    if (type === 'feedback') {
-      return feedbackResponseSchema.parse(resp);
-    }
+  async queryChatbotForCourse(
+    query: string,
+    courseId: number,
+    type: 'default' | 'abstract' = 'default',
+  ): Promise<string> {
+    const resp: unknown = await this.request('POST', `chatbot/query`, '', {
+      query,
+      type,
+      courseId,
+    });
 
     if (
       typeof resp !== 'object' ||

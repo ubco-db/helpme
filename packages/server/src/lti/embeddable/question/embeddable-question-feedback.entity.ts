@@ -56,11 +56,11 @@ export class EmbeddableQuestionFeedbackModel extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   aiModel: string | null;
 
-  @Column({ type: 'double precision', nullable: true })
-  maxScore: number | null;
+  @Column({ type: 'double precision', nullable: false })
+  maxScore: number;
 
-  @Column({ type: 'jsonb', nullable: true })
-  gradingSnapshot: GradingSnapshot | null;
+  @Column({ type: 'jsonb', nullable: false })
+  gradingSnapshot: GradingSnapshot;
 
   @Column({ type: 'text', array: true, nullable: false, default: [] })
   reasons: string[];
