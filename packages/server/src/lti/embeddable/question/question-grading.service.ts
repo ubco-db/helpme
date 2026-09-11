@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   getMaxScore,
+  questionGradingSettingsSchema,
   type GradingEvaluation,
   type GradingSnapshot,
   type QuestionGradingSettings,
@@ -14,7 +15,6 @@ import {
   buildUserPrompt,
   effectiveScoreCap,
   validateGradePayload,
-  validateGradingSettings,
 } from './grading';
 
 @Injectable()
@@ -34,10 +34,17 @@ export class QuestionGradingService {
     quizContext?: QuizContext | null;
     submission: string;
   }): Promise<GradingEvaluation> {
+    // The one grading-path validation of the settings, before anything is
+    // built or called; invalid settings fail before any chatbot call and
+    // nothing is persisted.
+    const parsed = questionGradingSettingsSchema.safeParse(gradingSettings);
+    if (!parsed.success) {
+      throw new Error('Question grading settings are invalid.');
+    }
     const snapshot: GradingSnapshot = structuredClone({
       version: 1,
       questionText,
-      gradingSettings: validateGradingSettings(gradingSettings),
+      gradingSettings: parsed.data,
       quizContext,
     });
     const settings = snapshot.gradingSettings;
