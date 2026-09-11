@@ -622,25 +622,23 @@ export default function CourseLMSIntegrationPage(props: {
         ),
       })
     }
-    if (quizzes.length > 0 || isLoadingQuizzes) {
-      tabItems.push({
-        key: 'quiz',
-        label: (
-          <LMSTabLabel title={'Course Quizzes'} isLoading={isLoadingQuizzes} />
-        ),
-        children: (
-          <LMSQuizDocumentList
-            courseId={courseId}
-            documents={quizzes}
-            lmsApiPlatformName={integration.apiPlatform}
-            loadingLMSData={isLoadingQuizzes}
-            lmsSynchronize={integration.lmsSynchronize}
-            onUpdateCallback={() => setUpdateFlag(!updateFlag)}
-            selectedResourceTypes={integration.selectedResourceTypes}
-          />
-        ),
-      })
-    }
+    tabItems.push({
+      key: 'quiz',
+      label: (
+        <LMSTabLabel title={'Course Quizzes'} isLoading={isLoadingQuizzes} />
+      ),
+      children: (
+        <LMSQuizDocumentList
+          courseId={courseId}
+          documents={quizzes}
+          lmsApiPlatformName={integration.apiPlatform}
+          loadingLMSData={isLoadingQuizzes}
+          lmsSynchronize={integration.lmsSynchronize}
+          onUpdateCallback={() => setUpdateFlag(!updateFlag)}
+          selectedResourceTypes={integration.selectedResourceTypes}
+        />
+      ),
+    })
     if (announcements.length > 0 || isLoadingAnnouncements) {
       tabItems.push({
         key: 'announcement',
