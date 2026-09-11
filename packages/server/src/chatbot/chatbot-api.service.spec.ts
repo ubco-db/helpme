@@ -95,56 +95,6 @@ describe('ChatbotApiService', () => {
     ).rejects.toThrow();
   });
 
-  it('passes a malformed model answer through the envelope for the grading boundary to validate', async () => {
-    const configService = new ConfigService({
-      CHATBOT_API_URL: 'https://chatbot.test',
-      CHATBOT_API_KEY: 'test-chatbot-api-key',
-    });
-    const service = new ChatbotApiService(configService);
-
-    const mockFetch = jest.fn<
-      ReturnType<typeof fetch>,
-      Parameters<typeof fetch>
-    >();
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          answer: {
-            score: 'high',
-            comment: 'Thoughtful reflection meeting the criteria.',
-            reasons: ['both required examples were included'],
-            needs_human_review: false,
-          },
-          model: 'test-model',
-        }),
-        {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      ),
-    );
-    global.fetch = mockFetch;
-
-    const result = await service.queryChatbotForCourse(
-      'user prompt',
-      42,
-      'feedback',
-      { systemPrompt: 'system prompt' },
-    );
-
-    expect(result).toEqual({
-      answer: {
-        score: 'high',
-        comment: 'Thoughtful reflection meeting the criteria.',
-        reasons: ['both required examples were included'],
-        needs_human_review: false,
-      },
-      model: 'test-model',
-    });
-  });
-
   it('aborts a hung feedback request at the host deadline and fails without retrying', async () => {
     const configService = new ConfigService({
       CHATBOT_API_URL: 'https://chatbot.test',

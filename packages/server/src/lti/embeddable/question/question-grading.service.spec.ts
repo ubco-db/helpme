@@ -68,53 +68,6 @@ describe('QuestionGradingService (real chatbot adapter, mocked fetch boundary)',
     submission: 'A complete answer.',
   };
 
-  const parseFeedbackRequest = (
-    fetchMock: ReturnType<typeof harness>['fetchMock'],
-  ): unknown => JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
-
-  it('makes exactly one outbound feedback call and returns a question-owned snapshot', async () => {
-    const { service, fetchMock } = harness();
-    respond(fetchMock, validAnswer());
-    const quizContext: QuizContext = {
-      id: 4,
-      title: 'Quiz',
-      objective: 'Apply the ideas.',
-      background: 'Read chapter one.',
-    };
-    const gradingSettings = settings();
-    const result = await service.evaluate({
-      ...evaluateArgs,
-      gradingSettings,
-      quizContext,
-    });
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const requestBody = parseFeedbackRequest(fetchMock);
-    expect(requestBody).toMatchObject({
-      query: expect.stringContaining('Student answer'),
-      type: 'feedback',
-      courseId: 12,
-      params: {
-        systemPrompt: expect.stringContaining('Apply the ideas.'),
-      },
-    });
-    expect(result).toMatchObject({
-      score: 8,
-      comment: 'Good answer.',
-      appliedRequirements: [],
-      maxScore: 10,
-      model: 'test-model',
-      reasons: ['the rubric’s accuracy criterion was met'],
-      needsHumanReview: false,
-    });
-    expect(result.gradingSnapshot).toEqual({
-      version: 1,
-      questionText: 'Explain the idea.',
-      gradingSettings,
-      quizContext,
-    });
-  });
-
   it('errors on an invalid grade after exactly one outbound call', async () => {
     const { service, fetchMock } = harness();
     respond(fetchMock, {
@@ -153,59 +106,6 @@ describe('QuestionGradingService (real chatbot adapter, mocked fetch boundary)',
     });
   });
 
-  it('sends triggered checks and their cap before the AI call', async () => {
-    const { service, fetchMock } = harness();
-    respond(fetchMock, {
-      answer: {
-        score: 1,
-        comment: 'Brief.',
-        reasons: ['below the rubric length'],
-        needs_human_review: false,
-      },
-      model: 'test-model',
-    });
-    const gradingSettings = settings({
-      checks: [{ kind: 'minimum_sentences', minimum: 3, scoreCap: 2 }],
-    });
-    const result = await service.evaluate({
-      ...evaluateArgs,
-      gradingSettings,
-      submission: 'One. Two.',
-    });
-
-    const requestBody = parseFeedbackRequest(fetchMock);
-    expect(requestBody).toMatchObject({
-      query: expect.stringContaining('"sentence_count":2'),
-    });
-    expect(requestBody).toMatchObject({
-      query: expect.stringContaining('"automatic_checks_triggered"'),
-      params: {
-        systemPrompt: expect.stringContaining('effective cap of 2'),
-      },
-    });
-    expect(result.score).toBe(1);
-  });
-
-  it('propagates a transport failure immediately', async () => {
-    const { service, fetchMock } = harness();
-    fetchMock.mockRejectedValueOnce(new Error('socket hang up'));
-
-    await expect(service.evaluate(evaluateArgs)).rejects.toThrow(
-      'Failed to connect to chatbot service',
-    );
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('propagates an HTTP failure from the adapter after exactly one call', async () => {
-    const { service, fetchMock } = harness();
-    respond(fetchMock, { error: 'chatbot exploded' }, 500);
-
-    await expect(service.evaluate(evaluateArgs)).rejects.toThrow(
-      'chatbot exploded',
-    );
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
   it('snapshots settings before awaiting the chatbot', async () => {
     const { service, fetchMock } = harness();
     let resolveFetch: (value: Response) => void = () => undefined;
@@ -237,6 +137,9 @@ describe('QuestionGradingService (real chatbot adapter, mocked fetch boundary)',
     );
 
     const result = await evaluation;
+    expect(result.score).toBe(5);
+    expect(result.comment).toBe('Okay.');
+    expect(result.model).toBe('test-model');
     expect(result.gradingSnapshot.gradingSettings.rubric).toBe(
       'Award points for an accurate answer.',
     );

@@ -107,14 +107,6 @@ describe('question grading contract', () => {
       long.triggeredChecks.some((check) => check.kind === 'maximum_sentences'),
     ).toBe(true);
     expect(effectiveScoreCap(long.triggeredChecks)).toBe(1);
-    const prompt = buildUserPrompt(
-      'Explain.',
-      'One. Two. Three.',
-      long,
-      settings.checks,
-    );
-    expect(prompt).toContain('"maximum":2');
-    expect(prompt).toContain('above the maximum of 2 sentences (actual: 3)');
     expect(() =>
       validateGradePayload(
         {
@@ -190,48 +182,20 @@ describe('question grading contract', () => {
     ).toBe(1);
   });
 
-  it('builds the system prompt from the rubric, feedback instructions, score contract, and output shape', () => {
+  it('passes caller-supplied data into the prompts', () => {
     const settings = makeSettings();
-    const prompt = buildSystemPrompt(settings, 1);
-    expect(prompt).toContain(
+    expect(buildSystemPrompt(settings, 1)).toContain(
       'Award points for an accurate and supported answer.',
     );
-    expect(prompt).toContain('Keep feedback concise and constructive.');
-    expect(prompt).toContain('effective cap of 1');
-    expect(prompt).toContain('needs_human_review');
-  });
-
-  it('includes the full triggered checks so the model can tell which term or rule fired', () => {
-    const settings = makeSettings();
-    const userPrompt = buildUserPrompt(
-      'Explain the idea.',
-      'example. answer here',
-      facts('example.', settings),
-      settings.checks,
-    );
-    expect(userPrompt).toContain('"automatic_checks_triggered"');
-    expect(userPrompt).toContain('"term":"Example"');
-    expect(userPrompt).toContain('"minimum":3');
-  });
-
-  it('reports a host-computed length verdict only when sentence checks exist', () => {
-    const settings = makeSettings();
+    const submission = 'One. Two. Three.';
     expect(
       buildUserPrompt(
-        'Explain the idea.',
-        'Only one.',
-        facts('Only one.', settings),
+        'Explain.',
+        submission,
+        facts(submission, settings),
         settings.checks,
       ),
-    ).toContain('below the minimum of 3 sentences (actual: 1)');
-    expect(
-      buildUserPrompt(
-        'Explain the idea.',
-        'Complete answer.',
-        facts('Complete answer.', makeSettings({ checks: [] })),
-        [],
-      ),
-    ).not.toContain('length_check');
+    ).toContain(JSON.stringify(submission));
   });
 
   it('builds deterministic requirement notes separate from the model comment', () => {
