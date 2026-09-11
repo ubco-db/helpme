@@ -6,7 +6,7 @@ module.exports = {
       name: 'helpme-backend',
       script: 'yarn',
       args: 'workspace @koh/server prod:start',
-      max_memory_restart: '1GB', // Restarts the app if it exceeds 1 Gigabyte of memory
+      max_memory_restart: '1G', // Restarts the app if it exceeds 1 Gigabyte of memory
       time: true, // automatically prepend timestamps to every log line
       log_date_format: "YYYY-MM-DD HH:mm:ss",
       env: {
@@ -18,7 +18,7 @@ module.exports = {
       name: 'helpme-frontend',
       script: 'yarn',
       args: 'workspace @koh/frontend start',
-      max_memory_restart: '1GB', 
+      max_memory_restart: '1G', 
       time: true,
       log_date_format: "YYYY-MM-DD HH:mm:ss",
       env: {
