@@ -1,7 +1,6 @@
 import { AuthModule } from 'auth/auth.module';
 import { setupIntegrationTest } from './util/testUtils';
 import { JwtService } from '@nestjs/jwt';
-import { APP_AUTH_KIND } from '../src/login/auth-token';
 import {
   AuthStateFactory,
   CourseFactory,
@@ -803,7 +802,6 @@ describe('Auth Integration', () => {
       }).save();
 
       const token = jwtService.sign({
-        kind: APP_AUTH_KIND,
         userId: user.id,
       });
       const res = await supertest()

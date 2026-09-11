@@ -4,9 +4,9 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-import { getAppAuthPayload } from './auth-token';
+import { getAuthPayload } from './auth-token';
 
-// A broken app cookie (expired, bad signature, or wrong kind) must not shadow a fresh LTI session cookie; the
+// A broken app cookie (expired or bad signature) must not shadow a fresh LTI session cookie; the
 // app cookie is fully verified before selection, and the selected token is verified again by the strategy.
 function selectAuthCookie(
   req: Request,
@@ -19,7 +19,7 @@ function selectAuthCookie(
   }
 
   try {
-    getAppAuthPayload(jwtService.verify(appToken));
+    getAuthPayload(jwtService.verify(appToken));
     return appToken;
   } catch {
     return ltiToken;
@@ -37,6 +37,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: unknown): Record<string, unknown> {
-    return getAppAuthPayload(payload);
+    return getAuthPayload(payload);
   }
 }

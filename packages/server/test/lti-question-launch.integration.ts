@@ -13,7 +13,7 @@ import { EmbeddableQuestionModel } from '../src/lti/embeddable/question/embeddab
 import { UserCourseModel } from '../src/profile/user-course.entity';
 import { LTI_APP_SESSION_SECONDS } from '../src/lti/lti-auth.controller';
 import { LTI_MEMBERSHIP_LEARNER_ROLE } from '../src/lti/lti.service';
-import { getAppAuthPayload } from '../src/login/auth-token';
+import { getAuthPayload } from '../src/login/auth-token';
 
 const gradingSettings = (rubric: string) => ({
   rubric,
@@ -130,7 +130,7 @@ describe('LTI question launch', () => {
     const rawJwtToken: unknown = getTestModule()
       .get<JwtService>(JwtService)
       .verify(encodedToken);
-    const payload = getAppAuthPayload(rawJwtToken);
+    const payload = getAuthPayload(rawJwtToken);
     expect(payload.userId).toBe(user.id);
     const { iat, exp } = payload;
     if (typeof iat !== 'number' || typeof exp !== 'number') {

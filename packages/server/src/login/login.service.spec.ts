@@ -21,7 +21,6 @@ import {
   UserFactory,
 } from '../../test/util/factories';
 import { LoginService } from './login.service';
-import { LOGIN_ENTRY_KIND } from './auth-token';
 import { EmbeddableQuestionService } from '../lti/embeddable/question/embeddable-question.service';
 import { ERROR_MESSAGES, QUERY_PARAMS } from '@koh/common';
 import { Request } from 'express';
@@ -112,10 +111,7 @@ describe('LoginService', () => {
       const user = await UserFactory.create();
       const res = new MockResponse() as any;
 
-      const token = jwtService.sign({
-        kind: LOGIN_ENTRY_KIND,
-        userId: user.id,
-      });
+      const token = jwtService.sign({ userId: user.id });
       const spy = jest.spyOn(service, 'enter');
       spy.mockResolvedValue(undefined);
 

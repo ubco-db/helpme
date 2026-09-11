@@ -21,7 +21,6 @@ import { CourseService } from 'course/course.service';
 import { minutes, Throttle } from '@nestjs/throttler';
 import { LtiService } from '../lti/lti.service';
 import { LoginService } from './login.service';
-import { LOGIN_ENTRY_KIND } from './auth-token';
 
 // Only 7 attempts per minute
 @Throttle({ default: { limit: 7, ttl: minutes(1) } })
@@ -90,7 +89,7 @@ export class LoginController {
     }
 
     const token = await this.jwtService.signAsync(
-      { kind: LOGIN_ENTRY_KIND, userId: user.id },
+      { userId: user.id },
       { expiresIn: 60 },
     );
 

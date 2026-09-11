@@ -22,11 +22,7 @@ import {
 } from '../src/lti/lti-auth.controller';
 import { UserCourseModel } from '../src/profile/user-course.entity';
 import { UserLtiIdentityModel } from '../src/lti/user_lti_identity.entity';
-import {
-  APP_AUTH_KIND,
-  getAppAuthPayload,
-  LOGIN_ENTRY_KIND,
-} from '../src/login/auth-token';
+import { getAuthPayload } from '../src/login/auth-token';
 
 jest.mock('google-auth-library', () => ({
   OAuth2Client: jest.fn().mockImplementation(
@@ -68,13 +64,10 @@ describe('LTI Auth Integration', () => {
   });
 
   describe('POST /lti/auth/entry', () => {
-    it('exchanges a login-entry token for the normal five-hour LTI session', async () => {
+    it('exchanges a temporary login token for the normal five-hour LTI session', async () => {
       const user = await UserFactory.create();
       await UserCourseFactory.create({ user });
-      const token = await jwtService.signAsync({
-        kind: LOGIN_ENTRY_KIND,
-        userId: user.id,
-      });
+      const token = await jwtService.signAsync({ userId: user.id });
 
       const res = await supertest()
         .get(`/lti/auth/entry?token=${token}`)
@@ -90,10 +83,9 @@ describe('LTI Auth Integration', () => {
       expect(name).toEqual('lti_auth_token');
 
       const rawJwtToken: unknown = jwtService.verify(value);
-      const jwtToken = getAppAuthPayload(rawJwtToken);
+      const jwtToken = getAuthPayload(rawJwtToken);
       expect(jwtToken).toEqual(
         expect.objectContaining({
-          kind: APP_AUTH_KIND,
           userId: user.id,
           restrictPaths,
         }),
@@ -113,12 +105,9 @@ describe('LTI Auth Integration', () => {
       expect(flags).toContain('SameSite=Lax');
     });
 
-    it('rejects an invalid login-entry token', async () => {
+    it('rejects an invalid temporary login token', async () => {
       const user = await UserFactory.create();
-      const token = await jwtService.signAsync({
-        kind: LOGIN_ENTRY_KIND,
-        userId: user.id,
-      });
+      const token = await jwtService.signAsync({ userId: user.id });
 
       const spy = jest.spyOn(JwtService.prototype, 'verifyAsync');
       spy.mockResolvedValue(null);

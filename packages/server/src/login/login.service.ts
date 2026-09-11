@@ -12,7 +12,7 @@ import { ERROR_MESSAGES } from '@koh/common';
 import { CookieOptions, Request, Response } from 'express';
 import { getCookie } from '../common/helpers';
 import { ProfInviteService } from 'course/prof-invite/prof-invite.service';
-import { APP_AUTH_KIND, getLoginEntryUserId } from './auth-token';
+import { getAuthPayload } from './auth-token';
 
 export type LoginEntryOptions = {
   cookieName?: string;
@@ -47,7 +47,7 @@ export class LoginService {
       throw new UnauthorizedException();
     }
 
-    const userId = getLoginEntryUserId(payload);
+    const { userId } = getAuthPayload(payload);
     await this.enter(req, res, userId, courseService, ltiService, options);
   }
 
@@ -298,7 +298,6 @@ export class LoginService {
   ) {
     const authToken = await this.jwtService.signAsync(
       {
-        kind: APP_AUTH_KIND,
         userId,
         restrictPaths,
       },
