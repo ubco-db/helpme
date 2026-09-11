@@ -30,6 +30,7 @@ export interface LMSQuizDocumentListProps {
   documents: LMSQuiz[]
   loadingLMSData?: boolean
   lmsSynchronize?: boolean
+  lmsApiPlatformName: string
   onUpdateCallback?: () => void
   selectedResourceTypes?: LMSResourceType[]
 }
@@ -44,7 +45,7 @@ const accessLevelLabels = {
 
 const accessLevelDescriptions = {
   [LMSQuizAccessLevel.LOGISTICS_ONLY]:
-    'Only quiz title, due dates, time limits, and availability dates',
+    'Only quiz title, description, due dates, time limits, and availability dates',
   [LMSQuizAccessLevel.LOGISTICS_AND_QUESTIONS]:
     'Logistics + all question text (no answers)',
   [LMSQuizAccessLevel.LOGISTICS_QUESTIONS_GENERAL_COMMENTS]:
@@ -58,6 +59,7 @@ export default function LMSQuizDocumentList({
   documents,
   loadingLMSData = false,
   lmsSynchronize,
+  lmsApiPlatformName,
   onUpdateCallback = () => undefined,
   selectedResourceTypes = [LMSResourceType.QUIZZES],
 }: LMSQuizDocumentListProps) {
@@ -228,6 +230,14 @@ export default function LMSQuizDocumentList({
 
   return (
     <div className="flex flex-col gap-4">
+      <p className="text-zinc-500">
+        Note: {lmsApiPlatformName} Quizzes and Assignments are likely treated as
+        the same, and will thus appear under both Course Assignments and Course
+        Quizzes. To avoid synchronizing duplicate info, only enable
+        synchronization for one and not the other. Note that unlike Assignments,
+        Quizzes also have the option to synchronize their questions and answers
+        by changing their Access Level below.
+      </p>
       {/* Search and Controls */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <Input
