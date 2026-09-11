@@ -16,7 +16,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { Chromiumly } from 'chromiumly';
 import helmet from 'helmet';
 import LtiMiddleware from './lti/lti.middleware';
-import { format as utilFormat } from 'util';
+import { formatWithOptions } from 'util'; // default depth for stringifying is 2. I set it to 3
 
 class CustomLogger extends ConsoleLogger {
   // remove the timestamp on each message since pm2 already has a timestamp
@@ -28,9 +28,12 @@ class CustomLogger extends ConsoleLogger {
 
 export async function bootstrap(hot: any): Promise<void> {
   const logger = new CustomLogger('System');
-  console.log = (...args) => logger.log(utilFormat(...args));
-  console.error = (...args) => logger.error(utilFormat(...args));
-  console.warn = (...args) => logger.warn(utilFormat(...args));
+  console.log = (...args) =>
+    logger.log(formatWithOptions({ depth: 3 }, ...args));
+  console.error = (...args) =>
+    logger.error(formatWithOptions({ depth: 3 }, ...args));
+  console.warn = (...args) =>
+    logger.warn(formatWithOptions({ depth: 3 }, ...args));
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: new CustomLogger('', {
