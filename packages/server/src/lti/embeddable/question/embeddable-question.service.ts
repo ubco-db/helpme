@@ -11,13 +11,11 @@ import {
   ERROR_MESSAGES,
   GradingEvaluation,
   questionGradingSettingsSchema,
-  QuizContext,
   StudentEmbeddableQuestion,
   UpsertEmbeddableQuestionParams,
 } from '@koh/common';
 import { EmbeddableQuestionModel } from './embeddable-question.entity';
 import { EmbeddableQuestionFeedbackModel } from './embeddable-question-feedback.entity';
-import { EmbeddableQuizModel } from '../quiz/embeddable-quiz.entity';
 import { QuestionGradingService } from './question-grading.service';
 
 @Injectable()
@@ -38,7 +36,6 @@ export class EmbeddableQuestionService {
     userId: number;
   }): Promise<EmbeddableQuestionFeedback> {
     const question = await this.findOne(courseId, questionId);
-    const quizContext = await this.getQuizContext(question);
 
     let evaluation: GradingEvaluation;
     try {
@@ -46,7 +43,6 @@ export class EmbeddableQuestionService {
         courseId,
         questionText: question.questionText,
         gradingSettings: question.gradingSettings,
-        quizContext,
         submission,
       });
     } catch {
@@ -112,10 +108,6 @@ export class EmbeddableQuestionService {
     if (!parsed.success) {
       throw new BadRequestException('gradingSettings is invalid.');
     }
-    const quiz =
-      params.quizId === null
-        ? null
-        : await this.findQuiz(courseId, params.quizId);
     const question =
       questionId === undefined
         ? EmbeddableQuestionModel.create({ courseId })
@@ -124,8 +116,6 @@ export class EmbeddableQuestionService {
     EmbeddableQuestionModel.merge(question, {
       title: params.title,
       questionText: params.questionText,
-      quizId: params.quizId,
-      quiz,
       gradingSettings: parsed.data,
     });
     return question.save();
@@ -153,34 +143,6 @@ export class EmbeddableQuestionService {
       id: question.id,
       courseId: question.courseId,
       questionText: question.questionText,
-    };
-  }
-
-  private async findQuiz(
-    courseId: number,
-    quizId: number,
-  ): Promise<EmbeddableQuizModel> {
-    const quiz = await EmbeddableQuizModel.findOne({
-      where: { id: quizId, courseId },
-    });
-    if (!quiz) {
-      throw new BadRequestException(
-        'The selected quiz does not belong to this course.',
-      );
-    }
-    return quiz;
-  }
-
-  private async getQuizContext(
-    question: EmbeddableQuestionModel,
-  ): Promise<QuizContext | null> {
-    if (question.quizId === null) return null;
-    const quiz = await this.findQuiz(question.courseId, question.quizId);
-    return {
-      id: quiz.id,
-      title: quiz.title,
-      objective: quiz.objective,
-      background: quiz.background,
     };
   }
 }

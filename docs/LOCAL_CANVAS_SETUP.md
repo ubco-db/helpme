@@ -185,7 +185,7 @@ A missing client ID blocks launches. A mismatched client ID returns `403`.
 
 1. Map the local Canvas course to a HelpMe course through HelpMe's LMS integration settings.
 2. Link the Canvas instructor identity to a HelpMe account with staff access to that course through the normal Canvas app launch.
-3. Configure the chatbot connection for the course. Create an embeddable question in HelpMe and set its grading settings (rubric, score scale, automatic checks); a quiz grouping is optional.
+3. Configure the chatbot connection for the course. Create an embeddable question in HelpMe and set its grading settings (rubric, score scale, automatic checks).
 4. Open the Canvas content editor. Use the HelpMe editor button to select and insert the question.
 5. Save the content. Open it with a local student account and submit a response.
 

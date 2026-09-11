@@ -5,7 +5,6 @@ import {
   type GradingEvaluation,
   type GradingSnapshot,
   type QuestionGradingSettings,
-  type QuizContext,
 } from '@koh/common';
 import { ChatbotApiService } from '../../../chatbot/chatbot-api.service';
 import { computeMechanicalFacts } from './deterministic-checks';
@@ -25,13 +24,11 @@ export class QuestionGradingService {
     courseId,
     questionText,
     gradingSettings,
-    quizContext = null,
     submission,
   }: {
     courseId: number;
     questionText: string;
     gradingSettings: QuestionGradingSettings;
-    quizContext?: QuizContext | null;
     submission: string;
   }): Promise<GradingEvaluation> {
     // The one grading-path validation of the settings, before anything is
@@ -45,7 +42,6 @@ export class QuestionGradingService {
       version: 1,
       questionText,
       gradingSettings: parsed.data,
-      quizContext,
     });
     const settings = snapshot.gradingSettings;
     const facts = computeMechanicalFacts(submission, settings.checks);
@@ -69,11 +65,7 @@ export class QuestionGradingService {
     }
 
     const effectiveCap = effectiveScoreCap(facts.triggeredChecks);
-    const systemPrompt = buildSystemPrompt(
-      settings,
-      effectiveCap,
-      snapshot.quizContext,
-    );
+    const systemPrompt = buildSystemPrompt(settings, effectiveCap);
     const userPrompt = buildUserPrompt(
       snapshot.questionText,
       submission,

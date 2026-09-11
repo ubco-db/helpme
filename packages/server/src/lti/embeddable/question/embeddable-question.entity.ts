@@ -9,7 +9,6 @@ import {
 } from 'typeorm';
 import { CourseModel } from '../../../course/course.entity';
 import { Exclude } from 'class-transformer';
-import { EmbeddableQuizModel } from '../quiz/embeddable-quiz.entity';
 import { QuestionGradingSettings } from '@koh/common';
 
 @Entity('embeddable_question_model')
@@ -33,16 +32,6 @@ export class EmbeddableQuestionModel extends BaseEntity {
 
   @Column({ type: 'text', nullable: false })
   questionText: string;
-
-  @Column({ type: 'integer', nullable: true })
-  quizId: number | null;
-
-  @ManyToOne(() => EmbeddableQuizModel, {
-    nullable: true,
-    onDelete: 'RESTRICT',
-  })
-  @JoinColumn({ name: 'quizId' })
-  quiz: EmbeddableQuizModel | null;
 
   @Column({ type: 'jsonb', nullable: false })
   gradingSettings: QuestionGradingSettings;

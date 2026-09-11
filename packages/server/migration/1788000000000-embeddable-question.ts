@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 // Single migration for the embeddable assessment feature. It creates the
-// final schema directly (quiz, question, feedback with durable submission
+// final schema directly (question, feedback with durable submission
 // history, reasons, review flag, and grading snapshot); this branch has not
 // been deployed, so no legacy tables or backfills exist.
 export class EmbeddableQuestion1788000000000 implements MigrationInterface {
@@ -9,23 +9,14 @@ export class EmbeddableQuestion1788000000000 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "embeddable_quiz_model" ("id" SERIAL NOT NULL, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "courseId" integer NOT NULL, "title" text NOT NULL, "objective" text NOT NULL DEFAULT '', "background" text NOT NULL DEFAULT '', CONSTRAINT "PK_79f06a4ebfe21f33c3771c0d1f2" PRIMARY KEY ("id"))`,
-    );
-    await queryRunner.query(
-      `CREATE TABLE "embeddable_question_model" ("id" SERIAL NOT NULL, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "courseId" integer NOT NULL, "title" text NOT NULL, "questionText" text NOT NULL, "quizId" integer, "gradingSettings" jsonb NOT NULL, CONSTRAINT "PK_7221480303ac557d4312f9f7e55" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "embeddable_question_model" ("id" SERIAL NOT NULL, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "courseId" integer NOT NULL, "title" text NOT NULL, "questionText" text NOT NULL, "gradingSettings" jsonb NOT NULL, CONSTRAINT "PK_7221480303ac557d4312f9f7e55" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "embeddable_question_feedback_model" ("id" SERIAL NOT NULL, "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "courseId" integer NOT NULL, "questionId" integer NOT NULL, "userId" integer NOT NULL, "submission" text NOT NULL, "aiFeedback" text NOT NULL, "aiGrade" double precision NOT NULL, "appliedRequirements" text array NOT NULL DEFAULT '{}', "aiModel" text, "maxScore" double precision, "gradingSnapshot" jsonb, "reasons" text array NOT NULL DEFAULT '{}', "needsHumanReview" boolean NOT NULL DEFAULT false, CONSTRAINT "PK_44f928f5436a18d1c85c1152ad9" PRIMARY KEY ("id"))`,
     );
 
     await queryRunner.query(
-      `ALTER TABLE "embeddable_quiz_model" ADD CONSTRAINT "FK_5e3cd4db046d9d89b4e5afa7c8a" FOREIGN KEY ("courseId") REFERENCES "course_model"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
-    );
-    await queryRunner.query(
       `ALTER TABLE "embeddable_question_model" ADD CONSTRAINT "FK_79ca48befc343d6f6957ea87376" FOREIGN KEY ("courseId") REFERENCES "course_model"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "embeddable_question_model" ADD CONSTRAINT "FK_dca43fcf1384917e91013775f0c" FOREIGN KEY ("quizId") REFERENCES "embeddable_quiz_model"("id") ON DELETE RESTRICT ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "embeddable_question_feedback_model" ADD CONSTRAINT "FK_21ce283653acf7fe839e4b5a298" FOREIGN KEY ("courseId") REFERENCES "course_model"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
@@ -49,16 +40,9 @@ export class EmbeddableQuestion1788000000000 implements MigrationInterface {
       `ALTER TABLE "embeddable_question_feedback_model" DROP CONSTRAINT "FK_21ce283653acf7fe839e4b5a298"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "embeddable_question_model" DROP CONSTRAINT "FK_dca43fcf1384917e91013775f0c"`,
-    );
-    await queryRunner.query(
       `ALTER TABLE "embeddable_question_model" DROP CONSTRAINT "FK_79ca48befc343d6f6957ea87376"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "embeddable_quiz_model" DROP CONSTRAINT "FK_5e3cd4db046d9d89b4e5afa7c8a"`,
     );
     await queryRunner.query(`DROP TABLE "embeddable_question_feedback_model"`);
     await queryRunner.query(`DROP TABLE "embeddable_question_model"`);
-    await queryRunner.query(`DROP TABLE "embeddable_quiz_model"`);
   }
 }

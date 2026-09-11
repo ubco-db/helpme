@@ -2,13 +2,10 @@ import { z } from 'zod'
 import { Transform } from 'class-transformer'
 import {
   IsDefined,
-  IsInt,
   IsNotEmpty,
-  IsPositive,
   IsString,
   MaxLength,
   Validate,
-  ValidateIf,
   ValidationArguments,
   ValidatorConstraint,
   ValidatorConstraintInterface,
@@ -188,11 +185,6 @@ export class UpsertEmbeddableQuestionParams {
   questionText!: string
 
   @IsDefined()
-  @ValidateIf((_, value) => value !== null)
-  @IsInt()
-  @IsPositive()
-  quizId!: number | null
-
   @Validate(QuestionGradingSettingsConstraint)
   gradingSettings!: QuestionGradingSettings
 }
@@ -202,35 +194,6 @@ export type EmbeddableQuestion = UpsertEmbeddableQuestionParams & {
   courseId: number
   createdAt: string
 }
-
-export class UpsertEmbeddableQuizParams {
-  @Transform(trimmed)
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(255)
-  title!: string
-
-  @Transform(trimmed)
-  @IsString()
-  @MaxLength(15000)
-  objective!: string
-
-  @Transform(trimmed)
-  @IsString()
-  @MaxLength(15000)
-  background!: string
-}
-
-export type EmbeddableQuiz = UpsertEmbeddableQuizParams & {
-  id: number
-  courseId: number
-  createdAt: string
-}
-
-export type QuizContext = Pick<
-  EmbeddableQuiz,
-  'id' | 'title' | 'objective' | 'background'
->
 
 export type StudentEmbeddableQuestion = Pick<
   EmbeddableQuestion,
@@ -256,7 +219,6 @@ export interface GradingSnapshot {
   version: 1
   questionText: string
   gradingSettings: QuestionGradingSettings
-  quizContext: QuizContext | null
 }
 
 export type GradingEvaluation = EmbeddableQuestionFeedback & {

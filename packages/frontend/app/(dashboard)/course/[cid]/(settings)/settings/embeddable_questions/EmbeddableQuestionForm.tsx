@@ -18,7 +18,6 @@ import {
 import { DeleteOutlined } from '@ant-design/icons'
 import type {
   EmbeddableQuestion,
-  EmbeddableQuiz,
   GradingCheck,
   QuestionGradingSettings,
   ScoreScale,
@@ -34,12 +33,9 @@ import { getErrorMessage } from '@/app/utils/generalUtils'
 
 interface EmbeddableQuestionFormProps {
   courseId: number
-  quizzes: EmbeddableQuiz[]
   open: boolean
   setOpen: (open: boolean) => void
   editingQuestion?: EmbeddableQuestion
-  /** Preselects the quiz so questions can be added from within a quiz. */
-  initialQuizId?: number | null
   onSaveCallback: () => void
 }
 
@@ -377,11 +373,9 @@ function GradingSettingsEditor({
 
 export default function EmbeddableQuestionForm({
   courseId,
-  quizzes,
   open,
   setOpen,
   editingQuestion,
-  initialQuizId,
   onSaveCallback,
 }: EmbeddableQuestionFormProps): ReactElement {
   const [form] = Form.useForm<UpsertEmbeddableQuestionParams>()
@@ -394,17 +388,15 @@ export default function EmbeddableQuestionForm({
         ? {
             title: editingQuestion.title,
             questionText: editingQuestion.questionText,
-            quizId: editingQuestion.quizId,
             gradingSettings: editingQuestion.gradingSettings,
           }
         : {
             title: '',
             questionText: '',
-            quizId: initialQuizId ?? null,
             gradingSettings: structuredClone(defaultGradingSettings),
           },
     )
-  }, [editingQuestion, form, initialQuizId, open])
+  }, [editingQuestion, form, open])
 
   const handleSave = async (values: UpsertEmbeddableQuestionParams) => {
     if (isLoading) return
@@ -457,22 +449,6 @@ export default function EmbeddableQuestionForm({
         ]}
       >
         <Input maxLength={255} placeholder="e.g. Explain the main argument" />
-      </Form.Item>
-
-      <Form.Item
-        name="quizId"
-        label="Quiz"
-        getValueFromEvent={(value: number | null | undefined) => value ?? null}
-        extra="Optional. A quiz supplies shared objective and background to its questions."
-      >
-        <Select
-          allowClear
-          placeholder="No quiz"
-          options={quizzes.map((quiz) => ({
-            value: quiz.id,
-            label: quiz.title,
-          }))}
-        />
       </Form.Item>
 
       <Form.Item

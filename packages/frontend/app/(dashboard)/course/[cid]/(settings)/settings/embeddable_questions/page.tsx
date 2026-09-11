@@ -1,11 +1,10 @@
 'use client'
 
-import { use, useMemo, useState, type ReactElement } from 'react'
+import { use, useState, type ReactElement } from 'react'
 import {
   Button,
   Card,
   Popconfirm,
-  Select,
   Space,
   Table,
   Tag,
@@ -20,17 +19,14 @@ import {
   PlusOutlined,
 } from '@ant-design/icons'
 import useSWR from 'swr'
-import type { EmbeddableQuestion, EmbeddableQuiz } from '@koh/common'
+import type { EmbeddableQuestion } from '@koh/common'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 import EmbeddableQuestionForm from './EmbeddableQuestionForm'
-import EmbeddableQuizForm from './EmbeddableQuizForm'
 
 interface EmbeddableQuestionsPageProps {
   params: Promise<{ cid: string }>
 }
-
-type QuizFilter = number | 'unassigned' | undefined
 
 const checkLabels: Record<
   EmbeddableQuestion['gradingSettings']['checks'][number]['kind'],
@@ -47,11 +43,7 @@ export default function EmbeddableQuestionsPage(
   const params = use(props.params)
   const courseId = Number(params.cid)
   const [questionModalOpen, setQuestionModalOpen] = useState(false)
-  const [quizModalOpen, setQuizModalOpen] = useState(false)
   const [editingQuestion, setEditingQuestion] = useState<EmbeddableQuestion>()
-  const [editingQuiz, setEditingQuiz] = useState<EmbeddableQuiz>()
-  const [initialQuizId, setInitialQuizId] = useState<number | undefined>()
-  const [quizFilter, setQuizFilter] = useState<QuizFilter>()
 
   // SWR owns the fetched data and loading state; saves and deletes just
   // revalidate it.
@@ -61,11 +53,7 @@ export default function EmbeddableQuestionsPage(
     mutate: refetch,
   } = useSWR(
     `lti/embeddable-questions/${courseId}`,
-    () =>
-      Promise.all([
-        API.lti.embeddableQuestion.getAll(courseId),
-        API.lti.embeddableQuiz.getAll(courseId),
-      ]),
+    () => API.lti.embeddableQuestion.getAll(courseId),
     {
       onError: (err) =>
         message.error(
@@ -73,25 +61,7 @@ export default function EmbeddableQuestionsPage(
         ),
     },
   )
-  const questions = useMemo(() => data?.[0] ?? [], [data])
-  const quizzes = useMemo(() => data?.[1] ?? [], [data])
-
-  const quizNames = useMemo(
-    () => new Map(quizzes.map((quiz) => [quiz.id, quiz.title])),
-    [quizzes],
-  )
-
-  const filteredQuestions = useMemo(
-    () =>
-      questions.filter((question) =>
-        quizFilter === undefined
-          ? true
-          : quizFilter === 'unassigned'
-            ? question.quizId === null
-            : question.quizId === quizFilter,
-      ),
-    [questions, quizFilter],
-  )
+  const questions = data ?? []
 
   const deleteQuestion = async (question: EmbeddableQuestion) => {
     try {
@@ -109,7 +79,6 @@ export default function EmbeddableQuestionsPage(
         // Truncate the original title so the " (copy)" suffix fits 255 chars.
         title: `${(question.title || `Question ${question.id}`).slice(0, 248)} (copy)`,
         questionText: question.questionText,
-        quizId: question.quizId,
         gradingSettings: structuredClone(question.gradingSettings),
       })
       message.success(
@@ -121,19 +90,8 @@ export default function EmbeddableQuestionsPage(
     }
   }
 
-  const deleteQuiz = async (quiz: EmbeddableQuiz) => {
-    try {
-      await API.lti.embeddableQuiz.delete(courseId, quiz.id)
-      message.success('Quiz deleted.')
-      void refetch()
-    } catch (err) {
-      message.error(`Failed to delete quiz: ${getErrorMessage(err)}`)
-    }
-  }
-
-  const openQuestionForm = (question?: EmbeddableQuestion, quizId?: number) => {
+  const openQuestionForm = (question?: EmbeddableQuestion) => {
     setEditingQuestion(question)
-    setInitialQuizId(quizId)
     setQuestionModalOpen(true)
   }
 
@@ -148,18 +106,6 @@ export default function EmbeddableQuestionsPage(
           {title || `Question ${question.id}`}
         </span>
       ),
-    },
-    {
-      title: 'Quiz',
-      dataIndex: 'quizId',
-      key: 'quizId',
-      width: 170,
-      render: (quizId: number | null) =>
-        quizId === null ? (
-          <span className="text-gray-400">Unassigned</span>
-        ) : (
-          (quizNames.get(quizId) ?? `Quiz ${quizId}`)
-        ),
     },
     {
       title: 'Question text',
@@ -237,155 +183,42 @@ export default function EmbeddableQuestionsPage(
     },
   ]
 
-  const quizColumns: TableColumnsType<EmbeddableQuiz> = [
-    {
-      title: 'Quiz title',
-      dataIndex: 'title',
-      key: 'title',
-      width: 220,
-    },
-    {
-      title: 'Objective',
-      dataIndex: 'objective',
-      key: 'objective',
-      ellipsis: true,
-      render: (objective: string) =>
-        objective || <span className="text-gray-400">—</span>,
-    },
-    {
-      title: 'Questions',
-      key: 'questions',
-      width: 100,
-      render: (_: unknown, quiz) =>
-        questions.filter((question) => question.quizId === quiz.id).length,
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      width: 160,
-      render: (_: unknown, quiz) => (
-        <Space size="small">
-          <Button
-            icon={<PlusOutlined />}
-            size="small"
-            aria-label={`Add question to ${quiz.title}`}
-            onClick={() => openQuestionForm(undefined, quiz.id)}
-          >
-            Add question
-          </Button>
-          <Button
-            icon={<EditOutlined />}
-            size="small"
-            aria-label={`Edit ${quiz.title}`}
-            onClick={() => {
-              setEditingQuiz(quiz)
-              setQuizModalOpen(true)
-            }}
-          />
-          <Popconfirm
-            title="Delete this quiz?"
-            description="Move or unassign its questions first; a quiz with linked questions cannot be deleted."
-            onConfirm={() => deleteQuiz(quiz)}
-            okText="Delete"
-            okButtonProps={{ danger: true }}
-          >
-            <Button
-              icon={<DeleteOutlined />}
-              size="small"
-              danger
-              aria-label={`Delete ${quiz.title}`}
-            />
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ]
-
   return (
     <Card
       title="Feedback Questions"
       classNames={{ body: 'p-1 md:p-6' }}
       extra={
-        <Space wrap>
-          <Button
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingQuiz(undefined)
-              setQuizModalOpen(true)
-            }}
-          >
-            Create Quiz
-          </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => openQuestionForm()}
-          >
-            Create Question
-          </Button>
-        </Space>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => openQuestionForm()}
+        >
+          Create Question
+        </Button>
       }
     >
       <p className="mb-4 text-gray-600">
-        A quiz provides optional shared objective and background. Each question
-        has its own main grading prompt, feedback instructions, score scale, and
-        optional answer requirements.
+        Each question has its own main grading prompt, feedback instructions,
+        score scale, and optional answer requirements.
       </p>
 
-      <Card title="Quizzes" size="small" className="mb-4">
-        <Table
-          dataSource={quizzes}
-          columns={quizColumns}
-          rowKey="id"
-          loading={isLoading}
-          pagination={false}
-          locale={{
-            emptyText:
-              'No quizzes yet. Create one when questions share context.',
-          }}
-        />
-      </Card>
-
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="mb-0 text-lg font-semibold">Questions</h2>
-        <Select<QuizFilter>
-          allowClear
-          value={quizFilter}
-          onChange={(value) => setQuizFilter(value)}
-          placeholder="Filter by quiz"
-          options={[
-            { value: 'unassigned', label: 'Unassigned questions' },
-            ...quizzes.map((quiz) => ({ value: quiz.id, label: quiz.title })),
-          ]}
-          className="min-w-52"
-        />
-      </div>
       <Table
-        dataSource={filteredQuestions}
+        dataSource={questions}
         columns={questionColumns}
         rowKey="id"
         loading={isLoading}
         pagination={false}
         locale={{
           emptyText:
-            'No questions match this filter. Create a question to start collecting feedback.',
+            'No questions yet. Create a question to start collecting feedback.',
         }}
       />
 
-      <EmbeddableQuizForm
-        courseId={courseId}
-        open={quizModalOpen}
-        setOpen={setQuizModalOpen}
-        editingQuiz={editingQuiz}
-        onSaveCallback={() => void refetch()}
-      />
       <EmbeddableQuestionForm
         courseId={courseId}
-        quizzes={quizzes}
         open={questionModalOpen}
         setOpen={setQuestionModalOpen}
         editingQuestion={editingQuestion}
-        initialQuizId={initialQuizId}
         onSaveCallback={() => void refetch()}
       />
     </Card>

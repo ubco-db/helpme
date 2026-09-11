@@ -12,7 +12,6 @@ import {
 } from '@koh/common';
 import { EmbeddableQuestionModel } from '../src/lti/embeddable/question/embeddable-question.entity';
 import { EmbeddableQuestionFeedbackModel } from '../src/lti/embeddable/question/embeddable-question-feedback.entity';
-import { EmbeddableQuizModel } from '../src/lti/embeddable/quiz/embeddable-quiz.entity';
 import { QuestionGradingService } from '../src/lti/embeddable/question/question-grading.service';
 import { GradingConstraintError } from '../src/lti/embeddable/question/grading';
 
@@ -39,7 +38,7 @@ describe('Embeddable question grading', () => {
     scoreScale: { kind: 'range', max: 10, step: 0.5 },
   });
 
-  it('lets staff create a mixed-scale question with question-owned grading settings', async () => {
+  it('lets staff create a question with question-owned grading settings', async () => {
     const { user, course } = await setupCourseMember(Role.PROFESSOR);
     const gradingSettings = settings('Award points for a correct explanation.');
 
@@ -48,7 +47,6 @@ describe('Embeddable question grading', () => {
       .send({
         title: 'Explain the concept',
         questionText: 'Explain the concept in your own words.',
-        quizId: null,
         gradingSettings,
       })
       .expect(201);
@@ -57,7 +55,6 @@ describe('Embeddable question grading', () => {
       expect.objectContaining({
         title: 'Explain the concept',
         questionText: 'Explain the concept in your own words.',
-        quizId: null,
         gradingSettings,
       }),
     );
@@ -76,7 +73,6 @@ describe('Embeddable question grading', () => {
       .send({
         title: 'Bad cap',
         questionText: 'This must be rejected.',
-        quizId: null,
         gradingSettings: {
           ...settings('Grade the answer.'),
           checks: [{ kind: 'minimum_sentences', minimum: 3, scoreCap: 7.25 }],
@@ -89,7 +85,6 @@ describe('Embeddable question grading', () => {
       .send({
         title: 'Duplicate checks',
         questionText: 'This must be rejected.',
-        quizId: null,
         gradingSettings: {
           ...settings('Grade the answer.'),
           checks: [
@@ -107,7 +102,6 @@ describe('Embeddable question grading', () => {
       courseId: course.id,
       title: 'Evidence question',
       questionText: 'What evidence supports the claim?',
-      quizId: null,
       gradingSettings: settings('Use evidence from the source.'),
     }).save();
 
@@ -124,41 +118,13 @@ describe('Embeddable question grading', () => {
     expect(response.body).not.toHaveProperty('rubric');
   });
 
-  it('rejects assigning a question to a quiz from another course', async () => {
-    const { user, course } = await setupCourseMember(Role.PROFESSOR);
-    const otherCourse = await CourseFactory.create();
-    const otherQuiz = await EmbeddableQuizModel.create({
-      courseId: otherCourse.id,
-      title: 'Other course quiz',
-      objective: 'Test another objective.',
-      background: '',
-    }).save();
-
-    await supertest({ userId: user.id })
-      .post(`/lti/embeddable-question/${course.id}`)
-      .send({
-        title: 'Cross-course question',
-        questionText: 'This must be rejected.',
-        quizId: otherQuiz.id,
-        gradingSettings: settings('Use the supplied evidence.'),
-      })
-      .expect(400);
-  });
-
-  it('passes quiz context to grading and preserves the exact grading snapshot after edits', async () => {
+  it('preserves the exact grading snapshot after edits', async () => {
     const { user, course } = await setupCourseMember(Role.STUDENT);
-    const quiz = await EmbeddableQuizModel.create({
-      courseId: course.id,
-      title: 'Evidence quiz',
-      objective: 'Test evidence-based reasoning.',
-      background: 'Use the assigned article as context.',
-    }).save();
     const originalSettings = settings('Award points for relevant evidence.');
     const question = await EmbeddableQuestionModel.create({
       courseId: course.id,
       title: 'Evidence question',
       questionText: 'Which evidence supports the claim?',
-      quizId: quiz.id,
       gradingSettings: originalSettings,
     }).save();
     const submission =
@@ -175,12 +141,6 @@ describe('Embeddable question grading', () => {
         version: 1,
         questionText: question.questionText,
         gradingSettings: originalSettings,
-        quizContext: {
-          id: quiz.id,
-          title: quiz.title,
-          objective: quiz.objective,
-          background: quiz.background,
-        },
       },
     });
 
@@ -203,12 +163,6 @@ describe('Embeddable question grading', () => {
         courseId: course.id,
         questionText: question.questionText,
         submission,
-        quizContext: {
-          id: quiz.id,
-          title: quiz.title,
-          objective: quiz.objective,
-          background: quiz.background,
-        },
       }),
     );
 
@@ -228,22 +182,15 @@ describe('Embeddable question grading', () => {
       version: 1,
       questionText: question.questionText,
       gradingSettings: originalSettings,
-      quizContext: {
-        id: quiz.id,
-        title: quiz.title,
-        objective: quiz.objective,
-        background: quiz.background,
-      },
     });
   });
 
-  it('refuses to delete questions and quizzes that contain grading history or questions', async () => {
+  it('refuses to delete questions that contain grading history', async () => {
     const { user, course } = await setupCourseMember(Role.PROFESSOR);
     const question = await EmbeddableQuestionModel.create({
       courseId: course.id,
       title: 'Protected question',
       questionText: 'Keep this history.',
-      quizId: null,
       gradingSettings: settings('Grade the answer.'),
     }).save();
     await EmbeddableQuestionFeedbackModel.create({
@@ -262,30 +209,10 @@ describe('Embeddable question grading', () => {
     await supertest({ userId: user.id })
       .delete(`/lti/embeddable-question/${course.id}/${question.id}`)
       .expect(409);
-
-    const quiz = await EmbeddableQuizModel.create({
-      courseId: course.id,
-      title: 'Protected quiz',
-      objective: 'Keep its question relationship.',
-      background: '',
-    }).save();
-    question.quizId = quiz.id;
-    question.quiz = quiz;
-    await question.save();
-
-    await supertest({ userId: user.id })
-      .delete(`/lti/embeddable-quiz/${course.id}/${quiz.id}`)
-      .expect(400);
   });
 
   it('duplicates a question through the create endpoint without touching the original', async () => {
     const { user, course } = await setupCourseMember(Role.PROFESSOR);
-    const quiz = await EmbeddableQuizModel.create({
-      courseId: course.id,
-      title: 'Duplication quiz',
-      objective: 'Test duplication independence.',
-      background: '',
-    }).save();
     const originalSettings = settings(
       'Original rubric, used only by the original question.',
     );
@@ -293,7 +220,6 @@ describe('Embeddable question grading', () => {
       courseId: course.id,
       title: 'Original question',
       questionText: 'Answer the prompt in your own words.',
-      quizId: quiz.id,
       gradingSettings: originalSettings,
     }).save();
     await EmbeddableQuestionFeedbackModel.create({
@@ -310,13 +236,12 @@ describe('Embeddable question grading', () => {
     }).save();
 
     // The frontend duplicates via the existing create endpoint, copying only
-    // title/questionText/quizId/settings.
+    // title/questionText/settings.
     const copyResponse = await supertest({ userId: user.id })
       .post(`/lti/embeddable-question/${course.id}`)
       .send({
         title: 'Original question (copy)',
         questionText: 'Answer the prompt in your own words.',
-        quizId: quiz.id,
         gradingSettings: structuredClone(originalSettings),
       })
       .expect(201);
@@ -329,7 +254,6 @@ describe('Embeddable question grading', () => {
       .send({
         title: 'Renamed copy',
         questionText: 'Answer the prompt in your own words.',
-        quizId: quiz.id,
         gradingSettings: copySettings,
       })
       .expect(200);
@@ -364,7 +288,6 @@ describe('Embeddable question grading', () => {
       courseId: course.id,
       title: 'Failing question',
       questionText: 'This evaluation will fail.',
-      quizId: null,
       gradingSettings: settings('Grade the answer.'),
     }).save();
     mockQuestionGradingService.evaluate.mockRejectedValueOnce(
@@ -401,7 +324,6 @@ describe('Embeddable question grading', () => {
       courseId: course.id,
       title: 'Validation question',
       questionText: 'Answer this.',
-      quizId: null,
       gradingSettings: settings('Grade the answer.'),
     }).save();
 
@@ -417,7 +339,6 @@ describe('Embeddable question grading', () => {
       .send({
         title: 'No rubric',
         questionText: 'This must be rejected.',
-        quizId: null,
         gradingSettings: settings('   '),
       })
       .expect(400);
@@ -429,7 +350,6 @@ describe('Embeddable question grading', () => {
       .send({
         title: 'Crossed sentence bounds',
         questionText: 'This must be rejected.',
-        quizId: null,
         gradingSettings: {
           ...settings('Grade the answer.'),
           checks: [

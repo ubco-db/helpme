@@ -1,6 +1,6 @@
 import { ChatbotApiService } from '../../../chatbot/chatbot-api.service';
 import { ConfigService } from '@nestjs/config';
-import type { QuestionGradingSettings, QuizContext } from '@koh/common';
+import type { QuestionGradingSettings } from '@koh/common';
 import { GradingConstraintError } from './grading';
 import { QuestionGradingService } from './question-grading.service';
 
@@ -115,20 +115,12 @@ describe('QuestionGradingService (real chatbot adapter, mocked fetch boundary)',
       }),
     );
     const gradingSettings = settings();
-    const quizContext: QuizContext = {
-      id: 4,
-      title: 'Quiz',
-      objective: 'Original objective.',
-      background: '',
-    };
     const evaluation = service.evaluate({
       ...evaluateArgs,
       gradingSettings,
-      quizContext,
     });
 
     gradingSettings.rubric = 'Mutated rubric.';
-    quizContext.objective = 'Mutated objective.';
     resolveFetch(
       new Response(JSON.stringify(validAnswer(5, 'Okay.')), {
         status: 200,
@@ -142,9 +134,6 @@ describe('QuestionGradingService (real chatbot adapter, mocked fetch boundary)',
     expect(result.model).toBe('test-model');
     expect(result.gradingSnapshot.gradingSettings.rubric).toBe(
       'Award points for an accurate answer.',
-    );
-    expect(result.gradingSnapshot.quizContext?.objective).toBe(
-      'Original objective.',
     );
   });
 });

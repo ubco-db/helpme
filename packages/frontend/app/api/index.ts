@@ -39,11 +39,9 @@ import {
   DesktopNotifPartial,
   EditCourseInfoParams,
   EmbeddableQuestion,
-  EmbeddableQuiz,
   EmbeddableQuestionFeedback,
   StudentEmbeddableQuestion,
   UpsertEmbeddableQuestionParams,
-  UpsertEmbeddableQuizParams,
   AssignmentFeedbackExtractTextResponse,
   AssignmentFeedbackRequest,
   AssignmentFeedbackResponse,
@@ -1897,33 +1895,6 @@ export class APIClient {
           'DELETE',
           `/api/v1/lti/embeddable-question/${courseId}/${questionId}`,
         ),
-    },
-    embeddableQuiz: {
-      create: async (
-        courseId: number,
-        body: UpsertEmbeddableQuizParams,
-      ): Promise<EmbeddableQuiz> =>
-        this.req(
-          'POST',
-          `/api/v1/lti/embeddable-quiz/${courseId}`,
-          undefined,
-          body,
-        ),
-      getAll: async (courseId: number): Promise<EmbeddableQuiz[]> =>
-        this.req('GET', `/api/v1/lti/embeddable-quiz/${courseId}`),
-      update: async (
-        courseId: number,
-        quizId: number,
-        body: UpsertEmbeddableQuizParams,
-      ): Promise<EmbeddableQuiz> =>
-        this.req(
-          'PATCH',
-          `/api/v1/lti/embeddable-quiz/${courseId}/${quizId}`,
-          undefined,
-          body,
-        ),
-      delete: async (courseId: number, quizId: number): Promise<void> =>
-        this.req('DELETE', `/api/v1/lti/embeddable-quiz/${courseId}/${quizId}`),
     },
   }
 }
