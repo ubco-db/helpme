@@ -78,8 +78,8 @@ describe('App and LTI session cookie coexistence', () => {
       .expect(status);
 
   const staleAppToken = (userId: number): string =>
-    // Old pre-branch app cookie: correctly signed but expired and without `kind`
-    jwtService.sign({ userId }, { expiresIn: -60 });
+    // Old pre-branch app cookie: correctly signed and unexpired, but without `kind`
+    jwtService.sign({ userId });
   const expiredAppToken = (userId: number): string =>
     jwtService.sign({ kind: APP_AUTH_KIND, userId }, { expiresIn: -60 });
   // Signed with a different secret, so its signature does not verify
