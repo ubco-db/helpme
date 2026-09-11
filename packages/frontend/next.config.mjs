@@ -10,7 +10,7 @@ const nextConfig = {
     webpackMemoryOptimizations: true,
     webpackBuildWorker: true,
     serverActions: {
-      allowedOrigins: ['localhost:3000', 'helpme.test:3100', 'canvas.docker:3100'],
+      allowedOrigins: ['localhost:3000', 'helpme.test:3100'],
     },
   },
   images: {
