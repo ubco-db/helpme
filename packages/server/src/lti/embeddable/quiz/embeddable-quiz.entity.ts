@@ -6,13 +6,11 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
-  Unique,
 } from 'typeorm';
 import { CourseModel } from '../../../course/course.entity';
 import { Exclude } from 'class-transformer';
 
 @Entity('embeddable_quiz_model')
-@Unique(['id', 'courseId'])
 export class EmbeddableQuizModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;

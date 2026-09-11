@@ -58,12 +58,12 @@ Merge these settings into the existing services in Canvas's `docker-compose.over
 services:
   web:
     ports:
-      - "80:80"
+      - '80:80'
     extra_hosts:
-      - "helpme.test:host-gateway"
+      - 'helpme.test:host-gateway'
   jobs:
     extra_hosts:
-      - "helpme.test:host-gateway"
+      - 'helpme.test:host-gateway'
 ```
 
 Preserve the existing service settings. If `80:80` already exists, do not add it again.
@@ -74,7 +74,7 @@ In Canvas's `config/domain.yml`, set the development address:
 
 ```yaml
 development:
-  domain: "helpme.test"
+  domain: 'helpme.test'
   ssl: false
 ```
 
@@ -186,7 +186,7 @@ See [Canvas platform configuration](LTI_EMBEDDED_QUESTION_AUTH.md#canvas-platfor
 
 1. Map the local Canvas course to a HelpMe course through HelpMe's LMS integration settings.
 2. Link the Canvas instructor identity to a HelpMe account with staff access to that course through the normal Canvas app launch.
-3. Configure the course grading profile and chatbot connection. Create an embeddable question in HelpMe.
+3. Configure the chatbot connection for the course. Create an embeddable question in HelpMe and set its grading settings (rubric, score scale, automatic checks); a quiz grouping is optional.
 4. Open the Canvas content editor. Use the HelpMe editor button to select and insert the question.
 5. Save the content. Open it with a local student account and submit a response.
 
@@ -211,7 +211,7 @@ You do not need to register the app again unless you replace its databases or ch
 - **Timeout from Canvas:** Check the Docker host mapping and local firewall. Docker distributions can route the host differently; verify the address with the connectivity command above.
 - **Port already in use:** Stop the old forwarder before starting another copy. Do not change ports without updating the configured URLs.
 - **Launch returns 403:** Check the client ID and restart HelpMe. Staff also need a linked identity and course access.
-- **Launch works but feedback fails:** Check the chatbot backend and course grading configuration.
+- **Launch works but feedback fails:** Check the chatbot backend and the question's grading settings.
 - **Old hostname appears after a redirect:** Update the existing app registration and HelpMe environment settings consistently. Reinsert saved Canvas links that contain the old hostname.
 
 This HTTP setup uses the same hostname on different ports. It does not verify production HTTPS behavior or isolation between host-only cookies on separate hostnames.

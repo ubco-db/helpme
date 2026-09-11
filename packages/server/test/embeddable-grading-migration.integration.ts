@@ -1,33 +1,42 @@
-import { questionGradingSettingsSchema } from '@koh/common';
+import { config } from 'dotenv';
+import * as fs from 'fs';
 import { Client } from 'pg';
 import { DataSource } from 'typeorm';
 import { EmbeddableQuestion1788000000000 } from '../migration/1788000000000-embeddable-question';
-import { EmbeddableGradingContract1789003793960 } from '../migration/1789003793960-embeddable-grading-contract';
 
-// Runs the real generated migration against a uniquely named disposable
-// database created for this run and dropped afterwards, seeded with
-// legacy-shaped data, and checks the settled settings contract plus an
-// up/down roundtrip. No shared or env-selected database is ever touched.
+// Load the standard server env files (.env, falling back to .env.development,
+// then postgres.env) exactly like ormconfig.ts, BEFORE reading credentials.
+// Credentials are never logged or printed.
+if (fs.existsSync('.env')) {
+  config();
+} else {
+  config({ path: '.env.development' });
+}
+if (fs.existsSync('postgres.env')) {
+  config({ path: 'postgres.env' });
+}
+
+// Runs the real final migration against a uniquely named disposable database
+// created for this run and dropped afterwards. No shared or env-selected
+// database is ever touched.
 const TEST_DB = `helpme_embeddable_migration_${process.pid}`;
 
-const connection = {
+// The pg client option is "user"; the typeorm option is "username".
+const pgConnection = {
   host: process.env.POSTGRES_HOST || 'localhost',
   port: process.env.POSTGRES_PORT ? parseInt(process.env.POSTGRES_PORT) : 5432,
+  user: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD,
 };
-// typeorm option is "username"; the pg client option is "user".
-const pgUser = process.env.POSTGRES_USER;
 
 const EMBEDDABLE_TABLES = [
+  'embeddable_quiz_model',
   'embeddable_question_model',
   'embeddable_question_feedback_model',
-  'embeddable_quiz_model',
-  'embeddable_grading_profile_model',
 ];
 
-// Columns + constraints of the embeddable tables; compared across the
-// migration roundtrip. Ordering is normalized by SQL so ADD COLUMN position
-// differences do not matter.
+// Columns and foreign keys of the embeddable tables, normalized by SQL
+// ordering so they can be compared across a down/up roundtrip.
 const schemaSnapshot = (ds: DataSource) =>
   Promise.all([
     ds.query(
@@ -46,90 +55,55 @@ const schemaSnapshot = (ds: DataSource) =>
     ),
   ]);
 
-const migrate = async (
-  migrations: (typeof EmbeddableQuestion1788000000000)[],
-) => {
-  const ds = new DataSource({
-    type: 'postgres',
-    ...connection,
-    database: TEST_DB,
-    username: pgUser,
-    migrations,
-  });
-  await ds.initialize();
-  await ds.runMigrations();
-  return ds;
-};
-
-const DEFAULT_SETTINGS = {
-  rubric: 'Grade the answer against the question.',
-  feedbackInstructions: '',
+const REALISTIC_SETTINGS = {
+  rubric: 'Award full marks for a complete, accurate answer.',
+  feedbackInstructions: 'Explain what the answer is missing.',
   finalGradingInstructions: '',
   scoreScale: { kind: 'values', values: [0, 1, 2] },
-  checks: [],
+  checks: [{ kind: 'minimum_sentences', minimum: 3, scoreCap: 1 }],
+};
+
+const withAdminClient = async <T>(
+  database: string,
+  run: (client: Client) => Promise<T>,
+): Promise<T> => {
+  const client = new Client({ ...pgConnection, database });
+  await client.connect();
+  try {
+    return await run(client);
+  } finally {
+    await client.end();
+  }
 };
 
 describe('Embeddable grading migration', () => {
-  let baselineSnapshot: unknown[];
-  let finalSnapshot: unknown[];
   let ds: DataSource;
+  let finalSnapshot: unknown[];
   let createdDb = false;
 
   beforeAll(async () => {
-    const admin = new Client({
-      ...connection,
-      user: pgUser,
-      database: 'postgres',
-    });
-    await admin.connect();
-    await admin.query(`CREATE DATABASE "${TEST_DB}"`);
+    await withAdminClient('postgres', (admin) =>
+      admin.query(`CREATE DATABASE "${TEST_DB}"`),
+    );
     createdDb = true;
-    await admin.end();
 
-    // Minimal FK parents for the embeddable tables (predecessor schema).
-    const parents = new Client({
-      ...connection,
-      user: pgUser,
+    // Minimal FK parents for the embeddable tables, in the disposable DB.
+    await withAdminClient(TEST_DB, (client) =>
+      client.query(
+        `CREATE TABLE "course_model" ("id" SERIAL PRIMARY KEY);
+         CREATE TABLE "user_model" ("id" SERIAL PRIMARY KEY)`,
+      ),
+    );
+
+    ds = new DataSource({
+      type: 'postgres',
+      ...pgConnection,
+      username: pgConnection.user,
       database: TEST_DB,
+      migrations: [EmbeddableQuestion1788000000000],
     });
-    await parents.connect();
-    await parents.query(
-      `CREATE TABLE "course_model" ("id" SERIAL PRIMARY KEY);
-       CREATE TABLE "user_model" ("id" SERIAL PRIMARY KEY)`,
-    );
-    await parents.end();
-
-    const baseline = await migrate([EmbeddableQuestion1788000000000]);
-    await baseline.query(
-      `INSERT INTO "course_model" ("id") OVERRIDING SYSTEM VALUE VALUES (1), (2)`,
-    );
-    await baseline.query(
-      `INSERT INTO "user_model" ("id") OVERRIDING SYSTEM VALUE VALUES (1)`,
-    );
-    // A legacy profile whose data must not leak into the migrated settings.
-    await baseline.query(
-      `INSERT INTO "embeddable_grading_profile_model" ("courseId", "policyKind", "systemPrompt", "allowedScores", "reasonCodes")
-       VALUES (1, 'indg-reflection', 'Explain feedback kindly.', '{0}', '{too_short,above_suggested_length,indigenous_capitalization}')`,
-    );
-    // Legacy shapes that must not reach the migrated settings unchanged:
-    // over-length title/criteria text, empty name, impossible sentence bounds.
-    await baseline.query(
-      `INSERT INTO "embeddable_question_model" ("id", "courseId", "name", "questionText", "criteriaText", "instructions", "minSentences", "maxSentences")
-       OVERRIDING SYSTEM VALUE
-       VALUES (1, 1, repeat('x', 300), 'What does the passage show?', repeat('y', 30000), 'Be concise.', 6, 3),
-              (2, 1, '', 'Answer freely.', '', NULL, 3, 5)`,
-    );
-    await baseline.query(
-      `INSERT INTO "embeddable_question_feedback_model" ("courseId", "questionId", "userId", "submission", "aiFeedback", "aiGrade", "reasons", "needsHumanReview")
-       VALUES (1, 1, 1, 'A legacy answer.', 'Legacy feedback.', 2, '{too_short}', false)`,
-    );
-    baselineSnapshot = await schemaSnapshot(baseline);
-    await baseline.destroy();
-
-    ds = await migrate([
-      EmbeddableQuestion1788000000000,
-      EmbeddableGradingContract1789003793960,
-    ]);
+    await ds.initialize();
+    await ds.runMigrations();
     finalSnapshot = await schemaSnapshot(ds);
   }, 120000);
 
@@ -139,80 +113,188 @@ describe('Embeddable grading migration', () => {
     }
     // Drop only the database this run created, even after a failed suite.
     if (createdDb) {
-      const admin = new Client({
-        ...connection,
-        user: pgUser,
-        database: 'postgres',
-      });
-      await admin.connect();
-      await admin.query(`DROP DATABASE IF EXISTS "${TEST_DB}"`);
-      await admin.end();
+      await withAdminClient('postgres', (admin) =>
+        admin.query(`DROP DATABASE IF EXISTS "${TEST_DB}"`),
+      );
     }
   }, 30000);
 
-  it('backfills valid default settings and keeps restrict protections', async () => {
-    const rows = await ds.query<{ title: string; gradingSettings: unknown }[]>(
-      `SELECT "title", "gradingSettings" FROM "embeddable_question_model" ORDER BY "id"`,
+  it('creates the settled final schema', async () => {
+    const columns = await ds.query<Record<string, unknown>[]>(
+      `SELECT table_name, column_name, data_type, is_nullable, column_default
+       FROM information_schema.columns
+       WHERE table_name = ANY($1::text[]) AND table_schema = 'public'
+       ORDER BY table_name, column_name`,
+      [EMBEDDABLE_TABLES],
     );
-    expect(rows).toHaveLength(2);
-    for (const row of rows) {
-      // Parse every migrated settings blob through the actual common schema.
-      expect(
-        questionGradingSettingsSchema.safeParse(row.gradingSettings).success,
-      ).toBe(true);
-      expect(row.gradingSettings).toEqual(DEFAULT_SETTINGS);
-    }
-    expect(rows[0].title).toBe('x'.repeat(255));
-    expect(rows[1].title).toBe('Question');
+    const column = (table: string, name: string) =>
+      columns.find((c) => c.table_name === table && c.column_name === name);
 
-    // Public feedback drops reasons/needsHumanReview and gains
-    // appliedRequirements/maxScore/gradingSnapshot.
+    // Quiz and question configuration.
+    expect(column('embeddable_quiz_model', 'title')).toMatchObject({
+      data_type: 'text',
+      is_nullable: 'NO',
+    });
+    expect(column('embeddable_question_model', 'title')).toMatchObject({
+      data_type: 'text',
+      is_nullable: 'NO',
+    });
+    expect(
+      column('embeddable_question_model', 'gradingSettings'),
+    ).toMatchObject({ data_type: 'jsonb', is_nullable: 'NO' });
+
+    // Durable submission/history fields.
+    expect(
+      column('embeddable_question_feedback_model', 'submission'),
+    ).toMatchObject({ data_type: 'text', is_nullable: 'NO' });
+    expect(
+      column('embeddable_question_feedback_model', 'aiFeedback'),
+    ).toMatchObject({ data_type: 'text', is_nullable: 'NO' });
+    expect(
+      column('embeddable_question_feedback_model', 'aiGrade'),
+    ).toMatchObject({ data_type: 'double precision', is_nullable: 'NO' });
+    expect(
+      column('embeddable_question_feedback_model', 'appliedRequirements'),
+    ).toMatchObject({ data_type: 'ARRAY', is_nullable: 'NO' });
+    expect(
+      column('embeddable_question_feedback_model', 'maxScore'),
+    ).toMatchObject({ data_type: 'double precision', is_nullable: 'YES' });
+    expect(
+      column('embeddable_question_feedback_model', 'gradingSnapshot'),
+    ).toMatchObject({ data_type: 'jsonb', is_nullable: 'YES' });
+    expect(
+      column('embeddable_question_feedback_model', 'reasons'),
+    ).toMatchObject({ data_type: 'ARRAY', is_nullable: 'NO' });
+    expect(
+      column('embeddable_question_feedback_model', 'needsHumanReview'),
+    ).toMatchObject({ data_type: 'boolean', is_nullable: 'NO' });
+
+    // Exactly the settled foreign keys.
+    const [, fks] = await schemaSnapshot(ds);
+    expect(fks).toEqual([
+      {
+        table_name: 'embeddable_question_feedback_model',
+        conname: 'FK_206d465aab2d93ecc9aac1e76da',
+        definition:
+          'FOREIGN KEY ("userId") REFERENCES user_model(id) ON DELETE CASCADE',
+      },
+      {
+        table_name: 'embeddable_question_feedback_model',
+        conname: 'FK_21ce283653acf7fe839e4b5a298',
+        definition:
+          'FOREIGN KEY ("courseId") REFERENCES course_model(id) ON DELETE CASCADE',
+      },
+      {
+        table_name: 'embeddable_question_feedback_model',
+        conname: 'FK_d052d8fe0b07aca9c6f7625ef57',
+        definition:
+          'FOREIGN KEY ("questionId") REFERENCES embeddable_question_model(id) ON DELETE RESTRICT',
+      },
+      {
+        table_name: 'embeddable_question_model',
+        conname: 'FK_79ca48befc343d6f6957ea87376',
+        definition:
+          'FOREIGN KEY ("courseId") REFERENCES course_model(id) ON DELETE CASCADE',
+      },
+      {
+        table_name: 'embeddable_question_model',
+        conname: 'FK_dca43fcf1384917e91013775f0c',
+        definition:
+          'FOREIGN KEY ("quizId") REFERENCES embeddable_quiz_model(id) ON DELETE RESTRICT',
+      },
+      {
+        table_name: 'embeddable_quiz_model',
+        conname: 'FK_5e3cd4db046d9d89b4e5afa7c8a',
+        definition:
+          'FOREIGN KEY ("courseId") REFERENCES course_model(id) ON DELETE CASCADE',
+      },
+    ]);
+  });
+
+  it('persists realistic submissions with full grading history', async () => {
+    await ds.query(
+      `INSERT INTO "course_model" ("id") OVERRIDING SYSTEM VALUE VALUES (1)`,
+    );
+    await ds.query(
+      `INSERT INTO "user_model" ("id") OVERRIDING SYSTEM VALUE VALUES (1)`,
+    );
+    await ds.query(
+      `INSERT INTO "embeddable_quiz_model" ("id", "courseId", "title", "objective", "background")
+       OVERRIDING SYSTEM VALUE VALUES (1, 1, 'Reflection quiz', 'Practice reflection', 'Week 1 readings')`,
+    );
+    await ds.query(
+      `INSERT INTO "embeddable_question_model" ("id", "courseId", "title", "questionText", "quizId", "gradingSettings")
+       OVERRIDING SYSTEM VALUE VALUES (1, 1, 'Passage response', 'What does the passage show?', 1, $1::jsonb)`,
+      [JSON.stringify(REALISTIC_SETTINGS)],
+    );
+    await ds.query(
+      `INSERT INTO "embeddable_question_feedback_model" ("courseId", "questionId", "userId", "submission", "aiFeedback", "aiGrade", "appliedRequirements", "aiModel", "maxScore", "gradingSnapshot", "reasons", "needsHumanReview")
+       VALUES (1, 1, 1, 'The passage shows a conflict.', 'Strong answer; cite the passage next time.', 2, '{}', 'glm-test-model', 2, $1::jsonb, '{too_short,term_capitalization}', true)`,
+      [
+        JSON.stringify({
+          version: 1,
+          questionText: 'What does the passage show?',
+          gradingSettings: REALISTIC_SETTINGS,
+          quizContext: {
+            id: 1,
+            courseId: 1,
+            createdAt: '2026-01-01T00:00:00.000Z',
+            title: 'Reflection quiz',
+            objective: 'Practice reflection',
+            background: 'Week 1 readings',
+          },
+        }),
+      ],
+    );
+
     const feedback = await ds.query<Record<string, unknown>[]>(
       `SELECT * FROM "embeddable_question_feedback_model"`,
     );
+    expect(feedback).toHaveLength(1);
     expect(feedback[0]).toMatchObject({
+      submission: 'The passage shows a conflict.',
+      aiFeedback: 'Strong answer; cite the passage next time.',
+      aiGrade: 2,
       appliedRequirements: [],
-      maxScore: null,
-      gradingSnapshot: null,
+      aiModel: 'glm-test-model',
+      maxScore: 2,
+      reasons: ['too_short', 'term_capitalization'],
+      needsHumanReview: true,
     });
-    expect(Object.keys(feedback[0])).not.toContain('reasons');
-    expect(Object.keys(feedback[0])).not.toContain('needsHumanReview');
+    // The snapshot is stored as opaque historical JSON and comes back intact.
+    expect(feedback[0].gradingSnapshot).toMatchObject({
+      version: 1,
+      questionText: 'What does the passage show?',
+      gradingSettings: REALISTIC_SETTINGS,
+    });
 
-    // The RESTRICT foreign keys protect directly referenced rows.
-    await ds.query(
-      `INSERT INTO "embeddable_quiz_model" ("courseId", "title") VALUES (1, 'Legacy quiz')`,
-    );
-    await ds.query(
-      `UPDATE "embeddable_question_model" SET "quizId" = 1 WHERE "id" = 1`,
-    );
-    await expect(
-      ds.query(`DELETE FROM "embeddable_quiz_model" WHERE "id" = 1`),
-    ).rejects.toMatchObject({ code: '23503' });
+    // RESTRICT protects rows that feedback still references...
     await expect(
       ds.query(`DELETE FROM "embeddable_question_model" WHERE "id" = 1`),
     ).rejects.toMatchObject({ code: '23503' });
+    // ...and rows that a question links to.
+    await expect(
+      ds.query(`DELETE FROM "embeddable_quiz_model" WHERE "id" = 1`),
+    ).rejects.toMatchObject({ code: '23503' });
+
+    // Deleting the course cascades away the whole feature's rows.
+    await ds.query(`DELETE FROM "course_model" WHERE "id" = 1`);
+    const remaining = await ds.query<{ count: string }[]>(
+      `SELECT count(*) AS count FROM "embeddable_question_feedback_model"`,
+    );
+    expect(remaining[0].count).toBe('0');
   });
 
-  it('roundtrips down/up and restores the predecessor schema', async () => {
+  it('roundtrips down/up into an equivalent schema', async () => {
     await ds.undoLastMigration();
-    expect(await schemaSnapshot(ds)).toEqual(baselineSnapshot);
-    // The down pass backfills the legacy columns from the settings it removes.
-    const restored = await ds.query<Record<string, unknown>[]>(
-      `SELECT "name", "criteriaText" FROM "embeddable_question_model" WHERE "id" = 1`,
+    const tables = await ds.query<{ count: string }[]>(
+      `SELECT count(*) AS count FROM information_schema.tables
+       WHERE table_name = ANY($1::text[]) AND table_schema = 'public'`,
+      [EMBEDDABLE_TABLES],
     );
-    expect(restored[0]).toEqual({
-      name: 'x'.repeat(255),
-      criteriaText: 'Grade the answer against the question.',
-    });
+    expect(tables[0].count).toBe('0');
 
     await ds.runMigrations();
     expect(await schemaSnapshot(ds)).toEqual(finalSnapshot);
-    const rows = await ds.query<{ gradingSettings: unknown }[]>(
-      `SELECT "gradingSettings" FROM "embeddable_question_model" WHERE "id" = 1`,
-    );
-    expect(
-      questionGradingSettingsSchema.safeParse(rows[0].gradingSettings).success,
-    ).toBe(true);
-    expect(rows[0].gradingSettings).toEqual(DEFAULT_SETTINGS);
   });
 });

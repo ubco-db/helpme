@@ -58,19 +58,17 @@ The learner UI does **not** list all embeddable questions. However, once a stude
 
 For the current low-stakes self-assessment use case, this is an explicit MVP tradeoff accepted in exchange for deleting the separate per-question authentication system. The server still blocks questions from other HelpMe courses, and the learner response never exposes grading criteria. Revisit exact per-question authorization only if the professor considers early access to another question unacceptable or the assessments become higher stakes.
 
-## Criteria are hidden from the student response
+## Grading settings are hidden from the student response
 
-`criteriaText` is grading configuration and must not be returned by the student-accessible single-question endpoint.
+The question's `gradingSettings` (rubric, feedback instructions, score scale, automatic checks) is grading configuration and must not be returned by the student-accessible single-question endpoint.
 
 The single-question response exposes only the fields the embedded learner UI needs:
 
 - question ID
 - course ID
 - question text
-- minimum sentence guidance
-- maximum sentence guidance
 
-The staff-only course question list still returns the complete question model so professors and TAs can create and edit grading criteria. The grading service also loads the complete server-side model when it builds the grading prompt.
+The staff-only course question list still returns the complete question model so professors and TAs can create and edit grading settings. The grading service also loads the complete server-side model when it builds the grading prompt.
 
 ## JWT purposes remain explicit
 
@@ -88,11 +86,23 @@ Question launches still require an existing Canvas-course-to-HelpMe-course mappi
 
 One-click LTI-only course mapping remains deferred. The existing LMS integration record also represents Canvas API configuration, so silently creating that record from an LTI launch would mix course identity with API authorization. Revisit that product decision separately if the professor needs a one-click setup flow.
 
-## Question and rubric versioning is Git-only
+## Question, settings, and snapshot versioning is Git-only
 
-Approved question text, criteria, instructions, sentence limits, and grading-profile definitions (`policyKind`, `systemPrompt`, `allowedScores`, `reasonCodes`) are versioned by checking them into Git alongside the reviewed code/prompt version. The Git-versioned prompt defaults live in `packages/common`; record any approved course-specific question/profile values in Git in the same change that reviews them.
+Approved question text, titles, quiz context text, and grading settings (rubric, feedback instructions, score scale, automatic checks) are versioned by checking them into Git alongside the reviewed code/prompt version. The Git-versioned prompt defaults and grading presets live in `packages/common`; record any approved course-specific question values in Git in the same change that reviews them.
 
-This is deliberately simple: there is no exporter, framework, or version table. Staff UI edits write to the mutable `EmbeddableQuestionModel` / `EmbeddableGradingProfileModel` rows and are not automatically Git-versioned. Feedback rows in `EmbeddableQuestionFeedbackModel` store the submission, score, comment, and reasons, but do not capture a historical snapshot of the question text, criteria, or profile/prompt in effect at grading time.
+This is deliberately simple: there is no exporter, framework, or version table. Staff UI edits write to the mutable `EmbeddableQuestionModel` / `EmbeddableQuizModel` rows and are not automatically Git-versioned.
+
+Feedback rows in `EmbeddableQuestionFeedbackModel` durably keep the submission, score, comment, reason codes, human-review flag, model name, maximum score, and a `gradingSnapshot` JSON of the question text, grading settings, and quiz context in effect at grading time. The snapshot is historical: editing a question later never rewrites past feedback. The learner response itself only ever returns the current score, comment, applied requirements, and maximum score.
+
+## Grading and retry behavior
+
+Deployments must roll out the chatbot backend before HelpMe, so the chatbot API the grading service depends on is already in place when new HelpMe code goes live.
+
+HelpMe never retries a failed grade on its own and never stores an invalid grade. The chatbot provider applies its own single retry budget (at most 4 attempts, 60 seconds). If the model's output does not satisfy the question's grading contract after that budget, the request fails with a server error and nothing is saved. Students can simply resubmit.
+
+## Request validation: one shared Zod grading validator
+
+Most HelpMe HTTP endpoints use class-validator DTOs. The embeddable question and quiz endpoints intentionally deviate for the complex grading payload: their request bodies are `unknown` and are validated with the single shared Zod schema from `packages/common` (`upsertEmbeddableQuestionSchema`, which nests `questionGradingSettingsSchema`), reusing the exact validator the frontend, entity checks, and grading service already use. This is deliberate narrow reuse of the existing Zod schema — not a second validation framework — because duplicating the deeply nested grading-settings shape with class-validator decorators would drift from the source of truth. A rejected body becomes a `BadRequestException`.
 
 ## Deadline decision for the MVP
 
@@ -111,7 +121,7 @@ Before production use, verify the actual target quiz behavior rather than buildi
 - Confirm that a student whose 5-hour HelpMe session expires can reopen the Canvas question and continue through a fresh launch.
 - Confirm whether the accepted same-course question access tradeoff is appropriate for this self-assessment.
 - Capture only the non-sensitive claim names needed to determine whether Canvas supplies a trustworthy effective quiz/resource deadline. Do not log names, email addresses, ID tokens, or session tokens.
-- Confirm that students cannot retrieve `criteriaText` from the single-question API while staff can still edit criteria through the staff-only question-management flow.
+- Confirm that students cannot retrieve `gradingSettings` from the single-question API while staff can still edit it through the staff-only question-management flow.
 
 ## Testing principle
 

@@ -23,44 +23,50 @@
 ## Installation to run locally
 
 1. [Get Docker](https://docs.docker.com/get-docker/) so we can automatically run and setup Postgres
-2. Make sure you have [node](https://nodejs.org/en/download/), [yarn](https://classic.yarnpkg.com/en/docs/install), and [psql](https://blog.timescale.com/tutorials/how-to-install-psql-on-mac-ubuntu-debian-windows/) (or another program that lets you connect and view the database like [Beekeeper Studio](https://www.beekeeperstudio.io/get-community)) installed. 
-  - `yarn -v` should be `1.x.x`. Do not get Yarn 2. Node should also be version 20.x.x. If it's not, install [nvm](https://github.com/nvm-sh/nvm)
+2. Make sure you have [node](https://nodejs.org/en/download/), [yarn](https://classic.yarnpkg.com/en/docs/install), and [psql](https://blog.timescale.com/tutorials/how-to-install-psql-on-mac-ubuntu-debian-windows/) (or another program that lets you connect and view the database like [Beekeeper Studio](https://www.beekeeperstudio.io/get-community)) installed.
+
+- `yarn -v` should be `1.x.x`. Do not get Yarn 2. Node should also be version 20.x.x. If it's not, install [nvm](https://github.com/nvm-sh/nvm)
+
 3. Run `yarn install` in this directory to get dependencies
-4. Change the environment variables to match your environment. 
-  - You can find the required environment variables in the `.env.development` file in the `packages/server` directory. If you're new to `.env` files, basically create a new `.env` file in the same directory as `.env.development` and copy-paste all of the variables over
-    - Note that if you have installed postgres before and you have changed the default postgres password, you may need to change the password from mysecretpassword to this password
-    - If you are running the app in a Docker container (for production), you should instead use the `.env.docker` environment variable template in the `packages/server` directory. 
-  - There is also a .env for the frontend (`dev.env`). Do just as you did and create a `.env` in `packages/frontend` and copy-paste all the variables from `dev.env` over.
-  - There's a 2nd environment file that needs to be in `packages/server` called `postgres.env`. Copy-paste `postgres.env.example` and rename it to `postgres.env`.
-  - For more details, see [ENVIRONMENT_VARIABLES.md](ENVIRONMENT_VARIABLES.md)
+4. Change the environment variables to match your environment.
+
+- You can find the required environment variables in the `.env.development` file in the `packages/server` directory. If you're new to `.env` files, basically create a new `.env` file in the same directory as `.env.development` and copy-paste all of the variables over
+  - Note that if you have installed postgres before and you have changed the default postgres password, you may need to change the password from mysecretpassword to this password
+  - If you are running the app in a Docker container (for production), you should instead use the `.env.docker` environment variable template in the `packages/server` directory.
+- There is also a .env for the frontend (`dev.env`). Do just as you did and create a `.env` in `packages/frontend` and copy-paste all the variables from `dev.env` over.
+- There's a 2nd environment file that needs to be in `packages/server` called `postgres.env`. Copy-paste `postgres.env.example` and rename it to `postgres.env`.
+- For more details, see [ENVIRONMENT_VARIABLES.md](ENVIRONMENT_VARIABLES.md)
+
 5. Run `yarn dev:db:up` to start the database via docker; `yarn dev:db:down` will stop it (this step might not be needed).
 6. Start the app in development with `yarn dev`
-7. Visit the app at http://localhost:3000/dev and click the "seed" button to seed the database with dummy data. 
-  - You may need to first create a `dev`, `test`, and `chatbot` database in your local postgres database (using psql or Beekeeper Studio). 
-  - You can do this by running `CREATE DATABASE dev;`, `CREATE DATABASE test;`, and `CREATE DATABASE chatbot;` in psql.
+7. Visit the app at http://localhost:3000/dev and click the "seed" button to seed the database with dummy data.
+
+- You may need to first create a `dev`, `test`, and `chatbot` database in your local postgres database (using psql or Beekeeper Studio).
+- You can do this by running `CREATE DATABASE dev;`, `CREATE DATABASE test;`, and `CREATE DATABASE chatbot;` in psql.
+
 8. Visit the app at http://localhost:3000
 9. On the login page, you have access to the following dummy users (assuming the database is properly seeded):
-   1.  Ramon@ubc.ca
-   2.  StudentOne@ubc.ca
-   3.  StudentTwo@ubc.ca
-   4.  They all have the password of `seed`
+   1. Ramon@ubc.ca
+   2. StudentOne@ubc.ca
+   3. StudentTwo@ubc.ca
+   4. They all have the password of `seed`
 
 If you have any questions, feel free to reach out to a member of the team. If you think this document can be improved, make a PR!
 
-For Canvas integration work, follow [Test HelpMe questions in local Canvas](LOCAL_CANVAS_SETUP.md).
+For Canvas integration work, follow [Test HelpMe questions in local Canvas](LOCAL_CANVAS_SETUP.md). LTI embedded questions additionally require the mandatory `LTI_CANVAS_CLIENT_ID` configuration described in [LTI embedded question authentication](LTI_EMBEDDED_QUESTION_AUTH.md); launches fail closed without it.
 
 ## Technologies
 
--   [Next.js](https://nextjs.org/docs/getting-started) lets us do server-side and client-side React rendering, as well as write backend API endpoints (though instead we opted for writing our own backend endpoints). So, we mostly only use it for the **frontend**.
-    It also gives us developer ergonomics like hot reload in dev.
--   [Nest.js](https://nestjs.com/) runs our **backend** http api. It gives us controllers and services and other tools for making our API endpoints
--   [Typescript](https://www.typescriptlang.org/docs/home.html) lets us write maintainable, scalable Javascript
--   [Postgresql](https://www.postgresql.org/docs/11/index.html) is a very reliable and popular SQL database that is great for 99% of applications
--   [TypeORM](https://typeorm.io/) lets us query Postgres easily and with Typescript validating our schema.
--   [Docker](https://www.docker.com/products/docker-desktop) sets up a consistent Postgres + Redis environment on all developer's machines
--   [Redis](https://redis.io/) is used to enable 0 downtime deploy (what? who wrote this. It's used for caching frequently accessed data like questions)
-    -   We are using @liaoliaots/nestjs-redis ([V8](https://github.com/liaoliaots/nestjs-redis/blob/f902b3dc904bf04e8b1f535789decfe11c1c5c37/docs/v8/redis.md)) and ioredis packages for allowing us to easily integrate it with our Nest.js backend
--   ~~[Cypress](https://www.cypress.io/)~~ is used for frontend E2E tests. Currently not being used.
+- [Next.js](https://nextjs.org/docs/getting-started) lets us do server-side and client-side React rendering, as well as write backend API endpoints (though instead we opted for writing our own backend endpoints). So, we mostly only use it for the **frontend**.
+  It also gives us developer ergonomics like hot reload in dev.
+- [Nest.js](https://nestjs.com/) runs our **backend** http api. It gives us controllers and services and other tools for making our API endpoints
+- [Typescript](https://www.typescriptlang.org/docs/home.html) lets us write maintainable, scalable Javascript
+- [Postgresql](https://www.postgresql.org/docs/11/index.html) is a very reliable and popular SQL database that is great for 99% of applications
+- [TypeORM](https://typeorm.io/) lets us query Postgres easily and with Typescript validating our schema.
+- [Docker](https://www.docker.com/products/docker-desktop) sets up a consistent Postgres + Redis environment on all developer's machines
+- [Redis](https://redis.io/) is used to enable 0 downtime deploy (what? who wrote this. It's used for caching frequently accessed data like questions)
+  - We are using @liaoliaots/nestjs-redis ([V8](https://github.com/liaoliaots/nestjs-redis/blob/f902b3dc904bf04e8b1f535789decfe11c1c5c37/docs/v8/redis.md)) and ioredis packages for allowing us to easily integrate it with our Nest.js backend
+- ~~[Cypress](https://www.cypress.io/)~~ is used for frontend E2E tests. Currently not being used.
 
 ## File Structure
 
@@ -68,7 +74,7 @@ Source code is in the `packages` folder.
 
 For a nice visualization/description, see [NEWDEVS_STARTHERE.md](NEWDEVS_STARTHERE.md#codebase), but from a high level:
 
-`frontend/app` is a the Next.js frontend. Routing is done using the file system. For example, the page `/courses/page.tsx` would be served at `domain.com/courses`. Pages are usually all rendered on the client side but can instead be rendered server-side with [server components](https://nextjs.org/docs/app/building-your-application/rendering/server-components). Data fetching usually happens on client-side by using the functions we make in `frontend/app/api/index.ts`. 
+`frontend/app` is a the Next.js frontend. Routing is done using the file system. For example, the page `/courses/page.tsx` would be served at `domain.com/courses`. Pages are usually all rendered on the client side but can instead be rendered server-side with [server components](https://nextjs.org/docs/app/building-your-application/rendering/server-components). Data fetching usually happens on client-side by using the functions we make in `frontend/app/api/index.ts`.
 
 `frontend/app/api/index.ts` is a special frontend file that wraps network calls to the api in a neater, **type-safe** interface. Every backend route we have on the backend should have a corresponding function here (so if you make or change and endpoint, don't forget to modify the corresponding function here).
 
@@ -77,7 +83,6 @@ For a nice visualization/description, see [NEWDEVS_STARTHERE.md](NEWDEVS_STARTHE
 `common` is where common code, globals, and types go. It is imported into the frontend and server.
 
 The `infrastructure` folder is for docker and other deployment files. You can mostly ignore it.
-
 
 ## Developing
 
@@ -103,12 +108,12 @@ docker-compose build && docker-compose up
 
 ### Database changes
 
-`table_name.entity.ts` files are used to define the database schema. 
+`table_name.entity.ts` files are used to define the database schema.
 `table_name.controller.ts` files are used to define the API routes for the table.
 `table_name.service.ts` files are used to define the business logic for the table (basically like server-side-only functions).
 `table_name.module.ts` files are used to define the module for the table. What is a module? It's a way to group together related entities, controllers, and services. It's a NestJS thing.
 
-If you're creating a new `table_name.module.ts` file, you must also add it to the `app.module.ts` file 
+If you're creating a new `table_name.module.ts` file, you must also add it to the `app.module.ts` file
 
 Also, you must update the `seed.controller.ts` file to reflect the new database changes. This seed file is used to populate the database with dummy data on http://localhost:3000/dev.
 
@@ -116,11 +121,13 @@ Also, you must update the `seed.controller.ts` file to reflect the new database 
 
 If you change an entity, you MUST run `yarn migration:generate ./migration/your-migration-name`, to make the migration file, then `yarn migration:run` will automatically run on deployment to staging/production. Commit the migration file to Git!
 
+When a feature spans the HelpMe backend and the separate chatbot backend, deploy the chatbot backend first, then HelpMe, so the chatbot API is already in place when the new HelpMe code goes live.
+
 ### Adding an API Route
 
 1. Create two classes inside `common/index.ts`. One that represents the request body and one that represents the response. Use class-validator decorators for each attribute (see other classes in the file for examples), since without them the request body won't get validated (!!!) and the response won't get fully deserialized/validated (not as important, but nice if working with dates).
 2. Create the endpoint in the corresponding `.controller.ts` file (use another route for example) with the correct guards (e.g. CourseRolesGuard, JwtAuthGuard, EmailVerifiedGuard). This endpoint's return type and request body should be what you defined in previous step. This endpoint usually should be small and should just call the functions you make in the corresponding `.service.ts` file (see `queue-invite.controller.ts` and `queue-invite.service.ts` for example).
-3. Add a function inside `frontend/app/api/index.ts` which calls the endpoint you just made, also using the class types defined in step 1. 
+3. Add a function inside `frontend/app/api/index.ts` which calls the endpoint you just made, also using the class types defined in step 1.
 
 Now, you can just `await API.myendpoint().then((responseBody) => {do something}).catch((e) => {message.error(getErrorMessage(e))})` anywhere on the frontend.
 
@@ -128,7 +135,7 @@ More information can be found in [NEWDEVS](/docs/NEWDEVS_STARTHERE.md)
 
 ### Testing
 
-Unit test files should be colocated with the file they test. 
+Unit test files should be colocated with the file they test.
 
 Integration tests are located in the `test` folder.
 
@@ -136,10 +143,11 @@ Integration tests are located in the `test` folder.
 
 To run a specific unit test suite, you can run `yarn test:unit suite-name` e.g. `yarn test:unit course`
 
+Integration tests normally run against the shared local `test` database (create it per the installation steps above). To run an integration test against its own disposable database instead, set `POSTGRES_TEST_DB` to a new database name, e.g. `POSTGRES_TEST_DB=my_disposable_db yarn test:integration --run-in-band course`. Each integration run creates its tables with `synchronize`, so the disposable database can be dropped afterwards.
+
 If your tests are failing with a message about "deadlock something whatever", do `yarn test --run-in-band`. This makes the tests run sequentially.
 
 If `yarn test` is not running all of the tests, navigate to `packages/server/test` folder and run `yarn test:integration --run-in-band` if you would like to run all the integration tests. To run the tests of a specific integration test file (e.g. course.integration.ts), you can use `yarn test:integration --run-in-band course`
-
 
 > [!NOTE]
 > cypress is currently broken (and its code was recently removed). Only the endpoints are being tested right now
@@ -182,6 +190,7 @@ package, `cd packages/app` and then `yarn add <FRONTEND PACKAGE>`
 ## Testing the Production Environment
 
 Want to try running the prod environment on your local machine? Follow these steps:
+
 - run `yarn build` in the root directory (you may need to run the terminal as administrator)
 - Once done, run `yarn prod:start` in the root directory
 - run `yarn dev:proxy` in a separate terminal in the root directory
@@ -198,9 +207,10 @@ If you need to hotfix something, you can edit the files on prod and run `yarn bu
 You can also push something to master, and then use the deploy script. Note that it'll still take about 5 minutes for the changes to propagate to the dist folder
 
 ### Changelog
-The changelog (```./packages/frontend/public/changelog.md``` from project-root) contains a formatted list of feature roll-outs for each deployment update.
 
-Be sure to update this file, the version number in the footer, and set all users' ```readChangeLog``` attributes in the User model of the database to false before finishing deployment updates.
+The changelog (`./packages/frontend/public/changelog.md` from project-root) contains a formatted list of feature roll-outs for each deployment update.
+
+Be sure to update this file, the version number in the footer, and set all users' `readChangeLog` attributes in the User model of the database to false before finishing deployment updates.
 
 ## Misc
 

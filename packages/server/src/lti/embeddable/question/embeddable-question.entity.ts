@@ -6,7 +6,6 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
-  Unique,
 } from 'typeorm';
 import { CourseModel } from '../../../course/course.entity';
 import { Exclude } from 'class-transformer';
@@ -14,7 +13,6 @@ import { EmbeddableQuizModel } from '../quiz/embeddable-quiz.entity';
 import { QuestionGradingSettings } from '@koh/common';
 
 @Entity('embeddable_question_model')
-@Unique(['id', 'courseId'])
 export class EmbeddableQuestionModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
