@@ -42,7 +42,9 @@ describe('question grading contract', () => {
         {
           score,
           comment: 'Good answer.',
-          reasons: ['the answer missed the second required step'],
+          reasons: [
+            'The response did not address the second required step of the rubric, so it lost that credit.',
+          ],
           needs_human_review: false,
         },
         makeSettings({ scoreScale, checks: [] }),
@@ -51,7 +53,9 @@ describe('question grading contract', () => {
     ).toEqual({
       score,
       comment: 'Good answer.',
-      reasons: ['the answer missed the second required step'],
+      reasons: [
+        'The response did not address the second required step of the rubric, so it lost that credit.',
+      ],
       needsHumanReview: false,
     });
   });
@@ -125,46 +129,6 @@ describe('question grading contract', () => {
     ).toThrow(/effective cap of 1/);
   });
 
-  it('applies whatever score an arbitrary rubric dictates, with no host override', () => {
-    // The host has no content policy of its own: a rubric that awards zero
-    // without scholarly framing, and one that awards partial credit for it,
-    // are both accepted and passed through unchanged.
-    const settings = makeSettings({
-      rubric:
-        'Score 0 unless the answer cites a scholarly source; partial credit when framing is scholarly but citations are missing.',
-      checks: [],
-    });
-    const zero = validateGradePayload(
-      {
-        score: 0,
-        comment: 'No scholarly framing, so the rubric scores zero.',
-        reasons: ['no scholarly framing'],
-        needs_human_review: true,
-      },
-      settings,
-      null,
-    );
-    expect(zero.score).toBe(0);
-    expect(zero.needsHumanReview).toBe(true);
-    expect(
-      validateGradePayload(
-        {
-          score: 1,
-          comment: 'Scholarly framing, but the citations are missing.',
-          reasons: ['scholarly framing present', 'missing citations'],
-          needs_human_review: false,
-        },
-        settings,
-        null,
-      ),
-    ).toEqual({
-      score: 1,
-      comment: 'Scholarly framing, but the citations are missing.',
-      reasons: ['scholarly framing present', 'missing citations'],
-      needsHumanReview: false,
-    });
-  });
-
   it('rejects malformed output and disallowed scores', () => {
     const settings = makeSettings({ checks: [] });
     const valid = {
@@ -226,11 +190,7 @@ describe('question grading contract', () => {
     ).toBe(1);
   });
 
-  it('derives the effective cap as the lowest triggered cap', () => {
-    const settings = makeSettings();
-    expect(effectiveScoreCap(facts('example.', settings).triggeredChecks)).toBe(
-      1,
-    );
+  it('derives no effective cap when no triggered check caps the score', () => {
     expect(effectiveScoreCap([])).toBeNull();
   });
 

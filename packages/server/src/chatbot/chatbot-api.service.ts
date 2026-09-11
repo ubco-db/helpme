@@ -14,20 +14,14 @@ import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 
-// Outer envelope only. The whole model answer payload (including the
-// legacy-transport reasons and needs_human_review fields) stays `unknown` at
-// this boundary and is validated by the grading boundary
-// (validateGradePayload) before any feedback is persisted; malformed model
-// output errors there without anything being saved.
+// Outer envelope only: the grading boundary (validateGradePayload) validates
+// the whole answer, including reasons and needs_human_review, before persistence.
 const feedbackResponseSchema = z.object({
   answer: z.unknown(),
   model: z.string().optional(),
 });
 
-// The chatbot service owns provider retries for feedback (at most 4 attempts
-// within its own 60-second budget); HelpMe makes exactly one call and never
-// retries. The host deadline is slightly larger than that budget so a
-// legitimate near-deadline response is not preempted in transport.
+// One non-retrying call: 65s covers the chatbot's 60s retry budget plus a 5s grace window.
 const FEEDBACK_TIMEOUT_MS = 65000;
 
 export type FeedbackQueryResult = z.infer<typeof feedbackResponseSchema>;

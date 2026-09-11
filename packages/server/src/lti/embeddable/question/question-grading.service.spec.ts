@@ -70,12 +70,7 @@ describe('QuestionGradingService (real chatbot adapter, mocked fetch boundary)',
 
   const parseFeedbackRequest = (
     fetchMock: ReturnType<typeof harness>['fetchMock'],
-  ): {
-    query: string;
-    type: string;
-    courseId: number;
-    params: { systemPrompt: string };
-  } => JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+  ): unknown => JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
 
   it('makes exactly one outbound feedback call and returns a question-owned snapshot', async () => {
     const { service, fetchMock } = harness();
@@ -179,9 +174,15 @@ describe('QuestionGradingService (real chatbot adapter, mocked fetch boundary)',
     });
 
     const requestBody = parseFeedbackRequest(fetchMock);
-    expect(requestBody.query).toContain('"sentence_count":2');
-    expect(requestBody.query).toContain('"automatic_checks_triggered"');
-    expect(requestBody.params.systemPrompt).toContain('effective cap of 2');
+    expect(requestBody).toMatchObject({
+      query: expect.stringContaining('"sentence_count":2'),
+    });
+    expect(requestBody).toMatchObject({
+      query: expect.stringContaining('"automatic_checks_triggered"'),
+      params: {
+        systemPrompt: expect.stringContaining('effective cap of 2'),
+      },
+    });
     expect(result.score).toBe(1);
   });
 

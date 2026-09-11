@@ -111,7 +111,7 @@ export function buildSystemPrompt(
       reasons: ['what earned or lost credit'],
       needs_human_review: false,
     })}`,
-    'The score must be allowed by the score contract and within the effective cap. The comment must be non-empty. Reasons must be a non-empty array of free-form explanations that, like the comment, are grounded in the rubric and the student answer; there is no fixed reason vocabulary. Valid structure does not guarantee the grade is academically correct — grounding does.',
+    'The score must be allowed by the score contract and within the effective cap. The comment must be non-empty. Reasons must be a non-empty array of free-form explanations that, like the comment, are grounded in the rubric and the student answer; there is no fixed reason vocabulary.',
     '## Comment rules',
     'The comment explains, grounded in the rubric and the student answer, what earned and what lost credit. Never state or imply a numerical grade, score, percentage, or cap inside the comment; the host records the numeric score separately.',
     '## Configured automatic checks',
