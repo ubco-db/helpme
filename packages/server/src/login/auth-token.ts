@@ -34,9 +34,9 @@ function parseAuthTokenPayload<K extends AuthTokenKind>(
   return { ...payload, kind: expectedKind, userId };
 }
 
-export function getAppAuthPayload(payload: unknown): AuthTokenPayload<
-  typeof APP_AUTH_KIND
-> {
+export function getAppAuthPayload(
+  payload: unknown,
+): AuthTokenPayload<typeof APP_AUTH_KIND> {
   return parseAuthTokenPayload(payload, APP_AUTH_KIND);
 }
 

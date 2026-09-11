@@ -1,5 +1,6 @@
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@koh/common';
+import * as jwt from 'jsonwebtoken';
 import { LtiModule } from '../src/lti/lti.module';
 import { APP_AUTH_KIND, LOGIN_ENTRY_KIND } from '../src/login/auth-token';
 import { restrictPaths } from '../src/lti/lti-auth.controller';
@@ -41,15 +42,20 @@ describe('App and LTI session cookie coexistence', () => {
     jwtService = getTestModule().get<JwtService>(JwtService);
   });
 
-  const setupProfessorAndStudent = async () => {
+  const setupProfessor = async () => {
     const professor = await UserFactory.create();
-    const student = await UserFactory.create();
     const course = await CourseFactory.create();
     await UserCourseFactory.create({
       user: professor,
       course,
       role: Role.PROFESSOR,
     });
+    return { professor, course };
+  };
+
+  const setupProfessorAndStudent = async () => {
+    const { professor, course } = await setupProfessor();
+    const student = await UserFactory.create();
     await UserCourseFactory.create({
       user: student,
       course,
@@ -61,8 +67,18 @@ describe('App and LTI session cookie coexistence', () => {
   const signLtiSession = (userId: number): string =>
     jwtService.sign({ kind: APP_AUTH_KIND, userId, restrictPaths });
 
+  const expectLtiQuestionList = (
+    cookies: string[],
+    course: { id: number },
+    status: number,
+  ) =>
+    supertest()
+      .get(`/lti/embeddable-question/${course.id}`)
+      .set('Cookie', cookies)
+      .expect(status);
+
   it('falls back to a fresh LTI session when the app cookie is a stale token from before the kind claim', async () => {
-    const { professor, course } = await setupProfessorAndStudent();
+    const { professor, course } = await setupProfessor();
     // Old pre-branch app cookie: correctly signed but expired and without `kind`
     const staleAppToken = jwtService.sign(
       { userId: professor.id },
@@ -71,19 +87,94 @@ describe('App and LTI session cookie coexistence', () => {
     const ltiSession = signLtiSession(professor.id);
 
     // The stale cookie alone still grants nothing...
-    await supertest()
-      .get(`/lti/embeddable-question/${course.id}`)
-      .set('Cookie', [`auth_token=${staleAppToken}`])
-      .expect(401);
+    await expectLtiQuestionList([`auth_token=${staleAppToken}`], course, 401);
 
     // ...but it no longer shadows the fresh LTI session
-    await supertest()
-      .get(`/lti/embeddable-question/${course.id}`)
-      .set('Cookie', [
-        `auth_token=${staleAppToken}`,
-        `lti_auth_token=${ltiSession}`,
-      ])
-      .expect(200);
+    await expectLtiQuestionList(
+      [`auth_token=${staleAppToken}`, `lti_auth_token=${ltiSession}`],
+      course,
+      200,
+    );
+  });
+
+  it('falls back to a fresh LTI session when the correctly-kind app cookie has expired', async () => {
+    const { professor, course } = await setupProfessor();
+    const expiredAppToken = jwtService.sign(
+      { kind: APP_AUTH_KIND, userId: professor.id },
+      { expiresIn: -60 },
+    );
+    const ltiSession = signLtiSession(professor.id);
+
+    // The expired cookie alone still grants nothing...
+    await expectLtiQuestionList([`auth_token=${expiredAppToken}`], course, 401);
+
+    // ...but it no longer shadows the fresh LTI session
+    await expectLtiQuestionList(
+      [`auth_token=${expiredAppToken}`, `lti_auth_token=${ltiSession}`],
+      course,
+      200,
+    );
+  });
+
+  it('falls back to a fresh LTI session when the app cookie has a bad signature', async () => {
+    const { professor, course } = await setupProfessor();
+    // Signed with a different secret, so its signature does not verify
+    const forgedAppToken = jwt.sign(
+      { kind: APP_AUTH_KIND, userId: professor.id },
+      'not-the-jwt-secret',
+    );
+    const ltiSession = signLtiSession(professor.id);
+
+    // The forged cookie alone still grants nothing...
+    await expectLtiQuestionList([`auth_token=${forgedAppToken}`], course, 401);
+
+    // ...but it no longer shadows the fresh LTI session
+    await expectLtiQuestionList(
+      [`auth_token=${forgedAppToken}`, `lti_auth_token=${ltiSession}`],
+      course,
+      200,
+    );
+  });
+
+  it('rejects the request when every session cookie is invalid', async () => {
+    const { professor, course } = await setupProfessor();
+    const expiredAppToken = jwtService.sign(
+      { kind: APP_AUTH_KIND, userId: professor.id },
+      { expiresIn: -60 },
+    );
+    const expiredLtiSession = jwtService.sign(
+      { kind: APP_AUTH_KIND, userId: professor.id, restrictPaths },
+      { expiresIn: -60 },
+    );
+
+    await expectLtiQuestionList(
+      [`auth_token=${expiredAppToken}`, `lti_auth_token=${expiredLtiSession}`],
+      course,
+      401,
+    );
+  });
+
+  it('keeps the selected LTI session path restrictions when the app cookie is invalid', async () => {
+    const { professor, course } = await setupProfessor();
+    const expiredAppToken = jwtService.sign(
+      { kind: APP_AUTH_KIND, userId: professor.id },
+      { expiresIn: -60 },
+    );
+    // An LTI session restricted to the profile API cannot list staff questions
+    const restrictedLtiSession = jwtService.sign({
+      kind: APP_AUTH_KIND,
+      userId: professor.id,
+      restrictPaths: ['r^\\/api\\/v1\\/profile$'],
+    });
+
+    await expectLtiQuestionList(
+      [
+        `auth_token=${expiredAppToken}`,
+        `lti_auth_token=${restrictedLtiSession}`,
+      ],
+      course,
+      403,
+    );
   });
 
   it('still prefers a valid ordinary app session over the LTI session cookie', async () => {
@@ -96,17 +187,15 @@ describe('App and LTI session cookie coexistence', () => {
     // proves the ordinary app session took precedence.
     const studentLtiSession = signLtiSession(student.id);
 
-    await supertest()
-      .get(`/lti/embeddable-question/${course.id}`)
-      .set('Cookie', [
-        `auth_token=${appSession}`,
-        `lti_auth_token=${studentLtiSession}`,
-      ])
-      .expect(200);
+    await expectLtiQuestionList(
+      [`auth_token=${appSession}`, `lti_auth_token=${studentLtiSession}`],
+      course,
+      200,
+    );
   });
 
   it('rejects a request with no valid session cookie', async () => {
-    const { course } = await setupProfessorAndStudent();
+    const { course } = await setupProfessor();
 
     await supertest().get(`/lti/embeddable-question/${course.id}`).expect(401);
   });

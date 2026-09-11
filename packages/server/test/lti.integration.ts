@@ -333,21 +333,22 @@ describe('LtiController', () => {
         'HelpMe question linked',
       );
 
-      const [item] = claims[
-        'https://purl.imsglobal.org/spec/lti-dl/claim/content_items'
-      ] as Array<Record<string, unknown>>;
       // The selected item is the question from the professor's own course
-      expect(item).toEqual({
-        type: 'ltiResourceLink',
-        title: question.title,
-        url: 'http://helpme.test/api/v1/lti',
-        custom: { helpme_question_id: String(question.id) },
-        iframe: {
-          src: 'http://helpme.test/api/v1/lti',
-          width: 800,
-          height: 300,
+      expect(
+        claims['https://purl.imsglobal.org/spec/lti-dl/claim/content_items'],
+      ).toEqual([
+        {
+          type: 'ltiResourceLink',
+          title: question.title,
+          url: 'http://helpme.test/api/v1/lti',
+          custom: { helpme_question_id: String(question.id) },
+          iframe: {
+            src: 'http://helpme.test/api/v1/lti',
+            width: 800,
+            height: 300,
+          },
         },
-      });
+      ]);
     });
   });
 

@@ -46,10 +46,7 @@ import {
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { CourseModel } from '../course/course.entity';
 import { UserCourseModel } from '../profile/user-course.entity';
-import {
-  LTI_APP_SESSION_SECONDS,
-  restrictPaths,
-} from './lti-auth.controller';
+import { LTI_APP_SESSION_SECONDS, restrictPaths } from './lti-auth.controller';
 import { LoginService } from '../login/login.service';
 import { EmbeddableQuestionModel } from './embeddable/question/embeddable-question.entity';
 
@@ -154,10 +151,17 @@ export class LtiController {
       ? `/lti/embeddable/${questionLaunch.courseId}/question/${questionLaunch.questionId}`
       : `/lti${course ? `/${course.id}` : ''}`;
 
-    await this.loginService.enter(req, res, user.id, undefined, this.ltiService, {
-      ...ltiLoginOptions,
-      redirect: `${destination}${qry.size > 0 ? '?' + qry.toString() : ''}`,
-    });
+    await this.loginService.enter(
+      req,
+      res,
+      user.id,
+      undefined,
+      this.ltiService,
+      {
+        ...ltiLoginOptions,
+        redirect: `${destination}${qry.size > 0 ? '?' + qry.toString() : ''}`,
+      },
+    );
   }
 
   @Get('deep-link/questions')

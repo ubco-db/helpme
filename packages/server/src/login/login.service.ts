@@ -48,14 +48,7 @@ export class LoginService {
     }
 
     const userId = getLoginEntryUserId(payload);
-    await this.enter(
-      req,
-      res,
-      userId,
-      courseService,
-      ltiService,
-      options,
-    );
+    await this.enter(req, res, userId, courseService, ltiService, options);
   }
 
   /**
