@@ -53,6 +53,7 @@
 **Purpose:** password of the non-root user for the postgres db
 **How to get:** Safe to leave it as is if you're just testing. PLEASE change to something less-obvious on prod
 
+
 ## server .env (place in packages/server)
 
 ###### TESTDBPASS
@@ -63,39 +64,39 @@
 
 ###### PUBLICKEY
 
-**Purpose:** used for web notification service (for notifying users where they are in the queue, if someone joined the queue, etc.)
+**Purpose:** used for web notification service (for notifying users where they are in the queue, if someone joined the queue, etc.) 
 
-**How to get:** probably fine to leave as is.
+**How to get:** probably fine to leave as is. 
 
 ###### PRIVATEKEY
 
 **Purpose:** same as PUBLICKEY
 
-**How to get:** probably fine to leave as is.
+**How to get:** probably fine to leave as is. 
 
 ###### EMAIL
 
-**Purpose:** same as PUBLICKEY
+**Purpose:** same as PUBLICKEY 
 
-**How to get:** probably fine to leave as is.
+**How to get:** probably fine to leave as is. 
 
 ###### JWT_SECRET
 
-**Purpose:** used to encrypt (?) JSON Web Tokens
+**Purpose:** used to encrypt (?) JSON Web Tokens 
 
-**How to get:** probably fine to leave as is.
+**How to get:** probably fine to leave as is. 
 
 ###### DOMAIN
 
 **Purpose:** Used to identify the URL of the server.
 
-**How to get:** probably fine to leave as is if you're just testing.
+**How to get:** probably fine to leave as is if you're just testing.  
 
 ###### UPLOAD_LOCATION
 
 **Purpose:** Where images get uploaded on the server
 
-**How to get:** probably fine to leave as is.
+**How to get:** probably fine to leave as is. 
 
 ###### NODE_ENV
 
@@ -105,21 +106,21 @@
 
 ###### REDIS_HOST
 
-**Purpose:** name of the redis server (should be same as the name of the one in `docker-compose.yml` probably).
+**Purpose:** name of the redis server (should be same as the name of the one in `docker-compose.yml` probably). 
 
-**How to get:** probably fine to leave as is.
+**How to get:** probably fine to leave as is. 
 
 ###### GOOGLE_CLIENT_ID
 
 **Purpose:** used for "Log in with Google" feature. Not needed if you don't plan on using it.
 
-**How to get:** Can get it from https://developers.google.com/identity/sign-in/web/sign-in
+**How to get:** Can get it from https://developers.google.com/identity/sign-in/web/sign-in 
 
 ###### GOOGLE_CLIENT_SECRET
 
 **Purpose:** same as GOOGLE_CLIENT_ID
 
-**How to get:** same as GOOGLE_CLIENT_ID
+**How to get:**  same as GOOGLE_CLIENT_ID
 
 ###### PRIVATE_RECAPTCHA_SITE_KEY
 
@@ -137,7 +138,7 @@
 
 **Purpose:** same as GMAIL_USER
 
-**How to get:** This is NOT the password of the gmail account! You will need to create an app password: https://knowledge.workspace.google.com/kb/how-to-create-app-passwords-000009237 (example app password: asdfghjkasdfghjk)
+**How to get:** This is NOT the password of the gmail account! You will need to create an app password: https://knowledge.workspace.google.com/kb/how-to-create-app-passwords-000009237  (example app password: asdfghjkasdfghjk)
 
 ###### SENTRY_AUTH_TOKEN
 
@@ -153,11 +154,9 @@
 
 ###### LTI_CANVAS_CLIENT_ID
 
-**Purpose:** Pins this environment to one verified Canvas LTI registration. Question launches and Deep Linking require the verified LTI token's client ID to match this value; if it is missing or different, Canvas launches fail closed.
+**Purpose:** Pins this environment to one verified Canvas LTI registration. Question launches and Deep Linking fail closed if the launch's client ID is missing or different.
 
-**How to get:** The Canvas LTI platform must already be registered in the existing LTI configuration (LTI admin settings); copy its client ID here. See LTI_EMBEDDED_QUESTION_AUTH.md and LOCAL_CANVAS_SETUP.md.
-
-**Session migration behavior:** Application-session JWTs now carry a `kind` claim. Users with an old `auth_token` cookie issued before this change can no longer use it as an application session: HelpMe ignores such stale cookies, and if a valid `lti_auth_token` LTI session is present it is used instead, so LTI users keep working without logging in again. Ordinary (non-LTI) users with a stale cookie must simply sign in again.
+**How to get:** Copy the client ID of the Canvas platform already registered in the LTI admin settings. See [LOCAL_CANVAS_SETUP.md](LOCAL_CANVAS_SETUP.md).
 
 ## client .env (place in packages/app)
 

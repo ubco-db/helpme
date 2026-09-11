@@ -75,7 +75,6 @@ export default class LtiMiddleware {
   private baseRoute(): string {
     return `${this.configService.get<string>('DOMAIN')}${this.prefix}`;
   }
-
   private constructor(
     private app: INestApplication,
     baseUrl: string,

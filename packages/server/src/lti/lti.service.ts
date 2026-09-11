@@ -60,7 +60,6 @@ export class LtiService {
     }
     return this._provider;
   }
-
   set provider(provider: Provider) {
     this._provider = provider;
   }
@@ -104,6 +103,7 @@ export class LtiService {
     if (!token) {
       throw new BadRequestException(ERROR_MESSAGES.ltiService.errorSigningJwt);
     }
+
     return token;
   }
 
@@ -166,6 +166,7 @@ export class LtiService {
     if (!token) {
       throw new BadRequestException(ERROR_MESSAGES.ltiService.errorSigningJwt);
     }
+
     return token;
   }
 
@@ -199,11 +200,13 @@ export class LtiService {
         ERROR_MESSAGES.ltiService.courseInviteNotFound,
       );
     }
+
     if (matchingInvite.email != user.email) {
       throw new BadRequestException(
         ERROR_MESSAGES.ltiService.courseInviteEmailMismatch,
       );
     }
+
     if (
       user.organizationUser.organizationId !=
       matchingInvite.course.organizationCourse.organizationId
@@ -212,6 +215,7 @@ export class LtiService {
         ERROR_MESSAGES.ltiService.courseInviteOrganizationMismatch,
       );
     }
+
     if (
       matchingInvite.expiresInSeconds != undefined &&
       (Date.now() - matchingInvite.createdAt.getTime()) / 1000 >=
@@ -291,6 +295,7 @@ export class LtiService {
         issuer: token.iss,
         ltiUserId: token.user,
       });
+
       await UserLtiIdentityModel.create({
         userId,
         issuer: token.iss,

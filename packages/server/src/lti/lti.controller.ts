@@ -260,6 +260,7 @@ export class LtiController {
     @Param('kid') kid: string,
   ): Promise<LtiPlatform> {
     const platform = await this.ltiService.provider.getPlatformById(kid);
+
     return await this.ltiService.provider.DynamicRegistration.getRegistration(
       platform,
     );
@@ -268,6 +269,7 @@ export class LtiController {
 
 export function mapToLocalPlatform(platform: PlatformModel): LtiPlatform {
   if (!platform) return undefined;
+
   const authToken = platform.authToken();
   if (authToken.method !== AuthTokenMethodEnum.JWK_SET) {
     authToken.key = '********************************';

@@ -180,7 +180,6 @@ Replace the entire placeholder, including angle brackets.
 
 Stop and restart `yarn cross-env PORT=3001 yarn dev`. Keep the forwarding process running.
 A missing client ID blocks launches. A mismatched client ID returns `403`.
-See [Canvas platform configuration](LTI_EMBEDDED_QUESTION_AUTH.md#canvas-platform-configuration) for the trust model.
 
 ## Test the embedded question
 
