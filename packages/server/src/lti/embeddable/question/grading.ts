@@ -26,7 +26,7 @@ export class GradingConstraintError extends Error {}
 const modelFeedbackSchema = z.object({
   score: z.number().finite(),
   comment: z.string().trim().min(1).max(15000),
-  reasons: z.array(z.string().trim().min(1).max(64)).min(1).max(20),
+  reasons: z.array(z.string().trim().min(1)).min(1),
   needs_human_review: z.boolean(),
 });
 
@@ -111,7 +111,7 @@ export function buildSystemPrompt(
       reasons: ['what earned or lost credit'],
       needs_human_review: false,
     })}`,
-    'The score must be allowed by the score contract and within the effective cap. The comment must be non-empty. Reasons must be a non-empty array of short free-form explanations; there is no fixed reason vocabulary.',
+    'The score must be allowed by the score contract and within the effective cap. The comment must be non-empty. Reasons must be a non-empty array of free-form explanations that, like the comment, are grounded in the rubric and the student answer; there is no fixed reason vocabulary. Valid structure does not guarantee the grade is academically correct — grounding does.',
     '## Comment rules',
     'The comment explains, grounded in the rubric and the student answer, what earned and what lost credit. Never state or imply a numerical grade, score, percentage, or cap inside the comment; the host records the numeric score separately.',
     '## Configured automatic checks',
@@ -177,7 +177,7 @@ export function validateGradePayload(
   const parsed = modelFeedbackSchema.safeParse(raw);
   if (!parsed.success) {
     throw new GradingConstraintError(
-      'Model output was not valid grading feedback JSON: it must be an object with a finite numeric "score", a non-empty string "comment" (max 15000 chars), a non-empty "reasons" array of 1-20 short explanation strings, and a boolean "needs_human_review". Return no other prose.',
+      'Model output was not valid grading feedback JSON: it must be an object with a finite numeric "score", a non-empty string "comment" (max 15000 chars), a non-empty "reasons" array of explanation strings, and a boolean "needs_human_review". Return no other prose.',
     );
   }
   const score = parsed.data.score;

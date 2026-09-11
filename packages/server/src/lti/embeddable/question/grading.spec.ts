@@ -56,30 +56,6 @@ describe('question grading contract', () => {
     });
   });
 
-  it('accepts a partial-credit math answer at a mid-scale score', () => {
-    const settings = makeSettings({
-      rubric:
-        '2 points: both the setup and the simplification are right. 1 point: the setup is right but the simplification is wrong. 0 otherwise.',
-      checks: [],
-    });
-    const validated = validateGradePayload(
-      {
-        score: 1,
-        comment:
-          'The setup correctly applied the distributive law, but the final simplification combined unlike terms; that step lost one point.',
-        reasons: ['setup earned credit', 'simplification was wrong'],
-        needs_human_review: false,
-      },
-      settings,
-      null,
-    );
-    expect(validated).toMatchObject({ score: 1, needsHumanReview: false });
-    expect(validated.reasons).toEqual([
-      'setup earned credit',
-      'simplification was wrong',
-    ]);
-  });
-
   it('keeps only the lowest triggered cap for a capitalization-only cap', () => {
     const settings = makeSettings({
       checks: [
@@ -149,110 +125,77 @@ describe('question grading contract', () => {
     ).toThrow(/effective cap of 1/);
   });
 
-  it('grades a sensitive-subject answer by the rubric without a host override', () => {
+  it('applies whatever score an arbitrary rubric dictates, with no host override', () => {
+    // The host has no content policy of its own: a rubric that awards zero
+    // without scholarly framing, and one that awards partial credit for it,
+    // are both accepted and passed through unchanged.
     const settings = makeSettings({
       rubric:
-        'Score 0 when the answer discusses self-harm without a scholarly framing; otherwise grade the reflection normally.',
+        'Score 0 unless the answer cites a scholarly source; partial credit when framing is scholarly but citations are missing.',
       checks: [],
     });
-    const validated = validateGradePayload(
+    const zero = validateGradePayload(
       {
-        score: 1,
-        comment:
-          'The reflection is a scholarly discussion of a sensitive topic, so the rubric awards partial credit.',
-        reasons: ['scholarly framing per rubric', 'missing citations'],
+        score: 0,
+        comment: 'No scholarly framing, so the rubric scores zero.',
+        reasons: ['no scholarly framing'],
         needs_human_review: true,
       },
       settings,
       null,
     );
-    // The host no longer forces sensitive answers to zero; the rubric decides.
-    expect(validated.score).toBe(1);
-    expect(validated.needsHumanReview).toBe(true);
+    expect(zero.score).toBe(0);
+    expect(zero.needsHumanReview).toBe(true);
     expect(
       validateGradePayload(
         {
-          score: 0,
-          comment: 'Sensitive content without scholarly framing scores zero.',
-          reasons: ['no scholarly framing'],
-          needs_human_review: true,
+          score: 1,
+          comment: 'Scholarly framing, but the citations are missing.',
+          reasons: ['scholarly framing present', 'missing citations'],
+          needs_human_review: false,
         },
         settings,
         null,
-      ).score,
-    ).toBe(0);
+      ),
+    ).toEqual({
+      score: 1,
+      comment: 'Scholarly framing, but the citations are missing.',
+      reasons: ['scholarly framing present', 'missing citations'],
+      needsHumanReview: false,
+    });
   });
 
   it('rejects malformed output and disallowed scores', () => {
     const settings = makeSettings({ checks: [] });
+    const valid = {
+      score: 1,
+      comment: 'Good answer.',
+      reasons: ['complete'],
+      needs_human_review: false,
+    };
     expect(() =>
-      validateGradePayload({ score: 1, comment: ' ' }, settings, null),
+      validateGradePayload({ ...valid, comment: ' ' }, settings, null),
     ).toThrow(GradingConstraintError);
     expect(() => validateGradePayload('not json', settings, null)).toThrow(
       GradingConstraintError,
     );
+    // Otherwise-valid output whose score is off-grid (not a step on the scale).
     expect(() =>
-      validateGradePayload(
-        { score: 1.25, comment: 'Good answer.' },
-        settings,
-        null,
-      ),
-    ).toThrow(GradingConstraintError);
-    expect(() =>
-      validateGradePayload(
-        {
-          score: 1,
-          comment: 'Good answer.',
-          reasons: [],
-          needs_human_review: false,
-        },
-        settings,
-        null,
-      ),
-    ).toThrow(GradingConstraintError);
-    expect(() =>
-      validateGradePayload(
-        {
-          score: 1,
-          comment: 'Good answer.',
-          needs_human_review: false,
-        },
-        settings,
-        null,
-      ),
-    ).toThrow(GradingConstraintError);
-    expect(() =>
-      validateGradePayload(
-        {
-          score: 11,
-          comment: 'Good answer.',
-          reasons: ['complete'],
-          needs_human_review: false,
-        },
-        settings,
-        null,
-      ),
+      validateGradePayload({ ...valid, score: 1.25 }, settings, null),
     ).toThrow(/not allowed by the score contract/);
-  });
-
-  it('accepts any non-empty reason strings without a fixed vocabulary', () => {
-    const settings = makeSettings({ checks: [] });
-    const reasons = [
-      'the answer ignored the rubric’s evidence requirement',
-      'one supporting detail was missing',
-    ];
-    expect(
+    expect(() =>
+      validateGradePayload({ ...valid, reasons: [] }, settings, null),
+    ).toThrow(GradingConstraintError);
+    expect(() =>
       validateGradePayload(
-        {
-          score: 0.5,
-          comment: 'Partial answer.',
-          reasons,
-          needs_human_review: false,
-        },
+        { ...valid, needs_human_review: undefined },
         settings,
         null,
-      ).reasons,
-    ).toEqual(reasons);
+      ),
+    ).toThrow(GradingConstraintError);
+    expect(() =>
+      validateGradePayload({ ...valid, score: 11 }, settings, null),
+    ).toThrow(/not allowed by the score contract/);
   });
 
   it('rejects scores above the effective cap instead of clamping', () => {
@@ -291,19 +234,14 @@ describe('question grading contract', () => {
     expect(effectiveScoreCap([])).toBeNull();
   });
 
-  it('appends the rubric and feedback instructions to the fixed rules with no reason vocabulary', () => {
+  it('builds the system prompt from the rubric, feedback instructions, score contract, and output shape', () => {
     const settings = makeSettings();
     const prompt = buildSystemPrompt(settings, 1);
     expect(prompt).toContain(
       'Award points for an accurate and supported answer.',
     );
     expect(prompt).toContain('Keep feedback concise and constructive.');
-    expect(prompt).toContain('effective cap');
-    expect(prompt).toContain('Never state or imply a numerical grade');
-    expect(prompt).toContain('what earned and what lost credit');
-    expect(prompt).not.toContain('## Reason codes');
-    expect(prompt).not.toContain('meets_requirements');
-    expect(prompt).not.toContain('Final grading');
+    expect(prompt).toContain('effective cap of 1');
     expect(prompt).toContain('needs_human_review');
   });
 

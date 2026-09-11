@@ -143,7 +143,7 @@ Integration tests are located in the `test` folder.
 
 To run a specific unit test suite, you can run `yarn test:unit suite-name` e.g. `yarn test:unit course`
 
-Integration tests normally run against the shared local `test` database (create it per the installation steps above). To run an integration test against its own disposable database instead, set `POSTGRES_TEST_DB` to a new database name, e.g. `POSTGRES_TEST_DB=my_disposable_db yarn test:integration --run-in-band course`. The standard test helpers only connect to the database named by `POSTGRES_TEST_DB`; they do not create it, so create the database before the run and drop it afterwards. Each integration run creates its tables with `synchronize`, so the disposable database can be dropped afterwards. (The exception is `embeddable-grading-migration.integration.ts`, which creates and drops its own uniquely named disposable database automatically.)
+Integration tests normally run against the shared local `test` database (create it per the installation steps above). To run an integration test against its own disposable database instead, set `POSTGRES_TEST_DB` to a new database name, e.g. `POSTGRES_TEST_DB=my_disposable_db yarn test:integration --run-in-band course`. The standard test helpers connect to but never create that database, so create it before the run and drop it afterwards; each run creates its tables with `synchronize`. (The exception is `embeddable-grading-migration.integration.ts`, which creates and drops its own uniquely named disposable database automatically.)
 
 If your tests are failing with a message about "deadlock something whatever", do `yarn test --run-in-band`. This makes the tests run sequentially.
 

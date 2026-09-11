@@ -14,19 +14,21 @@ import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 
-// Outer envelope only. The model's answer payload stays `unknown` at this
-// boundary and is validated by the grading boundary (validateGradePayload);
-// malformed model output errors there without any feedback being persisted.
-// Legacy transports may still return reasons/needs_human_review; they are
-// unknown data here and are ignored downstream.
+// Outer envelope only. The whole model answer payload (including the
+// legacy-transport reasons and needs_human_review fields) stays `unknown` at
+// this boundary and is validated by the grading boundary
+// (validateGradePayload) before any feedback is persisted; malformed model
+// output errors there without anything being saved.
 const feedbackResponseSchema = z.object({
   answer: z.unknown(),
   model: z.string().optional(),
 });
 
-// The chatbot service owns provider retries (max 4 total attempts); this
-// timeout bounds one request within that retry budget.
-const FEEDBACK_TIMEOUT_MS = 60000;
+// The chatbot service owns provider retries for feedback (at most 4 attempts
+// within its own 60-second budget); HelpMe makes exactly one call and never
+// retries. The host deadline is slightly larger than that budget so a
+// legitimate near-deadline response is not preempted in transport.
+const FEEDBACK_TIMEOUT_MS = 65000;
 
 export type FeedbackQueryResult = z.infer<typeof feedbackResponseSchema>;
 
@@ -172,7 +174,8 @@ export class ChatbotApiService {
 
   /**
    * Feedback uses the course's feedback model and the supplied grading prompt.
-   * The chatbot service owns provider retries for this request (60s budget).
+   * The chatbot service owns provider retries for this request; the host
+   * deadline only bounds the single transport call.
    */
   queryChatbotForCourse(
     query: string,

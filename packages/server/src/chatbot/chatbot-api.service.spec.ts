@@ -5,6 +5,7 @@ describe('ChatbotApiService', () => {
   const originalFetch = global.fetch;
 
   afterEach(() => {
+    jest.restoreAllMocks();
     global.fetch = originalFetch;
   });
 
@@ -19,7 +20,7 @@ describe('ChatbotApiService', () => {
     const expectedAnswer = {
       score: 2,
       comment: 'Thoughtful reflection meeting the criteria.',
-      reasons: ['meets_requirements'],
+      reasons: ['both required examples were included'],
       needs_human_review: false,
     };
 
@@ -111,7 +112,7 @@ describe('ChatbotApiService', () => {
           answer: {
             score: 'high',
             comment: 'Thoughtful reflection meeting the criteria.',
-            reasons: ['meets_requirements'],
+            reasons: ['both required examples were included'],
             needs_human_review: false,
           },
           model: 'test-model',
@@ -137,45 +138,49 @@ describe('ChatbotApiService', () => {
       answer: {
         score: 'high',
         comment: 'Thoughtful reflection meeting the criteria.',
-        reasons: ['meets_requirements'],
+        reasons: ['both required examples were included'],
         needs_human_review: false,
       },
       model: 'test-model',
     });
   });
 
-  it('bounds one feedback request with the chatbot-owned 60s retry budget', async () => {
+  it('aborts a hung feedback request at the host deadline and fails without retrying', async () => {
     const configService = new ConfigService({
       CHATBOT_API_URL: 'https://chatbot.test',
       CHATBOT_API_KEY: 'test-chatbot-api-key',
     });
     const service = new ChatbotApiService(configService);
 
+    // Fake the clock: the service requests a 65s deadline (transport grace
+    // above the chatbot's 60s retry budget), which we substitute with a 10ms
+    // deadline so the real abort path runs quickly.
+    const realTimeout = AbortSignal.timeout.bind(AbortSignal);
+    const timeoutSpy = jest
+      .spyOn(AbortSignal, 'timeout')
+      .mockImplementation(() => realTimeout(10));
+
     const mockFetch = jest.fn<
       ReturnType<typeof fetch>,
       Parameters<typeof fetch>
     >();
-    mockFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          answer: {
-            score: 1,
-            comment: 'Feedback.',
-            reasons: ['complete'],
-            needs_human_review: false,
-          },
-          model: 'test-model',
+    mockFetch.mockImplementation(
+      (_url: URL | RequestInfo, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () =>
+            reject(init.signal?.reason),
+          );
         }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      ),
     );
     global.fetch = mockFetch;
 
-    await service.queryChatbotForCourse('user prompt', 42, 'feedback', {
-      systemPrompt: 'system prompt',
-    });
+    await expect(
+      service.queryChatbotForCourse('user prompt', 42, 'feedback', {
+        systemPrompt: 'system prompt',
+      }),
+    ).rejects.toThrow('Failed to connect to chatbot service');
 
-    const [, requestInit] = mockFetch.mock.calls[0];
-    expect(requestInit?.signal).toBeInstanceOf(AbortSignal);
+    expect(timeoutSpy).toHaveBeenCalledWith(65000);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 });

@@ -57,22 +57,15 @@ const schemaSnapshot = (ds: DataSource) =>
     ),
   ]);
 
-// The settled grading-settings contract drops finalGradingInstructions; it is
-// omitted here and stubbed only for the one-time schema check below, until the
-// shared schema is updated at integration.
-const REALISTIC_SETTINGS: Omit<
-  QuestionGradingSettings,
-  'finalGradingInstructions'
-> = {
-  rubric: 'Award full marks for a complete, accurate answer.',
-  feedbackInstructions: 'Explain what the answer is missing.',
-  scoreScale: { kind: 'values', values: [0, 1, 2] },
-  checks: [{ kind: 'minimum_sentences', minimum: 3, scoreCap: 1 }],
-};
-questionGradingSettingsSchema.parse({
-  ...REALISTIC_SETTINGS,
-  finalGradingInstructions: '',
-});
+// Realistic settings, normalized through the shared schema exactly like the
+// server stores them.
+const REALISTIC_SETTINGS: QuestionGradingSettings =
+  questionGradingSettingsSchema.parse({
+    rubric: 'Award full marks for a complete, accurate answer.',
+    feedbackInstructions: 'Explain what the answer is missing.',
+    scoreScale: { kind: 'values', values: [0, 1, 2] },
+    checks: [{ kind: 'minimum_sentences', minimum: 3, scoreCap: 1 }],
+  });
 
 const withAdminClient = async <T>(
   database: string,

@@ -90,7 +90,7 @@ One-click LTI-only course mapping remains deferred. The existing LMS integration
 
 There is no exporter, framework, or version table for course configuration. The two kinds of durability are kept apart:
 
-- **Grading prompts and validators are code.** The shared prompt code and validators live in `packages/common` and are reviewed and versioned through Git like any other code.
+- **Grading prompts and validators are code.** The prompt builder and grade validator live in `packages/server/src/lti/embeddable/question/grading.ts`; the shared grading-settings schemas live in `packages/common`. Both are reviewed and versioned through Git like any other code.
 - **Durable snapshots are database JSON.** Feedback rows in `EmbeddableQuestionFeedbackModel` durably keep the submission, score, comment, grounded explanations (`reasons`), human-review flag, model name, maximum score, and a `gradingSnapshot` JSON of the question text, grading settings, and quiz context in effect at grading time. The snapshot is historical: editing a question later never rewrites past feedback. The learner response itself only ever returns the current score, comment, applied requirements, and maximum score.
 
 Staff edits to question and quiz configuration write to the mutable `EmbeddableQuestionModel` / `EmbeddableQuizModel` rows. Those edits are not versioned — not by Git and not by any history table. HelpMe does not currently provide course configuration versioning; revisit that only if the professor needs rollback of question configuration.
@@ -102,7 +102,7 @@ Deployments must roll out the chatbot backend before HelpMe, so the chatbot API 
 Two different validations can reject a grade, and they fail differently:
 
 - **Chatbot structural retries.** The chatbot backend repairs structurally invalid model output within its own retry budget (at most 4 attempts, 60 seconds).
-- **HelpMe score validation.** The chatbot cannot know a host course's score scale or caps, so a grade that is structurally fine but violates HelpMe's score-scale/cap validation fails immediately, after the single chatbot call — retrying could not fix it.
+- **HelpMe score validation.** The chatbot cannot know a host course's score scale or caps, so a grade that is structurally fine but violates HelpMe's score-scale/cap validation fails immediately, after the single chatbot call. HelpMe deliberately makes exactly one call and never loops on semantic repair: the chatbot's retry budget could in principle be spent repairing meaning as well as structure, but HelpMe chose a single-call budget instead of depending on nested retry loops, so an invalid grade surfaces directly to the student.
 
 In both cases nothing invalid is ever saved; the request fails and the student can simply resubmit.
 

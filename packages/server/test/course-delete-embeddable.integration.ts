@@ -23,7 +23,6 @@ describe('Organization course deletion with embeddable content', () => {
   const gradingSettings = {
     rubric: 'Grade the answer against the rubric.',
     feedbackInstructions: '',
-    finalGradingInstructions: '',
     scoreScale: { kind: 'values' as const, values: [0, 1, 2] },
     checks: [
       { kind: 'minimum_sentences' as const, minimum: 3, scoreCap: null },

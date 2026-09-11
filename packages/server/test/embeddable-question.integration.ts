@@ -286,10 +286,9 @@ describe('Embeddable question grading', () => {
       objective: 'Test duplication independence.',
       background: '',
     }).save();
-    const originalSettings = {
-      ...settings('Original rubric, used only by the original question.'),
-      finalGradingInstructions: 'Original final grading instructions.',
-    };
+    const originalSettings = settings(
+      'Original rubric, used only by the original question.',
+    );
     const original = await EmbeddableQuestionModel.create({
       courseId: course.id,
       title: 'Original question',
@@ -324,10 +323,7 @@ describe('Embeddable question grading', () => {
     expect(copyResponse.body.id).not.toBe(original.id);
 
     // Editing the copy must not affect the original.
-    const copySettings = {
-      ...settings('Copy-only rubric.'),
-      finalGradingInstructions: 'Copy final grading instructions.',
-    };
+    const copySettings = settings('Copy-only rubric.');
     await supertest({ userId: user.id })
       .patch(`/lti/embeddable-question/${course.id}/${copyResponse.body.id}`)
       .send({
@@ -387,8 +383,20 @@ describe('Embeddable question grading', () => {
     ).toBe(0);
   });
 
-  it('rejects invalid feedback bodies and question configurations without persisting', async () => {
-    const { user, course } = await setupCourseMember(Role.STUDENT);
+  it('rejects invalid feedback bodies and question configurations without grading or persisting', async () => {
+    const course = await CourseFactory.create();
+    const student = await UserFactory.create();
+    const professor = await UserFactory.create();
+    await UserCourseFactory.create({
+      user: student,
+      course,
+      role: Role.STUDENT,
+    });
+    await UserCourseFactory.create({
+      user: professor,
+      course,
+      role: Role.PROFESSOR,
+    });
     const question = await EmbeddableQuestionModel.create({
       courseId: course.id,
       title: 'Validation question',
@@ -397,26 +405,42 @@ describe('Embeddable question grading', () => {
       gradingSettings: settings('Grade the answer.'),
     }).save();
 
-    // An empty answer fails the request DTO before grading runs.
-    await supertest({ userId: user.id })
+    // Whitespace feedback fails the request DTO before grading runs.
+    await supertest({ userId: student.id })
       .post(`/lti/embeddable-question/${course.id}/${question.id}/feedback`)
       .send({ responseText: '   ' })
       .expect(400);
 
     // A blank rubric fails the shared grading-settings validator.
-    await supertest({ userId: user.id })
+    await supertest({ userId: professor.id })
       .post(`/lti/embeddable-question/${course.id}`)
       .send({
         title: 'No rubric',
         questionText: 'This must be rejected.',
         quizId: null,
+        gradingSettings: settings('   '),
+      })
+      .expect(400);
+
+    // The nested cross-field rule applies at the HTTP boundary too: a
+    // minimum sentence count above the maximum is rejected.
+    await supertest({ userId: professor.id })
+      .post(`/lti/embeddable-question/${course.id}`)
+      .send({
+        title: 'Crossed sentence bounds',
+        questionText: 'This must be rejected.',
+        quizId: null,
         gradingSettings: {
-          ...settings(''),
-          rubric: '   ',
+          ...settings('Grade the answer.'),
+          checks: [
+            { kind: 'minimum_sentences', minimum: 5, scoreCap: 1 },
+            { kind: 'maximum_sentences', maximum: 3, scoreCap: 1 },
+          ],
         },
       })
       .expect(400);
 
+    expect(mockQuestionGradingService.evaluate).not.toHaveBeenCalled();
     expect(
       await EmbeddableQuestionFeedbackModel.count({
         where: { questionId: question.id },
@@ -425,6 +449,11 @@ describe('Embeddable question grading', () => {
     expect(
       await EmbeddableQuestionModel.count({
         where: { courseId: course.id, title: 'No rubric' },
+      }),
+    ).toBe(0);
+    expect(
+      await EmbeddableQuestionModel.count({
+        where: { courseId: course.id, title: 'Crossed sentence bounds' },
       }),
     ).toBe(0);
   });

@@ -10,6 +10,7 @@ import {
   EmbeddableQuestionFeedbackParams,
   ERROR_MESSAGES,
   GradingEvaluation,
+  questionGradingSettingsSchema,
   QuizContext,
   StudentEmbeddableQuestion,
   UpsertEmbeddableQuestionParams,
@@ -102,6 +103,15 @@ export class EmbeddableQuestionService {
     params: UpsertEmbeddableQuestionParams,
     questionId?: number,
   ): Promise<EmbeddableQuestionModel> {
+    // The shared Zod schema is the one authoritative grading-settings
+    // validator: the DTO constraint only returns a boolean, so normalization
+    // (trimmed strings, unknown-key stripping) happens exactly once here.
+    const parsed = questionGradingSettingsSchema.safeParse(
+      params.gradingSettings,
+    );
+    if (!parsed.success) {
+      throw new BadRequestException('gradingSettings is invalid.');
+    }
     const quiz =
       params.quizId === null
         ? null
@@ -116,7 +126,7 @@ export class EmbeddableQuestionService {
       questionText: params.questionText,
       quizId: params.quizId,
       quiz,
-      gradingSettings: structuredClone(params.gradingSettings),
+      gradingSettings: parsed.data,
     });
     return question.save();
   }

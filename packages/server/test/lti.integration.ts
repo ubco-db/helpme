@@ -289,7 +289,7 @@ describe('LtiController', () => {
       const res = await supertest()
         .post('/lti/deep-link/selection')
         .send({ questionId: question.id })
-        .expect(200)
+        .expect(201)
         .expect('Content-Type', /text\/html/);
 
       const signedToken = /name="JWT" value="([^"]+)"/.exec(res.text)?.[1];

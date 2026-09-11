@@ -31,7 +31,9 @@ const ThirdPartyCookiesWarning: React.FC = () => {
               </>
             ) : (
               <>
-                <p>Third-Party Cookies are required to use the HelpMe LTI tool.</p>
+                <p>
+                  Third-Party Cookies are required to use the HelpMe LTI tool.
+                </p>
                 <p>
                   To use HelpMe, visit it in a dedicated tab or window by
                   clicking the button below:

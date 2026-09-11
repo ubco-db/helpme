@@ -6,16 +6,8 @@ import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { getAppAuthPayload } from './auth-token';
 
-/**
- * The app session cookie takes precedence, but a broken app cookie (expired,
- * bad signature, or not a valid app-auth token) must not shadow a fresh LTI
- * session cookie. When both cookies are present, the app cookie is verified
- * here against the same JWT secret configured for LoginModule's JwtService
- * (including the purpose/user check), and any failure selects the LTI cookie.
- * Whichever token is selected is then verified again by the strategy
- * (signature, expiry) and validate (purpose); a failed selection never
- * grants access on its own.
- */
+// A broken app cookie (expired, bad signature, or wrong kind) must not shadow a fresh LTI session cookie; the
+// app cookie is fully verified before selection, and the selected token is verified again by the strategy.
 function selectAuthCookie(
   req: Request,
   jwtService: JwtService,

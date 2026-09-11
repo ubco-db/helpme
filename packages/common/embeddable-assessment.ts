@@ -1,8 +1,10 @@
 import { z } from 'zod'
+import { Transform } from 'class-transformer'
 import {
   IsDefined,
   IsInt,
   IsNotEmpty,
+  IsPositive,
   IsString,
   MaxLength,
   Validate,
@@ -166,12 +168,20 @@ class QuestionGradingSettingsConstraint implements ValidatorConstraintInterface 
   }
 }
 
+// Trims string request bodies for validation and storage. Non-strings pass
+// through untouched so their class-validator rules reject them instead of the
+// transform coercing numbers/objects into strings.
+const trimmed = ({ value }: { value: unknown }): unknown =>
+  typeof value === 'string' ? value.trim() : value
+
 export class UpsertEmbeddableQuestionParams {
+  @Transform(trimmed)
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
   title!: string
 
+  @Transform(trimmed)
   @IsString()
   @IsNotEmpty()
   @MaxLength(15000)
@@ -180,6 +190,7 @@ export class UpsertEmbeddableQuestionParams {
   @IsDefined()
   @ValidateIf((_, value) => value !== null)
   @IsInt()
+  @IsPositive()
   quizId!: number | null
 
   @Validate(QuestionGradingSettingsConstraint)
@@ -193,15 +204,18 @@ export type EmbeddableQuestion = UpsertEmbeddableQuestionParams & {
 }
 
 export class UpsertEmbeddableQuizParams {
+  @Transform(trimmed)
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
   title!: string
 
+  @Transform(trimmed)
   @IsString()
   @MaxLength(15000)
   objective!: string
 
+  @Transform(trimmed)
   @IsString()
   @MaxLength(15000)
   background!: string
@@ -224,6 +238,7 @@ export type StudentEmbeddableQuestion = Pick<
 >
 
 export class EmbeddableQuestionFeedbackParams {
+  @Transform(trimmed)
   @IsString()
   @IsNotEmpty()
   @MaxLength(15000)
