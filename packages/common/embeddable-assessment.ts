@@ -14,29 +14,17 @@ import {
 const text = z.string().trim().max(15000)
 const score = z.number().finite().min(0).max(100000)
 
-export const scoreScaleSchema = z.discriminatedUnion('kind', [
-  z.object({
-    kind: z.literal('range'),
-    max: score.positive(),
-    step: score.positive(),
-  }),
-  z.object({
-    kind: z.literal('values'),
-    values: z.array(score).min(2).max(100),
-  }),
-])
+export const scoreScaleSchema = z.object({
+  max: score.positive(),
+  step: score.positive(),
+})
 
 export type ScoreScale = z.infer<typeof scoreScaleSchema>
 
-export function getMaxScore(scale: ScoreScale): number {
-  return scale.kind === 'range' ? scale.max : Math.max(...scale.values)
-}
-
 export function isScoreAllowed(scale: ScoreScale, value: number): boolean {
-  if (!Number.isFinite(value) || value < 0 || value > getMaxScore(scale)) {
+  if (!Number.isFinite(value) || value < 0 || value > scale.max) {
     return false
   }
-  if (scale.kind === 'values') return scale.values.includes(value)
   const steps = value / scale.step
   return Math.abs(steps - Math.round(steps)) <= 1e-8
 }
@@ -80,27 +68,16 @@ export const questionGradingSettingsSchema = z
   })
   .superRefine((settings, ctx) => {
     const scale = settings.scoreScale
-    if (scale.kind === 'range') {
-      if (
-        scale.step > scale.max ||
-        !Number.isSafeInteger(Math.round(scale.max / scale.step)) ||
-        !isScoreAllowed(scale, scale.max)
-      ) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['scoreScale', 'step'],
-          message:
-            'The maximum score must be a whole number of score increments.',
-        })
-      }
-    } else if (
-      !scale.values.includes(0) ||
-      new Set(scale.values).size !== scale.values.length
+    if (
+      scale.step > scale.max ||
+      !Number.isSafeInteger(Math.round(scale.max / scale.step)) ||
+      !isScoreAllowed(scale, scale.max)
     ) {
       ctx.addIssue({
         code: 'custom',
-        path: ['scoreScale', 'values'],
-        message: 'Allowed scores must be unique and include zero.',
+        path: ['scoreScale', 'step'],
+        message:
+          'The maximum score must be a whole number of score increments.',
       })
     }
 
@@ -237,7 +214,7 @@ export const GRADING_PRESETS = {
         'Describe what a complete, partial, and incorrect answer should contain.',
       feedbackInstructions:
         'Give concise, constructive feedback grounded in the rubric.',
-      scoreScale: { kind: 'range', max: 10, step: 1 },
+      scoreScale: { max: 10, step: 1 },
       checks: [],
     },
   },

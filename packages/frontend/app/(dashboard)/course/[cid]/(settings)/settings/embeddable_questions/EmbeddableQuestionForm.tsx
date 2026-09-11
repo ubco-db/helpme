@@ -9,10 +9,8 @@ import {
   Input,
   InputNumber,
   Modal,
-  Radio,
   Select,
   Space,
-  Tag,
   message,
 } from 'antd'
 import { DeleteOutlined } from '@ant-design/icons'
@@ -20,14 +18,9 @@ import type {
   EmbeddableQuestion,
   GradingCheck,
   QuestionGradingSettings,
-  ScoreScale,
   UpsertEmbeddableQuestionParams,
 } from '@koh/common'
-import {
-  createGradingPreset,
-  getMaxScore,
-  questionGradingSettingsSchema,
-} from '@koh/common'
+import { createGradingPreset, questionGradingSettingsSchema } from '@koh/common'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 
@@ -65,12 +58,6 @@ function newCheck(kind: GradingCheck['kind']): GradingCheck {
   }
 }
 
-function scoreText(scale: ScoreScale): string {
-  return scale.kind === 'range'
-    ? `0–${scale.max} by ${scale.step}`
-    : scale.values.join(', ')
-}
-
 function GradingSettingsEditor({
   value,
   onChange,
@@ -79,14 +66,6 @@ function GradingSettingsEditor({
   onChange?: (settings: QuestionGradingSettings) => void
 }): ReactElement {
   const settings = value ?? defaultGradingSettings
-  // The typed score text is owned by this editor and only stored once the
-  // user edits it; until then it derives from the incoming settings, so an
-  // externally replaced value (e.g. editing another question) always shows.
-  const [editedScoreText, setEditedScoreText] = useState<string | null>(null)
-  const valuesScale =
-    settings.scoreScale.kind === 'values' ? settings.scoreScale : null
-  const explicitScoreText =
-    editedScoreText ?? (valuesScale ? valuesScale.values.join(', ') : '')
 
   const update = (changes: Partial<QuestionGradingSettings>) =>
     onChange?.({ ...settings, ...changes })
@@ -111,19 +90,6 @@ function GradingSettingsEditor({
     update({
       checks: settings.checks.filter((_, checkIndex) => checkIndex !== index),
     })
-
-  const setScoreKind = (kind: ScoreScale['kind']) => {
-    if (kind === settings.scoreScale.kind) return
-    // Any typed score text belongs to the previous scale, so reset it and
-    // derive from the new scale instead.
-    setEditedScoreText(null)
-    update({
-      scoreScale:
-        kind === 'range'
-          ? { kind, max: 10, step: 1 }
-          : { kind, values: [0, 1, 2] },
-    })
-  }
 
   const checkRows = (
     <div className="flex flex-col gap-3">
@@ -210,7 +176,7 @@ function GradingSettingsEditor({
                   ...current,
                   scoreCap: event.target.checked
                     ? null
-                    : Math.min(1, getMaxScore(settings.scoreScale)),
+                    : Math.min(1, settings.scoreScale.max),
                 }))
               }
             >
@@ -219,12 +185,8 @@ function GradingSettingsEditor({
             {check.scoreCap !== null && (
               <InputNumber
                 min={0}
-                max={getMaxScore(settings.scoreScale)}
-                step={
-                  settings.scoreScale.kind === 'range'
-                    ? settings.scoreScale.step
-                    : undefined
-                }
+                max={settings.scoreScale.max}
+                step={settings.scoreScale.step}
                 value={check.scoreCap}
                 addonBefore="Cap score at"
                 aria-label="Score cap"
@@ -278,83 +240,45 @@ function GradingSettingsEditor({
       <div>
         <p className="mb-1 font-medium">Score scale</p>
         <p className="mb-2 text-sm text-gray-500">
-          Choose a regular range or list the exact scores this question allows.
+          Scores run from 0 up to the maximum, in fixed increments.
         </p>
-        <Radio.Group
-          value={settings.scoreScale.kind}
-          onChange={(event) => setScoreKind(event.target.value)}
-          options={[
-            { value: 'range', label: 'Range' },
-            { value: 'values', label: 'Explicit scores' },
-          ]}
-        />
-        {settings.scoreScale.kind === 'range' ? (
-          <div className="mt-2 grid grid-cols-2 gap-3">
-            <Form.Item label="Maximum score" className="mb-0">
-              <InputNumber
-                min={0.01}
-                max={100000}
-                step={settings.scoreScale.step}
-                value={settings.scoreScale.max}
-                aria-label="Maximum score"
-                onChange={(max) => {
-                  if (settings.scoreScale.kind !== 'range') return
-                  update({
-                    scoreScale: {
-                      kind: 'range',
-                      max: max ?? settings.scoreScale.max,
-                      step: settings.scoreScale.step,
-                    },
-                  })
-                }}
-                className="w-full"
-              />
-            </Form.Item>
-            <Form.Item label="Score increment" className="mb-0">
-              <InputNumber
-                min={0.01}
-                max={100000}
-                value={settings.scoreScale.step}
-                aria-label="Score increment"
-                onChange={(step) => {
-                  if (settings.scoreScale.kind !== 'range') return
-                  update({
-                    scoreScale: {
-                      kind: 'range',
-                      max: settings.scoreScale.max,
-                      step: step ?? settings.scoreScale.step,
-                    },
-                  })
-                }}
-                className="w-full"
-              />
-            </Form.Item>
-          </div>
-        ) : (
-          <Form.Item label="Allowed scores" className="mb-0 mt-2">
-            <Input
-              value={explicitScoreText}
-              aria-label="Allowed scores"
-              onChange={(event) => {
-                const text = event.target.value
-                setEditedScoreText(text)
+        <div className="grid grid-cols-2 gap-3">
+          <Form.Item label="Maximum score" className="mb-0">
+            <InputNumber
+              min={0.01}
+              max={100000}
+              step={settings.scoreScale.step}
+              value={settings.scoreScale.max}
+              aria-label="Maximum score"
+              onChange={(max) => {
                 update({
                   scoreScale: {
-                    kind: 'values',
-                    values: text.split(',').map((part) => {
-                      const trimmed = part.trim()
-                      return trimmed === '' ? Number.NaN : Number(trimmed)
-                    }),
+                    max: max ?? settings.scoreScale.max,
+                    step: settings.scoreScale.step,
                   },
                 })
               }}
-              placeholder="0, 1, 2, 3"
+              className="w-full"
             />
           </Form.Item>
-        )}
-        <Tag className="mt-2">
-          Current scale: {scoreText(settings.scoreScale)}
-        </Tag>
+          <Form.Item label="Score increment" className="mb-0">
+            <InputNumber
+              min={0.01}
+              max={100000}
+              value={settings.scoreScale.step}
+              aria-label="Score increment"
+              onChange={(step) => {
+                update({
+                  scoreScale: {
+                    max: settings.scoreScale.max,
+                    step: step ?? settings.scoreScale.step,
+                  },
+                })
+              }}
+              className="w-full"
+            />
+          </Form.Item>
+        </div>
       </div>
 
       <Collapse

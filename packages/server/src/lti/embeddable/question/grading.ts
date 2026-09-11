@@ -1,5 +1,4 @@
 import {
-  getMaxScore,
   isScoreAllowed,
   type GradingCheck,
   type QuestionGradingSettings,
@@ -60,10 +59,7 @@ export function buildSystemPrompt(
   effectiveCap: number | null,
 ): string {
   const scale = settings.scoreScale;
-  const scoreContract =
-    scale.kind === 'range'
-      ? `Any score from 0 through ${getMaxScore(scale)} in increments of ${scale.step}.`
-      : `Only these scores: ${scale.values.join(', ')}.`;
+  const scoreContract = `Any score from 0 through ${scale.max} in increments of ${scale.step}.`;
   const capContract =
     effectiveCap === null
       ? 'No triggered automatic check limits the score; any allowed score is permitted.'
@@ -159,11 +155,7 @@ export function validateGradePayload(
   const score = parsed.data.score;
   if (!isScoreAllowed(settings.scoreScale, score)) {
     throw new GradingConstraintError(
-      `Model returned score ${score}, which is not allowed by the score contract. Allowed: ${
-        settings.scoreScale.kind === 'range'
-          ? `0 through ${getMaxScore(settings.scoreScale)} in increments of ${settings.scoreScale.step}`
-          : settings.scoreScale.values.join(', ')
-      }.`,
+      `Model returned score ${score}, which is not allowed by the score contract. Allowed: any score from 0 through ${settings.scoreScale.max} in increments of ${settings.scoreScale.step}.`,
     );
   }
   if (effectiveCap !== null && score > effectiveCap) {

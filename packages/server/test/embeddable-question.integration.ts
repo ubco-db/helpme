@@ -35,7 +35,7 @@ describe('Embeddable question grading', () => {
   const settings = (rubric: string): QuestionGradingSettings => ({
     ...createGradingPreset('generic'),
     rubric,
-    scoreScale: { kind: 'range', max: 10, step: 0.5 },
+    scoreScale: { max: 10, step: 0.5 },
   });
 
   it('lets staff create a question with question-owned grading settings', async () => {
@@ -59,7 +59,6 @@ describe('Embeddable question grading', () => {
       }),
     );
     expect(response.body.gradingSettings.scoreScale).toEqual({
-      kind: 'range',
       max: 10,
       step: 0.5,
     });

@@ -16,7 +16,7 @@ function makeSettings(
   return {
     rubric: 'Award points for an accurate and supported answer.',
     feedbackInstructions: 'Keep feedback concise and constructive.',
-    scoreScale: { kind: 'range', max: 2, step: 0.5 },
+    scoreScale: { max: 2, step: 0.5 },
     checks: [
       { kind: 'minimum_sentences', minimum: 3, scoreCap: 1 },
       { kind: 'capitalization', term: 'Example', scoreCap: null },
@@ -30,13 +30,11 @@ const facts = (submission: string, settings = makeSettings()) =>
 
 describe('question grading contract', () => {
   it.each<ScoreScale>([
-    { kind: 'range', max: 2, step: 0.5 },
-    { kind: 'range', max: 10, step: 0.25 },
-    { kind: 'range', max: 100, step: 1 },
-    { kind: 'values', values: [0, 2, 7.5, 10] },
+    { max: 2, step: 0.5 },
+    { max: 10, step: 0.25 },
+    { max: 100, step: 1 },
   ])('accepts scores from a question-owned scale: %j', (scoreScale) => {
-    const score =
-      scoreScale.kind === 'values' ? scoreScale.values[1] : scoreScale.step;
+    const score = scoreScale.step;
     expect(
       validateGradePayload(
         {

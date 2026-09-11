@@ -10,7 +10,7 @@ function settings(
   return {
     rubric: 'Award points for an accurate answer.',
     feedbackInstructions: 'Be concise.',
-    scoreScale: { kind: 'range', max: 10, step: 1 },
+    scoreScale: { max: 10, step: 1 },
     checks: [],
     ...overrides,
   };

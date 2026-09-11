@@ -124,9 +124,7 @@ export default function EmbeddableQuestionsPage(
       width: 140,
       render: (_: unknown, question) => {
         const scale = question.gradingSettings.scoreScale
-        return scale.kind === 'range'
-          ? `0–${scale.max} by ${scale.step}`
-          : scale.values.join(', ')
+        return `0–${scale.max} by ${scale.step}`
       },
     },
     {

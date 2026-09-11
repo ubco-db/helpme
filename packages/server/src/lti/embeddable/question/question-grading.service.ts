@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import {
-  getMaxScore,
   questionGradingSettingsSchema,
   type GradingEvaluation,
   type GradingSnapshot,
@@ -45,7 +44,7 @@ export class QuestionGradingService {
     });
     const settings = snapshot.gradingSettings;
     const facts = computeMechanicalFacts(submission, settings.checks);
-    const maxScore = getMaxScore(settings.scoreScale);
+    const maxScore = settings.scoreScale.max;
     const appliedRequirements = buildAppliedRequirements(
       facts.triggeredChecks,
       facts.blank,
