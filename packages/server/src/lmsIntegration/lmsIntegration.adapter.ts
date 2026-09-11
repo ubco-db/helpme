@@ -450,13 +450,12 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
       },
     })
       .then(async (response) => {
-        let data = null;
-        if (url.includes('quizzes')) {
+        if (url.includes('/quizzes/')) {
           console.log(
-            `Response for calling ${url}`,
+            `Response for calling ${url} with auth ${await this.getAuthorization()}`,
             !response.ok
-              ? await getFetchErrorMessage(response.clone())
-              : { data: await response.clone().json() },
+              ? { json: await response.clone().json(), status: response.status }
+              : { json: await response.clone().json() },
           );
         }
         let nextLink: string | undefined = undefined;
@@ -804,7 +803,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
       },
     );
 
-    if (status != LMSApiResponseStatus.Success) return { status, quizzes: [] };
+    if (status !== LMSApiResponseStatus.Success) return { status, quizzes: [] };
 
     const quizzes: LMSQuiz[] = [];
 
