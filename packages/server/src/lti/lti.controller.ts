@@ -34,7 +34,6 @@ import {
   ERROR_MESSAGES,
   LMSIntegrationPlatform,
   LtiPlatform,
-  Role,
   UpdateLtiPlatform,
 } from '@koh/common';
 import { plainToClass } from 'class-transformer';
@@ -45,7 +44,6 @@ import {
 } from '../interceptors/IgnoreableClassSerializerInterceptor';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { CourseModel } from '../course/course.entity';
-import { UserCourseModel } from '../profile/user-course.entity';
 import { LTI_APP_SESSION_SECONDS, restrictPaths } from './lti-auth.controller';
 import { LoginService } from '../login/login.service';
 import { EmbeddableQuestionModel } from './embeddable/question/embeddable-question.entity';
@@ -128,21 +126,7 @@ export class LtiController {
     }
 
     if (course) {
-      const enrollment = await UserCourseModel.findOne({
-        where: {
-          userId: user.id,
-          courseId: course?.id,
-        },
-      });
-
-      // If the user has no enrollment.
-      if (!enrollment) {
-        await UserCourseModel.create({
-          userId: user.id,
-          courseId: course.id,
-          role: Role.STUDENT,
-        }).save();
-      }
+      await this.ltiService.ensureLaunchEnrollment(token, user.id, course.id);
     }
 
     const platformMatch =

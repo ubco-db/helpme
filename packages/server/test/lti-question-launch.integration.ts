@@ -145,6 +145,37 @@ describe('LTI question launch', () => {
     ).resolves.toEqual(expect.objectContaining({ role: Role.STUDENT }));
   });
 
+  it.each([Role.PROFESSOR, Role.TA])(
+    'enrolls a first-time %s on a question preview',
+    async (role) => {
+      const { user, course, question } = await setupMappedQuestion();
+      token = buildLaunchToken({ email: user.email, questionId: question.id });
+      token.platformContext.roles = [
+        `http://purl.imsglobal.org/vocab/lis/v2/membership#${role === Role.PROFESSOR ? 'Instructor' : 'TeachingAssistant'}`,
+      ];
+      await supertest().get('/lti').expect(302);
+      expect(
+        await UserCourseModel.findOneBy({
+          userId: user.id,
+          courseId: course.id,
+        }),
+      ).toMatchObject({ role });
+    },
+  );
+
+  it('preserves a professor enrollment on a learner launch', async () => {
+    const { user, course } = await setupMappedQuestion();
+    await UserCourseModel.create({
+      userId: user.id,
+      courseId: course.id,
+      role: Role.PROFESSOR,
+    }).save();
+    await supertest().get('/lti').expect(302);
+    expect(
+      await UserCourseModel.findOneBy({ userId: user.id, courseId: course.id }),
+    ).toMatchObject({ role: Role.PROFESSOR });
+  });
+
   it('rejects a question launch from a different Canvas client before issuing a session', async () => {
     const { user, question } = await setupMappedQuestion();
     token = buildLaunchToken({

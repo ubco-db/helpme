@@ -467,7 +467,44 @@ export class LtiService {
     return { courseId, questionId };
   }
 
-  private async authorizeExistingStaff(
+  /** Create missing enrollments using the verified Canvas course role. */
+  async ensureLaunchEnrollment(
+    token: IdToken,
+    userId: number,
+    courseId: number,
+  ): Promise<UserCourseModel> {
+    const roles = token.platformContext?.roles ?? [];
+    const staffRole = roles.includes(LTI_MEMBERSHIP_STAFF_ROLES[0])
+      ? Role.PROFESSOR
+      : roles.includes(LTI_MEMBERSHIP_STAFF_ROLES[1])
+        ? Role.TA
+        : undefined;
+
+    if (staffRole) {
+      if (token.platformInfo?.product_family_code !== 'canvas') {
+        throw new ForbiddenException('Staff enrollment requires Canvas');
+      }
+      if ((await this.findMappedCourseId(token)) !== courseId) {
+        throw new ForbiddenException(
+          'Canvas course does not match the launch course',
+        );
+      }
+    }
+
+    const enrollment = await UserCourseModel.findOne({
+      where: { userId, courseId },
+    });
+    if (!enrollment) {
+      return UserCourseModel.create({
+        userId,
+        courseId,
+        role: staffRole ?? Role.STUDENT,
+      }).save();
+    }
+    return enrollment;
+  }
+
+  private async authorizeLinkedStaff(
     token: IdToken,
     courseId: number,
   ): Promise<number> {
@@ -480,13 +517,12 @@ export class LtiService {
       );
     }
 
-    const enrollment = await UserCourseModel.findOne({
-      where: { userId: identity.userId, courseId },
-    });
-    if (
-      !enrollment ||
-      (enrollment.role !== Role.PROFESSOR && enrollment.role !== Role.TA)
-    ) {
+    const enrollment = await this.ensureLaunchEnrollment(
+      token,
+      identity.userId,
+      courseId,
+    );
+    if (enrollment.role !== Role.PROFESSOR && enrollment.role !== Role.TA) {
       throw new ForbiddenException(
         'LTI instructor launch requires a Professor or TA enrollment in the mapped course',
       );
@@ -496,8 +532,8 @@ export class LtiService {
 
   /**
    * Authorizes a verified Deep Linking launch for the question picker.
-   * Instructors are never provisioned or elevated: the HelpMe user and the
-   * Professor/TA enrollment must already exist.
+   * Requires a linked HelpMe identity and provisions staff enrollment from
+   * the verified Canvas course role.
    */
   async authorizeDeepLinking(
     token: IdToken,
@@ -530,7 +566,7 @@ export class LtiService {
     }
 
     const courseId = await this.findMappedCourseId(token);
-    const userId = await this.authorizeExistingStaff(token, courseId);
+    const userId = await this.authorizeLinkedStaff(token, courseId);
     return { userId, courseId };
   }
 

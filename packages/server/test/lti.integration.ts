@@ -30,6 +30,8 @@ import { LtiService } from '../src/lti/lti.service';
 import { EmbeddableQuestionModel } from '../src/lti/embeddable/question/embeddable-question.entity';
 import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
+import { UserCourseModel } from '../src/profile/user-course.entity';
+import { UserLtiIdentityModel } from '../src/lti/user_lti_identity.entity';
 
 const gradingSettings = (rubric: string) => ({
   rubric,
@@ -195,7 +197,10 @@ describe('LtiController', () => {
     const instructorRole =
       'http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor';
 
-    const setupDeepLinkLaunch = async (helpMeRole: Role) => {
+    const setupDeepLinkLaunch = async (
+      helpMeRole?: Role,
+      canvasRole = instructorRole,
+    ) => {
       configService.set('LTI_CANVAS_CLIENT_ID', '1');
       await lmsCourseIntFactory.create({
         course,
@@ -206,8 +211,10 @@ describe('LtiController', () => {
         issuer: 'http://platform.com',
         ltiUserId: 'canvas-instructor-1',
       });
-      await UserCourseFactory.create({ user, course, role: helpMeRole });
-      customToken = {
+      if (helpMeRole) {
+        await UserCourseFactory.create({ user, course, role: helpMeRole });
+      }
+      const launchToken = {
         iss: 'http://platform.com',
         clientId: '1',
         deploymentId: 'deployment-1',
@@ -216,7 +223,7 @@ describe('LtiController', () => {
         platformInfo: { product_family_code: 'canvas' },
         platformContext: {
           messageType: 'LtiDeepLinkingRequest',
-          roles: [instructorRole],
+          roles: [canvasRole],
           deepLinkingSettings: {
             deep_link_return_url: 'http://platform.com/deep-link-return',
             accept_types: ['ltiResourceLink'],
@@ -225,6 +232,8 @@ describe('LtiController', () => {
           targetLinkUri: 'http://helpme.test/api/v1/lti',
         },
       };
+      customToken = launchToken;
+      return launchToken;
     };
 
     it('lets a mapped HelpMe professor list the questions available to Canvas', async () => {
@@ -247,10 +256,85 @@ describe('LtiController', () => {
       ]);
     });
 
-    it('does not let a Canvas instructor elevate a HelpMe student through Deep Linking', async () => {
-      await setupDeepLinkLaunch(Role.STUDENT);
+    it.each([
+      ['Instructor', undefined, Role.PROFESSOR],
+      ['TeachingAssistant', undefined, Role.TA],
+      ['TeachingAssistant', Role.PROFESSOR, Role.PROFESSOR],
+    ])(
+      'enrolls %s with existing role %s for the picker',
+      async (canvasRole, existingRole, expectedRole) => {
+        await setupDeepLinkLaunch(
+          existingRole,
+          `http://purl.imsglobal.org/vocab/lis/v2/membership#${canvasRole}`,
+        );
+        await supertest().get('/lti/deep-link/questions').expect(200);
+        await supertest().get('/lti/deep-link/questions').expect(200);
+        const enrollments = await UserCourseModel.find({
+          where: { userId: user.id, courseId: course.id },
+        });
+        expect(enrollments).toHaveLength(1);
+        expect(enrollments[0].role).toBe(expectedRole);
+      },
+    );
 
+    it.each(['Learner', 'Administrator', 'InstructorFake'])(
+      'rejects Canvas %s even with a HelpMe professor enrollment',
+      async (canvasRole) => {
+        await setupDeepLinkLaunch(
+          Role.PROFESSOR,
+          `http://purl.imsglobal.org/vocab/lis/v2/membership#${canvasRole}`,
+        );
+        await supertest().get('/lti/deep-link/questions').expect(403);
+      },
+    );
+
+    it('requires a linked identity even when the email matches', async () => {
+      await setupDeepLinkLaunch(Role.STUDENT);
+      await UserLtiIdentityModel.delete({ userId: user.id });
       await supertest().get('/lti/deep-link/questions').expect(403);
+      expect(
+        await UserCourseModel.findOneBy({
+          userId: user.id,
+          courseId: course.id,
+        }),
+      ).toMatchObject({ role: Role.STUDENT });
+    });
+
+    it.each(['untrusted', 'inactive'])(
+      'does not elevate staff from an %s platform',
+      async (kind) => {
+        await setupDeepLinkLaunch(Role.STUDENT);
+        if (kind === 'untrusted') {
+          configService.set('LTI_CANVAS_CLIENT_ID', 'other-client');
+        } else {
+          const platform = await provider.getPlatform(
+            'http://platform.com',
+            '1',
+          );
+          await platform.setActive(false);
+        }
+        await supertest().get('/lti/deep-link/questions').expect(403);
+        expect(
+          await UserCourseModel.findOneBy({
+            userId: user.id,
+            courseId: course.id,
+          }),
+        ).toMatchObject({ role: Role.STUDENT });
+      },
+    );
+
+    it('enrolls a first-time instructor from course navigation', async () => {
+      const launchToken = await setupDeepLinkLaunch();
+      launchToken.platformContext.messageType = 'LtiResourceLinkRequest';
+      await supertest().get('/lti').expect(302);
+      expect(
+        await UserCourseModel.findOneBy({
+          userId: user.id,
+          courseId: course.id,
+        }),
+      ).toMatchObject({ role: Role.PROFESSOR });
+      launchToken.platformContext.messageType = 'LtiDeepLinkingRequest';
+      await supertest().get('/lti/deep-link/questions').expect(200);
     });
 
     it('rejects selecting a question from a different HelpMe course before signing', async () => {
@@ -269,8 +353,8 @@ describe('LtiController', () => {
         .expect(404);
     });
 
-    it('returns a provider-signed deep linking response for a question in the mapped course', async () => {
-      await setupDeepLinkLaunch(Role.PROFESSOR);
+    it('enrolls a first-time instructor and returns a provider-signed response for a mapped question', async () => {
+      await setupDeepLinkLaunch();
       const question = await EmbeddableQuestionModel.create({
         courseId: course.id,
         title: 'Reflection 2',

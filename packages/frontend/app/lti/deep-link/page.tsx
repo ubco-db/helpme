@@ -12,12 +12,21 @@ import { getErrorMessage } from '@/app/utils/generalUtils'
 const { Paragraph, Text } = Typography
 
 function getDeepLinkErrorMessage(err: unknown): string {
-  if (axios.isAxiosError(err)) {
+  if (axios.isAxiosError<unknown>(err)) {
     if (err.response?.status === 404) {
       return 'This Canvas course is not connected to HelpMe. Ask your HelpMe admin to connect it, then reopen the tool.'
     }
     if (err.response?.status === 403) {
-      return 'Open HelpMe from the Canvas course navigation and sign in once to link your Canvas identity, then reopen the editor button. If already linked, ask your HelpMe admin to verify your Professor or TA enrollment and the Canvas connection.'
+      const data = err.response.data
+      if (
+        typeof data === 'object' &&
+        data !== null &&
+        'message' in data &&
+        data.message === 'No HelpMe account is linked to this Canvas user'
+      ) {
+        return 'Open HelpMe from the Canvas course navigation and sign in to link your Canvas identity, then reopen the editor button.'
+      }
+      return 'The question picker requires an Instructor or Teaching Assistant role in this Canvas course. If you have that role, ask your HelpMe admin to check the Canvas connection.'
     }
     if (err.response?.status === 400) {
       return 'This tool was opened incorrectly. Reopen it from the Canvas editor HelpMe button. If it keeps happening, ask your HelpMe admin to check the placement.'
