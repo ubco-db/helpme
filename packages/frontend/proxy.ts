@@ -98,7 +98,10 @@ export async function proxy(
   let userData: User | undefined
 
   try {
-    response = await fetchUser(cookies, cookieName)
+    response =
+      isPublicPageRequested || isPublicFileRequested
+        ? undefined
+        : await fetchUser(cookies, cookieName)
 
     userData =
       response &&
@@ -357,10 +360,6 @@ async function fetchUser(
 
   const contentType = response?.headers?.get('Content-Type')
   if (contentType?.includes('application/json')) {
-    if (response.status >= 400) {
-      const body = response.json()
-      return Promise.reject(body)
-    }
     return response // Type assertion needed due to conditional return type
   } else if (contentType?.includes('text/html')) {
     const text = response.text()
