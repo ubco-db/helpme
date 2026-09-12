@@ -168,6 +168,16 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
           <Checkbox />
         </Form.Item>
         <Form.Item
+          name={['toClone', 'embeddableQuestions']}
+          valuePropName="checked"
+          label="Embeddable Questions"
+          layout="horizontal"
+          tooltip="Clone all embeddable questions and their grading settings. Student submissions and feedback are not cloned."
+          className={`${formItemClassNames}`}
+        >
+          <Checkbox />
+        </Form.Item>
+        <Form.Item
           name={['toClone', 'queues']}
           valuePropName="checked"
           label="Queues"

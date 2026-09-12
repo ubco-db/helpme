@@ -245,6 +245,7 @@ export type CourseCloneAttributes = {
     courseInviteCode?: boolean
     courseFeatureConfig?: boolean
     asyncCentreQuestionTypes?: boolean
+    embeddableQuestions?: boolean
     queues?: boolean
     queueInvites?: boolean
     chatbot?: {
@@ -268,6 +269,7 @@ export const defaultCourseCloneAttributes: CourseCloneAttributes = {
     courseInviteCode: false,
     courseFeatureConfig: true,
     asyncCentreQuestionTypes: true,
+    embeddableQuestions: true,
     queues: true,
     queueInvites: true,
     chatbot: {

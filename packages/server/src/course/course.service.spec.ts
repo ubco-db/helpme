@@ -38,6 +38,7 @@ import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
 import { CourseSettingsModel } from './course_settings.entity';
 import { SuperCourseModel } from './super-course.entity';
+import { EmbeddableQuestionModel } from 'lti/embeddable/question/embeddable-question.entity';
 
 describe('CourseService', () => {
   let service: CourseService;
@@ -644,6 +645,38 @@ describe('CourseService', () => {
         );
       }
 
+      const originalEmbeddableQuestions = await EmbeddableQuestionModel.find({
+        where: { courseId: originalCourseId },
+        order: { id: 'ASC' },
+      });
+      const clonedEmbeddableQuestions = await EmbeddableQuestionModel.find({
+        where: { courseId: clonedCourseId },
+        order: { id: 'ASC' },
+      });
+
+      expect(clonedEmbeddableQuestions).toHaveLength(
+        originalEmbeddableQuestions.length,
+      );
+      expect(
+        clonedEmbeddableQuestions.map(
+          ({ courseId, title, questionText, gradingSettings }) => ({
+            courseId,
+            title,
+            questionText,
+            gradingSettings,
+          }),
+        ),
+      ).toEqual(
+        originalEmbeddableQuestions.map(
+          ({ title, questionText, gradingSettings }) => ({
+            courseId: clonedCourseId,
+            title,
+            questionText,
+            gradingSettings,
+          }),
+        ),
+      );
+
       // Check chatbot document PDFs
       const originalChatbotDocs = await ChatbotDocPdfModel.find({
         where: { courseId: originalCourseId },
@@ -806,6 +839,17 @@ describe('CourseService', () => {
         color: '#FFFFFF',
         queueId: null,
       });
+      await EmbeddableQuestionModel.create({
+        courseId: course.id,
+        title: 'Explain recursion',
+        questionText: 'Explain recursion in your own words.',
+        gradingSettings: {
+          rubric: 'Award points for a correct explanation.',
+          feedbackInstructions: 'Give concise feedback.',
+          scoreScale: { max: 10, step: 1 },
+          checks: [],
+        },
+      }).save();
       // create chatbot document pdf
       chatbotDocPdf = await ChatbotDocPdfModel.create({
         course: course,
@@ -829,6 +873,7 @@ describe('CourseService', () => {
           courseInviteCode: true,
           courseFeatureConfig: true,
           asyncCentreQuestionTypes: true,
+          embeddableQuestions: true,
           queues: true,
           queueInvites: true,
           chatbot: {
@@ -870,6 +915,7 @@ describe('CourseService', () => {
           courseInviteCode: true,
           courseFeatureConfig: true,
           asyncCentreQuestionTypes: true,
+          embeddableQuestions: true,
           queues: true,
           queueInvites: true,
           chatbot: {
@@ -898,6 +944,24 @@ describe('CourseService', () => {
         course.id,
         result.newUserCourse?.course.id,
       );
+    });
+
+    it('does not clone embeddable questions when disabled', async () => {
+      const result = await service.cloneCourse(
+        course.id,
+        professor.id,
+        {
+          professorIds: [professor.id],
+          toClone: { embeddableQuestions: false },
+        },
+        chatToken,
+      );
+
+      await expect(
+        EmbeddableQuestionModel.count({
+          where: { courseId: result.newCourse.id },
+        }),
+      ).resolves.toBe(0);
     });
 
     it('should clone a course and add it to an existing super course if the original course already had a super course', async () => {

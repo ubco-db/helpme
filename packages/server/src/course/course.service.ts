@@ -50,6 +50,7 @@ import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
 import { URLSearchParams } from 'node:url';
 import { QueueStaffModel } from 'queue/queue-staff/queue-staff.entity';
 import * as crypto from 'crypto';
+import { EmbeddableQuestionModel } from 'lti/embeddable/question/embeddable-question.entity';
 
 @Injectable()
 export class CourseService {
@@ -1067,6 +1068,26 @@ export class CourseService {
             color: questionType.color,
             queueId: null,
           });
+        }
+      }
+
+      // -------------- For Embeddable Questions --------------
+      if (cloneData.toClone.embeddableQuestions) {
+        const originalQuestions = await manager.find(EmbeddableQuestionModel, {
+          where: { courseId },
+        });
+        if (originalQuestions.length > 0) {
+          await manager.insert(
+            EmbeddableQuestionModel,
+            originalQuestions.map(
+              ({ title, questionText, gradingSettings }) => ({
+                courseId: clonedCourse.id,
+                title,
+                questionText,
+                gradingSettings,
+              }),
+            ),
+          );
         }
       }
 
