@@ -132,14 +132,16 @@ export default function ChatbotQuestions(
         return A.localeCompare(B)
       },
       render: (text: string) => (
-        <ExpandableText maxRows={3}>
-          <Highlighter
-            highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
-            searchWords={[search]}
-            autoEscape
-            textToHighlight={text ? text.toString() : ''}
-          />
-        </ExpandableText>
+        <div className="min-w-80">
+          <ExpandableText maxRows={3}>
+            <Highlighter
+              highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
+              searchWords={[search]}
+              autoEscape
+              textToHighlight={text ? text.toString() : ''}
+            />
+          </ExpandableText>
+        </div>
       ),
     },
     {
