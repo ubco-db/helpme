@@ -8,6 +8,7 @@ import {
   Col,
   Divider,
   Form,
+  FormInstance,
   Input,
   message,
   Row,
@@ -35,6 +36,7 @@ import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 import ProfessorSelector from '@/app/(dashboard)/components/ProfessorSelector'
 import { useMediaQuery } from '@/app/hooks/useMediaQuery'
+import useSWRImmutable from 'swr/immutable'
 
 interface FormValues {
   courseName: string
@@ -52,13 +54,75 @@ interface FormValues {
   scheduleOnFrontPage: boolean
 }
 
+/**
+ * "Current" semester just means an active semester who has the shortest duration. Though maybe there'll be a case where this won't work and it'll break
+ */
+function setToCurrentSemester(
+  semesters: SemesterPartial[] | undefined,
+  form: FormInstance,
+) {
+  if (!semesters || semesters.length === 0) return
+
+  const now = new Date()
+
+  const activeSemesters = semesters.filter((s) => {
+    if (!s.startDate || !s.endDate) return false
+    const start = new Date(s.startDate)
+    const end = new Date(s.endDate)
+    return start <= now && now <= end
+  })
+
+  if (activeSemesters.length > 0) {
+    activeSemesters.sort((a, b) => {
+      const aDuration =
+        new Date(a.endDate!).getTime() - new Date(a.startDate!).getTime()
+      const bDuration =
+        new Date(b.endDate!).getTime() - new Date(b.startDate!).getTime()
+      return aDuration - bDuration
+    })
+    const currentSemester = activeSemesters[0]
+    if (currentSemester?.id) {
+      form.setFieldsValue({ semesterId: currentSemester.id })
+    }
+  } else {
+    const testCourseSemester = semesters.find((s) =>
+      s.name?.toLowerCase().includes('test course'),
+    )
+    const fallback = testCourseSemester || semesters[0]
+    if (fallback?.id) {
+      form.setFieldsValue({ semesterId: fallback.id })
+    } else {
+      form.setFieldsValue({ semesterId: -1 })
+    }
+  }
+}
+
 export default function AddCoursePage(): ReactElement {
   const router = useRouter()
   const { userInfo, setUserInfo } = useUserInfo()
   const [organization, setOrganization] = useState<GetOrganizationResponse>()
   const [professors, setProfessors] = useState<OrganizationProfessor[]>()
-  const [organizationSemesters, setOrganizationSemesters] =
-    useState<SemesterPartial[]>()
+  const [form] = Form.useForm()
+  const {
+    data: organizationSemesters,
+    isLoading: organizationSemestersLoading,
+  } = useSWRImmutable(
+    `semesters/${userInfo.organization?.orgId || -1}`,
+    async () =>
+      (await API.semesters.get(userInfo.organization?.orgId || -1)).filter(
+        (semester) =>
+          semester.endDate &&
+          (new Date(semester.endDate) > new Date() ||
+            new Date(semester.endDate) < new Date('1973-01-01')), // show the test semester and 'Sometime in the Future', which has an end date of before 1972
+      ), // filter out past semesters,
+    {
+      onError: (err) =>
+        message.error(`Failed to load semesters: ${getErrorMessage(err)}`),
+      onSuccess: (data) => {
+        setToCurrentSemester(data, form)
+      },
+    },
+  )
   const [isAuthorized, setIsAuthorized] = useState<boolean | undefined>(
     undefined,
   )
@@ -76,11 +140,6 @@ export default function AddCoursePage(): ReactElement {
   const isAdmin =
     userInfo &&
     userInfo.organization?.organizationRole === OrganizationRole.ADMIN
-  const [form] = Form.useForm()
-
-  useEffect(() => {
-    form.setFieldsValue({ semesterId: -1 })
-  }, [])
 
   useEffect(() => {
     const getOrganization = async () => {
@@ -91,24 +150,6 @@ export default function AddCoursePage(): ReactElement {
     }
     getOrganization()
   }, [userInfo])
-
-  useEffect(() => {
-    API.semesters
-      .get(userInfo.organization?.orgId || -1)
-      .then((semesters) => {
-        setOrganizationSemesters(
-          semesters.filter(
-            (semester) =>
-              semester.endDate &&
-              (new Date(semester.endDate) > new Date() ||
-                new Date(semester.endDate) < new Date('1971-01-01')), // show the test semester, which has an end date of before 1971
-          ), // filter out past semesters
-        )
-      })
-      .catch((_) => {
-        message.error('Failed to fetch semesters for organization')
-      })
-  }, [userInfo.organization?.orgId])
 
   useEffect(() => {
     if (userInfo && organizationSettings) {
@@ -311,7 +352,8 @@ export default function AddCoursePage(): ReactElement {
                     >
                       <Select
                         placeholder="Select Semester"
-                        notFoundContent="There seems to be no other semesters in this organization to clone to."
+                        notFoundContent="There seems to be no semesters in this organization."
+                        loading={organizationSemestersLoading}
                       >
                         {organizationSemesters &&
                           organizationSemesters.map((semester) => (

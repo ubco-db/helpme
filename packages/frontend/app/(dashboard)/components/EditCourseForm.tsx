@@ -10,7 +10,16 @@ import {
   OrganizationRole,
   User,
 } from '@koh/common'
-import { Alert, Button, Card, Form, Input, message, Select } from 'antd'
+import {
+  Alert,
+  Button,
+  Card,
+  Form,
+  Input,
+  message,
+  Select,
+  Tooltip,
+} from 'antd'
 import { useEffect, useState } from 'react'
 import ProfessorSelector from './ProfessorSelector'
 import dayjs from 'dayjs'
@@ -149,7 +158,12 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
             sectionGroupName: courseData.course?.sectionGroupName,
             zoomLink: courseData.course?.zoomLink,
             // courseTimezone: courseData.course?.timezone,
-            semesterId: courseData.course?.semester?.id ?? -1,
+            // for some reason courses might have a semesterId for a semester that doesn't exist. The .find() is just there to ensure it does
+            semesterId: organization.semesters.find(
+              (semester) => semester.id === courseData.course?.semester?.id,
+            )
+              ? courseData.course?.semester?.id
+              : -1,
             professorsUserId: courseData.profIds,
           }}
           onValuesChange={(changedValues, allValues) => {
@@ -266,7 +280,9 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
                   </Select.Option>
                 ))}
                 <Select.Option key={'none'} value={-1}>
-                  <span>No semester</span>
+                  <Tooltip title="This course lacks a semester, please assign one!">
+                    <span style={{ color: 'red' }}>No semester</span>
+                  </Tooltip>
                 </Select.Option>
               </Select>
             </Form.Item>
