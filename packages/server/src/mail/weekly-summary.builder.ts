@@ -86,7 +86,7 @@ export interface CourseStatsData {
   mostActiveDays: MostActiveDaysData;
   peakHours: PeakHoursData;
   recommendations: RecommendationData[];
-  suggestArchive: boolean;
+  weeksWithoutActivity: null | number;
 }
 function validateHtml(html: string): void {
   const originalTags =
@@ -154,7 +154,7 @@ export class WeeklySummaryBuilder {
   static wrapCourseContent(course: CourseModel, content: string): string {
     return `
       <div style="background-color: #f8f9fa; border-left: 4px solid #3498db; padding: 20px; margin-bottom: 30px; border-radius: 5px;">
-        <h2 style="color: #2c3e50; margin-top: 0;">${course.name}</h2>
+        <h2 style="color: #2c3e50; margin-top: 0;">${course.name}${course.sectionGroupName ? ` ${course.sectionGroupName}` : ''}<span style="font-weight: normal;">  -  ${course.semester?.name || `<a href="${process.env.DOMAIN}/course/${course.id}/settings" style="color: #1b5e20; text-decoration: underline;">No Semester</a>`}</span></h2>
         ${content}
       </div>
     `;
@@ -193,12 +193,15 @@ export class WeeklySummaryBuilder {
     return html;
   }
 
-  static buildArchiveSuggestionSection(course: CourseModel): string {
+  static buildArchiveSuggestionSection(
+    course: CourseModel,
+    weeksWithoutActivity: number,
+  ): string {
     return `
       <div style="background-color: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
         <h3 style="color: #856404; margin-top: 0;">Consider Archiving This Course</h3>
         <p style="color: #856404; margin-bottom: 0;">
-          No activity in the past 4 weeks. You may want to <a href="${process.env.DOMAIN}/course/${course.id}/settings" style="color: #856404; text-decoration: underline; font-weight: bold;">archive this course</a> if the semester has ended.
+          No activity in the past ${weeksWithoutActivity} weeks. You may want to <a href="${process.env.DOMAIN}/course/${course.id}/settings" style="color: #856404; text-decoration: underline; font-weight: bold;">archive this course</a> if the semester has ended or if you're not using it. Archiving will hide it from the UI.
         </p>
       </div>
     `;
@@ -526,14 +529,17 @@ export class WeeklySummaryBuilder {
         mostActiveDays,
         peakHours,
         recommendations,
-        suggestArchive,
+        weeksWithoutActivity,
       } = courseData;
 
       let courseBody = '';
       courseBody += this.buildNewStudentsSection(newStudents, course);
 
-      if (suggestArchive) {
-        courseBody += this.buildArchiveSuggestionSection(course);
+      if (weeksWithoutActivity) {
+        courseBody += this.buildArchiveSuggestionSection(
+          course,
+          weeksWithoutActivity,
+        );
       } else {
         const queueEnabled = course.courseSettings?.queueEnabled !== false;
         const asyncEnabled = course.courseSettings?.asyncQueueEnabled !== false;

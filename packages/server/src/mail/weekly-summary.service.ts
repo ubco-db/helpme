@@ -65,6 +65,8 @@ export class WeeklySummaryService {
         .where('uc.role = :role', { role: Role.PROFESSOR })
         .andWhere('course.deletedAt IS NULL')
         .andWhere('course.enabled = :enabled', { enabled: true })
+        // exclude 'Test Course' and 'Sometime in the Future' courses by filtering out courses whose end date is < 1972
+        .andWhere('semester.endDate >= :date', { date: '2000-01-01' })
         .getMany();
 
       // Group courses by professor
@@ -175,10 +177,21 @@ export class WeeklySummaryService {
             queueStats.totalQuestions > 0;
 
           let recommendations: RecommendationData[] = [];
-          let suggestArchive = false;
+          let weeksWithoutActivity: null | number = null;
 
           if (!hasActivity) {
-            suggestArchive = await this.shouldSuggestArchiving(course);
+            const realWeeksWithoutActivity =
+              await this.weeksWithoutActivity(course);
+            // if the semester has ended (or it's a 'forever' course), suggest archive
+            if (
+              (!course.semester ||
+                course.semester.name.toLowerCase() === 'forever' ||
+                !course.semester.endDate ||
+                course.semester.endDate < new Date()) &&
+              realWeeksWithoutActivity >= 4
+            ) {
+              weeksWithoutActivity = realWeeksWithoutActivity;
+            }
           } else {
             recommendations = await this.generateRecommendations(
               course,
@@ -201,7 +214,7 @@ export class WeeklySummaryService {
             mostActiveDays,
             peakHours,
             recommendations,
-            suggestArchive,
+            weeksWithoutActivity,
           });
         } catch (error) {
           console.error(
@@ -544,45 +557,65 @@ export class WeeklySummaryService {
     }));
   }
 
-  private async shouldSuggestArchiving(course: CourseModel): Promise<boolean> {
-    // Check if semester has ended
-    if (course.semester?.endDate) {
-      const semesterEndDate = new Date(course.semester.endDate);
-      if (semesterEndDate < new Date()) {
-        return true;
+  private async weeksWithoutActivity(course: CourseModel): Promise<number> {
+    const [
+      mostRecentInteraction,
+      mostRecentAsyncQuestion,
+      mostRecentQueueQuestion,
+    ] = await Promise.all([
+      InteractionModel.findOne({
+        where: { course: { id: course.id } },
+        order: { timestamp: 'DESC' },
+      }),
+      AsyncQuestionModel.findOne({
+        where: { courseId: course.id },
+        order: { createdAt: 'DESC' },
+      }),
+      QuestionModel.createQueryBuilder('q')
+        .innerJoin('q.queue', 'queue')
+        .where('queue.courseId = :courseId', { courseId: course.id })
+        .orderBy('q.createdAt', 'DESC')
+        .getOne(),
+    ]);
+
+    const dates: Date[] = [];
+
+    if (mostRecentInteraction?.timestamp) {
+      dates.push(new Date(mostRecentInteraction.timestamp));
+    }
+    if (mostRecentAsyncQuestion?.createdAt) {
+      dates.push(new Date(mostRecentAsyncQuestion.createdAt));
+    }
+    if (mostRecentQueueQuestion?.createdAt) {
+      dates.push(new Date(mostRecentQueueQuestion.createdAt));
+    }
+
+    // if no activity ever, do since course creation
+    if (dates.length === 0) {
+      if (course.createdAt) {
+        const weeksSinceCreation = Math.floor(
+          (Date.now() - new Date(course.createdAt).getTime()) /
+            (1000 * 60 * 60 * 24 * 7),
+        );
+        return weeksSinceCreation;
+      } else {
+        // if course is old enough to not have a createdAt, set it to 2026-07-15 (oldest course with a createdAt)
+        const oldestCourseCreatedAt = new Date('2026-07-15');
+        const weeksSinceCreation = Math.floor(
+          (Date.now() - oldestCourseCreatedAt.getTime()) /
+            (1000 * 60 * 60 * 24 * 7),
+        );
+        return weeksSinceCreation;
       }
     }
 
-    // Check if a course has had any activity in the past 4 weeks. If not, suggest archiving the course.
-    const fourWeeksAgo = new Date();
-    fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+    const latestActivityTimestamp = Math.max(...dates.map((d) => d.getTime()));
 
-    const recentInteractions = await InteractionModel.count({
-      where: {
-        course: { id: course.id },
-        timestamp: MoreThanOrEqual(fourWeeksAgo),
-      },
-    });
-
-    const recentAsyncQuestions = await AsyncQuestionModel.count({
-      where: {
-        courseId: course.id,
-        createdAt: MoreThanOrEqual(fourWeeksAgo),
-      },
-    });
-
-    // Check for recent queue questions
-    const recentQueueQuestions = await QuestionModel.createQueryBuilder('q')
-      .innerJoin('q.queue', 'queue')
-      .where('queue.courseId = :courseId', { courseId: course.id })
-      .andWhere('q.createdAt >= :since', { since: fourWeeksAgo })
-      .getCount();
-
-    return (
-      recentInteractions === 0 &&
-      recentAsyncQuestions === 0 &&
-      recentQueueQuestions === 0
+    const weeksWithoutActivity = Math.floor(
+      (Date.now() - latestActivityTimestamp) / (1000 * 60 * 60 * 24 * 7),
     );
+
+    return weeksWithoutActivity;
   }
 
   private async getNewStudents(
