@@ -263,6 +263,16 @@ export class WeeklySummaryService {
           if (courseStatsArray.length === 0) {
             continue;
           }
+          // don't send email if all courses are inactive
+          const allInactive = courseStatsArray.every(
+            (courseStats) => courseStats.weeksWithoutActivity !== null,
+          );
+          if (allInactive) {
+            console.log(
+              `[WeeklySummary] All ${courses.length} courses are inactive (>4 weeks without activity) for professor ${professorId}. Skipping email.`,
+            );
+            continue;
+          }
 
           //Build consolidated email with all courses
           const emailHtml = WeeklySummaryBuilder.buildConsolidatedEmail(
