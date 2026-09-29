@@ -1809,15 +1809,8 @@ export class APIClient {
 
   lti = {
     auth: {
-      shibboleth: (organizationId: any, redirect?: string | null) => {
-        const params = new URLSearchParams()
-        if (redirect) params.set('redirect', redirect)
-        const query = params.size > 0 ? '?' + params.toString() : ''
-        if (!isProd()) {
-          return `/api/v1/dev-sso/login/${organizationId}${query}`
-        }
-        return `/api/v1/lti/auth/shibboleth/${organizationId}${query}`
-      },
+      shibboleth: (organizationId: any, _redirectUrl?: string | null) =>
+        `/api/v1/lti/auth/shibboleth/${organizationId}`,
       requestPasswordReset: async (
         passwordResetData: PasswordRequestResetBody,
       ) =>
