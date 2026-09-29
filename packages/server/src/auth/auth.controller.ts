@@ -61,7 +61,13 @@ export class AuthController {
       this.courseService,
       undefined,
       {
-        redirect,
+        redirect:
+          redirect &&
+          redirect.startsWith('/') &&
+          !redirect.startsWith('//') &&
+          !redirect.includes('\\')
+            ? redirect
+            : undefined,
         cookieOptions: {
           httpOnly: true,
           secure: this.isSecure(),
