@@ -9,23 +9,16 @@ import {
 import { isProd } from '@koh/common';
 import {
   ContextTokenModel,
-  Database,
   Debug,
   DynamicRegistrationSecondaryOptions,
   IdToken,
   LtiMessageRegistration,
   LtiPlatformRegistration,
-  PlatformModel,
   Provider,
   register,
 } from '@bhunt02/lti-typescript';
 import { JwtService } from '@nestjs/jwt';
 import { LtiService } from './lti.service';
-
-const dynRegScopes = [
-  'https://purl.imsglobal.org/spec/lti-reg/scope/registration',
-  'https://purl.imsglobal.org/spec/lti-reg/scope/registration.readonly',
-];
 
 type CanvasLtiMessageRegistration = LtiMessageRegistration & {
   preferred_presentation?: string;
@@ -151,7 +144,7 @@ export default class LtiMiddleware {
     const secondaryOptions: CanvasDynamicRegistrationSecondaryOptions = {
       scope: [
         'https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly',
-        ...dynRegScopes,
+        'https://purl.imsglobal.org/spec/lti-reg/scope/registration.readonly',
       ].join(' '),
       client_name: 'HelpMe',
       'https://purl.imsglobal.org/spec/lti-tool-configuration': {
@@ -254,11 +247,14 @@ export default class LtiMiddleware {
           return res.send(message);
         } catch (err) {
           if (err.message === 'PLATFORM_ALREADY_REGISTERED') {
-            return res.status(403).send({
-              status: 403,
-              error: 'Forbidden',
-              details: { message: 'Platform already registered.' },
-            });
+            // lti-typescript checks for duplicates after Canvas accepts the request.
+            // Reinstall App returns the existing client ID: finish the dialog
+            // without replacing the saved platform, signing keys, or mappings.
+            return res
+              .type('html')
+              .send(
+                '<script>(window.opener || window.parent).postMessage({subject:"org.imsglobal.lti.close"}, "*");</script>',
+              );
           }
           return res.status(500).send({
             status: 500,
@@ -268,8 +264,6 @@ export default class LtiMiddleware {
         }
       },
     );
-
-    const platforms = await Database.find(PlatformModel);
 
     provider.whitelist = [
       {
@@ -293,36 +287,6 @@ export default class LtiMiddleware {
 
     if (!deployResult) {
       throw new Error('Failed to initialize LTI middleware');
-    }
-
-    for (const platformModel of platforms.filter(
-      (c) => c.dynamicallyRegistered && c.registrationEndpoint,
-    )) {
-      try {
-        const platform = await provider.getPlatformById(platformModel.kid);
-        if (!platform) continue;
-        const hasReadScope =
-          platform.scopesSupported?.includes(dynRegScopes[0]) ||
-          platform.scopesSupported?.includes(dynRegScopes[1]);
-        const hasWriteScope = platform.scopesSupported?.includes(
-          dynRegScopes[0],
-        );
-        if (hasReadScope) {
-          const registration =
-            await provider.DynamicRegistration.getRegistration(platform);
-          if (hasWriteScope && registration != undefined) {
-            await provider.DynamicRegistration.updateRegistration(
-              platform,
-              secondaryOptions,
-            );
-          }
-        }
-      } catch {
-        // A failed remote lookup must not erase local signing keys or mappings.
-        console.warn(
-          `Could not refresh LTI registration ${platformModel.kid}; keeping the saved registration.`,
-        );
-      }
     }
 
     return provider;
