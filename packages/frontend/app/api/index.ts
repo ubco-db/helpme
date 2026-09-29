@@ -1238,6 +1238,14 @@ export class APIClient {
       this.req('GET', `/api/v1/seeds/fill_anytime_questions`),
     createMailServices: async (): Promise<string> =>
       this.req('POST', `/api/v1/seeds/mail-services`),
+    exportBackup: async (): Promise<string> =>
+      this.req('POST', `/api/v1/seeds/backup/export`),
+    loadBackup: async (): Promise<string> =>
+      this.req('POST', `/api/v1/seeds/backup/load`),
+    migrateWithBackup: async (migrationName: string): Promise<string> =>
+      this.req('POST', `/api/v1/seeds/backup/migrate`, undefined, {
+        migrationName,
+      }),
   }
   semesters = {
     get: async (oid: number): Promise<SemesterPartial[]> =>

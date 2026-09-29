@@ -112,7 +112,13 @@ Also, you must update the `seed.controller.ts` file to reflect the new database 
 
 #### Migrations
 
-If you change an entity, you MUST run `yarn migration:generate ./migration/your-migration-name`, to make the migration file, then `yarn migration:run` will automatically run on deployment to staging/production. Commit the migration file to Git!
+If you change an entity, you MUST make a migration file.
+
+The easiest way to generate migrations is head to the `/dev` page (http://localhost:3000/dev), set a name for the migration you want to generate (kebab-case-please), and then click the generate migration button. 
+
+Alternatively, run `yarn migration:generate ./migration/your-migration-name`, to make the migration file (note that it will wipe your database), then `yarn migration:run` will automatically run on deployment to staging/production. 
+
+Commit the migration file to Git!
 
 ### Adding an API Route
 
