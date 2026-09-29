@@ -137,15 +137,6 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
         >
           <Checkbox />
         </Form.Item>
-        <Form.Item
-          name={['toClone', 'courseInviteCode']}
-          valuePropName="checked"
-          label="Course Invite Code"
-          layout="horizontal"
-          className={`${formItemClassNames}`}
-        >
-          <Checkbox />
-        </Form.Item>
 
         <Form.Item
           name={['toClone', 'courseFeatureConfig']}
