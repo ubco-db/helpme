@@ -1,5 +1,6 @@
 import {
   isProd,
+  MailServiceType,
   MailServiceWithSubscription,
   sendEmailParams,
   SentEmailResponse,
@@ -148,16 +149,28 @@ export class MailService {
 
     // Map the results to the desired output format
     const servicesWithSubscription: MailServiceWithSubscription[] =
-      mailServicesWithSubscriptions.map((mailService) => ({
-        id: mailService.id,
-        mailType: mailService.mailType,
-        serviceType: mailService.serviceType,
-        name: mailService.name,
-        isSubscribed:
-          mailService.subscriptions.length > 0
-            ? mailService.subscriptions[0].isSubscribed
-            : false,
-      }));
+      mailServicesWithSubscriptions.map((mailService) => {
+        let isSubscribed = false;
+        if (
+          // Weekly Course Summary email subscriptions weren't populated on prod but will still send emails even if there is no subscription
+          // This means it will appear in the settings as though they're unsubscribed even though they are subscribed. This is a fix for that
+          mailService.subscriptions.length === 0 &&
+          mailService.serviceType.includes(
+            MailServiceType.WEEKLY_COURSE_SUMMARY,
+          )
+        ) {
+          isSubscribed = true;
+        } else if (mailService.subscriptions.length > 0) {
+          isSubscribed = mailService.subscriptions[0].isSubscribed;
+        }
+        return {
+          id: mailService.id,
+          mailType: mailService.mailType,
+          serviceType: mailService.serviceType,
+          name: mailService.name,
+          isSubscribed,
+        };
+      });
 
     return servicesWithSubscription;
   }

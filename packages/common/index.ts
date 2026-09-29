@@ -346,6 +346,7 @@ export const COURSE_TIMEZONES = [
   'Australia/Sydney',
 ]
 
+// PLEASE NOTE that when you add a new MailServiceType, you should also include a query in your migration file that adds the new service to the mail_services table and populates the user_subscriptions table with true/false for the new service for all existing users
 export enum MailServiceType {
   ASYNC_QUESTION_HUMAN_ANSWERED = 'async_question_human_answered',
   ASYNC_QUESTION_FLAGGED = 'async_question_flagged',
