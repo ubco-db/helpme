@@ -12,6 +12,7 @@ import { OrganizationService } from '../organization/organization.service';
 import { OrganizationModule } from '../organization/organization.module';
 import { LoginModule } from '../login/login.module';
 import { LoginService } from '../login/login.service';
+import { DevSsoController } from './dev-sso.controller';
 
 @Module({
   imports: [
@@ -26,7 +27,7 @@ import { LoginService } from '../login/login.service';
     OrganizationModule,
     LoginModule,
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, DevSsoController],
   providers: [
     JwtStrategy,
     AuthService,

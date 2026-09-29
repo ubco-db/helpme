@@ -383,6 +383,7 @@ const LoginPage: React.FC = () => {
                 <Link
                   href={(isLti ? API.lti : API).auth.shibboleth(
                     organization.id,
+                    redirect,
                   )}
                   onClick={(event) => {
                     if (isLti) {
