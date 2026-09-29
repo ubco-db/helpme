@@ -1,3 +1,25 @@
+## Version 1.10.4 - Weekly Summary Fixes, Increased Chatbot Limit for Students
+
+*Sep 29th, 2026*
+
+
+#### Improvements
+- Weekly Summary Email improvements:
+  - (!) Weekly Summary Emails will no longer be sent if it's only suggesting to archive courses 
+  - Fixed an issue where it would always suggest archiving 'Test' courses
+  - It will now also state how long it has been without any activity
+  - Added each course's Semester and Section to the emails
+  - 'Test' courses or courses with the 'Sometime in the Future' Semester are now excluded from Weekly Summary Emails
+  - It will now suggest archiving a course under the following conditions: If its semester has ended *and* there's been no activity in 4 weeks (previously it would suggest archiving a course if its semester had ended *or* if it had no activity in the past 4 weeks).
+    - For 'Forever' or No Semester courses, it will only check if there's been no activity in the past 4 weeks (same as before)
+- Bumped up the limit of Chatbot Questions for students from 30 to 300 per day (it's primarily there to prevent abuse, real users shouldn't be hitting it)
+- Fixed an issue where the 'Sometime in the Future' semester would not show up when creating a course
+- Updated some constraints (no one has hit these before, just prematurely updating them): Max Anytime Questions per course 100 -> 1000. Max questions per queue 30 -> 50. 
+- Remove redundant 'Course Invite Code' from the Course Clone form
+- The default semester when creating a course is now the current semester (rather than 'No Semester')
+
+***
+
 ## Version 1.10.3 - Chatbot and Canvas Integration Bug Fixes
 
 *Sep 11th, 2026*
