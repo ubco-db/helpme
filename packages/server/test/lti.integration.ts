@@ -1,8 +1,10 @@
 import { setupIntegrationTest } from './util/testUtils';
+import LtiMiddleware from '../src/lti/lti.middleware';
 import { LtiModule } from '../src/lti/lti.module';
 import {
   AuthTokenMethodEnum,
   Database,
+  DynamicRegistrationService,
   PlatformModel,
   Provider,
   register,
@@ -143,6 +145,46 @@ describe('LtiController', () => {
 
   afterAll(async () => {
     await provider.close();
+  });
+
+  it('preserves the registration, signing key, and organization mapping when its remote registration returns 404', async () => {
+    const ltiSecret = process.env.LTI_SECRET_KEY;
+    process.env.LTI_SECRET_KEY = testEncryptionKey;
+    const kid = platforms[0].kid;
+    await Database.dataSource.getRepository(PlatformModel).update(kid, {
+      dynamicallyRegistered: true,
+      registrationEndpoint: 'https://canvas.example.test/registration',
+      scopesSupported: [
+        'https://purl.imsglobal.org/spec/lti-reg/scope/registration.readonly',
+      ],
+    });
+    const publicKey = await (
+      await provider.getPlatformById(kid)
+    ).platformPublicKey();
+    const remoteRegistration = jest
+      .spyOn(DynamicRegistrationService.prototype, 'getRegistration')
+      .mockRejectedValue(new Error('404: Not Found'));
+    try {
+      await LtiMiddleware.enable(
+        getTestModule().createNestApplication(),
+        '/api/v1/lti',
+      );
+      expect(remoteRegistration).toHaveBeenCalled();
+      const savedPlatform = await ltiService.provider.getPlatformById(kid);
+      expect(savedPlatform?.active).toBe(true);
+      expect(await savedPlatform.platformPublicKey()).toEqual(publicKey);
+      expect(
+        (
+          await LMSOrganizationIntegrationModel.findOneByOrFail({
+            organizationId: orgIntegration.organizationId,
+          })
+        ).ltiPlatformId,
+      ).toBe(kid);
+    } finally {
+      if (ltiSecret === undefined) delete process.env.LTI_SECRET_KEY;
+      else process.env.LTI_SECRET_KEY = ltiSecret;
+      remoteRegistration.mockRestore();
+    }
   });
 
   describe('ALL lti/', () => {

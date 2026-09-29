@@ -9,16 +9,23 @@ import {
 import { isProd } from '@koh/common';
 import {
   ContextTokenModel,
+  Database,
   Debug,
   DynamicRegistrationSecondaryOptions,
   IdToken,
   LtiMessageRegistration,
   LtiPlatformRegistration,
+  PlatformModel,
   Provider,
   register,
 } from '@bhunt02/lti-typescript';
 import { JwtService } from '@nestjs/jwt';
 import { LtiService } from './lti.service';
+
+const dynRegScopes = [
+  'https://purl.imsglobal.org/spec/lti-reg/scope/registration',
+  'https://purl.imsglobal.org/spec/lti-reg/scope/registration.readonly',
+];
 
 type CanvasLtiMessageRegistration = LtiMessageRegistration & {
   preferred_presentation?: string;
@@ -144,7 +151,7 @@ export default class LtiMiddleware {
     const secondaryOptions: CanvasDynamicRegistrationSecondaryOptions = {
       scope: [
         'https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly',
-        'https://purl.imsglobal.org/spec/lti-reg/scope/registration.readonly',
+        ...dynRegScopes,
       ].join(' '),
       client_name: 'HelpMe',
       'https://purl.imsglobal.org/spec/lti-tool-configuration': {
@@ -287,6 +294,37 @@ export default class LtiMiddleware {
 
     if (!deployResult) {
       throw new Error('Failed to initialize LTI middleware');
+    }
+
+    const platforms = await Database.find(PlatformModel);
+    for (const platformModel of platforms.filter(
+      (c) => c.dynamicallyRegistered && c.registrationEndpoint,
+    )) {
+      try {
+        const platform = await provider.getPlatformById(platformModel.kid);
+        if (!platform) continue;
+        const hasReadScope =
+          platform.scopesSupported?.includes(dynRegScopes[0]) ||
+          platform.scopesSupported?.includes(dynRegScopes[1]);
+        const hasWriteScope = platform.scopesSupported?.includes(
+          dynRegScopes[0],
+        );
+        if (hasReadScope) {
+          const registration =
+            await provider.DynamicRegistration.getRegistration(platform);
+          if (hasWriteScope && registration != undefined) {
+            await provider.DynamicRegistration.updateRegistration(
+              platform,
+              secondaryOptions,
+            );
+          }
+        }
+      } catch {
+        // A failed remote lookup must not erase local signing keys or mappings.
+        console.warn(
+          `Could not refresh LTI registration ${platformModel.kid}; keeping the saved registration.`,
+        );
+      }
     }
 
     return provider;
