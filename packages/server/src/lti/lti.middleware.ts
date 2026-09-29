@@ -1,6 +1,6 @@
 import { HttpException, INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DataSource } from 'typeorm';
+import { DataSource, getMetadataArgsStorage } from 'typeorm';
 import {
   NextFunction,
   Request as ExpressRequest,
@@ -8,11 +8,13 @@ import {
 } from 'express';
 import { isProd } from '@koh/common';
 import {
+  ContextTokenModel,
   Database,
   Debug,
   DynamicRegistrationSecondaryOptions,
   IdToken,
   LtiMessageRegistration,
+  LtiPlatformRegistration,
   PlatformModel,
   Provider,
   register,
@@ -24,6 +26,22 @@ const dynRegScopes = [
   'https://purl.imsglobal.org/spec/lti-reg/scope/registration',
   'https://purl.imsglobal.org/spec/lti-reg/scope/registration.readonly',
 ];
+
+type CanvasLtiMessageRegistration = LtiMessageRegistration & {
+  preferred_presentation?: string;
+  iframe?: { width: number; height: number };
+  'https://canvas.instructure.com/lti/launch_height'?: string;
+  'https://canvas.instructure.com/lti/launch_width'?: string;
+  'https://canvas.instructure.com/lti/display_type'?: string;
+  'https://canvas.instructure.com/lti/visibility'?: string;
+};
+
+type CanvasDynamicRegistrationSecondaryOptions =
+  DynamicRegistrationSecondaryOptions & {
+    scope: string;
+    'https://canvas.instructure.com/lti/privacy_level': string;
+    'https://purl.imsglobal.org/spec/lti-tool-configuration': Partial<LtiPlatformRegistration>;
+  };
 
 export default class LtiMiddleware {
   private prefix: string;
@@ -98,35 +116,62 @@ export default class LtiMiddleware {
       }
     });
 
-    const secondaryOptions: DynamicRegistrationSecondaryOptions = {
+    const messages = [
+      {
+        type: 'LtiResourceLinkRequest',
+        placements: [
+          // CANVAS
+          'link_selection',
+          'course_home_sub_navigation',
+          'course_navigation',
+          'module_menu',
+        ],
+        // CANVAS PROPERTIES
+        'https://canvas.instructure.com/lti/launch_height': '100%',
+        'https://canvas.instructure.com/lti/launch_width': '100%',
+        // possible values: "default" | "full_width" | "full_width_in_context" | "full_width_with_nav" | "in_nav_context" | "borderless" | "new_window"
+        'https://canvas.instructure.com/lti/display_type':
+          'full_width_in_context',
+      },
+      {
+        type: 'LtiDeepLinkingRequest',
+        target_link_uri: this.baseRoute(),
+        label: 'HelpMe',
+        placements: ['editor_button'],
+        roles: [
+          'http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor',
+          'http://purl.imsglobal.org/vocab/lis/v2/membership#TeachingAssistant',
+        ],
+        preferred_presentation: 'iframe',
+        iframe: { width: 800, height: 600 },
+        'https://canvas.instructure.com/lti/visibility': 'admins',
+      },
+    ] satisfies CanvasLtiMessageRegistration[];
+
+    const secondaryOptions: CanvasDynamicRegistrationSecondaryOptions = {
       scope: [
         'https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly',
         ...dynRegScopes,
       ].join(' '),
       client_name: 'HelpMe',
       'https://purl.imsglobal.org/spec/lti-tool-configuration': {
-        messages: [
-          {
-            type: 'LtiResourceLinkRequest',
-            placements: [
-              // CANVAS
-              'link_selection',
-              'course_home_sub_navigation',
-              'course_navigation',
-              'module_menu',
-            ],
-            // CANVAS PROPERTIES
-            'https://canvas.instructure.com/lti/launch_height': '100%',
-            'https://canvas.instructure.com/lti/launch_width': '100%',
-            // possible values: "default" | "full_width" | "full_width_in_context" | "full_width_with_nav" | "in_nav_context" | "borderless" | "new_window"
-            'https://canvas.instructure.com/lti/display_type':
-              'full_width_in_context',
-          },
-        ] as (LtiMessageRegistration & any)[],
+        messages,
       },
       // CANVAS PROPERTIES
       'https://canvas.instructure.com/lti/privacy_level': 'public',
-    } as DynamicRegistrationSecondaryOptions & any;
+    };
+
+    // @bhunt02/lti-typescript@0.1.7 marks resource NOT NULL but saves undefined
+    // for resourceless Deep Linking launches; mark nullable before register()
+    // so synchronize keeps it nullable on fresh and existing databases.
+    const resourceColumn = getMetadataArgsStorage().columns.find(
+      (column) =>
+        column.target === ContextTokenModel &&
+        column.propertyName === 'resource',
+    );
+    if (resourceColumn) {
+      resourceColumn.options.nullable = true;
+    }
 
     const provider = await register(
       variables.secret,
@@ -155,19 +200,37 @@ export default class LtiMiddleware {
           },
           autoActivate: true,
         },
-        cookies: {
-          httpOnly: true,
-          secure: true,
-          sameSite: 'none',
-        },
+        cookies: LtiService.cookieOptions,
         tokenMaxAge: 30,
         debug: !isProd(),
-        cors: true,
+        cors: false,
         prefix: this.prefix,
       },
     );
 
-    provider.onConnect(this.onConnectHandler);
+    provider.onConnect(this.onConnectHandler.bind(this));
+
+    // Runs only after the provider verifies a Deep Linking launch. Redirect
+    // the verified launch to the picker; the picker's GET and selection POST
+    // authorize via authorizeDeepLinking.
+    provider.onDeepLinking(async (token, _, res, next) => {
+      try {
+        await this.ltiService.getLaunchIntegration(token);
+        return await provider.redirect(res, '/lti/deep-link');
+      } catch (err) {
+        if (err instanceof HttpException) {
+          return res.status(err.getStatus()).send(err.getResponse());
+        }
+        if (next) {
+          return next(err);
+        }
+        return res.status(500).send({
+          status: 500,
+          error: 'Internal Server Error',
+          details: { message: 'Internal Server Error' },
+        });
+      }
+    });
 
     provider.onDynamicRegistration(
       async (req: ExpressRequest, res: ExpressResponse) => {
@@ -191,11 +254,14 @@ export default class LtiMiddleware {
           return res.send(message);
         } catch (err) {
           if (err.message === 'PLATFORM_ALREADY_REGISTERED') {
-            return res.status(403).send({
-              status: 403,
-              error: 'Forbidden',
-              details: { message: 'Platform already registered.' },
-            });
+            // lti-typescript checks for duplicates after Canvas accepts the request.
+            // Reinstall App returns the existing client ID: finish the dialog
+            // without replacing the saved platform, signing keys, or mappings.
+            return res
+              .type('html')
+              .send(
+                '<script>(window.opener || window.parent).postMessage({subject:"org.imsglobal.lti.close"}, "*");</script>',
+              );
           }
           return res.status(500).send({
             status: 500,
@@ -206,8 +272,6 @@ export default class LtiMiddleware {
       },
     );
 
-    const platforms = await Database.find(PlatformModel);
-
     provider.whitelist = [
       {
         route: /\/platform.*/,
@@ -215,6 +279,10 @@ export default class LtiMiddleware {
       },
       {
         route: /\/auth.*/,
+        method: 'ALL',
+      },
+      {
+        route: /^\/embeddable-question(?:\/|$)/,
         method: 'ALL',
       },
       `/static`,
@@ -228,33 +296,35 @@ export default class LtiMiddleware {
       throw new Error('Failed to initialize LTI middleware');
     }
 
+    const platforms = await Database.find(PlatformModel);
     for (const platformModel of platforms.filter(
       (c) => c.dynamicallyRegistered && c.registrationEndpoint,
     )) {
       try {
         const platform = await provider.getPlatformById(platformModel.kid);
+        if (!platform) continue;
         const hasReadScope =
-          platform.scopesSupported.includes(dynRegScopes[0]) ||
-          platform.scopesSupported.includes(dynRegScopes[1]);
-        const hasWriteScope = platform.scopesSupported.includes(
+          platform.scopesSupported?.includes(dynRegScopes[0]) ||
+          platform.scopesSupported?.includes(dynRegScopes[1]);
+        const hasWriteScope = platform.scopesSupported?.includes(
           dynRegScopes[0],
         );
-        if (platform && hasReadScope) {
-          try {
-            const registration =
-              await provider.DynamicRegistration.getRegistration(platform);
-            if (hasWriteScope && registration != undefined) {
-              await provider.DynamicRegistration.updateRegistration(platform);
-            }
-          } catch (err) {
-            // Delete platforms with 'not found' registrations
-            if ((err as Error).message.includes('404:')) {
-              await provider.deletePlatformById(platform.kid);
-            }
+        if (hasReadScope) {
+          const registration =
+            await provider.DynamicRegistration.getRegistration(platform);
+          if (hasWriteScope && registration != undefined) {
+            await provider.DynamicRegistration.updateRegistration(
+              platform,
+              secondaryOptions,
+            );
           }
         }
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (_err) {}
+      } catch {
+        // A failed remote lookup must not erase local signing keys or mappings.
+        console.warn(
+          `Could not refresh LTI registration ${platformModel.kid}; keeping the saved registration.`,
+        );
+      }
     }
 
     return provider;
@@ -267,8 +337,15 @@ export default class LtiMiddleware {
     next: NextFunction,
   ) {
     try {
-      const { userId, courseId } =
-        await LtiService.findMatchingUserAndCourse(token);
+      const integration = await this.ltiService.getLaunchIntegration(token);
+
+      // Question launches now use the same HelpMe identity/course resolution as
+      // every other LTI launch. The controller separately validates the signed
+      // question ID against the mapped course before issuing the app session.
+      const { userId, courseId } = await LtiService.findMatchingUserAndCourse(
+        token,
+        integration.organizationId,
+      );
       response.locals.userId = userId;
       response.locals.courseId = courseId;
 

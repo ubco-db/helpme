@@ -158,6 +158,19 @@ function post_message_proxy(
   }
 }
 
+function getParentOrigin(window: Window): string | undefined {
+  const referrer = window.document.referrer.trim()
+  if (referrer === '') {
+    return undefined
+  }
+  try {
+    const origin = new URL(referrer).origin
+    return origin === window.location.origin ? undefined : origin
+  } catch {
+    return undefined
+  }
+}
+
 function postMessage(
   window: Window,
   subject: LtiMessageType,
@@ -165,10 +178,7 @@ function postMessage(
   lti_storage_target?: string,
 ) {
   try {
-    const target =
-      window.document.referrer.trim() === ''
-        ? undefined
-        : window.document.referrer
+    const target = getParentOrigin(window)
     if (subject == 'lti.put_data' || subject == 'lti.get_data') {
       if (!lti_storage_target) {
         throw new Error(

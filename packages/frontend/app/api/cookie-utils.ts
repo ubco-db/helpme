@@ -2,26 +2,15 @@
 
 import { cookies } from 'next/headers'
 
-/**
- * Fetches the 'auth_token' (or 'lti_auth_token') from the cookies.
- *
- * @async
- * @function getAuthTokenString
- * @returns {Promise<string>} - A promise that resolves to a string containing the 'auth_token'.
- * @throws Will log an error message to the console if fetching the 'auth_token' fails.
- */
+/** Forward both sessions so the backend can choose the valid cookie for the route. */
 export async function getAuthTokenString(): Promise<string> {
   try {
     const cookieStore = await cookies()
-    const lti_auth_token = cookieStore.get('lti_auth_token')
-
-    if (lti_auth_token) {
-      return `lti_auth_token=${lti_auth_token.value}`
-    }
-
-    const auth_token = cookieStore.get('auth_token')
-
-    return `auth_token=${auth_token?.value || ''}`
+    return ['auth_token', 'lti_auth_token']
+      .map((name) => cookieStore.get(name))
+      .filter((cookie) => cookie !== undefined)
+      .map(({ name, value }) => `${name}=${value}`)
+      .join('; ')
   } catch (error) {
     console.error('Failed to fetch auth token: ' + error)
     return ''

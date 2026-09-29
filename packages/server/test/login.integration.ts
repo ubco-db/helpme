@@ -180,13 +180,8 @@ describe('Login Integration', () => {
 
       const jwtToken = jwtService.decode(value);
 
-      expect(jwtToken).toEqual(
-        expect.objectContaining({
-          userId: user.id,
-          expiresIn: 24 * 30 * 60 * 60,
-          iat: expect.anything(),
-        }),
-      );
+      expect(jwtToken).toEqual(expect.objectContaining({ userId: user.id }));
+      expect(jwtToken.exp - jwtToken.iat).toBe(24 * 30 * 60 * 60);
 
       const parts = secondPart.split(';').map((v) => v.trim());
       const flags = parts.slice(1);

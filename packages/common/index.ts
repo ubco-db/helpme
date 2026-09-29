@@ -6,8 +6,8 @@ import {
   IsEnum,
   IsHexColor,
   IsIn,
-  IsInstance,
   IsInt,
+  Min,
   IsNotEmpty,
   IsNumber,
   IsObject,
@@ -246,6 +246,7 @@ export type CourseCloneAttributes = {
     courseInviteCode?: boolean
     courseFeatureConfig?: boolean
     asyncCentreQuestionTypes?: boolean
+    embeddableQuestions?: boolean
     queues?: boolean
     queueInvites?: boolean
     chatbot?: {
@@ -269,6 +270,7 @@ export const defaultCourseCloneAttributes: CourseCloneAttributes = {
     courseInviteCode: false,
     courseFeatureConfig: true,
     asyncCentreQuestionTypes: true,
+    embeddableQuestions: true,
     queues: true,
     queueInvites: true,
     chatbot: {
@@ -493,6 +495,8 @@ export interface ChatbotAskSuggestedParams {
   responseText: string
   vectorStoreId: string
 }
+
+export * from './embeddable-assessment'
 
 export interface ChatbotAgentCourse {
   courseId: number
@@ -4549,7 +4553,16 @@ export class UpdateLtiAuthConfig {
   key?: string
 }
 
+export class SetLtiOrganizationParams {
+  @ValidateIf((_, value) => value !== null)
+  @IsInt()
+  @Min(1)
+  organizationId!: number | null
+}
+
 export class LtiPlatform {
+  organizationId?: number
+
   @IsString()
   kid!: string
 
@@ -5110,6 +5123,9 @@ export const ERROR_MESSAGES = {
       `Members with role ${role} are not allowed to alter semesters`,
     notAllowedToDeleteSemester: (role: OrganizationRole) =>
       `Members with role ${role} are not allowed to delete semesters`,
+  },
+  embeddableModule: {
+    notFound: 'Question not found.',
   },
 }
 

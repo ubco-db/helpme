@@ -629,6 +629,10 @@ export class LMSIntegrationController {
         where: {
           courseId: Not(courseId),
           apiCourseId: props.apiCourseId,
+          orgIntegration: {
+            organizationId: orgCourse.organizationId,
+            apiPlatform: props.apiPlatform,
+          },
         },
       });
       if (apiCourseIdTaken) {

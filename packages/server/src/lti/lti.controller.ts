@@ -1,11 +1,16 @@
+import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 import { LtiService } from './lti.service';
 import {
   All,
   BadRequestException,
+  ConflictException,
+  NotFoundException,
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
+  Header,
   Param,
   Patch,
   Post,
@@ -32,8 +37,8 @@ import {
   ERROR_MESSAGES,
   LMSIntegrationPlatform,
   LtiPlatform,
-  Role,
   UpdateLtiPlatform,
+  SetLtiOrganizationParams,
 } from '@koh/common';
 import { plainToClass } from 'class-transformer';
 import { UserModel } from '../profile/user.entity';
@@ -43,9 +48,9 @@ import {
 } from '../interceptors/IgnoreableClassSerializerInterceptor';
 import { EmailVerifiedGuard } from '../guards/email-verified.guard';
 import { CourseModel } from '../course/course.entity';
-import { UserCourseModel } from '../profile/user-course.entity';
-import { restrictPaths } from './lti-auth.controller';
+import { LTI_APP_SESSION_SECONDS, restrictPaths } from './lti-auth.controller';
 import { LoginService } from '../login/login.service';
+import { EmbeddableQuestionModel } from './embeddable-question/embeddable-question.entity';
 
 @Controller('lti')
 @UseInterceptors(IgnoreableClassSerializerInterceptor)
@@ -67,6 +72,22 @@ export class LtiController {
     course?: CourseModel,
     @Query('lti_storage_target') lti_storage_target?: string,
   ) {
+    const questionLaunch = LtiService.hasQuestionLaunch(token)
+      ? await this.ltiService.validateQuestionLaunch(token)
+      : undefined;
+
+    if (questionLaunch && course?.id !== questionLaunch.courseId) {
+      throw new ForbiddenException(
+        'Verified Canvas course does not match the HelpMe launch course',
+      );
+    }
+
+    const ltiLoginOptions = {
+      cookieName: 'lti_auth_token',
+      cookieOptions: LtiService.cookieOptions,
+      restrictPaths,
+      expiresIn: LTI_APP_SESSION_SECONDS,
+    };
     const qry = new URLSearchParams();
 
     try {
@@ -80,6 +101,7 @@ export class LtiController {
         token.iss,
         token.user,
         token.userInfo.email,
+        (await this.ltiService.getLaunchIntegration(token)).organizationId,
       );
       res.cookie('__LTI_IDENTITY', identity, LtiService.cookieOptions);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -100,6 +122,8 @@ export class LtiController {
     }
 
     // If the user does not exist, redirect to login.
+    // Exact-question return through first-time registration is intentionally
+    // deferred. After registration, reopen the Canvas question for a fresh LTI launch.
     if (!user) {
       return res
         .clearCookie('lti_auth_token', LtiService.cookieOptions)
@@ -107,21 +131,7 @@ export class LtiController {
     }
 
     if (course) {
-      const enrollment = await UserCourseModel.findOne({
-        where: {
-          userId: user.id,
-          courseId: course?.id,
-        },
-      });
-
-      // If the user has no enrollment.
-      if (!enrollment) {
-        await UserCourseModel.create({
-          userId: user.id,
-          courseId: course.id,
-          role: Role.STUDENT,
-        }).save();
-      }
+      await this.ltiService.ensureLaunchEnrollment(token, user.id, course.id);
     }
 
     const platformMatch =
@@ -129,12 +139,22 @@ export class LtiController {
         (v) => v.toLowerCase() == token.platformInfo.product_family_code,
       ) ?? LMSIntegrationPlatform.None;
     const apiCid = LtiService.extractCourseId(token);
-    qry.set('api_course_id', String(apiCid));
-    qry.set('lms_platform', platformMatch);
+    const hasLtiCourseContext =
+      typeof apiCid === 'string' &&
+      apiCid.length > 0 &&
+      platformMatch !== LMSIntegrationPlatform.None;
 
+    if (hasLtiCourseContext) {
+      qry.set('api_course_id', apiCid);
+      qry.set('lms_platform', platformMatch);
+    }
     if (lti_storage_target) {
       qry.set('lti_storage_target', lti_storage_target);
     }
+
+    const destination = questionLaunch
+      ? `/lti/embeddable/${questionLaunch.courseId}/question/${questionLaunch.questionId}`
+      : `/lti${course ? `/${course.id}` : ''}`;
 
     await this.loginService.enter(
       req,
@@ -143,13 +163,30 @@ export class LtiController {
       undefined,
       this.ltiService,
       {
-        cookieName: 'lti_auth_token',
-        cookieOptions: LtiService.cookieOptions,
-        restrictPaths,
-        expiresIn: 60 * 10,
-        redirect: `/lti${course ? `/${course.id}` : ''}${qry.size > 0 ? '?' + qry.toString() : ''}`,
+        ...ltiLoginOptions,
+        redirect: `${destination}${qry.size > 0 ? '?' + qry.toString() : ''}`,
       },
     );
+  }
+
+  @Get('deep-link/questions')
+  @UseGuards(LtiGuard)
+  @IgnoreSerializer()
+  async getDeepLinkQuestions(
+    @LtiToken() token: IdToken,
+  ): Promise<EmbeddableQuestionModel[]> {
+    return this.ltiService.getDeepLinkingQuestions(token);
+  }
+
+  @Post('deep-link/selection')
+  @UseGuards(LtiGuard)
+  @Header('Content-Type', 'text/html')
+  @IgnoreSerializer()
+  async selectDeepLinkQuestion(
+    @LtiToken() token: IdToken,
+    @Body() body: { questionId?: unknown },
+  ): Promise<string> {
+    return this.ltiService.createDeepLinkingResponse(token, body?.questionId);
   }
 
   @Get('/platform')
@@ -160,7 +197,65 @@ export class LtiController {
         ERROR_MESSAGES.ltiController.ltiDataSourceUninitialized,
       );
     }
-    return (await Database.find(PlatformModel)).map(mapToLocalPlatform);
+    const integrations = await LMSOrganizationIntegrationModel.find();
+    return (await Database.find(PlatformModel)).map((platform) => ({
+      ...mapToLocalPlatform(platform),
+      organizationId: integrations.find(
+        (integration) => integration.ltiPlatformId === platform.kid,
+      )?.organizationId,
+    }));
+  }
+
+  @Patch('/platform/:kid/organization')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminRoleGuard)
+  async assignOrganization(
+    @Param('kid') kid: string,
+    @Body() body: SetLtiOrganizationParams,
+  ): Promise<void> {
+    const platform = await this.ltiService.provider.getPlatformById(kid);
+    if (!platform) throw new NotFoundException('LTI registration not found.');
+    await LMSOrganizationIntegrationModel.getRepository().manager.transaction(
+      async (manager) => {
+        if (body.organizationId !== null) {
+          const integration = await manager.findOne(
+            LMSOrganizationIntegrationModel,
+            {
+              where: {
+                organizationId: body.organizationId,
+                apiPlatform: LMSIntegrationPlatform.Canvas,
+              },
+              lock: { mode: 'pessimistic_write' },
+            },
+          );
+          if (!integration)
+            throw new BadRequestException(
+              'Configure the organization’s Canvas LMS integration first.',
+            );
+          if (integration.ltiPlatformId && integration.ltiPlatformId !== kid) {
+            throw new ConflictException(
+              'This organization already has an LTI registration. Unassign it before choosing another.',
+            );
+          }
+          const existing = await manager.findOneBy(
+            LMSOrganizationIntegrationModel,
+            { ltiPlatformId: kid },
+          );
+          if (existing && existing.organizationId !== body.organizationId) {
+            throw new ConflictException(
+              'This registration already belongs to another organization. Unassign it first.',
+            );
+          }
+          integration.ltiPlatformId = kid;
+          await manager.save(integration);
+        } else {
+          await manager.update(
+            LMSOrganizationIntegrationModel,
+            { ltiPlatformId: kid },
+            { ltiPlatformId: null },
+          );
+        }
+      },
+    );
   }
 
   @Get('/platform/:kid')
@@ -208,6 +303,10 @@ export class LtiController {
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminRoleGuard)
   async deletePlatform(@Param('kid') kid: string): Promise<void> {
     await this.ltiService.provider.deletePlatformById(kid);
+    await LMSOrganizationIntegrationModel.update(
+      { ltiPlatformId: kid },
+      { ltiPlatformId: null },
+    );
   }
 
   @Patch('/platform/:kid/toggle')

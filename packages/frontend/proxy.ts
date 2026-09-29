@@ -25,6 +25,8 @@ const publicPages: string[] = [
   '/lti/register*',
   '/lti/failed*',
   '/lti/password*',
+  '/lti/deep-link*',
+  '/lti/embeddable/*',
 ]
 
 /* This represents the proxy on the FRONTEND NEXT.JS server.
@@ -96,7 +98,10 @@ export async function proxy(
   let userData: User | undefined
 
   try {
-    response = await fetchUser(cookies, cookieName)
+    response =
+      isPublicPageRequested || isPublicFileRequested
+        ? undefined
+        : await fetchUser(cookies, cookieName)
 
     userData =
       response &&
@@ -304,6 +309,7 @@ export async function proxy(
     isPublicPageRequested &&
     hasToken &&
     !nextUrl.pathname.startsWith('/invite') &&
+    !nextUrl.pathname.startsWith('/lti') &&
     !nextUrl.pathname.startsWith('/qi/') &&
     !nextUrl.pathname.startsWith('/error_pages') &&
     !nextUrl.pathname.startsWith('/about') &&
@@ -354,10 +360,6 @@ async function fetchUser(
 
   const contentType = response?.headers?.get('Content-Type')
   if (contentType?.includes('application/json')) {
-    if (response.status >= 400) {
-      const body = response.json()
-      return Promise.reject(body)
-    }
     return response // Type assertion needed due to conditional return type
   } else if (contentType?.includes('text/html')) {
     const text = response.text()

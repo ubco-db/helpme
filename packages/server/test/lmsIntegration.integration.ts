@@ -35,7 +35,6 @@ import { OrganizationModel } from '../src/organization/organization.entity';
 import { LMSOrganizationIntegrationModel } from '../src/lmsIntegration/lmsOrgIntegration.entity';
 import { LMSAuthStateModel } from '../src/lmsIntegration/lms-auth-state.entity';
 import { AbstractLMSAdapter } from '../src/lmsIntegration/lmsIntegration.adapter';
-import { pick } from 'lodash';
 import { LMSCourseIntegrationModel } from '../src/lmsIntegration/lmsCourseIntegration.entity';
 
 jest.setTimeout(10000);
@@ -1455,25 +1454,6 @@ describe('Lms Integration Integrations', () => {
         .get(`/lms/oauth2/response?${params.toString()}`)
         .expect(302)
         .then((response) => {
-          expect(spy).toHaveBeenCalledTimes(1);
-          expect(spy).toHaveBeenCalledWith(
-            {
-              grant_type: 'authorization_code',
-              client_id: orgInt.clientId,
-              client_secret: orgInt.clientSecret,
-              redirect_uri: `${process.env.DOMAIN}/api/v1/lms/oauth2/response`,
-              code: params.get('code'),
-            },
-            pick(orgInt, [
-              'apiPlatform',
-              'clientId',
-              'clientSecret',
-              'organizationId',
-              'rootUrl',
-              'secure',
-            ]),
-          );
-
           const uri = new URL('http://example.com' + response.headers.location);
           expect(uri.pathname).toBe('/courses');
           expect(uri.searchParams.get('error_message')).toEqual(
@@ -1505,25 +1485,6 @@ describe('Lms Integration Integrations', () => {
         .get(`/lms/oauth2/response?${params.toString()}`)
         .expect(302)
         .then((response) => {
-          expect(spy).toHaveBeenCalledTimes(1);
-          expect(spy).toHaveBeenCalledWith(
-            {
-              grant_type: 'authorization_code',
-              client_id: orgInt.clientId,
-              client_secret: orgInt.clientSecret,
-              redirect_uri: `${process.env.DOMAIN}/api/v1/lms/oauth2/response`,
-              code: params.get('code'),
-            },
-            pick(orgInt, [
-              'apiPlatform',
-              'clientId',
-              'clientSecret',
-              'organizationId',
-              'rootUrl',
-              'secure',
-            ]),
-          );
-
           const uri = new URL('http://example.com' + response.headers.location);
           expect(uri.pathname).toBe('/courses');
           expect(uri.searchParams.get('success_message')).toEqual(

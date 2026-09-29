@@ -12,6 +12,16 @@ import {
 } from '@koh/common';
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { z } from 'zod';
+
+// Outer envelope only: the grading boundary (validateGradePayload) validates
+// the whole answer, including the human review reason, before persistence.
+const feedbackResponseSchema = z.object({
+  answer: z.unknown(),
+  model: z.string().optional(),
+});
+
+export type FeedbackQueryResult = z.infer<typeof feedbackResponseSchema>;
 
 @Injectable()
 /* This is a list of all endpoints from the chatbot repo.
@@ -43,9 +53,15 @@ export class ChatbotApiService {
     const text = await response.text();
     let message = fallbackMessage;
     try {
-      const parsed = JSON.parse(text) as { error?: string };
-      if (parsed?.error && typeof parsed.error === 'string') {
-        message = parsed.error;
+      const parsed = z
+        .object({
+          message: z.union([z.string(), z.array(z.string())]).optional(),
+          error: z.string().optional(),
+        })
+        .safeParse(JSON.parse(text));
+      if (parsed.success && (parsed.data.message || parsed.data.error)) {
+        const detail = parsed.data.message ?? parsed.data.error;
+        message = Array.isArray(detail) ? detail.join('; ') : detail;
       } else if (text.trim()) {
         message = text.trim().slice(0, 500);
       }
@@ -74,6 +90,7 @@ export class ChatbotApiService {
     params?: any,
     timeoutMs?: number,
   ) {
+    const signal = timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined;
     try {
       const url = new URL(`${this.chatbotApiUrl}/${endpoint}`);
 
@@ -95,7 +112,7 @@ export class ChatbotApiService {
         method,
         headers,
         body: data ? JSON.stringify(data) : undefined,
-        signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined, // abort signal is available as of node 17
+        signal,
       });
 
       if (!response.ok) {
@@ -114,6 +131,12 @@ export class ChatbotApiService {
       this.logger.warn(
         `Chatbot request failed (${method} ${this.chatbotApiUrl}/${endpoint}): ${detail}`,
       );
+      if (signal?.aborted) {
+        throw new HttpException(
+          'The chatbot request timed out.',
+          HttpStatus.GATEWAY_TIMEOUT,
+        );
+      }
       throw new HttpException(
         'Failed to connect to chatbot service',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -154,26 +177,56 @@ export class ChatbotApiService {
   }
 
   /**
+   * Feedback uses the course's selected model and the supplied grading prompt.
+   * The chatbot service owns provider retries for this request.
+   */
+  async queryFeedback(
+    query: string,
+    courseId: number,
+    systemPrompt: string,
+  ): Promise<FeedbackQueryResult> {
+    const resp: unknown = await this.request('POST', `chatbot/query`, '', {
+      query,
+      type: 'feedback',
+      courseId,
+      params: { systemPrompt },
+    });
+    return feedbackResponseSchema.parse(resp);
+  }
+
+  /**
    * Calls the chatbot `POST /chatbot/query` endpoint with a `courseId`, so the
    * chatbot routes the prompt through the course's generatorLLM (the same LLM
    * configured in Chatbot Settings for that course). No user token is required
    * by the chatbot's `/query` route, so this method intentionally omits it.
    *
-   * Adam: So `/query` calls always use the org's default model, despite what it might look like in the code.
-   * I'm assuming this is the case because stuff like abstract generation wouldn't need big models that the prof may pick.
-   * So for the AI Assignment/Essay Feedback feature, it will need its own ChatbotQueryType eventually.
+   * Adam: From my testing a while back, it seems `/query` calls always use the org's default model, despite what it might look like in the code.
+   * This might've been fixed though.
+   * Also for the LLED AI Assignment/Essay Feedback feature, it should get its own ChatbotQueryType eventually.
    */
   async queryChatbotForCourse(
     query: string,
     courseId: number,
     type: 'default' | 'abstract' = 'default',
   ): Promise<string> {
-    const resp: { answer: string } = await this.request(
-      'POST',
-      `chatbot/query`,
-      '',
-      { query, type, courseId },
-    );
+    const resp: unknown = await this.request('POST', `chatbot/query`, '', {
+      query,
+      type,
+      courseId,
+    });
+
+    if (
+      typeof resp !== 'object' ||
+      resp === null ||
+      !('answer' in resp) ||
+      typeof resp.answer !== 'string'
+    ) {
+      throw new HttpException(
+        'Invalid response from chatbot service: expected string answer',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
     return resp.answer;
   }
 

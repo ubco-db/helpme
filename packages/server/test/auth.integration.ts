@@ -801,7 +801,9 @@ describe('Auth Integration', () => {
         token_action: TokenAction.ACTION_PENDING,
       }).save();
 
-      const token = jwtService.sign({ userId: user.id });
+      const token = jwtService.sign({
+        userId: user.id,
+      });
       const res = await supertest()
         .post('/auth/registration/verify')
         .set(

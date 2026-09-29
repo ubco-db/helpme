@@ -45,9 +45,9 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
   const router = useRouter()
   const pathname = usePathname()
 
-  const handleMenuClick = (item: any) => {
+  const handleMenuClick = (key: string) => {
     const basePath = `/course/${courseId}/settings`
-    switch (item.key) {
+    switch (key) {
       case CourseAdminOptions.SETTINGS:
         router.push(basePath)
         break
@@ -174,14 +174,14 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       <div className="md:hidden">
         <Select
           value={currentMenuItem}
-          onChange={(value) => handleMenuClick({ key: value })}
+          onChange={(value) => handleMenuClick(value)}
           className="w-full"
           options={mobileOptions}
         />
       </div>
       <Menu
         selectedKeys={[currentMenuItem]}
-        onClick={(item) => handleMenuClick(item)}
+        onClick={(item) => handleMenuClick(item.key)}
         className="hidden bg-[#f8f9fb] md:block"
         items={menuItems}
       />

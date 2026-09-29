@@ -11,6 +11,9 @@ export class LtiIdentityTokenModel extends BaseEntity {
   @PrimaryColumn({ type: 'text' })
   code: string;
 
+  @Column({ type: 'integer', nullable: true })
+  organizationId: number | null;
+
   @Column({ type: 'text' })
   issuer: string;
 

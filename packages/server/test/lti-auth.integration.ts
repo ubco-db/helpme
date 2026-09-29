@@ -16,9 +16,13 @@ import { AccountType } from '@koh/common';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { LoginTicket, OAuth2Client } from 'google-auth-library';
 import { LtiModule } from '../src/lti/lti.module';
-import { restrictPaths } from '../src/lti/lti-auth.controller';
+import {
+  LTI_APP_SESSION_SECONDS,
+  restrictPaths,
+} from '../src/lti/lti-auth.controller';
 import { UserCourseModel } from '../src/profile/user-course.entity';
 import { UserLtiIdentityModel } from '../src/lti/user_lti_identity.entity';
+import { getAuthPayload } from '../src/login/auth-token';
 
 jest.mock('google-auth-library', () => ({
   OAuth2Client: jest.fn().mockImplementation(
@@ -60,9 +64,9 @@ describe('LTI Auth Integration', () => {
   });
 
   describe('POST /lti/auth/entry', () => {
-    it('entry as user with courses goes to lti page', async () => {
+    it('exchanges a temporary login token for the normal five-hour LTI session', async () => {
       const user = await UserFactory.create();
-      await UserCourseFactory.create({ user: user });
+      await UserCourseFactory.create({ user });
       const token = await jwtService.signAsync({ userId: user.id });
 
       const res = await supertest()
@@ -78,27 +82,34 @@ describe('LTI Auth Integration', () => {
 
       expect(name).toEqual('lti_auth_token');
 
-      const jwtToken = jwtService.decode(value);
-
+      const rawJwtToken: unknown = jwtService.verify(value);
+      const jwtToken = getAuthPayload(rawJwtToken);
       expect(jwtToken).toEqual(
         expect.objectContaining({
           userId: user.id,
           restrictPaths,
-          expiresIn: 10 * 60,
-          iat: expect.anything(),
         }),
       );
+      const { iat, exp } = jwtToken;
+      if (typeof iat !== 'number' || typeof exp !== 'number') {
+        throw new Error('Expected standard JWT iat and exp claims');
+      }
+      expect(exp - iat).toBe(LTI_APP_SESSION_SECONDS);
 
       const parts = secondPart.split(';').map((v) => v.trim());
       const flags = parts.slice(1);
 
-      expect(flags).toHaveLength(3);
-      expect(flags[0]).toBe('HttpOnly');
-      expect(flags[1]).toBe('Secure');
-      expect(flags[2]).toBe('SameSite=None');
+      expect(flags).toContain('HttpOnly');
+      if (process.env.DOMAIN?.startsWith('https://')) {
+        expect(flags).toContain('Secure');
+        expect(flags).toContain('SameSite=None');
+      } else {
+        expect(flags).not.toContain('Secure');
+        expect(flags).toContain('SameSite=Lax');
+      }
     });
 
-    it('should fail with 401 if token is invalid', async () => {
+    it('rejects an invalid temporary login token', async () => {
       const user = await UserFactory.create();
       const token = await jwtService.signAsync({ userId: user.id });
 

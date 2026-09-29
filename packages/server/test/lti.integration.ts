@@ -1,25 +1,51 @@
 import { setupIntegrationTest } from './util/testUtils';
+import LtiMiddleware from '../src/lti/lti.middleware';
 import { LtiModule } from '../src/lti/lti.module';
 import {
   AuthTokenMethodEnum,
   Database,
+  DynamicRegistrationService,
+  PlatformModel,
   Provider,
   register,
 } from '@bhunt02/lti-typescript';
 import { UserModel } from '../src/profile/user.entity';
 import { CourseModel } from '../src/course/course.entity';
-import { CourseFactory, UserFactory } from './util/factories';
+import {
+  CourseFactory,
+  lmsCourseIntFactory,
+  lmsOrgIntFactory,
+  OrganizationUserFactory,
+  OrganizationFactory,
+  UserCourseFactory,
+  UserFactory,
+  UserLtiIdentityFactory,
+} from './util/factories';
 import express from 'express';
 import {
   AuthMethodEnum,
   CreateLtiPlatform,
   ERROR_MESSAGES,
   LtiPlatform,
+  Role,
   UpdateLtiPlatform,
   UserRole,
 } from '@koh/common';
 import { mapToLocalPlatform } from '../src/lti/lti.controller';
 import { LtiService } from '../src/lti/lti.service';
+import { EmbeddableQuestionModel } from '../src/lti/embeddable-question/embeddable-question.entity';
+import { LMSOrganizationIntegrationModel } from '../src/lmsIntegration/lmsOrgIntegration.entity';
+import * as jwt from 'jsonwebtoken';
+import { UserCourseModel } from '../src/profile/user-course.entity';
+import { UserLtiIdentityModel } from '../src/lti/user_lti_identity.entity';
+
+const gradingSettings = (rubric: string) => ({
+  rubric,
+  feedbackInstructions:
+    'Give concise, constructive feedback grounded in the rubric.',
+  scoreScale: { max: 10, step: 1 },
+  checks: [],
+});
 
 const testEncryptionKey = 'abcdefg';
 const testLtiDbOptions: any = {
@@ -38,19 +64,24 @@ describe('LtiController', () => {
   let platforms: LtiPlatform[] = [];
   let user: UserModel;
   let course: CourseModel;
+  let customToken: Record<string, unknown> | undefined;
+  let orgIntegration: LMSOrganizationIntegrationModel;
+
+  const defaultToken = {
+    iss: 'http://platform.com',
+    clientId: '1',
+    user: '0',
+    userInfo: { email: 'fake_email@example.com' },
+    platformInfo: { product_family_code: 'canvas' },
+    platformContext: { custom: { canvas_course_id: 'abcdefg' } },
+  };
 
   const mockMiddleware = (
     _: express.Request,
     res: express.Response,
     next: express.NextFunction,
   ) => {
-    res.locals.token = {
-      iss: 'fake-issuer',
-      user: '0',
-      userInfo: { email: 'fake_email@example.com' },
-      platformInfo: { product_family_code: 'canvas' },
-      platformContext: { custom: { canvas_course_id: 'abcdefg' } },
-    };
+    res.locals.token = customToken ?? defaultToken;
     res.locals.userId = user?.id;
     res.locals.courseId = course?.id;
 
@@ -65,7 +96,6 @@ describe('LtiController', () => {
   );
 
   beforeAll(async () => {
-    // Initialize connection to LTI database (override library parameters for test)
     await Database.initializeDatabase(
       testLtiDbOptions,
       testEncryptionKey,
@@ -74,10 +104,10 @@ describe('LtiController', () => {
   });
 
   beforeEach(async () => {
+    customToken = undefined;
     ltiService = getTestModule().get<LtiService>(LtiService);
 
     provider = await register(testEncryptionKey, testLtiDbOptions, {});
-
     ltiService.provider = provider;
 
     user = await UserFactory.create();
@@ -98,6 +128,15 @@ describe('LtiController', () => {
       });
       platforms.push(mapToLocalPlatform(platform['platformModel']));
     }
+    const organization = await OrganizationFactory.create();
+    orgIntegration = await lmsOrgIntFactory.create({
+      organization,
+      ltiPlatformId: platforms[0].kid,
+    });
+    await OrganizationUserFactory.create({
+      organizationUser: user,
+      organization,
+    });
   });
 
   afterEach(async () => {
@@ -106,6 +145,46 @@ describe('LtiController', () => {
 
   afterAll(async () => {
     await provider.close();
+  });
+
+  it('preserves the registration, signing key, and organization mapping when its remote registration returns 404', async () => {
+    const ltiSecret = process.env.LTI_SECRET_KEY;
+    process.env.LTI_SECRET_KEY = testEncryptionKey;
+    const kid = platforms[0].kid;
+    await Database.dataSource.getRepository(PlatformModel).update(kid, {
+      dynamicallyRegistered: true,
+      registrationEndpoint: 'https://canvas.example.test/registration',
+      scopesSupported: [
+        'https://purl.imsglobal.org/spec/lti-reg/scope/registration.readonly',
+      ],
+    });
+    const publicKey = await (
+      await provider.getPlatformById(kid)
+    ).platformPublicKey();
+    const remoteRegistration = jest
+      .spyOn(DynamicRegistrationService.prototype, 'getRegistration')
+      .mockRejectedValue(new Error('404: Not Found'));
+    try {
+      await LtiMiddleware.enable(
+        getTestModule().createNestApplication(),
+        '/api/v1/lti',
+      );
+      expect(remoteRegistration).toHaveBeenCalled();
+      const savedPlatform = await ltiService.provider.getPlatformById(kid);
+      expect(savedPlatform?.active).toBe(true);
+      expect(await savedPlatform.platformPublicKey()).toEqual(publicKey);
+      expect(
+        (
+          await LMSOrganizationIntegrationModel.findOneByOrFail({
+            organizationId: orgIntegration.organizationId,
+          })
+        ).ltiPlatformId,
+      ).toBe(kid);
+    } finally {
+      if (ltiSecret === undefined) delete process.env.LTI_SECRET_KEY;
+      else process.env.LTI_SECRET_KEY = ltiSecret;
+      remoteRegistration.mockRestore();
+    }
   });
 
   describe('ALL lti/', () => {
@@ -163,6 +242,243 @@ describe('LtiController', () => {
     });
   });
 
+  describe('Deep Linking', () => {
+    const canvasCourseId = 'canvas-course-deep-link';
+    const instructorRole =
+      'http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor';
+
+    const setupDeepLinkLaunch = async (
+      helpMeRole?: Role,
+      canvasRole = instructorRole,
+    ) => {
+      await lmsCourseIntFactory.create({
+        orgIntegration,
+        course,
+        apiCourseId: canvasCourseId,
+      });
+      await UserLtiIdentityFactory.create({
+        user,
+        issuer: 'http://platform.com',
+        ltiUserId: 'canvas-instructor-1',
+      });
+      if (helpMeRole) {
+        await UserCourseFactory.create({ user, course, role: helpMeRole });
+      }
+      const launchToken = {
+        iss: 'http://platform.com',
+        clientId: '1',
+        deploymentId: 'deployment-1',
+        user: 'canvas-instructor-1',
+        userInfo: { email: user.email },
+        platformInfo: { product_family_code: 'canvas' },
+        platformContext: {
+          messageType: 'LtiDeepLinkingRequest',
+          roles: [canvasRole],
+          deepLinkingSettings: {
+            deep_link_return_url: 'http://platform.com/deep-link-return',
+            accept_types: ['ltiResourceLink'],
+          },
+          custom: { canvas_course_id: canvasCourseId },
+          targetLinkUri: 'http://helpme.test/api/v1/lti',
+        },
+      };
+      customToken = launchToken;
+      return launchToken;
+    };
+
+    it('lets a mapped HelpMe professor list the questions available to Canvas', async () => {
+      await setupDeepLinkLaunch(Role.PROFESSOR);
+      const question = await EmbeddableQuestionModel.create({
+        courseId: course.id,
+        title: 'Reflection 1',
+        questionText: 'Question text',
+        gradingSettings: gradingSettings('Criteria text'),
+      }).save();
+
+      const res = await supertest().get('/lti/deep-link/questions').expect(200);
+
+      expect(res.body).toEqual([
+        expect.objectContaining({
+          id: question.id,
+          courseId: course.id,
+          title: 'Reflection 1',
+        }),
+      ]);
+    });
+
+    it.each([
+      ['Instructor', undefined, Role.PROFESSOR],
+      ['TeachingAssistant', undefined, Role.TA],
+      ['TeachingAssistant', Role.PROFESSOR, Role.PROFESSOR],
+    ])(
+      'enrolls %s with existing role %s for the picker',
+      async (canvasRole, existingRole, expectedRole) => {
+        await setupDeepLinkLaunch(
+          existingRole,
+          `http://purl.imsglobal.org/vocab/lis/v2/membership#${canvasRole}`,
+        );
+        await supertest().get('/lti/deep-link/questions').expect(200);
+        await supertest().get('/lti/deep-link/questions').expect(200);
+        const enrollments = await UserCourseModel.find({
+          where: { userId: user.id, courseId: course.id },
+        });
+        expect(enrollments).toHaveLength(1);
+        expect(enrollments[0].role).toBe(expectedRole);
+      },
+    );
+
+    it.each(['Learner', 'Administrator', 'InstructorFake'])(
+      'rejects Canvas %s even with a HelpMe professor enrollment',
+      async (canvasRole) => {
+        await setupDeepLinkLaunch(
+          Role.PROFESSOR,
+          `http://purl.imsglobal.org/vocab/lis/v2/membership#${canvasRole}`,
+        );
+        await supertest().get('/lti/deep-link/questions').expect(403);
+      },
+    );
+
+    it('requires a linked identity even when the email matches', async () => {
+      await setupDeepLinkLaunch(Role.STUDENT);
+      await UserLtiIdentityModel.delete({ userId: user.id });
+      await supertest().get('/lti/deep-link/questions').expect(403);
+      expect(
+        await UserCourseModel.findOneBy({
+          userId: user.id,
+          courseId: course.id,
+        }),
+      ).toMatchObject({ role: Role.STUDENT });
+    });
+
+    it.each(['untrusted', 'inactive'])(
+      'does not elevate staff from an %s platform',
+      async (kind) => {
+        await setupDeepLinkLaunch(Role.STUDENT);
+        if (kind === 'untrusted') {
+          orgIntegration.ltiPlatformId = null;
+          await orgIntegration.save();
+        } else {
+          const platform = await provider.getPlatform(
+            'http://platform.com',
+            '1',
+          );
+          await platform.setActive(false);
+        }
+        await supertest().get('/lti/deep-link/questions').expect(403);
+        expect(
+          await UserCourseModel.findOneBy({
+            userId: user.id,
+            courseId: course.id,
+          }),
+        ).toMatchObject({ role: Role.STUDENT });
+      },
+    );
+
+    it('enrolls a first-time instructor from course navigation', async () => {
+      const launchToken = await setupDeepLinkLaunch();
+      launchToken.platformContext.messageType = 'LtiResourceLinkRequest';
+      await supertest().get('/lti').expect(302);
+      expect(
+        await UserCourseModel.findOneBy({
+          userId: user.id,
+          courseId: course.id,
+        }),
+      ).toMatchObject({ role: Role.PROFESSOR });
+      launchToken.platformContext.messageType = 'LtiDeepLinkingRequest';
+      await supertest().get('/lti/deep-link/questions').expect(200);
+    });
+
+    it('rejects selecting a question from a different HelpMe course before signing', async () => {
+      await setupDeepLinkLaunch(Role.PROFESSOR);
+      const otherCourse = await CourseFactory.create();
+      const otherQuestion = await EmbeddableQuestionModel.create({
+        courseId: otherCourse.id,
+        title: 'Other course question',
+        questionText: 'Question text',
+        gradingSettings: gradingSettings('Criteria text'),
+      }).save();
+
+      await supertest()
+        .post('/lti/deep-link/selection')
+        .send({ questionId: otherQuestion.id })
+        .expect(404);
+    });
+
+    it('enrolls a first-time instructor and returns a provider-signed response for a mapped question', async () => {
+      await setupDeepLinkLaunch();
+      const question = await EmbeddableQuestionModel.create({
+        courseId: course.id,
+        title: 'Reflection 2',
+        questionText: 'Question text',
+        gradingSettings: gradingSettings('Criteria text'),
+      }).save();
+
+      const res = await supertest()
+        .post('/lti/deep-link/selection')
+        .send({ questionId: question.id })
+        .expect(201)
+        .expect('Content-Type', /text\/html/);
+
+      const signedToken = /name="JWT" value="([^"]+)"/.exec(res.text)?.[1];
+      if (!signedToken) {
+        throw new Error('Deep linking response did not contain a signed JWT');
+      }
+
+      const platform = await provider.getPlatform('http://platform.com', '1');
+      if (!platform) {
+        throw new Error('Canvas platform was not registered');
+      }
+      const publicKey = (await platform.platformPublicKey()).key;
+
+      const decoded = jwt.decode(signedToken, { complete: true });
+      if (typeof decoded !== 'object' || decoded === null) {
+        throw new Error('Deep linking response JWT could not be decoded');
+      }
+      expect(decoded.header.alg).toBe('RS256');
+      expect(decoded.header.kid).toBe(platform.kid);
+
+      const claims = jwt.verify(signedToken, publicKey, {
+        algorithms: ['RS256'],
+      });
+      if (typeof claims === 'string') {
+        throw new Error('Deep linking JWT verified to a string payload');
+      }
+
+      // Signed by the platform the professor's Canvas registration uses
+      expect(claims.iss).toBe(platform.clientId);
+      expect(claims.aud).toBe('http://platform.com');
+      expect(
+        claims['https://purl.imsglobal.org/spec/lti/claim/message_type'],
+      ).toBe('LtiDeepLinkingResponse');
+      expect(claims['https://purl.imsglobal.org/spec/lti/claim/version']).toBe(
+        '1.3.0',
+      );
+      expect(
+        claims['https://purl.imsglobal.org/spec/lti/claim/deployment_id'],
+      ).toBe('deployment-1');
+      expect(claims['https://purl.imsglobal.org/spec/lti-dl/claim/msg']).toBe(
+        'HelpMe question linked',
+      );
+
+      // The selected item is the question from the professor's own course
+      expect(
+        claims['https://purl.imsglobal.org/spec/lti-dl/claim/content_items'],
+      ).toEqual([
+        {
+          type: 'ltiResourceLink',
+          title: question.title,
+          url: 'http://helpme.test/api/v1/lti',
+          custom: { helpme_question_id: String(question.id) },
+          iframe: {
+            src: 'http://helpme.test/api/v1/lti',
+            width: 800,
+            height: 300,
+          },
+        },
+      ]);
+    });
+  });
+
   describe('GET lti/platform', () => {
     const url = '/lti/platform';
 
@@ -195,8 +511,85 @@ describe('LtiController', () => {
         .get(url)
         .expect(200)
         .then((response) => {
-          expect(response.body).toEqual(expect.arrayContaining(platforms));
+          expect(response.body).toEqual(
+            expect.arrayContaining([
+              {
+                ...platforms[0],
+                organizationId: orgIntegration.organizationId,
+              },
+              ...platforms.slice(1),
+            ]),
+          );
         });
+    });
+  });
+
+  describe('PATCH lti/platform/:kid/organization', () => {
+    it('requires a site administrator and validates the organization ID', async () => {
+      const url = `/lti/platform/${platforms[1].kid}/organization`;
+      await supertest({ userId: user.id })
+        .patch(url)
+        .send({ organizationId: orgIntegration.organizationId })
+        .expect(403);
+      const admin = await UserFactory.create({ userRole: UserRole.ADMIN });
+      for (const organizationId of [undefined, '1', 0, -1, 1.5]) {
+        await supertest({ userId: admin.id })
+          .patch(url)
+          .send({ organizationId })
+          .expect(400);
+      }
+    });
+
+    it('assigns, lists, and unassigns an existing registration without replacing it', async () => {
+      const admin = await UserFactory.create({ userRole: UserRole.ADMIN });
+      const integration = await lmsOrgIntFactory.create();
+      const kid = platforms[1].kid;
+      const url = `/lti/platform/${kid}/organization`;
+      await supertest({ userId: admin.id })
+        .patch(url)
+        .send({ organizationId: integration.organizationId })
+        .expect(200);
+      const list = await supertest({ userId: admin.id })
+        .get('/lti/platform')
+        .expect(200);
+      expect(list.body).toContainEqual({
+        ...platforms[1],
+        organizationId: integration.organizationId,
+      });
+      await supertest({ userId: admin.id })
+        .patch(url)
+        .send({ organizationId: null })
+        .expect(200);
+      expect(
+        (
+          await LMSOrganizationIntegrationModel.findOneByOrFail({
+            organizationId: integration.organizationId,
+          })
+        ).ltiPlatformId,
+      ).toBeNull();
+      expect((await provider.getPlatformById(kid)).clientId).toBe(
+        platforms[1].clientId,
+      );
+    });
+
+    it('does not let a registration or organization be reassigned implicitly', async () => {
+      const admin = await UserFactory.create({ userRole: UserRole.ADMIN });
+      const integration = await lmsOrgIntFactory.create();
+      await supertest({ userId: admin.id })
+        .patch(`/lti/platform/${platforms[0].kid}/organization`)
+        .send({ organizationId: integration.organizationId })
+        .expect(409);
+      await supertest({ userId: admin.id })
+        .patch(`/lti/platform/${platforms[1].kid}/organization`)
+        .send({ organizationId: orgIntegration.organizationId })
+        .expect(409);
+      expect(
+        (
+          await LMSOrganizationIntegrationModel.findOneByOrFail({
+            organizationId: orgIntegration.organizationId,
+          })
+        ).ltiPlatformId,
+      ).toBe(platforms[0].kid);
     });
   });
 

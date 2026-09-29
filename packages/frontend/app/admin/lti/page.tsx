@@ -2,6 +2,7 @@
 
 import { CreateLtiPlatform, LtiPlatform, UpdateLtiPlatform } from '@koh/common'
 import { ReactElement, useEffect, useMemo, useState } from 'react'
+import useSWRImmutable from 'swr/immutable'
 import { API } from '@/app/api'
 import {
   Badge,
@@ -11,6 +12,7 @@ import {
   Pagination,
   Popconfirm,
   Switch,
+  Select,
   Table,
   Tooltip,
 } from 'antd'
@@ -30,6 +32,27 @@ export default function LtiAdminPage(): ReactElement {
   const [focus, setFocus] = useState<LtiPlatform>()
   const [search, setSearch] = useState<string>()
   const [page, setPage] = useState(1)
+  const { data: organizations = [] } = useSWRImmutable(
+    'lti/organizations',
+    () => API.organizations.getOrganizations(),
+    { onError: (error) => message.error(getErrorMessage(error)) },
+  )
+  const [assigningId, setAssigningId] = useState<string>()
+  const assignOrganization = async (
+    platform: LtiPlatform,
+    organizationId: number | null,
+  ) => {
+    setAssigningId(platform.kid)
+    try {
+      await API.lti.admin.assignOrganization(platform.kid, organizationId)
+      setLtiPlatforms(await API.lti.admin.getPlatforms())
+      message.success('LTI organization updated.')
+    } catch (error) {
+      message.error(getErrorMessage(error))
+    } finally {
+      setAssigningId(undefined)
+    }
+  }
 
   useEffect(() => {
     const getData = async () => {
@@ -68,7 +91,7 @@ export default function LtiAdminPage(): ReactElement {
         if (idxOf >= 0) {
           setLtiPlatforms((prev) => [
             ...prev.slice(0, idxOf),
-            platform,
+            { ...platform, organizationId: prev[idxOf].organizationId },
             ...prev.slice(idxOf + 1),
           ])
         }
@@ -101,7 +124,7 @@ export default function LtiAdminPage(): ReactElement {
         if (idxOf >= 0) {
           setLtiPlatforms((prev) => [
             ...prev.slice(0, idxOf),
-            platform,
+            { ...platform, organizationId: prev[idxOf].organizationId },
             ...prev.slice(idxOf + 1),
           ])
         }
@@ -196,6 +219,28 @@ export default function LtiAdminPage(): ReactElement {
     {
       dataIndex: 'name',
       title: 'Nickname',
+    },
+    {
+      title: 'Organization',
+      key: 'organization',
+      render: (_: unknown, platform: LtiPlatform) => (
+        <Select
+          aria-label={`Organization for ${platform.name}`}
+          className="min-w-40"
+          placeholder="Not assigned"
+          value={platform.organizationId}
+          allowClear
+          loading={assigningId === platform.kid}
+          disabled={assigningId !== undefined}
+          options={organizations.map((organization) => ({
+            value: organization.id,
+            label: organization.name,
+          }))}
+          onChange={(id: number | undefined) =>
+            void assignOrganization(platform, id ?? null)
+          }
+        />
+      ),
     },
     {
       dataIndex: 'actions',

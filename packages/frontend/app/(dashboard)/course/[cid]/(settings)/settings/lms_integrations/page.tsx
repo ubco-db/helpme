@@ -47,6 +47,7 @@ import CenteredSpinner from '@/app/components/CenteredSpinner'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
 import { useUserInfo } from '@/app/contexts/userContext'
+import EmbeddableQuestionsPage from '@/app/(dashboard)/course/[cid]/(settings)/settings/embeddable_questions/page'
 
 export default function CourseLMSIntegrationPage(props: {
   params: Promise<{
@@ -155,8 +156,6 @@ export default function CourseLMSIntegrationPage(props: {
       message.error(error_msg, 3).then(() => {
         router.push(pathname)
       })
-    } else {
-      router.push(pathname)
     }
   }, [pathname, router, searchParams])
 
@@ -674,6 +673,11 @@ export default function CourseLMSIntegrationPage(props: {
           HelpMe be added to your Canvas course.
         </p>
       ),
+    })
+    tabItems.push({
+      key: 'embeddable_questions',
+      label: <LMSTabLabel title={'Embeddable Questions'} isLoading={false} />,
+      children: <EmbeddableQuestionsPage params={props.params} />,
     })
 
     const card = (

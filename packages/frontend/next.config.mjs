@@ -5,11 +5,12 @@ import injectWhyDidYouRender from './scripts/why-did-you-render/index.mjs';
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false, // disabled since it messes with antd forms unfortunately
+  allowedDevOrigins: ['helpme.test'],
   experimental: {
     webpackMemoryOptimizations: true,
     webpackBuildWorker: true,
     serverActions: {
-      allowedOrigins: ['localhost:3000'],
+      allowedOrigins: ['localhost:3000', 'helpme.test:3100'],
     },
   },
   images: {

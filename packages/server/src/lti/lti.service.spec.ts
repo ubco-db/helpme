@@ -7,6 +7,7 @@ import {
   CourseFactory,
   initFactoriesFromService,
   lmsCourseIntFactory,
+  lmsOrgIntFactory,
   LtiCourseInviteFactory,
   LtiIdentityTokenFactory,
   OrganizationCourseFactory,
@@ -27,6 +28,7 @@ import { CourseModel } from '../course/course.entity';
 import { LtiCourseInviteModel } from './lti-course-invite.entity';
 import { LtiIdentityTokenModel } from './lti_identity_token.entity';
 import { UserLtiIdentityModel } from './user_lti_identity.entity';
+import { EmbeddableQuestionService } from './embeddable-question/embeddable-question.service';
 
 const idToken = {
   iss: 'http://canvas.docker/',
@@ -51,6 +53,10 @@ describe('LtiService', () => {
   let service: LtiService;
   let dataSource: DataSource;
   let jwtService: JwtService;
+  const embeddableQuestionService = {
+    findAllForCourse: jest.fn(),
+    findOne: jest.fn(),
+  };
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -66,16 +72,20 @@ describe('LtiService', () => {
           }),
         }),
       ],
-      providers: [LtiService],
+      providers: [
+        LtiService,
+        {
+          provide: EmbeddableQuestionService,
+          useValue: embeddableQuestionService,
+        },
+      ],
     }).compile();
 
     service = module.get<LtiService>(LtiService);
     dataSource = module.get<DataSource>(DataSource);
     jwtService = module.get<JwtService>(JwtService);
 
-    // Grab FactoriesService from Nest
     const factories = module.get<FactoryService>(FactoryService);
-    // Initialize the named exports to point to the actual factories
     initFactoriesFromService(factories);
   });
 
@@ -398,17 +408,103 @@ describe('LtiService', () => {
     });
   });
 
+  it('only links an organization-scoped identity token to a member of that organization', async () => {
+    const organization = await OrganizationFactory.create();
+    const member = await UserFactory.create();
+    const outsider = await UserFactory.create();
+    await OrganizationUserFactory.create({
+      organization,
+      organizationUser: member,
+    });
+    const token = await service.createLtiIdentityToken(
+      idToken.iss,
+      idToken.user,
+      idToken.userInfo.email,
+      organization.id,
+    );
+    await expect(
+      service.checkLtiIdentityToken(outsider.id, token),
+    ).rejects.toThrow('organization connected');
+    expect(
+      await UserLtiIdentityModel.findOneBy({ userId: outsider.id }),
+    ).toBeNull();
+    await expect(service.checkLtiIdentityToken(member.id, token)).resolves.toBe(
+      true,
+    );
+  });
+
   describe('(static) findMatchingUserCourse', () => {
+    let organization: Awaited<ReturnType<typeof OrganizationFactory.create>>;
+    beforeEach(async () => {
+      organization = await OrganizationFactory.create();
+    });
+
+    it('does not match a Canvas identity or course in another organization', async () => {
+      const otherOrganization = await OrganizationFactory.create();
+      const user = await UserFactory.create({ email: idToken.userInfo.email });
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization: otherOrganization,
+      });
+      await UserLtiIdentityFactory.create({
+        user,
+        issuer: idToken.iss,
+        ltiUserId: idToken.user,
+      });
+      const orgIntegration = await lmsOrgIntFactory.create({
+        organization: otherOrganization,
+      });
+      await lmsCourseIntFactory.create({
+        orgIntegration,
+        apiCourseId: idToken.platformContext.custom.canvas_course_id,
+      });
+      await expect(
+        LtiService.findMatchingUserAndCourse(
+          idToken as unknown as IdToken,
+          organization.id,
+        ),
+      ).resolves.toEqual({ userId: undefined, courseId: undefined });
+    });
+
+    it('resolves identical Canvas course numbers within the selected organization', async () => {
+      const otherOrganization = await OrganizationFactory.create();
+      const otherIntegration = await lmsOrgIntFactory.create({
+        organization: otherOrganization,
+      });
+      const integration = await lmsOrgIntFactory.create({ organization });
+      await lmsCourseIntFactory.create({
+        orgIntegration: otherIntegration,
+        apiCourseId: '1',
+      });
+      const mapped = await lmsCourseIntFactory.create({
+        orgIntegration: integration,
+        apiCourseId: '1',
+      });
+      await expect(
+        LtiService.findMatchingUserAndCourse(
+          idToken as unknown as IdToken,
+          organization.id,
+        ),
+      ).resolves.toEqual({ userId: undefined, courseId: mapped.courseId });
+    });
+
     it('should return matching user', async () => {
       const user = await UserFactory.create({
         email: 'testuser@example.com',
       });
-      const { userId, courseId } = await LtiService.findMatchingUserAndCourse({
-        ...idToken,
-        platformContext: {
-          custom: undefined,
-        },
-      } as unknown as IdToken);
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization,
+      });
+      const { userId, courseId } = await LtiService.findMatchingUserAndCourse(
+        {
+          ...idToken,
+          platformContext: {
+            custom: undefined,
+          },
+        } as unknown as IdToken,
+        organization.id,
+      );
       expect(
         await UserLtiIdentityModel.findOne({
           where: {
@@ -430,12 +526,19 @@ describe('LtiService', () => {
         user,
         course,
       });
+      const orgIntegration = await lmsOrgIntFactory.create({ organization });
       await lmsCourseIntFactory.create({
+        orgIntegration,
         course,
         apiCourseId: idToken.platformContext.custom.canvas_course_id,
       });
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization,
+      });
       const { userId, courseId } = await LtiService.findMatchingUserAndCourse(
         idToken as unknown as IdToken,
+        organization.id,
       );
       expect(
         await UserLtiIdentityModel.findOne({
@@ -458,8 +561,13 @@ describe('LtiService', () => {
         ltiUserId: idToken.user,
         issuer: idToken.iss,
       });
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization,
+      });
       const { userId } = await LtiService.findMatchingUserAndCourse(
         idToken as unknown as IdToken,
+        organization.id,
       );
       expect(userId).toEqual(user.id);
     });
@@ -476,8 +584,13 @@ describe('LtiService', () => {
         ltiUserId: idToken.user,
         issuer: idToken.iss,
       });
+      await OrganizationUserFactory.create({
+        organizationUser: user,
+        organization,
+      });
       const { userId } = await LtiService.findMatchingUserAndCourse(
         idToken as unknown as IdToken,
+        organization.id,
       );
       expect(userId).toEqual(user.id);
     });
