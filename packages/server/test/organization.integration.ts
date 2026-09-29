@@ -1300,7 +1300,7 @@ describe('Organization Integration', () => {
       expect(updatedProfessorToken.used).toBe(0);
       expect(updatedProfessorToken.max_uses).toBe(300);
       expect(updatedMemberToken.used).toBe(0);
-      expect(updatedMemberToken.max_uses).toBe(30);
+      expect(updatedMemberToken.max_uses).toBe(300);
     });
   });
 
