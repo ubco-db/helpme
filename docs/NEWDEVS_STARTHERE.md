@@ -136,6 +136,24 @@ For Alice's case, it's not so simple. Our options are the following (taken from 
 
 Make Alice's browser only do the request *a single time*. With React, we usually implement this via a `useEffect` hook with an empty dependency array to fetch the data on page load and then store it inside a `useState` variable. However, I should note that technically [you're not supposed to do this](https://react.dev/learn/you-might-not-need-an-effect#fetching-data) since it can cause some duplicate request issues, race conditions, etc. and that you're supposed to use a library for it instead like `react-query` (or `swr` actually with using useSWRImmutable, which I tried out in the [prof-invites PR](https://github.com/ubco-db/helpme/pull/425#discussion_r2641594671) and I recommend you use!)
 
+Example of using useSWRImmutable:
+```ts
+const {
+    data: organizationSemesters,
+    error: organizationSemestersError,
+    isLoading: organizationSemestersLoading,
+    mutate: mutateOrganizationSemesters,
+  } = useSWRImmutable(
+    `semesters/${orgId}`,
+    async () => await API.semesters.get(orgId),
+    {
+      onError: (err) =>
+        message.error(
+          `Failed to load semesters: ${getErrorMessage(err)}`,
+        ),
+    }
+```
+
 This is how most of our Frontend gets Backend state. This is because a vast majority of our backend state updates so infrequently that it probably won't affect users if it goes out-of-date with the backend (e.g. organization's name or logo, or a user's name, or the number of queues a course has, etc.).
 
 Pros:
@@ -218,7 +236,7 @@ Here's some yapping about React Hooks. Some of it may actually be pretty handy t
 `hooks` - Unlike regular functions, hooks cannot be conditionally called. React has a lot of different hooks, but the most common ones you may see are: 
 - (!) `useState` is used to store state in a component (like if a modal is open)
 - `useEffect` is used to run code when the component is rendered, and is usually used to connect to an external system. The second argument is an array of dependencies, which will cause the code to re-run if any of the dependencies change. If you want the code to only run once, pass an empty array.
-- (!) `useSWRImmutable` use this to fetch data from the backend! Much simpler than using a state variable for data, state variable for loading state, state variable for error state, and a useEffect with proper de-duplication. We don't really use this anywhere right now, but I'd really recommend you use this instead of `useState` + `useEffect`. You can find an example of it inside my [ProfInvites PR](https://github.com/ubco-db/helpme/pull/425#discussion_r2641594671), and [read why you shouldn't use a useEffect for fetching data](https://react.dev/learn/you-might-not-need-an-effect#sending-a-post-request)
+- (!) `useSWRImmutable` use this to fetch data from the backend! Much simpler than using a state variable for data, state variable for loading state, state variable for error state, and a useEffect with proper de-duplication. We don't really use this anywhere right now, but I'd really recommend you use this instead of `useState` + `useEffect`. You can find an example of it [here](#manual-refresh), and [read why you shouldn't use a useEffect for fetching data](https://react.dev/learn/you-might-not-need-an-effect#sending-a-post-request)
 - `useCallback` and `useMemo`, where the former is used to memoize functions and the latter to memoize values (i.e. store a function/value so it doesn't get recreated every time the component is rendered). Not needed anymore now that we use React v19, where the React Compiler will auto-add them.
 - `useContext` is basically like a global state variable. Useful for not needing to pass props down through many layers of components. We use this for the userInfo context, which stores the user's information (e.g. their name, email, etc.). Note that SWR comes with its own cache which essentially works as a global context.
 - `useRef` is basically a state variable (i.e. useState) but it *wont* cause a re-render if it changes. It's a little more niche since usually you want the UI to change if its state changes. But one example is for holding a reference to a particular HTML element so you can call functions like `.focus()` (In React, all HTML elements have a `ref` attribute). See [docs](https://react.dev/reference/react/useRef#manipulating-the-dom-with-a-ref)
@@ -589,13 +607,16 @@ For more general information around entities and different column types, check o
 
 If you want to add/delete/edit a table column, note that you must also generate a migration file. The migration files works as a history of database schema changes and can be re-used to reconstruct or roll-back the database schema. 
 
-You can generate a migration file with: `yarn migration:generate ./migration/your-migration-name`. Note that this will wipe your dev database. If you want to keep it, you can make a backup by running the commands:
+The easiest way to generate migrations is head to the `/dev` page (http://localhost:3000/dev), set a name for the migration you want to generate (kebab-case-please), and then click the generate migration button. 
+
+You can also generate a migration file with: `yarn migration:generate ./migration/your-migration-name`. Note that this will wipe your dev database. If you want to keep it, you can make a backup by running the commands:
 
 - `docker exec -u postgres helpme-postgresql-1 pg_dumpall -U postgres | gzip > backups/my_dev_backup.sql.gz` Creates backup (do before running migration)
 - `docker exec -i helpme-postgresql-1 psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS dev;" && docker exec -i helpme-postgresql-1 psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS chatbot;"` Wipes the databases (do after running migration)
 - `gunzip -c backups/my_dev_backup.sql | docker exec -i helpme-postgresql-1 psql -U postgres` to restore the backup.
 
 You may need to adjust the commands slightly depending on the name of your docker container name or postgres admin username (they might also incorrect, I haven't tested them in a bit -Adam).
+
 
 Additionally, if your database change requires some custom query to update old production data, you can add it in your migration file (just don't forget to also define a `down` step too so the query can be un-done).
 

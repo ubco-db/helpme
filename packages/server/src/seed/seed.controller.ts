@@ -5,7 +5,15 @@ import {
   QueueConfig,
   Role,
 } from '@koh/common';
-import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { AlertModel } from 'alerts/alerts.entity';
 import { DesktopNotifModel } from 'notification/desktop-notif.entity';
 import { EventModel, EventType } from 'profile/event-model.entity';
@@ -731,5 +739,57 @@ export class SeedController {
     await this.seedService.populateMailSubscriptionTable();
 
     return `Successfully created ${numCreated} new Mail Services and populated subscription table`;
+  }
+
+  @Post('backup/export')
+  async exportBackup(): Promise<string> {
+    try {
+      return await this.seedService.exportBackup();
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Backup export failed',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('backup/load')
+  async loadBackup(): Promise<string> {
+    try {
+      return await this.seedService.loadBackup();
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Backup load failed',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('backup/migrate')
+  async migrateWithBackup(
+    @Body() body: { migrationName: string },
+  ): Promise<string> {
+    if (!body.migrationName || body.migrationName.trim() === '') {
+      throw new HttpException(
+        'Migration name is required',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    // Basic sanitization - only allow alphanumeric and hyphens
+    const sanitized = body.migrationName.replace(/[^a-zA-Z0-9-]/g, '');
+    if (sanitized !== body.migrationName) {
+      throw new HttpException(
+        'Migration name can only contain letters, numbers, and hyphens',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    try {
+      return await this.seedService.runMigrationWithBackup(sanitized);
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Migration with backup failed',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }

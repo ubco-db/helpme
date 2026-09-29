@@ -52,3 +52,13 @@ Prod's postgres docker container is called `helpme_2024_03_18-postgresql-1`
 
 To avoid filename conflicts, delete all files in the uploads folder before beginning the data restoration process. You can do this through an available GUI (decompress the backup) or through the command: `tar -xzf ../../backups/uploads-daily/uploads_backup-YYYY-MM-DD.tar.gz -C ./uploads/`. Bear in mind that this should be run from the ```./packages/server``` directory.
 
+## Dev Page Backups (Recommended for Development)
+
+Instead of running the above commands manually, you can use the **Export Backup** and **Load Backup** buttons on the `/dev` page (http://localhost:3000/dev). These buttons run the exact same `pg_dumpall` and `psql` commands behind the scenes, saving the backup to `backups/dev-backup.sql.gz`.
+
+This is particularly useful when:
+- You're about to run a migration (which wipes the dev database)
+- You need to switch branches that have incompatible database schemas
+- You want to preserve custom test data you've created
+
+There is also a **Generate Migration** button on the `/dev` page that automates the entire process: export backup → run `yarn migration:generate` → restore backup.

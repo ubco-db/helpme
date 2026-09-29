@@ -1,14 +1,33 @@
 import { OrganizationRole, MailServiceType } from '@koh/common';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { FactoryService } from 'factory/factory.service';
 import { MailServiceModel } from 'mail/mail-services.entity';
+import { BackupService } from 'backup/backup.service';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import * as path from 'path';
+
+const execPromise = promisify(exec);
+
+/**
+ * Directory where dev backups are stored (relative to packages/server).
+ */
+const DEV_BACKUP_DIR = '../../backups';
+const DEV_BACKUP_FILENAME = 'dev-backup.sql.gz';
+
+/** Databases to drop before restoring a dev backup */
+const DEV_DATABASES_TO_DROP = ['dev', 'chatbot'];
+
+/** 10 minutes in ms — migration can be slow on some machines */
+const LONG_TIMEOUT_MS = 10 * 60 * 1000;
 
 @Injectable()
 export class SeedService {
   constructor(
     private dataSource: DataSource,
     private factoryService: FactoryService,
+    private backupService: BackupService,
   ) {}
 
   async deleteAll(model: any): Promise<void> {
@@ -198,5 +217,81 @@ export class SeedService {
     }
 
     return numCreated;
+  }
+
+  /**
+   * Returns the absolute path to the dev backup file.
+   */
+  private getDevBackupPath(): string {
+    // process.cwd() is packages/server. Go up two levels to reach the repo root
+    return path.resolve(process.cwd(), '../../backups', DEV_BACKUP_FILENAME);
+  }
+
+  /**
+   * Exports (creates) a dev database backup.
+   * Delegates to BackupService.exportDatabaseBackup().
+   */
+  async exportBackup(): Promise<string> {
+    return this.backupService.exportDatabaseBackup(this.getDevBackupPath());
+  }
+
+  /**
+   * Loads (restores) a dev database backup.
+   * Delegates to BackupService.restoreDatabaseBackup().
+   */
+  async loadBackup(): Promise<string> {
+    return this.backupService.restoreDatabaseBackup(
+      this.getDevBackupPath(),
+      DEV_DATABASES_TO_DROP,
+    );
+  }
+
+  /**
+   * Creates a backup, runs migration:generate with the given name, then restores the backup.
+   * This automates the manual process described in NEWDEVS_STARTHERE.md.
+   */
+  async runMigrationWithBackup(migrationName: string): Promise<string> {
+    const results: string[] = [];
+
+    // Step 1: Create backup
+    Logger.log('Step 1/3: Creating backup before migration...', 'SeedService');
+    const exportResult = await this.exportBackup();
+    results.push(`✅ ${exportResult}`);
+
+    // Step 2: Run migration:generate
+    Logger.log(
+      `Step 2/3: Running migration:generate for "${migrationName}"...`,
+      'SeedService',
+    );
+    try {
+      const migrationCommand = `yarn migration:generate ./migration/${migrationName}`;
+      // Run from the server package directory
+      const serverDir = path.resolve(__dirname, '../..');
+      const { stdout, stderr } = await execPromise(migrationCommand, {
+        cwd: serverDir,
+        timeout: LONG_TIMEOUT_MS,
+      });
+      Logger.log(`Migration output: ${stdout}`, 'SeedService');
+      if (stderr) {
+        Logger.warn(`Migration stderr: ${stderr}`, 'SeedService');
+      }
+      results.push(`✅ Migration "${migrationName}" generated successfully`);
+    } catch (error) {
+      results.push(`❌ Migration failed: ${error.message}`);
+      Logger.error(`Migration failed: ${error.message}`, 'SeedService');
+      // Still try to restore the backup even if migration fails
+    }
+
+    // Step 3: Restore backup
+    Logger.log('Step 3/3: Restoring backup after migration...', 'SeedService');
+    try {
+      const loadResult = await this.loadBackup();
+      results.push(`✅ ${loadResult}`);
+    } catch (error) {
+      results.push(`❌ Backup restore failed: ${error.message}`);
+      Logger.error(`Backup restore failed: ${error.message}`, 'SeedService');
+    }
+
+    return results.join('\n');
   }
 }
