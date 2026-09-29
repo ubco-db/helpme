@@ -5,7 +5,7 @@ export class ApplicationConfigModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'bigint', default: 100 })
+  @Column({ type: 'bigint', default: 1000 })
   max_async_questions: number;
 
   @Column({ type: 'bigint', default: 30 })
@@ -14,9 +14,9 @@ export class ApplicationConfigModel extends BaseEntity {
   @Column({ type: 'bigint', default: 20 })
   max_question_types_per_queue: number;
 
-  @Column({ type: 'bigint', default: 30 })
+  @Column({ type: 'bigint', default: 50 })
   max_questions_per_queue: number;
 
-  @Column({ type: 'bigint', default: 40 })
+  @Column({ type: 'bigint', default: 100 })
   max_semesters: number;
 }
