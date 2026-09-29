@@ -19,7 +19,7 @@ export class ChatTokenModel extends BaseEntity {
   @Column({ default: 0 })
   used: number;
 
-  @Column({ default: 30 })
+  @Column({ default: 300 })
   max_uses: number;
 
   @OneToOne((type) => UserModel, (user) => user.chat_token, {

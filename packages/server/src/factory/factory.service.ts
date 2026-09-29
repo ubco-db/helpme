@@ -290,7 +290,7 @@ export class FactoryService {
     this.ChatTokenFactory = new Factory(ChatTokenModel, dataSource)
       .sequence('token', () => v4())
       .attr('used', 0)
-      .attr('max_uses', 30)
+      .attr('max_uses', 300)
       .assocOne('user', this.UserFactory);
 
     this.StudentTaskProgressFactory = new Factory(

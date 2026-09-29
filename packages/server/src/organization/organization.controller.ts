@@ -106,17 +106,7 @@ export class OrganizationController {
     await ChatTokenModel.query(
       `
       UPDATE public.chat_token_model
-      SET used = 0, 
-          max_uses = CASE
-            WHEN EXISTS (
-              SELECT 1 
-              FROM organization_user_model
-              WHERE organization_user_model."userId" = public.chat_token_model.user
-                AND organization_user_model.role != 'member'
-                AND organization_user_model."organizationId" = $1
-            ) THEN 300
-            ELSE 30
-          END 
+      SET used = 0, max_uses = 300
       WHERE public.chat_token_model.user IN (
         SELECT "userId"
         FROM organization_user_model
@@ -941,12 +931,7 @@ export class OrganizationController {
             await organizationUser
               .save()
               .then(async (_) => {
-                const maxUses = [
-                  OrganizationRole.ADMIN,
-                  OrganizationRole.PROFESSOR,
-                ].includes(organizationUser.role)
-                  ? 300
-                  : 30;
+                const maxUses = 300;
 
                 await this.dataSource.query(
                   `
