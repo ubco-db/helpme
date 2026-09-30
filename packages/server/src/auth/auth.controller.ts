@@ -52,6 +52,7 @@ export class AuthController {
     @Req() req: Request,
     @Res() res: Response,
     @Param('oid', ParseIntPipe) organizationId: number,
+    @Query('redirect') redirect?: string,
   ): Promise<any> {
     return await this.authService.shibbolethAuthCallback(
       req,
@@ -60,6 +61,13 @@ export class AuthController {
       this.courseService,
       undefined,
       {
+        redirect:
+          redirect &&
+          redirect.startsWith('/') &&
+          !redirect.startsWith('//') &&
+          !redirect.includes('\\')
+            ? redirect
+            : undefined,
         cookieOptions: {
           httpOnly: true,
           secure: this.isSecure(),

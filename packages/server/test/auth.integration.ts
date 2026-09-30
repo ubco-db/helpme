@@ -159,6 +159,68 @@ describe('Auth Integration', () => {
       expect(res.header['location']).toBe('/courses');
     });
 
+    it('should sign in user and redirect to provided redirect parameter', async () => {
+      const organization = await OrganizationFactory.create({
+        ssoEnabled: true,
+      });
+      await UserFactory.create({
+        email: 'mocked_email@ubc.ca',
+        accountType: AccountType.SHIBBOLETH,
+      });
+
+      const res = await supertest()
+        .get(`/auth/shibboleth/${organization.id}?redirect=/some/custom/path`)
+        .set('x-trust-auth-uid', '1')
+        .set('x-trust-auth-mail', 'mocked_email@ubc.ca')
+        .set('x-trust-auth-role', 'student@ubc.ca')
+        .set('x-trust-auth-givenname', 'John')
+        .set('x-trust-auth-lastname', 'Doe');
+
+      await authService.loginWithShibboleth(
+        'mocked_email@ubc.ca',
+        'John',
+        'Doe',
+        organization.id,
+      );
+
+      await jwtService.signAsync({ userId: 1 });
+
+      expect(res.status).toBe(302);
+      expect(res.header['location']).toBe('/some/custom/path');
+    });
+
+    it('should sign in user but ignore potentially malicious external redirect parameter', async () => {
+      const organization = await OrganizationFactory.create({
+        ssoEnabled: true,
+      });
+      await UserFactory.create({
+        email: 'mocked_email@ubc.ca',
+        accountType: AccountType.SHIBBOLETH,
+      });
+
+      const res = await supertest()
+        .get(
+          `/auth/shibboleth/${organization.id}?redirect=https://evil.com/phishing`,
+        )
+        .set('x-trust-auth-uid', '1')
+        .set('x-trust-auth-mail', 'mocked_email@ubc.ca')
+        .set('x-trust-auth-role', 'student@ubc.ca')
+        .set('x-trust-auth-givenname', 'John')
+        .set('x-trust-auth-lastname', 'Doe');
+
+      await authService.loginWithShibboleth(
+        'mocked_email@ubc.ca',
+        'John',
+        'Doe',
+        organization.id,
+      );
+
+      await jwtService.signAsync({ userId: 1 });
+
+      expect(res.status).toBe(302);
+      expect(res.header['location']).toBe('/courses');
+    });
+
     it('should sign in and redirect to /invite when __SECURE_REDIRECT cookie is present', async () => {
       const organization = await OrganizationFactory.create({
         ssoEnabled: true,

@@ -155,6 +155,7 @@ export class MailService {
           // Weekly Course Summary email subscriptions weren't populated on prod but will still send emails even if there is no subscription
           // This means it will appear in the settings as though they're unsubscribed even though they are subscribed. This is a fix for that
           mailService.subscriptions.length === 0 &&
+          mailService.serviceType &&
           mailService.serviceType.includes(
             MailServiceType.WEEKLY_COURSE_SUMMARY,
           )

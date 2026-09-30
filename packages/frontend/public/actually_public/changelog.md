@@ -1,3 +1,16 @@
+## Version 1.10.5 - Fix SSO Login Redirect
+
+*Sep 30th, 2026*
+
+
+#### Improvements
+- (!) Fixes how the redirect after logging in with SSO (e.g. UBC) would not work
+  - This should fix scenarios where clicking on HelpMe links on Notification Emails would just always take you to the "My Courses" page instead the intended page (like a specific Anytime Question or Comment)
+- Fixed an issue for some users where Weekly Summary emails would appear to be toggled off on the Profile -> Notifications page when they were actually toggled on
+
+***
+
+
 ## Version 1.10.4 - Weekly Summary Fixes, Increased Chatbot Limit for Students
 
 *Sep 29th, 2026*
