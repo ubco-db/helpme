@@ -1,3 +1,12 @@
+/// <reference path="./markdown.d.ts" />
+import * as fs from 'fs';
+// Node.js require hook to load .md files as strings when using ts-node for the CLI
+if (typeof require !== 'undefined' && require.extensions) {
+  // @ts-ignore - require.extensions is deprecated but required for ts-node to handle .md files
+  require.extensions['.md'] = (module: any, filename: string) => {
+    module.exports = fs.readFileSync(filename, 'utf8');
+  };
+}
 import { NestFactory } from '@nestjs/core';
 import { CommandModule, CommandService } from 'nestjs-command';
 import { AppModule } from './app.module';
