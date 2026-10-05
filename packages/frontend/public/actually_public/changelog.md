@@ -1,3 +1,15 @@
+## Version 1.10.6 
+
+*Oct 6th, 2026*
+
+
+#### Improvements
+- (!) Fixed a bug with Weekly Summary Emails where it wouldn't calculate *any* courses as inactive
+  - This fixes various things, most notably is you will no longer get the email if it's only suggesting to archive courses
+
+***
+
+
 ## Version 1.10.5 - Fix SSO Login Redirect
 
 *Sep 30th, 2026*

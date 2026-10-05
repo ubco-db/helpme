@@ -2,7 +2,7 @@
 import * as fs from 'fs';
 // Node.js require hook to load .md files as strings when using ts-node for the CLI
 if (typeof require !== 'undefined' && require.extensions) {
-  // @ts-ignore - require.extensions is deprecated but required for ts-node to handle .md files
+  // .extensions is deprecated but the main way to do it now is with a dedicated loader but i don't want to set that up right now
   require.extensions['.md'] = (module: any, filename: string) => {
     module.exports = fs.readFileSync(filename, 'utf8');
   };

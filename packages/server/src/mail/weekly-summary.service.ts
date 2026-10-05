@@ -187,7 +187,7 @@ export class WeeklySummaryService {
               (!course.semester ||
                 course.semester.name.toLowerCase() === 'forever' ||
                 !course.semester.endDate ||
-                course.semester.endDate < new Date()) &&
+                new Date(course.semester.endDate) < new Date()) && // apparently typeorm doesn't convert `endDate` to a proper Date object (when using query builder anyway)
               realWeeksWithoutActivity >= 4
             ) {
               weeksWithoutActivity = realWeeksWithoutActivity;
