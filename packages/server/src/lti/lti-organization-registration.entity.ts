@@ -9,12 +9,17 @@ import {
 import { LMSIntegrationPlatform } from '@koh/common';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
 
-/**
- * Assigns an LTI registration to an organization's LMS integration for launches.
- * An organization can have multiple registrations, each assigned by a system admin.
- * The LTI client ID is separate from the LMS API clientId.
- * Resolve the organization before looking up a course because Canvas course IDs
- * are not globally unique.
+/** This entity connects the System-level LTI Platform integration with the Org-level LMS integration.
+ * (PlatformModel.kid === lmsOrgModel.ltiPlatformId)
+ * LTI requests from Canvas only give what System-level LTI Platform its from (the issuer + PlatformModel.clientId, NOT to be confused with the Org-level LMS integration clientId which is separate), but we need the Org-level LTI Platform too.
+ * This lets us go: Oh new LTI request (called a launch) from this specific `kid` (which gets mapped to the Platform 'Canvas') just arrived asking for some Embedded questions for this specific canvasCourseId.
+ * But we need to make sure this HelpMe Org + Course have integrations with this 'Canvas' Platform registered
+ * (since two separate Canvas Platform instances (like from different universities) could get courses with the same specific canvasCourseId,
+ * which is why we can't just join canvasCourseId with CourseIntegration with OrgIntegration).
+ * This entity just lets us join the LTI Platform with the OrgIntegration to verify it.
+ *
+ * Only system admins may assign this through the Admin Panel -> LTI Integrations.
+ * We make it `unique` so that multiple HelpMe Orgs can't integrate with the same Canvas instance.
  */
 @Entity()
 export class LtiOrganizationRegistrationModel extends BaseEntity {
