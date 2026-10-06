@@ -35,6 +35,7 @@ import { QueueInviteModel } from './src/queue/queue-invite.entity';
 import { QueueChatsModel } from './src/queueChats/queue-chats.entity';
 import { QueueStaffModel } from './src/queue/queue-staff/queue-staff.entity';
 import { LMSOrganizationIntegrationModel } from './src/lmsIntegration/lmsOrgIntegration.entity';
+import { LtiOrganizationRegistrationModel } from './src/lti/lti-organization-registration.entity';
 import { LMSCourseIntegrationModel } from './src/lmsIntegration/lmsCourseIntegration.entity';
 import { LMSAssignmentModel } from './src/lmsIntegration/lmsAssignment.entity';
 import { LMSAnnouncementModel } from './src/lmsIntegration/lmsAnnouncement.entity';
@@ -88,7 +89,9 @@ const pwd = !isProd() ? 'POSTGRES_PASSWORD' : 'POSTGRES_NONROOT_PASSWORD';
 const typeorm: DataSourceOptions = {
   type: 'postgres',
   url: `postgres://${process.env[usr]}:${process.env[pwd]}@${process.env.POSTGRES_HOST}:${process.env.POSTGRES_PORT}/${process.env.POSTGRES_DB}`,
-  synchronize: process.env.NODE_ENV !== 'production',
+  // CLI migrations must run before synchronization can remove legacy columns.
+  synchronize:
+    process.env.NODE_ENV !== 'production' && !process.env.TYPEORM_CLI,
   entities: [
     CourseModel,
     MailServiceModel,
@@ -124,6 +127,7 @@ const typeorm: DataSourceOptions = {
     QueueStaffModel,
     InsightDashboardModel,
     LMSOrganizationIntegrationModel,
+    LtiOrganizationRegistrationModel,
     LMSCourseIntegrationModel,
     LMSAssignmentModel,
     UnreadAsyncQuestionModel,

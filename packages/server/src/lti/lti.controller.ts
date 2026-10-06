@@ -1,4 +1,5 @@
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
+import { LtiOrganizationRegistrationModel } from './lti-organization-registration.entity';
 import { LtiService } from './lti.service';
 import {
   All,
@@ -197,11 +198,11 @@ export class LtiController {
         ERROR_MESSAGES.ltiController.ltiDataSourceUninitialized,
       );
     }
-    const integrations = await LMSOrganizationIntegrationModel.find();
+    const registrations = await LtiOrganizationRegistrationModel.find();
     return (await Database.find(PlatformModel)).map((platform) => ({
       ...mapToLocalPlatform(platform),
-      organizationId: integrations.find(
-        (integration) => integration.ltiPlatformId === platform.kid,
+      organizationId: registrations.find(
+        (registration) => registration.ltiPlatformId === platform.kid,
       )?.organizationId,
     }));
   }
@@ -231,28 +232,32 @@ export class LtiController {
             throw new BadRequestException(
               'Configure the organization’s Canvas LMS integration first.',
             );
-          if (integration.ltiPlatformId && integration.ltiPlatformId !== kid) {
-            throw new ConflictException(
-              'This organization already has an LTI registration. Unassign it before choosing another.',
-            );
-          }
-          const existing = await manager.findOneBy(
-            LMSOrganizationIntegrationModel,
+          // A unique registration ID prevents two organizations claiming the same
+          // registration, including concurrent requests to different organizations.
+          await manager
+            .createQueryBuilder()
+            .insert()
+            .into(LtiOrganizationRegistrationModel)
+            .values({
+              ltiPlatformId: kid,
+              organizationId: integration.organizationId,
+              apiPlatform: integration.apiPlatform,
+            })
+            .orIgnore()
+            .execute();
+          const existing = await manager.findOneByOrFail(
+            LtiOrganizationRegistrationModel,
             { ltiPlatformId: kid },
           );
-          if (existing && existing.organizationId !== body.organizationId) {
+          if (existing.organizationId !== body.organizationId) {
             throw new ConflictException(
               'This registration already belongs to another organization. Unassign it first.',
             );
           }
-          integration.ltiPlatformId = kid;
-          await manager.save(integration);
         } else {
-          await manager.update(
-            LMSOrganizationIntegrationModel,
-            { ltiPlatformId: kid },
-            { ltiPlatformId: null },
-          );
+          await manager.delete(LtiOrganizationRegistrationModel, {
+            ltiPlatformId: kid,
+          });
         }
       },
     );
@@ -303,10 +308,7 @@ export class LtiController {
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminRoleGuard)
   async deletePlatform(@Param('kid') kid: string): Promise<void> {
     await this.ltiService.provider.deletePlatformById(kid);
-    await LMSOrganizationIntegrationModel.update(
-      { ltiPlatformId: kid },
-      { ltiPlatformId: null },
-    );
+    await LtiOrganizationRegistrationModel.delete({ ltiPlatformId: kid });
   }
 
   @Patch('/platform/:kid/toggle')

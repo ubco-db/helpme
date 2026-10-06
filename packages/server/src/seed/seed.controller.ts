@@ -41,6 +41,7 @@ import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
 import { UserTokenModel } from 'profile/user-token.entity';
 import { InsightDashboardModel } from '../insights/dashboard.entity';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
+import { LtiOrganizationRegistrationModel } from '../lti/lti-organization-registration.entity';
 import { LMSCourseIntegrationModel } from '../lmsIntegration/lmsCourseIntegration.entity';
 import { LMSAssignmentModel } from '../lmsIntegration/lmsAssignment.entity';
 import { CalendarModel } from '../calendar/calendar.entity';
@@ -146,6 +147,7 @@ export class SeedController {
     await this.seedService.deleteAll(LMSAssignmentModel);
     await this.seedService.deleteAll(LMSAnnouncementModel);
     await this.seedService.deleteAll(LMSCourseIntegrationModel);
+    await this.seedService.deleteAll(LtiOrganizationRegistrationModel);
     await this.seedService.deleteAll(LMSOrganizationIntegrationModel);
     await this.seedService.deleteAll(InsightDashboardModel);
     await this.seedService.deleteAll(CalendarModel);

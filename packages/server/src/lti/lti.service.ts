@@ -25,6 +25,7 @@ import { LMSAuthStateModel } from '../lmsIntegration/lms-auth-state.entity';
 import { pick } from 'lodash';
 import { Not } from 'typeorm';
 import { LMSOrganizationIntegrationModel } from '../lmsIntegration/lmsOrgIntegration.entity';
+import { LtiOrganizationRegistrationModel } from './lti-organization-registration.entity';
 import { OrganizationUserModel } from '../organization/organization-user.entity';
 import { EmbeddableQuestionModel } from './embeddable-question/embeddable-question.entity';
 import { EmbeddableQuestionService } from './embeddable-question/embeddable-question.service';
@@ -441,16 +442,19 @@ export class LtiService {
         'The Canvas LTI registration is not active. Ask your HelpMe administrator to check it.',
       );
     }
-    const integration = await LMSOrganizationIntegrationModel.findOneBy({
-      ltiPlatformId: platform.kid,
-      apiPlatform: LMSIntegrationPlatform.Canvas,
+    const registration = await LtiOrganizationRegistrationModel.findOne({
+      where: {
+        ltiPlatformId: platform.kid,
+        apiPlatform: LMSIntegrationPlatform.Canvas,
+      },
+      relations: { orgIntegration: true },
     });
-    if (!integration) {
+    if (!registration) {
       throw new ForbiddenException(
         'This Canvas LTI registration is not assigned to a HelpMe organization. Ask your HelpMe administrator to assign it in LTI Platforms.',
       );
     }
-    return integration;
+    return registration.orgIntegration;
   }
 
   private async findMappedCourseId(token: IdToken): Promise<number> {
