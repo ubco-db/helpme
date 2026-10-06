@@ -1,5 +1,8 @@
 import { DataSource, QueryRunner } from 'typeorm';
+import { config } from 'dotenv';
 import { MultipleLtiRegistrations1791249527689 } from '../migration/1791249527689-multiple-lti-registrations';
+
+config({ path: 'postgres.env' });
 
 // App fixtures synchronize the new schema; backfill needs the legacy schema.
 describe('Multiple LTI registrations migration', () => {
@@ -33,10 +36,14 @@ describe('Multiple LTI registrations migration', () => {
       (3, 'Canvas', NULL)`);
   });
   afterAll(async () => {
-    await runner.query(`SET search_path TO public`);
-    await runner.query(`DROP SCHEMA "lti_registration_migration_test" CASCADE`);
-    await runner?.release();
-    await dataSource.destroy();
+    if (runner) {
+      await runner.query(`SET search_path TO public`);
+      await runner.query(
+        `DROP SCHEMA "lti_registration_migration_test" CASCADE`,
+      );
+      await runner.release();
+    }
+    if (dataSource.isInitialized) await dataSource.destroy();
   });
 
   it('preserves existing assignments and restores assigned and unassigned organizations on rollback', async () => {
