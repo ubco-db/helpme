@@ -25,6 +25,7 @@ import {
   LTI_MEMBERSHIP_LEARNER_ROLE,
 } from '../src/lti/lti.service';
 import { getAuthPayload } from '../src/login/auth-token';
+import { LtiOrganizationRegistrationModel } from '../src/lti/lti-organization-registration.entity';
 
 const gradingSettings = (rubric: string) => ({
   rubric,
@@ -133,8 +134,11 @@ describe('LTI question launch', () => {
     const organization = await OrganizationFactory.create();
     const orgIntegration = await lmsOrgIntFactory.create({
       organization,
-      ltiPlatformId: platformId,
     });
+    await LtiOrganizationRegistrationModel.create({
+      ltiPlatformId: platformId,
+      orgIntegration,
+    }).save();
     await OrganizationUserFactory.create({
       organizationUser: user,
       organization,
