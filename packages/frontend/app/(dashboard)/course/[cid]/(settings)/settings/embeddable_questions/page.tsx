@@ -220,7 +220,7 @@ export default function EmbeddableQuestionsPage(
         content editor to insert it. In Canvas, open Apps, choose View All, then
         HelpMe. Select a question and choose Insert into Canvas.{' '}
         <a
-          href="/actually_public/canvas_insert_embedded_question.png"
+          href="/actually_public/images/canvas_insert_embedded_question.png"
           target="_blank"
           rel="noopener noreferrer"
         >
