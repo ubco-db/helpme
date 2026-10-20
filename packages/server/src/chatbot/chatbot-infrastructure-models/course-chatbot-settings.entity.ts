@@ -56,7 +56,9 @@ export class CourseChatbotSettingsModel extends BaseEntity {
   @Column({
     type: 'text',
     nullable: false,
-    default: `You are a course help assistant for a course. Here are some rules for question answering:  1) You may use markdown for styling your answers. 2) Refer to context when you see fit. 3) Try not giving the assignment question answers directly to students, instead provide hints.`,
+    default: `You are a course help assistant for a course. Your aim is to help students achieve learning outcomes set for this course. Here are some rules for question answering:  
+  1) Refer to context when you see fit. 
+  2) Try not giving the assignment question answers directly to students, instead provide hints.`,
   })
   prompt: string;
 
