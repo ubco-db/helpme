@@ -13,7 +13,7 @@
     - [Testing](#testing)
       - [All tests are failing locally](#all-tests-are-failing-locally)
     - [Installing new packages](#installing-new-packages)
-  - [Code Formatting](#code-formatting)
+  - [Code Formatting](#formatting-and-linting)
   - [Tips](#tips)
   - [Testing the Production Environment locally](#testing-the-production-environment-locally)
   - [Production](#production)
@@ -171,9 +171,48 @@ If you're getting "deadlock detected", there is no known way of fixing that, oth
 Install packages from `cd` into the project you want to install the package for, then run `yarn add <PACKAGE>`. For instance, if you want to install a frontend
 package, `cd packages/app` and then `yarn add <FRONTEND PACKAGE>`
 
-## Code Formatting
+## Formatting and Linting
 
-[Prettier](https://prettier.io/), a highly opinionated code formatter, runs right before you commit to git. So don't worry about formatting your code! Prettier will clean it all up. You can also get the Prettier extension in most IDEs, or run `yarn pretty-quick` if you want to.
+We use [Prettier](https://prettier.io/) for formatting (`.prettierrc.json`) and ESLint for code-quality checks. 
+
+- **Editor (assuming you have the right extensions):** Shows full ESLint warnings within your editor (underlines), including type-aware Promise checks. If this noticeably affects performance, change `eslint.config.js` to require `./eslint.fast.config.js` instead of `./eslint.full.config.js`, then restart your editor. This provides fewer checks, however. 
+- **On save (assuming autosave is off):** Applies Prettier formatting. 
+- **On commit:** Applies Prettier and fast ESLint automatic fixes to staged TS/TSX files.
+- **CI:** Runs full ESLint checks and TypeScript checking. ESLint warnings are printed for review; warnings are advisory, while error-level findings fail the lint check. The output includes all warnings, not just newly introduced ones.
+- **Production build:** Does not run eslint (since it's more annoying to fix eslint errors right before a deploy), but will run `yarn tsc` to see if there's any typescript build errors. Therefore, it may be worthwhile to run `yarn tsc` locally as an extra safe-gaurd to make sure new changes didn't break anything (can also take a min to run)
+
+Note that hooks dependency and Promise warnings need manual review or suggestions, not blind additions of `await` or `void`. 
+
+### Manual checks and fixes
+
+To see the full list of ESLint findings across the whole codebase (this can take a minute):
+
+```sh
+yarn lint:full
+```
+(note that these should already be visible through your code editor)
+
+For doing EsLint on specific files, run it directly from the repository root, see example below:
+
+```sh
+yarn eslint --config eslint.full.config.js "packages/frontend/somefile1.config.ts" "packages/server/src/something/something.controller.ts" "packages/common/some_file.ts"
+```
+
+`yarn lint:fast:fix` skips certian checks to make it faster (type-aware checks (so it doesn't need to build the typescript project) and stuff with promises) and then attempts to automatically fix any issues it finds across the entire codebase. It runs automatically on commit.
+
+### Editor setup
+
+**Zed:** The tracked `.zed/settings.json` enables full ESLint diagnostics and integrated Prettier formatting on save. No separate ESLint extension is needed. If integration fails, check dependencies and use `zed: open log`. See the [Zed ESLint documentation](https://zed.dev/docs/languages/javascript#eslint).
+
+**VS Code and compatible forks:** Install the extensions recommended by `.vscode/extensions.json`:
+
+- [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint).
+- [Prettier - Code formatter](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode).
+- [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss).
+
+The tracked `.vscode/settings.json` enables ESLint diagnostics while editing and Prettier formatting on save. VSCode forks (Cursor, Antigravity IDE, etc.) can use the same presets when those extensions are available. 
+
+**WebStorm:** Use automatic ESLint configuration for diagnostics, leave **Run eslint --fix on save** disabled, and enable Prettier **Run on save** with the repository-local package and configuration. See the [ESLint](https://www.jetbrains.com/help/webstorm/eslint.html) and [Prettier](https://www.jetbrains.com/help/webstorm/prettier.html) setup guides.
 
 ## Tips
 

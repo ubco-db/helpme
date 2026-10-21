@@ -42,7 +42,6 @@ yarn-error.log*
 
 husky.sh
 
-.vscode/
 
 # ignore backups
 **/*.gz
@@ -56,4 +55,3 @@ husky.sh
 
 # location of desktop notifications sent on dev environment
 /packages/server/src/notification/desktop_notifications.log
-
