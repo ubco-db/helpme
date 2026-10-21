@@ -94,7 +94,7 @@ The docker image should only be used on cloud service or developer to verify the
 1. Start the database and api services within a Docker:
 
 ```bash
-docker-compose build && docker-compose up
+docker compose build && docker compose up
 ```
 
 2. Visit the app at http://localhost:80 (or http://localhost)
