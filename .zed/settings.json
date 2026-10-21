@@ -1,22 +1,25 @@
 {
+  "lsp": {
+    "eslint": {
+      "settings": {
+        "workingDirectory": { "mode": "location" }
+      }
+    }
+  },
   "languages": {
     "TypeScript": {
       "format_on_save": "on",
-      "formatter": {
-        "external": {
-          "command": "./node_modules/.bin/prettier",
-          "arguments": ["--stdin-filepath", "{buffer_path}"],
-        },
+      "code_actions_on_format": {
+        "source.fixAll.eslint": false
       },
+      "formatter": "prettier"
     },
     "TSX": {
       "format_on_save": "on",
-      "formatter": {
-        "external": {
-          "command": "./node_modules/.bin/prettier",
-          "arguments": ["--stdin-filepath", "{buffer_path}"],
-        },
+      "code_actions_on_format": {
+        "source.fixAll.eslint": false
       },
-    },
-  },
+      "formatter": "prettier"
+    }
+  }
 }

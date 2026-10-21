@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "cross-env NODE_OPTIONS=\"--max-old-space-size=2048\" next build ",
     "start": "next start -p 3001",
-    "lint": "next lint"
+    "tsc": "next typegen && tsc --noEmit",
+    "lint": "eslint --config ../../eslint.full.config.js ."
   },
   "dependencies": {
     "@ant-design/cssinjs": "^1.24.0",
@@ -71,8 +72,7 @@
     "@types/react-dom": "19.2.3",
     "@types/react-google-recaptcha": "^2.1.9",
     "@welldone-software/why-did-you-render": "^10.0.1",
-    "eslint": "10.7.0",
-    "eslint-config-next": "16.3.0",
+    "eslint": "^9.39.5",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"

@@ -14,6 +14,11 @@ import { LLMTypeModel } from './llm-type.entity';
 import { ChatbotSettingsMetadata, dropUndefined } from '@koh/common';
 import { pick } from 'lodash';
 
+export const DEFAULT_CHATBOT_PROMPT =
+  `You are a course help assistant for a course. Your aim is to help students achieve learning outcomes set for this course. Here are some rules for question answering:
+1) Refer to context when you see fit.
+2) Try not giving the assignment question answers directly to students, instead provide hints.` as const;
+
 @Entity('course_chatbot_settings_model')
 export class CourseChatbotSettingsModel extends BaseEntity {
   @PrimaryGeneratedColumn()
@@ -56,9 +61,7 @@ export class CourseChatbotSettingsModel extends BaseEntity {
   @Column({
     type: 'text',
     nullable: false,
-    default: `You are a course help assistant for a course. Your aim is to help students achieve learning outcomes set for this course. Here are some rules for question answering:  
-  1) Refer to context when you see fit. 
-  2) Try not giving the assignment question answers directly to students, instead provide hints.`,
+    default: DEFAULT_CHATBOT_PROMPT,
   })
   prompt: string;
 
