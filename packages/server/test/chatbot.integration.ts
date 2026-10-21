@@ -1,16 +1,17 @@
 import { ChatbotModule } from 'chatbot/chatbot.module';
-import {
+import type {
   ChatbotAskSuggestedParams,
-  ChatbotServiceProvider,
-  ChatbotServiceType,
   CreateChatbotProviderBody,
   CreateOrganizationChatbotSettingsBody,
+  UpdateChatbotProviderBody} from '@koh/common';
+import {
+  ChatbotServiceProvider,
+  ChatbotServiceType,
   dropUndefined,
   ERROR_MESSAGES,
   OrganizationRole,
   Role,
-  SuperCoursePurpose,
-  UpdateChatbotProviderBody,
+  SuperCoursePurpose
 } from '@koh/common';
 import {
   ChatbotProviderFactory,
@@ -28,15 +29,18 @@ import {
 } from './util/factories';
 import { setupIntegrationTest } from './util/testUtils';
 import { ChatbotQuestionModel } from 'chatbot/question.entity';
-import { OrganizationModel } from '../src/organization/organization.entity';
-import { CourseModel } from '../src/course/course.entity';
-import { OrganizationCourseModel } from '../src/organization/organization-course.entity';
+import type { OrganizationModel } from '../src/organization/organization.entity';
+import type { CourseModel } from '../src/course/course.entity';
+import type { OrganizationCourseModel } from '../src/organization/organization-course.entity';
 import { pick } from 'lodash';
 import { OrganizationChatbotSettingsModel } from '../src/chatbot/chatbot-infrastructure-models/organization-chatbot-settings.entity';
 import { LLMTypeModel } from '../src/chatbot/chatbot-infrastructure-models/llm-type.entity';
 import { ChatbotProviderModel } from '../src/chatbot/chatbot-infrastructure-models/chatbot-provider.entity';
 import { ChatbotService } from '../src/chatbot/chatbot.service';
-import { CourseChatbotSettingsModel } from '../src/chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
+import {
+  CourseChatbotSettingsModel,
+  DEFAULT_CHATBOT_PROMPT,
+} from '../src/chatbot/chatbot-infrastructure-models/course-chatbot-settings.entity';
 import { UserModel } from '../src/profile/user.entity';
 import { ChatbotApiService } from '../src/chatbot/chatbot-api.service';
 import { SuperCourseModel } from '../src/course/super-course.entity';
@@ -751,8 +755,7 @@ describe('ChatbotController Integration', () => {
       expect(spy1).toHaveBeenCalledTimes(1);
       expect(spy1).toHaveBeenCalledWith(
         {
-          prompt:
-            'You are a course help assistant for a course. Here are some rules for question answering:  1) You may use markdown for styling your answers. 2) Refer to context when you see fit. 3) Try not giving the assignment question answers directly to students, instead provide hints.',
+          prompt: DEFAULT_CHATBOT_PROMPT,
           similarityThresholdDocuments: 0.55,
           similarityThresholdQuestions: 0.9,
           temperature: 0.7,
