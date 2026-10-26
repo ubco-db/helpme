@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react'
-import { API } from '@/app/api'
+import type React from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { API } from '@/app/api';
 import {
   Button,
   Form,
@@ -10,32 +11,32 @@ import {
   Col,
   Divider,
   Card,
-} from 'antd'
-const { Text } = Typography
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { MailOutlined } from '@ant-design/icons'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { OrganizationRole, Role } from '@koh/common'
+} from 'antd';
+const { Text } = Typography;
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { MailOutlined } from '@ant-design/icons';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { OrganizationRole, Role } from '@koh/common';
 
 interface Subscription {
-  id: number
-  name: string
-  isSubscribed: boolean
-  mailType: string
+  id: number;
+  name: string;
+  isSubscribed: boolean;
+  mailType: string;
 }
 
 const EmailNotifications: React.FC = () => {
-  const [form] = Form.useForm()
-  const { userInfo } = useUserInfo()
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
-  const [isFormChanged, setIsFormChanged] = useState(false)
+  const [form] = Form.useForm();
+  const { userInfo } = useUserInfo();
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [isFormChanged, setIsFormChanged] = useState(false);
   const [initialValues, setInitialValues] = useState<{
-    [key: string]: boolean
-  }>({})
+    [key: string]: boolean;
+  }>({});
 
   const isStaffInAnyCourse = userInfo.courses.some(
     (uc) => uc.role === Role.TA || uc.role === Role.PROFESSOR,
-  )
+  );
 
   // The only people that have access to staff notifications are staff
   // Note that there is the potential issue that someone is staff, they subscribe, and then lose their staff status.
@@ -43,37 +44,37 @@ const EmailNotifications: React.FC = () => {
   const showStaffNotifications =
     isStaffInAnyCourse ||
     userInfo.organization?.organizationRole === OrganizationRole.PROFESSOR ||
-    userInfo.organization?.organizationRole === OrganizationRole.ADMIN
+    userInfo.organization?.organizationRole === OrganizationRole.ADMIN;
 
   const fetchSubscriptions = useCallback(async () => {
     try {
-      const data = await API.emailNotification.get()
+      const data = await API.emailNotification.get();
       const formattedData = data.map((notif: any) => ({
         id: notif.id,
         name: notif.name,
         isSubscribed: notif.isSubscribed,
         mailType: notif.mailType,
-      }))
-      setSubscriptions(formattedData)
+      }));
+      setSubscriptions(formattedData);
 
       const newInitialValues = formattedData.reduce<{ [key: string]: boolean }>(
         (acc, sub) => {
-          acc[sub.id] = sub.isSubscribed
-          return acc
+          acc[sub.id] = sub.isSubscribed;
+          return acc;
         },
         {},
-      )
-      setInitialValues(newInitialValues)
-      form.setFieldsValue(newInitialValues)
+      );
+      setInitialValues(newInitialValues);
+      form.setFieldsValue(newInitialValues);
     } catch (error) {
-      const errorMessage = getErrorMessage(error)
-      message.error('Failed to load notification settings' + errorMessage)
+      const errorMessage = getErrorMessage(error);
+      message.error('Failed to load notification settings' + errorMessage);
     }
-  }, [form])
+  }, [form]);
 
   useEffect(() => {
-    fetchSubscriptions()
-  }, [fetchSubscriptions])
+    fetchSubscriptions();
+  }, [fetchSubscriptions]);
 
   const onFinish = async (values: { [key: string]: boolean }) => {
     try {
@@ -83,34 +84,34 @@ const EmailNotifications: React.FC = () => {
             parseInt(mailServiceId, 10),
             Boolean(isSubscribed),
           ),
-      )
+      );
 
-      await Promise.all(promises)
+      await Promise.all(promises);
 
-      message.success('Notification settings updated successfully')
+      message.success('Notification settings updated successfully');
       setSubscriptions(
         subscriptions.map((sub) => ({
           ...sub,
           isSubscribed: values[sub.id],
         })),
-      )
-      setIsFormChanged(false)
-      setInitialValues(values)
+      );
+      setIsFormChanged(false);
+      setInitialValues(values);
     } catch (error) {
-      const errorMessage = getErrorMessage(error)
-      message.error('Error updating notification settings:' + errorMessage)
+      const errorMessage = getErrorMessage(error);
+      message.error('Error updating notification settings:' + errorMessage);
     }
-  }
+  };
 
   const handleFormChange = useCallback(
     (changedValues: any, allValues: any) => {
       const hasChanged = Object.keys(initialValues).some(
         (key) => allValues[key] !== initialValues[key],
-      )
-      setIsFormChanged(hasChanged)
+      );
+      setIsFormChanged(hasChanged);
     },
     [initialValues],
-  )
+  );
 
   const renderSubscriptions = (mailType: string) => (
     <div>
@@ -127,7 +128,7 @@ const EmailNotifications: React.FC = () => {
           </Form.Item>
         ))}
     </div>
-  )
+  );
   return (
     <Card
       title={
@@ -186,7 +187,7 @@ const EmailNotifications: React.FC = () => {
         </Form.Item>
       </Form>
     </Card>
-  )
-}
+  );
+};
 
-export default EmailNotifications
+export default EmailNotifications;

@@ -1,29 +1,29 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-'use client'
+'use client';
 
-import { Card, message, Spin } from 'antd'
-import OrganizationEditUserGeneralForm from './OrganizationEditUserGeneralForm'
-import {
+import { Card, message, Spin } from 'antd';
+import OrganizationEditUserGeneralForm from './OrganizationEditUserGeneralForm';
+import type {
   GetOrganizationResponse,
   GetOrganizationUserResponse,
-} from '@koh/common'
-import OrganizationEditUserCoursesForm from './OrganizationEditUserCoursesForm'
-import { API } from '@/app/api'
-import { useEffect, useState } from 'react'
-import OrganizationEditUserDangerZoneForm from './OrganizationEditUserDangerZoneForm'
-import { useRouter } from 'next/navigation'
+} from '@koh/common';
+import OrganizationEditUserCoursesForm from './OrganizationEditUserCoursesForm';
+import { API } from '@/app/api';
+import { useEffect, useState } from 'react';
+import OrganizationEditUserDangerZoneForm from './OrganizationEditUserDangerZoneForm';
+import { useRouter } from 'next/navigation';
 
 type OrganizationEditUserProps = {
-  userId: number
-  organization: GetOrganizationResponse
-}
+  userId: number;
+  organization: GetOrganizationResponse;
+};
 
 const OrganizationEditUser: React.FC<OrganizationEditUserProps> = ({
   userId,
   organization,
 }) => {
-  const [userData, setUserData] = useState<GetOrganizationUserResponse>()
-  const router = useRouter()
+  const [userData, setUserData] = useState<GetOrganizationUserResponse>();
+  const router = useRouter();
 
   const fetchUserData = async () => {
     const response: GetOrganizationUserResponse | null = await API.organizations
@@ -33,27 +33,27 @@ const OrganizationEditUser: React.FC<OrganizationEditUserProps> = ({
           return {
             ...course,
             key: course.id,
-          }
-        })
-        return userInfo
+          };
+        });
+        return userInfo;
       })
       .catch((error) => {
-        message.error(error.response.data.message)
+        message.error(error.response.data.message);
 
         setTimeout(() => {
-          router.back()
-        }, 1_500)
-        return null
-      })
+          router.back();
+        }, 1_500);
+        return null;
+      });
 
-    if (!response) return
+    if (!response) return;
 
-    setUserData(response)
-  }
+    setUserData(response);
+  };
 
   useEffect(() => {
-    fetchUserData()
-  }, [])
+    fetchUserData();
+  }, []);
 
   return userData ? (
     <div className="space-y-5">
@@ -87,7 +87,7 @@ const OrganizationEditUser: React.FC<OrganizationEditUserProps> = ({
     </div>
   ) : (
     <Spin />
-  )
-}
+  );
+};
 
-export default OrganizationEditUser
+export default OrganizationEditUser;

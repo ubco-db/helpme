@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class LtiIdentity1759360284805 implements MigrationInterface {
   name = 'LtiIdentity1759360284805';

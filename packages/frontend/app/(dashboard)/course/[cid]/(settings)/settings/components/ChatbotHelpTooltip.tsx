@@ -1,28 +1,28 @@
-import { InfoCircleOutlined, QuestionCircleOutlined } from '@ant-design/icons'
-import { Tooltip } from 'antd'
-import React from 'react'
+import { InfoCircleOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { Tooltip } from 'antd';
+import type React from 'react';
 
 type TooltipLocations =
   | 'chatbot_settings'
   | 'chatbot_knowledge_base'
   | 'edit_chatbot_questions'
   | 'add_chatbot_document'
-  | 'chatbot_settings_modal'
+  | 'chatbot_settings_modal';
 
 interface ChatbotHelpTooltipProps {
-  forPage: TooltipLocations
-  className?: string
+  forPage: TooltipLocations;
+  className?: string;
 }
 
 const ChatbotConfigurationTutorial: React.FC<{
-  startAtSeconds?: number
-  startAtMinutes?: number
+  startAtSeconds?: number;
+  startAtMinutes?: number;
 }> = ({ startAtSeconds = 0, startAtMinutes = 0 }) => {
   // I was too lazy to do the conversions by hand so I did it like this so I could basically just feed in the timestamp
   const startAt =
     startAtSeconds && startAtMinutes
       ? startAtSeconds + startAtMinutes * 60
-      : startAtSeconds || startAtMinutes * 60
+      : startAtSeconds || startAtMinutes * 60;
   return (
     <div className="youtube-video-container">
       <iframe
@@ -34,8 +34,8 @@ const ChatbotConfigurationTutorial: React.FC<{
         allowFullScreen
       />
     </div>
-  )
-}
+  );
+};
 
 const ChatbotPageTooltips: Record<TooltipLocations, React.ReactNode> = {
   chatbot_settings: (
@@ -134,7 +134,7 @@ const ChatbotPageTooltips: Record<TooltipLocations, React.ReactNode> = {
       </div>
     </div>
   ),
-}
+};
 
 /* Same thing to hover, just gives different tooltip text based on what forPage is */
 const ChatbotHelpTooltip: React.FC<ChatbotHelpTooltipProps> = ({
@@ -156,7 +156,7 @@ const ChatbotHelpTooltip: React.FC<ChatbotHelpTooltipProps> = ({
         Help <QuestionCircleOutlined />
       </Tooltip>
     </div>
-  )
-}
+  );
+};
 
-export default ChatbotHelpTooltip
+export default ChatbotHelpTooltip;

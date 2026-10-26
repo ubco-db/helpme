@@ -1,34 +1,34 @@
-'use client'
+'use client';
 
-import { API } from '@/app/api'
-import ExpandableText from '@/app/components/ExpandableText'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
-import { CronJob } from '@koh/common'
-import { Button, Card, message, Table, Tag, Tooltip } from 'antd'
-import { useEffect, useState } from 'react'
+import { API } from '@/app/api';
+import ExpandableText from '@/app/components/ExpandableText';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils';
+import type { CronJob } from '@koh/common';
+import { Button, Card, message, Table, Tag, Tooltip } from 'antd';
+import { useEffect, useState } from 'react';
 
-const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/
+const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}[+-]\d{2}:\d{2}$/;
 
 const CronJobsPage: React.FC = () => {
-  const { userInfo } = useUserInfo()
-  const [cronJobs, setCronJobs] = useState<CronJob[] | undefined>(undefined)
+  const { userInfo } = useUserInfo();
+  const [cronJobs, setCronJobs] = useState<CronJob[] | undefined>(undefined);
 
   const fetchCronJobs = async () => {
     await API.admin
       .getCronJobs()
       .then((cronJobs) => {
-        setCronJobs(cronJobs)
+        setCronJobs(cronJobs);
       })
       .catch((e) => {
-        const errorMessage = getErrorMessage(e)
-        message.error('Failed to get cron jobs: ' + errorMessage)
-      })
-  }
+        const errorMessage = getErrorMessage(e);
+        message.error('Failed to get cron jobs: ' + errorMessage);
+      });
+  };
   useEffect(() => {
-    fetchCronJobs()
-  }, [])
+    fetchCronJobs();
+  }, []);
 
   return (
     <Card>
@@ -43,17 +43,17 @@ const CronJobsPage: React.FC = () => {
                   await API.calendar.adminOnly
                     .resetCronJobs()
                     .then(() => {
-                      message.success('Cron jobs reset')
+                      message.success('Cron jobs reset');
                     })
                     .catch((e) => {
-                      const errorMessage = getErrorMessage(e)
+                      const errorMessage = getErrorMessage(e);
                       message.error(
                         'Failed to reset cron jobs: ' + errorMessage,
-                      )
+                      );
                     })
                     .finally(() => {
-                      fetchCronJobs()
-                    })
+                      fetchCronJobs();
+                    });
                 }}
                 size="small"
                 className="ml-4"
@@ -78,9 +78,9 @@ const CronJobsPage: React.FC = () => {
                   key: 'cronTime',
                   render: (cronTime) => {
                     if (dateRegex.test(cronTime)) {
-                      return formatDateAndTimeForExcel(cronTime)
+                      return formatDateAndTimeForExcel(cronTime);
                     } else {
-                      return cronTime
+                      return cronTime;
                     }
                   },
                 },
@@ -125,13 +125,13 @@ const CronJobsPage: React.FC = () => {
                       formatDateAndTimeForExcel(nextDates[0] || [])
                     ) : (
                       formatDateAndTimeForExcel(nextDates)
-                    )
+                    );
                   },
                   showSorterTooltip: { target: 'full-header' },
                   sorter: (a, b) => {
-                    const dateA = formatDateAndTimeForExcel(a.nextDates[0])
-                    const dateB = formatDateAndTimeForExcel(b.nextDates[0])
-                    return dateA.localeCompare(dateB)
+                    const dateA = formatDateAndTimeForExcel(a.nextDates[0]);
+                    const dateB = formatDateAndTimeForExcel(b.nextDates[0]);
+                    return dateA.localeCompare(dateB);
                   },
                 },
               ]}
@@ -141,7 +141,7 @@ const CronJobsPage: React.FC = () => {
         </div>
       </div>
     </Card>
-  )
-}
+  );
+};
 
-export default CronJobsPage
+export default CronJobsPage;

@@ -1,25 +1,25 @@
-'use client'
+'use client';
 
-import { API } from '@/app/api'
+import { API } from '@/app/api';
 import {
   getEndpoint,
   getNotificationState,
   NotificationStates,
   registerNotificationSubscription,
   requestNotificationPermission,
-} from '@/app/utils/notificationUtils'
-import { MinusCircleOutlined } from '@ant-design/icons'
-import { DesktopNotifPartial } from '@koh/common'
-import { Button, List, message, Tooltip } from 'antd'
-import { useEffect, useState } from 'react'
-import useSWR from 'swr'
+} from '@/app/utils/notificationUtils';
+import { MinusCircleOutlined } from '@ant-design/icons';
+import type { DesktopNotifPartial } from '@koh/common';
+import { Button, List, message, Tooltip } from 'antd';
+import { useEffect, useState } from 'react';
+import useSWR from 'swr';
 
 function useThisDeviceEndpoint(): null | string {
-  const [endpoint, setEndpoint] = useState<null | string>(null)
+  const [endpoint, setEndpoint] = useState<null | string>(null);
   useEffect(() => {
-    ;(async () => setEndpoint((await getEndpoint()) as string | null))()
-  })
-  return endpoint
+    (async () => setEndpoint((await getEndpoint()) as string | null))();
+  });
+  return endpoint;
 }
 
 function renderDeviceInfo(
@@ -27,21 +27,21 @@ function renderDeviceInfo(
   isThisDevice: boolean,
 ): string {
   if (device.name) {
-    return isThisDevice ? `${device.name} (This Device)` : device.name
+    return isThisDevice ? `${device.name} (This Device)` : device.name;
   } else {
-    return isThisDevice ? 'This Device' : 'Other Device'
+    return isThisDevice ? 'This Device' : 'Other Device';
   }
 }
 
 const DeviceNotificationPanel: React.FC = () => {
-  const thisEndpoint = useThisDeviceEndpoint()
+  const thisEndpoint = useThisDeviceEndpoint();
   const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
     API.profile.getUser(),
-  )
+  );
 
   const thisDesktopNotif = profile?.desktopNotifs?.find(
     (dn) => dn.endpoint === thisEndpoint,
-  )
+  );
 
   return (
     <div>
@@ -57,13 +57,13 @@ const DeviceNotificationPanel: React.FC = () => {
           >
             <Button
               onClick={async () => {
-                const canNotify = await requestNotificationPermission()
+                const canNotify = await requestNotificationPermission();
                 if (canNotify === NotificationStates.notAllowed) {
-                  message.warning('Please allow notifications in this browser')
+                  message.warning('Please allow notifications in this browser');
                 }
                 if (canNotify === NotificationStates.granted) {
-                  await registerNotificationSubscription()
-                  mutate()
+                  await registerNotificationSubscription();
+                  mutate();
                 }
               }}
               disabled={
@@ -87,8 +87,8 @@ const DeviceNotificationPanel: React.FC = () => {
                 style={{ fontSize: '20px' }}
                 key={0}
                 onClick={async () => {
-                  await API.notif.desktop.unregister(device.id)
-                  mutate()
+                  await API.notif.desktop.unregister(device.id);
+                  mutate();
                 }}
               />,
             ]}
@@ -101,7 +101,7 @@ const DeviceNotificationPanel: React.FC = () => {
         )}
       />
     </div>
-  )
-}
+  );
+};
 
-export default DeviceNotificationPanel
+export default DeviceNotificationPanel;

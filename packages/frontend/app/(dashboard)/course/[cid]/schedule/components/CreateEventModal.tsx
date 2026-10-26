@@ -1,3 +1,4 @@
+import type { ColorPickerProps, GetProp } from 'antd';
 import {
   Modal,
   Form,
@@ -8,44 +9,42 @@ import {
   message,
   TimePicker,
   Select,
-  ColorPickerProps,
-  GetProp,
-} from 'antd'
-import { useEffect, useState } from 'react'
-import { API } from '@/app/api'
-import { calendarEventLocationType } from '@koh/common'
-import { dayToIntMapping } from '@/app/typings/types'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import dayjs from 'dayjs'
-import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
-import { useStaff } from '@/app/hooks/useStaff'
-import { useLocalStorage } from '@/app/hooks/useLocalStorage'
+} from 'antd';
+import { useEffect, useState } from 'react';
+import { API } from '@/app/api';
+import { calendarEventLocationType } from '@koh/common';
+import { dayToIntMapping } from '@/app/typings/types';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import dayjs from 'dayjs';
+import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets';
+import { useStaff } from '@/app/hooks/useStaff';
+import { useLocalStorage } from '@/app/hooks/useLocalStorage';
 
-const { RangePicker } = TimePicker
+const { RangePicker } = TimePicker;
 type Color = Extract<
   GetProp<ColorPickerProps, 'value'>,
   string | { cleared: any }
->
+>;
 
 type CreateEventModalProps = {
-  visible: boolean
-  onClose: () => void
-  courseId: number
-  event: { start: Date; end: Date } | undefined
-}
+  visible: boolean;
+  onClose: () => void;
+  courseId: number;
+  event: { start: Date; end: Date } | undefined;
+};
 
 interface FormValues {
-  title: string
-  color: string | Color
-  date: dayjs.Dayjs
-  time: [dayjs.Dayjs, dayjs.Dayjs]
-  locationType: number | calendarEventLocationType
-  locationInPerson?: string
-  locationOnline?: string
-  startDate?: dayjs.Dayjs
-  endDate?: dayjs.Dayjs
-  daysOfWeek?: string[]
-  staffIds: number[]
+  title: string;
+  color: string | Color;
+  date: dayjs.Dayjs;
+  time: [dayjs.Dayjs, dayjs.Dayjs];
+  locationType: number | calendarEventLocationType;
+  locationInPerson?: string;
+  locationOnline?: string;
+  startDate?: dayjs.Dayjs;
+  endDate?: dayjs.Dayjs;
+  daysOfWeek?: string[];
+  staffIds: number[];
 }
 
 const CreateEventModal: React.FC<CreateEventModalProps> = ({
@@ -54,37 +53,37 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   onClose,
   courseId,
 }) => {
-  const [form] = Form.useForm()
-  const [isRepeating, setIsRepeating] = useState(false)
-  const [locationType, setLocationType] = useState(0)
-  const staff = useStaff(courseId)
+  const [form] = Form.useForm();
+  const [isRepeating, setIsRepeating] = useState(false);
+  const [locationType, setLocationType] = useState(0);
+  const staff = useStaff(courseId);
   // saving the last set endDate to local storage to make creating a lot of events easier
   const [lastSetEndDate, setLastSetEndDate] = useLocalStorage<
     dayjs.Dayjs | string | null
-  >('lastSetEndDate', null)
+  >('lastSetEndDate', null);
 
   useEffect(() => {
     // reset the form to its default state when modal is closed
     if (!visible) {
-      setIsRepeating(false)
-      setLocationType(0)
+      setIsRepeating(false);
+      setLocationType(0);
     }
-  }, [visible])
+  }, [visible]);
 
   const onFinish = async (values: FormValues) => {
     try {
       // Remove the `time` and `date` attribute from `values`
-      const { date, time, ...restValues } = values
+      const { date, time, ...restValues } = values;
 
       // Combine date with start time
       const startDateTime = dayjs(date)
         .set('hour', time[0].hour())
-        .set('minute', time[0].minute())
+        .set('minute', time[0].minute());
 
       // Combine date with end time
       const endDateTime = dayjs(date)
         .set('hour', time[1].hour())
-        .set('minute', time[1].minute())
+        .set('minute', time[1].minute());
 
       const eventObject: any = {
         ...restValues,
@@ -96,25 +95,25 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
             : values.color.toHexString(),
         start: startDateTime.toISOString(),
         end: endDateTime.toISOString(),
-      }
+      };
       // Set the location type based on the value of locationType
       switch (locationType) {
         case 0: // In Person
-          eventObject.locationType = calendarEventLocationType.inPerson
-          eventObject.locationInPerson = values.locationInPerson
-          break
+          eventObject.locationType = calendarEventLocationType.inPerson;
+          eventObject.locationInPerson = values.locationInPerson;
+          break;
         case 1: // Online
-          eventObject.locationType = calendarEventLocationType.online
-          eventObject.locationOnline = values.locationOnline
-          break
+          eventObject.locationType = calendarEventLocationType.online;
+          eventObject.locationOnline = values.locationOnline;
+          break;
         case 2: // Hybrid
-          eventObject.locationType = calendarEventLocationType.hybrid
-          eventObject.locationInPerson = values.locationInPerson
-          eventObject.locationOnline = values.locationOnline
-          break
+          eventObject.locationType = calendarEventLocationType.hybrid;
+          eventObject.locationInPerson = values.locationInPerson;
+          eventObject.locationOnline = values.locationOnline;
+          break;
         default:
-          message.error('Invalid location type')
-          return // Prevents the function from continuing
+          message.error('Invalid location type');
+          return; // Prevents the function from continuing
       }
 
       // Logic for repeating events
@@ -122,37 +121,37 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
         if (values.startDate && values.endDate && values.daysOfWeek) {
           eventObject.daysOfWeek = values.daysOfWeek.map(
             (day) => dayToIntMapping[day],
-          )
-          eventObject.startDate = values.startDate.toDate()
-          eventObject.endDate = values.endDate.toDate()
+          );
+          eventObject.startDate = values.startDate.toDate();
+          eventObject.endDate = values.endDate.toDate();
         } else {
-          message.error('Please select all fields for repeating events')
-          return
+          message.error('Please select all fields for repeating events');
+          return;
         }
       }
 
-      createEvent(eventObject)
+      createEvent(eventObject);
     } catch (validationError) {
-      const errorMessage = getErrorMessage(validationError)
-      message.error('Event validation failed: ' + errorMessage)
+      const errorMessage = getErrorMessage(validationError);
+      message.error('Event validation failed: ' + errorMessage);
     }
-  }
+  };
 
   const createEvent = async (newEvent: any) => {
     try {
-      const response = await API.calendar.addCalendar(newEvent, courseId)
+      const response = await API.calendar.addCalendar(newEvent, courseId);
       if (response) {
-        message.success('Event created successfully')
-        form.resetFields()
-        onClose()
+        message.success('Event created successfully');
+        form.resetFields();
+        onClose();
       } else {
-        message.error('Failed to create event')
+        message.error('Failed to create event');
       }
     } catch (err) {
-      const errorMessage = getErrorMessage(err)
-      message.error('Error creating the event: ' + errorMessage)
+      const errorMessage = getErrorMessage(err);
+      message.error('Error creating the event: ' + errorMessage);
     }
-  }
+  };
 
   return (
     <Modal
@@ -186,7 +185,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
           }}
           onValuesChange={(changedValues, allValues) => {
             if (changedValues.endDate) {
-              setLastSetEndDate(changedValues.endDate)
+              setLastSetEndDate(changedValues.endDate);
             }
           }}
           clearOnDestroy
@@ -310,14 +309,14 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   if (!value || !getFieldValue('endDate')) {
-                    return Promise.resolve()
+                    return Promise.resolve();
                   }
                   if (value.isBefore(getFieldValue('endDate'))) {
-                    return Promise.resolve()
+                    return Promise.resolve();
                   }
                   return Promise.reject(
                     new Error('Start date must be before end date!'),
-                  )
+                  );
                 },
               }),
             ]}
@@ -336,14 +335,14 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   if (!value || !getFieldValue('startDate')) {
-                    return Promise.resolve()
+                    return Promise.resolve();
                   }
                   if (value.isAfter(getFieldValue('startDate'))) {
-                    return Promise.resolve()
+                    return Promise.resolve();
                   }
                   return Promise.reject(
                     new Error('End date must be after start date!'),
-                  )
+                  );
                 },
               }),
             ]}
@@ -431,7 +430,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
         </>
       )}
     </Modal>
-  )
-}
+  );
+};
 
-export default CreateEventModal
+export default CreateEventModal;

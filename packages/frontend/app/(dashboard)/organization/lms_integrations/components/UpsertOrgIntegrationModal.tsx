@@ -1,29 +1,30 @@
-'use client'
+'use client';
 
-import { Form, Input, message, Modal, Select, Switch } from 'antd'
-import { BaseOptionType } from 'antd/es/select'
-import {
+import { Form, Input, message, Modal, Select, Switch } from 'antd';
+import type { BaseOptionType } from 'antd/es/select';
+import type {
   LMSOrganizationIntegrationPartial,
   UpsertLMSOrganizationParams,
-} from '@koh/common'
-import { JSX, useState } from 'react'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+} from '@koh/common';
+import type { JSX } from 'react';
+import { useState } from 'react';
+import { getErrorMessage } from '@/app/utils/generalUtils';
 
 type UpsertOrgIntegrationModalProps = {
-  modalOpen: boolean
+  modalOpen: boolean;
   handleUpsert: (
     props: UpsertLMSOrganizationParams,
     operation: 'create' | 'update',
     clientSecretEdited: boolean,
-  ) => Promise<boolean>
-  modalCleanup: () => void
-  focusIntegration?: LMSOrganizationIntegrationPartial
+  ) => Promise<boolean>;
+  modalCleanup: () => void;
+  focusIntegration?: LMSOrganizationIntegrationPartial;
   platformOptions: {
-    value: string
-    label: JSX.Element
-    disabled: boolean
-  }[]
-}
+    value: string;
+    label: JSX.Element;
+    disabled: boolean;
+  }[];
+};
 
 const UpsertOrgIntegrationModal: React.FC<UpsertOrgIntegrationModalProps> = ({
   modalOpen,
@@ -32,35 +33,35 @@ const UpsertOrgIntegrationModal: React.FC<UpsertOrgIntegrationModalProps> = ({
   focusIntegration,
   platformOptions,
 }) => {
-  const [form] = Form.useForm<UpsertLMSOrganizationParams>()
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [form] = Form.useForm<UpsertLMSOrganizationParams>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [clientSecretEdited, setClientSecretEdited] = useState(false)
+  const [clientSecretEdited, setClientSecretEdited] = useState(false);
 
   const onFinish = () => {
-    if (isSubmitting) return
-    setIsSubmitting(true)
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     form
       .validateFields()
       .then(async (fields) => {
-        const isUpdate = focusIntegration != undefined ? 'update' : 'create'
+        const isUpdate = focusIntegration != undefined ? 'update' : 'create';
         const result = await handleUpsert(
           fields,
           focusIntegration != undefined ? 'update' : 'create',
           isUpdate ? clientSecretEdited : true,
-        )
+        );
         if (result) {
-          setClientSecretEdited(false)
-          modalCleanup()
+          setClientSecretEdited(false);
+          modalCleanup();
         }
       })
       .catch((err) => {
-        message.error(getErrorMessage(err))
+        message.error(getErrorMessage(err));
       })
       .finally(() => {
-        setIsSubmitting(false)
-      })
-  }
+        setIsSubmitting(false);
+      });
+  };
 
   return (
     <Modal
@@ -94,7 +95,7 @@ const UpsertOrgIntegrationModal: React.FC<UpsertOrgIntegrationModalProps> = ({
         }}
         onValuesChange={(changedValues) => {
           if (Object.keys(changedValues).includes('clientSecret')) {
-            setClientSecretEdited(true)
+            setClientSecretEdited(true);
           }
         }}
       >
@@ -142,9 +143,9 @@ const UpsertOrgIntegrationModal: React.FC<UpsertOrgIntegrationModalProps> = ({
                 type: 'boolean',
                 validator: (_, value, callback) => {
                   if (value !== true) {
-                    return Promise.reject('Failed')
+                    return Promise.reject('Failed');
                   }
-                  callback()
+                  callback();
                 },
                 message:
                   'The HTTPS protocol is typically desired as it enables secure, encrypted communication.',
@@ -181,7 +182,7 @@ const UpsertOrgIntegrationModal: React.FC<UpsertOrgIntegrationModalProps> = ({
         </div>
       </Form>
     </Modal>
-  )
-}
+  );
+};
 
-export default UpsertOrgIntegrationModal
+export default UpsertOrgIntegrationModal;

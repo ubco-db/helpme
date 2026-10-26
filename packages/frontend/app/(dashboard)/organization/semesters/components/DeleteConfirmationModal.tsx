@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react'
-import { Modal, Input, Button } from 'antd'
+import type React from 'react';
+import { useState, useEffect } from 'react';
+import { Modal, Input, Button } from 'antd';
 
 interface DeleteConfirmationProps {
-  isOpen: boolean
-  semesterName: string
-  onConfirm: () => void
-  onCancel: () => void
+  isOpen: boolean;
+  semesterName: string;
+  onConfirm: () => void;
+  onCancel: () => void;
 }
 
 const DeleteConfirmationModal: React.FC<DeleteConfirmationProps> = ({
@@ -14,13 +15,13 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationProps> = ({
   onConfirm,
   onCancel,
 }) => {
-  const [inputValue, setInputValue] = useState('')
+  const [inputValue, setInputValue] = useState('');
 
   useEffect(() => {
-    if (visible) setInputValue('')
-  }, [visible])
+    if (visible) setInputValue('');
+  }, [visible]);
 
-  const isMatch = inputValue === semesterName
+  const isMatch = inputValue === semesterName;
 
   return (
     <Modal
@@ -54,7 +55,7 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationProps> = ({
         onChange={(e) => setInputValue(e.target.value)}
       />
     </Modal>
-  )
-}
+  );
+};
 
-export default DeleteConfirmationModal
+export default DeleteConfirmationModal;

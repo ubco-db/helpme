@@ -1,75 +1,75 @@
-'use client'
+'use client';
 
-import { API } from '@/app/api'
-import {
+import { API } from '@/app/api';
+import type {
   CourseSettingsResponse,
   GetOrganizationResponse,
   OrganizationCourseResponse,
-  OrganizationRole,
-  Role,
   User,
-} from '@koh/common'
-import { Card, Divider, message, Spin, Switch, Tooltip } from 'antd'
-import { useEffect, useState } from 'react'
-import EditCourseForm from './EditCourseForm'
-import ArchiveCourse from './ArchiveCourse'
-import DeleteCourse from './DeleteCourse'
-import { useRouter } from 'next/navigation'
-import CourseInviteCode from './CourseInviteCode'
-import CourseFeaturesForm from './CourseFeaturesForm'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { QuestionCircleOutlined } from '@ant-design/icons'
-import CourseCloneFormModal from './CourseCloneFormModal'
-import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
-import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
-import ProfInvites from './ProfInvites'
-import CourseFeatureSwitch from './CourseFeatureSwitch'
+} from '@koh/common';
+import { OrganizationRole, Role } from '@koh/common';
+import { Card, Divider, message, Spin, Switch, Tooltip } from 'antd';
+import { useEffect, useState } from 'react';
+import EditCourseForm from './EditCourseForm';
+import ArchiveCourse from './ArchiveCourse';
+import DeleteCourse from './DeleteCourse';
+import { useRouter } from 'next/navigation';
+import CourseInviteCode from './CourseInviteCode';
+import CourseFeaturesForm from './CourseFeaturesForm';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { QuestionCircleOutlined } from '@ant-design/icons';
+import CourseCloneFormModal from './CourseCloneFormModal';
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings';
+import { checkCourseCreatePermissions } from '@/app/utils/generalUtils';
+import ProfInvites from './ProfInvites';
+import CourseFeatureSwitch from './CourseFeatureSwitch';
 
 type EditCourseProps = {
-  courseId: number
-  organization: GetOrganizationResponse
-  user: User
-}
+  courseId: number;
+  organization: GetOrganizationResponse;
+  user: User;
+};
 
 const EditCourse: React.FC<EditCourseProps> = ({
   courseId,
   organization,
   user,
 }) => {
-  const organizationSettings = useOrganizationSettings(organization.id)
-  const [courseData, setCourseData] = useState<OrganizationCourseResponse>()
-  const { userInfo, setUserInfo } = useUserInfo()
-  const [courseFeatures, setCourseFeatures] = useState<CourseSettingsResponse>()
+  const organizationSettings = useOrganizationSettings(organization.id);
+  const [courseData, setCourseData] = useState<OrganizationCourseResponse>();
+  const { userInfo, setUserInfo } = useUserInfo();
+  const [courseFeatures, setCourseFeatures] =
+    useState<CourseSettingsResponse>();
   useEffect(() => {
     const fetchFeatures = async () => {
       await API.course
         .getCourseFeatures(courseId)
         .then((features) => {
-          setCourseFeatures(features)
+          setCourseFeatures(features);
         })
-        .catch(() => undefined)
-    }
-    fetchFeatures()
-  }, [courseId])
+        .catch(() => undefined);
+    };
+    fetchFeatures();
+  }, [courseId]);
 
-  const router = useRouter()
+  const router = useRouter();
 
   const fetchCourseData = async () => {
     const response: OrganizationCourseResponse | null = await API.organizations
       .getCourse(organization.id, courseId)
       .catch((error) => {
-        message.error(error.response.data.message)
+        message.error(error.response.data.message);
 
         setTimeout(() => {
-          router.back()
-        }, 1_500)
-        return null
-      })
+          router.back();
+        }, 1_500);
+        return null;
+      });
 
-    if (!response) return
+    if (!response) return;
 
-    setCourseData(response)
+    setCourseData(response);
 
     // Added since this is the endpoint contacted to fetch new course data
     setUserInfo({
@@ -89,16 +89,16 @@ const EditCourse: React.FC<EditCourseProps> = ({
             }
           : uc,
       ),
-    })
-  }
+    });
+  };
 
   const isUserInCourse = userInfo.courses.find(
     (course) => course.course.id === courseId,
-  )
+  );
 
   useEffect(() => {
-    fetchCourseData()
-  }, [])
+    fetchCourseData();
+  }, []);
 
   return courseData ? (
     <>
@@ -271,7 +271,7 @@ const EditCourse: React.FC<EditCourseProps> = ({
     </>
   ) : (
     <CenteredSpinner tip="Loading course..." />
-  )
-}
+  );
+};
 
-export default EditCourse
+export default EditCourse;

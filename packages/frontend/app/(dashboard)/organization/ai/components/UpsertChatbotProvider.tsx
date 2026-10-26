@@ -1,4 +1,4 @@
-import { cn, getErrorMessage } from '@/app/utils/generalUtils'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils';
 import {
   Button,
   Card,
@@ -9,7 +9,7 @@ import {
   Popconfirm,
   Select,
   Tooltip,
-} from 'antd'
+} from 'antd';
 import {
   CloseOutlined,
   DeleteOutlined,
@@ -19,37 +19,37 @@ import {
   FullscreenOutlined,
   InfoCircleOutlined,
   PlusOutlined,
-} from '@ant-design/icons'
-import {
+} from '@ant-design/icons';
+import type {
   ChatbotAllowedHeaders,
   ChatbotProvider,
-  ChatbotServiceProvider,
   CreateChatbotProviderBody,
   CreateLLMTypeBody,
   LLMType,
   UpdateChatbotProviderBody,
   UpdateLLMTypeBody,
-} from '@koh/common'
-import { useEffect, useMemo, useState } from 'react'
-import LLMTypeDisplay from './LLMTypeDisplay'
-import AddModelModal from '@/app/(dashboard)/organization/ai/components/AddModelModal'
-import ChatbotHeadersTable from '@/app/(dashboard)/organization/ai/components/ChatbotHeadersTable'
-import { API } from '@/app/api'
-import AdditionalNotesList from '@/app/(dashboard)/organization/ai/components/AdditionalNotesList'
+} from '@koh/common';
+import { ChatbotServiceProvider } from '@koh/common';
+import { useEffect, useMemo, useState } from 'react';
+import LLMTypeDisplay from './LLMTypeDisplay';
+import AddModelModal from '@/app/(dashboard)/organization/ai/components/AddModelModal';
+import ChatbotHeadersTable from '@/app/(dashboard)/organization/ai/components/ChatbotHeadersTable';
+import { API } from '@/app/api';
+import AdditionalNotesList from '@/app/(dashboard)/organization/ai/components/AdditionalNotesList';
 
 type UpsertChatbotProviderProps = {
-  organizationId: number
+  organizationId: number;
   // Whether it's submitted through organization settings creation or not
-  canSelfSubmit: boolean
+  canSelfSubmit: boolean;
   // For Creation
-  props?: CreateChatbotProviderBody
-  onSubmit: (provider: CreateChatbotProviderBody) => void
+  props?: CreateChatbotProviderBody;
+  onSubmit: (provider: CreateChatbotProviderBody) => void;
   // For Updating
-  provider?: ChatbotProvider
-  setProvider?: (provider: ChatbotProvider) => void
+  provider?: ChatbotProvider;
+  setProvider?: (provider: ChatbotProvider) => void;
   // Modal Properties
-  onClose: () => void
-}
+  onClose: () => void;
+};
 
 const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
   organizationId,
@@ -62,54 +62,55 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
 }) => {
   const [form] = Form.useForm<
     CreateChatbotProviderBody | UpdateChatbotProviderBody
-  >()
+  >();
 
-  const [models, setModels] = useState<LLMType[]>([])
+  const [models, setModels] = useState<LLMType[]>([]);
   const [headers, setHeaders] = useState<ChatbotAllowedHeaders | undefined>(
     provider?.headers ?? props?.headers,
-  )
-  const [isLoading, setIsLoading] = useState(false)
-  const [addModelModalOpen, setAddModelModalOpen] = useState(false)
-  const [isActionsMinimized, setIsActionsMinimized] = useState(false)
+  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [addModelModalOpen, setAddModelModalOpen] = useState(false);
+  const [isActionsMinimized, setIsActionsMinimized] = useState(false);
 
-  const [providerType, setProviderType] = useState<ChatbotServiceProvider>()
-  const [baseUrl, setBaseUrl] = useState<string>()
-  const [apiKey, setApiKey] = useState<string>()
-  const [defaultModelName, setDefaultModelName] = useState<string>()
-  const [defaultVisionModelName, setDefaultVisionModelName] = useState<string>()
+  const [providerType, setProviderType] = useState<ChatbotServiceProvider>();
+  const [baseUrl, setBaseUrl] = useState<string>();
+  const [apiKey, setApiKey] = useState<string>();
+  const [defaultModelName, setDefaultModelName] = useState<string>();
+  const [defaultVisionModelName, setDefaultVisionModelName] =
+    useState<string>();
 
-  const [editingApiKey, setEditingApiKey] = useState(false)
-  const [calculateModels, setCalculateModels] = useState(false)
+  const [editingApiKey, setEditingApiKey] = useState(false);
+  const [calculateModels, setCalculateModels] = useState(false);
 
   useEffect(() => {
-    window.scrollTo({ top: 0 })
-  }, [])
+    window.scrollTo({ top: 0 });
+  }, []);
 
   useEffect(() => {
     if (provider) {
       form.setFieldsValue({
         ...provider,
-      })
-      setProviderType(provider.providerType)
-      setBaseUrl(provider.baseUrl)
-      setDefaultModelName(provider.defaultModel.modelName)
-      setDefaultVisionModelName(provider.defaultVisionModel.modelName)
+      });
+      setProviderType(provider.providerType);
+      setBaseUrl(provider.baseUrl);
+      setDefaultModelName(provider.defaultModel.modelName);
+      setDefaultVisionModelName(provider.defaultVisionModel.modelName);
       setModels(
         provider.availableModels.map((v) => ({
           ...v,
         })),
-      )
+      );
     }
-  }, [form, provider])
+  }, [form, provider]);
 
   useEffect(() => {
     if (props) {
       form.setFieldsValue({
         ...props,
-      })
-      setProviderType(props.providerType)
-      setDefaultModelName(props.defaultModelName)
-      setDefaultVisionModelName(props.defaultVisionModelName)
+      });
+      setProviderType(props.providerType);
+      setDefaultModelName(props.defaultModelName);
+      setDefaultVisionModelName(props.defaultVisionModelName);
       setModels(
         props.models.map(
           (m, i) =>
@@ -119,58 +120,58 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
               provider: null!,
             }) satisfies LLMType,
         ),
-      )
+      );
     }
-  }, [form, props])
+  }, [form, props]);
 
   const changeProviderType = (newType: ChatbotServiceProvider) => {
     if (newType != providerType) {
       form.setFieldsValue({
         baseUrl: undefined,
-      })
-      setDefaultModelName(undefined)
-      setDefaultVisionModelName(undefined)
-      setModels([])
+      });
+      setDefaultModelName(undefined);
+      setDefaultVisionModelName(undefined);
+      setModels([]);
     }
-  }
+  };
 
   const setProviderDefaultModel = (modelName: string, vision = false) => {
     if (vision) {
-      setDefaultVisionModelName(modelName)
+      setDefaultVisionModelName(modelName);
     } else {
-      setDefaultModelName(modelName)
+      setDefaultModelName(modelName);
     }
-  }
+  };
 
   const handleAddModel = (model: LLMType) => {
     setModels((prev) => {
       if (model.isText && prev.filter((m) => m.isText).length == 0) {
-        setProviderDefaultModel(model.modelName)
+        setProviderDefaultModel(model.modelName);
       }
       if (model.isVision && prev.filter((m) => m.isVision).length == 0) {
-        setProviderDefaultModel(model.modelName, true)
+        setProviderDefaultModel(model.modelName, true);
       }
-      return [...prev, model]
-    })
-  }
+      return [...prev, model];
+    });
+  };
 
   const handleRemoveModel = (modelName: string) => {
     if (defaultModelName == modelName) {
       return message.warning(
         'Cannot remove model as it is the default option for text input.',
-      )
+      );
     }
     if (defaultVisionModelName == modelName) {
       return message.warning(
         'Cannot remove model as it is the default option for visual input.',
-      )
+      );
     }
-    setModels((prev) => prev.filter((m) => m.modelName != modelName))
-  }
+    setModels((prev) => prev.filter((m) => m.modelName != modelName));
+  };
 
   const handleHeaderUpdate = (h: ChatbotAllowedHeaders) => {
-    setHeaders(h)
-  }
+    setHeaders(h);
+  };
 
   const getAddedModels = () => {
     return (
@@ -180,22 +181,22 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
             (m1) => m1.modelName == m0.modelName,
           ),
       ) ?? []
-    )
-  }
+    );
+  };
 
   const addedModels = useMemo(
     () => getAddedModels(),
     [provider, models, calculateModels],
-  )
+  );
 
   const getModifiedModels = () => {
-    if (provider === undefined) return []
-    const mods: UpdateLLMTypeBody[] = []
+    if (provider === undefined) return [];
+    const mods: UpdateLLMTypeBody[] = [];
     for (const model of models) {
       const original = provider.availableModels.find(
         (m) => m.modelName == model.modelName,
-      )
-      if (!original) continue
+      );
+      if (!original) continue;
       if (
         model.isText != original.isText ||
         model.isVision != original.isVision ||
@@ -211,55 +212,55 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
           isVision: model.isVision,
           isThinking: model.isThinking,
           additionalNotes: model.additionalNotes,
-        } satisfies UpdateLLMTypeBody)
+        } satisfies UpdateLLMTypeBody);
       }
     }
-    return mods
-  }
+    return mods;
+  };
 
   const modifiedModels = useMemo(
     () => getModifiedModels(),
     [models, provider, calculateModels],
-  )
+  );
 
   const getDeletedModels = () => {
     return (
       provider?.availableModels
         .filter((m0) => !models.find((m1) => m1.modelName == m0.modelName))
         .map((m) => m.id) ?? []
-    )
-  }
+    );
+  };
 
   const deletedModels = useMemo(
     () => getDeletedModels(),
     [provider, models, calculateModels],
-  )
+  );
 
   const handleFinish = () => {
-    if (isLoading) return
-    setIsLoading(true)
+    if (isLoading) return;
+    setIsLoading(true);
     form
       .validateFields()
       .then((values) => {
         if (models.length == 0) {
-          message.error('Provider must have at least one model')
-          return
+          message.error('Provider must have at least one model');
+          return;
         }
 
         if (
           !defaultModelName ||
           !models.some((m) => m.modelName == defaultModelName)
         ) {
-          message.error('Provider is missing default text model')
-          return
+          message.error('Provider is missing default text model');
+          return;
         }
 
         if (
           !defaultVisionModelName ||
           !models.some((m) => m.modelName == defaultVisionModelName)
         ) {
-          message.error('Provider is missing default vision model')
-          return
+          message.error('Provider is missing default vision model');
+          return;
         }
 
         if (!canSelfSubmit) {
@@ -271,27 +272,27 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
               defaultVisionModelName: defaultVisionModelName ?? '',
               defaultModelName: defaultModelName ?? '',
               additionalNotes: notes,
-            })
+            });
           } catch (err) {
-            message.error(getErrorMessage(err))
+            message.error(getErrorMessage(err));
           }
-          return
+          return;
         }
 
         if (provider != undefined) {
           if (!editingApiKey) {
-            values = { ...values, apiKey: undefined }
+            values = { ...values, apiKey: undefined };
           }
 
           const addedModels = getAddedModels().map((m: any) => {
-            delete m.id
-            delete m.families
-            delete m.parameterSize
-            delete m.provider
-            return m as CreateLLMTypeBody
-          })
-          const modifiedModels = getModifiedModels()
-          const deletedModels = getDeletedModels()
+            delete m.id;
+            delete m.families;
+            delete m.parameterSize;
+            delete m.provider;
+            return m as CreateLLMTypeBody;
+          });
+          const modifiedModels = getModifiedModels();
+          const deletedModels = getDeletedModels();
           API.chatbot.adminOnly
             .updateChatbotProvider(organizationId, provider.id, {
               ...values,
@@ -304,18 +305,18 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
               additionalNotes: notes,
             })
             .then((provider) => {
-              message.success('Successfully updated chatbot provider!')
-              if (setProvider) setProvider(provider)
-              onClose()
+              message.success('Successfully updated chatbot provider!');
+              if (setProvider) setProvider(provider);
+              onClose();
             })
             .catch((err) => {
               message.error(
                 `Failed to update chatbot provider: ${getErrorMessage(err)}`,
-              )
+              );
             })
             .finally(() => {
-              setIsLoading(false)
-            })
+              setIsLoading(false);
+            });
         } else {
           const newModels = models.map((model) => {
             return {
@@ -324,8 +325,8 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
               families: undefined,
               parameterSize: undefined,
               provider: undefined,
-            }
-          })
+            };
+          });
           API.chatbot.adminOnly
             .createChatbotProvider(organizationId, {
               ...(values as CreateChatbotProviderBody),
@@ -336,40 +337,40 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
               additionalNotes: notes,
             })
             .then((provider) => {
-              message.success('Successfully created chatbot provider!')
-              if (setProvider) setProvider(provider)
-              onClose()
+              message.success('Successfully created chatbot provider!');
+              if (setProvider) setProvider(provider);
+              onClose();
             })
             .catch((err) => {
               message.error(
                 `Failed to create chatbot provider: ${getErrorMessage(err)}`,
-              )
+              );
             })
             .finally(() => {
-              setIsLoading(false)
-            })
+              setIsLoading(false);
+            });
         }
       })
       .catch(() => {
-        message.error('Invalid parameters')
-        setIsLoading(false)
+        message.error('Invalid parameters');
+        setIsLoading(false);
       })
-      .finally(() => setIsLoading(false))
-  }
+      .finally(() => setIsLoading(false));
+  };
 
-  const [notes, setNotes] = useState<string[]>(provider?.additionalNotes ?? [])
+  const [notes, setNotes] = useState<string[]>(provider?.additionalNotes ?? []);
 
   useEffect(() => {
     if (provider?.additionalNotes) {
-      setNotes(provider.additionalNotes)
+      setNotes(provider.additionalNotes);
     }
-  }, [provider?.additionalNotes])
+  }, [provider?.additionalNotes]);
 
   const haveNotesChanged = useMemo(
     () =>
       JSON.stringify(provider?.additionalNotes ?? []) !== JSON.stringify(notes),
     [provider?.additionalNotes, notes],
-  )
+  );
 
   const haveSettingsChanged = useMemo(() => {
     return provider !== undefined
@@ -382,7 +383,7 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
           addedModels.length > 0 ||
           modifiedModels.length > 0 ||
           deletedModels.length > 0
-      : false
+      : false;
   }, [
     provider,
     providerType,
@@ -394,12 +395,12 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
     addedModels,
     modifiedModels,
     deletedModels,
-  ])
+  ]);
 
   const providerNames = useMemo(
     () => Object.keys(ChatbotServiceProvider).join(', '),
     [],
-  )
+  );
 
   return (
     <div className={'flex flex-col gap-8'}>
@@ -424,15 +425,15 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
             for (const key in changedValues) {
               switch (key) {
                 case 'providerType':
-                  changeProviderType(changedValues[key])
-                  setProviderType(changedValues[key])
-                  break
+                  changeProviderType(changedValues[key]);
+                  setProviderType(changedValues[key]);
+                  break;
                 case 'baseUrl':
-                  setBaseUrl(changedValues[key])
-                  break
+                  setBaseUrl(changedValues[key]);
+                  break;
                 case 'apiKey':
-                  setApiKey(changedValues[key])
-                  break
+                  setApiKey(changedValues[key]);
+                  break;
               }
             }
           }}
@@ -636,9 +637,9 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
             }}
             dataSource={models}
             renderItem={(item: CreateLLMTypeBody) => {
-              const isDefaultModel = defaultModelName == item.modelName
+              const isDefaultModel = defaultModelName == item.modelName;
               const isDefaultVisionModel =
-                defaultVisionModelName == item.modelName
+                defaultVisionModelName == item.modelName;
               return (
                 <List.Item>
                   <div
@@ -664,31 +665,31 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
                         setModels((prev) => {
                           const idx = prev.findIndex(
                             (m) => m.modelName == modelName,
-                          )
+                          );
                           if (idx >= 0) {
                             prev[idx] = {
                               ...prev[idx],
                               isRecommended,
-                            }
+                            };
                           }
-                          return prev
-                        })
-                        setCalculateModels(!calculateModels)
+                          return prev;
+                        });
+                        setCalculateModels(!calculateModels);
                       }}
                       onUpdateNotes={(modelName, notes) => {
                         setModels((prev) => {
                           const idx = prev.findIndex(
                             (m) => m.modelName == modelName,
-                          )
+                          );
                           if (idx >= 0) {
                             prev[idx] = {
                               ...prev[idx],
                               additionalNotes: notes,
-                            }
+                            };
                           }
-                          return prev
-                        })
-                        setCalculateModels(!calculateModels)
+                          return prev;
+                        });
+                        setCalculateModels(!calculateModels);
                       }}
                     />
                     <Button
@@ -701,7 +702,7 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
                     </Button>
                   </div>
                 </List.Item>
-              )
+              );
             }}
             footer={
               <div className={'flex justify-end'}>
@@ -793,7 +794,7 @@ const UpsertChatbotProvider: React.FC<UpsertChatbotProviderProps> = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default UpsertChatbotProvider
+export default UpsertChatbotProvider;

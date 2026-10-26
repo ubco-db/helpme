@@ -1,38 +1,38 @@
-import { Button, Modal, Pagination, Checkbox, List, Input } from 'antd'
-import { useMemo, useState } from 'react'
-import { useInsightContext } from '@/app/(dashboard)/course/[cid]/(insights)/context/InsightsContext'
-import { UserPartial } from '@koh/common'
-import UserAvatar from '@/app/components/UserAvatar'
-import { DownOutlined, SearchOutlined } from '@ant-design/icons'
-import FilterWrapper from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/FilterWrapper'
+import { Button, Modal, Pagination, Checkbox, List, Input } from 'antd';
+import { useMemo, useState } from 'react';
+import { useInsightContext } from '@/app/(dashboard)/course/[cid]/(insights)/context/InsightsContext';
+import type { UserPartial } from '@koh/common';
+import UserAvatar from '@/app/components/UserAvatar';
+import { DownOutlined, SearchOutlined } from '@ant-design/icons';
+import FilterWrapper from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/FilterWrapper';
 
 type StaffFilterProps = {
-  selectedStaff: number[]
-  setSelectedStaff: (value: number[]) => void
-}
+  selectedStaff: number[];
+  setSelectedStaff: (value: number[]) => void;
+};
 
 const StaffFilter: React.FC<StaffFilterProps> = ({
   selectedStaff,
   setSelectedStaff,
 }) => {
-  const insightContext = useInsightContext()
+  const insightContext = useInsightContext();
   const staffDetails = useMemo(
     () => insightContext.staffDetails,
     [insightContext],
-  )
-  const [modalOpen, setModalOpen] = useState<boolean>(false)
-  const [search, setSearch] = useState<string>('')
+  );
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [search, setSearch] = useState<string>('');
   const updateSelectedStaff = (student: number) => {
     setSelectedStaff(
       selectedStaff.includes(student)
         ? selectedStaff.filter((s) => s != student)
         : [...selectedStaff, student],
-    )
-  }
+    );
+  };
 
   const onClose = () => {
-    setModalOpen(false)
-  }
+    setModalOpen(false);
+  };
 
   return (
     staffDetails != undefined && (
@@ -97,7 +97,7 @@ const StaffFilter: React.FC<StaffFilterProps> = ({
         </FilterWrapper>
       </>
     )
-  )
-}
+  );
+};
 
-export default StaffFilter
+export default StaffFilter;

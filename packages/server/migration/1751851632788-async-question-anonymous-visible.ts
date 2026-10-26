@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AsyncQuestionAnonymousVisible1751851632788
-  implements MigrationInterface
-{
+export class AsyncQuestionAnonymousVisible1751851632788 implements MigrationInterface {
   name = 'AsyncQuestionAnonymousVisible1751851632788';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

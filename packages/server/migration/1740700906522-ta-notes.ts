@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class taNotes1740700906522 implements MigrationInterface {
   name = 'taNotes1740700906522';

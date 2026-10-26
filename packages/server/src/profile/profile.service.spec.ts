@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { ProfileService } from './profile.service';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { OrganizationService } from '../organization/organization.service';

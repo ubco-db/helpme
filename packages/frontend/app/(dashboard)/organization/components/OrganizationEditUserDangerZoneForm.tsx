@@ -1,15 +1,15 @@
-import { API } from '@/app/api'
-import {
+import { API } from '@/app/api';
+import type {
   GetOrganizationResponse,
   GetOrganizationUserResponse,
-} from '@koh/common'
-import { Button, message } from 'antd'
+} from '@koh/common';
+import { Button, message } from 'antd';
 
 type OrganizationEditUserDangerZoneFormProps = {
-  userData: GetOrganizationUserResponse
-  organization: GetOrganizationResponse
-  fetchUserData: () => void
-}
+  userData: GetOrganizationUserResponse;
+  organization: GetOrganizationResponse;
+  fetchUserData: () => void;
+};
 
 const OrganizationEditUserDangerZoneForm: React.FC<
   OrganizationEditUserDangerZoneFormProps
@@ -18,31 +18,31 @@ const OrganizationEditUserDangerZoneForm: React.FC<
     await API.organizations
       .deleteProfilePicture(organization?.id, userData.user.id)
       .then(() => {
-        message.success('Profile picture was deleted')
+        message.success('Profile picture was deleted');
         setTimeout(() => {
-          fetchUserData()
-        }, 1750)
+          fetchUserData();
+        }, 1750);
       })
       .catch((error) => {
-        const errorMessage = error.response.data.message
+        const errorMessage = error.response.data.message;
 
-        message.error(errorMessage)
-      })
-  }
+        message.error(errorMessage);
+      });
+  };
 
   const updateAccess = async () => {
     await API.organizations
       .updateAccess(organization?.id, userData.user.id)
       .then(() => {
-        message.success('User access was updated')
-        fetchUserData()
+        message.success('User access was updated');
+        fetchUserData();
       })
       .catch((error) => {
-        const errorMessage = error.response.data.message
+        const errorMessage = error.response.data.message;
 
-        message.error(errorMessage)
-      })
-  }
+        message.error(errorMessage);
+      });
+  };
 
   return (
     <div>
@@ -83,7 +83,7 @@ const OrganizationEditUserDangerZoneForm: React.FC<
         </Button>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default OrganizationEditUserDangerZoneForm
+export default OrganizationEditUserDangerZoneForm;

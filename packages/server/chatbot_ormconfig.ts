@@ -1,7 +1,7 @@
 import { config } from 'dotenv';
 import { isProd } from '@koh/common';
 import * as fs from 'fs';
-import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
+import type { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions';
 
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {

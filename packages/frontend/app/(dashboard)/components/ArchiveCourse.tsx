@@ -1,37 +1,37 @@
-import { API } from '@/app/api'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import {
+import { API } from '@/app/api';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import type {
   GetOrganizationResponse,
   OrganizationCourseResponse,
-} from '@koh/common'
-import { Button, message, Popconfirm } from 'antd'
+} from '@koh/common';
+import { Button, message, Popconfirm } from 'antd';
 
 type ArchiveCourseProps = {
-  courseData: OrganizationCourseResponse
-  organization: GetOrganizationResponse
-  fetchCourseData: () => void
-}
+  courseData: OrganizationCourseResponse;
+  organization: GetOrganizationResponse;
+  fetchCourseData: () => void;
+};
 
 const ArchiveCourse: React.FC<ArchiveCourseProps> = ({
   courseData,
   organization,
   fetchCourseData,
 }) => {
-  const { userInfo, setUserInfo } = useUserInfo()
+  const { userInfo, setUserInfo } = useUserInfo();
 
   const updateCourseAccess = async () => {
     await API.organizations
       .updateCourseAccess(organization.id, Number(courseData.courseId))
       .then(() => {
-        message.success('Course access was updated')
-        fetchCourseData()
+        message.success('Course access was updated');
+        fetchCourseData();
       })
       .catch((error) => {
-        const errorMessage = getErrorMessage(error)
-        message.error(errorMessage)
-      })
-  }
+        const errorMessage = getErrorMessage(error);
+        message.error(errorMessage);
+      });
+  };
 
   return (
     <div className="flex flex-col items-center md:flex-row">
@@ -61,7 +61,7 @@ const ArchiveCourse: React.FC<ArchiveCourseProps> = ({
         </Button>
       </Popconfirm>
     </div>
-  )
-}
+  );
+};
 
-export default ArchiveCourse
+export default ArchiveCourse;

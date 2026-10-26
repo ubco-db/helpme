@@ -1,17 +1,17 @@
-import { API } from '@/app/api'
-import { QuestionCircleOutlined } from '@ant-design/icons'
-import { message, Switch, Tooltip } from 'antd'
-import { ReactNode } from 'react'
+import { API } from '@/app/api';
+import { QuestionCircleOutlined } from '@ant-design/icons';
+import { message, Switch, Tooltip } from 'antd';
+import type { ReactNode } from 'react';
 
 type CourseFeatureSwitchProps = {
-  featureName: string
-  defaultChecked: boolean
-  title?: string
-  description?: string | ReactNode
-  courseId: number
-  disabled?: boolean
-  className?: string
-}
+  featureName: string;
+  defaultChecked: boolean;
+  title?: string;
+  description?: string | ReactNode;
+  courseId: number;
+  disabled?: boolean;
+  className?: string;
+};
 
 const CourseFeatureSwitch: React.FC<CourseFeatureSwitchProps> = ({
   featureName,
@@ -46,17 +46,17 @@ const CourseFeatureSwitch: React.FC<CourseFeatureSwitchProps> = ({
             .then(() => {
               message.success(
                 `Successfully set ${featureName} feature to ${e.valueOf()}`,
-              )
+              );
             })
             .catch((error) => {
               message.error(
                 `An error occured while toggling ${featureName} feature: ${error.message}`,
-              )
-            })
+              );
+            });
         }}
       />
     </div>
-  )
-}
+  );
+};
 
-export default CourseFeatureSwitch
+export default CourseFeatureSwitch;

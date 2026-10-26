@@ -1,32 +1,36 @@
-'use client'
+'use client';
 
-import { CourseSettingsResponse, OrganizationCourseResponse } from '@koh/common'
-import { Divider, Form } from 'antd'
-import { useEffect, useState } from 'react'
-import CourseFeatureSwitch from './CourseFeatureSwitch'
-import { API } from '@/app/api'
+import type {
+  CourseSettingsResponse,
+  OrganizationCourseResponse,
+} from '@koh/common';
+import { Divider, Form } from 'antd';
+import { useEffect, useState } from 'react';
+import CourseFeatureSwitch from './CourseFeatureSwitch';
+import { API } from '@/app/api';
 
 type CourseFeaturesFormProps = {
-  courseData: OrganizationCourseResponse
-}
+  courseData: OrganizationCourseResponse;
+};
 
 const CourseFeaturesForm: React.FC<CourseFeaturesFormProps> = ({
   courseData,
 }) => {
-  const [courseFeatures, setCourseFeatures] = useState<CourseSettingsResponse>()
-  const courseId = Number(courseData.course?.id)
+  const [courseFeatures, setCourseFeatures] =
+    useState<CourseSettingsResponse>();
+  const courseId = Number(courseData.course?.id);
 
   useEffect(() => {
     const fetchFeatures = async () => {
       await API.course
         .getCourseFeatures(Number(courseData.course?.id))
         .then((features) => {
-          setCourseFeatures(features)
+          setCourseFeatures(features);
         })
-        .catch(() => undefined)
-    }
-    fetchFeatures()
-  }, [courseData.course?.id])
+        .catch(() => undefined);
+    };
+    fetchFeatures();
+  }, [courseData.course?.id]);
 
   return (
     courseFeatures && (
@@ -116,7 +120,7 @@ const CourseFeaturesForm: React.FC<CourseFeaturesFormProps> = ({
         </div>
       </Form>
     )
-  )
-}
+  );
+};
 
-export default CourseFeaturesForm
+export default CourseFeaturesForm;

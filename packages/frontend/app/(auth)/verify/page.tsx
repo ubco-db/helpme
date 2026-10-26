@@ -1,49 +1,50 @@
-'use client'
+'use client';
 
-import StandardPageContainer from '@/app/components/standardPageContainer'
-import { User } from '@koh/common'
-import { Button, Card, Form, Input, message, Spin } from 'antd'
-import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
-import { API, fetchUserDetails } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import Link from 'next/link'
+import StandardPageContainer from '@/app/components/standardPageContainer';
+import type { User } from '@koh/common';
+import { Button, Card, Form, Input, message, Spin } from 'antd';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { API, fetchUserDetails } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import Link from 'next/link';
 import {
   CheckCircleOutlined,
   RedoOutlined,
   SwapOutlined,
   SyncOutlined,
-} from '@ant-design/icons'
+} from '@ant-design/icons';
 
 export default function VerifyEmailPage() {
-  const [form] = Form.useForm()
-  const router = useRouter()
-  const pathName = usePathname()
-  const [profile, setProfile] = useState<User>()
-  const [success, setSuccess] = useState(false)
-  const [redirectTarget, setRedirectTarget] = useState<string | null>(null)
+  const [form] = Form.useForm();
+  const router = useRouter();
+  const pathName = usePathname();
+  const [profile, setProfile] = useState<User>();
+  const [success, setSuccess] = useState(false);
+  const [redirectTarget, setRedirectTarget] = useState<string | null>(null);
 
   const isLti = useMemo(() => {
-    return pathName.startsWith('/lti')
-  }, [pathName])
+    return pathName.startsWith('/lti');
+  }, [pathName]);
 
   useEffect(() => {
-    fetchUserDetails(setProfile)
-  }, [])
+    fetchUserDetails(setProfile);
+  }, []);
 
   const resendVerificationCode = async () => {
     const response = await API.mail.resendVerificationCode().catch((err) => {
-      message.error(getErrorMessage(err))
-    })
+      message.error(getErrorMessage(err));
+    });
     if (!response) {
-      return
+      return;
     }
-    message.success('Verification code has been resent.')
-  }
+    message.success('Verification code has been resent.');
+  };
 
   const validateVerificationCode = async () => {
-    const formValues: { verificationCode: string } = await form.validateFields()
-    const verificationCode = formValues.verificationCode.toUpperCase()
+    const formValues: { verificationCode: string } =
+      await form.validateFields();
+    const verificationCode = formValues.verificationCode.toUpperCase();
     await (
       isLti
         ? API.lti.auth.verifyEmail({ token: verificationCode })
@@ -51,32 +52,32 @@ export default function VerifyEmailPage() {
     )
       .then((response) => {
         if (!(response.status >= 200 && response.status < 300)) {
-          message.error(getErrorMessage(response.data))
-          return
+          message.error(getErrorMessage(response.data));
+          return;
         }
         if (!response.data) {
           console.error(
             'validateVerificationCode returned no data. Redirecting user to /courses',
-          ) // hopefully caught by sentry
-          router.push(isLti ? '/lti' : '/courses')
-          setRedirectTarget(isLti ? '/lti' : '/courses')
-          setSuccess(true)
+          ); // hopefully caught by sentry
+          router.push(isLti ? '/lti' : '/courses');
+          setRedirectTarget(isLti ? '/lti' : '/courses');
+          setSuccess(true);
         }
 
         // verifyEmail handles any cookies (invite to course, lti stuff, page redirect, etc.) and
         // returns the redirectUrl as a result of these cookies
-        router.push(response.data.redirectUrl)
-        setRedirectTarget(response.data.redirectUrl)
-        setSuccess(true)
+        router.push(response.data.redirectUrl);
+        setRedirectTarget(response.data.redirectUrl);
+        setSuccess(true);
       })
       .catch((err) => {
-        message.error(getErrorMessage(err))
-      })
-  }
+        message.error(getErrorMessage(err));
+      });
+  };
 
   // shows up if for some reason router.push failed
   if (success) {
-    const target = redirectTarget ?? (isLti ? '/lti' : '/courses')
+    const target = redirectTarget ?? (isLti ? '/lti' : '/courses');
     return (
       <StandardPageContainer>
         <div className="mx-auto mt-40 flex items-center justify-center md:w-4/5 lg:w-2/5 2xl:w-3/5">
@@ -103,7 +104,7 @@ export default function VerifyEmailPage() {
           </Card>
         </div>
       </StandardPageContainer>
-    )
+    );
   }
   return profile ? (
     <StandardPageContainer>
@@ -173,5 +174,5 @@ export default function VerifyEmailPage() {
     </StandardPageContainer>
   ) : (
     <Spin />
-  )
+  );
 }

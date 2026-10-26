@@ -1,31 +1,30 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-'use client'
+'use client';
 
-import { API } from '@/app/api'
-import {
+import { API } from '@/app/api';
+import type {
   GetOrganizationResponse,
   GetOrganizationUserResponse,
-} from '@koh/common'
-import { Button, Form, Input, message, Spin } from 'antd'
+} from '@koh/common';
+import { Button, Form, Input, message, Spin } from 'antd';
 
 type OrganizationEditUserGeneralFormProps = {
-  userData: GetOrganizationUserResponse
-  organization: GetOrganizationResponse
-  fetchUserData: () => void
-}
+  userData: GetOrganizationUserResponse;
+  organization: GetOrganizationResponse;
+  fetchUserData: () => void;
+};
 
 const OrganizationEditUserGeneralForm: React.FC<
   OrganizationEditUserGeneralFormProps
 > = ({ userData, organization, fetchUserData }) => {
-  const [formGeneral] = Form.useForm()
+  const [formGeneral] = Form.useForm();
 
   const updateGeneral = async () => {
-    const formValues = await formGeneral.validateFields()
+    const formValues = await formGeneral.validateFields();
 
-    const firstNameField = formValues.firstName
-    const lastNameField = formValues.lastName
-    const emailField = formValues.email
-    const sidField = formValues.sid
+    const firstNameField = formValues.firstName;
+    const lastNameField = formValues.lastName;
+    const emailField = formValues.email;
+    const sidField = formValues.sid;
 
     if (
       firstNameField === userData?.user.firstName &&
@@ -33,28 +32,28 @@ const OrganizationEditUserGeneralForm: React.FC<
       emailField === userData?.user.email &&
       sidField === userData?.user.sid
     ) {
-      message.info('User was not updated as information has not been changed')
-      return
+      message.info('User was not updated as information has not been changed');
+      return;
     }
 
     if (firstNameField.trim().length < 1) {
-      message.error('First name must be at least 1 character')
-      return
+      message.error('First name must be at least 1 character');
+      return;
     }
 
     if (lastNameField.trim().length < 1) {
-      message.error('Last name must be at least 1 character')
-      return
+      message.error('Last name must be at least 1 character');
+      return;
     }
 
     if (emailField.trim().length < 4) {
-      message.error('Email must be at least 4 characters')
-      return
+      message.error('Email must be at least 4 characters');
+      return;
     }
 
     if (userData?.user.sid && sidField.trim().length < 1) {
-      message.error('Student number must be at least 1 character')
-      return
+      message.error('Student number must be at least 1 character');
+      return;
     }
 
     await API.organizations
@@ -65,17 +64,17 @@ const OrganizationEditUserGeneralForm: React.FC<
         sid: Number(sidField),
       })
       .then(() => {
-        message.success('User information was updated')
+        message.success('User information was updated');
         setTimeout(async () => {
-          fetchUserData()
-        }, 1750)
+          fetchUserData();
+        }, 1750);
       })
       .catch((error) => {
-        const errorMessage = error.response.data.message
+        const errorMessage = error.response.data.message;
 
-        message.error(errorMessage)
-      })
-  }
+        message.error(errorMessage);
+      });
+  };
 
   return userData ? (
     <Form
@@ -134,7 +133,7 @@ const OrganizationEditUserGeneralForm: React.FC<
     </Form>
   ) : (
     <Spin />
-  )
-}
+  );
+};
 
-export default OrganizationEditUserGeneralForm
+export default OrganizationEditUserGeneralForm;

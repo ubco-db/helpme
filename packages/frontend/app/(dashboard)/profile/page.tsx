@@ -1,5 +1,5 @@
-import { ReactElement } from 'react'
-import ProfileSettings from './components/ProfileSettings'
+import type { ReactElement } from 'react';
+import ProfileSettings from './components/ProfileSettings';
 
 export default function ProfilePage(): ReactElement {
   return (
@@ -8,5 +8,5 @@ export default function ProfilePage(): ReactElement {
       <h1 className="mb-2 hidden md:block">Profile Settings</h1>
       <ProfileSettings />
     </div>
-  )
+  );
 }

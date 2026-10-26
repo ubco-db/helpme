@@ -1,15 +1,16 @@
-import { API } from '@/app/api'
-import UserAvatar from '@/app/components/UserAvatar'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { cn, getErrorMessage } from '@/app/utils/generalUtils'
+import { API } from '@/app/api';
+import UserAvatar from '@/app/components/UserAvatar';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { cn, getErrorMessage } from '@/app/utils/generalUtils';
 import {
   CrownFilled,
   DownOutlined,
   QuestionCircleOutlined,
   SearchOutlined,
   UserDeleteOutlined,
-} from '@ant-design/icons'
-import { OrganizationRole, Role, User, UserPartial } from '@koh/common'
+} from '@ant-design/icons';
+import type { User, UserPartial } from '@koh/common';
+import { OrganizationRole, Role } from '@koh/common';
 import {
   Button,
   Dropdown,
@@ -22,21 +23,21 @@ import {
   Row,
   Spin,
   Tooltip,
-} from 'antd'
-import TextArea from 'antd/es/input/TextArea'
-import { Notebook, NotebookText } from 'lucide-react'
-import { useEffect, useState } from 'react'
+} from 'antd';
+import TextArea from 'antd/es/input/TextArea';
+import { Notebook, NotebookText } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 type CourseRosterTableProps = {
-  courseId: number
-  role: Role
-  listTitle: string
-  displaySearchBar: boolean
-  searchPlaceholder: string
-  onRoleChange: () => void
-  updateFlag: boolean
-  hideSensitiveInformation?: boolean
-}
+  courseId: number;
+  role: Role;
+  listTitle: string;
+  displaySearchBar: boolean;
+  searchPlaceholder: string;
+  onRoleChange: () => void;
+  updateFlag: boolean;
+  hideSensitiveInformation?: boolean;
+};
 
 const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
   courseId,
@@ -48,35 +49,35 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
   updateFlag,
   hideSensitiveInformation = false,
 }) => {
-  const [page, setPage] = useState(1)
-  const [input, setInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [users, setUsers] = useState<UserPartial[]>([])
-  const [totalUsers, setTotalUsers] = useState<number>(0)
+  const [page, setPage] = useState(1);
+  const [input, setInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [users, setUsers] = useState<UserPartial[]>([]);
+  const [totalUsers, setTotalUsers] = useState<number>(0);
   const [isSensitiveInfoHidden, setIsSensitiveInfoHidden] = useState(
     hideSensitiveInformation,
-  )
-  const { userInfo, setUserInfo } = useUserInfo()
+  );
+  const { userInfo, setUserInfo } = useUserInfo();
 
   const handleInput = (event: any) => {
-    event.preventDefault()
-    setInput(event.target.value)
-  }
+    event.preventDefault();
+    setInput(event.target.value);
+  };
 
   const handleSearch = (event: any) => {
-    event.preventDefault()
-    setSearch(event.target.value)
-    setPage(1)
-  }
+    event.preventDefault();
+    setSearch(event.target.value);
+    setPage(1);
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
-      const data = await API.course.getUserInfo(courseId, page, role, search)
-      setUsers(data.users)
-      setTotalUsers(data.total)
-    }
-    fetchUsers().then()
-  }, [page, search, role, courseId, updateFlag])
+      const data = await API.course.getUserInfo(courseId, page, role, search);
+      setUsers(data.users);
+      setTotalUsers(data.total);
+    };
+    fetchUsers().then();
+  }, [page, search, role, courseId, updateFlag]);
 
   const handleRoleChange = async (
     userId: number,
@@ -84,9 +85,9 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
     userName: string,
   ) => {
     try {
-      await API.course.updateUserRole(courseId, userId, newRole)
-      message.success(`${userName} successfully updated to ${newRole} role`)
-      onRoleChange()
+      await API.course.updateUserRole(courseId, userId, newRole);
+      message.success(`${userName} successfully updated to ${newRole} role`);
+      onRoleChange();
       if (userId === userInfo.id) {
         setUserInfo({
           ...userInfo,
@@ -95,16 +96,16 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
               return {
                 ...uc,
                 role: newRole,
-              }
+              };
             }
-            return uc
+            return uc;
           }),
-        })
+        });
       }
     } catch (error) {
-      message.error(`Failed to update ${userName} to ${newRole}`)
+      message.error(`Failed to update ${userName} to ${newRole}`);
     }
-  }
+  };
 
   const renderItem = (item: UserPartial) => {
     return (
@@ -119,11 +120,11 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
         handleRoleChange={handleRoleChange}
         onRoleChange={onRoleChange}
       />
-    )
-  }
+    );
+  };
 
   if (!users) {
-    return <Spin tip="Loading..." size="large" />
+    return <Spin tip="Loading..." size="large" />;
   } else {
     return (
       <>
@@ -174,21 +175,21 @@ const CourseRosterTable: React.FC<CourseRosterTableProps> = ({
           />
         )}
       </>
-    )
+    );
   }
-}
+};
 
 const RosterItem: React.FC<{
-  item: UserPartial
-  courseId: number
-  role: Role
-  users: UserPartial[]
-  setUsers: (users: UserPartial[]) => void
-  isSensitiveInfoHidden: boolean
-  userInfo: User
-  handleRoleChange: (userId: number, newRole: Role, userName: string) => void
-  onRoleChange: () => void
-  className?: string
+  item: UserPartial;
+  courseId: number;
+  role: Role;
+  users: UserPartial[];
+  setUsers: (users: UserPartial[]) => void;
+  isSensitiveInfoHidden: boolean;
+  userInfo: User;
+  handleRoleChange: (userId: number, newRole: Role, userName: string) => void;
+  onRoleChange: () => void;
+  className?: string;
 }> = ({
   item,
   courseId,
@@ -201,10 +202,10 @@ const RosterItem: React.FC<{
   onRoleChange,
   className,
 }) => {
-  const [tempTaNotes, setTempTaNotes] = useState(item.TANotes ?? '')
-  const [canSave, setCanSave] = useState(false)
-  const [saveLoading, setSaveLoading] = useState(false)
-  const [saveSuccessful, setSaveSuccessful] = useState(false)
+  const [tempTaNotes, setTempTaNotes] = useState(item.TANotes ?? '');
+  const [canSave, setCanSave] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [saveSuccessful, setSaveSuccessful] = useState(false);
 
   return (
     <List.Item
@@ -280,8 +281,8 @@ const RosterItem: React.FC<{
               ].filter(Boolean),
               onClick: (e) => {
                 const confirmRoleChange = () => {
-                  handleRoleChange(item.id, e.key as Role, item.name ?? '')
-                }
+                  handleRoleChange(item.id, e.key as Role, item.name ?? '');
+                };
 
                 Modal.confirm({
                   title: <div className="font-bold">Warning</div>,
@@ -300,9 +301,9 @@ const RosterItem: React.FC<{
                   okType: 'danger',
                   cancelText: 'No',
                   onOk() {
-                    confirmRoleChange()
+                    confirmRoleChange();
                   },
-                })
+                });
               },
             }}
             className="flex-grow-0"
@@ -329,8 +330,8 @@ const RosterItem: React.FC<{
                   autoSize={{ minRows: 4, maxRows: 7 }}
                   value={tempTaNotes}
                   onChange={(e) => {
-                    setCanSave(e.target.value !== item.TANotes)
-                    setTempTaNotes(e.target.value)
+                    setCanSave(e.target.value !== item.TANotes);
+                    setTempTaNotes(e.target.value);
                   }}
                 />
                 <div className="flex items-center justify-start">
@@ -338,32 +339,32 @@ const RosterItem: React.FC<{
                     disabled={!canSave}
                     loading={saveLoading}
                     onClick={async () => {
-                      setSaveLoading(true)
+                      setSaveLoading(true);
                       await API.course
                         .updateTANotes(courseId, item.id, tempTaNotes ?? '')
                         .then(() => {
-                          setSaveSuccessful(true)
-                          setCanSave(false)
+                          setSaveSuccessful(true);
+                          setCanSave(false);
                           setUsers(
                             users.map((user) => {
                               if (user.id === item.id) {
-                                return { ...user, TANotes: tempTaNotes }
+                                return { ...user, TANotes: tempTaNotes };
                               }
-                              return user
+                              return user;
                             }),
-                          )
+                          );
                           // saved goes away after 1s
                           setTimeout(() => {
-                            setSaveSuccessful(false)
-                          }, 1000)
+                            setSaveSuccessful(false);
+                          }, 1000);
                         })
                         .catch((e) => {
-                          const errorMessage = getErrorMessage(e)
-                          message.error(errorMessage)
+                          const errorMessage = getErrorMessage(e);
+                          message.error(errorMessage);
                         })
                         .finally(() => {
-                          setSaveLoading(false)
-                        })
+                          setSaveLoading(false);
+                        });
                     }}
                   >
                     Save
@@ -441,22 +442,22 @@ const RosterItem: React.FC<{
                     .then(() => {
                       message.success(
                         `${item.name} successfully removed from the course`,
-                      )
-                      onRoleChange()
+                      );
+                      onRoleChange();
                     })
                     .catch(() => {
                       message.error(
                         `Failed to remove ${item.name} from the course`,
-                      )
-                    })
+                      );
+                    });
                 },
-              })
+              });
             }}
           />
         )}
       </Row>
     </List.Item>
-  )
-}
+  );
+};
 
-export default CourseRosterTable
+export default CourseRosterTable;

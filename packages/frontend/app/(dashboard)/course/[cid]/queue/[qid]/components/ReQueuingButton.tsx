@@ -1,6 +1,7 @@
-import { cn } from '@/app/utils/generalUtils'
-import { Button, ButtonProps, Tooltip } from 'antd'
-import { ClockCircleOutlined } from '@ant-design/icons'
+import { cn } from '@/app/utils/generalUtils';
+import type { ButtonProps } from 'antd';
+import { Button, Tooltip } from 'antd';
+import { ClockCircleOutlined } from '@ant-design/icons';
 
 const ReQueuingButton: React.FC<ButtonProps> = ({
   type = 'default',
@@ -27,7 +28,7 @@ const ReQueuingButton: React.FC<ButtonProps> = ({
         Not Ready?
       </Button>
     </Tooltip>
-  )
-}
+  );
+};
 
-export default ReQueuingButton
+export default ReQueuingButton;

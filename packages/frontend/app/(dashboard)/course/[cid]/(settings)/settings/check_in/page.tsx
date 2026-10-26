@@ -1,58 +1,60 @@
-'use client'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
-import { Role, TACheckinPair } from '@koh/common'
-import { useCallback, useEffect, useRef, useState, use } from 'react'
-import { API } from '@/app/api'
-import FullCalendar from '@fullcalendar/react'
-import timeGridPlugin from '@fullcalendar/timegrid'
-import listPlugin from '@fullcalendar/list'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import { message, Spin, Tooltip } from 'antd'
-import { FullCalendarEvent, TAStatus } from '@/app/typings/types'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { format } from 'date-fns'
+'use client';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils';
+import type { TACheckinPair } from '@koh/common';
+import { Role } from '@koh/common';
+import { useCallback, useEffect, useRef, useState, use } from 'react';
+import { API } from '@/app/api';
+import FullCalendar from '@fullcalendar/react';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import listPlugin from '@fullcalendar/list';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import { message, Spin, Tooltip } from 'antd';
+import type { FullCalendarEvent } from '@/app/typings/types';
+import { TAStatus } from '@/app/typings/types';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
+import { format } from 'date-fns';
 
 type TACheckInCheckOutTimesProps = {
-  params: Promise<{ cid: string }>
-}
+  params: Promise<{ cid: string }>;
+};
 
 export default function TACheckInCheckOutTimes(
   props: TACheckInCheckOutTimesProps,
 ) {
-  const params = use(props.params)
-  const courseId = Number(params.cid)
+  const params = use(props.params);
+  const courseId = Number(params.cid);
 
-  const { userInfo } = useUserInfo()
-  const role = getRoleInCourse(userInfo, courseId)
-  const [events, setEvents] = useState<any>([])
-  const calendarRef = useRef(null)
-  const spinnerRef = useRef<HTMLDivElement | null>(null)
+  const { userInfo } = useUserInfo();
+  const role = getRoleInCourse(userInfo, courseId);
+  const [events, setEvents] = useState<any>([]);
+  const calendarRef = useRef(null);
+  const spinnerRef = useRef<HTMLDivElement | null>(null);
   const [tasWhoForgotToCheckOut, setTasWhoForgotToCheckOut] = useState<
     TACheckinPair[]
-  >([])
-  const [tasWhoAreBusy, setTasWhoAreBusy] = useState<TACheckinPair[]>([])
+  >([]);
+  const [tasWhoAreBusy, setTasWhoAreBusy] = useState<TACheckinPair[]>([]);
 
   const getEvent = useCallback(async () => {
     try {
       // just get data +/- 1 year from now
-      const startDate = new Date()
-      startDate.setFullYear(startDate.getFullYear() - 1)
-      const endDate = new Date()
-      endDate.setFullYear(endDate.getFullYear() + 1)
+      const startDate = new Date();
+      startDate.setFullYear(startDate.getFullYear() - 1);
+      const endDate = new Date();
+      endDate.setFullYear(endDate.getFullYear() + 1);
 
       const result = await API.course.getTACheckinTimes(
         courseId,
         startDate.toISOString(),
         endDate.toISOString(),
-      )
+      );
 
-      setTasWhoForgotToCheckOut(result.taCheckinTimes.filter((e) => e.forced))
-      setTasWhoAreBusy(result.taCheckinTimes.filter((e) => e.inProgress))
+      setTasWhoForgotToCheckOut(result.taCheckinTimes.filter((e) => e.forced));
+      setTasWhoAreBusy(result.taCheckinTimes.filter((e) => e.inProgress));
 
       const modifiedEvents = result.taCheckinTimes.map((event) =>
         parseEvent(event),
-      )
+      );
 
       const awayEvents =
         result.taAwayTimes?.map((away) => ({
@@ -61,25 +63,25 @@ export default function TACheckInCheckOutTimes(
           end: away.awayEndTime ? new Date(away.awayEndTime) : new Date(),
           backgroundColor: away.inProgress ? '#d97706' : '#f59e0b',
           TAStatus: TAStatus.Away,
-        })) ?? []
-      setEvents([...modifiedEvents, ...awayEvents])
+        })) ?? [];
+      setEvents([...modifiedEvents, ...awayEvents]);
     } catch (error) {
-      const errorMessage = getErrorMessage(error)
-      message.error('An error occurred while fetching events:' + errorMessage)
+      const errorMessage = getErrorMessage(error);
+      message.error('An error occurred while fetching events:' + errorMessage);
     }
-  }, [courseId, setEvents])
+  }, [courseId, setEvents]);
 
   useEffect(() => {
     if (courseId) {
-      getEvent()
+      getEvent();
     }
-  }, [courseId, getEvent])
+  }, [courseId, getEvent]);
 
   const parseEvent = (event: TACheckinPair) => {
-    const startDate = new Date(event.checkinTime)
+    const startDate = new Date(event.checkinTime);
     const endDate = event.checkoutTime
       ? new Date(event.checkoutTime)
-      : new Date()
+      : new Date();
     const returnEvent: FullCalendarEvent = {
       title: event.name,
       start: startDate,
@@ -95,13 +97,13 @@ export default function TACheckInCheckOutTimes(
         : event.forced
           ? TAStatus.ForgotToCheckOut
           : TAStatus.CheckedOut,
-    }
-    return returnEvent
-  }
+    };
+    return returnEvent;
+  };
   if (role !== Role.PROFESSOR) {
     return (
       <CenteredSpinner tip="You have been cursed with the infinite spinner! Begone!" />
-    )
+    );
   } else {
     return (
       <div>
@@ -133,25 +135,25 @@ export default function TACheckInCheckOutTimes(
             }}
             loading={(loading) => {
               if (spinnerRef.current)
-                spinnerRef.current.style.display = loading ? 'flex' : 'none'
+                spinnerRef.current.style.display = loading ? 'flex' : 'none';
             }}
             height="54em"
             timeZone="local"
             eventContent={(info) => {
-              const event = info.event
+              const event = info.event;
               const extendedProps = info.event
-                .extendedProps as FullCalendarEvent
-              const TAName = event.title
+                .extendedProps as FullCalendarEvent;
+              const TAName = event.title;
               const formattedStart = event.start
                 ? format(event.start, 'h:mm')
-                : ''
-              const formattedEnd = event.end ? format(event.end, 'h:mm') : ''
+                : '';
+              const formattedEnd = event.end ? format(event.end, 'h:mm') : '';
               const formattedStartWithAmPm = event.start
                 ? format(event.start, 'h:mmaaa')
-                : ''
+                : '';
               const formattedEndWithAmPm = event.end
                 ? format(event.end, 'h:mmaaa')
-                : ''
+                : '';
 
               return (
                 <Tooltip
@@ -191,7 +193,7 @@ export default function TACheckInCheckOutTimes(
                     )}
                   </div>
                 </Tooltip>
-              )
+              );
             }}
           />
         </div>
@@ -225,6 +227,6 @@ export default function TACheckInCheckOutTimes(
           </div>
         ) : null}
       </div>
-    )
+    );
   }
 }

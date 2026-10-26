@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class questionTypesSoftDelete1726179810316
-  implements MigrationInterface
-{
+export class questionTypesSoftDelete1726179810316 implements MigrationInterface {
   name = 'questionTypesSoftDelete1726179810316';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

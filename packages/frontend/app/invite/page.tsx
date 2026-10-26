@@ -1,29 +1,34 @@
-'use client'
+'use client';
 
-import { message } from 'antd'
-import { ReactElement, Suspense, useEffect, useState } from 'react'
-import { GetLimitedCourseResponse, UBCOuserParam, User } from '@koh/common'
-import { API, fetchUserDetails } from '@/app/api'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { getErrorMessage } from '../utils/generalUtils'
-import CenteredSpinner from '../components/CenteredSpinner'
-import InviteCard from './components/InviteCard'
-import Image from 'next/image'
+import { message } from 'antd';
+import type { ReactElement } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import type {
+  GetLimitedCourseResponse,
+  UBCOuserParam,
+  User,
+} from '@koh/common';
+import { API, fetchUserDetails } from '@/app/api';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { getErrorMessage } from '../utils/generalUtils';
+import CenteredSpinner from '../components/CenteredSpinner';
+import InviteCard from './components/InviteCard';
+import Image from 'next/image';
 
 function CourseInviteContent(): ReactElement {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const cid = Number(searchParams.get('cid'))
-  const code = decodeURIComponent(searchParams.get('code') ?? '')
-  const [errorGettingCourse, setErrorGettingCourse] = useState(false)
-  const [errorGettingUser, setErrorGettingUser] = useState(false)
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const cid = Number(searchParams.get('cid'));
+  const code = decodeURIComponent(searchParams.get('code') ?? '');
+  const [errorGettingCourse, setErrorGettingCourse] = useState(false);
+  const [errorGettingUser, setErrorGettingUser] = useState(false);
 
-  const [profile, setProfile] = useState<User>()
+  const [profile, setProfile] = useState<User>();
   useEffect(() => {
-    fetchUserDetails(setProfile, () => setErrorGettingUser(true))
-  }, [])
+    fetchUserDetails(setProfile, () => setErrorGettingUser(true));
+  }, []);
 
-  const [course, setCourse] = useState<GetLimitedCourseResponse>()
+  const [course, setCourse] = useState<GetLimitedCourseResponse>();
   useEffect(() => {
     const fetchData = async () => {
       await API.course
@@ -32,34 +37,34 @@ function CourseInviteContent(): ReactElement {
           // if the user is not found, redirect to login
           // These needs to be done after getLimitedCourseResponse does its thing since that is the endpoint that sets the cookies for redirect
           if (errorGettingUser) {
-            await API.course.setCourseInviteRedirectCookie(cid, code) // don't handle error response since it's only setting a cookie
-            router.push('/login')
+            await API.course.setCourseInviteRedirectCookie(cid, code); // don't handle error response since it's only setting a cookie
+            router.push('/login');
           }
-          setCourse(res)
+          setCourse(res);
         })
         .catch(() => {
-          setErrorGettingCourse(true)
-        })
-    }
+          setErrorGettingCourse(true);
+        });
+    };
     if (cid) {
-      fetchData()
+      fetchData();
     }
-  }, [cid, code, errorGettingUser, router])
+  }, [cid, code, errorGettingUser, router]);
 
-  const cardMetaTitle = `You have been invited to join '${course?.name}'`
-  const cardMetaDescription = `This course is managed by ${course?.organizationCourse?.name}`
+  const cardMetaTitle = `You have been invited to join '${course?.name}'`;
+  const cardMetaDescription = `This course is managed by ${course?.organizationCourse?.name}`;
 
   const addStudent = async (userData: UBCOuserParam) => {
     await API.course
       .enrollByInviteCode(userData, code)
       .then(() => {
-        router.push(`/course/${cid}`)
+        router.push(`/course/${cid}`);
       })
       .catch((error) => {
-        const errorMessage = getErrorMessage(error)
-        message.error(errorMessage)
-      })
-  }
+        const errorMessage = getErrorMessage(error);
+        message.error(errorMessage);
+      });
+  };
 
   if (!cid) {
     return (
@@ -70,7 +75,7 @@ function CourseInviteContent(): ReactElement {
           buttonAction={() => router.push('/courses')}
         />
       </div>
-    )
+    );
   } else if (errorGettingCourse) {
     return (
       <div className="mt-20 flex items-center justify-center">
@@ -80,17 +85,17 @@ function CourseInviteContent(): ReactElement {
           buttonAction={() => router.push('/courses')}
         />
       </div>
-    )
+    );
   } else if (!profile) {
-    return <CenteredSpinner tip="Loading User..." />
+    return <CenteredSpinner tip="Loading User..." />;
   } else if (
     profile.courses &&
     profile.courses.some((userCourse) => userCourse.course.id === cid)
   ) {
-    router.push(`/course/${cid}`)
-    return <CenteredSpinner tip="Redirecting..." />
+    router.push(`/course/${cid}`);
+    return <CenteredSpinner tip="Redirecting..." />;
   } else if (!course) {
-    return <CenteredSpinner tip="Loading Course..." />
+    return <CenteredSpinner tip="Loading Course..." />;
   } else {
     return (
       <>
@@ -102,7 +107,7 @@ function CourseInviteContent(): ReactElement {
               title="You somehow do not have an organization and you need one to join a course"
               buttonLabel="Back to login"
               buttonAction={() => {
-                router.push('/login')
+                router.push('/login');
               }}
             />
           ) : profile.organization.orgId !== course.organizationCourse?.id ? (
@@ -111,7 +116,7 @@ function CourseInviteContent(): ReactElement {
               title="You cannot join a course that is not in your organization"
               buttonLabel="Back to my courses"
               buttonAction={() => {
-                router.push('/courses')
+                router.push('/courses');
               }}
             />
           ) : code !== course.courseInviteCode ? (
@@ -119,7 +124,7 @@ function CourseInviteContent(): ReactElement {
               title="Invalid Course Code"
               buttonLabel="Back to my courses"
               buttonAction={() => {
-                router.push('/courses')
+                router.push('/courses');
               }}
             />
           ) : (
@@ -130,19 +135,19 @@ function CourseInviteContent(): ReactElement {
               buttonAction={async () => {
                 if (!profile || !profile.organization) {
                   // this check shouldn't be necessary but typescript throws errors otherwise
-                  message.error('User not found')
-                  return
+                  message.error('User not found');
+                  return;
                 }
                 const userData: UBCOuserParam = {
                   email: profile.email,
                   selected_course: course.id,
                   organizationId: profile.organization.orgId,
-                }
-                await addStudent(userData)
+                };
+                await addStudent(userData);
               }}
               secondaryButtonLabel="Decline Invitation"
               secondaryButtonAction={() => {
-                router.push('/courses')
+                router.push('/courses');
               }}
               cover={
                 <Image
@@ -156,7 +161,7 @@ function CourseInviteContent(): ReactElement {
           )}
         </div>
       </>
-    )
+    );
   }
 }
 
@@ -165,5 +170,5 @@ export default function CourseInvitePage(): ReactElement {
     <Suspense fallback={<CenteredSpinner tip="Loading Invite..." />}>
       <CourseInviteContent />
     </Suspense>
-  )
+  );
 }

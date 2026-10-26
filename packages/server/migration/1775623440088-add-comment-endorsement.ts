@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddCommentEndorsement1775623440088 implements MigrationInterface {
   name = 'AddCommentEndorsement1775623440088';

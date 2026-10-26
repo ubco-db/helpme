@@ -1,30 +1,30 @@
-import { Button } from 'antd'
-import { Metadata } from 'next'
-import { ReactElement, ReactNode } from 'react'
-import ImageProfViewChatbot from '@/public/actually_public/images/helpme_prof_view_chatbot_questions.png'
-import ImageChatbotCourseHomePage from '@/public/actually_public/images/helpme_chatbot_course_homepage.png'
-import ImageCanvasIntegrationAutoSync from '@/public/actually_public/images/helpme_canvas_integration_auto_sync.png'
-import ImageChatbotDocumentUpload from '@/public/actually_public/images/helpme_chatbot_document_drag_n_drop_upload.png'
-import ImageProfInsertQuestionAsNewChunk from '@/public/actually_public/images/helpme_prof_insert_question_as_new_chunk.png'
-import ImageChatbotEditPrompt from '@/public/actually_public/images/helpme_chatbot_edit_prompt.png'
-import ImageProfQueueHelpStudent from '@/public/actually_public/images/helpme_prof_queue_help_student.png'
-import ImageStudentQueueCreateQuestion from '@/public/actually_public/images/helpme_student_queue_create_question.png'
-import ImageStudentGettingHelp from '@/public/actually_public/images/helpme_student_getting_help.png'
-import ImageProfQueueOverview from '@/public/actually_public/images/helpme_prof_queue_overview.png'
-import ImageQueuesJoinViaQRcode from '@/public/actually_public/images/helpme_queues_join_via_QR_code.png'
-import ImageQueueSchedule from '@/public/actually_public/images/helpme_queue_schedule.png'
-import ImageAnytimeQuestionsCreateQuestion from '@/public/actually_public/images/helpme_anytime_questions_create_question.png'
-import ImageAnytimeQuestionsProfEditResponse from '@/public/actually_public/images/helpme_anytime_questions_prof_edit_response.png'
-import ImageAnytimeQuestionsProfView from '@/public/actually_public/images/helpme_anytime_questions_prof_view.png'
-import ImageAnytimeQuestionsQuestionCreated from '@/public/actually_public/images/helpme_anytime_questions_question_created.png'
-import ImageAnytimeQuestionsStudentWithCommentsOpen from '@/public/actually_public/images/helpme_anytime_questions_student_with_comments_open.png'
-import ImageInsightsUsageOverTime from '@/public/actually_public/images/helpme_insights_usage_over_time.png'
-import ImageInsightsQuestionTypesOverTime from '@/public/actually_public/images/helpme_insights_question_types_over_time.png'
-import ImageInsightsMostActiveTimes from '@/public/actually_public/images/helpme_insights_most_active_times.png'
-import ImageCourseSettings from '@/public/actually_public/images/helpme_course_settings.png'
+import { Button } from 'antd';
+import type { Metadata } from 'next';
+import type { ReactElement, ReactNode } from 'react';
+import ImageProfViewChatbot from '@/public/actually_public/images/helpme_prof_view_chatbot_questions.png';
+import ImageChatbotCourseHomePage from '@/public/actually_public/images/helpme_chatbot_course_homepage.png';
+import ImageCanvasIntegrationAutoSync from '@/public/actually_public/images/helpme_canvas_integration_auto_sync.png';
+import ImageChatbotDocumentUpload from '@/public/actually_public/images/helpme_chatbot_document_drag_n_drop_upload.png';
+import ImageProfInsertQuestionAsNewChunk from '@/public/actually_public/images/helpme_prof_insert_question_as_new_chunk.png';
+import ImageChatbotEditPrompt from '@/public/actually_public/images/helpme_chatbot_edit_prompt.png';
+import ImageProfQueueHelpStudent from '@/public/actually_public/images/helpme_prof_queue_help_student.png';
+import ImageStudentQueueCreateQuestion from '@/public/actually_public/images/helpme_student_queue_create_question.png';
+import ImageStudentGettingHelp from '@/public/actually_public/images/helpme_student_getting_help.png';
+import ImageProfQueueOverview from '@/public/actually_public/images/helpme_prof_queue_overview.png';
+import ImageQueuesJoinViaQRcode from '@/public/actually_public/images/helpme_queues_join_via_QR_code.png';
+import ImageQueueSchedule from '@/public/actually_public/images/helpme_queue_schedule.png';
+import ImageAnytimeQuestionsCreateQuestion from '@/public/actually_public/images/helpme_anytime_questions_create_question.png';
+import ImageAnytimeQuestionsProfEditResponse from '@/public/actually_public/images/helpme_anytime_questions_prof_edit_response.png';
+import ImageAnytimeQuestionsProfView from '@/public/actually_public/images/helpme_anytime_questions_prof_view.png';
+import ImageAnytimeQuestionsQuestionCreated from '@/public/actually_public/images/helpme_anytime_questions_question_created.png';
+import ImageAnytimeQuestionsStudentWithCommentsOpen from '@/public/actually_public/images/helpme_anytime_questions_student_with_comments_open.png';
+import ImageInsightsUsageOverTime from '@/public/actually_public/images/helpme_insights_usage_over_time.png';
+import ImageInsightsQuestionTypesOverTime from '@/public/actually_public/images/helpme_insights_question_types_over_time.png';
+import ImageInsightsMostActiveTimes from '@/public/actually_public/images/helpme_insights_most_active_times.png';
+import ImageCourseSettings from '@/public/actually_public/images/helpme_course_settings.png';
 
-import StandardPageContainer from './components/standardPageContainer'
-import HeaderBar from './components/HeaderBar'
+import StandardPageContainer from './components/standardPageContainer';
+import HeaderBar from './components/HeaderBar';
 import {
   Bot,
   LogIn,
@@ -32,17 +32,17 @@ import {
   UsersRound,
   MessageCircleQuestion,
   LineChart,
-} from 'lucide-react'
-import ImageCarousel from './components/ImageCarousel'
-import Link from 'next/link'
+} from 'lucide-react';
+import ImageCarousel from './components/ImageCarousel';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'HelpMe',
-}
+};
 
 /** Small hint rendered beneath each ImageCarousel */
 const EnlargeHint: React.FC<{
-  noDetails?: boolean
+  noDetails?: boolean;
 }> = ({ noDetails = false }): ReactElement => {
   return (
     <p className="flex select-none items-center justify-center gap-1.5 pt-2.5 text-xs text-[#999]">
@@ -53,13 +53,13 @@ const EnlargeHint: React.FC<{
         {noDetails ? '' : '+ more details'}
       </span>
     </p>
-  )
-}
+  );
+};
 
 /* HighLight*/
 const HL: React.FC<{ children: ReactNode }> = ({ children }): ReactElement => {
-  return <b className="font-medium text-[#396589]">{children}</b>
-}
+  return <b className="font-medium text-[#396589]">{children}</b>;
+};
 
 export default function Home(): ReactElement {
   return (
@@ -715,5 +715,5 @@ export default function Home(): ReactElement {
         </section>
       </main>
     </>
-  )
+  );
 }

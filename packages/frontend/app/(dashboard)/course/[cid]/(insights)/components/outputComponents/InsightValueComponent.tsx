@@ -1,6 +1,6 @@
-import React from 'react'
-import { GenericInsightComponentProps } from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightComponent'
-import { Divider } from 'antd'
+import type React from 'react';
+import type { GenericInsightComponentProps } from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightComponent';
+import { Divider } from 'antd';
 
 const InsightValueComponent: React.FC<GenericInsightComponentProps> = ({
   insight,
@@ -26,7 +26,7 @@ const InsightValueComponent: React.FC<GenericInsightComponentProps> = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default InsightValueComponent
+export default InsightValueComponent;

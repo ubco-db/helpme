@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddFilesToLmsResourceTypes1752774315033
-  implements MigrationInterface
-{
+export class AddFilesToLmsResourceTypes1752774315033 implements MigrationInterface {
   name = 'AddFilesToLmsResourceTypes1752774315033';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

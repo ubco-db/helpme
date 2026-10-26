@@ -1,18 +1,19 @@
-import {
-  AxisChartClasses,
+import type {
   BarChartProps,
   ChartComponentProps,
-} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types'
-import React, { useMemo } from 'react'
+} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
+import { AxisChartClasses } from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
+import type React from 'react';
+import { useMemo } from 'react';
 import {
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
-} from '@/app/components/ui/chart'
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/utils/functions'
+} from '@/app/components/ui/chart';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/utils/functions';
 
 const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
@@ -24,9 +25,9 @@ const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     labelFormatter,
     valueFormatter,
     legendFormatter,
-  } = props
+  } = props;
 
-  const { verticalAxis, stackData, minTickGap, angle } = props as BarChartProps
+  const { verticalAxis, stackData, minTickGap, angle } = props as BarChartProps;
 
   let {
     includeLegend,
@@ -35,20 +36,20 @@ const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     tickMargin,
     axisLine,
     tickFormatter,
-  } = props as BarChartProps
+  } = props as BarChartProps;
 
-  includeLegend ??= true
-  includeTooltip ??= true
-  tickLine ??= true
-  tickMargin ??= 8
-  axisLine ??= true
-  tickFormatter ??= (value) => (value + '').substring(0, 3)
+  includeLegend ??= true;
+  includeTooltip ??= true;
+  tickLine ??= true;
+  tickMargin ??= 8;
+  axisLine ??= true;
+  tickFormatter ??= (value) => (value + '').substring(0, 3);
 
   const className = useMemo(() => {
     return size != undefined && AxisChartClasses[size] != undefined
       ? AxisChartClasses[size]
-      : AxisChartClasses['md']
-  }, [size])
+      : AxisChartClasses['md'];
+  }, [size]);
 
   return (
     <ChartContainer config={chartConfig} className={className}>
@@ -97,7 +98,7 @@ const BarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           ))}
       </BarChart>
     </ChartContainer>
-  )
-}
+  );
+};
 
-export default BarChartComponent
+export default BarChartComponent;

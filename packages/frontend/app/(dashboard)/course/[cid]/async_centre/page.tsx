@@ -1,20 +1,16 @@
-'use client'
+'use client';
 
-import {
-  asyncQuestionStatus,
-  QUERY_PARAMS,
-  QuestionType,
-  Role,
-} from '@koh/common'
+import type { QuestionType } from '@koh/common';
+import { asyncQuestionStatus, QUERY_PARAMS, Role } from '@koh/common';
+import type { ReactElement } from 'react';
 import React, {
-  ReactElement,
   use,
   useCallback,
   useEffect,
   useEffectEvent,
   useMemo,
   useState,
-} from 'react'
+} from 'react';
 import {
   Button,
   Checkbox,
@@ -24,20 +20,20 @@ import {
   Segmented,
   Select,
   Tooltip,
-} from 'antd'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { getRoleInCourse } from '@/app/utils/generalUtils'
-import { useAsyncQuestions } from '@/app/hooks/useAsyncQuestions'
-import AsyncCentreInfoColumn from './components/AsyncCentreInfoColumn'
+} from 'antd';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { getRoleInCourse } from '@/app/utils/generalUtils';
+import { useAsyncQuestions } from '@/app/hooks/useAsyncQuestions';
+import AsyncCentreInfoColumn from './components/AsyncCentreInfoColumn';
 import {
   EditQueueButton,
   JoinQueueButton,
-} from '../components/QueueInfoColumnButton'
-import VerticalDivider from '@/app/components/VerticalDivider'
-import CreateAsyncQuestionModal from './components/modals/CreateAsyncQuestionModal'
-import AsyncQuestionCard from './components/AsyncQuestionCard'
-import EditAsyncCentreModal from './components/modals/EditAsyncCentreModal'
-import { QuestionTagElement } from '../components/QuestionTagElement'
+} from '../components/QueueInfoColumnButton';
+import VerticalDivider from '@/app/components/VerticalDivider';
+import CreateAsyncQuestionModal from './components/modals/CreateAsyncQuestionModal';
+import AsyncQuestionCard from './components/AsyncQuestionCard';
+import EditAsyncCentreModal from './components/modals/EditAsyncCentreModal';
+import { QuestionTagElement } from '../components/QuestionTagElement';
 import {
   EyeInvisibleOutlined,
   EyeOutlined,
@@ -45,45 +41,45 @@ import {
   QuestionCircleOutlined,
   TeamOutlined,
   UserOutlined,
-} from '@ant-design/icons'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
-import { useChatbotContext } from '../components/chatbot/ChatbotProvider'
-import { API } from '@/app/api'
-import ConvertChatbotQToAnytimeQModal from './components/modals/ConvertChatbotQToAnytimeQModal'
-import ConvertQueueQToAnytimeQModal from './components/modals/ConvertQueueQToAnytimeQModal'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+} from '@ant-design/icons';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
+import { useQuestionTypes } from '@/app/hooks/useQuestionTypes';
+import { useChatbotContext } from '../components/chatbot/ChatbotProvider';
+import { API } from '@/app/api';
+import ConvertChatbotQToAnytimeQModal from './components/modals/ConvertChatbotQToAnytimeQModal';
+import ConvertQueueQToAnytimeQModal from './components/modals/ConvertQueueQToAnytimeQModal';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 type AsyncCentrePageProps = {
-  params: Promise<{ cid: string }>
-}
+  params: Promise<{ cid: string }>;
+};
 
 export default function AsyncCentrePage(
   props0: AsyncCentrePageProps,
 ): ReactElement {
-  const params = use(props0.params)
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const pathname = usePathname()
-  const courseId = Number(params.cid)
-  const { userInfo } = useUserInfo()
-  const role = getRoleInCourse(userInfo, courseId)
-  const isStaff = role === Role.TA || role === Role.PROFESSOR
+  const params = use(props0.params);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const courseId = Number(params.cid);
+  const { userInfo } = useUserInfo();
+  const role = getRoleInCourse(userInfo, courseId);
+  const isStaff = role === Role.TA || role === Role.PROFESSOR;
 
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [asyncQuestionsResponse, mutateAsyncQuestions] =
-    useAsyncQuestions(courseId)
-  const asyncQuestions = asyncQuestionsResponse?.questions
+    useAsyncQuestions(courseId);
+  const asyncQuestions = asyncQuestionsResponse?.questions;
   const hiddenPrivateQuestionsCount =
-    asyncQuestionsResponse?.hiddenPrivateQuestionsCount ?? 0
+    asyncQuestionsResponse?.hiddenPrivateQuestionsCount ?? 0;
 
   const [createAsyncQuestionModalOpen, setCreateAsyncQuestionModalOpen] =
-    useState(false)
+    useState(false);
   const [editAsyncCentreModalOpen, setEditAsyncCentreModalOpen] =
-    useState(false)
-  const [questionTypes] = useQuestionTypes(courseId, null)
-  const [showStudents, setShowStudents] = useState(false) // for when staff want to de-anonymize students on their end to see who posted what
+    useState(false);
+  const [questionTypes] = useQuestionTypes(courseId, null);
+  const [showStudents, setShowStudents] = useState(false); // for when staff want to de-anonymize students on their end to see who posted what
 
   // chatbot
   const {
@@ -93,65 +89,65 @@ export default function AsyncCentrePage(
     agents,
     selectedAgentCourseId,
     chatbotQuestionType,
-  } = useChatbotContext()
+  } = useChatbotContext();
   useEffect(() => {
-    setCid(courseId)
-  }, [courseId, setCid])
+    setCid(courseId);
+  }, [courseId, setCid]);
   useEffect(() => {
-    setRenderSmallChatbot(true)
-    return () => setRenderSmallChatbot(false) // make the chatbot inactive when the user leaves the page
-  }, [setRenderSmallChatbot])
+    setRenderSmallChatbot(true);
+    return () => setRenderSmallChatbot(false); // make the chatbot inactive when the user leaves the page
+  }, [setRenderSmallChatbot]);
 
   const [convertChatbotQModalOpen, setConvertChatbotQModalOpen] =
-    useState(false)
+    useState(false);
   const selectedAgentName = useMemo(() => {
     if (chatbotQuestionType === 'System') {
-      return 'System Inquiries'
+      return 'System Inquiries';
     }
 
     return agents.find((agent) => agent.courseId === selectedAgentCourseId)
-      ?.agentName
-  }, [agents, chatbotQuestionType, selectedAgentCourseId])
-  const [convertQueueQModalOpen, setConvertQueueQModalOpen] = useState(false)
-  const convertChatbotQSearchParam = searchParams.get('convertChatbotQ')
-  const convertQueueQSearchParam = searchParams.get('convertQueueQ')
-  const queueQuestionId = Number(searchParams.get('queueQuestionId'))
-  const queueId = Number(searchParams.get('queueId'))
+      ?.agentName;
+  }, [agents, chatbotQuestionType, selectedAgentCourseId]);
+  const [convertQueueQModalOpen, setConvertQueueQModalOpen] = useState(false);
+  const convertChatbotQSearchParam = searchParams.get('convertChatbotQ');
+  const convertQueueQSearchParam = searchParams.get('convertQueueQ');
+  const queueQuestionId = Number(searchParams.get('queueQuestionId'));
+  const queueId = Number(searchParams.get('queueId'));
   // for question/comment highlighting
   const highlightAsyncQuestionId = Number(
     searchParams.get(QUERY_PARAMS.asyncQuestion.highlightAsyncQuestionId),
-  )
+  );
   const highlightCommentId = Number(
     searchParams.get(QUERY_PARAMS.asyncQuestion.highlightCommentId),
-  )
+  );
 
   useEffect(() => {
     if (convertChatbotQSearchParam && messages.length > 1) {
-      setConvertChatbotQModalOpen(true)
+      setConvertChatbotQModalOpen(true);
     }
-  }, [convertChatbotQSearchParam])
+  }, [convertChatbotQSearchParam]);
 
   useEffect(() => {
     if (convertQueueQSearchParam) {
-      setConvertQueueQModalOpen(true)
+      setConvertQueueQModalOpen(true);
     }
-  }, [convertQueueQSearchParam])
+  }, [convertQueueQSearchParam]);
 
   const [statusFilter, setStatusFilter] = useState<
     'all' | 'verified' | 'unverified'
-  >('all')
+  >('all');
   const [visibleFilter, setVisibleFilter] = useState<
     'all' | 'visible' | 'hidden'
-  >('all')
-  const [creatorFilter, setCreatorFilter] = useState<'all' | 'mine'>('all')
+  >('all');
+  const [creatorFilter, setCreatorFilter] = useState<'all' | 'mine'>('all');
 
   const [selectedQuestionTags, setSelectedQuestionTags] = useState<
     QuestionType[]
-  >([])
+  >([]);
 
   const [sortBy, setSortBy] = useState<
     'newest' | 'oldest' | 'most-votes' | 'least-votes'
-  >('newest')
+  >('newest');
 
   const applyStatusFilter = useMemo(() => {
     return (
@@ -161,59 +157,59 @@ export default function AsyncCentrePage(
             return (
               question.status === asyncQuestionStatus.HumanAnswered ||
               question.verified
-            )
+            );
           case 'unverified':
             return (
               question.status === asyncQuestionStatus.AIAnswered ||
               question.status ===
                 asyncQuestionStatus.AIAnsweredNeedsAttention ||
               !question.answerText
-            )
+            );
           default:
-            return true
+            return true;
         }
       }) ?? []
-    )
-  }, [statusFilter, asyncQuestions])
+    );
+  }, [statusFilter, asyncQuestions]);
 
   const applyVisibilityFilter = useMemo(
     () =>
       applyStatusFilter.filter((question) => {
         switch (visibleFilter) {
           case 'visible':
-            return question.staffSetVisible
+            return question.staffSetVisible;
           case 'hidden':
-            return !question.staffSetVisible
+            return !question.staffSetVisible;
           default:
-            return true
+            return true;
         }
       }),
     [visibleFilter, applyStatusFilter],
-  )
+  );
 
   const applyQuestionTags = useMemo(() => {
     if (selectedQuestionTags.length > 0) {
       return applyVisibilityFilter.filter((question) => {
-        const questionTypeIds = question.questionTypes.map((type) => type.id)
+        const questionTypeIds = question.questionTypes.map((type) => type.id);
         return selectedQuestionTags.every((type) =>
           questionTypeIds.includes(type.id),
-        )
-      })
-    } else return applyVisibilityFilter
-  }, [selectedQuestionTags, applyVisibilityFilter])
+        );
+      });
+    } else return applyVisibilityFilter;
+  }, [selectedQuestionTags, applyVisibilityFilter]);
 
   const applyCreatorFilter = useMemo(
     () =>
       applyQuestionTags.filter((question) => {
         switch (creatorFilter) {
           case 'mine':
-            return question.creatorId === userInfo.id
+            return question.creatorId === userInfo.id;
           default:
-            return true
+            return true;
         }
       }),
     [creatorFilter, applyQuestionTags, userInfo.id],
-  )
+  );
 
   const applySort = useMemo(() => {
     return [...applyCreatorFilter].sort((a, b) => {
@@ -222,37 +218,37 @@ export default function AsyncCentrePage(
         case 'newest':
           return (
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          )
+          );
         case 'oldest':
           return (
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          )
+          );
         case 'most-votes':
-          return b.votesSum - a.votesSum
+          return b.votesSum - a.votesSum;
         case 'least-votes':
-          return a.votesSum - b.votesSum
+          return a.votesSum - b.votesSum;
         default:
-          return 0
+          return 0;
       }
-    })
-  }, [sortBy, applyCreatorFilter])
+    });
+  }, [sortBy, applyCreatorFilter]);
 
-  const displayedQuestions = useMemo(() => applySort, [applySort])
+  const displayedQuestions = useMemo(() => applySort, [applySort]);
 
-  const totalQuestions = displayedQuestions.length // total length after all filters applied
-  const totalPages = Math.max(1, Math.ceil(totalQuestions / pageSize))
-  const isLastPage = page >= totalPages
+  const totalQuestions = displayedQuestions.length; // total length after all filters applied
+  const totalPages = Math.max(1, Math.ceil(totalQuestions / pageSize));
+  const isLastPage = page >= totalPages;
 
   // reset to page 1 whenever the filtered question count changes.
   useEffect(() => {
-    setPage(1)
-  }, [displayedQuestions.length])
+    setPage(1);
+  }, [displayedQuestions.length]);
 
   const paginatedQuestions = useMemo(() => {
-    const startIndex = (page - 1) * pageSize //calculates where to start slicing
-    const endIndex = startIndex + pageSize // and where to stop slicing
-    return displayedQuestions.slice(startIndex, endIndex)
-  }, [page, pageSize, displayedQuestions])
+    const startIndex = (page - 1) * pageSize; //calculates where to start slicing
+    const endIndex = startIndex + pageSize; // and where to stop slicing
+    return displayedQuestions.slice(startIndex, endIndex);
+  }, [page, pageSize, displayedQuestions]);
 
   // When the highlightAsyncQuestionId or highlightCommentId changes, switch the page to the correct one and scroll it into view
   // We use useEffectEvent since this function is pretty much a handler that runs in the useEffect below
@@ -264,14 +260,14 @@ export default function AsyncCentrePage(
         if (displayedQuestions.some((q) => q.id === highlightAsyncQuestionId)) {
           const questionIndex = displayedQuestions.findIndex(
             (q) => q.id === highlightAsyncQuestionId,
-          )
-          const targetPage = Math.ceil((questionIndex + 1) / pageSize)
-          setPage(targetPage)
+          );
+          const targetPage = Math.ceil((questionIndex + 1) / pageSize);
+          setPage(targetPage);
         } else {
           console.warn(
             `highlightAsyncQuestionId ${highlightAsyncQuestionId} for course ${courseId} not found in displayedQuestions. This means that either the user wrote in a different highlightAsyncQuestionId, the question was deleted/hidden for some reason, or some other reason.`,
-          )
-          return
+          );
+          return;
         }
       }
 
@@ -279,26 +275,26 @@ export default function AsyncCentrePage(
       if (highlightAsyncQuestionId && !highlightCommentId) {
         const element = document.getElementById(
           `async-question-${highlightAsyncQuestionId}`,
-        )
-        element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        );
+        element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     },
-  )
+  );
   useEffect(() => {
     if (highlightAsyncQuestionId) {
-      handleHighlightQuestion(highlightAsyncQuestionId, highlightCommentId)
+      handleHighlightQuestion(highlightAsyncQuestionId, highlightCommentId);
     }
-  }, [highlightAsyncQuestionId, highlightCommentId])
+  }, [highlightAsyncQuestionId, highlightCommentId]);
 
   // This endpoint will be called to update unread count back to 0 when this page is entered
   // May seem more inefficient but this is the only way to ensure that the unread count is accurate given that userInfo no longer tracks it
   useEffect(() => {
-    API.asyncQuestions.updateUnreadAsyncCount(courseId)
-  }, [courseId])
+    API.asyncQuestions.updateUnreadAsyncCount(courseId);
+  }, [courseId]);
 
   const RenderQuestionTypeFilter = useCallback(() => {
     if (!questionTypes) {
-      return null
+      return null;
     }
     return (
       <Select
@@ -307,28 +303,28 @@ export default function AsyncCentrePage(
         onChange={(value: number[]) => {
           setSelectedQuestionTags(
             questionTypes.filter((tag) => value.includes(tag.id)),
-          )
+          );
         }}
         className="min-w-40 flex-grow"
         allowClear
         tagRender={(props) => {
-          const tag = questionTypes.find((tag) => tag.id === props.value)
+          const tag = questionTypes.find((tag) => tag.id === props.value);
           return (
             <QuestionTagElement
               tagName={tag ? tag.name : ''}
               tagColor={tag ? tag.color : ''}
               onClick={props.onClose}
             />
-          )
+          );
         }}
         optionRender={(props) => {
-          const tag = questionTypes.find((tag) => tag.id === props.value)
+          const tag = questionTypes.find((tag) => tag.id === props.value);
           if (tag) {
             return (
               <QuestionTagElement tagName={tag.name} tagColor={tag.color} />
-            )
+            );
           } else {
-            return null
+            return null;
           }
         }}
         optionFilterProp="label"
@@ -337,8 +333,8 @@ export default function AsyncCentrePage(
           value: tag.id,
         }))}
       />
-    )
-  }, [questionTypes])
+    );
+  }, [questionTypes]);
 
   const RenderCreatorFilter = useCallback(() => {
     return (
@@ -358,8 +354,8 @@ export default function AsyncCentrePage(
           },
         ]}
       />
-    )
-  }, [])
+    );
+  }, []);
 
   const RenderQuestionStatusFilter = useCallback(() => {
     return (
@@ -383,8 +379,8 @@ export default function AsyncCentrePage(
           },
         ]}
       />
-    )
-  }, [])
+    );
+  }, []);
 
   const RenderVisibleFilter = useCallback(() => {
     return (
@@ -410,17 +406,17 @@ export default function AsyncCentrePage(
           },
         ]}
       />
-    )
-  }, [])
+    );
+  }, []);
 
   if (!userInfo) {
-    return <CenteredSpinner tip="Loading User Info..." />
+    return <CenteredSpinner tip="Loading User Info..." />;
   } else if (
     asyncQuestionsResponse === undefined ||
     asyncQuestionsResponse === null ||
     asyncQuestions === undefined // should always be defined beyond this point, just for type safety
   ) {
-    return <CenteredSpinner tip="Loading Questions..." />
+    return <CenteredSpinner tip="Loading Questions..." />;
   } else {
     return (
       <div className="flex h-full flex-1 flex-col md:flex-row">
@@ -588,10 +584,10 @@ export default function AsyncCentrePage(
                 pageSize={pageSize}
                 total={totalQuestions}
                 onChange={(newPage, newPageSize) => {
-                  setPage(newPage)
+                  setPage(newPage);
                   if (newPageSize !== pageSize) {
-                    setPageSize(newPageSize)
-                    setPage(1) // reset to page 1 when page size changes so you don't end up on a page that doesnt exist anymore
+                    setPageSize(newPageSize);
+                    setPage(1); // reset to page 1 when page size changes so you don't end up on a page that doesnt exist anymore
                   }
                 }}
                 showSizeChanger
@@ -607,13 +603,13 @@ export default function AsyncCentrePage(
           courseId={courseId}
           open={convertChatbotQModalOpen}
           onCancel={() => {
-            router.replace(pathname)
-            setConvertChatbotQModalOpen(false)
+            router.replace(pathname);
+            setConvertChatbotQModalOpen(false);
           }}
           onCreateOrUpdateQuestion={() => {
-            mutateAsyncQuestions()
-            router.replace(pathname)
-            setConvertChatbotQModalOpen(false)
+            mutateAsyncQuestions();
+            router.replace(pathname);
+            setConvertChatbotQModalOpen(false);
           }}
           chatbotQ={{ messages: messages, selectedAgentName }}
         />
@@ -623,13 +619,13 @@ export default function AsyncCentrePage(
           queueQuestionId={queueQuestionId}
           open={convertQueueQModalOpen}
           onCancel={() => {
-            router.replace(pathname)
-            setConvertQueueQModalOpen(false)
+            router.replace(pathname);
+            setConvertQueueQModalOpen(false);
           }}
           onCreateOrUpdateQuestion={() => {
-            mutateAsyncQuestions()
-            router.replace(pathname)
-            setConvertQueueQModalOpen(false)
+            mutateAsyncQuestions();
+            router.replace(pathname);
+            setConvertQueueQModalOpen(false);
           }}
         />
         {isStaff && (
@@ -640,8 +636,8 @@ export default function AsyncCentrePage(
               open={editAsyncCentreModalOpen}
               onCancel={() => setEditAsyncCentreModalOpen(false)}
               onEditSuccess={() => {
-                mutateAsyncQuestions()
-                setEditAsyncCentreModalOpen(false)
+                mutateAsyncQuestions();
+                setEditAsyncCentreModalOpen(false);
               }}
             />
           </>
@@ -651,11 +647,11 @@ export default function AsyncCentrePage(
           open={createAsyncQuestionModalOpen}
           onCancel={() => setCreateAsyncQuestionModalOpen(false)}
           onCreateOrUpdateQuestion={() => {
-            mutateAsyncQuestions()
-            setCreateAsyncQuestionModalOpen(false)
+            mutateAsyncQuestions();
+            setCreateAsyncQuestionModalOpen(false);
           }}
         />
       </div>
-    )
+    );
   }
 }

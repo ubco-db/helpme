@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   DeleteOutlined,
   EditOutlined,
   PlusCircleOutlined,
-} from '@ant-design/icons'
-import { FolderOpenIcon, X } from 'lucide-react'
+} from '@ant-design/icons';
+import { FolderOpenIcon, X } from 'lucide-react';
 import {
   Button,
   Checkbox,
@@ -14,31 +15,33 @@ import {
   Modal,
   Select,
   Space,
-} from 'antd'
-import {
+} from 'antd';
+import type {
   InsightDashboardPartial,
   InsightDetail,
   InsightDisplayInfo,
-  InsightType,
   ListInsightsResponse,
-} from '@koh/common'
-import {
+} from '@koh/common';
+import { InsightType } from '@koh/common';
+import type {
   ChartComponent,
-  charts,
   ChartSize,
-  gantt_charts,
   GanttChartComponent,
-} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types'
-import { API } from '@/app/api'
+} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
+import {
+  charts,
+  gantt_charts,
+} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
+import { API } from '@/app/api';
 
 type DashboardPresetComponentProps = {
-  selectedDashboard?: string
-  setSelectedDashboard: (name?: string) => void
-  allPresets: InsightDashboardPartial[]
-  setAllPresets: (items: InsightDashboardPartial[]) => void
-  courseId: number
-  insightDirectory?: ListInsightsResponse
-}
+  selectedDashboard?: string;
+  setSelectedDashboard: (name?: string) => void;
+  allPresets: InsightDashboardPartial[];
+  setAllPresets: (items: InsightDashboardPartial[]) => void;
+  courseId: number;
+  insightDirectory?: ListInsightsResponse;
+};
 const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
   selectedDashboard,
   setSelectedDashboard,
@@ -49,57 +52,58 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
 }: DashboardPresetComponentProps) => {
   const [insightsList, setInsightsList] = useState<
     ListInsightsResponse | undefined
-  >(undefined)
-  const [nameValue, setNameValue] = useState<string>('')
+  >(undefined);
+  const [nameValue, setNameValue] = useState<string>('');
 
   useEffect(() => {
     API.insights
       .list()
-      .then((result: ListInsightsResponse) => setInsightsList(result))
-  }, [])
+      .then((result: ListInsightsResponse) => setInsightsList(result));
+  }, []);
 
-  const [isOpen, setIsOpen] = useState<boolean>(true)
-  const [isCreationModalOpen, setIsCreationModalOpen] = useState<boolean>(false)
-  const [presetDropdownOpen, setPresetDropdownOpen] = useState<boolean>(false)
-  const [selectedInsights, setSelectedInsights] = useState<string[]>([])
+  const [isOpen, setIsOpen] = useState<boolean>(true);
+  const [isCreationModalOpen, setIsCreationModalOpen] =
+    useState<boolean>(false);
+  const [presetDropdownOpen, setPresetDropdownOpen] = useState<boolean>(false);
+  const [selectedInsights, setSelectedInsights] = useState<string[]>([]);
 
   const toggleInsight = (name: string) => {
     setSelectedInsights((prev) =>
       prev.includes(name) ? prev.filter((s) => s != name) : [...prev, name],
-    )
-  }
+    );
+  };
 
   const translateSize = (size: ChartSize) => {
     switch (size) {
       case 'xs':
-        return 'Extra Small'
+        return 'Extra Small';
       case 'sm':
-        return 'Small'
+        return 'Small';
       case 'md':
-        return 'Medium'
+        return 'Medium';
       case 'lg':
-        return 'Large'
+        return 'Large';
       case 'xl':
-        return 'Extra Large'
+        return 'Extra Large';
       default:
-        return size.toUpperCase()
+        return size.toUpperCase();
     }
-  }
+  };
 
   const onCreatePreset = () => {
     if (selectedInsights.length <= 0 || insightDirectory == undefined) {
-      return
+      return;
     }
 
-    const preset: InsightDetail = {}
+    const preset: InsightDetail = {};
     Object.keys(insightDirectory).forEach((name) => {
-      const insight = insightDirectory[name]
+      const insight = insightDirectory[name];
       preset[name] = {
         category: insight.insightCategory,
         type: insight.insightType,
         active: selectedInsights.includes(name),
-      }
-    })
+      };
+    });
 
     API.insights
       .createOrUpdatePreset(
@@ -108,32 +112,32 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
         nameValue != '' ? nameValue : undefined,
       )
       .then((result: InsightDashboardPartial[]) => {
-        setAllPresets(result)
+        setAllPresets(result);
         if (selectedDashboard == undefined && result.length > 0) {
-          setSelectedDashboard(result[result.length - 1].name)
+          setSelectedDashboard(result[result.length - 1].name);
         }
-      })
+      });
 
-    onModalClose()
-  }
+    onModalClose();
+  };
 
   const preset = useMemo(
     () => allPresets?.find((p) => p.name == selectedDashboard),
     [allPresets, selectedDashboard],
-  )
+  );
 
   const onModalClose = () => {
-    setSelectedInsights([])
-    setNameValue('')
-    setIsCreationModalOpen(false)
-  }
+    setSelectedInsights([]);
+    setNameValue('');
+    setIsCreationModalOpen(false);
+  };
 
   const isOpenClass =
-    'flex flex-col gap-4 rounded-lg border-2 border-zinc-300 border-opacity-50 bg-white p-4 shadow-lg'
-  const pillContainerClass = 'flex flex-row flex-wrap gap-2 justify-end'
+    'flex flex-col gap-4 rounded-lg border-2 border-zinc-300 border-opacity-50 bg-white p-4 shadow-lg';
+  const pillContainerClass = 'flex flex-row flex-wrap gap-2 justify-end';
   const pillLabelClass =
-    'rounded-md py-1 px-2 border-2 border-blue-400 bg-blue-50 text-center flex justify-center items-center'
-  const disableButton = 'bg-zinc-300 hover:bg-zinc-400'
+    'rounded-md py-1 px-2 border-2 border-blue-400 bg-blue-50 text-center flex justify-center items-center';
+  const disableButton = 'bg-zinc-300 hover:bg-zinc-400';
 
   return (
     <>
@@ -185,17 +189,17 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
               return {
                 name: key,
                 displayInfo: insightsList[key],
-              }
+              };
             })}
             renderItem={(
               item: { name: string; displayInfo: InsightDisplayInfo },
               index: number,
             ) => {
-              const { name, displayInfo } = item
+              const { name, displayInfo } = item;
               let matchingChart: ChartComponent | GanttChartComponent =
-                charts[item.name]
+                charts[item.name];
               if (matchingChart == undefined) {
-                matchingChart = gantt_charts[item.name]
+                matchingChart = gantt_charts[item.name];
               }
 
               const detailsNode: React.ReactNode = (
@@ -229,7 +233,7 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
                         'Size Varies')}
                   </div>
                 </div>
-              )
+              );
               return (
                 <List.Item key={index} className="flex">
                   <label className="flex flex-auto">
@@ -248,7 +252,7 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
                     </div>
                   </label>
                 </List.Item>
-              )
+              );
             }}
             bordered
           />
@@ -279,8 +283,8 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
                   open={presetDropdownOpen}
                   value={selectedDashboard}
                   onChange={(v) => {
-                    setSelectedDashboard(v)
-                    setPresetDropdownOpen(false)
+                    setSelectedDashboard(v);
+                    setPresetDropdownOpen(false);
                   }}
                   filterOption={(input, option) =>
                     (option?.label ?? '').toLowerCase().includes(input)
@@ -291,7 +295,7 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
                       return {
                         value: preset.name,
                         label: preset.name,
-                      }
+                      };
                     }) ?? []
                   }
                   popupRender={(menu) => (
@@ -321,9 +325,9 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
                           Object.keys(preset.insights).filter(
                             (key) => preset.insights[key].active,
                           ),
-                        )
-                        setNameValue(preset?.name)
-                        setIsCreationModalOpen(true)
+                        );
+                        setNameValue(preset?.name);
+                        setIsCreationModalOpen(true);
                       }}
                     >
                       <EditOutlined />
@@ -342,10 +346,10 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
                                 (p) => p.name == selectedDashboard,
                               )
                             ) {
-                              setSelectedDashboard(undefined)
+                              setSelectedDashboard(undefined);
                             }
-                            setAllPresets(dashboard)
-                          })
+                            setAllPresets(dashboard);
+                          });
                       }}
                     >
                       <DeleteOutlined />
@@ -361,7 +365,7 @@ const DashboardPresetComponent: React.FC<DashboardPresetComponentProps> = ({
         </div>
       </div>
     </>
-  )
-}
+  );
+};
 
-export default DashboardPresetComponent
+export default DashboardPresetComponent;

@@ -1,63 +1,68 @@
-'use client'
+'use client';
 
-import { Alert, Button, Card, Form, Input, message, Select } from 'antd'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { LockOutlined, SyncOutlined, UserOutlined } from '@ant-design/icons'
-import Image from 'next/image'
-import ReCAPTCHA from 'react-google-recaptcha'
-import Link from 'next/link'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { isProd, LoginParam, OrganizationResponse } from '@koh/common'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { useLoginRedirectInfoProvider } from './LoginRedirectInfoProvider'
-import { cn, getErrorMessage } from '@/app/utils/generalUtils'
-import * as Sentry from '@sentry/nextjs'
-import { API } from '@/app/api'
-import { useLocalStorage } from '@/app/hooks/useLocalStorage'
+import { Alert, Button, Card, Form, Input, message, Select } from 'antd';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { LockOutlined, SyncOutlined, UserOutlined } from '@ant-design/icons';
+import Image from 'next/image';
+import ReCAPTCHA from 'react-google-recaptcha';
+import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import type { LoginParam, OrganizationResponse } from '@koh/common';
+import { isProd } from '@koh/common';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
+import { useLoginRedirectInfoProvider } from './LoginRedirectInfoProvider';
+import { cn, getErrorMessage } from '@/app/utils/generalUtils';
+import * as Sentry from '@sentry/nextjs';
+import { API } from '@/app/api';
+import { useLocalStorage } from '@/app/hooks/useLocalStorage';
 
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [accountActiveResponse, setAccountActiveResponse] = useState(true)
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [accountActiveResponse, setAccountActiveResponse] = useState(true);
 
-  const [organizations, setOrganizations] = useState<OrganizationResponse[]>([])
+  const [organizations, setOrganizations] = useState<OrganizationResponse[]>(
+    [],
+  );
   const [organization, setOrganization] = useState<OrganizationResponse | null>(
     null,
-  )
+  );
   const [hasRetrievedOrganizations, setHasRetrievedOrganizations] =
-    useState(false)
+    useState(false);
 
-  const [ltiSSOInitiated, setLtiSSOInitiated] = useState(false)
+  const [ltiSSOInitiated, setLtiSSOInitiated] = useState(false);
 
-  const recaptchaRef = React.createRef<ReCAPTCHA>()
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const pathName = usePathname()
+  const recaptchaRef = React.createRef<ReCAPTCHA>();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathName = usePathname();
 
   const isLti = useMemo(() => {
-    return pathName.startsWith('/lti')
-  }, [pathName])
+    return pathName.startsWith('/lti');
+  }, [pathName]);
 
   useEffect(() => {
     if (window.sessionStorage.getItem('lms_info') && !isLti) {
-      const params = new URLSearchParams(searchParams.toString())
-      const redirect = params.get('redirect')
+      const params = new URLSearchParams(searchParams.toString());
+      const redirect = params.get('redirect');
       if (redirect && !redirect.startsWith('/lti')) {
-        params.delete('redirect')
+        params.delete('redirect');
       }
-      router.push(`/lti/login${params.size > 0 ? '?' + params.toString() : ''}`)
+      router.push(
+        `/lti/login${params.size > 0 ? '?' + params.toString() : ''}`,
+      );
     }
-  }, [])
+  }, []);
 
-  const error = searchParams.get('error')
-  const [errorGettingOrgs, setErrorGettingOrgs] = useState(false)
-  const redirect = searchParams.get('redirect')
+  const error = searchParams.get('error');
+  const [errorGettingOrgs, setErrorGettingOrgs] = useState(false);
+  const redirect = searchParams.get('redirect');
   const [localStorageOrgId, setLocalStorageOrgId] = useLocalStorage<
     number | null
-  >('organizationId', null)
+  >('organizationId', null);
 
   const { invitedOrgId, invitedCourseId, invitedQueueId } =
-    useLoginRedirectInfoProvider()
+    useLoginRedirectInfoProvider();
 
   // capture error from the query params in sentry
   useEffect(() => {
@@ -66,160 +71,160 @@ const LoginPage: React.FC = () => {
         Sentry.captureEvent({
           message: 'Session Expired',
           level: 'info',
-        })
+        });
       } else {
-        Sentry.captureException(error)
+        Sentry.captureException(error);
       }
     }
-  }, [error])
+  }, [error]);
 
   const selectOrganization = useCallback(
     (value: number, newlyRetrievedOrganizations?: OrganizationResponse[]) => {
       const organizationsToUse = newlyRetrievedOrganizations
         ? newlyRetrievedOrganizations
-        : organizations
+        : organizations;
       if (organizationsToUse.length === 0) {
-        message.error('No organizations could be selected as none were found')
+        message.error('No organizations could be selected as none were found');
         Sentry.captureEvent({
           message:
             'No organizations could be selected as none were found. This should not happen.',
           level: 'error',
-        })
-        return
+        });
+        return;
       }
-      const organization = organizationsToUse.find((org) => org.id === value)
+      const organization = organizationsToUse.find((org) => org.id === value);
       if (!organization) {
-        message.error('Organization not found')
+        message.error('Organization not found');
         Sentry.captureEvent({
           message: 'Organization not found',
           level: 'error',
           extra: {
             value,
           },
-        })
-        return
+        });
+        return;
       }
-      setLocalStorageOrgId(organization.id)
-      setOrganization(organization)
+      setLocalStorageOrgId(organization.id);
+      setOrganization(organization);
     },
     [organizations, setLocalStorageOrgId],
-  )
+  );
 
   const smartlySetOrganization = useCallback(
     async (organizations: OrganizationResponse[]) => {
       if (organizations.length === 1) {
-        selectOrganization(organizations[0].id, organizations)
+        selectOrganization(organizations[0].id, organizations);
       } else if (invitedOrgId) {
         // get courseId from SECURE_REDIRECT (from invite code) and get the course's organization, and then set the organization to that
-        selectOrganization(invitedOrgId, organizations)
+        selectOrganization(invitedOrgId, organizations);
       } else if (localStorageOrgId) {
         // if no invite ID, set it to whatever was in local storage (idea being that if you selected this org before, you probably want to select it again)
-        selectOrganization(localStorageOrgId, organizations)
+        selectOrganization(localStorageOrgId, organizations);
       } else {
         // try to select the UBC organization as a default for everyone
-        const UBCOrg = organizations.find((org) => org.id === 1)
+        const UBCOrg = organizations.find((org) => org.id === 1);
         if (UBCOrg) {
-          selectOrganization(UBCOrg.id, organizations)
+          selectOrganization(UBCOrg.id, organizations);
         } else {
           // if worst comes to worst, just select the first organization so that *something* is selected
-          selectOrganization(organizations[0].id, organizations)
+          selectOrganization(organizations[0].id, organizations);
         }
       }
     },
     [invitedOrgId, selectOrganization, localStorageOrgId],
-  )
+  );
 
   useEffect(() => {
     async function getOrganizations() {
       try {
-        const organizations = await API.organizations.getOrganizations()
-        setOrganizations(organizations)
-        smartlySetOrganization(organizations)
-        setHasRetrievedOrganizations(true)
+        const organizations = await API.organizations.getOrganizations();
+        setOrganizations(organizations);
+        smartlySetOrganization(organizations);
+        setHasRetrievedOrganizations(true);
       } catch (error: any) {
-        message.error(error)
-        setErrorGettingOrgs(true)
-        return
+        message.error(error);
+        setErrorGettingOrgs(true);
+        return;
       }
     }
-    getOrganizations()
-  }, [])
+    getOrganizations();
+  }, []);
 
   async function login() {
-    let loginData: LoginParam
+    let loginData: LoginParam;
     if (isProd()) {
-      const token = (await recaptchaRef?.current?.executeAsync()) ?? ''
+      const token = (await recaptchaRef?.current?.executeAsync()) ?? '';
       if (organization && !organization.legacyAuthEnabled) {
         message.error(
           'Organization does not support login with username/password',
-        )
-        return
+        );
+        return;
       }
       loginData = {
         email,
         password,
         recaptchaToken: token,
-      }
+      };
     } else {
       loginData = {
         email,
         password,
         recaptchaToken: '',
-      }
+      };
     }
 
     const response = await API.login.index(loginData).catch((err: any) => {
       switch (err.status) {
         case 401:
-          message.error(getErrorMessage(err))
-          break
+          message.error(getErrorMessage(err));
+          break;
         case 403:
-          setAccountActiveResponse(false)
-          break
+          setAccountActiveResponse(false);
+          break;
         case 404:
-          message.error('User Not Found')
-          break
+          message.error('User Not Found');
+          break;
         case 429:
-          message.error('Too many requests. Please try again after 1min')
-          break
+          message.error('Too many requests. Please try again after 1min');
+          break;
         default:
-          message.error(getErrorMessage(err))
-          break
+          message.error(getErrorMessage(err));
+          break;
       }
-    })
+    });
     if (!response) {
-      return
+      return;
     }
 
-    const data = response.data
+    const data = response.data;
     const params = new URLSearchParams({
       token: data.token,
-    })
+    });
     if (redirect) {
-      params.append('redirect', redirect)
+      params.append('redirect', redirect);
     }
     if (!redirect && isLti) {
-      params.set('redirect', '/lti')
+      params.set('redirect', '/lti');
     }
-    router.push(isLti ? API.lti.auth.entry(params) : API.login.entry(params))
+    router.push(isLti ? API.lti.auth.entry(params) : API.login.entry(params));
   }
 
   async function loginWithGoogle() {
-    const id = organization?.id ?? -1
+    const id = organization?.id ?? -1;
     const response = await (isLti
       ? API.lti.auth.loginWithGoogle(id)
-      : API.auth.loginWithGoogle(id))
+      : API.auth.loginWithGoogle(id));
 
-    const contentType = response.headers['content-type'] || ''
+    const contentType = response.headers['content-type'] || '';
 
     if (
       typeof contentType !== 'number' &&
       typeof contentType !== 'boolean' &&
       contentType.includes('application/json')
     ) {
-      const data = response.data
+      const data = response.data;
       if (response.status !== 200) {
-        message.error(data.message)
+        message.error(data.message);
         Sentry.captureEvent({
           message: `Error with loginWithGoogle ${response.status}: ${response.statusText}`,
           level: 'error',
@@ -228,17 +233,17 @@ const LoginPage: React.FC = () => {
             data,
             response,
           },
-        })
-        return
+        });
+        return;
       }
       if (isLti) {
-        window.open(data.redirectUri, '_blank', 'noopener,noreferrer')
-        setLtiSSOInitiated(true)
+        window.open(data.redirectUri, '_blank', 'noopener,noreferrer');
+        setLtiSSOInitiated(true);
       } else {
-        router.push(data.redirectUri)
+        router.push(data.redirectUri);
       }
     } else {
-      const text = response.data as string
+      const text = response.data as string;
       Sentry.captureEvent({
         message: `Error with loginWithGoogle ${response.status}: ${response.statusText}`,
         level: 'error',
@@ -246,14 +251,14 @@ const LoginPage: React.FC = () => {
           text,
           response,
         },
-      })
-      message.error(text)
+      });
+      message.error(text);
     }
   }
 
   async function onReCAPTCHAChange(captchaCode: string | null) {
-    if (!captchaCode) return
-    recaptchaRef?.current?.reset()
+    if (!captchaCode) return;
+    recaptchaRef?.current?.reset();
   }
 
   if (ltiSSOInitiated) {
@@ -277,7 +282,7 @@ const LoginPage: React.FC = () => {
           </Button>
         </div>
       </main>
-    )
+    );
   }
 
   if (errorGettingOrgs) {
@@ -294,7 +299,7 @@ const LoginPage: React.FC = () => {
           />
         </div>
       </main>
-    )
+    );
   } else if (!organizations || organizations?.length === 0) {
     return (
       <main
@@ -310,7 +315,7 @@ const LoginPage: React.FC = () => {
           <CenteredSpinner tip="Loading Organizations..." />
         )}
       </main>
-    )
+    );
   } else {
     return (
       <main>
@@ -371,11 +376,11 @@ const LoginPage: React.FC = () => {
                     return {
                       label: organization.name,
                       value: organization.id,
-                    }
+                    };
                   })}
                   value={organization?.id}
                   onChange={(value) => {
-                    selectOrganization(value)
+                    selectOrganization(value);
                   }}
                 />
               </div>
@@ -387,9 +392,9 @@ const LoginPage: React.FC = () => {
                   )}
                   onClick={(event) => {
                     if (isLti) {
-                      event.preventDefault()
-                      window.open(event.currentTarget.href)
-                      setLtiSSOInitiated(true)
+                      event.preventDefault();
+                      window.open(event.currentTarget.href);
+                      setLtiSSOInitiated(true);
                     }
                   }}
                   prefetch={false}
@@ -535,8 +540,8 @@ const LoginPage: React.FC = () => {
           </Card>
         </div>
       </main>
-    )
+    );
   }
-}
+};
 
-export default LoginPage
+export default LoginPage;

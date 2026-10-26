@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class LoginFlowModels1639939836105 implements MigrationInterface {
   name = 'LoginFlowModels1639939836105';

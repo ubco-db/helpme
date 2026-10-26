@@ -1,7 +1,9 @@
-import { TestingModule, Test } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
-import { GetProfileResponse, AccountType, UserRole } from '@koh/common';
+import type { GetProfileResponse } from '@koh/common';
+import { AccountType, UserRole } from '@koh/common';
 import Redis from 'ioredis';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { DataSource } from 'typeorm';

@@ -1,9 +1,14 @@
-'use client'
+'use client';
 
-import { CreateLtiPlatform, LtiPlatform, UpdateLtiPlatform } from '@koh/common'
-import { ReactElement, useEffect, useMemo, useState } from 'react'
-import useSWRImmutable from 'swr/immutable'
-import { API } from '@/app/api'
+import type {
+  CreateLtiPlatform,
+  LtiPlatform,
+  UpdateLtiPlatform,
+} from '@koh/common';
+import type { ReactElement } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import useSWRImmutable from 'swr/immutable';
+import { API } from '@/app/api';
 import {
   Badge,
   Button,
@@ -15,140 +20,140 @@ import {
   Select,
   Table,
   Tooltip,
-} from 'antd'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+} from 'antd';
+import { getErrorMessage } from '@/app/utils/generalUtils';
 import {
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
   SearchOutlined,
   SyncOutlined,
-} from '@ant-design/icons'
-import UpsertLtiPlatformModal from '@/app/admin/lti/components/UpsertLtiPlatformModal'
+} from '@ant-design/icons';
+import UpsertLtiPlatformModal from '@/app/admin/lti/components/UpsertLtiPlatformModal';
 
 export default function LtiAdminPage(): ReactElement {
-  const [ltiPlatforms, setLtiPlatforms] = useState<LtiPlatform[]>([])
-  const [isCreating, setIsCreating] = useState(false)
-  const [focus, setFocus] = useState<LtiPlatform>()
-  const [search, setSearch] = useState<string>()
-  const [page, setPage] = useState(1)
+  const [ltiPlatforms, setLtiPlatforms] = useState<LtiPlatform[]>([]);
+  const [isCreating, setIsCreating] = useState(false);
+  const [focus, setFocus] = useState<LtiPlatform>();
+  const [search, setSearch] = useState<string>();
+  const [page, setPage] = useState(1);
   const { data: organizations = [] } = useSWRImmutable(
     'lti/organizations',
     () => API.organizations.getOrganizations(),
     { onError: (error) => message.error(getErrorMessage(error)) },
-  )
-  const [assigningId, setAssigningId] = useState<string>()
+  );
+  const [assigningId, setAssigningId] = useState<string>();
   const assignOrganization = async (
     platform: LtiPlatform,
     organizationId: number | null,
   ) => {
-    setAssigningId(platform.kid)
+    setAssigningId(platform.kid);
     try {
-      await API.lti.admin.assignOrganization(platform.kid, organizationId)
-      setLtiPlatforms(await API.lti.admin.getPlatforms())
-      message.success('LTI organization updated.')
+      await API.lti.admin.assignOrganization(platform.kid, organizationId);
+      setLtiPlatforms(await API.lti.admin.getPlatforms());
+      message.success('LTI organization updated.');
     } catch (error) {
-      message.error(getErrorMessage(error))
+      message.error(getErrorMessage(error));
     } finally {
-      setAssigningId(undefined)
+      setAssigningId(undefined);
     }
-  }
+  };
 
   useEffect(() => {
     const getData = async () => {
       await API.lti.admin
         .getPlatforms()
         .then((platforms) => {
-          setLtiPlatforms(platforms)
+          setLtiPlatforms(platforms);
         })
         .catch((err) => {
           message.error(
             `Failed to retrieve LTI platforms: ${getErrorMessage(err)}`,
-          )
-        })
-    }
-    getData()
-  }, [])
+          );
+        });
+    };
+    getData();
+  }, []);
 
   const createLtiPlatform = async (params: CreateLtiPlatform) => {
     return await API.lti.admin
       .createPlatform(params)
       .then((platform) => {
-        setLtiPlatforms((prev) => [...prev, platform])
-        return true
+        setLtiPlatforms((prev) => [...prev, platform]);
+        return true;
       })
       .catch((err) => {
-        message.error(`Failed to create LTI platform: ${getErrorMessage(err)}`)
-        return false
-      })
-  }
+        message.error(`Failed to create LTI platform: ${getErrorMessage(err)}`);
+        return false;
+      });
+  };
 
   const updateLtiPlatform = async (id: string, params: UpdateLtiPlatform) => {
     return await API.lti.admin
       .updatePlatform(id, params)
       .then((platform) => {
-        const idxOf = ltiPlatforms.findIndex((p) => p.kid == id)
+        const idxOf = ltiPlatforms.findIndex((p) => p.kid == id);
         if (idxOf >= 0) {
           setLtiPlatforms((prev) => [
             ...prev.slice(0, idxOf),
             { ...platform, organizationId: prev[idxOf].organizationId },
             ...prev.slice(idxOf + 1),
-          ])
+          ]);
         }
-        return true
+        return true;
       })
       .catch((err) => {
-        message.error(`Failed to update LTI platform: ${getErrorMessage(err)}`)
-        return false
-      })
-  }
+        message.error(`Failed to update LTI platform: ${getErrorMessage(err)}`);
+        return false;
+      });
+  };
 
   const deleteLtiPlatform = async (id: string) => {
     return await API.lti.admin
       .deletePlatform(id)
       .then(() => {
-        setLtiPlatforms((prev) => prev.filter((p) => p.kid != id))
-        return true
+        setLtiPlatforms((prev) => prev.filter((p) => p.kid != id));
+        return true;
       })
       .catch((err) => {
-        message.error(`Failed to delete LTI platform: ${getErrorMessage(err)}`)
-        return false
-      })
-  }
+        message.error(`Failed to delete LTI platform: ${getErrorMessage(err)}`);
+        return false;
+      });
+  };
 
   const toggleLtiPlatform = async (id: string) => {
     return await API.lti.admin
       .togglePlatform(id)
       .then((platform) => {
-        const idxOf = ltiPlatforms.findIndex((p) => p.kid == id)
+        const idxOf = ltiPlatforms.findIndex((p) => p.kid == id);
         if (idxOf >= 0) {
           setLtiPlatforms((prev) => [
             ...prev.slice(0, idxOf),
             { ...platform, organizationId: prev[idxOf].organizationId },
             ...prev.slice(idxOf + 1),
-          ])
+          ]);
         }
-        return true
+        return true;
       })
       .catch((err) => {
-        message.error(`Failed to update LTI platform: ${getErrorMessage(err)}`)
-        return false
-      })
-  }
+        message.error(`Failed to update LTI platform: ${getErrorMessage(err)}`);
+        return false;
+      });
+  };
 
   const checkLtiRegistration = async (id: string) => {
     return await API.lti.admin
       .checkRegistration(id)
       .then((response) => {
-        return response != undefined
+        return response != undefined;
       })
       .catch((err) => {
         message.error(
           `Failed to check LTI platform registration: ${getErrorMessage(err)}`,
-        )
-        return false
-      })
-  }
+        );
+        return false;
+      });
+  };
 
   const matchingPlatforms = useMemo(
     () =>
@@ -162,12 +167,12 @@ export default function LtiAdminPage(): ReactElement {
           )
         : ltiPlatforms,
     [ltiPlatforms, search],
-  )
+  );
 
   const paginatedPlatforms = useMemo(
     () => matchingPlatforms.slice((page - 1) * 20, page * 20),
     [matchingPlatforms, page],
-  )
+  );
 
   const columns: any[] = [
     {
@@ -290,7 +295,7 @@ export default function LtiAdminPage(): ReactElement {
         </div>
       ),
     },
-  ]
+  ];
   return (
     <>
       <div className={'flex w-full flex-grow flex-col gap-4'}>
@@ -302,8 +307,8 @@ export default function LtiAdminPage(): ReactElement {
             prefix={<SearchOutlined />}
             value={search}
             onChange={(e) => {
-              setSearch(e.target.value)
-              setPage(1)
+              setSearch(e.target.value);
+              setPage(1);
             }}
           />
           {matchingPlatforms.length > 20 && (
@@ -333,5 +338,5 @@ export default function LtiAdminPage(): ReactElement {
         )}
       </div>
     </>
-  )
+  );
 }

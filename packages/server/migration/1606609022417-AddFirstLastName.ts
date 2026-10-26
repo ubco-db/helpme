@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddFirstLastName1606609022417 implements MigrationInterface {
   name = 'AddFirstLastName1606609022417';

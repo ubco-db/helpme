@@ -1,16 +1,16 @@
-import React from 'react'
-import Markdown from 'react-markdown'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import type React from 'react';
+import Markdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import {
   coldarkCold,
   dracula,
   oneLight,
-} from 'react-syntax-highlighter/dist/esm/styles/prism'
-import remarkMath from 'remark-math'
-import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
-import rehypeKatex from 'rehype-katex'
-import 'katex/dist/katex.min.css'
+} from 'react-syntax-highlighter/dist/esm/styles/prism';
+import remarkMath from 'remark-math';
+import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 /**
  * Preprocesses the text to wrap LaTeX expressions with dollar signs.
@@ -22,12 +22,12 @@ import 'katex/dist/katex.min.css'
 const preprocessText = (text: string): string => {
   return text
     .replace(/\\\((.*?)\\\)/g, (_, expr) => `$$${expr}$$`) // Inline LaTeX expressions
-    .replace(/\\\[(.*?)\\\]/gs, (_, expr) => `$$${expr}$$`) // Block LaTeX expressions
-}
+    .replace(/\\\[(.*?)\\\]/gs, (_, expr) => `$$${expr}$$`); // Block LaTeX expressions
+};
 
 interface MarkdownCustomProps {
-  children: string
-  variant?: 'white' | 'blue' | 'lightblue'
+  children: string;
+  variant?: 'white' | 'blue' | 'lightblue';
 }
 
 /**
@@ -38,7 +38,7 @@ const MarkdownCustom: React.FC<MarkdownCustomProps> = ({
   children,
   variant = 'white',
 }) => {
-  const preprocessedText = preprocessText(children)
+  const preprocessedText = preprocessText(children);
 
   return (
     <Markdown
@@ -51,7 +51,7 @@ const MarkdownCustom: React.FC<MarkdownCustomProps> = ({
       rehypePlugins={[rehypeKatex]} // renders LaTex math expressions using KaTeX
       components={{
         code({ node, inline, className, children, ...props }: any) {
-          const match = /language-(\w+)/.exec(className || '')
+          const match = /language-(\w+)/.exec(className || '');
           return !inline && match ? (
             <>
               <SyntaxHighlighter
@@ -73,7 +73,7 @@ const MarkdownCustom: React.FC<MarkdownCustomProps> = ({
             <code className={className} {...props}>
               {children}
             </code>
-          )
+          );
         },
         ul: ({ children }) => (
           <ul className="ml-6 list-disc space-y-1">{children}</ul>
@@ -103,7 +103,7 @@ const MarkdownCustom: React.FC<MarkdownCustomProps> = ({
     >
       {preprocessedText}
     </Markdown>
-  )
-}
+  );
+};
 
-export default MarkdownCustom
+export default MarkdownCustom;

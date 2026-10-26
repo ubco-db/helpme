@@ -1,13 +1,14 @@
-'use client'
+'use client';
 
-import { ReactElement, useEffect } from 'react'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { useChatbotContext } from '@/app/(dashboard)/course/[cid]/components/chatbot/ChatbotProvider'
-import Chatbot from '@/app/(dashboard)/course/[cid]/components/chatbot/Chatbot'
-import { useLtiCourse } from '@/app/contexts/LtiCourseContext'
+import type { ReactElement } from 'react';
+import { useEffect } from 'react';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
+import { useChatbotContext } from '@/app/(dashboard)/course/[cid]/components/chatbot/ChatbotProvider';
+import Chatbot from '@/app/(dashboard)/course/[cid]/components/chatbot/Chatbot';
+import { useLtiCourse } from '@/app/contexts/LtiCourseContext';
 
 export default function LtiCoursePage(): ReactElement {
-  const { courseId, course, courseFeatures } = useLtiCourse()
+  const { courseId, course, courseFeatures } = useLtiCourse();
 
   // chatbot
   const {
@@ -24,14 +25,14 @@ export default function LtiCoursePage(): ReactElement {
     setHelpmeQuestionId,
     chatbotQuestionType,
     setChatbotQuestionType,
-  } = useChatbotContext()
+  } = useChatbotContext();
 
   useEffect(() => {
-    setCid(courseId)
-  }, [courseId, setCid])
+    setCid(courseId);
+  }, [courseId, setCid]);
 
   if (!course || !courseFeatures) {
-    return <CenteredSpinner tip="Loading Course Data..." />
+    return <CenteredSpinner tip="Loading Course Data..." />;
   } else {
     return (
       <>
@@ -64,6 +65,6 @@ export default function LtiCoursePage(): ReactElement {
           </div>
         )}
       </>
-    )
+    );
   }
 }

@@ -1,32 +1,33 @@
-import { LimboQuestionStatus, Question } from '@koh/common'
-import { Button } from 'antd'
-import Modal from 'antd/lib/modal/Modal'
-import { DoorOpen, RotateCcw } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import type { Question } from '@koh/common';
+import { LimboQuestionStatus } from '@koh/common';
+import { Button } from 'antd';
+import Modal from 'antd/lib/modal/Modal';
+import { DoorOpen, RotateCcw } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 type StudentRemovedFromQueueModalProps = {
-  question: Question | undefined
-  leaveQueue: () => Promise<void>
-  joinQueue: () => Promise<void>
-}
+  question: Question | undefined;
+  leaveQueue: () => Promise<void>;
+  joinQueue: () => Promise<void>;
+};
 
 const StudentRemovedFromQueueModal: React.FC<
   StudentRemovedFromQueueModalProps
 > = ({ question, leaveQueue, joinQueue }) => {
-  const [isLeaveLoading, setIsLeaveLoading] = useState(false)
-  const [isRejoinLoading, setIsRejoinLoading] = useState(false)
-  const [modalJustOpened, setModalJustOpened] = useState(true)
+  const [isLeaveLoading, setIsLeaveLoading] = useState(false);
+  const [isRejoinLoading, setIsRejoinLoading] = useState(false);
+  const [modalJustOpened, setModalJustOpened] = useState(true);
   setTimeout(() => {
-    setModalJustOpened(false)
-  }, 1000)
+    setModalJustOpened(false);
+  }, 1000);
   useEffect(() => {
     if (question?.status === LimboQuestionStatus.TADeleted) {
-      setModalJustOpened(true)
+      setModalJustOpened(true);
       setTimeout(() => {
-        setModalJustOpened(false)
-      }, 1000)
+        setModalJustOpened(false);
+      }, 1000);
     }
-  }, [question])
+  }, [question]);
   return (
     <Modal
       open={question?.status === LimboQuestionStatus.TADeleted}
@@ -38,9 +39,9 @@ const StudentRemovedFromQueueModal: React.FC<
           type="default"
           key="leave"
           onClick={async () => {
-            setIsLeaveLoading(true)
-            await leaveQueue()
-            setIsLeaveLoading(false)
+            setIsLeaveLoading(true);
+            await leaveQueue();
+            setIsLeaveLoading(false);
           }}
           loading={isLeaveLoading}
           disabled={modalJustOpened}
@@ -54,9 +55,9 @@ const StudentRemovedFromQueueModal: React.FC<
           type="default"
           key="rejoin"
           onClick={async () => {
-            setIsRejoinLoading(true)
-            await joinQueue()
-            setIsRejoinLoading(false)
+            setIsRejoinLoading(true);
+            await joinQueue();
+            setIsRejoinLoading(false);
           }}
           loading={isRejoinLoading}
           disabled={modalJustOpened}
@@ -79,7 +80,7 @@ const StudentRemovedFromQueueModal: React.FC<
         </p>
       </div>
     </Modal>
-  )
-}
+  );
+};
 
-export default StudentRemovedFromQueueModal
+export default StudentRemovedFromQueueModal;

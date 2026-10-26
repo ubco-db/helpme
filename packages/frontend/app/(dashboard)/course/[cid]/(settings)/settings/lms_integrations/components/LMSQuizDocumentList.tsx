@@ -6,8 +6,9 @@ import {
   SearchOutlined,
   StopOutlined,
   SyncOutlined,
-} from '@ant-design/icons'
-import { LMSQuiz, LMSQuizAccessLevel, LMSResourceType } from '@koh/common'
+} from '@ant-design/icons';
+import type { LMSQuiz } from '@koh/common';
+import { LMSQuizAccessLevel, LMSResourceType } from '@koh/common';
 import {
   Badge,
   Button,
@@ -19,20 +20,20 @@ import {
   Select,
   Spin,
   Tooltip,
-} from 'antd'
-import { useEffect, useMemo, useState } from 'react'
-import { cn, getErrorMessage } from '@/app/utils/generalUtils'
-import { API } from '@/app/api'
-import QuizContentPreviewModal from './QuizContentPreviewModal'
+} from 'antd';
+import { useEffect, useMemo, useState } from 'react';
+import { cn, getErrorMessage } from '@/app/utils/generalUtils';
+import { API } from '@/app/api';
+import QuizContentPreviewModal from './QuizContentPreviewModal';
 
 export interface LMSQuizDocumentListProps {
-  courseId: number
-  documents: LMSQuiz[]
-  loadingLMSData?: boolean
-  lmsSynchronize?: boolean
-  lmsApiPlatformName: string
-  onUpdateCallback?: () => void
-  selectedResourceTypes?: LMSResourceType[]
+  courseId: number;
+  documents: LMSQuiz[];
+  loadingLMSData?: boolean;
+  lmsSynchronize?: boolean;
+  lmsApiPlatformName: string;
+  onUpdateCallback?: () => void;
+  selectedResourceTypes?: LMSResourceType[];
 }
 
 const accessLevelLabels = {
@@ -41,7 +42,7 @@ const accessLevelLabels = {
   [LMSQuizAccessLevel.LOGISTICS_QUESTIONS_GENERAL_COMMENTS]:
     'Logistics + Questions + Comments',
   [LMSQuizAccessLevel.FULL_ACCESS]: 'Full Access',
-}
+};
 
 const accessLevelDescriptions = {
   [LMSQuizAccessLevel.LOGISTICS_ONLY]:
@@ -52,7 +53,7 @@ const accessLevelDescriptions = {
     'Logistics + questions + general quiz comments',
   [LMSQuizAccessLevel.FULL_ACCESS]:
     'Complete quiz content including all answers and detailed feedback',
-}
+};
 
 export default function LMSQuizDocumentList({
   courseId,
@@ -63,14 +64,14 @@ export default function LMSQuizDocumentList({
   onUpdateCallback = () => undefined,
   selectedResourceTypes = [LMSResourceType.QUIZZES],
 }: LMSQuizDocumentListProps) {
-  const [search, setSearch] = useState<string>('')
-  const [page, setPage] = useState<number>(1)
-  const [pageSize, setPageSize] = useState<number>(25)
-  const [loading, setLoading] = useState<string[]>([])
-  const [accessLevelLoading, setAccessLevelLoading] = useState<string[]>([])
-  const [previewModalOpen, setPreviewModalOpen] = useState(false)
-  const [previewQuiz, setPreviewQuiz] = useState<LMSQuiz | null>(null)
-  const [bulkSyncLoading, setBulkSyncLoading] = useState(false)
+  const [search, setSearch] = useState<string>('');
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(25);
+  const [loading, setLoading] = useState<string[]>([]);
+  const [accessLevelLoading, setAccessLevelLoading] = useState<string[]>([]);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewQuiz, setPreviewQuiz] = useState<LMSQuiz | null>(null);
+  const [bulkSyncLoading, setBulkSyncLoading] = useState(false);
 
   const filteredDocuments = useMemo(() => {
     return documents
@@ -82,133 +83,133 @@ export default function LMSQuizDocumentList({
       .sort((a, b) => {
         // Sort by due date if available, otherwise by title
         if (a.due && b.due) {
-          return new Date(a.due).getTime() - new Date(b.due).getTime()
+          return new Date(a.due).getTime() - new Date(b.due).getTime();
         } else if (a.due) {
-          return -1
+          return -1;
         } else if (b.due) {
-          return 1
+          return 1;
         } else {
-          return a.title.localeCompare(b.title)
+          return a.title.localeCompare(b.title);
         }
-      })
-  }, [documents, search])
+      });
+  }, [documents, search]);
 
   const paginatedDocuments = useMemo(() => {
-    const startIndex = (page - 1) * pageSize
-    return filteredDocuments.slice(startIndex, startIndex + pageSize)
-  }, [filteredDocuments, page, pageSize])
+    const startIndex = (page - 1) * pageSize;
+    return filteredDocuments.slice(startIndex, startIndex + pageSize);
+  }, [filteredDocuments, page, pageSize]);
 
   const handleToggleSync = async (quiz: LMSQuiz) => {
-    if (loading.includes(quiz.id.toString())) return
+    if (loading.includes(quiz.id.toString())) return;
 
-    setLoading([...loading, quiz.id.toString()])
+    setLoading([...loading, quiz.id.toString()]);
     try {
-      const updatedQuiz = { ...quiz, syncEnabled: !quiz.syncEnabled }
-      await API.lmsIntegration.toggleSyncQuiz(courseId, quiz.id, updatedQuiz)
-      onUpdateCallback()
+      const updatedQuiz = { ...quiz, syncEnabled: !quiz.syncEnabled };
+      await API.lmsIntegration.toggleSyncQuiz(courseId, quiz.id, updatedQuiz);
+      onUpdateCallback();
       message.success(
         `Quiz sync ${updatedQuiz.syncEnabled ? 'enabled' : 'disabled'}`,
-      )
+      );
     } catch (error) {
-      message.error(getErrorMessage(error))
+      message.error(getErrorMessage(error));
     } finally {
-      setLoading(loading.filter((id) => id !== quiz.id.toString()))
+      setLoading(loading.filter((id) => id !== quiz.id.toString()));
     }
-  }
+  };
 
   const handleAccessLevelChange = async (
     quiz: LMSQuiz,
     accessLevel: LMSQuizAccessLevel,
   ) => {
-    if (accessLevelLoading.includes(quiz.id.toString())) return
+    if (accessLevelLoading.includes(quiz.id.toString())) return;
 
-    setAccessLevelLoading([...accessLevelLoading, quiz.id.toString()])
+    setAccessLevelLoading([...accessLevelLoading, quiz.id.toString()]);
     try {
       await API.lmsIntegration.updateQuizAccessLevel(
         courseId,
         quiz.id,
         accessLevel,
-      )
-      onUpdateCallback()
-      message.success('Quiz access level updated')
+      );
+      onUpdateCallback();
+      message.success('Quiz access level updated');
     } catch (error) {
-      message.error(getErrorMessage(error))
+      message.error(getErrorMessage(error));
     } finally {
       setAccessLevelLoading(
         accessLevelLoading.filter((id) => id !== quiz.id.toString()),
-      )
+      );
     }
-  }
+  };
 
   const handlePreviewQuiz = (quiz: LMSQuiz) => {
-    setPreviewQuiz(quiz)
-    setPreviewModalOpen(true)
-  }
+    setPreviewQuiz(quiz);
+    setPreviewModalOpen(true);
+  };
 
   const handleClosePreview = () => {
-    setPreviewModalOpen(false)
-    setPreviewQuiz(null)
-  }
+    setPreviewModalOpen(false);
+    setPreviewQuiz(null);
+  };
 
   const handleBulkDisableSync = async () => {
-    if (bulkSyncLoading) return
+    if (bulkSyncLoading) return;
 
-    setBulkSyncLoading(true)
+    setBulkSyncLoading(true);
     try {
-      await API.lmsIntegration.bulkUpdateQuizSync(courseId, 'disable')
-      onUpdateCallback()
-      message.success('Successfully disabled sync for all quizzes')
+      await API.lmsIntegration.bulkUpdateQuizSync(courseId, 'disable');
+      onUpdateCallback();
+      message.success('Successfully disabled sync for all quizzes');
     } catch (error) {
-      message.error(getErrorMessage(error))
+      message.error(getErrorMessage(error));
     } finally {
-      setBulkSyncLoading(false)
+      setBulkSyncLoading(false);
     }
-  }
+  };
 
   const handleBulkEnableSync = async () => {
-    if (bulkSyncLoading) return
+    if (bulkSyncLoading) return;
 
-    const allQuizIds = documents.map((quiz) => quiz.id)
+    const allQuizIds = documents.map((quiz) => quiz.id);
     if (allQuizIds.length === 0) {
-      message.warning('No quizzes available to enable')
-      return
+      message.warning('No quizzes available to enable');
+      return;
     }
 
-    setBulkSyncLoading(true)
+    setBulkSyncLoading(true);
     try {
       await API.lmsIntegration.bulkUpdateQuizSync(
         courseId,
         'enable',
         allQuizIds,
-      )
-      onUpdateCallback()
-      message.success('Successfully enabled sync for all quizzes')
+      );
+      onUpdateCallback();
+      message.success('Successfully enabled sync for all quizzes');
     } catch (error) {
-      message.error(getErrorMessage(error))
+      message.error(getErrorMessage(error));
     } finally {
-      setBulkSyncLoading(false)
+      setBulkSyncLoading(false);
     }
-  }
+  };
 
   const getQuizBadges = (quiz: LMSQuiz) => {
-    const badges = []
+    const badges = [];
 
     if (quiz.due) {
-      const dueDate = new Date(quiz.due)
-      const isOverdue = dueDate < new Date()
+      const dueDate = new Date(quiz.due);
+      const isOverdue = dueDate < new Date();
       badges.push(
         <Badge
           key="due"
           color={isOverdue ? 'red' : 'blue'}
           text={`Due: ${dueDate.toLocaleDateString()}`}
         />,
-      )
+      );
     }
 
     if (quiz.timeLimit) {
       badges.push(
         <Badge key="time" color="orange" text={`${quiz.timeLimit} min`} />,
-      )
+      );
     }
 
     if (quiz.allowedAttempts) {
@@ -218,15 +219,15 @@ export default function LMSQuizDocumentList({
           color="purple"
           text={`${quiz.allowedAttempts} attempt${quiz.allowedAttempts > 1 ? 's' : ''}`}
         />,
-      )
+      );
     }
 
-    return badges
-  }
+    return badges;
+  };
 
   const isQuizSyncEnabled = selectedResourceTypes.includes(
     LMSResourceType.QUIZZES,
-  )
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -306,12 +307,12 @@ export default function LMSQuizDocumentList({
           <List
             dataSource={paginatedDocuments}
             renderItem={(quiz) => {
-              const isItemLoading = loading.includes(quiz.id.toString())
+              const isItemLoading = loading.includes(quiz.id.toString());
               const isAccessLevelLoading = accessLevelLoading.includes(
                 quiz.id.toString(),
-              )
+              );
               const currentAccessLevel =
-                quiz.accessLevel || LMSQuizAccessLevel.LOGISTICS_ONLY
+                quiz.accessLevel || LMSQuizAccessLevel.LOGISTICS_ONLY;
 
               return (
                 <List.Item
@@ -401,7 +402,7 @@ export default function LMSQuizDocumentList({
                     </div>
                   </div>
                 </List.Item>
-              )
+              );
             }}
           />
 
@@ -413,8 +414,8 @@ export default function LMSQuizDocumentList({
                 pageSize={pageSize}
                 total={filteredDocuments.length}
                 onChange={(newPage, newPageSize) => {
-                  setPage(newPage)
-                  if (newPageSize) setPageSize(newPageSize)
+                  setPage(newPage);
+                  if (newPageSize) setPageSize(newPageSize);
                 }}
                 showSizeChanger
                 showQuickJumper
@@ -449,5 +450,5 @@ export default function LMSQuizDocumentList({
         />
       )}
     </div>
-  )
+  );
 }

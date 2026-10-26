@@ -1,9 +1,9 @@
-import { cn } from '@/app/utils/generalUtils'
-import { ReactElement } from 'react'
+import { cn } from '@/app/utils/generalUtils';
+import type { ReactElement } from 'react';
 
 interface QueueHeaderProps {
-  text: string
-  visibleOnDesktopOrMobile?: 'desktop' | 'mobile' | 'both'
+  text: string;
+  visibleOnDesktopOrMobile?: 'desktop' | 'mobile' | 'both';
 }
 
 const QueueHeader: React.FC<QueueHeaderProps> = ({
@@ -21,6 +21,6 @@ const QueueHeader: React.FC<QueueHeaderProps> = ({
     >
       {text}
     </h2>
-  )
-}
-export default QueueHeader
+  );
+};
+export default QueueHeader;

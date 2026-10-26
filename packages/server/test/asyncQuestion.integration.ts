@@ -1,6 +1,6 @@
 import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
-import { CourseModel } from 'course/course.entity';
-import { UserModel } from 'profile/user.entity';
+import type { CourseModel } from 'course/course.entity';
+import type { UserModel } from 'profile/user.entity';
 import {
   AsyncQuestionCommentFactory,
   AsyncQuestionFactory,
@@ -19,7 +19,8 @@ import {
   setupIntegrationTest,
 } from './util/testUtils';
 import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
-import { AsyncQuestion, asyncQuestionStatus, Role } from '@koh/common';
+import type { AsyncQuestion } from '@koh/common';
+import { asyncQuestionStatus, Role } from '@koh/common';
 import { AsyncQuestionVotesModel } from 'asyncQuestion/asyncQuestionVotes.entity';
 import { UnreadAsyncQuestionModel } from 'asyncQuestion/unread-async-question.entity';
 import { AsyncQuestionCommentModel } from '../src/asyncQuestion/asyncQuestionComment.entity';

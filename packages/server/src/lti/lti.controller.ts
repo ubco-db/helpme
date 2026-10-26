@@ -105,7 +105,6 @@ export class LtiController {
         (await this.ltiService.getLaunchIntegration(token)).organizationId,
       );
       res.cookie('__LTI_IDENTITY', identity, LtiService.cookieOptions);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_ignored) {}
 
     // If the user does not exist, but the course was found, create an invite and set it as a cookie
@@ -118,7 +117,6 @@ export class LtiController {
           token.userInfo.email,
         );
         res.cookie('__COURSE_INVITE', invite, LtiService.cookieOptions);
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (_ignored) {}
     }
 

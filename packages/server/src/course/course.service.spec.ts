@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { DataSource, IsNull } from 'typeorm';
 import {
   CourseFactory,
@@ -15,16 +16,18 @@ import {
 } from '../../test/util/factories';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { CourseService } from './course.service';
-import { UserModel } from 'profile/user.entity';
+import type { UserModel } from 'profile/user.entity';
 import { CourseModel } from './course.entity';
-import {
+import type {
   CourseCloneAttributes,
-  OrganizationRole,
   QueueConfig,
+  UserPartial,
+} from '@koh/common';
+import {
+  OrganizationRole,
   QueueTypes,
   Role,
   SuperCoursePurpose,
-  UserPartial,
 } from '@koh/common';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
@@ -33,10 +36,10 @@ import { FactoryService } from 'factory/factory.service';
 import { MailModule } from 'mail/mail.module';
 import { ChatbotApiService } from 'chatbot/chatbot-api.service';
 import { QueueModel } from 'queue/queue.entity';
-import { QueueInviteModel } from 'queue/queue-invite.entity';
+import type { QueueInviteModel } from 'queue/queue-invite.entity';
 import { ChatbotDocPdfModel } from 'chatbot/chatbot-doc-pdf.entity';
 import { QuestionTypeModel } from 'questionType/question-type.entity';
-import { CourseSettingsModel } from './course_settings.entity';
+import type { CourseSettingsModel } from './course_settings.entity';
 import { SuperCourseModel } from './super-course.entity';
 import { EmbeddableQuestionModel } from 'lti/embeddable-question/embeddable-question.entity';
 

@@ -1,32 +1,33 @@
-'use client'
+'use client';
 
-import { createContext, ReactNode, useContext } from 'react'
+import type { ReactNode } from 'react';
+import { createContext, useContext } from 'react';
 
 //
 // context
 //
 interface LoginRedirectInfoContextProps {
-  invitedOrgId: number | null
-  invitedQueueId: number | null
-  invitedCourseId: number | null
-  invitedCourseInviteCode: string | null
+  invitedOrgId: number | null;
+  invitedQueueId: number | null;
+  invitedCourseId: number | null;
+  invitedCourseInviteCode: string | null;
 }
 const LoginRedirectInfoContext = createContext<LoginRedirectInfoContextProps>({
   invitedOrgId: null,
   invitedQueueId: null,
   invitedCourseId: null,
   invitedCourseInviteCode: null,
-})
+});
 
 //
 // context provider
 //
 interface LoginRedirectInfoProviderProps {
-  children: ReactNode
-  invitedOrgId: number | null
-  invitedQueueId: number | null
-  invitedCourseId: number | null
-  invitedCourseInviteCode: string | null
+  children: ReactNode;
+  invitedOrgId: number | null;
+  invitedQueueId: number | null;
+  invitedCourseId: number | null;
+  invitedCourseInviteCode: string | null;
 }
 
 export const LoginRedirectInfoProvider: React.FC<
@@ -49,8 +50,8 @@ export const LoginRedirectInfoProvider: React.FC<
     >
       {children}
     </LoginRedirectInfoContext.Provider>
-  )
-}
+  );
+};
 
 /**
  * This hook possibly provides an orgId, courseId, queueId, and courseInviteCode from either a queue invite or a course invite.
@@ -59,13 +60,13 @@ export const LoginRedirectInfoProvider: React.FC<
  */
 export const useLoginRedirectInfoProvider =
   (): LoginRedirectInfoContextProps => {
-    const context = useContext(LoginRedirectInfoContext)
+    const context = useContext(LoginRedirectInfoContext);
 
     if (context === undefined) {
       throw new Error(
         'useLoginRedirectInfoProvider must be used within an LoginRedirectInfoProvider',
-      )
+      );
     }
 
-    return context
-  }
+    return context;
+  };

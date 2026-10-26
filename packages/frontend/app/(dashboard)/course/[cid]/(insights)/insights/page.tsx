@@ -1,64 +1,65 @@
-'use client'
+'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import DashboardPresetComponent from '../components/DashboardPresetComponent'
-import { useParams } from 'next/navigation'
-import InsightComponent from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightComponent'
-import InsightsPageMenu from '@/app/(dashboard)/course/[cid]/(insights)/components/InsightsPageMenu'
-import { InsightContextProvider } from '@/app/(dashboard)/course/[cid]/(insights)/context/InsightsContext'
-import {
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import DashboardPresetComponent from '../components/DashboardPresetComponent';
+import { useParams } from 'next/navigation';
+import InsightComponent from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightComponent';
+import InsightsPageMenu from '@/app/(dashboard)/course/[cid]/(insights)/components/InsightsPageMenu';
+import { InsightContextProvider } from '@/app/(dashboard)/course/[cid]/(insights)/context/InsightsContext';
+import type {
   InsightCategory,
   InsightDashboardPartial,
   InsightDetail,
   InsightDisplayInfo,
-  InsightType,
   ListInsightsResponse,
-} from '@koh/common'
-import { API } from '@/app/api'
+} from '@koh/common';
+import { InsightType } from '@koh/common';
+import { API } from '@/app/api';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 export default function InsightsPage() {
-  const { cid } = useParams<{ cid: string }>()
-  const courseId = useMemo(() => parseInt(cid), [cid])
-  const [category, setCategory] = useState<InsightCategory>('Dashboard')
+  const { cid } = useParams<{ cid: string }>();
+  const courseId = useMemo(() => parseInt(cid), [cid]);
+  const [category, setCategory] = useState<InsightCategory>('Dashboard');
 
-  const [allPresets, setAllPresets] = useState<InsightDashboardPartial[]>([])
+  const [allPresets, setAllPresets] = useState<InsightDashboardPartial[]>([]);
   const [selectedDashboard, setSelectedDashboard] = useState<
     string | undefined
-  >(undefined)
+  >(undefined);
 
   const [insightDirectory, setInsightDirectory] = useState<
     ListInsightsResponse | undefined
-  >(undefined)
+  >(undefined);
   useEffect(() => {
     API.insights.list().then((result) => {
       if (result != undefined) {
-        setInsightDirectory(result)
+        setInsightDirectory(result);
       }
-    })
-  }, [])
+    });
+  }, []);
 
   useEffect(() => {
     API.insights
       .getPresets(courseId)
       .then((result: InsightDashboardPartial[]) => {
-        setAllPresets(result ?? [])
+        setAllPresets(result ?? []);
         if (result?.length > 0) {
-          setSelectedDashboard(result[0].name)
+          setSelectedDashboard(result[0].name);
         }
-      })
-  }, [courseId])
+      });
+  }, [courseId]);
 
   const dashboardInsights = useMemo(
     () => allPresets.find((p) => p.name == selectedDashboard),
     [selectedDashboard, allPresets],
-  )
+  );
 
   const renderInsights = useCallback(
     (categories?: InsightDetail) => {
       if (insightDirectory == undefined) {
-        return null
+        return null;
       }
 
       const validInsights = categories
@@ -69,22 +70,22 @@ export default function InsightsPage() {
           ? Object.keys(insightDirectory)
           : Object.keys(insightDirectory).filter(
               (v) => insightDirectory[v].insightCategory == category,
-            )
+            );
 
       const mappedInsights: { name: string; insight: InsightDisplayInfo }[] =
         validInsights.map((v) => {
           return {
             name: v,
             insight: insightDirectory[v],
-          }
-        })
+          };
+        });
 
-      const valueClusters: React.ReactNode[] = []
+      const valueClusters: React.ReactNode[] = [];
       const valueOnly = mappedInsights.filter(
         (v) => v.insight.insightType == InsightType.Value,
-      )
+      );
       while (valueOnly.length > 0) {
-        const values = [valueOnly.pop(), valueOnly.pop(), valueOnly.pop()]
+        const values = [valueOnly.pop(), valueOnly.pop(), valueOnly.pop()];
         valueClusters.push(
           <div
             key={`cluster-${valueOnly.length}`}
@@ -100,7 +101,7 @@ export default function InsightsPage() {
               ) : undefined,
             )}
           </div>,
-        )
+        );
       }
 
       const insightRenders: React.ReactNode[] = mappedInsights
@@ -111,15 +112,15 @@ export default function InsightsPage() {
             courseId={courseId}
             insightName={v.name}
           />
-        ))
+        ));
 
       switch (insightRenders.length) {
         case 0:
         case 1:
         case 2:
-          return insightRenders.concat(...valueClusters)
+          return insightRenders.concat(...valueClusters);
         default:
-          const renders: React.ReactNode[] = []
+          const renders: React.ReactNode[] = [];
           while (insightRenders.length > 0 || valueClusters.length > 0) {
             renders.push(
               ...[
@@ -127,13 +128,13 @@ export default function InsightsPage() {
                 insightRenders.pop(),
                 valueClusters.pop(),
               ],
-            )
+            );
           }
-          return renders
+          return renders;
       }
     },
     [category, dashboardInsights, courseId, insightDirectory],
-  )
+  );
 
   return (
     <>
@@ -172,5 +173,5 @@ export default function InsightsPage() {
         </div>
       </InsightContextProvider>
     </>
-  )
+  );
 }

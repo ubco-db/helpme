@@ -1,4 +1,4 @@
-import React from 'react'
+import type React from 'react';
 const FilterWrapper: React.FC<{ title: string; children: React.ReactNode }> = ({
   title,
   children,
@@ -8,7 +8,7 @@ const FilterWrapper: React.FC<{ title: string; children: React.ReactNode }> = ({
       <b>{title}</b>
       {children}
     </div>
-  )
-}
+  );
+};
 
-export default FilterWrapper
+export default FilterWrapper;

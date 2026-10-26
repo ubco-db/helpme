@@ -9,43 +9,46 @@ import {
   StopOutlined,
   UpOutlined,
   EnvironmentOutlined,
-} from '@ant-design/icons'
-import { Button, Popconfirm, Row, Switch, Tooltip, message } from 'antd'
-import moment from 'moment'
-import React, { ReactNode, useState } from 'react'
-import { useQueue } from '@/app/hooks/useQueue'
-import Linkify from '@/app/components/Linkify'
-import { useRouter } from 'next/navigation'
+} from '@ant-design/icons';
+import { Button, Popconfirm, Row, Switch, Tooltip, message } from 'antd';
+import moment from 'moment';
+import type { ReactNode } from 'react';
+import type React from 'react';
+import { useState } from 'react';
+import { useQueue } from '@/app/hooks/useQueue';
+import Linkify from '@/app/components/Linkify';
+import { useRouter } from 'next/navigation';
 import {
   clearQueue,
   confirmDisable,
-} from '../../../utils/commonCourseFunctions'
+} from '../../../utils/commonCourseFunctions';
 import {
   ClearQueueButton,
   DisableQueueButton,
-} from '../../../components/QueueInfoColumnButton'
-import RenderEvery from '@/app/components/RenderEvery'
-import TagGroupSwitch from './TagGroupSwitch'
-import StaffList from './StaffList'
-import { getQueueTypeLabel } from '../utils/commonQueueFunctions'
-import { QueuePartial, GetQueueChatsResponse, ExtraTAStatus } from '@koh/common'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { useMediaQuery } from '@/app/hooks/useMediaQuery'
+} from '../../../components/QueueInfoColumnButton';
+import RenderEvery from '@/app/components/RenderEvery';
+import TagGroupSwitch from './TagGroupSwitch';
+import StaffList from './StaffList';
+import { getQueueTypeLabel } from '../utils/commonQueueFunctions';
+import type { QueuePartial, GetQueueChatsResponse } from '@koh/common';
+import { ExtraTAStatus } from '@koh/common';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { useMediaQuery } from '@/app/hooks/useMediaQuery';
 
 interface QueueInfoColumnProps {
-  cid: number
-  queueId: number
-  queue: QueuePartial
-  isStaff: boolean
-  buttons: ReactNode
-  hasDemos: boolean
-  tagGroupsEnabled: boolean
-  setTagGroupsEnabled: (tagGroupsEnabled: boolean) => void
-  staffListHidden: boolean
-  setStaffListHidden: (hidden: boolean) => void
-  queueChats?: GetQueueChatsResponse
+  cid: number;
+  queueId: number;
+  queue: QueuePartial;
+  isStaff: boolean;
+  buttons: ReactNode;
+  hasDemos: boolean;
+  tagGroupsEnabled: boolean;
+  setTagGroupsEnabled: (tagGroupsEnabled: boolean) => void;
+  staffListHidden: boolean;
+  setStaffListHidden: (hidden: boolean) => void;
+  queueChats?: GetQueueChatsResponse;
 }
 
 const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
@@ -61,27 +64,27 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
   setStaffListHidden,
   queueChats,
 }) => {
-  const router = useRouter()
-  const { userInfo } = useUserInfo()
-  const isMobile = useMediaQuery('(max-width: 768px)')
+  const router = useRouter();
+  const { userInfo } = useUserInfo();
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
-  const me = queue?.staffList?.find((s) => s.id === userInfo?.id)
-  const isAway = me?.extraStatus === ExtraTAStatus.AWAY
-  const [savingAway, setSavingAway] = useState(false)
-  const awaySwitchId = `away-switch-${queueId}`
+  const me = queue?.staffList?.find((s) => s.id === userInfo?.id);
+  const isAway = me?.extraStatus === ExtraTAStatus.AWAY;
+  const [savingAway, setSavingAway] = useState(false);
+  const awaySwitchId = `away-switch-${queueId}`;
   const toggleAway = async (checked: boolean) => {
     // checked = Away; unchecked = Answering
-    const newStatus = checked ? ExtraTAStatus.AWAY : null
+    const newStatus = checked ? ExtraTAStatus.AWAY : null;
     try {
-      setSavingAway(true)
-      await API.taStatus.setExtraStatus(cid, queueId, newStatus)
+      setSavingAway(true);
+      await API.taStatus.setExtraStatus(cid, queueId, newStatus);
     } catch (err) {
-      const errorMessage = getErrorMessage(err)
-      message.error(errorMessage)
+      const errorMessage = getErrorMessage(err);
+      message.error(errorMessage);
     } finally {
-      setSavingAway(false)
+      setSavingAway(false);
     }
-  }
+  };
   return (
     <div className="relative flex flex-shrink-0 flex-col pb-1 md:mt-8 md:w-72 md:pb-7">
       {/* only show the queue title and warning here on desktop, it's moved further down on mobile (and placed in queue page.tsx) */}
@@ -250,12 +253,12 @@ const QueueInfoColumn: React.FC<QueueInfoColumnProps> = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 const QueueUpToDateInfo: React.FC<{ queueId: number }> = ({ queueId }) => {
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-  const { isLive } = useQueue(queueId, setLastUpdated)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const { isLive } = useQueue(queueId, setLastUpdated);
   return (
     <div className="mb-0 flex flex-row items-center text-xl text-[#5f6b79] md:mb-5">
       {isLive || lastUpdated ? <CloudSyncOutlined /> : <FrownOutlined />}
@@ -265,12 +268,12 @@ const QueueUpToDateInfo: React.FC<{ queueId: number }> = ({ queueId }) => {
         ) : lastUpdated ? (
           <RenderEvery
             render={() => {
-              const secondsAgo = (Date.now() - lastUpdated.getTime()) / 1000
+              const secondsAgo = (Date.now() - lastUpdated.getTime()) / 1000;
               return `Queue updated ${
                 secondsAgo < 60
                   ? Math.ceil(secondsAgo) + 's'
                   : moment(lastUpdated).fromNow(true)
-              } ago`
+              } ago`;
             }}
             interval={1000}
           />
@@ -279,7 +282,7 @@ const QueueUpToDateInfo: React.FC<{ queueId: number }> = ({ queueId }) => {
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default QueueInfoColumn
+export default QueueInfoColumn;

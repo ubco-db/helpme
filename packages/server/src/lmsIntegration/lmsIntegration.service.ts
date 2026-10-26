@@ -169,7 +169,6 @@ export class LMSIntegrationService {
               organizationIntegration: integration,
             });
             await AbstractLMSAdapter.logoutAuth(token);
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (_ignored) {}
         }
         await LMSAccessTokenModel.remove(integration.userAccessTokens);

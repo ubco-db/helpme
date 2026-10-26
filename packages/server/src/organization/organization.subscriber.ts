@@ -10,9 +10,7 @@ import { OrganizationUserModel } from './organization-user.entity';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
 
 @EventSubscriber()
-export class OrganizationSubscriber
-  implements EntitySubscriberInterface<OrganizationModel>
-{
+export class OrganizationSubscriber implements EntitySubscriberInterface<OrganizationModel> {
   constructor(
     private readonly redisProfileService: RedisProfileService,
     dataSource: DataSource,
@@ -20,7 +18,6 @@ export class OrganizationSubscriber
     dataSource.subscribers.push(this);
   }
 
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   listenTo() {
     return OrganizationModel;
   }

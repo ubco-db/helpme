@@ -1,17 +1,19 @@
-import { ListQuestionsResponse, SSEQueueResponse } from '@koh/common'
-import { plainToClass } from 'class-transformer'
-import { useCallback, useMemo } from 'react'
-import useSWR, { mutate, SWRResponse } from 'swr'
-import { useEventSource } from './useEventSource'
-import { API } from '../api'
-import { updateWaitTime } from '../utils/timeFormatUtils'
+import type { SSEQueueResponse } from '@koh/common';
+import { ListQuestionsResponse } from '@koh/common';
+import { plainToClass } from 'class-transformer';
+import { useCallback, useMemo } from 'react';
+import type { SWRResponse } from 'swr';
+import useSWR, { mutate } from 'swr';
+import { useEventSource } from './useEventSource';
+import { API } from '../api';
+import { updateWaitTime } from '../utils/timeFormatUtils';
 
-type questionsResponse = SWRResponse<ListQuestionsResponse, any>
+type questionsResponse = SWRResponse<ListQuestionsResponse, any>;
 
 interface UseQuestionReturn {
-  queueQuestions?: questionsResponse['data']
-  questionsError: questionsResponse['error']
-  mutateQuestions: questionsResponse['mutate']
+  queueQuestions?: questionsResponse['data'];
+  questionsError: questionsResponse['error'];
+  mutateQuestions: questionsResponse['mutate'];
 }
 
 /**
@@ -24,7 +26,7 @@ export function useQuestionsWithQueueInvite(
 ): UseQuestionReturn {
   const key = isQuestionsVisible
     ? `/api/v1/queueInvites/${qid}/${queueInviteCode}/questions`
-    : null
+    : null;
   // Subscribe to sse
   const isLive = useEventSource(
     isQuestionsVisible
@@ -38,12 +40,12 @@ export function useQuestionsWithQueueInvite(
             key,
             plainToClass(ListQuestionsResponse, data.queueQuestions),
             false,
-          )
+          );
         }
       },
       [key],
     ),
-  )
+  );
 
   const {
     data: queueQuestions,
@@ -55,7 +57,7 @@ export function useQuestionsWithQueueInvite(
     {
       refreshInterval: isLive ? 0 : 10 * 1000,
     },
-  )
+  );
 
   //
   // frontend dataprocessing logic.
@@ -64,21 +66,21 @@ export function useQuestionsWithQueueInvite(
   // This should basically have the same performance as putting these calculations in the getWaitTime in timeFormatUtils since the same calcs are being made.
   //
   const sortedQuestions = useMemo(() => {
-    if (!queueQuestions?.questions) return []
+    if (!queueQuestions?.questions) return [];
     return (
       queueQuestions.questions
         .map((question) => updateWaitTime(question))
         // sort by wait time DESC
         .sort((a, b) => b.waitTime - a.waitTime)
-    )
-  }, [queueQuestions])
+    );
+  }, [queueQuestions]);
 
   const questionsGettingHelpWithWaitTime = useMemo(() => {
-    if (!queueQuestions?.questionsGettingHelp) return []
+    if (!queueQuestions?.questionsGettingHelp) return [];
     return queueQuestions.questionsGettingHelp.map((question) =>
       updateWaitTime(question),
-    )
-  }, [queueQuestions])
+    );
+  }, [queueQuestions]);
 
   const newQueueQuestions: ListQuestionsResponse = {
     ...queueQuestions,
@@ -87,7 +89,7 @@ export function useQuestionsWithQueueInvite(
     yourQuestions: [], // this is public data. There are no yourQuestions
     priorityQueue: queueQuestions?.priorityQueue || [],
     groups: queueQuestions?.groups || [],
-  }
+  };
 
-  return { queueQuestions: newQueueQuestions, questionsError, mutateQuestions }
+  return { queueQuestions: newQueueQuestions, questionsError, mutateQuestions };
 }

@@ -1,10 +1,10 @@
-import React from 'react'
+import type React from 'react';
 
 type InsightCardProps = {
-  children: React.ReactNode
-  title: string
-  description?: string
-}
+  children: React.ReactNode;
+  title: string;
+  description?: string;
+};
 
 const InsightCard: React.FC<InsightCardProps> = ({
   children,
@@ -17,7 +17,7 @@ const InsightCard: React.FC<InsightCardProps> = ({
       <p>{description}</p>
       <div className={'w-full'}>{children}</div>
     </div>
-  )
-}
+  );
+};
 
-export default InsightCard
+export default InsightCard;

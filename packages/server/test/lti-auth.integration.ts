@@ -14,7 +14,7 @@ import {
 import { AuthService } from 'auth/auth.service';
 import { AccountType } from '@koh/common';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
-import { LoginTicket, OAuth2Client } from 'google-auth-library';
+import type { LoginTicket, OAuth2Client } from 'google-auth-library';
 import { LtiModule } from '../src/lti/lti.module';
 import {
   LTI_APP_SESSION_SECONDS,

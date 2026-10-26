@@ -1,31 +1,30 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react';
+import type { ChatbotAllowedHeaders, LLMType } from '@koh/common';
 import {
-  ChatbotAllowedHeaders,
   ChatbotServiceProvider,
   ChatbotServiceType,
-  LLMType,
   OpenAILLMType,
-} from '@koh/common'
-import { API } from '@/app/api'
-import { Button, Divider, List, message, Modal, Tooltip } from 'antd'
-import ChatbotModelInfoTooltip from '@/app/(dashboard)/components/ChatbotModelInfoTooltip'
-import { FrownOutlined, PlusOutlined } from '@ant-design/icons'
-import LLMTypeDisplay from '@/app/(dashboard)/organization/ai/components/LLMTypeDisplay'
-import { getModelSpeedAndQualityEstimate } from '@/app/utils/generalUtils'
+} from '@koh/common';
+import { API } from '@/app/api';
+import { Button, Divider, List, message, Modal, Tooltip } from 'antd';
+import ChatbotModelInfoTooltip from '@/app/(dashboard)/components/ChatbotModelInfoTooltip';
+import { FrownOutlined, PlusOutlined } from '@ant-design/icons';
+import LLMTypeDisplay from '@/app/(dashboard)/organization/ai/components/LLMTypeDisplay';
+import { getModelSpeedAndQualityEstimate } from '@/app/utils/generalUtils';
 
 type AddModelModalProps<T extends LLMType> = {
-  organizationId: number
-  providerType: ChatbotServiceProvider
-  baseUrl?: string
-  apiKey?: string
-  headers?: ChatbotAllowedHeaders
-  providerId?: number
-  fetchedAvailableModels?: T[]
-  inUseModels: T[]
-  onAdd: (type: LLMType) => void
-  open: boolean
-  onClose: () => void
-}
+  organizationId: number;
+  providerType: ChatbotServiceProvider;
+  baseUrl?: string;
+  apiKey?: string;
+  headers?: ChatbotAllowedHeaders;
+  providerId?: number;
+  fetchedAvailableModels?: T[];
+  inUseModels: T[];
+  onAdd: (type: LLMType) => void;
+  open: boolean;
+  onClose: () => void;
+};
 
 const AddModelModal = <T extends LLMType>({
   organizationId,
@@ -40,10 +39,10 @@ const AddModelModal = <T extends LLMType>({
   open,
   onClose,
 }: AddModelModalProps<T>) => {
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false);
   const [availableModels, setAvailableModels] = useState<T[]>(
     fetchedAvailableModels ?? [],
-  )
+  );
 
   const providerTypeName = useMemo(
     () =>
@@ -52,11 +51,11 @@ const AddModelModal = <T extends LLMType>({
           (ChatbotServiceProvider as Record<string, string>)[k] == providerType,
       ) ?? '',
     [providerType],
-  )
+  );
 
   const fetchAvailableModels = (calledFromRetry = false) => {
     if (fetchedAvailableModels != undefined || isLoading) {
-      return
+      return;
     }
 
     if (
@@ -66,9 +65,9 @@ const AddModelModal = <T extends LLMType>({
       if (calledFromRetry) {
         message.error(
           `Missing base URL property that is required to retrieve models for ${providerTypeName}.`,
-        )
+        );
       }
-      return
+      return;
     } else if (
       providerType == ChatbotServiceProvider.OpenAI &&
       (apiKey == undefined || apiKey == '')
@@ -76,27 +75,27 @@ const AddModelModal = <T extends LLMType>({
       if (calledFromRetry) {
         message.error(
           `Missing API key property that is required to retrieve models for ${providerTypeName}.`,
-        )
+        );
       }
-      return
+      return;
     }
 
-    setIsLoading(true)
-    setAvailableModels([])
+    setIsLoading(true);
+    setAvailableModels([]);
     if (providerId != undefined) {
       API.chatbot.adminOnly
         .getProviderAvailableModels<T>(organizationId, providerId)
         .then((response) => {
-          setAvailableModels(response)
+          setAvailableModels(response);
         })
         .catch((_err) => {
           if (calledFromRetry) {
             message.error(
               `Failed to retrieve provider's model list from ${providerTypeName} service`,
-            )
+            );
           }
         })
-        .finally(() => setIsLoading(false))
+        .finally(() => setIsLoading(false));
     } else {
       API.chatbot.adminOnly
         .getAvailableModels<T>(providerType, organizationId, {
@@ -105,22 +104,22 @@ const AddModelModal = <T extends LLMType>({
           headers: headers ?? {},
         })
         .then((response) => {
-          setAvailableModels(response)
+          setAvailableModels(response);
         })
         .catch(() => {
           if (calledFromRetry) {
             message.error(
               `Failed to retrieve model list from ${providerTypeName} service`,
-            )
+            );
           }
         })
-        .finally(() => setIsLoading(false))
+        .finally(() => setIsLoading(false));
     }
-  }
+  };
 
   useEffect(() => {
-    fetchAvailableModels()
-  }, [baseUrl, apiKey, headers, providerId])
+    fetchAvailableModels();
+  }, [baseUrl, apiKey, headers, providerId]);
 
   const groupedModels: { group: string; models: T[] }[] = useMemo(() => {
     const groups = (
@@ -128,19 +127,19 @@ const AddModelModal = <T extends LLMType>({
     )
       .map((m) => m.families)
       .reduce((p, c) => [...p, ...c], [])
-      .filter((v, i, a) => a.indexOf(v) == i)
+      .filter((v, i, a) => a.indexOf(v) == i);
 
-    const alreadyGrouped: T[] = []
+    const alreadyGrouped: T[] = [];
     return groups.map((grp) => {
       const belongsTo = availableModels.filter(
         (m) =>
           (m as T & { families: string[] }).families.includes(grp) &&
           !alreadyGrouped.includes(m),
-      )
-      alreadyGrouped.push(...belongsTo)
-      return { group: grp, models: belongsTo }
-    })
-  }, [availableModels])
+      );
+      alreadyGrouped.push(...belongsTo);
+      return { group: grp, models: belongsTo };
+    });
+  }, [availableModels]);
 
   return (
     <Modal
@@ -184,7 +183,7 @@ const AddModelModal = <T extends LLMType>({
                 dataSource={groupModels.models}
                 renderItem={(model: T) => {
                   const { speed, quality, notes } =
-                    getModelSpeedAndQualityEstimate(model)
+                    getModelSpeedAndQualityEstimate(model);
 
                   return (
                     <List.Item
@@ -225,7 +224,7 @@ const AddModelModal = <T extends LLMType>({
                         </Button>
                       </div>
                     </List.Item>
-                  )
+                  );
                 }}
               />
             </div>
@@ -233,7 +232,7 @@ const AddModelModal = <T extends LLMType>({
         )}
       />
     </Modal>
-  )
-}
+  );
+};
 
-export default AddModelModal
+export default AddModelModal;

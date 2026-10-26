@@ -1,25 +1,20 @@
-'use client'
+'use client';
 
-import { API } from '@/app/api'
-import UserAvatar from '@/app/components/UserAvatar'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { SearchOutlined } from '@ant-design/icons'
-import {
-  GetOrganizationResponse,
-  OrganizationRole,
-  OrgUser,
-  User,
-  UserRole,
-} from '@koh/common'
-import { Button, Input, List, message, Pagination, Select, Spin } from 'antd'
-import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { API } from '@/app/api';
+import UserAvatar from '@/app/components/UserAvatar';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { SearchOutlined } from '@ant-design/icons';
+import type { GetOrganizationResponse, OrgUser, User } from '@koh/common';
+import { OrganizationRole, UserRole } from '@koh/common';
+import { Button, Input, List, message, Pagination, Select, Spin } from 'antd';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 
 interface UsersTableProps {
-  organization: GetOrganizationResponse
-  prepareAndShowConfirmationModal: (user: OrgUser) => (newRole: string) => void
-  profile: User
-  updateFlag?: boolean
+  organization: GetOrganizationResponse;
+  prepareAndShowConfirmationModal: (user: OrgUser) => (newRole: string) => void;
+  profile: User;
+  updateFlag?: boolean;
 }
 
 const UsersTable: React.FC<UsersTableProps> = ({
@@ -28,44 +23,44 @@ const UsersTable: React.FC<UsersTableProps> = ({
   profile,
   updateFlag = false,
 }) => {
-  const [total, setTotal] = useState(0)
-  const [page, setPage] = useState(1)
-  const [input, setInput] = useState('')
-  const [search, setSearch] = useState('')
-  const router = useRouter()
-  const [users, setUsers] = useState<OrgUser[]>([])
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [input, setInput] = useState('');
+  const [search, setSearch] = useState('');
+  const router = useRouter();
+  const [users, setUsers] = useState<OrgUser[]>([]);
 
   const updateUsers = useCallback(async () => {
     await API.organizations
       .getUsers(organization.id, page, search)
       .then((response) => {
-        setUsers(response.users)
-        setTotal(response.total)
+        setUsers(response.users);
+        setTotal(response.total);
       })
       .catch((error) => {
-        const errorMessage = getErrorMessage(error)
-        message.error(errorMessage)
-      })
-  }, [organization.id, page, search])
+        const errorMessage = getErrorMessage(error);
+        message.error(errorMessage);
+      });
+  }, [organization.id, page, search]);
 
   const handleSearch = useCallback(
     (value: string) => {
       const handler = setTimeout(() => {
-        setSearch(value)
-        setPage(1)
-        updateUsers()
-      }, 500)
+        setSearch(value);
+        setPage(1);
+        updateUsers();
+      }, 500);
 
       return () => {
-        clearTimeout(handler)
-      }
+        clearTimeout(handler);
+      };
     },
     [updateUsers],
-  )
+  );
 
   useEffect(() => {
-    updateUsers()
-  }, [page, search, updateFlag])
+    updateUsers();
+  }, [page, search, updateFlag]);
 
   if (!users) {
     return (
@@ -74,7 +69,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
         style={{ margin: '0 auto', width: '100%', textAlign: 'center' }}
         size="large"
       />
-    )
+    );
   } else {
     return (
       <>
@@ -166,8 +161,8 @@ const UsersTable: React.FC<UsersTableProps> = ({
           showSizeChanger={false}
         />
       </>
-    )
+    );
   }
-}
+};
 
-export default UsersTable
+export default UsersTable;

@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class addInsightDashboardModel1728933563042
-  implements MigrationInterface
-{
+export class addInsightDashboardModel1728933563042 implements MigrationInterface {
   name = 'addInsightDashboardModel1728933563042';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

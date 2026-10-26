@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import {
   Button,
@@ -8,56 +8,57 @@ import {
   Select,
   Tooltip,
   message,
-} from 'antd'
-import { ReactElement, useCallback, useEffect, useState, use } from 'react'
-import type { QueueInvite, QueueInviteParams, QueuePartial } from '@koh/common'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { API } from '@/app/api'
-import { QuestionCircleOutlined } from '@ant-design/icons'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { useCourse } from '@/app/hooks/useCourse'
-import QueueInviteListItem from './components/QueueInvite'
+} from 'antd';
+import type { ReactElement } from 'react';
+import { useCallback, useEffect, useState, use } from 'react';
+import type { QueueInvite, QueueInviteParams, QueuePartial } from '@koh/common';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { API } from '@/app/api';
+import { QuestionCircleOutlined } from '@ant-design/icons';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
+import { useCourse } from '@/app/hooks/useCourse';
+import QueueInviteListItem from './components/QueueInvite';
 
 interface QueueInvitesPageProps {
-  params: Promise<{ cid: string }>
+  params: Promise<{ cid: string }>;
 }
 export default function QueueInvitesPage(
   props: QueueInvitesPageProps,
 ): ReactElement {
-  const params = use(props.params)
-  const courseId = Number(params.cid)
-  const { course } = useCourse(courseId)
-  const [queueInvites, setQueueInvites] = useState<QueueInvite[]>([])
-  const [isQueueInvitesLoading, setIsQueueInvitesLoading] = useState(true)
+  const params = use(props.params);
+  const courseId = Number(params.cid);
+  const { course } = useCourse(courseId);
+  const [queueInvites, setQueueInvites] = useState<QueueInvite[]>([]);
+  const [isQueueInvitesLoading, setIsQueueInvitesLoading] = useState(true);
   const [selectedPreset, setSelectedPreset] = useState<
     'Default' | 'For Printing' | 'Projector' | 'Help Desk Print'
-  >()
-  const [selectedQueueId, setSelectedQueueId] = useState<string>('')
-  const [selectableQueues, setSelectableQueues] = useState<QueuePartial[]>([])
-  const isHttps = window.location.protocol === 'https:'
-  const baseURL = `${isHttps ? 'https' : 'http'}://${window.location.host}`
+  >();
+  const [selectedQueueId, setSelectedQueueId] = useState<string>('');
+  const [selectableQueues, setSelectableQueues] = useState<QueuePartial[]>([]);
+  const isHttps = window.location.protocol === 'https:';
+  const baseURL = `${isHttps ? 'https' : 'http'}://${window.location.host}`;
 
   const fetchQueueInvites = useCallback(async () => {
     try {
-      const queueInvites = await API.course.getAllQueueInvites(courseId)
-      setQueueInvites(queueInvites)
+      const queueInvites = await API.course.getAllQueueInvites(courseId);
+      setQueueInvites(queueInvites);
     } catch (error) {
-      const errorMessage = getErrorMessage(error)
-      message.error('Failed to load queue invites: ' + errorMessage)
+      const errorMessage = getErrorMessage(error);
+      message.error('Failed to load queue invites: ' + errorMessage);
     } finally {
-      setIsQueueInvitesLoading(false)
+      setIsQueueInvitesLoading(false);
     }
-  }, [courseId, setQueueInvites, setIsQueueInvitesLoading])
+  }, [courseId, setQueueInvites, setIsQueueInvitesLoading]);
 
   useEffect(() => {
-    fetchQueueInvites()
-  }, [fetchQueueInvites])
+    fetchQueueInvites();
+  }, [fetchQueueInvites]);
 
   const createQueueInvite = useCallback(async () => {
-    const queueId = selectedQueueId
+    const queueId = selectedQueueId;
     if (!Number(queueId)) {
-      message.error('Invalid queue id: ' + queueId)
-      return
+      message.error('Invalid queue id: ' + queueId);
+      return;
     }
     try {
       await API.queueInvites.create(Number(queueId)).then((inviteCode) => {
@@ -78,21 +79,21 @@ export default function QueueInvitesPage(
               selectedPreset === 'Help Desk Print'
                 ? 'M'
                 : 'L',
-          }
+          };
           API.queueInvites
             .update(Number(queueId), queueInvitePreset)
             .then(() => {
-              fetchQueueInvites()
-            })
+              fetchQueueInvites();
+            });
         } else {
-          fetchQueueInvites()
+          fetchQueueInvites();
         }
-      })
+      });
     } catch (error) {
-      const errorMessage = getErrorMessage(error)
-      message.error('Failed to create queue invite: ' + errorMessage)
+      const errorMessage = getErrorMessage(error);
+      message.error('Failed to create queue invite: ' + errorMessage);
     }
-  }, [fetchQueueInvites, selectedPreset, selectedQueueId])
+  }, [fetchQueueInvites, selectedPreset, selectedQueueId]);
 
   useEffect(() => {
     // selectableQueues is all course queues minus the ones that already have invites
@@ -100,10 +101,10 @@ export default function QueueInvitesPage(
       const newSelectableQueues = course.queues.filter(
         (queue) =>
           !queueInvites.some((queueInvite) => queueInvite.queueId === queue.id),
-      )
-      setSelectableQueues(newSelectableQueues)
+      );
+      setSelectableQueues(newSelectableQueues);
       if (newSelectableQueues.length === 0) {
-        setSelectedQueueId('')
+        setSelectedQueueId('');
       }
       // if selectedQueueId is not in the new queueInvites, set it to the first newSelectableQueue
       if (
@@ -112,13 +113,13 @@ export default function QueueInvitesPage(
           (queue) => queue.id.toString() === selectedQueueId,
         )
       ) {
-        setSelectedQueueId(newSelectableQueues[0].id.toString())
+        setSelectedQueueId(newSelectableQueues[0].id.toString());
       }
     }
-  }, [course, queueInvites, selectedQueueId])
+  }, [course, queueInvites, selectedQueueId]);
 
   if (!course) {
-    return <CenteredSpinner tip="Loading course..." />
+    return <CenteredSpinner tip="Loading course..." />;
   } else {
     return (
       <div className="md:mt-3">
@@ -264,6 +265,6 @@ export default function QueueInvitesPage(
           </ConfigProvider>
         </div>
       </div>
-    )
+    );
   }
 }

@@ -1,10 +1,12 @@
 import { CacheModule } from '@nestjs/cache-manager';
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { QuestionModel } from 'question/question.entity';
 import { DataSource } from 'typeorm';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { HeatmapService } from './heatmap.service';
-import { ClosedQuestionStatus, Heatmap } from '@koh/common';
+import type { Heatmap } from '@koh/common';
+import { ClosedQuestionStatus } from '@koh/common';
 
 describe('HeatmapService', () => {
   let _service: HeatmapService;

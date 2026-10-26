@@ -1,93 +1,89 @@
-'use client'
+'use client';
 
-import { Button, Divider, Input, message, Table, Tooltip } from 'antd'
-import {
-  ReactElement,
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react'
-import ExpandableText from '@/app/components/ExpandableText'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { useUserInfo } from '@/app/contexts/userContext'
-import EditChatbotQuestionModal from './components/EditChatbotQuestionModal'
-import { EditOutlined } from '@ant-design/icons'
-import Highlighter from 'react-highlight-words'
-import AddChatbotQuestionModal from './components/AddChatbotQuestionModal'
-import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
-import { API } from '@/app/api'
-import {
+import { Button, Divider, Input, message, Table, Tooltip } from 'antd';
+import type { ReactElement } from 'react';
+import { use, useCallback, useEffect, useMemo, useState } from 'react';
+import ExpandableText from '@/app/components/ExpandableText';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { useUserInfo } from '@/app/contexts/userContext';
+import EditChatbotQuestionModal from './components/EditChatbotQuestionModal';
+import { EditOutlined } from '@ant-design/icons';
+import Highlighter from 'react-highlight-words';
+import AddChatbotQuestionModal from './components/AddChatbotQuestionModal';
+import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils';
+import { API } from '@/app/api';
+import type {
   ChatbotQuestionResponseChatbotDB,
   ChatbotQuestionResponseHelpMeDB,
   InteractionResponse,
-  parseThinkBlock,
   SourceDocument,
-} from '@koh/common'
-import { ThumbsDown, ThumbsUp } from 'lucide-react'
-import ChatbotHelpTooltip from '../components/ChatbotHelpTooltip'
+} from '@koh/common';
+import { parseThinkBlock } from '@koh/common';
+import { ThumbsDown, ThumbsUp } from 'lucide-react';
+import ChatbotHelpTooltip from '../components/ChatbotHelpTooltip';
 
 export interface ChatbotQuestionFrontend {
-  key: string
-  vectorStoreId: string
-  helpMeId?: number
-  question: string
-  answer: string
-  verified?: boolean
-  sourceDocuments: SourceDocument[]
-  suggested: boolean
-  userScore?: number
-  inserted?: boolean
-  createdAt: Date | null
-  timesAsked?: number | null
-  children?: ChatbotQuestionFrontend[] // this is needed by antd table for grouping interactions.
-  isChild?: boolean
+  key: string;
+  vectorStoreId: string;
+  helpMeId?: number;
+  question: string;
+  answer: string;
+  verified?: boolean;
+  sourceDocuments: SourceDocument[];
+  suggested: boolean;
+  userScore?: number;
+  inserted?: boolean;
+  createdAt: Date | null;
+  timesAsked?: number | null;
+  children?: ChatbotQuestionFrontend[]; // this is needed by antd table for grouping interactions.
+  isChild?: boolean;
 }
 
 type ChatbotQuestionsProps = {
-  params: Promise<{ cid: string }>
-}
+  params: Promise<{ cid: string }>;
+};
 
 export default function ChatbotQuestions(
   props: ChatbotQuestionsProps,
 ): ReactElement {
-  const params = use(props.params)
-  const courseId = Number(params.cid)
-  const [addModelOpen, setAddModelOpen] = useState(false)
-  const { userInfo } = useUserInfo()
-  const [search, setSearch] = useState('')
+  const params = use(props.params);
+  const courseId = Number(params.cid);
+  const [addModelOpen, setAddModelOpen] = useState(false);
+  const { userInfo } = useUserInfo();
+  const [search, setSearch] = useState('');
   const [editingRecord, setEditingRecord] =
-    useState<ChatbotQuestionFrontend | null>(null)
-  const [editRecordModalOpen, setEditRecordModalOpen] = useState(false)
-  const [questions, setQuestions] = useState<ChatbotQuestionFrontend[]>([])
+    useState<ChatbotQuestionFrontend | null>(null);
+  const [editRecordModalOpen, setEditRecordModalOpen] = useState(false);
+  const [questions, setQuestions] = useState<ChatbotQuestionFrontend[]>([]);
   const [existingDocuments, setExistingDocuments] = useState<SourceDocument[]>(
     [],
-  )
-  const [dataLoading, setDataLoading] = useState(false)
+  );
+  const [dataLoading, setDataLoading] = useState(false);
 
   // choosing to manually control which antd table rows are expanded so that we can expand all children conversations when they click "show conversations"
-  const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([])
+  const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([]);
   const handleRowExpand = (record: ChatbotQuestionFrontend) => {
-    let keys = [...expandedRowKeys]
-    const parentKey = record.key
+    let keys = [...expandedRowKeys];
+    const parentKey = record.key;
     const childKeys = record.children
       ? record.children.map((child) => child.key)
-      : []
+      : [];
 
     if (keys.includes(parentKey)) {
       // already expanded, so collapse parent and remove its children
-      keys = keys.filter((key) => key !== parentKey && !childKeys.includes(key))
+      keys = keys.filter(
+        (key) => key !== parentKey && !childKeys.includes(key),
+      );
     } else {
       // expand parent and add children keys too.
-      keys.push(parentKey, ...childKeys)
+      keys.push(parentKey, ...childKeys);
     }
-    setExpandedRowKeys(keys)
-  }
+    setExpandedRowKeys(keys);
+  };
 
   const filteredQuestions = useMemo(() => {
     if (!search) {
-      return questions
+      return questions;
     }
     return questions.filter((question) => {
       return (
@@ -98,9 +94,9 @@ export default function ChatbotQuestions(
             q.question.toLowerCase().includes(search.toLowerCase()) ||
             q.answer.toLowerCase().includes(search.toLowerCase()),
         )
-      )
-    })
-  }, [search, questions])
+      );
+    });
+  }, [search, questions]);
 
   useEffect(() => {
     API.chatbot.staffOnly
@@ -113,13 +109,13 @@ export default function ChatbotQuestions(
           pageContent: doc.pageContent,
           sourceLink: doc.metadata?.source || '',
           pageNumbers: doc.metadata?.loc ? [doc.metadata.loc.pageNumber] : [],
-        }))
-        setExistingDocuments(formattedDocuments)
+        }));
+        setExistingDocuments(formattedDocuments);
       })
       .catch((e) => {
-        message.error('Failed to fetch documents: ' + getErrorMessage(e))
-      })
-  }, [courseId])
+        message.error('Failed to fetch documents: ' + getErrorMessage(e));
+      });
+  }, [courseId]);
 
   const columns: any[] = [
     {
@@ -127,9 +123,9 @@ export default function ChatbotQuestions(
       dataIndex: 'question',
       key: 'question',
       sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
-        const A = a.question || ''
-        const B = b.question || ''
-        return A.localeCompare(B)
+        const A = a.question || '';
+        const B = b.question || '';
+        return A.localeCompare(B);
       },
       render: (text: string) => (
         <div className="min-w-80">
@@ -150,12 +146,12 @@ export default function ChatbotQuestions(
       key: 'answer',
       width: 600,
       sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
-        const A = a.answer || ''
-        const B = b.answer || ''
-        return A.localeCompare(B)
+        const A = a.answer || '';
+        const B = b.answer || '';
+        return A.localeCompare(B);
       },
       render: (text: string) => {
-        const { thinkText, cleanAnswer } = parseThinkBlock(text ?? '')
+        const { thinkText, cleanAnswer } = parseThinkBlock(text ?? '');
         return (
           <ExpandableText maxRows={3}>
             {thinkText && (
@@ -183,7 +179,7 @@ export default function ChatbotQuestions(
               }
             />
           </ExpandableText>
-        )
+        );
       },
     },
     {
@@ -231,7 +227,7 @@ export default function ChatbotQuestions(
               ))}
             </div>
           </ExpandableText>
-        )
+        );
       },
     },
     {
@@ -239,9 +235,9 @@ export default function ChatbotQuestions(
       dataIndex: 'verified',
       key: 'verified',
       sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
-        const A = a.verified ? 1 : 0
-        const B = b.verified ? 1 : 0
-        return B - A
+        const A = a.verified ? 1 : 0;
+        const B = b.verified ? 1 : 0;
+        return B - A;
       },
       filters: [
         { text: 'Verified', value: true },
@@ -271,9 +267,9 @@ export default function ChatbotQuestions(
       dataIndex: 'suggested',
       key: 'suggested',
       sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
-        const A = a.suggested ? 1 : 0
-        const B = b.suggested ? 1 : 0
-        return B - A
+        const A = a.suggested ? 1 : 0;
+        const B = b.suggested ? 1 : 0;
+        return B - A;
       },
       filters: [
         { text: 'Suggested', value: true },
@@ -303,9 +299,9 @@ export default function ChatbotQuestions(
       key: 'timesAsked',
       width: 50,
       sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
-        const A = a.timesAsked ?? 0
-        const B = b.timesAsked ?? 0
-        return A - B
+        const A = a.timesAsked ?? 0;
+        const B = b.timesAsked ?? 0;
+        return A - B;
       },
     },
     {
@@ -314,9 +310,9 @@ export default function ChatbotQuestions(
       key: 'userScore',
       width: 50,
       sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
-        const A = a.userScore ?? 0
-        const B = b.userScore ?? 0
-        return A - B
+        const A = a.userScore ?? 0;
+        const B = b.userScore ?? 0;
+        return A - B;
       },
       render: (userScore?: number | null) =>
         userScore && userScore !== 0 ? (
@@ -382,9 +378,9 @@ export default function ChatbotQuestions(
       defaultSortOrder: 'descend',
       width: 90,
       sorter: (a: ChatbotQuestionFrontend, b: ChatbotQuestionFrontend) => {
-        const A = a.createdAt && !a.isChild ? a.createdAt.getTime() : 0
-        const B = b.createdAt && !b.isChild ? b.createdAt.getTime() : 0
-        return A - B
+        const A = a.createdAt && !a.isChild ? a.createdAt.getTime() : 0;
+        const B = b.createdAt && !b.isChild ? b.createdAt.getTime() : 0;
+        return A - B;
       },
       render: (createdAt: Date) => formatDateAndTimeForExcel(createdAt),
     },
@@ -400,15 +396,15 @@ export default function ChatbotQuestions(
         </div>
       ),
     },
-  ]
+  ];
 
   const showEditModal = (record: ChatbotQuestionFrontend) => {
-    setEditingRecord(record)
-    setEditRecordModalOpen(true)
-  }
+    setEditingRecord(record);
+    setEditRecordModalOpen(true);
+  };
 
   const getQuestions = useCallback(async () => {
-    setDataLoading(true)
+    setDataLoading(true);
     // NOTE
     // We store the chatbot questions in two separate backends for some reason
     // the helpme database stores interactions and has duplicate questions and userScores
@@ -417,33 +413,33 @@ export default function ChatbotQuestions(
     // this becomes a really hard problem especially if you consider how the first question in an interaction can be a duplicate but subsequent questions can be different
     try {
       const { helpmeDB, chatbotDB } =
-        await API.chatbot.staffOnly.getInteractionsAndQuestions(courseId)
+        await API.chatbot.staffOnly.getInteractionsAndQuestions(courseId);
 
-      const processedQuestions = processQuestions(helpmeDB, chatbotDB)
+      const processedQuestions = processQuestions(helpmeDB, chatbotDB);
 
-      setQuestions(processedQuestions)
+      setQuestions(processedQuestions);
     } catch (e) {
-      const errorMessage = getErrorMessage(e)
-      message.error('Failed to fetch questions: ' + errorMessage)
+      const errorMessage = getErrorMessage(e);
+      message.error('Failed to fetch questions: ' + errorMessage);
     }
-    setDataLoading(false)
-  }, [courseId])
+    setDataLoading(false);
+  }, [courseId]);
 
   useEffect(() => {
-    getQuestions()
-  }, [editingRecord, getQuestions])
+    getQuestions();
+  }, [editingRecord, getQuestions]);
 
   const deleteQuestion = async (questionId: string) => {
     await API.chatbot.staffOnly
       .deleteQuestion(courseId, questionId)
       .then(() => {
-        getQuestions()
-        message.success('Question successfully deleted')
+        getQuestions();
+        message.success('Question successfully deleted');
       })
       .catch((e) => {
-        message.error('Failed to delete question: ' + getErrorMessage(e))
-      })
-  }
+        message.error('Failed to delete question: ' + getErrorMessage(e));
+      });
+  };
 
   return (
     <div className="md:mr-2">
@@ -458,8 +454,8 @@ export default function ChatbotQuestions(
         existingDocuments={existingDocuments}
         onCancel={() => setAddModelOpen(false)}
         onAddSuccess={() => {
-          getQuestions()
-          setAddModelOpen(false)
+          getQuestions();
+          setAddModelOpen(false);
         }}
       />
       {editingRecord && (
@@ -469,8 +465,8 @@ export default function ChatbotQuestions(
           editingRecord={editingRecord}
           onCancel={() => setEditRecordModalOpen(false)}
           onSuccessfulUpdate={() => {
-            getQuestions()
-            setEditRecordModalOpen(false)
+            getQuestions();
+            setEditRecordModalOpen(false);
           }}
           deleteQuestion={deleteQuestion}
         />
@@ -491,8 +487,8 @@ export default function ChatbotQuestions(
             placeholder={'Search question or answer...'}
             value={search}
             onChange={(e) => {
-              e.preventDefault()
-              setSearch(e.target.value)
+              e.preventDefault();
+              setSearch(e.target.value);
             }}
             onPressEnter={getQuestions}
           />
@@ -514,8 +510,8 @@ export default function ChatbotQuestions(
                 <button
                   className=" ant-table-row-expand-icon ant-table-row-expand-icon-expanded bg-sky-100"
                   onClick={(e) => {
-                    e.stopPropagation()
-                    handleRowExpand(record)
+                    e.stopPropagation();
+                    handleRowExpand(record);
                   }}
                   aria-expanded="true"
                 />
@@ -524,8 +520,8 @@ export default function ChatbotQuestions(
                   <button
                     className="ant-table-row-expand-icon ant-table-row-expand-icon-collapsed bg-sky-100"
                     onClick={(e) => {
-                      e.stopPropagation()
-                      handleRowExpand(record)
+                      e.stopPropagation();
+                      handleRowExpand(record);
                     }}
                     aria-expanded="false"
                   />
@@ -535,8 +531,8 @@ export default function ChatbotQuestions(
               <button
                 className="ant-table-row-expand-icon ant-table-row-expand-icon-expanded bg-sky-200"
                 onClick={(e) => {
-                  e.stopPropagation()
-                  handleRowExpand(record)
+                  e.stopPropagation();
+                  handleRowExpand(record);
                 }}
                 aria-expanded="true"
               />
@@ -545,8 +541,8 @@ export default function ChatbotQuestions(
                 <button
                   className="ant-table-row-expand-icon ant-table-row-expand-icon-collapsed bg-sky-200"
                   onClick={(e) => {
-                    e.stopPropagation()
-                    handleRowExpand(record)
+                    e.stopPropagation();
+                    handleRowExpand(record);
                   }}
                   aria-expanded="false"
                 />
@@ -555,7 +551,7 @@ export default function ChatbotQuestions(
         }}
       />
     </div>
-  )
+  );
 }
 function mergeChatbotQuestions(
   helpMeQuestion?: ChatbotQuestionResponseHelpMeDB | null,
@@ -596,7 +592,7 @@ function mergeChatbotQuestions(
     timesAsked,
     children,
     isChild,
-  }
+  };
 }
 
 function processQuestions(
@@ -608,7 +604,7 @@ function processQuestions(
   //
   // We need to process and merge the questions from chatbot and helpme db (in unfortunately O(n^2) time, since we basically need to manually join each chatbot question with helpme question via vectorStoreId)
   // (there are basically 0 to many helpme db questions for each chatbot db question)
-  const processedQuestions: ChatbotQuestionFrontend[] = []
+  const processedQuestions: ChatbotQuestionFrontend[] = [];
   for (const chatbotQuestion of allQuestionsData) {
     // for each chatbot question, find ALL interactions that have this chatbot question
     for (const tempInteraction of interactions) {
@@ -616,35 +612,35 @@ function processQuestions(
         !tempInteraction.questions ||
         tempInteraction.questions.length === 0
       ) {
-        continue
+        continue;
       }
 
       // cycle through all the questions interactions
-      let hasAlreadyBeenAdded = false
+      let hasAlreadyBeenAdded = false;
       for (const helpMeQuestion of tempInteraction.questions) {
         if (helpMeQuestion.vectorStoreId === chatbotQuestion.id) {
           // a match
           if (!hasAlreadyBeenAdded) {
             // to not add the same interaction multiple times
             if (!chatbotQuestion.interactionsWithThisQuestion) {
-              chatbotQuestion.interactionsWithThisQuestion = []
+              chatbotQuestion.interactionsWithThisQuestion = [];
             }
-            chatbotQuestion.interactionsWithThisQuestion.push(tempInteraction)
-            hasAlreadyBeenAdded = true
+            chatbotQuestion.interactionsWithThisQuestion.push(tempInteraction);
+            hasAlreadyBeenAdded = true;
           }
           if (
             !chatbotQuestion.mostRecentlyAskedHelpMeVersion ||
             chatbotQuestion.mostRecentlyAskedHelpMeVersion.timestamp <
               helpMeQuestion.timestamp
           ) {
-            chatbotQuestion.mostRecentlyAskedHelpMeVersion = helpMeQuestion
+            chatbotQuestion.mostRecentlyAskedHelpMeVersion = helpMeQuestion;
           }
 
           // this will modify the original question object
-          chatbotQuestion.timesAsked = (chatbotQuestion.timesAsked ?? 0) + 1
-          helpMeQuestion.correspondingChatbotQuestion = chatbotQuestion // the join
+          chatbotQuestion.timesAsked = (chatbotQuestion.timesAsked ?? 0) + 1;
+          helpMeQuestion.correspondingChatbotQuestion = chatbotQuestion; // the join
           chatbotQuestion.userScoreTotal =
-            (chatbotQuestion.userScoreTotal ?? 0) + helpMeQuestion.userScore
+            (chatbotQuestion.userScoreTotal ?? 0) + helpMeQuestion.userScore;
         }
       }
     }
@@ -655,11 +651,11 @@ function processQuestions(
   //
   // this is something like O(n) time since it's just looping over the processed chatbot questions and all of their interactions
   for (const chatbotQuestion of allQuestionsData) {
-    const timesAsked = chatbotQuestion.timesAsked
+    const timesAsked = chatbotQuestion.timesAsked;
     const mostRecentlyAskedHelpMeVersion =
-      chatbotQuestion.mostRecentlyAskedHelpMeVersion
+      chatbotQuestion.mostRecentlyAskedHelpMeVersion;
     const interactionsWithThisQuestion =
-      chatbotQuestion.interactionsWithThisQuestion ?? []
+      chatbotQuestion.interactionsWithThisQuestion ?? [];
     if (interactionsWithThisQuestion.length === 0) {
       // if there was no corresponding interaction found (e.g. it was a manually added question or anytime question), return what we can
       processedQuestions.push({
@@ -675,24 +671,24 @@ function processQuestions(
           ? new Date(chatbotQuestion.metadata.timestamp)
           : null,
         timesAsked,
-      })
+      });
     }
 
     // Now for the children (if you give an antd table item a list of children, it will auto-create sub rows for them):
     // - if if there are more than 1 interaction for this chatbot question, it will first show the chatbot question and then its children will be all the interactions (children) and their children will be all the questions (grandchildren)
     // - if there is only 1 interaction for this chatbot question, it will be the first question and its children will be all the other questions in the interaction
     if (interactionsWithThisQuestion.length > 1) {
-      const children = []
+      const children = [];
       for (const interaction of interactionsWithThisQuestion) {
         // if the interaction is only a single question long, don't add it (since the parent table item *is* this question)
         if (!interaction.questions || interaction.questions.length <= 1) {
-          continue
+          continue;
         }
-        const grandchildren = []
+        const grandchildren = [];
         for (let i = 1; i < interaction.questions.length; i++) {
-          const childHelpMeQuestion = interaction.questions[i]
+          const childHelpMeQuestion = interaction.questions[i];
           if (!childHelpMeQuestion) {
-            continue
+            continue;
           }
 
           grandchildren.push(
@@ -708,13 +704,13 @@ function processQuestions(
                     ?.userScoreTotal
                 : undefined,
             ),
-          )
+          );
         }
         grandchildren.sort((a, b) => {
-          const aTime = a.createdAt?.getTime() ?? 0
-          const bTime = b.createdAt?.getTime() ?? 0
-          return aTime - bTime // ascending order
-        })
+          const aTime = a.createdAt?.getTime() ?? 0;
+          const bTime = b.createdAt?.getTime() ?? 0;
+          return aTime - bTime; // ascending order
+        });
 
         // for each child, they are the first question in an interaction and all of their children are the rest of the questions in the interaction
         children.push(
@@ -730,14 +726,14 @@ function processQuestions(
                   ?.userScoreTotal
               : undefined,
           ),
-        )
+        );
       }
 
       children.sort((a, b) => {
-        const aTime = a.createdAt?.getTime() ?? 0
-        const bTime = b.createdAt?.getTime() ?? 0
-        return bTime - aTime // descending order
-      })
+        const aTime = a.createdAt?.getTime() ?? 0;
+        const bTime = b.createdAt?.getTime() ?? 0;
+        return bTime - aTime; // descending order
+      });
       // finally add on the question and all of its children
       processedQuestions.push(
         mergeChatbotQuestions(
@@ -748,25 +744,25 @@ function processQuestions(
           false,
           chatbotQuestion.userScoreTotal,
         ),
-      )
+      );
     } else if (interactionsWithThisQuestion.length === 1) {
       // now for case if there is only 1 interaction for this chatbot db question
-      const interaction = interactionsWithThisQuestion[0]
+      const interaction = interactionsWithThisQuestion[0];
       if (
         !interaction.questions ||
         interaction.questions.length === 0 ||
         interaction.questions[0].vectorStoreId !== chatbotQuestion.id // don't show the interaction if it doesn't have the chatbot db question as the first question (to avoid duplicates)
       ) {
-        continue
+        continue;
       }
 
       // make the children all the other questions in the interaction
-      const children = []
+      const children = [];
       if (interaction.questions.length > 1) {
         for (let i = 1; i < interaction.questions.length; i++) {
-          const childHelpMeQuestion = interaction.questions[i]
+          const childHelpMeQuestion = interaction.questions[i];
           if (!childHelpMeQuestion) {
-            continue
+            continue;
           }
 
           children.push(
@@ -778,14 +774,14 @@ function processQuestions(
               true,
               childHelpMeQuestion.correspondingChatbotQuestion?.userScoreTotal,
             ),
-          )
+          );
         }
       }
       children.sort((a, b) => {
-        const aTime = a.createdAt?.getTime() ?? 0
-        const bTime = b.createdAt?.getTime() ?? 0
-        return aTime - bTime // ascending order
-      })
+        const aTime = a.createdAt?.getTime() ?? 0;
+        const bTime = b.createdAt?.getTime() ?? 0;
+        return aTime - bTime; // ascending order
+      });
 
       // finally add on the question and all of its children
       processedQuestions.push(
@@ -797,8 +793,8 @@ function processQuestions(
           false,
           chatbotQuestion.userScoreTotal,
         ),
-      )
+      );
     }
   }
-  return processedQuestions
+  return processedQuestions;
 }

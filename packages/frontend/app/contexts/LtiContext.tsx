@@ -1,13 +1,14 @@
-'use client'
+'use client';
 
-import React, {
+import type { ReactNode } from 'react';
+import type React from 'react';
+import {
   createContext,
-  ReactNode,
   useCallback,
   useContext,
   useEffect,
   useState,
-} from 'react'
+} from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const LtiMessages = [
@@ -19,72 +20,72 @@ const LtiMessages = [
   'lti.put_data',
   'lti.get_data',
   'lti.showAlert',
-] as const
+] as const;
 
-type LtiMessageType = (typeof LtiMessages)[number]
+type LtiMessageType = (typeof LtiMessages)[number];
 
 interface SupportedMessages {
-  subject: string
-  frame?: string
+  subject: string;
+  frame?: string;
 }
 
 interface PageSettings {
-  locale: string
-  time_zone: string
-  use_high_contrast: boolean
-  active_brand_config_json_url: string
-  window_width: number
+  locale: string;
+  time_zone: string;
+  use_high_contrast: boolean;
+  active_brand_config_json_url: string;
+  window_width: number;
 }
 
 interface WindowSize {
-  footer: number
-  width: number
-  height: number
+  footer: number;
+  width: number;
+  height: number;
   offset: {
-    top: number
-    left: number
-  }
+    top: number;
+    left: number;
+  };
 }
 
 // Define context type
 interface LtiMessengerType {
-  capabilities?: SupportedMessages[]
-  pageContent?: string
-  pageSettings?: PageSettings
-  windowSize?: WindowSize
-  postPutData: (params: { key: string; value: string | null }) => void
-  postGetData: (params: { key: string }) => void
+  capabilities?: SupportedMessages[];
+  pageContent?: string;
+  pageSettings?: PageSettings;
+  windowSize?: WindowSize;
+  postPutData: (params: { key: string; value: string | null }) => void;
+  postGetData: (params: { key: string }) => void;
   postShowAlert: (params: {
-    alertType: 'success' | 'warning' | 'error'
-    title: string
-    body: string
-  }) => void
+    alertType: 'success' | 'warning' | 'error';
+    title: string;
+    body: string;
+  }) => void;
 }
 
 interface LtiContextSpecific {
   setOnGetDataResponse: React.Dispatch<
     React.SetStateAction<LtiMessageDataFx | undefined>
-  >
+  >;
   setOnPutDataResponse: React.Dispatch<
     React.SetStateAction<LtiMessageDataFx | undefined>
-  >
+  >;
 }
 
-type LtiContextType = LtiMessengerType & LtiContextSpecific
+type LtiContextType = LtiMessengerType & LtiContextSpecific;
 
 // Create context
-const LtiContext = createContext<LtiContextType | undefined>(undefined)
+const LtiContext = createContext<LtiContextType | undefined>(undefined);
 
 type LtiMessageDataFx = (data: {
-  key: string
-  value: string | null
-  message_id: string
-}) => void
+  key: string;
+  value: string | null;
+  message_id: string;
+}) => void;
 // Define props type for UserInfoProvider
 interface LtiProviderProps {
-  window: Window
-  lti_storage_target?: string
-  children: ReactNode
+  window: Window;
+  lti_storage_target?: string;
+  children: ReactNode;
 }
 
 export const LtiContextProvider: React.FC<LtiProviderProps> = ({
@@ -92,35 +93,37 @@ export const LtiContextProvider: React.FC<LtiProviderProps> = ({
   lti_storage_target,
   children,
 }: LtiProviderProps) => {
-  const [onGetDataResponse, setOnGetDataResponse] = useState<LtiMessageDataFx>()
-  const [onPutDataResponse, setOnPutDataResponse] = useState<LtiMessageDataFx>()
+  const [onGetDataResponse, setOnGetDataResponse] =
+    useState<LtiMessageDataFx>();
+  const [onPutDataResponse, setOnPutDataResponse] =
+    useState<LtiMessageDataFx>();
 
   const onGetData = (data: {
-    key: string
-    value: string | null
-    message_id: string
+    key: string;
+    value: string | null;
+    message_id: string;
   }) => {
     if (onGetDataResponse) {
-      onGetDataResponse(data)
+      onGetDataResponse(data);
     }
-  }
+  };
 
   const onPutData = (data: {
-    key: string
-    value: string | null
-    message_id: string
+    key: string;
+    value: string | null;
+    message_id: string;
   }) => {
     if (onPutDataResponse) {
-      onPutDataResponse(data)
+      onPutDataResponse(data);
     }
-  }
+  };
 
   const ltiMessenger = useLtiMessenger(
     window,
     lti_storage_target,
     onPutData,
     onGetData,
-  )
+  );
 
   // Return the user state and setUser function
   return (
@@ -133,18 +136,18 @@ export const LtiContextProvider: React.FC<LtiProviderProps> = ({
     >
       {children}
     </LtiContext.Provider>
-  )
-}
+  );
+};
 
 export const useLtiContext = (): LtiContextType => {
-  const context = useContext(LtiContext)
+  const context = useContext(LtiContext);
 
   if (context === undefined) {
-    throw new Error('useLtiContext must be used within a LtiContextProvider')
+    throw new Error('useLtiContext must be used within a LtiContextProvider');
   }
 
-  return context
-}
+  return context;
+};
 
 function post_message_proxy(
   target: Window,
@@ -152,22 +155,22 @@ function post_message_proxy(
   origin?: string,
 ) {
   try {
-    target.postMessage(window_params, origin ?? '*')
+    target.postMessage(window_params, origin ?? '*');
   } catch (err) {
-    console.error(err)
+    console.error(err);
   }
 }
 
 function getParentOrigin(window: Window): string | undefined {
-  const referrer = window.document.referrer.trim()
+  const referrer = window.document.referrer.trim();
   if (referrer === '') {
-    return undefined
+    return undefined;
   }
   try {
-    const origin = new URL(referrer).origin
-    return origin === window.location.origin ? undefined : origin
+    const origin = new URL(referrer).origin;
+    return origin === window.location.origin ? undefined : origin;
   } catch {
-    return undefined
+    return undefined;
   }
 }
 
@@ -178,32 +181,36 @@ function postMessage(
   lti_storage_target?: string,
 ) {
   try {
-    const target = getParentOrigin(window)
+    const target = getParentOrigin(window);
     if (subject == 'lti.put_data' || subject == 'lti.get_data') {
       if (!lti_storage_target) {
         throw new Error(
           'Use cookies if lti_storage_target claim is not defined',
-        )
+        );
       }
       if (!params) {
-        throw new Error('Missing parameters')
+        throw new Error('Missing parameters');
       }
       if (subject == 'lti.put_data') {
-        ;['key', 'value', 'message_id'].forEach((k) => {
+        ['key', 'value', 'message_id'].forEach((k) => {
           if (!(k in params)) {
-            throw new Error('Missing key, value or message_id params')
+            throw new Error('Missing key, value or message_id params');
           }
-        })
+        });
       }
       if (subject == 'lti.get_data') {
-        ;['key', 'message_id'].forEach((k) => {
+        ['key', 'message_id'].forEach((k) => {
           if (!(k in params)) {
-            throw new Error('Missing key, value or message_id params')
+            throw new Error('Missing key, value or message_id params');
           }
-        })
+        });
       }
       if (!lti_storage_target || lti_storage_target == '_parent') {
-        return post_message_proxy(window.parent, { subject, ...params }, target)
+        return post_message_proxy(
+          window.parent,
+          { subject, ...params },
+          target,
+        );
       } else {
         return post_message_proxy(
           (window.parent.frames as Record<string, any>)[
@@ -211,14 +218,14 @@ function postMessage(
           ],
           { subject, ...params },
           target,
-        )
+        );
       }
     }
-    post_message_proxy(window.parent, { subject, ...params }, target)
+    post_message_proxy(window.parent, { subject, ...params }, target);
   } catch (err) {
     console.error(
       `Failed to postMessage (subject: ${subject}: ${(err as Error).message}`,
-    )
+    );
   }
 }
 
@@ -226,67 +233,67 @@ function useLtiMessenger(
   window: Window,
   lti_storage_target?: string,
   onPutDataResponse?: (data: {
-    key: string
-    value: string | null
-    message_id: string
+    key: string;
+    value: string | null;
+    message_id: string;
   }) => void,
   onGetDataResponse?: (data: {
-    key: string
-    value: string | null
-    message_id: string
+    key: string;
+    value: string | null;
+    message_id: string;
   }) => void,
 ): LtiMessengerType {
-  const [keyMap, setKeyMap] = useState<Record<string, string>>({})
-  const [capabilities, setCapabilities] = useState<SupportedMessages[]>()
-  const [pageContent, setPageContent] = useState<string>()
-  const [pageSettings, setPageSettings] = useState<PageSettings>()
-  const [windowSize, setWindowSize] = useState<WindowSize>()
+  const [keyMap, setKeyMap] = useState<Record<string, string>>({});
+  const [capabilities, setCapabilities] = useState<SupportedMessages[]>();
+  const [pageContent, setPageContent] = useState<string>();
+  const [pageSettings, setPageSettings] = useState<PageSettings>();
+  const [windowSize, setWindowSize] = useState<WindowSize>();
 
   const generateMessageId = () => {
     const generate = (len: number) => {
-      let gen = ''
+      let gen = '';
       for (let i = 0; i < len; i++) {
-        gen += Math.floor(Math.random() * 16).toString(16)
+        gen += Math.floor(Math.random() * 16).toString(16);
       }
-      return gen
-    }
-    let id: string
+      return gen;
+    };
+    let id: string;
     do {
-      id = generate(32)
-    } while (Object.values(keyMap).includes(id))
-    return id
-  }
+      id = generate(32);
+    } while (Object.values(keyMap).includes(id));
+    return id;
+  };
 
   useEffect(() => {
-    postMessage(window, 'lti.capabilities', undefined, lti_storage_target)
-    postMessage(window, 'lti.getPageSettings', undefined, lti_storage_target)
-    postMessage(window, 'lti.getPageContent', undefined, lti_storage_target)
-    postMessage(window, 'lti.fetchWindowSize', undefined, lti_storage_target)
-  }, [window, lti_storage_target])
+    postMessage(window, 'lti.capabilities', undefined, lti_storage_target);
+    postMessage(window, 'lti.getPageSettings', undefined, lti_storage_target);
+    postMessage(window, 'lti.getPageContent', undefined, lti_storage_target);
+    postMessage(window, 'lti.fetchWindowSize', undefined, lti_storage_target);
+  }, [window, lti_storage_target]);
 
   useEffect(() => {
     if (windowSize) {
       postMessage(window, 'lti.frameResize', {
         height: windowSize.height - windowSize.offset.top,
-      })
+      });
     }
-  }, [window, windowSize])
+  }, [window, windowSize]);
 
   const listeningFunction = useCallback(
     (event: MessageEvent) => {
-      const data = JSON.parse(JSON.stringify(event.data))
+      const data = JSON.parse(JSON.stringify(event.data));
       if (data.error) {
         console.error(
           `Error returned from postMessage: ${event.data.error.code}: ${event.data.error.message}`,
-        )
-        return
+        );
+        return;
       }
 
-      const subject = data.subject as string
+      const subject = data.subject as string;
       const original = subject.substring(
         0,
         subject.indexOf('.response'),
-      ) as LtiMessageType
+      ) as LtiMessageType;
 
       if (
         (subject == 'lti.put_data' || subject == 'lti.get_data') &&
@@ -294,45 +301,45 @@ function useLtiMessenger(
       ) {
         console.error(
           `Error: mismatched message_id for subject ${subject} and key ${data.key}`,
-        )
+        );
       }
 
       switch (original) {
         case 'lti.capabilities':
-          setCapabilities(data.supported_messages)
-          break
+          setCapabilities(data.supported_messages);
+          break;
         case 'lti.getPageContent':
-          setPageContent(data.pageContent)
-          break
+          setPageContent(data.pageContent);
+          break;
         case 'lti.getPageSettings':
-          setPageSettings(data.pageSettings)
-          break
+          setPageSettings(data.pageSettings);
+          break;
         case 'lti.fetchWindowSize':
           setWindowSize({
             width: data.width,
             height: data.height,
             footer: data.footer,
             offset: data.offset,
-          })
-          break
+          });
+          break;
         case 'lti.put_data':
-          if (onPutDataResponse) onPutDataResponse(data)
-          break
+          if (onPutDataResponse) onPutDataResponse(data);
+          break;
         case 'lti.get_data':
-          if (onGetDataResponse) onGetDataResponse(data)
-          break
+          if (onGetDataResponse) onGetDataResponse(data);
+          break;
         case 'lti.frameResize':
         case 'lti.showAlert':
-          break
+          break;
       }
     },
     [keyMap, onGetDataResponse, onPutDataResponse],
-  )
+  );
 
   useEffect(() => {
-    window.addEventListener('message', listeningFunction)
-    return () => window.removeEventListener('message', listeningFunction)
-  }, [window, listeningFunction])
+    window.addEventListener('message', listeningFunction);
+    return () => window.removeEventListener('message', listeningFunction);
+  }, [window, listeningFunction]);
 
   return {
     capabilities,
@@ -340,30 +347,30 @@ function useLtiMessenger(
     pageSettings,
     windowSize,
     postPutData: (params: { key: string; value: string | null }) => {
-      const msgId = generateMessageId()
-      setKeyMap((prev) => ({ ...prev, [params.key]: msgId }))
+      const msgId = generateMessageId();
+      setKeyMap((prev) => ({ ...prev, [params.key]: msgId }));
       postMessage(
         window,
         'lti.put_data',
         { ...params, message_id: msgId },
         lti_storage_target,
-      )
+      );
     },
     postGetData: (params: { key: string }) => {
       if (!keyMap[params.key])
-        throw new Error('No previous put data information found')
-      const message_id = keyMap[params.key]
+        throw new Error('No previous put data information found');
+      const message_id = keyMap[params.key];
       postMessage(
         window,
         'lti.get_data',
         { ...params, message_id },
         lti_storage_target,
-      )
+      );
     },
     postShowAlert: (params: {
-      alertType: 'success' | 'warning' | 'error'
-      title: string
-      body: string
+      alertType: 'success' | 'warning' | 'error';
+      title: string;
+      body: string;
     }) => postMessage(window, 'lti.showAlert', params),
-  }
+  };
 }

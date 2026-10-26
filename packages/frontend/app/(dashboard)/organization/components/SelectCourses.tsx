@@ -1,16 +1,16 @@
-import { CourseResponse, SemesterPartial } from '@koh/common'
-import { Checkbox, Form, Select, Table } from 'antd'
-import { ColumnsType } from 'antd/es/table'
-import { CheckboxChangeEvent } from 'antd/lib'
-import { useState } from 'react'
-import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
+import type { CourseResponse, SemesterPartial } from '@koh/common';
+import { Checkbox, Form, Select, Table } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import type { CheckboxChangeEvent } from 'antd/lib';
+import { useState } from 'react';
+import { formatSemesterDate } from '@/app/utils/timeFormatUtils';
 
 type SelectCoursesProps = {
-  courses: CourseResponse[]
-  selectedCourseIds: number[]
-  setSelectedCourseIds: (selectedCourses: number[]) => void
-  organizationSemesters: SemesterPartial[]
-}
+  courses: CourseResponse[];
+  selectedCourseIds: number[];
+  setSelectedCourseIds: (selectedCourses: number[]) => void;
+  organizationSemesters: SemesterPartial[];
+};
 
 const SelectCourses: React.FC<SelectCoursesProps> = ({
   courses,
@@ -18,18 +18,18 @@ const SelectCourses: React.FC<SelectCoursesProps> = ({
   setSelectedCourseIds: setSelectedCourses,
   organizationSemesters,
 }) => {
-  const [filterSemesterId, setFilterSemesterId] = useState<number | null>(null)
+  const [filterSemesterId, setFilterSemesterId] = useState<number | null>(null);
 
   // Filter courses based on the selected semester filter
   const filteredCourses = courses.filter(
     (course) =>
       filterSemesterId === null || course.semesterId === filterSemesterId,
-  )
+  );
 
   // Check if all filtered courses are selected
   const allSelected = filteredCourses.every((course) =>
     selectedCourses.includes(course.courseId),
-  )
+  );
 
   // Toggle select all for filtered list
   const toggleSelectAll = (e: CheckboxChangeEvent) => {
@@ -39,24 +39,24 @@ const SelectCourses: React.FC<SelectCoursesProps> = ({
           ...selectedCourses,
           ...filteredCourses.map((course) => course.courseId),
         ]),
-      )
-      setSelectedCourses(updated)
+      );
+      setSelectedCourses(updated);
     } else {
       const updated = selectedCourses.filter(
         (id) => !filteredCourses.some((course) => course.courseId === id),
-      )
-      setSelectedCourses(updated)
+      );
+      setSelectedCourses(updated);
     }
-  }
+  };
 
   // Toggle individual course selection
   const toggleCourseSelection = (courseId: number, checked: boolean) => {
     if (checked) {
-      setSelectedCourses([...selectedCourses, courseId])
+      setSelectedCourses([...selectedCourses, courseId]);
     } else {
-      setSelectedCourses(selectedCourses.filter((id) => id !== courseId))
+      setSelectedCourses(selectedCourses.filter((id) => id !== courseId));
     }
-  }
+  };
 
   // Define columns for the antd Table
   const columns: ColumnsType<CourseResponse> = [
@@ -90,7 +90,7 @@ const SelectCourses: React.FC<SelectCoursesProps> = ({
         />
       ),
     },
-  ]
+  ];
 
   return (
     <div>
@@ -125,7 +125,7 @@ const SelectCourses: React.FC<SelectCoursesProps> = ({
         }}
       />
     </div>
-  )
-}
+  );
+};
 
-export default SelectCourses
+export default SelectCourses;

@@ -1,3 +1,4 @@
+import type { ColorPickerProps, GetProp } from 'antd';
 import {
   Modal,
   Form,
@@ -9,47 +10,46 @@ import {
   message,
   Button,
   Popconfirm,
-  ColorPickerProps,
-  GetProp,
   Select,
-} from 'antd'
-import { useCallback, useEffect, useState } from 'react'
-import dayjs from 'dayjs'
-import { API } from '@/app/api'
-import { Event } from '@/app/typings/types'
-import { Calendar, calendarEventLocationType } from '@koh/common'
-import { dayToIntMapping } from '@/app/typings/types'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { DeleteOutlined } from '@ant-design/icons'
-import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
-import { useStaff } from '@/app/hooks/useStaff'
+} from 'antd';
+import { useCallback, useEffect, useState } from 'react';
+import dayjs from 'dayjs';
+import { API } from '@/app/api';
+import type { Event } from '@/app/typings/types';
+import type { Calendar } from '@koh/common';
+import { calendarEventLocationType } from '@koh/common';
+import { dayToIntMapping } from '@/app/typings/types';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { DeleteOutlined } from '@ant-design/icons';
+import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets';
+import { useStaff } from '@/app/hooks/useStaff';
 
 type Color = Extract<
   GetProp<ColorPickerProps, 'value'>,
   string | { cleared: any }
->
+>;
 
 interface FormValues {
-  title: string
-  color: string | Color
-  date: dayjs.Dayjs
-  startTime: dayjs.Dayjs
-  endTime: dayjs.Dayjs
-  locationType: number | calendarEventLocationType
-  locationInPerson?: string
-  locationOnline?: string
-  startDate?: dayjs.Dayjs
-  endDate?: dayjs.Dayjs
-  daysOfWeek?: string[]
-  staffIds?: number[]
+  title: string;
+  color: string | Color;
+  date: dayjs.Dayjs;
+  startTime: dayjs.Dayjs;
+  endTime: dayjs.Dayjs;
+  locationType: number | calendarEventLocationType;
+  locationInPerson?: string;
+  locationOnline?: string;
+  startDate?: dayjs.Dayjs;
+  endDate?: dayjs.Dayjs;
+  daysOfWeek?: string[];
+  staffIds?: number[];
 }
 
 type EditEventModalProps = {
-  visible: boolean
-  onClose: () => void
-  event?: Event
-  courseId: number
-}
+  visible: boolean;
+  onClose: () => void;
+  event?: Event;
+  courseId: number;
+};
 
 const EditEventModal: React.FC<EditEventModalProps> = ({
   visible,
@@ -57,27 +57,27 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   event,
   courseId,
 }) => {
-  const [form] = Form.useForm<FormValues>()
-  const [isRepeating, setIsRepeating] = useState(false)
+  const [form] = Form.useForm<FormValues>();
+  const [isRepeating, setIsRepeating] = useState(false);
   const [locationType, setLocationType] = useState<calendarEventLocationType>(
     (event?.locationType as calendarEventLocationType) ||
       calendarEventLocationType.inPerson,
-  )
+  );
   const intToDayMapping = Object.fromEntries(
     Object.entries(dayToIntMapping).map(([key, value]) => [value, key]),
-  )
-  const staff = useStaff(courseId)
+  );
+  const staff = useStaff(courseId);
 
   useEffect(() => {
     if (event && visible) {
       if (event.endRecur) {
-        setIsRepeating(true)
+        setIsRepeating(true);
       } else {
-        setIsRepeating(false)
+        setIsRepeating(false);
       }
-      setLocationType(event.locationType as calendarEventLocationType)
+      setLocationType(event.locationType as calendarEventLocationType);
     }
-  }, [visible, event])
+  }, [visible, event]);
 
   const onFinish = async (values: FormValues) => {
     try {
@@ -92,86 +92,86 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
             ? values.color
             : values.color.toHexString(),
         staffIds: values.staffIds,
-      }
+      };
 
       switch (values.locationType) {
         case calendarEventLocationType.inPerson:
-          eventObject.locationInPerson = values.locationInPerson
-          eventObject.locationOnline = undefined
-          break
+          eventObject.locationInPerson = values.locationInPerson;
+          eventObject.locationOnline = undefined;
+          break;
         case calendarEventLocationType.online:
-          eventObject.locationOnline = values.locationOnline
-          eventObject.locationInPerson = undefined
-          break
+          eventObject.locationOnline = values.locationOnline;
+          eventObject.locationInPerson = undefined;
+          break;
         case calendarEventLocationType.hybrid:
-          eventObject.locationInPerson = values.locationInPerson
-          eventObject.locationOnline = values.locationOnline
-          break
+          eventObject.locationInPerson = values.locationInPerson;
+          eventObject.locationOnline = values.locationOnline;
+          break;
         default:
-          message.error('Invalid location type')
-          return
+          message.error('Invalid location type');
+          return;
       }
 
       if (isRepeating) {
         if (values.startDate && values.endDate && values.daysOfWeek) {
           eventObject.daysOfWeek = values.daysOfWeek.map(
             (day) => dayToIntMapping[day],
-          )
-          eventObject.startDate = values.startDate.toDate()
-          eventObject.endDate = values.endDate.toDate()
+          );
+          eventObject.startDate = values.startDate.toDate();
+          eventObject.endDate = values.endDate.toDate();
         } else {
-          message.error('Please select all fields for repeating events')
-          return
+          message.error('Please select all fields for repeating events');
+          return;
         }
       }
 
-      updateEvent(eventObject)
+      updateEvent(eventObject);
     } catch (validationError) {
-      message.error('Event validation failed')
+      message.error('Event validation failed');
     }
-  }
+  };
 
   const deleteEvent = useCallback(async () => {
     if (!event?.id) {
-      message.error('Event not found')
-      return
+      message.error('Event not found');
+      return;
     }
     try {
-      const response = await API.calendar.deleteEvent(event.id, courseId)
+      const response = await API.calendar.deleteEvent(event.id, courseId);
       if (response) {
-        message.success('Event deleted successfully')
-        onClose()
+        message.success('Event deleted successfully');
+        onClose();
       } else {
-        message.error('Failed to delete event')
+        message.error('Failed to delete event');
       }
     } catch (err) {
-      const errorMessage = getErrorMessage(err)
-      message.error('Error deleting the event: ' + errorMessage)
+      const errorMessage = getErrorMessage(err);
+      message.error('Error deleting the event: ' + errorMessage);
     }
-  }, [courseId, event, onClose])
+  }, [courseId, event, onClose]);
 
   const updateEvent = async (updatedEvent: Partial<Calendar>) => {
     if (!event?.id) {
-      message.error('Event not found')
-      return
+      message.error('Event not found');
+      return;
     }
     try {
       const response = await API.calendar.patchEvent(
         event.id,
         updatedEvent,
         courseId,
-      )
+      );
       if (response) {
-        message.success('Event updated successfully')
+        message.success('Event updated successfully');
       } else {
-        message.error('Failed to update event')
+        message.error('Failed to update event');
       }
     } catch (err) {
-      const errorMessage = getErrorMessage(err)
-      message.error('Error updating event:' + errorMessage)
+      const errorMessage = getErrorMessage(err);
+      message.error('Error updating event:' + errorMessage);
     }
-    onClose()
-  }
+    onClose();
+  };
 
   return (
     <Modal
@@ -341,14 +341,14 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   if (!value || !getFieldValue('endDate')) {
-                    return Promise.resolve()
+                    return Promise.resolve();
                   }
                   if (value.isBefore(getFieldValue('endDate'))) {
-                    return Promise.resolve()
+                    return Promise.resolve();
                   }
                   return Promise.reject(
                     new Error('Start date must be before end date!'),
-                  )
+                  );
                 },
               }),
             ]}
@@ -364,14 +364,14 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   if (!value || !getFieldValue('startDate')) {
-                    return Promise.resolve()
+                    return Promise.resolve();
                   }
                   if (value.isAfter(getFieldValue('startDate'))) {
-                    return Promise.resolve()
+                    return Promise.resolve();
                   }
                   return Promise.reject(
                     new Error('End date must be after start date!'),
-                  )
+                  );
                 },
               }),
             ]}
@@ -459,7 +459,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         </>
       )}
     </Modal>
-  )
-}
+  );
+};
 
-export default EditEventModal
+export default EditEventModal;

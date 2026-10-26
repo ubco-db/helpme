@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class changeCourseFKConstraintToSetNullSemester1740984396325
-  implements MigrationInterface
-{
+export class changeCourseFKConstraintToSetNullSemester1740984396325 implements MigrationInterface {
   name = 'changeCourseFKConstraintToSetNullSemester1740984396325';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class studentTaskProgressQueueConfig1720395135091
-  implements MigrationInterface
-{
+export class studentTaskProgressQueueConfig1720395135091 implements MigrationInterface {
   name = 'studentTaskProgressQueueConfig1720395135091';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

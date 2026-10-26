@@ -11,9 +11,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
 
 @EventSubscriber()
-export class DesktopNotifSubscriber
-  implements EntitySubscriberInterface<DesktopNotifModel>
-{
+export class DesktopNotifSubscriber implements EntitySubscriberInterface<DesktopNotifModel> {
   notifService: NotificationService;
   constructor(
     @InjectDataSource()
@@ -25,7 +23,6 @@ export class DesktopNotifSubscriber
     dataSource.subscribers.push(this);
   }
 
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   listenTo() {
     return DesktopNotifModel;
   }

@@ -1,75 +1,75 @@
-import { useMemo, useState, useEffect } from 'react'
-import { Modal, Input, Form, message, Checkbox, Tooltip, Spin } from 'antd'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
-import { QuestionTagSelector } from '../../../components/QuestionTagElement'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { asyncQuestionStatus } from '@koh/common'
-import { QuestionCircleOutlined } from '@ant-design/icons'
-import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
-import { ChatbotQToConvertToAnytimeQ } from '@/app/typings/chatbot'
-import { formatQuestionForChatbot } from '../../utils/commonAsyncFunctions'
+import { useMemo, useState, useEffect } from 'react';
+import { Modal, Input, Form, message, Checkbox, Tooltip, Spin } from 'antd';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { useQuestionTypes } from '@/app/hooks/useQuestionTypes';
+import { QuestionTagSelector } from '../../../components/QuestionTagElement';
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { asyncQuestionStatus } from '@koh/common';
+import { QuestionCircleOutlined } from '@ant-design/icons';
+import { useCourseFeatures } from '@/app/hooks/useCourseFeatures';
+import type { ChatbotQToConvertToAnytimeQ } from '@/app/typings/chatbot';
+import { formatQuestionForChatbot } from '../../utils/commonAsyncFunctions';
 
 interface FormValues {
-  QuestionAbstract: string
-  questionText: string
-  questionTypesInput: number[]
-  refreshAIAnswer: boolean
-  setVisible: boolean
-  setAnonymous: boolean
+  QuestionAbstract: string;
+  questionText: string;
+  questionTypesInput: number[];
+  refreshAIAnswer: boolean;
+  setVisible: boolean;
+  setAnonymous: boolean;
 }
 
 interface ConvertChatbotQToAnytimeQModalProps {
-  courseId: number
-  open: boolean
-  onCancel: () => void
-  onCreateOrUpdateQuestion: () => void
-  chatbotQ: ChatbotQToConvertToAnytimeQ
+  courseId: number;
+  open: boolean;
+  onCancel: () => void;
+  onCreateOrUpdateQuestion: () => void;
+  chatbotQ: ChatbotQToConvertToAnytimeQ;
 }
 
 const ConvertChatbotQToAnytimeQModal: React.FC<
   ConvertChatbotQToAnytimeQModalProps
 > = ({ courseId, open, onCancel, onCreateOrUpdateQuestion, chatbotQ }) => {
-  const { userInfo } = useUserInfo()
-  const [questionTypes] = useQuestionTypes(courseId, null)
-  const [form] = Form.useForm()
-  const [isLoading, setIsLoading] = useState(false)
-  const courseFeatures = useCourseFeatures(courseId)
-  const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false
-  const [isGeneratingAbstract, setIsGeneratingAbstract] = useState(false)
+  const { userInfo } = useUserInfo();
+  const [questionTypes] = useQuestionTypes(courseId, null);
+  const [form] = Form.useForm();
+  const [isLoading, setIsLoading] = useState(false);
+  const courseFeatures = useCourseFeatures(courseId);
+  const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false;
+  const [isGeneratingAbstract, setIsGeneratingAbstract] = useState(false);
 
   const userQuestionText = useMemo(() => {
     return chatbotQ.messages
       .filter((msg) => msg.type === 'userMessage')
       .map((msg) => msg.message)
-      .join('\n')
-  }, [chatbotQ.messages])
+      .join('\n');
+  }, [chatbotQ.messages]);
 
   const questionText = useMemo(() => {
     if (!chatbotQ.selectedAgentName) {
-      return userQuestionText
+      return userQuestionText;
     }
 
-    return `Selected chatbot agent: ${chatbotQ.selectedAgentName}\n\n${userQuestionText}`
-  }, [chatbotQ.selectedAgentName, userQuestionText])
+    return `Selected chatbot agent: ${chatbotQ.selectedAgentName}\n\n${userQuestionText}`;
+  }, [chatbotQ.selectedAgentName, userQuestionText]);
 
   const fallbackGenerateAbstract = (question: string) => {
-    const words = question.split(' ').slice(0, 8)
-    const fallbackTitle = words.join(' ')
+    const words = question.split(' ').slice(0, 8);
+    const fallbackTitle = words.join(' ');
     return fallbackTitle.length > 100
       ? fallbackTitle.substring(0, 97) + '...'
-      : fallbackTitle
-  }
+      : fallbackTitle;
+  };
 
   useEffect(() => {
     if (open) {
       // Set the question text immediately
-      form.setFieldsValue({ questionText })
+      form.setFieldsValue({ questionText });
 
       // Asynchronously generate the abstract
       const generateAbstract = async () => {
-        setIsGeneratingAbstract(true)
+        setIsGeneratingAbstract(true);
         try {
           const response = await API.chatbot.studentsOrStaff.queryChatbot(
             courseId,
@@ -77,37 +77,37 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
               query: userQuestionText,
               type: 'abstract',
             },
-          )
+          );
 
-          const idx = response.indexOf(':')
-          let generatedAbstract = response.substring(idx + 1)
+          const idx = response.indexOf(':');
+          let generatedAbstract = response.substring(idx + 1);
           generatedAbstract = generatedAbstract
             .replace(/^["']|["']$/g, '')
-            .trim()
+            .trim();
 
           if (
             generatedAbstract.length > 100 ||
             generatedAbstract.includes('\n')
           ) {
-            generatedAbstract = fallbackGenerateAbstract(generatedAbstract)
+            generatedAbstract = fallbackGenerateAbstract(generatedAbstract);
           }
 
-          form.setFieldsValue({ QuestionAbstract: generatedAbstract })
+          form.setFieldsValue({ QuestionAbstract: generatedAbstract });
         } catch (chatbotError) {
-          console.warn('Chatbot failed, using fallback', chatbotError)
-          const fallbackAbstract = fallbackGenerateAbstract(userQuestionText)
-          form.setFieldsValue({ QuestionAbstract: fallbackAbstract })
+          console.warn('Chatbot failed, using fallback', chatbotError);
+          const fallbackAbstract = fallbackGenerateAbstract(userQuestionText);
+          form.setFieldsValue({ QuestionAbstract: fallbackAbstract });
         } finally {
-          setIsGeneratingAbstract(false)
+          setIsGeneratingAbstract(false);
         }
-      }
-      generateAbstract().then()
+      };
+      generateAbstract().then();
     }
-  }, [open, courseId, form, questionText, userQuestionText])
+  }, [open, courseId, form, questionText, userQuestionText]);
 
   const getAiAnswer = async (question: string) => {
     if (!courseFeatures?.asyncCentreAIAnswers) {
-      return ''
+      return '';
     }
     try {
       if (userInfo.chat_token.used < userInfo.chat_token.max_uses) {
@@ -115,30 +115,30 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
           question: question,
           history: [],
           onlySaveInChatbotDB: true,
-        }
+        };
         const response = await API.chatbot.studentsOrStaff.askQuestion(
           courseId,
           data,
-        )
-        return response.chatbotRepoVersion.answer
+        );
+        return response.chatbotRepoVersion.answer;
       } else {
-        return 'All AI uses have been used up for today. Please try again tomorrow.'
+        return 'All AI uses have been used up for today. Please try again tomorrow.';
       }
     } catch (e) {
-      return ''
+      return '';
     }
-  }
+  };
 
   const onFinish = async (values: FormValues) => {
-    setIsLoading(true)
+    setIsLoading(true);
     const newQuestionTypeInput =
       values.questionTypesInput && questionTypes
         ? questionTypes.filter((questionType) =>
             values.questionTypesInput.includes(questionType.id),
           )
-        : []
+        : [];
 
-    let aiAnswer = ''
+    let aiAnswer = '';
     if (values.refreshAIAnswer) {
       aiAnswer = await getAiAnswer(
         formatQuestionForChatbot(
@@ -146,7 +146,7 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
           values.questionText,
           newQuestionTypeInput,
         ),
-      )
+      );
     } else {
       // if they don't want a new AI answer, leave it as a list of the old answers with "\n" in between them
       // also don't include the first message, since that's the initial "hi how can I help you" message
@@ -154,7 +154,7 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
         .slice(1)
         .filter((msg) => msg.type === 'apiMessage')
         .map((msg) => msg.message)
-        .join('\n')
+        .join('\n');
     }
     await API.asyncQuestions
       .create(
@@ -171,16 +171,16 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
         courseId,
       )
       .then(() => {
-        message.success('Question Posted')
-        setIsLoading(false)
-        onCreateOrUpdateQuestion()
+        message.success('Question Posted');
+        setIsLoading(false);
+        onCreateOrUpdateQuestion();
       })
       .catch((e) => {
-        const errorMessage = getErrorMessage(e)
-        message.error('Error creating question:' + errorMessage)
-        setIsLoading(false)
-      })
-  }
+        const errorMessage = getErrorMessage(e);
+        message.error('Error creating question:' + errorMessage);
+        setIsLoading(false);
+      });
+  };
 
   return (
     <Modal
@@ -321,7 +321,7 @@ const ConvertChatbotQToAnytimeQModal: React.FC<
         </Tooltip>
       )}
     </Modal>
-  )
-}
+  );
+};
 
-export default ConvertChatbotQToAnytimeQModal
+export default ConvertChatbotQToAnytimeQModal;

@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { CalendarService } from './calendar.service';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { BadRequestException } from '@nestjs/common';

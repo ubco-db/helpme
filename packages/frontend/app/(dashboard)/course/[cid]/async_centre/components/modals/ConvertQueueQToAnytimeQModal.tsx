@@ -1,36 +1,36 @@
-import { useEffect, useState } from 'react'
-import { Checkbox, Form, Input, message, Modal, Spin, Tooltip } from 'antd'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
-import { QuestionTagSelector } from '../../../components/QuestionTagElement'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import { useEffect, useState } from 'react';
+import { Checkbox, Form, Input, message, Modal, Spin, Tooltip } from 'antd';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { useQuestionTypes } from '@/app/hooks/useQuestionTypes';
+import { QuestionTagSelector } from '../../../components/QuestionTagElement';
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import type { PromptStudentToLeaveQueuePayload } from '@koh/common';
 import {
   AlertType,
   asyncQuestionStatus,
   ClosedQuestionStatus,
-  PromptStudentToLeaveQueuePayload,
-} from '@koh/common'
-import { QuestionCircleOutlined } from '@ant-design/icons'
-import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
-import { useAlerts } from '@/app/contexts/AlertsContext'
+} from '@koh/common';
+import { QuestionCircleOutlined } from '@ant-design/icons';
+import { useCourseFeatures } from '@/app/hooks/useCourseFeatures';
+import { useAlerts } from '@/app/contexts/AlertsContext';
 
 interface FormValues {
-  QuestionAbstract: string
-  questionText: string
-  questionTypesInput: number[]
-  refreshAIAnswer: boolean
-  setVisible: boolean
-  setAnonymous: boolean
+  QuestionAbstract: string;
+  questionText: string;
+  questionTypesInput: number[];
+  refreshAIAnswer: boolean;
+  setVisible: boolean;
+  setAnonymous: boolean;
 }
 
 interface ConvertQueueQToAnytimeQModalProps {
-  courseId: number
-  queueId: number
-  queueQuestionId: number
-  open: boolean
-  onCancel: () => void
-  onCreateOrUpdateQuestion: () => void
+  courseId: number;
+  queueId: number;
+  queueQuestionId: number;
+  open: boolean;
+  onCancel: () => void;
+  onCreateOrUpdateQuestion: () => void;
 }
 
 const ConvertQueueQToAnytimeQModal: React.FC<
@@ -43,68 +43,68 @@ const ConvertQueueQToAnytimeQModal: React.FC<
   onCancel,
   onCreateOrUpdateQuestion,
 }) => {
-  const { userInfo } = useUserInfo()
-  const courseFeatures = useCourseFeatures(courseId)
-  const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false
-  const [form] = Form.useForm()
-  const [isLoading, setIsLoading] = useState(false)
-  const [initialLoading, setInitialLoading] = useState(false)
-  const [isGeneratingAbstract, setIsGeneratingAbstract] = useState(false)
+  const { userInfo } = useUserInfo();
+  const courseFeatures = useCourseFeatures(courseId);
+  const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false;
+  const [form] = Form.useForm();
+  const [isLoading, setIsLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(false);
+  const [isGeneratingAbstract, setIsGeneratingAbstract] = useState(false);
   // Get both anytime question tags and queue tags.
-  const [anytimeQuestionTypes] = useQuestionTypes(courseId, null)
+  const [anytimeQuestionTypes] = useQuestionTypes(courseId, null);
 
-  const { modalAlerts, markAlertRead } = useAlerts()
+  const { modalAlerts, markAlertRead } = useAlerts();
 
   const fallbackGenerateAbstract = (question: string) => {
-    const words = question.split(' ').slice(0, 8)
-    const fallbackTitle = words.join(' ')
+    const words = question.split(' ').slice(0, 8);
+    const fallbackTitle = words.join(' ');
     return fallbackTitle.length > 100
       ? fallbackTitle.substring(0, 97) + '...'
-      : fallbackTitle
-  }
+      : fallbackTitle;
+  };
 
   useEffect(() => {
     if (open && queueQuestionId) {
       const fetchQuestion = async () => {
-        setInitialLoading(true)
+        setInitialLoading(true);
         try {
           const myQuestion = await API.questions
             .update(queueQuestionId, {})
             .catch((err) => {
               console.error(
                 'Failed to load queue question data: ' + getErrorMessage(err),
-              )
+              );
               message.error(
                 'Failed to load queue question data: ' + getErrorMessage(err),
-              )
-            })
+              );
+            });
           if (!myQuestion?.text) {
-            setInitialLoading(false)
-            return
+            setInitialLoading(false);
+            return;
           }
 
           const queueTags = new Set(
             myQuestion.questionTypes?.map((qt) =>
               qt.name.toLowerCase().trim(),
             ) || [],
-          )
+          );
 
           const anytimeTags = anytimeQuestionTypes
             ?.filter((globalTag) =>
               queueTags.has(globalTag.name.toLowerCase().trim()),
             )
-            .map((tag) => tag.id)
+            .map((tag) => tag.id);
 
-          form.resetFields(['questionTypesInput']) // required to preselect the matching tags selected on the queue question creation modal.
+          form.resetFields(['questionTypesInput']); // required to preselect the matching tags selected on the queue question creation modal.
           form.setFieldsValue({
             questionText: myQuestion.text,
             questionTypesInput: anytimeTags,
-          })
+          });
 
-          setInitialLoading(false)
+          setInitialLoading(false);
 
-          setIsGeneratingAbstract(true)
-          let generatedAbstract = ''
+          setIsGeneratingAbstract(true);
+          let generatedAbstract = '';
           try {
             const response = await API.chatbot.studentsOrStaff.queryChatbot(
               courseId,
@@ -112,40 +112,40 @@ const ConvertQueueQToAnytimeQModal: React.FC<
                 query: myQuestion.text,
                 type: 'abstract',
               },
-            )
+            );
 
-            const idx = response.indexOf(':')
-            generatedAbstract = response.substring(idx + 1)
-            generatedAbstract = response.replace(/^["']|["']$/g, '')
-            generatedAbstract = generatedAbstract.trim()
+            const idx = response.indexOf(':');
+            generatedAbstract = response.substring(idx + 1);
+            generatedAbstract = response.replace(/^["']|["']$/g, '');
+            generatedAbstract = generatedAbstract.trim();
 
             if (
               generatedAbstract.length > 100 ||
               generatedAbstract.includes('\n')
             ) {
-              generatedAbstract = fallbackGenerateAbstract(generatedAbstract)
+              generatedAbstract = fallbackGenerateAbstract(generatedAbstract);
             }
 
-            form.setFieldsValue({ QuestionAbstract: generatedAbstract })
+            form.setFieldsValue({ QuestionAbstract: generatedAbstract });
           } catch (chatbotError) {
-            console.warn('Chatbot failed, using fallback', chatbotError)
-            const fallbackAbstract = fallbackGenerateAbstract(myQuestion.text)
-            form.setFieldsValue({ QuestionAbstract: fallbackAbstract })
+            console.warn('Chatbot failed, using fallback', chatbotError);
+            const fallbackAbstract = fallbackGenerateAbstract(myQuestion.text);
+            form.setFieldsValue({ QuestionAbstract: fallbackAbstract });
           } finally {
-            setIsGeneratingAbstract(false)
+            setIsGeneratingAbstract(false);
           }
         } catch (e) {
-          console.error('Failed to fetch queue question text:', e)
-          message.error('Failed to load question data.')
-          setInitialLoading(false)
+          console.error('Failed to fetch queue question text:', e);
+          message.error('Failed to load question data.');
+          setInitialLoading(false);
         }
-      }
-      fetchQuestion().then()
+      };
+      fetchQuestion().then();
     }
-  }, [open, queueQuestionId, courseId, form, anytimeQuestionTypes])
+  }, [open, queueQuestionId, courseId, form, anytimeQuestionTypes]);
 
   const onFinish = async (values: FormValues) => {
-    setIsLoading(true)
+    setIsLoading(true);
 
     // Process question types (same as chatbot version)
     const newQuestionTypeInput =
@@ -153,7 +153,7 @@ const ConvertQueueQToAnytimeQModal: React.FC<
         ? anytimeQuestionTypes.filter((questionType) =>
             values.questionTypesInput.includes(questionType.id),
           )
-        : []
+        : [];
 
     try {
       await API.asyncQuestions.create(
@@ -166,12 +166,12 @@ const ConvertQueueQToAnytimeQModal: React.FC<
           authorSetVisible: authorCanSetVisible ? values.setVisible : false,
         },
         courseId,
-      )
+      );
 
       if (queueQuestionId) {
         await API.questions.update(queueQuestionId, {
           status: ClosedQuestionStatus.ConfirmedDeleted,
-        })
+        });
       }
 
       try {
@@ -181,23 +181,23 @@ const ConvertQueueQToAnytimeQModal: React.FC<
               alert.alertType === AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE &&
               (alert.payload as PromptStudentToLeaveQueuePayload).queueId ===
                 queueId,
-          )
+          );
           if (queueAlert) {
-            await markAlertRead(queueAlert.id)
+            await markAlertRead(queueAlert.id);
           }
         }
       } catch (alertError) {
-        console.warn('Failed to close alert:', alertError)
+        console.warn('Failed to close alert:', alertError);
       }
-      message.success('Question Posted')
-      setIsLoading(false)
-      onCreateOrUpdateQuestion()
+      message.success('Question Posted');
+      setIsLoading(false);
+      onCreateOrUpdateQuestion();
     } catch (e) {
-      const errorMessage = getErrorMessage(e)
-      message.error('Error creating question:' + errorMessage)
-      setIsLoading(false)
+      const errorMessage = getErrorMessage(e);
+      message.error('Error creating question:' + errorMessage);
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Modal
@@ -320,7 +320,7 @@ const ConvertQueueQToAnytimeQModal: React.FC<
         <Checkbox />
       </Form.Item>
     </Modal>
-  )
-}
+  );
+};
 
-export default ConvertQueueQToAnytimeQModal
+export default ConvertQueueQToAnytimeQModal;

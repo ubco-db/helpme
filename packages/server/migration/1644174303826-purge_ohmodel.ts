@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class purgeOhmodel1644174303826 implements MigrationInterface {
   name = 'purgeOhmodel1644174303826';

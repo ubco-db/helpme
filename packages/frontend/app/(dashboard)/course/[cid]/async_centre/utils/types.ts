@@ -1,25 +1,25 @@
-import { AsyncCreator, Role, UserPartial } from '@koh/common'
-import { Action } from '../components/AsyncQuestionCardUIReducer'
+import type { AsyncCreator, Role, UserPartial } from '@koh/common';
+import type { Action } from '../components/AsyncQuestionCardUIReducer';
 
-export type CommentAuthorType = Role | 'you' | 'author'
+export type CommentAuthorType = Role | 'you' | 'author';
 
-export type EndorserInfo = UserPartial & { role?: Role }
+export type EndorserInfo = UserPartial & { role?: Role };
 
 export interface CommentProps {
-  commentId: number
-  questionId: number
-  author: AsyncCreator
-  isAnonymous: boolean
-  questionIsAnonymous: boolean
-  content: string
-  onDeleteSuccess: () => void
-  onEditSuccess: (newCommentText: string, newCommentAnonymous: boolean) => void
-  dispatchUIStateChange: (action: Action) => void
-  IAmStaff: boolean
-  showStudents: boolean
-  datetime: React.ReactNode
-  numOtherComments: number
-  endorsedBy: EndorserInfo | null
-  onEndorseSuccess: () => void
-  className?: string
+  commentId: number;
+  questionId: number;
+  author: AsyncCreator;
+  isAnonymous: boolean;
+  questionIsAnonymous: boolean;
+  content: string;
+  onDeleteSuccess: () => void;
+  onEditSuccess: (newCommentText: string, newCommentAnonymous: boolean) => void;
+  dispatchUIStateChange: (action: Action) => void;
+  IAmStaff: boolean;
+  showStudents: boolean;
+  datetime: React.ReactNode;
+  numOtherComments: number;
+  endorsedBy: EndorserInfo | null;
+  onEndorseSuccess: () => void;
+  className?: string;
 }

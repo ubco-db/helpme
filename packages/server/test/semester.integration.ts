@@ -1,4 +1,5 @@
-import { antdTagColor, OrganizationRole, SemesterPartial } from '@koh/common';
+import type { SemesterPartial } from '@koh/common';
+import { antdTagColor, OrganizationRole } from '@koh/common';
 import { setupIntegrationTest } from './util/testUtils';
 import { SemesterModule } from '../src/semester/semester.module';
 import {

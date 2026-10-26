@@ -1,23 +1,23 @@
-'use client'
+'use client';
 
-import { Button, Card, Form, Input, message, Result, Spin } from 'antd'
-import { usePathname, useRouter } from 'next/navigation'
-import { use, useEffect, useMemo, useState } from 'react'
-import { PasswordRequestResetWithTokenBody } from '@koh/common'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import { Button, Card, Form, Input, message, Result, Spin } from 'antd';
+import { usePathname, useRouter } from 'next/navigation';
+import { use, useEffect, useMemo, useState } from 'react';
+import type { PasswordRequestResetWithTokenBody } from '@koh/common';
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
 
 const PasswordResetPage = (props: { params: Promise<{ token: string }> }) => {
-  const params = use(props.params)
-  const router = useRouter()
-  const [isTokenValid, setIsTokenValid] = useState(false)
-  const [invalidTokenMessage, setInvalidTokenMessage] = useState(null)
-  const [resetPasswordForm] = Form.useForm()
-  const pathName = usePathname()
+  const params = use(props.params);
+  const router = useRouter();
+  const [isTokenValid, setIsTokenValid] = useState(false);
+  const [invalidTokenMessage, setInvalidTokenMessage] = useState(null);
+  const [resetPasswordForm] = Form.useForm();
+  const pathName = usePathname();
 
   const isLti = useMemo(() => {
-    return pathName.startsWith('/lti')
-  }, [pathName])
+    return pathName.startsWith('/lti');
+  }, [pathName]);
 
   useEffect(() => {
     const validateToken = async () => {
@@ -25,38 +25,38 @@ const PasswordResetPage = (props: { params: Promise<{ token: string }> }) => {
         .validateResetToken(params.token)
         .then(() => setIsTokenValid(true))
         .catch((err) => {
-          setIsTokenValid(false)
-          setInvalidTokenMessage(getErrorMessage(err))
-        })
-    }
-    validateToken()
-  }, [params.token])
+          setIsTokenValid(false);
+          setInvalidTokenMessage(getErrorMessage(err));
+        });
+    };
+    validateToken();
+  }, [params.token]);
 
   const resetPassword = async () => {
-    const formValues = await resetPasswordForm.validateFields()
-    const { passwordField, confirmPasswordField } = formValues
+    const formValues = await resetPasswordForm.validateFields();
+    const { passwordField, confirmPasswordField } = formValues;
 
     if (passwordField !== confirmPasswordField) {
-      message.error('Passwords do not match')
-      return
+      message.error('Passwords do not match');
+      return;
     }
 
     const passwordConfirmationPayloadData: PasswordRequestResetWithTokenBody = {
       password: passwordField,
       confirmPassword: confirmPasswordField,
-    }
+    };
 
     return await API.auth
       .resetPassword(params.token, passwordConfirmationPayloadData)
       .then(() => {
-        message.success('Password reset successfully')
-        router.push(isLti ? '/lti/login' : '/login')
+        message.success('Password reset successfully');
+        router.push(isLti ? '/lti/login' : '/login');
       })
       .catch((err) => {
-        const error = getErrorMessage(err)
-        message.error(error)
-      })
-  }
+        const error = getErrorMessage(err);
+        message.error(error);
+      });
+  };
 
   if (isTokenValid) {
     return (
@@ -127,7 +127,7 @@ const PasswordResetPage = (props: { params: Promise<{ token: string }> }) => {
           </Form>
         </Card>
       </div>
-    )
+    );
   } else if (!isTokenValid && invalidTokenMessage !== null) {
     return (
       <div className="rounded text-center">
@@ -146,10 +146,10 @@ const PasswordResetPage = (props: { params: Promise<{ token: string }> }) => {
           ]}
         />
       </div>
-    )
+    );
   } else {
-    return <Spin />
+    return <Spin />;
   }
-}
+};
 
-export default PasswordResetPage
+export default PasswordResetPage;

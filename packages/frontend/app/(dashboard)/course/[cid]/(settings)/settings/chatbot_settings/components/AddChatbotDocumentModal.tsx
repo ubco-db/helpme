@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import {
   FileAddOutlined,
@@ -6,41 +6,30 @@ import {
   UploadOutlined,
   CheckCircleFilled,
   PaperClipOutlined,
-} from '@ant-design/icons'
-import {
-  Form,
-  Input,
-  message,
-  Modal,
-  Segmented,
-  Switch,
-  UploadFile,
-} from 'antd'
-import Dragger from 'antd/es/upload/Dragger'
-import { useEffect, useState } from 'react'
-import { RcFile } from 'antd/lib/upload'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import ChatbotHelpTooltip from '../../components/ChatbotHelpTooltip'
-import styles from './AddChatbotDocumentModal.module.css'
-import { useAlerts } from '@/app/contexts/AlertsContext'
-import {
-  AlertDeliveryMode,
-  AlertType,
-  ChatbotDocumentProcessedPayload,
-  ToastType,
-} from '@koh/common'
-import { UploadFileStatus } from 'antd/es/upload/interface'
+} from '@ant-design/icons';
+import type { UploadFile } from 'antd';
+import { Form, Input, message, Modal, Segmented, Switch } from 'antd';
+import Dragger from 'antd/es/upload/Dragger';
+import { useEffect, useState } from 'react';
+import type { RcFile } from 'antd/lib/upload';
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import ChatbotHelpTooltip from '../../components/ChatbotHelpTooltip';
+import styles from './AddChatbotDocumentModal.module.css';
+import { useAlerts } from '@/app/contexts/AlertsContext';
+import type { ChatbotDocumentProcessedPayload } from '@koh/common';
+import { AlertDeliveryMode, AlertType, ToastType } from '@koh/common';
+import type { UploadFileStatus } from 'antd/es/upload/interface';
 
 type UploadFileCustom = Omit<UploadFile, 'status'> & {
-  status?: UploadFileStatus | 'processed'
-}
+  status?: UploadFileStatus | 'processed';
+};
 
 interface AddChatbotDocumentModalProps {
-  courseId: number
-  open: boolean
-  setModalOpen: (open: boolean) => void
-  getDocuments: () => void
+  courseId: number;
+  open: boolean;
+  setModalOpen: (open: boolean) => void;
+  getDocuments: () => void;
 }
 
 const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
@@ -49,13 +38,13 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
   setModalOpen,
   getDocuments,
 }) => {
-  const [documentType, setDocumentType] = useState('FILE')
-  const [loading, setLoading] = useState(false)
-  const [form] = Form.useForm()
-  const [isSlideDeck, setIsSlideDeck] = useState(false)
-  const [fileList, setFileList] = useState<UploadFileCustom[]>([])
+  const [documentType, setDocumentType] = useState('FILE');
+  const [loading, setLoading] = useState(false);
+  const [form] = Form.useForm();
+  const [isSlideDeck, setIsSlideDeck] = useState(false);
+  const [fileList, setFileList] = useState<UploadFileCustom[]>([]);
 
-  const { registerNewAlertHandler, unregisterNewAlertHandler } = useAlerts()
+  const { registerNewAlertHandler, unregisterNewAlertHandler } = useAlerts();
 
   // Registers a handler for whenever a new CHATBOT_DOCUMENT_PROCESSED alert comes in to update the state in the modal here
   // (this assumes they didn't click off the page. This is mostly a little extra thing, but mostly so that the list of documents gets updated)
@@ -63,7 +52,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
     registerNewAlertHandler(
       'add-chatbot-document-handler',
       (alert) => {
-        const payload = alert.payload as ChatbotDocumentProcessedPayload
+        const payload = alert.payload as ChatbotDocumentProcessedPayload;
         if (payload.toastType === ToastType.ERROR) {
           setFileList((prevFileList) =>
             prevFileList.map((file) =>
@@ -71,7 +60,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
                 ? { ...file, status: 'error', response: payload.description }
                 : file,
             ),
-          )
+          );
         } else if (payload.toastType === ToastType.SUCCESS) {
           setFileList((prevFileList) =>
             prevFileList.map((file) =>
@@ -79,66 +68,66 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
                 ? { ...file, status: 'processed' }
                 : file,
             ),
-          )
-          getDocuments()
+          );
+          getDocuments();
         }
       },
       AlertDeliveryMode.TOAST,
       AlertType.CHATBOT_DOCUMENT_PROCESSED,
-    )
+    );
 
     return () => {
-      unregisterNewAlertHandler('add-chatbot-document-handler')
-    }
-  }, [registerNewAlertHandler, unregisterNewAlertHandler])
+      unregisterNewAlertHandler('add-chatbot-document-handler');
+    };
+  }, [registerNewAlertHandler, unregisterNewAlertHandler]);
 
   const addDocument = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const formData = await form.validateFields()
+      const formData = await form.validateFields();
 
       if (documentType === 'URL') {
-        await addUrl(formData.url)
+        await addUrl(formData.url);
       } else if (documentType === 'FILE') {
         const files = fileList
           .map((file) => file.originFileObj)
-          .filter((f) => f !== undefined && f !== null)
-        await uploadFiles(files)
+          .filter((f) => f !== undefined && f !== null);
+        await uploadFiles(files);
       }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const uploadNextFile = async (
     i: number,
     filesToUpload: RcFile[],
     errorDuringUploadObject: { value: string | null },
   ) => {
-    const fileToUpload = filesToUpload[i]
+    const fileToUpload = filesToUpload[i];
     // if the file is already uploading or done, skip it and inform the user
-    const existingFile = fileList.find((f) => f.uid === fileToUpload.uid)
+    const existingFile = fileList.find((f) => f.uid === fileToUpload.uid);
     if (existingFile?.status === 'uploading') {
-      message.info(`${fileToUpload.name} is still being uploaded.`)
+      message.info(`${fileToUpload.name} is still being uploaded.`);
       if (i < filesToUpload.length - 1) {
-        await uploadNextFile(i + 1, filesToUpload, errorDuringUploadObject)
+        await uploadNextFile(i + 1, filesToUpload, errorDuringUploadObject);
       }
-      return
+      return;
     } else if (
       existingFile?.status === 'done' ||
       existingFile?.status === 'processed'
     ) {
       if (i < filesToUpload.length - 1) {
-        await uploadNextFile(i + 1, filesToUpload, errorDuringUploadObject)
+        await uploadNextFile(i + 1, filesToUpload, errorDuringUploadObject);
       }
-      return
+      return;
     }
 
     setFileList((prevFileList) =>
       prevFileList.map((f) =>
         f.uid === fileToUpload.uid ? { ...f, status: 'uploading' } : f,
       ),
-    )
+    );
 
     // This API call uploads the document and creates a new job for it to be processed in the background.
     // Later, once it's done processing it creates a Toast alert that gets handled in AlertsContext
@@ -152,12 +141,12 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
           if (progressEvent.total) {
             const percent = Math.round(
               (progressEvent.loaded * 100) / progressEvent.total,
-            )
+            );
             setFileList((prevFileList) =>
               prevFileList.map((f) =>
                 f.uid === fileToUpload.uid ? { ...f, percent } : f,
               ),
-            )
+            );
           }
         },
       )
@@ -168,7 +157,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
               ? { ...f, status: 'done', percent: 100 }
               : f,
           ),
-        )
+        );
       })
       .catch((error) => {
         setFileList((prevFileList) =>
@@ -177,46 +166,46 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
               ? { ...f, status: 'error', response: getErrorMessage(error) }
               : f,
           ),
-        )
-        errorDuringUploadObject.value = getErrorMessage(error)
-      })
+        );
+        errorDuringUploadObject.value = getErrorMessage(error);
+      });
     // queue up the next file (which is technically recursive, I guess)
     if (i < filesToUpload.length - 1) {
-      await uploadNextFile(i + 1, filesToUpload, errorDuringUploadObject)
+      await uploadNextFile(i + 1, filesToUpload, errorDuringUploadObject);
     }
-  }
+  };
 
   const uploadFiles = async (files: RcFile[]) => {
-    const errorDuringUploadObject = { value: null } // object that we pass by reference to stop the modal from closing if any of the uploads fail
-    await uploadNextFile(0, files, errorDuringUploadObject)
+    const errorDuringUploadObject = { value: null }; // object that we pass by reference to stop the modal from closing if any of the uploads fail
+    await uploadNextFile(0, files, errorDuringUploadObject);
     if (!errorDuringUploadObject.value) {
       const numFilesToUpload = fileList.filter(
         (f) => f.status !== 'done' && f.status !== 'processed',
-      ).length
+      ).length;
       message.info(
         `${numFilesToUpload === 1 ? 'The document has' : `All ${numFilesToUpload} documents have`} been queued for processing. You will be notified upon completion. It is safe to close this tab.`,
         4.5,
-      )
-      setModalOpen(false)
+      );
+      setModalOpen(false);
     }
-  }
+  };
 
   const addUrl = async (url: string) => {
     await API.chatbot.staffOnly
       .addDocumentFromGithub(courseId, url)
       .then(async () => {
-        message.success('File successfully uploaded')
-        setFileList([])
-        form.resetFields()
-        getDocuments()
-        setModalOpen(false)
+        message.success('File successfully uploaded');
+        setFileList([]);
+        form.resetFields();
+        getDocuments();
+        setModalOpen(false);
       })
       .catch((e) => {
         message.error(
           `Failed to upload file (${getErrorMessage(e)}). Make sure the link points directly to the file on github and it's a supported file type.`,
-        )
-      })
-  }
+        );
+      });
+  };
 
   return (
     <Modal
@@ -236,7 +225,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
       maskClosable={!loading}
       onCancel={() => {
         if (!loading) {
-          setModalOpen(false)
+          setModalOpen(false);
         }
       }}
       closable={!loading}
@@ -247,8 +236,8 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
         loading: loading,
         onClick: async () => {
           await form.validateFields().then(() => {
-            addDocument()
-          })
+            addDocument();
+          });
         },
         disabled:
           fileList.every(
@@ -342,20 +331,20 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
                   accept=".docx,.pptx,.txt,.csv,.pdf,.md,.png,.jpg,.jpeg,.gif,.tiff,.xls,.xlsx,.doc,.rtf,.svg,.ppt,.odt,.ods,.odp,.epub,.vsd,.vsdx"
                   fileList={fileList as UploadFile<any>[]} // so that we can have custom 'processed' status
                   onChange={(info) => {
-                    setFileList(info.fileList)
+                    setFileList(info.fileList);
                   }}
                   onRemove={(file) => {
                     setFileList((prev) =>
                       prev.filter((f) => f.uid !== file.uid),
-                    )
+                    );
                   }}
                   maxCount={10}
                   beforeUpload={(file) => {
-                    return false
+                    return false;
                   }}
                   showUploadList={{
                     extra: ({ size = 0, status: rawStatus }) => {
-                      const status = rawStatus as UploadFileCustom['status']
+                      const status = rawStatus as UploadFileCustom['status'];
                       return (
                         <>
                           <span className="ml-1 text-zinc-400">
@@ -375,17 +364,17 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
                             </span>
                           )}
                         </>
-                      )
+                      );
                     },
                   }}
                   iconRender={({ status: rawStatus }) => {
-                    const status = rawStatus as UploadFileCustom['status']
+                    const status = rawStatus as UploadFileCustom['status'];
                     if (status === 'done') {
-                      return <CheckCircleFilled className="text-blue-500" />
+                      return <CheckCircleFilled className="text-blue-500" />;
                     } else if (status === 'processed') {
-                      return <CheckCircleFilled className="text-green-500" />
+                      return <CheckCircleFilled className="text-green-500" />;
                     }
-                    return <PaperClipOutlined />
+                    return <PaperClipOutlined />;
                   }}
                 >
                   <p className="ant-upload-drag-icon">
@@ -415,7 +404,7 @@ const AddChatbotDocumentModal: React.FC<AddChatbotDocumentModalProps> = ({
         </Form>
       </>
     </Modal>
-  )
-}
+  );
+};
 
-export default AddChatbotDocumentModal
+export default AddChatbotDocumentModal;

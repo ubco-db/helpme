@@ -1,8 +1,8 @@
-import express from 'express';
+import type express from 'express';
+import type { Provider } from '@bhunt02/lti-typescript';
 import {
   AuthTokenMethodEnum,
   Database,
-  Provider,
   register,
 } from '@bhunt02/lti-typescript';
 import { JwtService } from '@nestjs/jwt';

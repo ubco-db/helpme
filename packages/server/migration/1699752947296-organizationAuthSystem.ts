@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class organizationAuthSystem1699752947296 implements MigrationInterface {
   name = 'organizationAuthSystem1699752947296';

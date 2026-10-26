@@ -1,49 +1,50 @@
-'use client'
-import { use, useEffect, useState } from 'react'
+'use client';
+import { use, useEffect, useState } from 'react';
 
-import { API } from '@/app/api'
-import { CourseSettingsResponse, GetCourseResponse } from '@koh/common'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { LtiCourseProvider } from '@/app/contexts/LtiCourseContext'
+import { API } from '@/app/api';
+import type { CourseSettingsResponse, GetCourseResponse } from '@koh/common';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { LtiCourseProvider } from '@/app/contexts/LtiCourseContext';
 
-type Params = Promise<{ cid: string }>
+type Params = Promise<{ cid: string }>;
 
 export default function Layout(props: {
-  children: React.ReactNode
-  params: Params
+  children: React.ReactNode;
+  params: Params;
 }) {
-  const params = use(props.params)
+  const params = use(props.params);
 
-  const { children } = props
+  const { children } = props;
 
-  const { cid } = params
-  const courseId = Number(cid)
+  const { cid } = params;
+  const courseId = Number(cid);
 
-  const [course, setCourse] = useState<GetCourseResponse>()
-  const [courseFeatures, setCourseFeatures] = useState<CourseSettingsResponse>()
-  const [getCourseError, setGetCourseError] = useState<string>()
+  const [course, setCourse] = useState<GetCourseResponse>();
+  const [courseFeatures, setCourseFeatures] =
+    useState<CourseSettingsResponse>();
+  const [getCourseError, setGetCourseError] = useState<string>();
 
   useEffect(() => {
     const getData = async () => {
       await API.course
         .get(courseId)
         .then(async (course) => {
-          setCourse(course)
+          setCourse(course);
           await API.course
             .getCourseFeatures(courseId)
             .then((courseFeatures) => {
-              setCourseFeatures(courseFeatures)
+              setCourseFeatures(courseFeatures);
             })
             .catch((err) => {
-              setGetCourseError(getErrorMessage(err))
-            })
+              setGetCourseError(getErrorMessage(err));
+            });
         })
         .catch((err) => {
-          setGetCourseError(getErrorMessage(err))
-        })
-    }
-    getData()
-  }, [courseId])
+          setGetCourseError(getErrorMessage(err));
+        });
+    };
+    getData();
+  }, [courseId]);
 
   if (getCourseError) {
     return (
@@ -57,7 +58,7 @@ export default function Layout(props: {
           <p>{getCourseError}</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -68,5 +69,5 @@ export default function Layout(props: {
     >
       {children}
     </LtiCourseProvider>
-  )
+  );
 }

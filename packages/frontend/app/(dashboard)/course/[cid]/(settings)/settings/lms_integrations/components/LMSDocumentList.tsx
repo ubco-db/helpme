@@ -4,16 +4,18 @@ import {
   InfoCircleOutlined,
   SearchOutlined,
   SyncOutlined,
-} from '@ant-design/icons'
-import {
-  CommonMimeToExtensionMap,
+} from '@ant-design/icons';
+import type {
   LMSAnnouncement,
   LMSAssignment,
   LMSFile,
   LMSPage,
+} from '@koh/common';
+import {
+  CommonMimeToExtensionMap,
   LMSResourceType,
   SupportedLMSFileTypes,
-} from '@koh/common'
+} from '@koh/common';
 import {
   Badge,
   Button,
@@ -25,30 +27,30 @@ import {
   Select,
   Spin,
   Tooltip,
-} from 'antd'
-import { useEffect, useMemo, useState } from 'react'
-import { cn, getErrorMessage } from '@/app/utils/generalUtils'
-import { API } from '@/app/api'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+} from 'antd';
+import { useEffect, useMemo, useState } from 'react';
+import { cn, getErrorMessage } from '@/app/utils/generalUtils';
+import { API } from '@/app/api';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 type LMSDocumentListProps<T> = {
-  courseId: number
-  type: 'Assignment' | 'Announcement' | 'Page' | 'File'
-  documents: T[]
-  loadingLMSData?: boolean
-  lmsSynchronize?: boolean
-  onUpdateCallback?: () => void
-  selectedResourceTypes?: LMSResourceType[]
-}
+  courseId: number;
+  type: 'Assignment' | 'Announcement' | 'Page' | 'File';
+  documents: T[];
+  loadingLMSData?: boolean;
+  lmsSynchronize?: boolean;
+  onUpdateCallback?: () => void;
+  selectedResourceTypes?: LMSResourceType[];
+};
 
 type LMSDocumentListColumn = {
-  dataIndex: string
-  header: string
+  dataIndex: string;
+  header: string;
   cellFormat: (
     item: any,
-  ) => React.ReactNode | React.JSX.Element | string | number
-  colSpan: 1 | 2 | 3 | 4
-}
+  ) => React.ReactNode | React.JSX.Element | string | number;
+  colSpan: 1 | 2 | 3 | 4;
+};
 
 const isDocIneligible = <
   T extends LMSAssignment | LMSAnnouncement | LMSPage | LMSFile,
@@ -57,20 +59,20 @@ const isDocIneligible = <
   type: 'Assignment' | 'Announcement' | 'Page' | 'File',
 ) => {
   if (type == 'Assignment') {
-    const asAssignment = item as LMSAssignment
+    const asAssignment = item as LMSAssignment;
     return (
       (asAssignment.description == undefined ||
         asAssignment.description == '') &&
       asAssignment.due == undefined
-    )
+    );
   } else if (type == 'File') {
-    const asFile = item as LMSFile
+    const asFile = item as LMSFile;
     return !(Object.values(SupportedLMSFileTypes) as string[]).includes(
       asFile.contentType,
-    )
+    );
   }
-  return false
-}
+  return false;
+};
 
 export default function LMSDocumentList<
   T extends LMSAssignment | LMSAnnouncement | LMSPage | LMSFile,
@@ -88,77 +90,77 @@ export default function LMSDocumentList<
     LMSResourceType.FILES,
   ],
 }: LMSDocumentListProps<T>) {
-  const router = useRouter()
-  const pathName = usePathname()
-  const searchParams = useSearchParams()
+  const router = useRouter();
+  const pathName = usePathname();
+  const searchParams = useSearchParams();
 
   const [page, setPage] = useState(
     !isNaN(parseInt(searchParams.get('p') ?? ''))
       ? parseInt(searchParams.get('p') as string)
       : 1,
-  )
-  const [input, setInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [syncingItems, setSyncingItems] = useState<Record<string, boolean>>({})
+  );
+  const [input, setInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [syncingItems, setSyncingItems] = useState<Record<string, boolean>>({});
   const [selectedFilters, setSelectedFilters] = useState<(1 | 2 | 3)[]>([
     1, 2, 3,
-  ])
+  ]);
 
   useEffect(() => {
     const params = new URLSearchParams({
       tab: type.toLowerCase(),
       p: String(page),
-    })
-    router.push(`${pathName}?${params.toString()}`, { scroll: false })
-  }, [type, page, pathName, router])
+    });
+    router.push(`${pathName}?${params.toString()}`, { scroll: false });
+  }, [type, page, pathName, router]);
 
   const typeToResource = useMemo(() => {
     switch (type) {
       case 'Assignment':
-        return LMSResourceType.ASSIGNMENTS
+        return LMSResourceType.ASSIGNMENTS;
       case 'Announcement':
-        return LMSResourceType.ANNOUNCEMENTS
+        return LMSResourceType.ANNOUNCEMENTS;
       case 'Page':
-        return LMSResourceType.PAGES
+        return LMSResourceType.PAGES;
       case 'File':
-        return LMSResourceType.FILES
+        return LMSResourceType.FILES;
     }
-  }, [type])
+  }, [type]);
 
   const isItemSyncing = (itemId: string) => {
-    return syncingItems[itemId] || false
-  }
+    return syncingItems[itemId] || false;
+  };
 
   const toggleSyncDocument = async (
     doc: LMSAssignment | LMSAnnouncement | LMSPage | LMSFile,
     type: 'Assignment' | 'Announcement' | 'Page' | 'File',
   ) => {
-    const docIdStr = doc.id.toString()
+    const docIdStr = doc.id.toString();
 
     const thenFx = (result?: string) => {
       if (result) {
-        message.success(result)
-        onUpdateCallback()
+        message.success(result);
+        onUpdateCallback();
       } else {
-        throw new Error('Unknown error occurred')
+        throw new Error('Unknown error occurred');
       }
-    }
+    };
 
     const errFx = (err: Error) => {
-      message.error(getErrorMessage(err))
-    }
+      message.error(getErrorMessage(err));
+    };
 
     const finallyFx = () => {
       setSyncingItems((prev) => ({
         ...prev,
         [docIdStr]: false,
-      }))
-    }
+      }));
+    };
 
     setSyncingItems((prev) => ({
       ...prev,
       [docIdStr]: true,
-    }))
+    }));
 
     switch (type) {
       case 'Announcement':
@@ -166,27 +168,27 @@ export default function LMSDocumentList<
           .toggleSyncAnnouncement(courseId, doc.id, doc as LMSAnnouncement)
           .then(thenFx)
           .catch(errFx)
-          .finally(finallyFx)
+          .finally(finallyFx);
       case 'Assignment':
         return await API.lmsIntegration
           .toggleSyncAssignment(courseId, doc.id, doc as LMSAssignment)
           .then(thenFx)
           .catch(errFx)
-          .finally(finallyFx)
+          .finally(finallyFx);
       case 'Page':
         return await API.lmsIntegration
           .toggleSyncPage(courseId, doc.id, doc as LMSPage)
           .then(thenFx)
           .catch(errFx)
-          .finally(finallyFx)
+          .finally(finallyFx);
       case 'File':
         return await API.lmsIntegration
           .toggleSyncFile(courseId, doc.id, doc as LMSFile)
           .then(thenFx)
           .catch(errFx)
-          .finally(finallyFx)
+          .finally(finallyFx);
     }
-  }
+  };
 
   const columns = useMemo(() => {
     switch (type) {
@@ -239,12 +241,12 @@ export default function LMSDocumentList<
                     isItemSyncing={isItemSyncing(item.id.toString())}
                     lmsSynchronize={lmsSynchronize}
                   />
-                )
-              } else return null
+                );
+              } else return null;
             },
             colSpan: 1,
           },
-        ] as LMSDocumentListColumn[]
+        ] as LMSDocumentListColumn[];
       case 'Assignment':
         return [
           {
@@ -298,12 +300,12 @@ export default function LMSDocumentList<
                     isItemSyncing={isItemSyncing(item.id.toString())}
                     lmsSynchronize={lmsSynchronize}
                   />
-                )
-              } else return null
+                );
+              } else return null;
             },
             colSpan: 1,
           },
-        ] as LMSDocumentListColumn[]
+        ] as LMSDocumentListColumn[];
       case 'Page':
         return [
           {
@@ -357,12 +359,12 @@ export default function LMSDocumentList<
                     isItemSyncing={isItemSyncing(item.id.toString())}
                     lmsSynchronize={lmsSynchronize}
                   />
-                )
-              } else return null
+                );
+              } else return null;
             },
             colSpan: 1,
           },
-        ] as LMSDocumentListColumn[]
+        ] as LMSDocumentListColumn[];
       case 'File':
         return [
           {
@@ -403,12 +405,12 @@ export default function LMSDocumentList<
             dataIndex: 'size',
             header: 'Size',
             cellFormat: (item: number) => {
-              if (!item) return 'Unknown'
-              if (item < 1024) return `${item} B`
-              if (item < 1024 * 1024) return `${(item / 1024).toFixed(1)} KB`
+              if (!item) return 'Unknown';
+              if (item < 1024) return `${item} B`;
+              if (item < 1024 * 1024) return `${(item / 1024).toFixed(1)} KB`;
               if (item < 1024 * 1024 * 1024)
-                return `${(item / (1024 * 1024)).toFixed(1)} MB`
-              return `${(item / (1024 * 1024 * 1024)).toFixed(1)} GB`
+                return `${(item / (1024 * 1024)).toFixed(1)} MB`;
+              return `${(item / (1024 * 1024 * 1024)).toFixed(1)} GB`;
             },
             colSpan: 1,
           },
@@ -425,27 +427,27 @@ export default function LMSDocumentList<
                     isItemSyncing={isItemSyncing(item.id.toString())}
                     lmsSynchronize={lmsSynchronize}
                   />
-                )
-              } else return null
+                );
+              } else return null;
             },
             colSpan: 1,
           },
-        ] as LMSDocumentListColumn[]
+        ] as LMSDocumentListColumn[];
       default:
-        return []
+        return [];
     }
-  }, [type, syncingItems, lmsSynchronize, toggleSyncDocument])
+  }, [type, syncingItems, lmsSynchronize, toggleSyncDocument]);
 
   const ncols = useMemo(
     () => columns.reduce((acc, column) => acc + column.colSpan, 0),
     [columns],
-  )
+  );
 
   const handleSearch = (event: any) => {
-    event.preventDefault()
-    setSearch(event.target.value)
-    setPage(1)
-  }
+    event.preventDefault();
+    setSearch(event.target.value);
+    setPage(1);
+  };
 
   const matchingDocuments = useMemo(
     () =>
@@ -457,7 +459,7 @@ export default function LMSDocumentList<
                 ? new Date((d as LMSAnnouncement).posted as unknown as string)
                 : (d as LMSAnnouncement) instanceof Date
                   ? ((d as LMSAnnouncement).posted as Date)
-                  : undefined
+                  : undefined;
             return (
               (d as LMSAnnouncement).title
                 .toLowerCase()
@@ -470,7 +472,7 @@ export default function LMSDocumentList<
                   .toLocaleDateString()
                   .toLowerCase()
                   .includes(search.toLowerCase()))
-            )
+            );
           case 'Assignment':
             return (
               (d as LMSAssignment).name
@@ -479,14 +481,14 @@ export default function LMSDocumentList<
               (d as LMSAssignment).description
                 .toLowerCase()
                 .includes(search.toLowerCase())
-            )
+            );
           case 'Page':
             return (
               (d as LMSPage).title
                 .toLowerCase()
                 .includes(search.toLowerCase()) ||
               (d as LMSPage).body?.toLowerCase().includes(search.toLowerCase())
-            )
+            );
           case 'File':
             return (
               (d as LMSFile).name
@@ -495,13 +497,13 @@ export default function LMSDocumentList<
               (d as LMSFile).contentType
                 .toLowerCase()
                 .includes(search.toLowerCase())
-            )
+            );
           default:
-            return false
+            return false;
         }
       }),
     [type, documents, search],
-  )
+  );
 
   const filteredDocuments = useMemo(
     () =>
@@ -510,29 +512,29 @@ export default function LMSDocumentList<
           .map((filter) => {
             switch (filter) {
               case 1:
-                return doc.uploaded != undefined
+                return doc.uploaded != undefined;
               case 2:
-                return doc.uploaded == undefined && !isDocIneligible(doc, type)
+                return doc.uploaded == undefined && !isDocIneligible(doc, type);
               case 3:
-                return isDocIneligible(doc, type)
+                return isDocIneligible(doc, type);
             }
           })
-          .reduce((p, c) => p || c, false)
+          .reduce((p, c) => p || c, false);
       }),
     [matchingDocuments, type, selectedFilters],
-  )
+  );
 
   const paginatedDocuments = useMemo(
     () => filteredDocuments.slice((page - 1) * 20, page * 20),
     [filteredDocuments, page],
-  )
+  );
 
   if (!documents) {
     return (
       <div className={'h-full w-full'}>
         <Spin tip="Loading..." size="large" />
       </div>
-    )
+    );
   } else {
     return (
       <div className="bg-white">
@@ -593,11 +595,11 @@ export default function LMSDocumentList<
                     {((i: number) => {
                       switch (i) {
                         case 1:
-                          return 'Synced'
+                          return 'Synced';
                         case 2:
-                          return 'Not Synced'
+                          return 'Not Synced';
                         case 3:
-                          return "Can't Sync"
+                          return "Can't Sync";
                       }
                     })(tagProps.value)}
                   </div>
@@ -633,7 +635,7 @@ export default function LMSDocumentList<
           columns={columns}
         />
       </div>
-    )
+    );
   }
 }
 
@@ -645,10 +647,10 @@ function DocumentList<
   ncols,
   columns,
 }: {
-  documents: T[]
-  loadingLMSData: boolean
-  ncols: number
-  columns: LMSDocumentListColumn[]
+  documents: T[];
+  loadingLMSData: boolean;
+  ncols: number;
+  columns: LMSDocumentListColumn[];
 }) {
   const colClassString = cn(
     'grid',
@@ -664,7 +666,7 @@ function DocumentList<
     ncols == 10 ? 'grid-cols-10' : '',
     ncols == 11 ? 'grid-cols-11' : '',
     ncols == 12 ? 'grid-cols-12' : '',
-  )
+  );
   return (
     <List
       dataSource={documents}
@@ -713,7 +715,7 @@ function DocumentList<
         </div>
       )}
     ></List>
-  )
+  );
 }
 
 function NameCell<
@@ -723,17 +725,17 @@ function NameCell<
   type,
   lmsSynchronize,
 }: {
-  item: T
-  type: 'Assignment' | 'Announcement' | 'Page' | 'File'
-  lmsSynchronize?: boolean
+  item: T;
+  type: 'Assignment' | 'Announcement' | 'Page' | 'File';
+  lmsSynchronize?: boolean;
 }) {
   const isOutOfDate =
     item != undefined &&
     item.modified != undefined &&
     item.uploaded != undefined &&
-    new Date(item.uploaded).getTime() < new Date(item.modified).getTime()
+    new Date(item.uploaded).getTime() < new Date(item.modified).getTime();
 
-  const ineligible = isDocIneligible(item, type)
+  const ineligible = isDocIneligible(item, type);
   return (
     <div className={'flex w-full flex-row items-center justify-between'}>
       <div className={'flex flex-col gap-1'}>
@@ -761,7 +763,7 @@ function NameCell<
       </div>
       {isOutOfDate && <Badge count={'Out of Date'} />}
     </div>
-  )
+  );
 }
 
 function SyncCell<
@@ -773,23 +775,23 @@ function SyncCell<
   toggleSyncDocument,
   lmsSynchronize,
 }: {
-  item: T
-  type: 'Assignment' | 'Announcement' | 'Page' | 'File'
-  isItemSyncing: boolean
+  item: T;
+  type: 'Assignment' | 'Announcement' | 'Page' | 'File';
+  isItemSyncing: boolean;
   toggleSyncDocument: (
     item: T,
     type: 'Assignment' | 'Announcement' | 'Page' | 'File',
-  ) => void
-  lmsSynchronize?: boolean
+  ) => void;
+  lmsSynchronize?: boolean;
 }) {
-  const ineligible = isDocIneligible(item, type)
+  const ineligible = isDocIneligible(item, type);
   if (ineligible) {
-    return null
+    return null;
   }
 
   if (lmsSynchronize && !item.syncEnabled) {
     const tooltipText =
-      item.uploaded != undefined ? 'Enable sync' : 'Force sync'
+      item.uploaded != undefined ? 'Enable sync' : 'Force sync';
     return (
       <Button
         onClick={() => toggleSyncDocument(item, type)}
@@ -803,11 +805,11 @@ function SyncCell<
       >
         <span className="hidden md:inline">{tooltipText}</span>
       </Button>
-    )
+    );
   }
 
   if (item.syncEnabled) {
-    const tooltipText = !lmsSynchronize ? 'Delete' : 'Disable sync'
+    const tooltipText = !lmsSynchronize ? 'Delete' : 'Disable sync';
     return (
       <Button
         onClick={() => toggleSyncDocument(item, type)}
@@ -821,8 +823,8 @@ function SyncCell<
       >
         <span className="hidden md:inline">{tooltipText}</span>
       </Button>
-    )
+    );
   }
 
-  return null
+  return null;
 }

@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class addVerifiedToAsync1710210377343 implements MigrationInterface {
   name = 'addVerifiedToAsync1710210377343';

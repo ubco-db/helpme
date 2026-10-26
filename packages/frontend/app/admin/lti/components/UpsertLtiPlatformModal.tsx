@@ -1,10 +1,10 @@
-import {
-  AuthMethodEnum,
+import type {
   CreateLtiPlatform,
   LtiAuthConfig,
   LtiPlatform,
   UpdateLtiPlatform,
-} from '@koh/common'
+} from '@koh/common';
+import { AuthMethodEnum } from '@koh/common';
 import {
   Button,
   Form,
@@ -14,18 +14,18 @@ import {
   Select,
   Switch,
   Tooltip,
-} from 'antd'
-import { InfoCircleOutlined, UndoOutlined } from '@ant-design/icons'
-import { useEffect, useState } from 'react'
+} from 'antd';
+import { InfoCircleOutlined, UndoOutlined } from '@ant-design/icons';
+import { useEffect, useState } from 'react';
 
 type UpsertLtiPlatformModalProps = {
-  focus?: LtiPlatform
-  setFocus: React.Dispatch<React.SetStateAction<LtiPlatform | undefined>>
-  isCreating: boolean
-  setIsCreating: React.Dispatch<React.SetStateAction<boolean>>
-  onCreate: (params: CreateLtiPlatform) => Promise<boolean>
-  onUpdate: (id: string, params: UpdateLtiPlatform) => Promise<boolean>
-}
+  focus?: LtiPlatform;
+  setFocus: React.Dispatch<React.SetStateAction<LtiPlatform | undefined>>;
+  isCreating: boolean;
+  setIsCreating: React.Dispatch<React.SetStateAction<boolean>>;
+  onCreate: (params: CreateLtiPlatform) => Promise<boolean>;
+  onUpdate: (id: string, params: UpdateLtiPlatform) => Promise<boolean>;
+};
 
 const UpsertLtiPlatformModal: React.FC<UpsertLtiPlatformModalProps> = ({
   focus,
@@ -35,72 +35,72 @@ const UpsertLtiPlatformModal: React.FC<UpsertLtiPlatformModalProps> = ({
   onCreate,
   onUpdate,
 }) => {
-  const [isKeyModified, setIsKeyModified] = useState(false)
+  const [isKeyModified, setIsKeyModified] = useState(false);
   const [methodValue, setMethodValue] = useState<AuthMethodEnum>(
     AuthMethodEnum.JWK_SET,
-  )
+  );
 
-  const [createForm] = Form.useForm<CreateLtiPlatform>()
-  const [updateForm] = Form.useForm<UpdateLtiPlatform>()
+  const [createForm] = Form.useForm<CreateLtiPlatform>();
+  const [updateForm] = Form.useForm<UpdateLtiPlatform>();
 
   useEffect(() => {
     if (focus != undefined) {
-      const method = focus.authToken.method as AuthMethodEnum
-      setMethodValue(method)
-      updateForm.setFieldValue(['authToken', 'method'], method)
+      const method = focus.authToken.method as AuthMethodEnum;
+      setMethodValue(method);
+      updateForm.setFieldValue(['authToken', 'method'], method);
     }
-  }, [focus, isCreating, updateForm])
+  }, [focus, isCreating, updateForm]);
 
-  const watchedUpdateToken = Form.useWatch('accessTokenEndpoint', updateForm)
-  const watchedCreateMethod = Form.useWatch('authToken', createForm)
-  const watchedUpdateMethod = Form.useWatch('authToken', updateForm)
+  const watchedUpdateToken = Form.useWatch('accessTokenEndpoint', updateForm);
+  const watchedCreateMethod = Form.useWatch('authToken', createForm);
+  const watchedUpdateMethod = Form.useWatch('authToken', updateForm);
 
   const onWatchMethodChange = (watchValue: LtiAuthConfig) => {
-    setMethodValue(watchValue?.method)
-  }
+    setMethodValue(watchValue?.method);
+  };
 
   const onWatchTokenChange = (watchValue: string) => {
-    setIsKeyModified(!!watchValue)
-  }
+    setIsKeyModified(!!watchValue);
+  };
 
   useEffect(() => {
-    onWatchTokenChange(watchedUpdateToken as any)
-  }, [watchedUpdateToken])
+    onWatchTokenChange(watchedUpdateToken as any);
+  }, [watchedUpdateToken]);
 
   useEffect(() => {
-    onWatchMethodChange(watchedCreateMethod)
-  }, [watchedCreateMethod])
+    onWatchMethodChange(watchedCreateMethod);
+  }, [watchedCreateMethod]);
 
   useEffect(() => {
-    onWatchMethodChange(watchedUpdateMethod as any)
-  }, [watchedUpdateMethod])
+    onWatchMethodChange(watchedUpdateMethod as any);
+  }, [watchedUpdateMethod]);
 
   const cleanup = () => {
-    setFocus(undefined)
-    setIsCreating(false)
-  }
+    setFocus(undefined);
+    setIsCreating(false);
+  };
 
   const onFinish = () => {
-    ;(focus != undefined ? updateForm : createForm)
+    (focus != undefined ? updateForm : createForm)
       .validateFields()
       .then(async (values) => {
         if (focus != undefined && !isKeyModified) {
-          delete values.authToken?.key
+          delete values.authToken?.key;
         }
-        let success: boolean
+        let success: boolean;
         if (focus != undefined) {
-          success = await onUpdate(focus.kid, values)
+          success = await onUpdate(focus.kid, values);
         } else {
-          success = await onCreate(values as CreateLtiPlatform)
+          success = await onCreate(values as CreateLtiPlatform);
         }
         if (success) {
-          cleanup()
+          cleanup();
         }
       })
       .catch((err) => {
-        message.error(err)
-      })
-  }
+        message.error(err);
+      });
+  };
 
   return (
     <Modal
@@ -119,7 +119,7 @@ const UpsertLtiPlatformModal: React.FC<UpsertLtiPlatformModalProps> = ({
             methodValue={methodValue}
             isKeyModified={isKeyModified}
             resetKey={() => {
-              updateForm.resetFields([['authToken', 'key']])
+              updateForm.resetFields([['authToken', 'key']]);
             }}
           />
         </Form>
@@ -138,15 +138,15 @@ const UpsertLtiPlatformModal: React.FC<UpsertLtiPlatformModalProps> = ({
         </Form>
       )}
     </Modal>
-  )
-}
+  );
+};
 
-export default UpsertLtiPlatformModal
+export default UpsertLtiPlatformModal;
 
 const FormFields: React.FC<{
-  methodValue?: AuthMethodEnum
-  isKeyModified?: boolean
-  resetKey?: () => void
+  methodValue?: AuthMethodEnum;
+  isKeyModified?: boolean;
+  resetKey?: () => void;
 }> = ({ methodValue, isKeyModified, resetKey }) => {
   return (
     <>
@@ -360,5 +360,5 @@ const FormFields: React.FC<{
         <Switch />
       </Form.Item>
     </>
-  )
-}
+  );
+};

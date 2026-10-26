@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import Modal from 'antd/lib/modal/Modal'
+import { useEffect, useState } from 'react';
+import Modal from 'antd/lib/modal/Modal';
 import {
   Button,
   Checkbox,
@@ -10,32 +10,33 @@ import {
   Popconfirm,
   Switch,
   Tooltip,
-} from 'antd'
-import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { API } from '@/app/api'
+} from 'antd';
+import type { AsyncQuestion } from '@koh/common';
+import { asyncQuestionStatus } from '@koh/common';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { API } from '@/app/api';
 import {
   DeleteOutlined,
   EditOutlined,
   QuestionCircleOutlined,
-} from '@ant-design/icons'
-import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions'
-import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
-import { useUserInfo } from '@/app/contexts/userContext'
+} from '@ant-design/icons';
+import { deleteAsyncQuestion } from '../../utils/commonAsyncFunctions';
+import { useCourseFeatures } from '@/app/hooks/useCourseFeatures';
+import { useUserInfo } from '@/app/contexts/userContext';
 
 interface FormValues {
-  answerText: string
-  staffSetVisible: boolean
-  verified: boolean
+  answerText: string;
+  staffSetVisible: boolean;
+  verified: boolean;
 }
 
 interface PostResponseModalProps {
-  open: boolean
-  onCancel: () => void
-  onPostResponse: () => void
-  question: AsyncQuestion
-  courseId: number
-  setCreateAsyncQuestionModalOpen: (val: boolean) => void
+  open: boolean;
+  onCancel: () => void;
+  onPostResponse: () => void;
+  question: AsyncQuestion;
+  courseId: number;
+  setCreateAsyncQuestionModalOpen: (val: boolean) => void;
 }
 
 const PostResponseModal: React.FC<PostResponseModalProps> = ({
@@ -46,31 +47,31 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
   courseId,
   setCreateAsyncQuestionModalOpen,
 }) => {
-  const { userInfo } = useUserInfo()
-  const [form] = Form.useForm()
-  const [isLoading, setIsLoading] = useState(false)
-  const [deleteLoading, setDeleteLoading] = useState(false)
+  const { userInfo } = useUserInfo();
+  const [form] = Form.useForm();
+  const [isLoading, setIsLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [staffSetVisible, setStaffSetVisible] = useState<boolean>(
     question.staffSetVisible ?? question.authorSetVisible,
-  )
+  );
   const [visiblePopConfirmVisible, setVisiblePopConfirmVisible] =
-    useState<boolean>(false)
-  const courseFeatures = useCourseFeatures(courseId)
-  const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false
-  const [saveToChatbot, setSaveToChatbot] = useState(true)
+    useState<boolean>(false);
+  const courseFeatures = useCourseFeatures(courseId);
+  const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false;
+  const [saveToChatbot, setSaveToChatbot] = useState(true);
 
   const [hasCheckedPopconfirm, setHasCheckedPopconfirm] =
-    useState<boolean>(!authorCanSetVisible)
-  const [confirmPopoverOpen, setConfirmPopoverOpen] = useState(false)
+    useState<boolean>(!authorCanSetVisible);
+  const [confirmPopoverOpen, setConfirmPopoverOpen] = useState(false);
 
   useEffect(() => {
-    setStaffSetVisible(question.staffSetVisible ?? question.authorSetVisible)
-  }, [question.authorSetVisible, question.staffSetVisible])
+    setStaffSetVisible(question.staffSetVisible ?? question.authorSetVisible);
+  }, [question.authorSetVisible, question.staffSetVisible]);
 
   const onFinish = async () => {
-    setHasCheckedPopconfirm(false)
-    const values: FormValues = await form.validateFields()
-    setIsLoading(true)
+    setHasCheckedPopconfirm(false);
+    const values: FormValues = await form.validateFields();
+    setIsLoading(true);
     // if the answer text is the same as the current answer text and the status is AIAnswered, AIAnsweredNeedsAttention, or AIAnsweredResolved, then the status should remain the same
     // unless the TA changes the verified status to true, then it will always be HumanAnswered (displayed as Human Verified)
     const newStatus =
@@ -82,7 +83,7 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
           ].includes(question.status)
           ? question.status
           : asyncQuestionStatus.HumanAnswered
-        : asyncQuestionStatus.HumanAnswered
+        : asyncQuestionStatus.HumanAnswered;
     await API.asyncQuestions
       .facultyUpdate(question.id, {
         answerText: values.answerText,
@@ -92,17 +93,17 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
         saveToChatbot: saveToChatbot,
       })
       .then(() => {
-        message.success('Response Successfully Posted/Edited')
-        onPostResponse()
+        message.success('Response Successfully Posted/Edited');
+        onPostResponse();
       })
       .catch((e) => {
-        const errorMessage = getErrorMessage(e)
-        message.error('Error posting response:' + errorMessage)
+        const errorMessage = getErrorMessage(e);
+        message.error('Error posting response:' + errorMessage);
       })
       .finally(() => {
-        setIsLoading(false)
-      })
-  }
+        setIsLoading(false);
+      });
+  };
 
   return (
     <Modal
@@ -132,11 +133,11 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
               !hasCheckedPopconfirm &&
               question.authorSetVisible != staffSetVisible
             ) {
-              setConfirmPopoverOpen(true)
+              setConfirmPopoverOpen(true);
             } else {
-              onFinish()
+              onFinish();
             }
-          })
+          });
         },
       }}
       onCancel={onCancel}
@@ -192,8 +193,8 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
               okText="Yes"
               cancelText="No"
               onConfirm={() => {
-                onFinish().then()
-                setConfirmPopoverOpen(false)
+                onFinish().then();
+                setConfirmPopoverOpen(false);
               }}
               onCancel={() => setConfirmPopoverOpen(false)}
             />
@@ -278,13 +279,13 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
             okText="Override"
             cancelText="Leave as is"
             onConfirm={() => {
-              setStaffSetVisible(!staffSetVisible)
-              setVisiblePopConfirmVisible(false)
-              setHasCheckedPopconfirm(true)
+              setStaffSetVisible(!staffSetVisible);
+              setVisiblePopConfirmVisible(false);
+              setHasCheckedPopconfirm(true);
             }}
             onCancel={() => {
-              setVisiblePopConfirmVisible(false)
-              setHasCheckedPopconfirm(true)
+              setVisiblePopConfirmVisible(false);
+              setHasCheckedPopconfirm(true);
             }}
             open={visiblePopConfirmVisible}
           >
@@ -294,8 +295,8 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
                   (question.authorSetVisible && staffSetVisible) ||
                   (!question.authorSetVisible && !staffSetVisible)
                 )
-                  setVisiblePopConfirmVisible(true)
-                else setStaffSetVisible(!staffSetVisible)
+                  setVisiblePopConfirmVisible(true);
+                else setStaffSetVisible(!staffSetVisible);
               }}
               checked={staffSetVisible}
               checkedChildren="Visible"
@@ -315,22 +316,22 @@ const PostResponseModal: React.FC<PostResponseModalProps> = ({
         <Checkbox>Mark as verified by faculty</Checkbox>
       </Form.Item>
     </Modal>
-  )
-}
+  );
+};
 
-export default PostResponseModal
+export default PostResponseModal;
 
 type DeleteButtonProps = {
-  question: AsyncQuestion
-  deleteLoading: boolean
-  setDeleteLoading: (val: boolean) => void
+  question: AsyncQuestion;
+  deleteLoading: boolean;
+  setDeleteLoading: (val: boolean) => void;
   deleteAsyncQuestion: (
     id: number,
     isStaff: boolean,
     successFunction: () => void,
-  ) => Promise<void>
-  onPostResponse: () => void
-}
+  ) => Promise<void>;
+  onPostResponse: () => void;
+};
 
 const DeleteButton: React.FC<DeleteButtonProps> = ({
   question,
@@ -348,9 +349,9 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
       getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
       okButtonProps={{ loading: deleteLoading }}
       onConfirm={async () => {
-        setDeleteLoading(true)
-        await deleteAsyncQuestion(question.id, true, onPostResponse)
-        setDeleteLoading(false)
+        setDeleteLoading(true);
+        await deleteAsyncQuestion(question.id, true, onPostResponse);
+        setDeleteLoading(false);
       }}
     >
       <Button danger type="primary" icon={<DeleteOutlined />}>
@@ -358,5 +359,5 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
         Delete
       </Button>
     </Popconfirm>
-  )
-}
+  );
+};

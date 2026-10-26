@@ -1,12 +1,12 @@
-'use client'
+'use client';
 
-import React from 'react'
-import { BarChartOutlined, ClockCircleOutlined } from '@ant-design/icons'
-import { usePathname } from 'next/navigation'
-import Link from 'next/link'
-import { cn } from '@/app/utils/generalUtils'
-import { Image } from 'antd'
-import { Newspaper } from 'lucide-react'
+import type React from 'react';
+import { BarChartOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { cn } from '@/app/utils/generalUtils';
+import { Image } from 'antd';
+import { Newspaper } from 'lucide-react';
 
 const items = [
   {
@@ -41,10 +41,10 @@ const items = [
     icon: <Newspaper />,
     url: '/admin/create-alerts',
   },
-]
+];
 
 const SidebarNavigation: React.FC = () => {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
     <div className="md:col-span-2">
@@ -66,11 +66,11 @@ const SidebarNavigation: React.FC = () => {
                 </div>
               </div>
             </Link>
-          )
+          );
         })}
       </nav>
     </div>
-  )
-}
+  );
+};
 
-export default SidebarNavigation
+export default SidebarNavigation;

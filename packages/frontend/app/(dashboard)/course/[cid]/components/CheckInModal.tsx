@@ -1,12 +1,12 @@
-import { QueuePartial } from '@koh/common'
-import { Modal, Select } from 'antd'
-import { useState } from 'react'
+import type { QueuePartial } from '@koh/common';
+import { Modal, Select } from 'antd';
+import { useState } from 'react';
 
 interface CheckInModalProps {
-  visible: boolean
-  onSubmit: (queueId: number) => void
-  onCancel: () => void
-  queues: QueuePartial[]
+  visible: boolean;
+  onSubmit: (queueId: number) => void;
+  onCancel: () => void;
+  queues: QueuePartial[];
 }
 
 const CheckInModal: React.FC<CheckInModalProps> = ({
@@ -15,18 +15,18 @@ const CheckInModal: React.FC<CheckInModalProps> = ({
   onCancel,
   queues,
 }) => {
-  const [queueToCheckInto, setQueueToCheckInto] = useState(-1)
+  const [queueToCheckInto, setQueueToCheckInto] = useState(-1);
   const onQueueUpdate = (queueIx: number) => {
-    setQueueToCheckInto(queueIx)
-  }
+    setQueueToCheckInto(queueIx);
+  };
 
   return (
     <Modal
       title="Check into a queue"
       open={visible}
       onCancel={() => {
-        onCancel()
-        setQueueToCheckInto(-1)
+        onCancel();
+        setQueueToCheckInto(-1);
       }}
       okText="Check In"
       okButtonProps={{ disabled: queueToCheckInto < 0 }}
@@ -46,7 +46,7 @@ const CheckInModal: React.FC<CheckInModalProps> = ({
         </div>
       </div>
     </Modal>
-  )
-}
+  );
+};
 
-export default CheckInModal
+export default CheckInModal;

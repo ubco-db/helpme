@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { CacheModule } from '@nestjs/cache-manager';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { DataSource } from 'typeorm';
@@ -17,18 +18,16 @@ import {
 } from '../../test/util/factories';
 import { INSIGHTS_MAP } from './insight-objects';
 import { UserModel } from 'profile/user.entity';
-import {
-  asyncQuestionStatus,
+import type {
   ChartOutputType,
-  ClosedQuestionStatus,
   GanttChartOutputType,
   MultipleGanttChartOutputType,
-  Role,
   TableOutputType,
 } from '@koh/common';
+import { asyncQuestionStatus, ClosedQuestionStatus, Role } from '@koh/common';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
-import { QuestionModel } from '../question/question.entity';
+import type { QuestionModel } from '../question/question.entity';
 
 describe('InsightsService', () => {
   let service: InsightsService;

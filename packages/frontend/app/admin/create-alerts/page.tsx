@@ -1,20 +1,23 @@
-'use client'
+'use client';
 
-import { API } from '@/app/api'
-import ExpandableText from '@/app/components/ExpandableText'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
-import {
+import { API } from '@/app/api';
+import ExpandableText from '@/app/components/ExpandableText';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils';
+import type {
   GetAdminNoticeAlert,
+  CreateAlertAdminRequest,
+  AdminNoticeTarget,
+} from '@koh/common';
+import {
   AlertDeliveryMode,
   OrganizationRole,
   Role,
-  CreateAlertAdminRequest,
-  AdminNoticeTarget,
   ToastType,
   ToastPosition,
-} from '@koh/common'
+} from '@koh/common';
+import type { FormProps } from 'antd';
 import {
   Button,
   Card,
@@ -28,44 +31,43 @@ import {
   Alert as AntdAlert,
   Checkbox,
   Form,
-  FormProps,
   Input,
   Segmented,
   InputNumber,
   Select,
-} from 'antd'
-import { useState } from 'react'
-import useSWRImmutable from 'swr/immutable'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
+} from 'antd';
+import { useState } from 'react';
+import useSWRImmutable from 'swr/immutable';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 
-dayjs.extend(relativeTime)
+dayjs.extend(relativeTime);
 
-type TargetType = 'All' | 'Org' | 'Course' | 'User'
+type TargetType = 'All' | 'Org' | 'Course' | 'User';
 
 type FormValues = {
-  targetType: TargetType
+  targetType: TargetType;
 
-  targetOrgRole?: OrganizationRole | null
-  targetOrgId?: number
+  targetOrgRole?: OrganizationRole | null;
+  targetOrgId?: number;
 
-  targetCourseId?: number
-  targetCourseRole?: Role | null
+  targetCourseId?: number;
+  targetCourseRole?: Role | null;
 
-  targetUserId?: number
+  targetUserId?: number;
 
-  title: string
-  message: string
-  deliveryMode: AlertDeliveryMode
+  title: string;
+  message: string;
+  deliveryMode: AlertDeliveryMode;
 
   // Toast-specific fields
-  toastType?: ToastType
-  toastPosition?: ToastPosition
-  durationMs?: number
-}
+  toastType?: ToastType;
+  toastPosition?: ToastPosition;
+  durationMs?: number;
+};
 
 const CreateAdminAlertsPage: React.FC = () => {
-  const { userInfo } = useUserInfo()
+  const { userInfo } = useUserInfo();
 
   const {
     data: existingAdminAlerts,
@@ -75,13 +77,13 @@ const CreateAdminAlertsPage: React.FC = () => {
   } = useSWRImmutable(
     `alerts/admin-notice`,
     async () => await API.alerts.adminOnly.get(),
-  )
+  );
 
-  const [deleteLoading, setDeleteLoading] = useState<string | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   // Need to delete by sentAt since Admin Notices may have sent out hundreds of alerts and sentAt pretty much works as a unique identifier in this case
   const handleDelete = async (sentAt: Date) => {
-    const sentAtStr = new Date(sentAt).toISOString()
-    setDeleteLoading(sentAtStr)
+    const sentAtStr = new Date(sentAt).toISOString();
+    setDeleteLoading(sentAtStr);
     // optimistic removal
     mutateExistingAdminAlerts(
       (prev) =>
@@ -89,25 +91,25 @@ const CreateAdminAlertsPage: React.FC = () => {
           ? prev.filter((a) => new Date(a.sentAt).toISOString() !== sentAtStr)
           : [],
       { revalidate: false },
-    )
+    );
     await API.alerts.adminOnly
       .delete({ sentAt })
       .then((result) => {
-        message.success(`Deleted ${result.numDeleted} alerts`)
+        message.success(`Deleted ${result.numDeleted} alerts`);
       })
       .catch((error) => {
-        message.error(`Error deleting alerts: ${getErrorMessage(error)}`)
-        mutateExistingAdminAlerts() // revalidate on failure
+        message.error(`Error deleting alerts: ${getErrorMessage(error)}`);
+        mutateExistingAdminAlerts(); // revalidate on failure
       })
       .finally(() => {
-        setDeleteLoading(null)
-      })
-  }
+        setDeleteLoading(null);
+      });
+  };
 
-  const [form] = Form.useForm<FormValues>()
-  const [createAlertLoading, setCreateAlertLoading] = useState(false)
+  const [form] = Form.useForm<FormValues>();
+  const [createAlertLoading, setCreateAlertLoading] = useState(false);
   const onFinish: FormProps<FormValues>['onFinish'] = async (values) => {
-    setCreateAlertLoading(true)
+    setCreateAlertLoading(true);
 
     const target: AdminNoticeTarget | undefined =
       values.targetType === 'All'
@@ -126,7 +128,7 @@ const CreateAdminAlertsPage: React.FC = () => {
               ? {
                   userId: values.targetUserId,
                 }
-              : undefined
+              : undefined;
 
     const requestBody: CreateAlertAdminRequest =
       values.deliveryMode === AlertDeliveryMode.TOAST
@@ -152,7 +154,7 @@ const CreateAdminAlertsPage: React.FC = () => {
               creatorName: userInfo.name,
               target: target,
             },
-          }
+          };
     await API.alerts.adminOnly
       .create(requestBody)
       .then(({ numSent, sentAt }) => {
@@ -170,22 +172,22 @@ const CreateAdminAlertsPage: React.FC = () => {
               totalSent: numSent,
               target: target,
             },
-          ])
+          ]);
         }
         message.success(
           `Successfully sent a ${values.deliveryMode} alert to ${numSent} user${numSent === 1 ? '' : 's'}.`,
-        )
+        );
       })
       .catch((error) => {
-        message.error(`Error creating alert: ${getErrorMessage(error)}`)
+        message.error(`Error creating alert: ${getErrorMessage(error)}`);
       })
       .finally(() => {
-        setCreateAlertLoading(false)
-      })
-  }
+        setCreateAlertLoading(false);
+      });
+  };
 
-  const targetTypeValue = Form.useWatch('targetType', form)
-  const deliveryModeValue = Form.useWatch('deliveryMode', form)
+  const targetTypeValue = Form.useWatch('targetType', form);
+  const deliveryModeValue = Form.useWatch('deliveryMode', form);
 
   return (
     <>
@@ -456,8 +458,8 @@ const CreateAdminAlertsPage: React.FC = () => {
                       ? 'orange'
                       : mode === AlertDeliveryMode.TOAST
                         ? 'green'
-                        : 'cyan'
-                  return <Tag color={color}>{mode.toUpperCase()}</Tag>
+                        : 'cyan';
+                  return <Tag color={color}>{mode.toUpperCase()}</Tag>;
                 },
                 filters: [
                   { text: 'MODAL', value: AlertDeliveryMode.MODAL },
@@ -515,9 +517,9 @@ const CreateAdminAlertsPage: React.FC = () => {
                 key: 'target',
                 width: 150,
                 render: (_: any, record: GetAdminNoticeAlert) => {
-                  const target = record.target
+                  const target = record.target;
                   if (!target) {
-                    return <Tag color="geekblue">All Users</Tag>
+                    return <Tag color="geekblue">All Users</Tag>;
                   }
 
                   if (target.userId !== undefined && target.userId !== null) {
@@ -528,7 +530,7 @@ const CreateAdminAlertsPage: React.FC = () => {
                           User ID: {target.userId}
                         </span>
                       </Space>
-                    )
+                    );
                   }
 
                   if (target.orgId !== undefined && target.orgId !== null) {
@@ -546,7 +548,7 @@ const CreateAdminAlertsPage: React.FC = () => {
                           </div>
                         )}
                       </Space>
-                    )
+                    );
                   }
 
                   if (
@@ -567,10 +569,10 @@ const CreateAdminAlertsPage: React.FC = () => {
                           </div>
                         )}
                       </Space>
-                    )
+                    );
                   }
 
-                  return <Tag color="geekblue">???</Tag>
+                  return <Tag color="geekblue">???</Tag>;
                 },
               },
               {
@@ -597,8 +599,8 @@ const CreateAdminAlertsPage: React.FC = () => {
                   const percent =
                     record.totalSent > 0
                       ? Math.round((record.totalRead / record.totalSent) * 100)
-                      : 0
-                  const progressStatus = percent === 100 ? 'success' : 'active'
+                      : 0;
+                  const progressStatus = percent === 100 ? 'success' : 'active';
                   return (
                     <Tooltip
                       title={`${record.totalRead} of ${record.totalSent} recipients have read this notice`}
@@ -616,12 +618,12 @@ const CreateAdminAlertsPage: React.FC = () => {
                         />
                       </div>
                     </Tooltip>
-                  )
+                  );
                 },
                 sorter: (a: GetAdminNoticeAlert, b: GetAdminNoticeAlert) => {
-                  const pctA = a.totalSent > 0 ? a.totalRead / a.totalSent : 0
-                  const pctB = b.totalSent > 0 ? b.totalRead / b.totalSent : 0
-                  return pctA - pctB
+                  const pctA = a.totalSent > 0 ? a.totalRead / a.totalSent : 0;
+                  const pctB = b.totalSent > 0 ? b.totalRead / b.totalSent : 0;
+                  return pctA - pctB;
                 },
               },
               {
@@ -657,7 +659,7 @@ const CreateAdminAlertsPage: React.FC = () => {
         </div>
       </Card>
     </>
-  )
-}
+  );
+};
 
-export default CreateAdminAlertsPage
+export default CreateAdminAlertsPage;

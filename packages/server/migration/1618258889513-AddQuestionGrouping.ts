@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddQuestionGrouping1618258889513 implements MigrationInterface {
   name = 'AddQuestionGrouping1618258889513';

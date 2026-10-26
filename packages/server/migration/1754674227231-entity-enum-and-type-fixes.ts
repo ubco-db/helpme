@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class EntityEnumAndTypeFixes1754674227231 implements MigrationInterface {
   name = 'EntityEnumAndTypeFixes1754674227231';

@@ -4,16 +4,17 @@ import {
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
-} from '@/app/components/ui/chart'
-import { Scatter, ScatterChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import React, { useMemo } from 'react'
-import {
-  AxisChartClasses,
+} from '@/app/components/ui/chart';
+import { Scatter, ScatterChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import type React from 'react';
+import { useMemo } from 'react';
+import type {
   AxisChartProps,
   ChartComponentProps,
   PointChartProps,
-} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types'
-import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/utils/functions'
+} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
+import { AxisChartClasses } from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
+import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/utils/functions';
 
 const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
@@ -27,9 +28,9 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     legendFormatter,
     xType,
     yType,
-  } = props
+  } = props;
 
-  const { minTickGap, angle } = props as AxisChartProps
+  const { minTickGap, angle } = props as AxisChartProps;
 
   let {
     includeLegend,
@@ -41,23 +42,23 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     aspectRatio,
     fullPointFill,
     tickFormatter,
-  } = props as PointChartProps
+  } = props as PointChartProps;
 
-  fullPointFill ??= true
-  includeLegend ??= true
-  includeTooltip ??= true
-  verticalAxis ??= true
-  tickLine ??= true
-  tickMargin ??= 8
-  axisLine ??= true
-  aspectRatio ??= 2
-  tickFormatter ??= (value) => (value as string).substring(0, 3)
+  fullPointFill ??= true;
+  includeLegend ??= true;
+  includeTooltip ??= true;
+  verticalAxis ??= true;
+  tickLine ??= true;
+  tickMargin ??= 8;
+  axisLine ??= true;
+  aspectRatio ??= 2;
+  tickFormatter ??= (value) => (value as string).substring(0, 3);
 
   const className = useMemo(() => {
     return size != undefined && AxisChartClasses[size] != undefined
       ? AxisChartClasses[size]
-      : AxisChartClasses['md']
-  }, [size])
+      : AxisChartClasses['md'];
+  }, [size]);
 
   return (
     <ChartContainer
@@ -129,7 +130,7 @@ const ScatterChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           ))}
       </ScatterChart>
     </ChartContainer>
-  )
-}
+  );
+};
 
-export default ScatterChartComponent
+export default ScatterChartComponent;

@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class accurateHelptimesWaittimes1731187674872
-  implements MigrationInterface
-{
+export class accurateHelptimesWaittimes1731187674872 implements MigrationInterface {
   name = 'accurateHelptimesWaittimes1731187674872';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

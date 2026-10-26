@@ -1,12 +1,12 @@
-'use client'
+'use client';
 
-import { Card } from 'antd'
-import Link from 'next/link'
-import { ReactElement } from 'react'
+import { Card } from 'antd';
+import Link from 'next/link';
+import type { ReactElement } from 'react';
 
 type AIAssignmentFeedbackStartCardProps = {
-  cid: number
-}
+  cid: number;
+};
 
 const AIAssignmentFeedbackStartCard: React.FC<
   AIAssignmentFeedbackStartCardProps
@@ -31,7 +31,7 @@ const AIAssignmentFeedbackStartCard: React.FC<
         </div>
       </Card>
     </Link>
-  )
-}
+  );
+};
 
-export default AIAssignmentFeedbackStartCard
+export default AIAssignmentFeedbackStartCard;

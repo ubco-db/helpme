@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddNamePronunciation1771818704948 implements MigrationInterface {
   name = 'AddNamePronunciation1771818704948';

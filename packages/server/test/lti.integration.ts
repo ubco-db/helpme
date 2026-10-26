@@ -1,16 +1,16 @@
 import { setupIntegrationTest } from './util/testUtils';
 import LtiMiddleware from '../src/lti/lti.middleware';
 import { LtiModule } from '../src/lti/lti.module';
+import type { Provider } from '@bhunt02/lti-typescript';
 import {
   AuthTokenMethodEnum,
   Database,
   DynamicRegistrationService,
   PlatformModel,
-  Provider,
   register,
 } from '@bhunt02/lti-typescript';
-import { UserModel } from '../src/profile/user.entity';
-import { CourseModel } from '../src/course/course.entity';
+import type { UserModel } from '../src/profile/user.entity';
+import type { CourseModel } from '../src/course/course.entity';
 import {
   CourseFactory,
   lmsCourseIntFactory,
@@ -21,20 +21,17 @@ import {
   UserFactory,
   UserLtiIdentityFactory,
 } from './util/factories';
-import express from 'express';
-import {
-  AuthMethodEnum,
+import type express from 'express';
+import type {
   CreateLtiPlatform,
-  ERROR_MESSAGES,
   LtiPlatform,
-  Role,
   UpdateLtiPlatform,
-  UserRole,
 } from '@koh/common';
+import { AuthMethodEnum, ERROR_MESSAGES, Role, UserRole } from '@koh/common';
 import { mapToLocalPlatform } from '../src/lti/lti.controller';
 import { LtiService } from '../src/lti/lti.service';
 import { EmbeddableQuestionModel } from '../src/lti/embeddable-question/embeddable-question.entity';
-import { LMSOrganizationIntegrationModel } from '../src/lmsIntegration/lmsOrgIntegration.entity';
+import type { LMSOrganizationIntegrationModel } from '../src/lmsIntegration/lmsOrgIntegration.entity';
 import { LtiOrganizationRegistrationModel } from '../src/lti/lti-organization-registration.entity';
 import * as jwt from 'jsonwebtoken';
 import { UserCourseModel } from '../src/profile/user-course.entity';

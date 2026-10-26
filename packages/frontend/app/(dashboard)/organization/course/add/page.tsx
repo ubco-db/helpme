@@ -1,5 +1,6 @@
-'use client'
+'use client';
 
+import type { FormInstance } from 'antd';
 import {
   Alert,
   Button,
@@ -8,50 +9,50 @@ import {
   Col,
   Divider,
   Form,
-  FormInstance,
   Input,
   message,
   Row,
   Segmented,
   Select,
   Tooltip,
-} from 'antd'
-import { ReactElement, useEffect, useState } from 'react'
-import {
+} from 'antd';
+import type { ReactElement } from 'react';
+import { useEffect, useState } from 'react';
+import type {
   GetOrganizationResponse,
   OrganizationProfessor,
-  OrganizationRole,
   SemesterPartial,
-} from '@koh/common'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { API } from '@/app/api'
-import { useRouter } from 'next/navigation'
-import { organizationApi } from '@/app/api/organizationApi'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
+} from '@koh/common';
+import { OrganizationRole } from '@koh/common';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { API } from '@/app/api';
+import { useRouter } from 'next/navigation';
+import { organizationApi } from '@/app/api/organizationApi';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
 import {
   checkCourseCreatePermissions,
   getErrorMessage,
-} from '@/app/utils/generalUtils'
-import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
-import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
-import ProfessorSelector from '@/app/(dashboard)/components/ProfessorSelector'
-import { useMediaQuery } from '@/app/hooks/useMediaQuery'
-import useSWRImmutable from 'swr/immutable'
+} from '@/app/utils/generalUtils';
+import { formatSemesterDate } from '@/app/utils/timeFormatUtils';
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings';
+import ProfessorSelector from '@/app/(dashboard)/components/ProfessorSelector';
+import { useMediaQuery } from '@/app/hooks/useMediaQuery';
+import useSWRImmutable from 'swr/immutable';
 
 interface FormValues {
-  courseName: string
-  coordinatorEmail?: string
-  sectionGroupName?: string
-  zoomLink?: string
-  courseTimezone: string
-  semesterId?: number
-  professorsUserId: number[]
-  chatBotEnabled: boolean
-  queueEnabled: boolean
-  asyncQueueEnabled: boolean
-  asyncCentreAIAnswers: boolean
-  asyncCentreAuthorPublic: 'discussionBoard' | 'curatedListOfQuestions'
-  scheduleOnFrontPage: boolean
+  courseName: string;
+  coordinatorEmail?: string;
+  sectionGroupName?: string;
+  zoomLink?: string;
+  courseTimezone: string;
+  semesterId?: number;
+  professorsUserId: number[];
+  chatBotEnabled: boolean;
+  queueEnabled: boolean;
+  asyncQueueEnabled: boolean;
+  asyncCentreAIAnswers: boolean;
+  asyncCentreAuthorPublic: 'discussionBoard' | 'curatedListOfQuestions';
+  scheduleOnFrontPage: boolean;
 }
 
 /**
@@ -61,48 +62,48 @@ function setToCurrentSemester(
   semesters: SemesterPartial[] | undefined,
   form: FormInstance,
 ) {
-  if (!semesters || semesters.length === 0) return
+  if (!semesters || semesters.length === 0) return;
 
-  const now = new Date()
+  const now = new Date();
 
   const activeSemesters = semesters.filter((s) => {
-    if (!s.startDate || !s.endDate) return false
-    const start = new Date(s.startDate)
-    const end = new Date(s.endDate)
-    return start <= now && now <= end
-  })
+    if (!s.startDate || !s.endDate) return false;
+    const start = new Date(s.startDate);
+    const end = new Date(s.endDate);
+    return start <= now && now <= end;
+  });
 
   if (activeSemesters.length > 0) {
     activeSemesters.sort((a, b) => {
       const aDuration =
-        new Date(a.endDate!).getTime() - new Date(a.startDate!).getTime()
+        new Date(a.endDate!).getTime() - new Date(a.startDate!).getTime();
       const bDuration =
-        new Date(b.endDate!).getTime() - new Date(b.startDate!).getTime()
-      return aDuration - bDuration
-    })
-    const currentSemester = activeSemesters[0]
+        new Date(b.endDate!).getTime() - new Date(b.startDate!).getTime();
+      return aDuration - bDuration;
+    });
+    const currentSemester = activeSemesters[0];
     if (currentSemester?.id) {
-      form.setFieldsValue({ semesterId: currentSemester.id })
+      form.setFieldsValue({ semesterId: currentSemester.id });
     }
   } else {
     const testCourseSemester = semesters.find((s) =>
       s.name?.toLowerCase().includes('test course'),
-    )
-    const fallback = testCourseSemester || semesters[0]
+    );
+    const fallback = testCourseSemester || semesters[0];
     if (fallback?.id) {
-      form.setFieldsValue({ semesterId: fallback.id })
+      form.setFieldsValue({ semesterId: fallback.id });
     } else {
-      form.setFieldsValue({ semesterId: -1 })
+      form.setFieldsValue({ semesterId: -1 });
     }
   }
 }
 
 export default function AddCoursePage(): ReactElement {
-  const router = useRouter()
-  const { userInfo, setUserInfo } = useUserInfo()
-  const [organization, setOrganization] = useState<GetOrganizationResponse>()
-  const [professors, setProfessors] = useState<OrganizationProfessor[]>()
-  const [form] = Form.useForm()
+  const router = useRouter();
+  const { userInfo, setUserInfo } = useUserInfo();
+  const [organization, setOrganization] = useState<GetOrganizationResponse>();
+  const [professors, setProfessors] = useState<OrganizationProfessor[]>();
+  const [form] = Form.useForm();
   const {
     data: organizationSemesters,
     isLoading: organizationSemestersLoading,
@@ -119,64 +120,64 @@ export default function AddCoursePage(): ReactElement {
       onError: (err) =>
         message.error(`Failed to load semesters: ${getErrorMessage(err)}`),
       onSuccess: (data) => {
-        setToCurrentSemester(data, form)
+        setToCurrentSemester(data, form);
       },
     },
-  )
+  );
   const [isAuthorized, setIsAuthorized] = useState<boolean | undefined>(
     undefined,
-  )
+  );
   const organizationSettings = useOrganizationSettings(
     userInfo.organization?.orgId ?? -1,
-  )
-  const [isCourseNameTooLong, setIsCourseNameTooLong] = useState(false)
+  );
+  const [isCourseNameTooLong, setIsCourseNameTooLong] = useState(false);
 
-  const isCertainlyNotMobile = useMediaQuery('(min-width: 992px)')
+  const isCertainlyNotMobile = useMediaQuery('(min-width: 992px)');
   const [
     isAnytimeQuestionsUseCaseDisabled,
     setIsAnytimeQuestionsUseCaseDisabled,
-  ] = useState(false)
+  ] = useState(false);
 
   const isAdmin =
     userInfo &&
-    userInfo.organization?.organizationRole === OrganizationRole.ADMIN
+    userInfo.organization?.organizationRole === OrganizationRole.ADMIN;
 
   useEffect(() => {
     const getOrganization = async () => {
       const response = await organizationApi.getOrganization(
         userInfo.organization?.orgId ?? -1,
-      )
-      setOrganization(response)
-    }
-    getOrganization()
-  }, [userInfo])
+      );
+      setOrganization(response);
+    };
+    getOrganization();
+  }, [userInfo]);
 
   useEffect(() => {
     if (userInfo && organizationSettings) {
       setIsAuthorized(
         checkCourseCreatePermissions(userInfo, organizationSettings),
-      )
+      );
     }
-  }, [userInfo, organizationSettings])
+  }, [userInfo, organizationSettings]);
 
   useEffect(() => {
     const fetchProfessors = async () => {
-      if (!isAdmin || !organization) return
-      const response = await API.organizations.getProfessors(organization.id)
-      setProfessors(response)
-    }
-    fetchProfessors()
-  }, [isAdmin, organization])
+      if (!isAdmin || !organization) return;
+      const response = await API.organizations.getProfessors(organization.id);
+      setProfessors(response);
+    };
+    fetchProfessors();
+  }, [isAdmin, organization]);
 
   const onFinish = async (values: FormValues) => {
-    if (!organization) return
-    const courseNameField = values.courseName
-    const coordinatorEmailField = values.coordinatorEmail
-    const sectionGroupNameField = values.sectionGroupName
-    const zoomLinkField = values.zoomLink
+    if (!organization) return;
+    const courseNameField = values.courseName;
+    const coordinatorEmailField = values.coordinatorEmail;
+    const sectionGroupNameField = values.sectionGroupName;
+    const zoomLinkField = values.zoomLink;
     // const courseTimezoneField = values.courseTimezone
-    const semesterIdField = values.semesterId
-    const profIds = isAdmin ? values.professorsUserId : [userInfo.id]
+    const semesterIdField = values.semesterId;
+    const profIds = isAdmin ? values.professorsUserId : [userInfo.id];
     const courseFeatures = [
       { feature: 'chatBotEnabled', value: values.chatBotEnabled },
       { feature: 'queueEnabled', value: values.queueEnabled },
@@ -187,7 +188,7 @@ export default function AddCoursePage(): ReactElement {
         value: values.asyncCentreAuthorPublic !== 'curatedListOfQuestions',
       },
       { feature: 'scheduleOnFrontPage', value: values.scheduleOnFrontPage },
-    ]
+    ];
 
     await API.organizations
       .createCourse(organization.id, {
@@ -201,10 +202,10 @@ export default function AddCoursePage(): ReactElement {
         courseSettings: courseFeatures,
       })
       .then(async (createCourseResponse) => {
-        message.success(createCourseResponse.message)
+        message.success(createCourseResponse.message);
         // need to update userInfo so the course shows up in /courses
         await API.profile.getUser().then((userDetails) => {
-          setUserInfo(userDetails)
+          setUserInfo(userDetails);
           if (
             userDetails.organization?.organizationRole ===
             OrganizationRole.ADMIN
@@ -212,27 +213,27 @@ export default function AddCoursePage(): ReactElement {
             // redirect admins to the edit page for courses so they can immediately go create prof invites
             router.push(
               `/organization/course/${createCourseResponse.courseId}/edit?show-create-prof-notice=true`,
-            )
+            );
           } else {
             router.push(
               `/courses?highlightedCourse=${createCourseResponse.courseId}`,
-            )
+            );
           }
-        })
+        });
       })
       .catch((error) => {
-        const errorMessage = getErrorMessage(error)
-        message.error(errorMessage)
-      })
-  }
+        const errorMessage = getErrorMessage(error);
+        message.error(errorMessage);
+      });
+  };
 
   if (!userInfo) {
-    return <CenteredSpinner tip="Loading user..." />
+    return <CenteredSpinner tip="Loading user..." />;
   } else if (!organization) {
-    return <CenteredSpinner tip="Loading organization..." />
+    return <CenteredSpinner tip="Loading organization..." />;
   } else if (isAuthorized === false) {
-    router.push('/courses')
-    return <CenteredSpinner tip="Nuh uh..." />
+    router.push('/courses');
+    return <CenteredSpinner tip="Nuh uh..." />;
   } else {
     return (
       <>
@@ -255,17 +256,17 @@ export default function AddCoursePage(): ReactElement {
                 }}
                 onValuesChange={(changedValues) => {
                   if (changedValues.asyncQueueEnabled === false) {
-                    setIsAnytimeQuestionsUseCaseDisabled(true)
-                    form.setFieldsValue({ asyncCentreAIAnswers: false })
+                    setIsAnytimeQuestionsUseCaseDisabled(true);
+                    form.setFieldsValue({ asyncCentreAIAnswers: false });
                   } else if (changedValues.asyncQueueEnabled === true) {
-                    setIsAnytimeQuestionsUseCaseDisabled(false)
-                    form.setFieldsValue({ asyncCentreAIAnswers: true })
+                    setIsAnytimeQuestionsUseCaseDisabled(false);
+                    form.setFieldsValue({ asyncCentreAIAnswers: true });
                   }
                   if (changedValues.courseName) {
                     if (changedValues.courseName.length > 14) {
-                      setIsCourseNameTooLong(true)
+                      setIsCourseNameTooLong(true);
                     } else {
-                      setIsCourseNameTooLong(false)
+                      setIsCourseNameTooLong(false);
                     }
                   }
                 }}
@@ -539,6 +540,6 @@ export default function AddCoursePage(): ReactElement {
           </Col>
         </Row>
       </>
-    )
+    );
   }
 }

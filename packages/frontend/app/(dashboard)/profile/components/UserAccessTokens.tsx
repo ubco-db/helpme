@@ -1,49 +1,49 @@
-'use client'
+'use client';
 
-import { LMSToken } from '@koh/common'
-import { Button, Card, List, message, Tooltip } from 'antd'
-import { useEffect, useState } from 'react'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { DeleteOutlined, KeyOutlined } from '@ant-design/icons'
+import type { LMSToken } from '@koh/common';
+import { Button, Card, List, message, Tooltip } from 'antd';
+import { useEffect, useState } from 'react';
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { DeleteOutlined, KeyOutlined } from '@ant-design/icons';
 
 const UserAccessTokens: React.FC = () => {
-  const [lmsTokens, setLMSTokens] = useState<LMSToken[]>([])
-  const [deletingLMSTokens, setDeletingLMSTokens] = useState<number[]>([])
+  const [lmsTokens, setLMSTokens] = useState<LMSToken[]>([]);
+  const [deletingLMSTokens, setDeletingLMSTokens] = useState<number[]>([]);
 
   useEffect(() => {
     const getLMSTokens = async () => {
       await API.lmsIntegration
         .getAccessTokens()
         .then((tokens) => {
-          setLMSTokens(tokens)
+          setLMSTokens(tokens);
         })
-        .catch((_) => {})
-    }
-    getLMSTokens()
-  }, [])
+        .catch((_) => {});
+    };
+    getLMSTokens();
+  }, []);
 
   const deleteLMSToken = (tokenId: number) => {
-    setDeletingLMSTokens((prev) => [...prev, tokenId])
+    setDeletingLMSTokens((prev) => [...prev, tokenId]);
     API.lmsIntegration
       .deleteAccessToken(tokenId)
       .then((result) => {
         if (result) {
-          setLMSTokens((prev) => prev.filter((t) => t.id != tokenId))
-          message.success('Successfully invalidated token!')
+          setLMSTokens((prev) => prev.filter((t) => t.id != tokenId));
+          message.success('Successfully invalidated token!');
         } else {
           message.error(
             'An error occurred while invalidating token. Please try again later.',
-          )
+          );
         }
       })
       .catch((err) => {
-        message.error(getErrorMessage(err))
+        message.error(getErrorMessage(err));
       })
       .finally(() => {
-        setDeletingLMSTokens((prev) => prev.filter((v) => v != tokenId))
-      })
-  }
+        setDeletingLMSTokens((prev) => prev.filter((v) => v != tokenId));
+      });
+  };
 
   return (
     <div className={'flex flex-col gap-12'}>
@@ -100,7 +100,7 @@ const UserAccessTokens: React.FC = () => {
         />
       </Card>
     </div>
-  )
-}
+  );
+};
 
-export default UserAccessTokens
+export default UserAccessTokens;

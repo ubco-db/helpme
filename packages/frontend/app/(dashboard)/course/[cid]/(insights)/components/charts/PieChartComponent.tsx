@@ -1,18 +1,21 @@
-import {
+import type {
   ChartComponentProps,
+  RadialChartProps,
+} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
+import {
   ChartDataType,
   RadialChartClasses,
-  RadialChartProps,
-} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types'
-import React, { useMemo } from 'react'
+} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
+import type React from 'react';
+import { useMemo } from 'react';
 import {
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
-} from '@/app/components/ui/chart'
-import { LabelList, Pie, PieChart } from 'recharts'
+} from '@/app/components/ui/chart';
+import { LabelList, Pie, PieChart } from 'recharts';
 
 const PieChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
@@ -23,21 +26,22 @@ const PieChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     labelFormatter,
     valueFormatter,
     legendFormatter,
-  } = props
+  } = props;
 
-  const { showLabels } = props as RadialChartProps
+  const { showLabels } = props as RadialChartProps;
 
-  let { includeLegend, includeTooltip, innerRadius } = props as RadialChartProps
+  let { includeLegend, includeTooltip, innerRadius } =
+    props as RadialChartProps;
 
-  includeLegend ??= true
-  includeTooltip ??= true
-  innerRadius ??= 0
+  includeLegend ??= true;
+  includeTooltip ??= true;
+  innerRadius ??= 0;
 
   const className = useMemo(() => {
     return size != undefined && RadialChartClasses[size] != undefined
       ? RadialChartClasses[size]
-      : RadialChartClasses['md']
-  }, [size])
+      : RadialChartClasses['md'];
+  }, [size]);
 
   return (
     <ChartContainer config={chartConfig} className={className}>
@@ -89,7 +93,7 @@ const PieChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           ))}
       </PieChart>
     </ChartContainer>
-  )
-}
+  );
+};
 
-export default PieChartComponent
+export default PieChartComponent;

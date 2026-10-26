@@ -1,26 +1,26 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import FullCalendar from '@fullcalendar/react'
-import timeGridPlugin from '@fullcalendar/timegrid'
-import listPlugin from '@fullcalendar/list'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import interactionPlugin from '@fullcalendar/interaction'
-import { Event } from '@/app/typings/types'
-import { message, Spin } from 'antd'
-import { API } from '@/app/api'
-import { format } from 'date-fns'
-import EditEventModal from './EditEventModal'
-import CreateEventModal from './CreateEventModal'
-import { Calendar } from '@koh/common'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { useMediaQuery } from '@/app/hooks/useMediaQuery'
-import tinycolor from 'tinycolor2'
-import EventTooltip from './EventTooltip'
+import { useState, useEffect, useRef, useCallback } from 'react';
+import FullCalendar from '@fullcalendar/react';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import listPlugin from '@fullcalendar/list';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import type { Event } from '@/app/typings/types';
+import { message, Spin } from 'antd';
+import { API } from '@/app/api';
+import { format } from 'date-fns';
+import EditEventModal from './EditEventModal';
+import CreateEventModal from './CreateEventModal';
+import type { Calendar } from '@koh/common';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { useMediaQuery } from '@/app/hooks/useMediaQuery';
+import tinycolor from 'tinycolor2';
+import EventTooltip from './EventTooltip';
 
 type ScheduleProps = {
-  courseId: number
-  defaultView?: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek'
-  condensed?: boolean
-}
+  courseId: number;
+  defaultView?: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek';
+  condensed?: boolean;
+};
 
 /**
  * Note that for mobile, the defaultView gets ovverriden to 'timeGridDay'
@@ -30,44 +30,44 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
   defaultView = 'timeGridWeek',
   condensed = false,
 }) => {
-  const isMobile = useMediaQuery('(max-width: 768px)')
-  const calendarRef = useRef<FullCalendar>(null)
-  const spinnerRef = useRef<HTMLDivElement>(null)
-  const [editModalVisible, setEditModalVisible] = useState(false)
-  const [createModalVisible, setCreateModalVisible] = useState(false)
-  const [selectedEvent, setSelectedEvent] = useState<any>(null)
-  const [createEvent, setCreateEvent] = useState<{ start: Date; end: Date }>()
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const calendarRef = useRef<FullCalendar>(null);
+  const spinnerRef = useRef<HTMLDivElement>(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [createEvent, setCreateEvent] = useState<{ start: Date; end: Date }>();
   // see https://fullcalendar.io/docs/event-source-object#options for typing of events
-  const [events, setEvents] = useState<any>([])
+  const [events, setEvents] = useState<any>([]);
 
   const getEvent = useCallback(async () => {
     try {
-      const result = await API.calendar.getEvents(courseId)
-      const modifiedEvents = result.map((event) => parseEvent(event))
-      setEvents(modifiedEvents)
+      const result = await API.calendar.getEvents(courseId);
+      const modifiedEvents = result.map((event) => parseEvent(event));
+      setEvents(modifiedEvents);
     } catch (error) {
-      const errorMessage = getErrorMessage(error)
-      message.error('An error occurred while fetching events: ' + errorMessage)
+      const errorMessage = getErrorMessage(error);
+      message.error('An error occurred while fetching events: ' + errorMessage);
     }
-  }, [courseId, setEvents])
+  }, [courseId, setEvents]);
 
   useEffect(() => {
     if (courseId) {
-      getEvent()
+      getEvent();
     }
-  }, [courseId, editModalVisible, createModalVisible, getEvent])
+  }, [courseId, editModalVisible, createModalVisible, getEvent]);
 
   const parseEvent = (event: Calendar) => {
-    const startTime = new Date(event.start)
-    const endTime = new Date(event.end)
+    const startTime = new Date(event.start);
+    const endTime = new Date(event.end);
     const textColor = event.color
       ? tinycolor(event.color).isDark()
         ? '#fff'
         : '#000'
-      : '#fff'
+      : '#fff';
     const borderColor = event.color
       ? tinycolor(event.color).darken(10).toString()
-      : '#3788d8'
+      : '#3788d8';
     const returnEvent: Event = {
       id: event.id,
       title: event.title,
@@ -82,34 +82,34 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
       textColor: textColor,
       staffIds: event.staffIds ?? [],
       staffNames: event.staffNames ?? [],
-    }
+    };
     if (event.endDate) {
-      returnEvent['startRecur'] = event.startDate
-      returnEvent['endRecur'] = event.endDate
-      returnEvent['daysOfWeek'] = event.daysOfWeek
-      returnEvent['startTime'] = format(startTime, 'HH:mm')
-      returnEvent['endTime'] = format(endTime, 'HH:mm')
-      return returnEvent
+      returnEvent['startRecur'] = event.startDate;
+      returnEvent['endRecur'] = event.endDate;
+      returnEvent['daysOfWeek'] = event.daysOfWeek;
+      returnEvent['startTime'] = format(startTime, 'HH:mm');
+      returnEvent['endTime'] = format(endTime, 'HH:mm');
+      return returnEvent;
     } else {
-      return returnEvent
+      return returnEvent;
     }
-  }
+  };
 
   // sets default view to timeGridDay on mobile
   useEffect(() => {
     if (calendarRef.current) {
-      const calendarApi = calendarRef.current.getApi()
-      calendarApi.changeView(isMobile ? 'timeGridDay' : defaultView)
+      const calendarApi = calendarRef.current.getApi();
+      calendarApi.changeView(isMobile ? 'timeGridDay' : defaultView);
     }
-  }, [isMobile, defaultView])
+  }, [isMobile, defaultView]);
 
   const handleEditClick = (clickInfo: any) => {
     const selectedEvent = events.find(
       (event: any) => Number(event.id) === Number(clickInfo.event.id),
-    )
-    setSelectedEvent(selectedEvent)
-    setEditModalVisible(true)
-  }
+    );
+    setSelectedEvent(selectedEvent);
+    setEditModalVisible(true);
+  };
 
   return (
     <div className="mb-5">
@@ -136,8 +136,8 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
               setCreateEvent({
                 start: select.start,
                 end: select.end,
-              })
-              setCreateModalVisible(true)
+              });
+              setCreateModalVisible(true);
             }}
             eventResizableFromStart={false} // prevents you from being able to click and drag to change the start time of the event (that would require extra logic to implement properly)
             eventDurationEditable={false} // prevents you from being able to click and drag to change the duration (end time) of the event (that would require extra logic to implement properly)
@@ -157,21 +157,21 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
               addEventButton: {
                 text: 'Add Event',
                 click: () => {
-                  const now = new Date()
+                  const now = new Date();
                   // Round to nearest 5 minutes
-                  now.setMinutes(Math.round(now.getMinutes() / 5) * 5, 0, 0)
-                  const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000)
+                  now.setMinutes(Math.round(now.getMinutes() / 5) * 5, 0, 0);
+                  const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
                   setCreateEvent({
                     start: now,
                     end: oneHourLater,
-                  })
-                  setCreateModalVisible(true)
+                  });
+                  setCreateModalVisible(true);
                 },
               },
             }}
             loading={(loading) => {
               if (spinnerRef.current)
-                spinnerRef.current.style.display = loading ? 'flex' : 'none'
+                spinnerRef.current.style.display = loading ? 'flex' : 'none';
             }}
             height={condensed ? '56.5em' : '60em'}
             eventContent={(info) => <EventTooltip info={info} />} // custom event tooltip
@@ -191,7 +191,7 @@ const TAFacultySchedulePanel: React.FC<ScheduleProps> = ({
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default TAFacultySchedulePanel
+export default TAFacultySchedulePanel;

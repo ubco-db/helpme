@@ -1,22 +1,24 @@
-import { UserOutlined } from '@ant-design/icons'
-import { Avatar, AvatarProps } from 'antd'
-import React, { ReactElement } from 'react'
-import { useUserInfo } from '../contexts/userContext'
-import { cn, getInitialsFromName } from '../utils/generalUtils'
-import Image from 'next/image'
-import { classicPFPColours, nameToRGB } from '@koh/common'
+import { UserOutlined } from '@ant-design/icons';
+import type { AvatarProps } from 'antd';
+import { Avatar } from 'antd';
+import type { ReactElement } from 'react';
+import React from 'react';
+import { useUserInfo } from '../contexts/userContext';
+import { cn, getInitialsFromName } from '../utils/generalUtils';
+import Image from 'next/image';
+import { classicPFPColours, nameToRGB } from '@koh/common';
 
-type SelfAvatarProps = Omit<AvatarProps, 'icon' | 'src'>
+type SelfAvatarProps = Omit<AvatarProps, 'icon' | 'src'>;
 type UserAvatarProps = Omit<AvatarProps, 'icon' | 'src'> & {
-  photoURL?: string // Can be a url to a photo directly or the one to our server
-  userId?: number
-  username?: string
-  anonymous?: boolean
-  colour?: string // hex colour
-}
+  photoURL?: string; // Can be a url to a photo directly or the one to our server
+  userId?: number;
+  username?: string;
+  anonymous?: boolean;
+  colour?: string; // hex colour
+};
 
 export function SelfAvatar({ ...props }: SelfAvatarProps): ReactElement {
-  const { userInfo } = useUserInfo()
+  const { userInfo } = useUserInfo();
 
   return (
     <UserAvatar
@@ -25,7 +27,7 @@ export function SelfAvatar({ ...props }: SelfAvatarProps): ReactElement {
       photoURL={userInfo?.photoURL}
       username={userInfo?.name}
     />
-  )
+  );
 }
 
 /**
@@ -42,8 +44,8 @@ export default function UserAvatar({
   ...props
 }: UserAvatarProps): ReactElement {
   const fontSize =
-    props.size && Number(props.size) > 80 ? Number(props.size) / 4 : 14
-  const sizeNumber = Number(props.size) || 40
+    props.size && Number(props.size) > 80 ? Number(props.size) / 4 : 14;
+  const sizeNumber = Number(props.size) || 40;
 
   return photoURL &&
     username &&
@@ -112,5 +114,5 @@ export default function UserAvatar({
       {...props}
       icon={<UserOutlined />}
     />
-  )
+  );
 }

@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class ChatTokenIncreaseDefaultCap1790644104629 implements MigrationInterface {
   name = 'ChatTokenIncreaseDefaultCap1790644104629';

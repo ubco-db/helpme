@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class RemoveNameFromUserModel1613852704482
-  implements MigrationInterface
-{
+export class RemoveNameFromUserModel1613852704482 implements MigrationInterface {
   name = 'RemoveNameFromUserModel1613852704482';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

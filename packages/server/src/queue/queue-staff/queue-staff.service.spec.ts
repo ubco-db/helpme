@@ -1,13 +1,14 @@
+import type { RephraseQuestionPayload } from '@koh/common';
 import {
   OpenQuestionStatus,
   LimboQuestionStatus,
   AlertType,
   Role,
   ClosedQuestionStatus,
-  RephraseQuestionPayload,
   AlertDeliveryMode,
 } from '@koh/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import {
   AlertFactory,

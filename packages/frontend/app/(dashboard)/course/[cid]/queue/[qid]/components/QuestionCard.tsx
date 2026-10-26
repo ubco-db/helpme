@@ -1,32 +1,34 @@
-import {
+import type {
   ConfigTasks,
-  LimboQuestionStatus,
-  OpenQuestionStatus,
-  parseTaskIdsFromQuestionText,
   Question,
   QueueTypes,
   StudentAssignmentProgress,
-} from '@koh/common'
-import { Card, Col, Row, Tooltip } from 'antd'
-import { useState, useEffect } from 'react'
-import UserAvatar from '@/app/components/UserAvatar'
-import TaskMarkingSelector from './TaskMarkingSelector'
-import { QuestionTagElement } from '../../../components/QuestionTagElement'
-import { getServedTime, getWaitTime } from '@/app/utils/timeFormatUtils'
-import TAQuestionCardButtons from './TAQuestionCardButtons'
-import { cn } from '@/app/utils/generalUtils'
-import styles from './QuestionCard.module.css'
+} from '@koh/common';
+import {
+  LimboQuestionStatus,
+  OpenQuestionStatus,
+  parseTaskIdsFromQuestionText,
+} from '@koh/common';
+import { Card, Col, Row, Tooltip } from 'antd';
+import { useState, useEffect } from 'react';
+import UserAvatar from '@/app/components/UserAvatar';
+import TaskMarkingSelector from './TaskMarkingSelector';
+import { QuestionTagElement } from '../../../components/QuestionTagElement';
+import { getServedTime, getWaitTime } from '@/app/utils/timeFormatUtils';
+import TAQuestionCardButtons from './TAQuestionCardButtons';
+import { cn } from '@/app/utils/generalUtils';
+import styles from './QuestionCard.module.css';
 
 interface QuestionCardProps {
-  question: Question
-  cid: number
-  qid: number
-  isStaff: boolean
-  queueType: QueueTypes
-  studentAssignmentProgress?: StudentAssignmentProgress
-  configTasks?: ConfigTasks
-  isMyQuestion?: boolean
-  className?: string // used to highlight questions or add other classes
+  question: Question;
+  cid: number;
+  qid: number;
+  isStaff: boolean;
+  queueType: QueueTypes;
+  studentAssignmentProgress?: StudentAssignmentProgress;
+  configTasks?: ConfigTasks;
+  isMyQuestion?: boolean;
+  className?: string; // used to highlight questions or add other classes
 }
 
 const QuestionCard: React.FC<QuestionCardProps> = ({
@@ -40,36 +42,36 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   isMyQuestion,
   className,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [truncateText, setTruncateText] = useState(true) // after the max-height transition is finished on expanding the text, truncate it to show a `...`
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [truncateText, setTruncateText] = useState(true); // after the max-height transition is finished on expanding the text, truncate it to show a `...`
 
-  const isBeingReQueued = question.status === LimboQuestionStatus.ReQueueing
-  const isPaused = question.status === OpenQuestionStatus.Paused
-  const isBeingHelped = question.status === OpenQuestionStatus.Helping
+  const isBeingReQueued = question.status === LimboQuestionStatus.ReQueueing;
+  const isPaused = question.status === OpenQuestionStatus.Paused;
+  const isBeingHelped = question.status === OpenQuestionStatus.Helping;
 
   const tasks = question.isTaskQuestion
     ? parseTaskIdsFromQuestionText(question.text)
-    : [] // gives an array of "part1","part2",etc.
+    : []; // gives an array of "part1","part2",etc.
   const [tasksSelectedForMarking, setTasksSelectedForMarking] = useState<
     string[]
-  >([])
+  >([]);
 
   const onMarkingTaskChange = (selectedTaskIds: string[]) => {
-    setTasksSelectedForMarking(selectedTaskIds)
-  }
+    setTasksSelectedForMarking(selectedTaskIds);
+  };
 
-  const [servedTime, setServedTime] = useState(getServedTime(question))
+  const [servedTime, setServedTime] = useState(getServedTime(question));
 
   useEffect(() => {
     if (isBeingHelped && question.helpedAt && !isPaused) {
       const interval = setInterval(() => {
-        setServedTime(getServedTime(question))
-      }, 1000)
-      return () => clearInterval(interval)
+        setServedTime(getServedTime(question));
+      }, 1000);
+      return () => clearInterval(interval);
     } else if (isPaused) {
-      setServedTime(getServedTime(question))
+      setServedTime(getServedTime(question));
     }
-  }, [isBeingHelped, question, isPaused])
+  }, [isBeingHelped, question, isPaused]);
 
   return (
     <Tooltip
@@ -103,19 +105,19 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
         )}
         classNames={{ body: 'px-0.5 py-1.5 md:px-2.5 md:py-2' }}
         onClick={() => {
-          setIsExpanded(!isExpanded)
+          setIsExpanded(!isExpanded);
           // after the max-height transition is finished on expanding the text, truncate it to show a `...`
           // truncating the questionText before the animation is finished will cause the animation to jump
           // Also, this logic is reversed for some reason
           if (isExpanded) {
             //// Collapsing the card
             setTimeout(() => {
-              setTruncateText(true)
-            }, 300)
+              setTruncateText(true);
+            }, 300);
           } else {
             //// Expanding the card
             // however, we do want to instantly remove the truncation when expanding the card
-            setTruncateText(false)
+            setTruncateText(false);
           }
         }}
       >
@@ -279,7 +281,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
         </Row>
       </Card>
     </Tooltip>
-  )
-}
+  );
+};
 
-export default QuestionCard
+export default QuestionCard;

@@ -1,5 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource, DeepPartial } from 'typeorm';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+import type { DeepPartial } from 'typeorm';
+import { DataSource } from 'typeorm';
 import {
   initFactoriesFromService,
   UserFactory,

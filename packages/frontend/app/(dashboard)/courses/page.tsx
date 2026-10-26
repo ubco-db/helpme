@@ -1,57 +1,59 @@
-'use client'
+'use client';
 
-import { ReactElement, useEffect, useState } from 'react'
-import { Alert, Button, Empty, message, Segmented } from 'antd'
-import { useUserInfo } from '@/app/contexts/userContext'
-import CoursesSection from '../components/coursesSection'
-import OrganizationCard from '../components/organizationCard'
-import Image from 'next/image'
-import { useSearchParams } from 'next/navigation'
-import { AppstoreOutlined, BarsOutlined } from '@ant-design/icons'
-import ArchivedCoursesSection from '../components/ArchivedCoursesSection'
-import { API } from '@/app/api'
-import { QUERY_PARAMS, SemesterPartial } from '@koh/common'
-import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
-import { checkCourseCreatePermissions } from '@/app/utils/generalUtils'
+import type { ReactElement } from 'react';
+import { useEffect, useState } from 'react';
+import { Alert, Button, Empty, message, Segmented } from 'antd';
+import { useUserInfo } from '@/app/contexts/userContext';
+import CoursesSection from '../components/coursesSection';
+import OrganizationCard from '../components/organizationCard';
+import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
+import { AppstoreOutlined, BarsOutlined } from '@ant-design/icons';
+import ArchivedCoursesSection from '../components/ArchivedCoursesSection';
+import { API } from '@/app/api';
+import type { SemesterPartial } from '@koh/common';
+import { QUERY_PARAMS } from '@koh/common';
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings';
+import { checkCourseCreatePermissions } from '@/app/utils/generalUtils';
 
 export default function CoursesPage(): ReactElement {
-  const { userInfo } = useUserInfo()
-  const searchParams = useSearchParams()
-  const error = searchParams.get('err') // error shown when accepting course invite
+  const { userInfo } = useUserInfo();
+  const searchParams = useSearchParams();
+  const error = searchParams.get('err'); // error shown when accepting course invite
   // used to highlight newly created course
   const highlightedCourseId =
     searchParams.get('highlightedCourse') &&
     !isNaN(Number(searchParams.get('highlightedCourse')))
       ? Number(searchParams.get('highlightedCourse'))
-      : undefined
+      : undefined;
   const organizationSettings = useOrganizationSettings(
     userInfo?.organization?.orgId ?? -1,
-  )
+  );
 
   // Initialize enabledTableView from localStorage
   const [enabledTableView, setEnabledTableView] = useState(() => {
     if (typeof window !== 'undefined') {
-      const storedValue = localStorage.getItem('enabledTableView')
-      return storedValue === 'true'
+      const storedValue = localStorage.getItem('enabledTableView');
+      return storedValue === 'true';
     }
-    return false
-  })
-  const [semesters, setSemesters] = useState<SemesterPartial[]>([])
+    return false;
+  });
+  const [semesters, setSemesters] = useState<SemesterPartial[]>([]);
 
   useEffect(() => {
     API.semesters
       .get(userInfo.organization?.orgId || -1)
       .then((semesters) => {
-        setSemesters(semesters)
+        setSemesters(semesters);
       })
       .catch((error) => {
-        console.error(error)
+        console.error(error);
         message.error(
           'Failed to fetch semesters for organization with id: ' +
             userInfo.organization?.orgId,
-        )
-      })
-  }, [])
+        );
+      });
+  }, []);
 
   return (
     <>
@@ -77,55 +79,55 @@ export default function CoursesPage(): ReactElement {
           className="my-2"
           message={(() => {
             if (error?.startsWith('prof_invite_')) {
-              let profInviteMsg = ''
+              let profInviteMsg = '';
               switch (error) {
                 case QUERY_PARAMS.profInvite.error.expired:
-                  profInviteMsg = `That professor invite has expired at ${searchParams.get(QUERY_PARAMS.profInvite.error.expiresAt)}`
-                  break
+                  profInviteMsg = `That professor invite has expired at ${searchParams.get(QUERY_PARAMS.profInvite.error.expiresAt)}`;
+                  break;
                 case QUERY_PARAMS.profInvite.error.maxUsesReached:
-                  profInviteMsg = `That professor invite has reached the maximum number of uses (${searchParams.get(QUERY_PARAMS.profInvite.error.maxUses)})`
-                  break
+                  profInviteMsg = `That professor invite has reached the maximum number of uses (${searchParams.get(QUERY_PARAMS.profInvite.error.maxUses)})`;
+                  break;
                 case QUERY_PARAMS.profInvite.error.notFound:
-                  profInviteMsg = `That professor invite of ID ${searchParams.get(QUERY_PARAMS.profInvite.error.profInviteId)} has been deleted or does not exist. If you believe this is an error, please contact an admin.`
-                  break
+                  profInviteMsg = `That professor invite of ID ${searchParams.get(QUERY_PARAMS.profInvite.error.profInviteId)} has been deleted or does not exist. If you believe this is an error, please contact an admin.`;
+                  break;
                 case QUERY_PARAMS.profInvite.error.userNotFound:
-                  profInviteMsg = `User does not exist. Please contact an admin.`
-                  break
+                  profInviteMsg = `User does not exist. Please contact an admin.`;
+                  break;
                 case QUERY_PARAMS.profInvite.error.badCode:
-                  profInviteMsg = `The professor invite code in the link is incorrect. Please ensure the invite link is fully intact. Otherwise, please contact an admin.`
-                  break
+                  profInviteMsg = `The professor invite code in the link is incorrect. Please ensure the invite link is fully intact. Otherwise, please contact an admin.`;
+                  break;
                 case QUERY_PARAMS.profInvite.error.unknown:
-                  profInviteMsg = `An unexpected error occurred while trying to accept the professor invite. Please try again. If the error persists, try clearing your cookies. If the error still occurs, please contact an admin.`
-                  break
+                  profInviteMsg = `An unexpected error occurred while trying to accept the professor invite. Please try again. If the error persists, try clearing your cookies. If the error still occurs, please contact an admin.`;
+                  break;
                 default:
-                  profInviteMsg = `An unexpected error occurred: ${error}`
+                  profInviteMsg = `An unexpected error occurred: ${error}`;
               }
-              return 'Error Accepting Professor Invite: ' + profInviteMsg
+              return 'Error Accepting Professor Invite: ' + profInviteMsg;
             } else if (error?.startsWith('queue_invite_')) {
-              let queueInviteMsg = ''
+              let queueInviteMsg = '';
               switch (error) {
                 case QUERY_PARAMS.queueInvite.error.notInCourse:
                   queueInviteMsg =
-                    'You must be a member of that course to join that queue'
-                  break
+                    'You must be a member of that course to join that queue';
+                  break;
                 case QUERY_PARAMS.queueInvite.error.inviteNotFound:
                   queueInviteMsg =
-                    'That queue invite has been deleted or does not exist. If you believe this is an error, please contact your professor.'
-                  break
+                    'That queue invite has been deleted or does not exist. If you believe this is an error, please contact your professor.';
+                  break;
                 case QUERY_PARAMS.queueInvite.error.courseNotFound:
                   queueInviteMsg =
-                    'That course has been deleted or does not exist'
-                  break
+                    'That course has been deleted or does not exist';
+                  break;
                 case QUERY_PARAMS.queueInvite.error.badCourseInviteCode:
                   queueInviteMsg =
-                    'Unable to enroll in course as the course does not have a course invite code set. If you believe this is an error, please contact your professor.'
-                  break
+                    'Unable to enroll in course as the course does not have a course invite code set. If you believe this is an error, please contact your professor.';
+                  break;
                 default:
-                  queueInviteMsg = `An unexpected error occurred: ${error}`
+                  queueInviteMsg = `An unexpected error occurred: ${error}`;
               }
-              return 'Error Joining Queue: ' + queueInviteMsg
+              return 'Error Joining Queue: ' + queueInviteMsg;
             } else {
-              return `An unexpected error occurred: ${error}`
+              return `An unexpected error occurred: ${error}`;
             }
           })()}
           type="warning"
@@ -148,9 +150,9 @@ export default function CoursesPage(): ReactElement {
             ]}
             defaultValue={enabledTableView}
             onChange={(value) => {
-              setEnabledTableView(value)
+              setEnabledTableView(value);
               if (typeof window !== 'undefined') {
-                localStorage.setItem('enabledTableView', value.toString())
+                localStorage.setItem('enabledTableView', value.toString());
               }
             }}
           />
@@ -192,5 +194,5 @@ export default function CoursesPage(): ReactElement {
         />
       )}
     </>
-  )
+  );
 }

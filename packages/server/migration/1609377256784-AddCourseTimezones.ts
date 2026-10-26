@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddCourseTimezones1609377256784 implements MigrationInterface {
   name = 'AddCourseTimezones1609377256784';

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react';
 import {
   Button,
   Checkbox,
@@ -7,34 +7,35 @@ import {
   message,
   Popconfirm,
   Tooltip,
-} from 'antd'
-import Comment from './Comment'
-import moment from 'moment'
-import { API } from '@/app/api'
-import { cn, getErrorMessage } from '@/app/utils/generalUtils'
-import { AsyncQuestion, AsyncQuestionComment, Role } from '@koh/common'
-import { CommentProps } from '../utils/types'
-import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils'
-import { Action } from './AsyncQuestionCardUIReducer'
+} from 'antd';
+import Comment from './Comment';
+import moment from 'moment';
+import { API } from '@/app/api';
+import { cn, getErrorMessage } from '@/app/utils/generalUtils';
+import type { AsyncQuestion, AsyncQuestionComment } from '@koh/common';
+import { Role } from '@koh/common';
+import type { CommentProps } from '../utils/types';
+import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils';
+import type { Action } from './AsyncQuestionCardUIReducer';
 import {
   CheckCircleOutlined,
   StopOutlined,
   WarningOutlined,
-} from '@ant-design/icons'
+} from '@ant-design/icons';
 
-const { TextArea } = Input
+const { TextArea } = Input;
 
 interface CommentSectionProps {
-  userId: number
-  userCourseRole: Role
-  question: AsyncQuestion
-  dispatchUIStateChange: (action: Action) => void
-  isPostingComment: boolean
-  showStudents: boolean
-  className?: string
-  defaultAnonymousSetting: boolean
-  mutateAsyncQuestions: () => void
-  highlightCommentId?: number
+  userId: number;
+  userCourseRole: Role;
+  question: AsyncQuestion;
+  dispatchUIStateChange: (action: Action) => void;
+  isPostingComment: boolean;
+  showStudents: boolean;
+  className?: string;
+  defaultAnonymousSetting: boolean;
+  mutateAsyncQuestions: () => void;
+  highlightCommentId?: number;
 }
 
 const CommentSection: React.FC<CommentSectionProps> = ({
@@ -49,14 +50,14 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   mutateAsyncQuestions,
   highlightCommentId,
 }) => {
-  const [commentInputValue, setCommentInputValue] = useState('')
-  const [isPostCommentLoading, setIsPostCommentLoading] = useState(false)
+  const [commentInputValue, setCommentInputValue] = useState('');
+  const [isPostCommentLoading, setIsPostCommentLoading] = useState(false);
   const [postCommentCancelPopoverOpen, setPostCommentCancelPopoverOpen] =
-    useState(false)
-  const [postCommentPopoverOpen, setPostCommentPopoverOpen] = useState(false)
-  const [regenerateCommentsFlag, regenerateComments] = useState(false)
+    useState(false);
+  const [postCommentPopoverOpen, setPostCommentPopoverOpen] = useState(false);
+  const [regenerateCommentsFlag, regenerateComments] = useState(false);
   const isStaff =
-    userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
+    userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR;
 
   const [commentAnonymous, setCommentAnonymous] = useState<boolean>(
     isStaff && question.creator.id != userId
@@ -64,7 +65,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       : question.creator.id == userId
         ? (question.isAnonymous ?? defaultAnonymousSetting)
         : defaultAnonymousSetting,
-  )
+  );
 
   const comments = useMemo(() => {
     return generateCommentProps(
@@ -77,7 +78,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
       regenerateComments,
       regenerateCommentsFlag,
       mutateAsyncQuestions,
-    )
+    );
   }, [
     question.id,
     question.comments,
@@ -88,7 +89,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
     regenerateCommentsFlag,
     defaultAnonymousSetting,
     mutateAsyncQuestions,
-  ])
+  ]);
 
   const anonymityOverwriteCount = useMemo(
     () =>
@@ -99,20 +100,20 @@ const CommentSection: React.FC<CommentSectionProps> = ({
           c.isAnonymous != commentAnonymous,
       ).length,
     [commentAnonymous, question, userId],
-  )
+  );
 
   useEffect(() => {
     if (question.creator.id == userId) {
-      setCommentAnonymous(question?.isAnonymous ?? defaultAnonymousSetting)
+      setCommentAnonymous(question?.isAnonymous ?? defaultAnonymousSetting);
     }
-  }, [defaultAnonymousSetting, question, userId])
+  }, [defaultAnonymousSetting, question, userId]);
 
   const handleCommentOnPost = async (
     questionId: number,
     commentText: string,
     isAnonymous: boolean,
   ) => {
-    setIsPostCommentLoading(true)
+    setIsPostCommentLoading(true);
     await API.asyncQuestions
       .comment(questionId, {
         commentText,
@@ -124,43 +125,43 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               : isAnonymous,
       })
       .then((myComments) => {
-        dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
-        message.success('Comment posted successfully')
+        dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' });
+        message.success('Comment posted successfully');
         myComments.forEach((c) => {
           if (c.creator) {
-            c.creator.courseRole = userCourseRole
+            c.creator.courseRole = userCourseRole;
           }
-        })
-        const ids = myComments.map((c) => c.id)
+        });
+        const ids = myComments.map((c) => c.id);
         question.comments.forEach((c) => {
-          if (!ids.includes(c.id)) return // if for some reason they don't match
-          c.isAnonymous = myComments[0].isAnonymous // the anonymity of all of them now match the new one
-        })
-        question.comments.push(myComments[0])
-        regenerateComments(!regenerateCommentsFlag)
+          if (!ids.includes(c.id)) return; // if for some reason they don't match
+          c.isAnonymous = myComments[0].isAnonymous; // the anonymity of all of them now match the new one
+        });
+        question.comments.push(myComments[0]);
+        regenerateComments(!regenerateCommentsFlag);
       })
       .catch((e) => {
-        message.error('Failed to post reply: ' + getErrorMessage(e))
+        message.error('Failed to post reply: ' + getErrorMessage(e));
       })
       .finally(() => {
-        setIsPostCommentLoading(false)
-      })
-  }
+        setIsPostCommentLoading(false);
+      });
+  };
 
   const handleCancelComment = (e?: React.MouseEvent) => {
-    e?.stopPropagation()
+    e?.stopPropagation();
     dispatchUIStateChange({
       type: 'SET_IS_POSTING_COMMENT',
       isPostingComment: false,
-    })
-    setCommentInputValue('')
+    });
+    setCommentInputValue('');
     if (question.comments.length === 0) {
       // if no comments were posted (e.g. they clicked "Post Comment" by accident and immediately clicked "Cancel"), immediately jump back to just 'expandedNoComments' state
-      dispatchUIStateChange({ type: 'HIDE_COMMENTS' })
+      dispatchUIStateChange({ type: 'HIDE_COMMENTS' });
     } else {
-      dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
+      dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' });
     }
-  }
+  };
 
   return (
     <div className={className}>
@@ -193,12 +194,12 @@ const CommentSection: React.FC<CommentSectionProps> = ({
           <Button
             type="primary"
             onClick={(e) => {
-              e.stopPropagation()
+              e.stopPropagation();
               dispatchUIStateChange({
                 type: 'SET_IS_POSTING_COMMENT',
                 isPostingComment: true,
-              })
-              dispatchUIStateChange({ type: 'LOCK_EXPANDED' })
+              });
+              dispatchUIStateChange({ type: 'LOCK_EXPANDED' });
             }}
             className="mt-1"
           >
@@ -214,7 +215,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               placeholder="Enter your comment here..."
               onFocus={(e) => e.stopPropagation()}
               onClick={(e) => {
-                e.stopPropagation()
+                e.stopPropagation();
               }}
               onChange={(e) => setCommentInputValue(e.target.value)}
               value={commentInputValue}
@@ -228,11 +229,11 @@ const CommentSection: React.FC<CommentSectionProps> = ({
               onOpenChange={(open) => {
                 // if the field is empty, skip showing the popover and just cancel
                 if (!commentInputValue) {
-                  handleCancelComment()
+                  handleCancelComment();
                 } else {
-                  setPostCommentCancelPopoverOpen(open)
+                  setPostCommentCancelPopoverOpen(open);
                 }
-                setPostCommentPopoverOpen(false)
+                setPostCommentPopoverOpen(false);
               }}
               onCancel={(e) => e?.stopPropagation()}
             >
@@ -264,14 +265,14 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                   </div>
                 }
                 onOpenChange={(open) => {
-                  if (open) setPostCommentPopoverOpen(open)
+                  if (open) setPostCommentPopoverOpen(open);
                 }}
                 onCancel={(e) => {
-                  e?.stopPropagation()
-                  setPostCommentPopoverOpen(false)
+                  e?.stopPropagation();
+                  setPostCommentPopoverOpen(false);
                 }}
                 onConfirm={async (e) => {
-                  e?.stopPropagation()
+                  e?.stopPropagation();
                   if (commentInputValue) {
                     await handleCommentOnPost(
                       question.id,
@@ -281,13 +282,13 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                         : question.creator.id == userId
                           ? (question.isAnonymous ?? defaultAnonymousSetting)
                           : commentAnonymous,
-                    )
+                    );
                     dispatchUIStateChange({
                       type: 'SET_IS_POSTING_COMMENT',
                       isPostingComment: false,
-                    })
-                    setCommentInputValue('')
-                    setPostCommentPopoverOpen(false)
+                    });
+                    setCommentInputValue('');
+                    setPostCommentPopoverOpen(false);
                   }
                 }}
               >
@@ -308,7 +309,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                 disabled={!commentInputValue}
                 loading={isPostCommentLoading}
                 onClick={async (e) => {
-                  e.stopPropagation()
+                  e.stopPropagation();
                   if (commentInputValue) {
                     await handleCommentOnPost(
                       question.id,
@@ -318,12 +319,12 @@ const CommentSection: React.FC<CommentSectionProps> = ({
                         : question.creator.id == userId
                           ? (question.isAnonymous ?? defaultAnonymousSetting)
                           : commentAnonymous,
-                    )
+                    );
                     dispatchUIStateChange({
                       type: 'SET_IS_POSTING_COMMENT',
                       isPostingComment: false,
-                    })
-                    setCommentInputValue('')
+                    });
+                    setCommentInputValue('');
                   }
                 }}
                 type="primary"
@@ -384,8 +385,8 @@ const CommentSection: React.FC<CommentSectionProps> = ({
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 // adam: tbh idk why i put this into a function way over here. It'd be easier to maintain by just putting it inside the List component
 function generateCommentProps(
   questionId: number,
@@ -400,17 +401,17 @@ function generateCommentProps(
 ): CommentProps[] | undefined {
   // Sort endorsed comments to the top, then by createdAt ascending (oldest first)
   comments.sort((a, b) => {
-    const aEndorsed = a.endorsedBy ? 1 : 0
-    const bEndorsed = b.endorsedBy ? 1 : 0
-    if (aEndorsed !== bEndorsed) return bEndorsed - aEndorsed
-    return moment(a.createdAt).diff(moment(b.createdAt))
-  })
+    const aEndorsed = a.endorsedBy ? 1 : 0;
+    const bEndorsed = b.endorsedBy ? 1 : 0;
+    if (aEndorsed !== bEndorsed) return bEndorsed - aEndorsed;
+    return moment(a.createdAt).diff(moment(b.createdAt));
+  });
 
-  const newComments: CommentProps[] = []
+  const newComments: CommentProps[] = [];
   for (const comment of comments) {
     const otherUserComments = comments.filter(
       (c) => c.creator.id != undefined && c.creator.id == comment.creator.id,
-    )
+    );
     newComments.push({
       commentId: comment.id,
       questionId,
@@ -420,23 +421,23 @@ function generateCommentProps(
       questionIsAnonymous,
       onDeleteSuccess: () => {
         // remove the comment from the question object
-        const commentIndex = comments.findIndex((c) => c.id === comment.id)
-        comments.splice(commentIndex, 1)
-        regenerateComments(!regenerateCommentsFlag)
+        const commentIndex = comments.findIndex((c) => c.id === comment.id);
+        comments.splice(commentIndex, 1);
+        regenerateComments(!regenerateCommentsFlag);
       },
       onEditSuccess: (newCommentText, newCommentAnonymous) => {
         // update the comment content
-        comment.commentText = newCommentText
+        comment.commentText = newCommentText;
         comment.isAnonymous =
           IAmStaff && !comment.creator.isAuthor
             ? false
             : comment.creator.isAuthor
               ? questionIsAnonymous
-              : newCommentAnonymous
+              : newCommentAnonymous;
         otherUserComments.forEach((c) => {
-          c.isAnonymous = comment.isAnonymous
-        })
-        regenerateComments(!regenerateCommentsFlag)
+          c.isAnonymous = comment.isAnonymous;
+        });
+        regenerateComments(!regenerateCommentsFlag);
       },
       datetime: (
         <Tooltip title={new Date(comment.createdAt).toLocaleString()}>
@@ -449,12 +450,12 @@ function generateCommentProps(
       numOtherComments: otherUserComments.length,
       endorsedBy: comment.endorsedBy ?? null,
       onEndorseSuccess: () => {
-        mutateAsyncQuestions()
+        mutateAsyncQuestions();
       },
-    })
+    });
   }
 
-  return newComments
+  return newComments;
 }
 
-export default CommentSection
+export default CommentSection;

@@ -1,25 +1,27 @@
-'use client'
+'use client';
 
-import { useMemo, useState } from 'react'
-import { Button, Form, message, Modal, Popconfirm } from 'antd'
-import {
+import { useMemo, useState } from 'react';
+import { Button, Form, message, Modal, Popconfirm } from 'antd';
+import type {
   CourseCloneAttributes,
-  defaultCourseCloneAttributes,
   GetOrganizationResponse,
+} from '@koh/common';
+import {
+  defaultCourseCloneAttributes,
   OrganizationRole,
   UserCourse,
-} from '@koh/common'
-import { API } from '@/app/api'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { ExclamationCircleFilled } from '@ant-design/icons'
-import CourseCloneForm from './CourseCloneForm'
+} from '@koh/common';
+import { API } from '@/app/api';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { ExclamationCircleFilled } from '@ant-design/icons';
+import CourseCloneForm from './CourseCloneForm';
 
 type CourseCloneFormModalProps = {
-  organization: GetOrganizationResponse
-  courseId: number
-  courseSemesterId?: number
-  courseSectionGroupName: string
-}
+  organization: GetOrganizationResponse;
+  courseId: number;
+  courseSemesterId?: number;
+  courseSectionGroupName: string;
+};
 
 const CourseCloneFormModal: React.FC<CourseCloneFormModalProps> = ({
   organization,
@@ -27,46 +29,46 @@ const CourseCloneFormModal: React.FC<CourseCloneFormModalProps> = ({
   courseSemesterId,
   courseSectionGroupName,
 }) => {
-  const [visible, setVisible] = useState(false)
-  const [form] = Form.useForm<CourseCloneAttributes>()
-  const { userInfo } = useUserInfo()
+  const [visible, setVisible] = useState(false);
+  const [form] = Form.useForm<CourseCloneAttributes>();
+  const { userInfo } = useUserInfo();
   const courseName = userInfo?.courses.find((uc) => uc.course.id === courseId)
-    ?.course.name
+    ?.course.name;
 
   const openModal = () => {
-    form.setFieldsValue(defaultCourseCloneAttributes)
-    setVisible(true)
-  }
+    form.setFieldsValue(defaultCourseCloneAttributes);
+    setVisible(true);
+  };
 
   const isAdmin = useMemo(
     () =>
       userInfo &&
       userInfo.organization?.organizationRole === OrganizationRole.ADMIN,
     [userInfo],
-  )
+  );
 
   const handleClone = async () => {
-    const cloneData = form.getFieldsValue()
+    const cloneData = form.getFieldsValue();
 
     if (isAdmin && (cloneData.professorIds ?? []).length === 0) {
-      message.error('Please select a professor')
-      return
+      message.error('Please select a professor');
+      return;
     } else {
-      cloneData.professorIds = [userInfo.id]
+      cloneData.professorIds = [userInfo.id];
     }
-    API.course.createClone(courseId, cloneData)
+    API.course.createClone(courseId, cloneData);
     message.info(
       'Cloning process has started. It is safe to close this tab',
       4.5,
-    )
+    );
 
-    form.resetFields()
-    setVisible(false)
-  }
+    form.resetFields();
+    setVisible(false);
+  };
 
   const handleCancelCloneModal = () => {
-    setVisible(false)
-  }
+    setVisible(false);
+  };
 
   return (
     <>
@@ -161,7 +163,7 @@ const CourseCloneFormModal: React.FC<CourseCloneFormModalProps> = ({
         />
       </Modal>
     </>
-  )
-}
+  );
+};
 
-export default CourseCloneFormModal
+export default CourseCloneFormModal;

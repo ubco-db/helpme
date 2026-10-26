@@ -1,8 +1,5 @@
-import {
-  createParamDecorator,
-  ExecutionContext,
-  ForbiddenException,
-} from '@nestjs/common';
+import type { ExecutionContext } from '@nestjs/common';
+import { createParamDecorator, ForbiddenException } from '@nestjs/common';
 import { OrganizationUserModel } from '../organization/organization-user.entity';
 
 /* Gives the role of the user in the Organization */

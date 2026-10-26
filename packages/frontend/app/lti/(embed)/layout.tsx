@@ -1,39 +1,39 @@
-'use client'
+'use client';
 
-import { LayoutProps } from 'antd'
-import { LtiContextProvider } from '@/app/contexts/LtiContext'
-import { useSearchParams } from 'next/navigation'
-import { useEffect } from 'react'
-import { useSessionStorage } from '@/app/hooks/useSessionStorage'
-import { LMSIntegrationPlatform } from '@koh/common'
+import type { LayoutProps } from 'antd';
+import { LtiContextProvider } from '@/app/contexts/LtiContext';
+import { useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
+import { useSessionStorage } from '@/app/hooks/useSessionStorage';
+import type { LMSIntegrationPlatform } from '@koh/common';
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const searchParams = useSearchParams()
+  const searchParams = useSearchParams();
 
   const [ltiStorageTarget, setLtiStorageTarget] = useSessionStorage<string>(
     'lti_storage_target',
     null,
-  )
+  );
 
   const [_, setLmsInfo] = useSessionStorage<{
-    platform: LMSIntegrationPlatform
-    apiCourseId: string
-  }>('lms_info', null)
+    platform: LMSIntegrationPlatform;
+    apiCourseId: string;
+  }>('lms_info', null);
 
   useEffect(() => {
-    const param = searchParams.get('lti_storage_target')
+    const param = searchParams.get('lti_storage_target');
     if (param) {
-      setLtiStorageTarget(param)
+      setLtiStorageTarget(param);
     }
-    const apiCourseId = searchParams.get('api_course_id')
-    const platform = searchParams.get('lms_platform')
+    const apiCourseId = searchParams.get('api_course_id');
+    const platform = searchParams.get('lms_platform');
     if (apiCourseId && platform) {
       setLmsInfo({
         apiCourseId,
         platform: platform as LMSIntegrationPlatform,
-      })
+      });
     }
-  }, [searchParams])
+  }, [searchParams]);
 
   if (global.window) {
     return (
@@ -43,10 +43,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       >
         {children}
       </LtiContextProvider>
-    )
+    );
   } else {
-    return children
+    return children;
   }
-}
+};
 
-export default Layout
+export default Layout;

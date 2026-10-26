@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class sectionGroupNameNull1645995817187 implements MigrationInterface {
   name = 'sectionGroupNameNull1645995817187';

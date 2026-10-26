@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class ApplicationConfigIncrease1790645742243 implements MigrationInterface {
   name = 'ApplicationConfigIncrease1790645742243';

@@ -1,43 +1,43 @@
-import { API } from '@/app/api'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import {
+import { API } from '@/app/api';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import type {
   GetOrganizationResponse,
   OrganizationCourseResponse,
-} from '@koh/common'
-import { Button, message, Popconfirm } from 'antd'
-import { useRouter } from 'next/navigation'
+} from '@koh/common';
+import { Button, message, Popconfirm } from 'antd';
+import { useRouter } from 'next/navigation';
 
 type DeleteCourseProps = {
-  courseData: OrganizationCourseResponse
-  organization: GetOrganizationResponse
-}
+  courseData: OrganizationCourseResponse;
+  organization: GetOrganizationResponse;
+};
 
 const DeleteCourse: React.FC<DeleteCourseProps> = ({
   courseData,
   organization,
 }) => {
-  const router = useRouter()
-  const { setUserInfo } = useUserInfo()
+  const router = useRouter();
+  const { setUserInfo } = useUserInfo();
 
   const handleDelete = async () => {
     await API.organizations
       .deleteCourse(organization.id, Number(courseData.courseId))
       .then(() => {
-        message.success('Course deleted')
+        message.success('Course deleted');
         setUserInfo((prev) => ({
           ...prev,
           courses: prev.courses.filter(
             (uc) => uc.course.id !== courseData.courseId,
           ),
-        }))
-        router.push('/courses')
+        }));
+        router.push('/courses');
       })
       .catch((error) => {
-        const errorMessage = getErrorMessage(error)
-        message.error(errorMessage)
-      })
-  }
+        const errorMessage = getErrorMessage(error);
+        message.error(errorMessage);
+      });
+  };
 
   return (
     <div className="flex flex-col items-center md:flex-row">
@@ -62,7 +62,7 @@ const DeleteCourse: React.FC<DeleteCourseProps> = ({
         </Button>
       </Popconfirm>
     </div>
-  )
-}
+  );
+};
 
-export default DeleteCourse
+export default DeleteCourse;

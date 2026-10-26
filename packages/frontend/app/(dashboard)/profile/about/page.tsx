@@ -1,6 +1,6 @@
-'use client'
-import AboutPage from '@/app/components/AboutPage'
-import { ReactElement } from 'react'
+'use client';
+import AboutPage from '@/app/components/AboutPage';
+import type { ReactElement } from 'react';
 
 /* Note that this is profile/about/page.tsx
 Basically the same as root /about/page.tsx except it's got the navbar and is accessible when logged in.
@@ -12,5 +12,5 @@ export default function About(): ReactElement {
     <div className="flex flex-grow flex-col md:mt-2">
       <AboutPage />
     </div>
-  )
+  );
 }

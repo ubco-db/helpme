@@ -1,18 +1,18 @@
-'use client'
+'use client';
 
-import { useEffect, useMemo, useState } from 'react'
-import { QuestionType } from '@koh/common'
-import { getBrightness } from '@/app/utils/generalUtils'
-import tinycolor from 'tinycolor2'
-import { Button, Form, Input, Popover } from 'antd'
-import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
-import { DeleteOutlined, UndoOutlined } from '@ant-design/icons'
+import { useEffect, useMemo, useState } from 'react';
+import type { QuestionType } from '@koh/common';
+import { getBrightness } from '@/app/utils/generalUtils';
+import tinycolor from 'tinycolor2';
+import { Button, Form, Input, Popover } from 'antd';
+import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets';
+import { DeleteOutlined, UndoOutlined } from '@ant-design/icons';
 
 interface QuestionTagElementProps {
-  tagName: string
-  tagColor: string
-  onClick?: () => void
-  className?: string
+  tagName: string;
+  tagColor: string;
+  onClick?: () => void;
+  className?: string;
 }
 
 /**
@@ -28,7 +28,7 @@ const QuestionTagElement: React.FC<QuestionTagElementProps> = ({
     ? 'red'
     : getBrightness(tagColor) < 128
       ? 'white'
-      : 'black'
+      : 'black';
 
   return (
     <div
@@ -48,20 +48,20 @@ const QuestionTagElement: React.FC<QuestionTagElementProps> = ({
         {tagName ?? 'error: missing tag text'}
       </div>
     </div>
-  )
-}
+  );
+};
 
 interface CheckableQuestionTagProps {
-  tagName: string
-  tagColor: string
-  tagID?: number
-  onChangeWithID?: (tagID: number, checked: boolean) => void
-  checked: boolean
-  onMouseEnter?: (e: React.MouseEvent<HTMLDivElement>) => void
-  onMouseLeave?: (e: React.MouseEvent<HTMLDivElement>) => void
-  onFocus?: (e: React.FocusEvent<HTMLDivElement>) => void
-  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void
-  checkStyle?: 'default' | 'delete'
+  tagName: string;
+  tagColor: string;
+  tagID?: number;
+  onChangeWithID?: (tagID: number, checked: boolean) => void;
+  checked: boolean;
+  onMouseEnter?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  onMouseLeave?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  onFocus?: (e: React.FocusEvent<HTMLDivElement>) => void;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  checkStyle?: 'default' | 'delete';
 }
 
 /**
@@ -99,47 +99,47 @@ const CheckableQuestionTag: React.FC<CheckableQuestionTagProps> = ({
           : getBrightness(tagColor) < 128
             ? 'white'
             : 'black'
-        : 'gray'
+        : 'gray';
 
   const handleClick = (e?: React.MouseEvent<HTMLDivElement>) => {
     if (onChangeWithID && tagID) {
-      onChangeWithID(tagID, !checked)
+      onChangeWithID(tagID, !checked);
     }
     if (onClick && e) {
-      onClick(e)
+      onClick(e);
     }
-  }
+  };
 
   // for making it so you can press enter to toggle it
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter') {
-      handleClick()
+      handleClick();
     }
-  }
+  };
 
   // for applying hover and focus styles
-  const [isHovered, setIsHovered] = useState(false)
+  const [isHovered, setIsHovered] = useState(false);
   const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
-    setIsHovered(true)
+    setIsHovered(true);
     if (onMouseEnter) {
-      onMouseEnter(e)
+      onMouseEnter(e);
     }
-  }
+  };
   const handleMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
-    setIsHovered(false)
+    setIsHovered(false);
     if (onMouseLeave) {
-      onMouseLeave(e)
+      onMouseLeave(e);
     }
-  }
+  };
   const handleFocus = (e: React.FocusEvent<HTMLDivElement>) => {
-    setIsHovered(true)
+    setIsHovered(true);
     if (onFocus) {
-      onFocus(e)
+      onFocus(e);
     }
-  }
+  };
   const handleBlur = () => {
-    setIsHovered(false)
-  }
+    setIsHovered(false);
+  };
 
   return (
     <div
@@ -181,15 +181,15 @@ const CheckableQuestionTag: React.FC<CheckableQuestionTagProps> = ({
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
 interface QuestionTagSelectorProps {
-  questionTags: QuestionType[]
-  onChange?: (newSelectedTags: number[]) => void
-  value?: number[]
-  className?: string
-  [key: string]: any
+  questionTags: QuestionType[];
+  onChange?: (newSelectedTags: number[]) => void;
+  value?: number[];
+  className?: string;
+  [key: string]: any;
 }
 
 /**
@@ -202,25 +202,25 @@ const QuestionTagSelector: React.FC<QuestionTagSelectorProps> = ({
   className,
   ...props
 }) => {
-  const [selectedTags, setSelectedTags] = useState(value || [])
+  const [selectedTags, setSelectedTags] = useState(value || []);
 
   const handleTagClick = (tagID: number, checked: boolean) => {
     const newSelectedTags = checked
       ? [...selectedTags, tagID]
-      : selectedTags.filter((id) => id !== tagID)
+      : selectedTags.filter((id) => id !== tagID);
 
-    setSelectedTags(newSelectedTags)
+    setSelectedTags(newSelectedTags);
     if (onChange) {
-      onChange(newSelectedTags)
+      onChange(newSelectedTags);
     }
-  }
+  };
 
   const sortedQuestionTags = useMemo(() => {
     // setting numeric: true will essentially perform a natural sort, where 10 is treated one number, thus making it appear after 2
     return [...questionTags].sort((a, b) =>
       a.name.localeCompare(b.name, undefined, { numeric: true }),
-    )
-  }, [questionTags])
+    );
+  }, [questionTags]);
 
   return (
     <div className={className} role="group" {...props}>
@@ -237,26 +237,26 @@ const QuestionTagSelector: React.FC<QuestionTagSelectorProps> = ({
         ) : null,
       )}
     </div>
-  )
-}
+  );
+};
 
 /** These are stored inside QuestionTagEditor and are used purely for visual purposes */
 type LocalQuestionTag = QuestionType & {
-  markedForDeletion?: boolean
-}
+  markedForDeletion?: boolean;
+};
 
 /** These are what QuestionTagEditor "returns" */
 export type EditedQuestionTag = {
-  markedForDeletion?: boolean
-  newValues?: QuestionType
-}
+  markedForDeletion?: boolean;
+  newValues?: QuestionType;
+};
 
 interface QuestionTagEditorProps {
-  currentTags: QuestionType[]
-  onChange?: (newEditedTags: EditedQuestionTag[]) => void
-  value?: EditedQuestionTag[]
-  className?: string
-  [key: string]: any
+  currentTags: QuestionType[];
+  onChange?: (newEditedTags: EditedQuestionTag[]) => void;
+  value?: EditedQuestionTag[];
+  className?: string;
+  [key: string]: any;
 }
 
 /**
@@ -273,27 +273,27 @@ const QuestionTagEditor: React.FC<QuestionTagEditorProps> = ({
   ...props
 }) => {
   const [localQuestionTags, setLocalQuestionTags] =
-    useState<LocalQuestionTag[]>(currentTags)
-  const [editedTags, setEditedTags] = useState(value || [])
+    useState<LocalQuestionTag[]>(currentTags);
+  const [editedTags, setEditedTags] = useState(value || []);
 
   // if the currentTags change (like from an outside source), update the localQuestionTags
   useEffect(() => {
-    setLocalQuestionTags(currentTags)
-  }, [currentTags])
+    setLocalQuestionTags(currentTags);
+  }, [currentTags]);
 
   // whenever editedTags changes, do onChange
   useEffect(() => {
     if (onChange) {
-      onChange(editedTags)
+      onChange(editedTags);
     }
-  }, [editedTags, onChange])
+  }, [editedTags, onChange]);
 
   const sortedQuestionTags = useMemo(() => {
     // setting numeric: true will essentially perform a natural sort, where 10 is treated one number, thus making it appear after 2
     return [...localQuestionTags].sort((a, b) =>
       a.name.localeCompare(b.name, undefined, { numeric: true }),
-    )
-  }, [localQuestionTags])
+    );
+  }, [localQuestionTags]);
 
   return (
     <div className={className} role="group" {...props}>
@@ -318,11 +318,11 @@ const QuestionTagEditor: React.FC<QuestionTagEditorProps> = ({
                       // The reason we check for 2 is because it includes the current tag
                       const duplicateCount = localQuestionTags.filter(
                         (t) => t.name === value,
-                      ).length
+                      ).length;
                       if (duplicateCount >= 2) {
-                        return Promise.reject('Duplicate Tag Name')
+                        return Promise.reject('Duplicate Tag Name');
                       }
-                      return Promise.resolve()
+                      return Promise.resolve();
                     },
                   },
                 ]}
@@ -333,18 +333,18 @@ const QuestionTagEditor: React.FC<QuestionTagEditorProps> = ({
                   maxLength={20}
                   className="w-48"
                   onChange={(e) => {
-                    const newName = e.target.value
+                    const newName = e.target.value;
                     // update the change locally
                     setLocalQuestionTags((prev) =>
                       prev.map((t) =>
                         t.id === tag.id ? { ...t, name: e.target.value } : t,
                       ),
-                    )
+                    );
                     // Update editedTags
                     setEditedTags((prev) => {
                       const existingTag = prev.find(
                         (t) => t.newValues?.id === tag.id,
-                      )
+                      );
                       if (existingTag) {
                         // If it's already in editedTags, update it
                         return prev.map((t) =>
@@ -354,15 +354,15 @@ const QuestionTagEditor: React.FC<QuestionTagEditorProps> = ({
                                 newValues: { ...t.newValues, name: newName },
                               }
                             : t,
-                        )
+                        );
                       } else {
                         // If it's not already in editedTags, add it
                         return [
                           ...prev,
                           { newValues: { ...tag, name: newName } },
-                        ]
+                        ];
                       }
-                    })
+                    });
                   }}
                   value={tag.name}
                 />
@@ -375,19 +375,19 @@ const QuestionTagEditor: React.FC<QuestionTagEditorProps> = ({
                   disabledAlpha
                   onChange={(color) => {
                     const newColor =
-                      typeof color === 'string' ? color : color.toHexString()
+                      typeof color === 'string' ? color : color.toHexString();
 
                     // update the change locally
                     setLocalQuestionTags((prev) =>
                       prev.map((t) =>
                         t.id === tag.id ? { ...t, color: newColor } : t,
                       ),
-                    )
+                    );
                     // Update editedTags
                     setEditedTags((prev) => {
                       const existingTag = prev.find(
                         (t) => t.newValues?.id === tag.id,
-                      )
+                      );
                       if (existingTag) {
                         // If it's already in editedTags, update it
                         return prev.map((t) =>
@@ -397,15 +397,15 @@ const QuestionTagEditor: React.FC<QuestionTagEditorProps> = ({
                                 newValues: { ...t.newValues, color: newColor },
                               }
                             : t,
-                        )
+                        );
                       } else {
                         // If it's not already in editedTags, add it
                         return [
                           ...prev,
                           { newValues: { ...tag, color: newColor } },
-                        ]
+                        ];
                       }
-                    })
+                    });
                   }}
                 />
               </Form.Item>
@@ -418,14 +418,14 @@ const QuestionTagEditor: React.FC<QuestionTagEditorProps> = ({
                     // remove this tag from editedTags and reset the one in localQuestionTags back to currentTags
                     setEditedTags((prev) =>
                       prev.filter((t) => t.newValues?.id !== tag.id),
-                    )
+                    );
                     setLocalQuestionTags((prev) =>
                       prev.map((t) =>
                         t.id === tag.id
                           ? (currentTags.find((ct) => ct.id === tag.id) ?? t)
                           : t,
                       ),
-                    )
+                    );
                   }}
                 >
                   Reset
@@ -441,27 +441,27 @@ const QuestionTagEditor: React.FC<QuestionTagEditorProps> = ({
                             ? { ...t, markedForDeletion: false }
                             : t,
                         ),
-                      )
+                      );
                       // Update editedTags
                       setEditedTags((prev) => {
                         const existingTag = prev.find(
                           (t) => t.newValues?.id === tag.id,
-                        )
+                        );
                         if (existingTag) {
                           // If it's already in editedTags, update it
                           return prev.map((t) =>
                             t.newValues?.id === tag.id
                               ? { ...t, markedForDeletion: false }
                               : t,
-                          )
+                          );
                         } else {
                           // If it's not already in editedTags, add it
                           return [
                             ...prev,
                             { markedForDeletion: false, newValues: tag },
-                          ]
+                          ];
                         }
-                      })
+                      });
                     }}
                   >
                     Unmark for Deletion
@@ -478,27 +478,27 @@ const QuestionTagEditor: React.FC<QuestionTagEditorProps> = ({
                             ? { ...t, markedForDeletion: true }
                             : t,
                         ),
-                      )
+                      );
                       // Update editedTags
                       setEditedTags((prev) => {
                         const existingTag = prev.find(
                           (t) => t.newValues?.id === tag.id,
-                        )
+                        );
                         if (existingTag) {
                           // If it's already in editedTags, update it
                           return prev.map((t) =>
                             t.newValues?.id === tag.id
                               ? { ...t, markedForDeletion: true }
                               : t,
-                          )
+                          );
                         } else {
                           // If it's not already in editedTags, add it
                           return [
                             ...prev,
                             { markedForDeletion: true, newValues: tag },
-                          ]
+                          ];
                         }
-                      })
+                      });
                     }}
                   >
                     Mark for Deletion
@@ -521,12 +521,12 @@ const QuestionTagEditor: React.FC<QuestionTagEditorProps> = ({
         </Popover>
       ))}
     </div>
-  )
-}
+  );
+};
 
 export {
   QuestionTagElement,
   QuestionTagSelector,
   CheckableQuestionTag,
   QuestionTagEditor,
-}
+};

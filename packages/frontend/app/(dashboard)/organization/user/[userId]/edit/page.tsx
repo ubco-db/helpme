@@ -1,23 +1,25 @@
-import { organizationApi } from '@/app/api/organizationApi'
-import { GetOrganizationResponse } from '@koh/common'
-import { Alert, Spin } from 'antd'
-import OrganizationEditUser from '../../../components/OrganizationEditUser'
-import getAPI from '@/app/api/server'
-import { redirect } from 'next/navigation'
+import { organizationApi } from '@/app/api/organizationApi';
+import type { GetOrganizationResponse } from '@koh/common';
+import { Alert, Spin } from 'antd';
+import OrganizationEditUser from '../../../components/OrganizationEditUser';
+import getAPI from '@/app/api/server';
+import { redirect } from 'next/navigation';
 
 type UserEditPageProps = {
-  params: Promise<{ userId: string }>
-}
+  params: Promise<{ userId: string }>;
+};
 
 export default async function UserEditPage(props: UserEditPageProps) {
-  const API = await getAPI()
-  const params = await props.params
-  const userId = Number(params.userId)
+  const API = await getAPI();
+  const params = await props.params;
+  const userId = Number(params.userId);
   const currentUser = await API.profile
     .getUser()
-    .catch(() => redirect(`/courses`))
+    .catch(() => redirect(`/courses`));
   const organization: GetOrganizationResponse =
-    await organizationApi.getOrganization(currentUser.organization?.orgId ?? -1)
+    await organizationApi.getOrganization(
+      currentUser.organization?.orgId ?? -1,
+    );
 
   return organization ? (
     <div className="mb-10">
@@ -33,5 +35,5 @@ export default async function UserEditPage(props: UserEditPageProps) {
     </div>
   ) : (
     <Spin />
-  )
+  );
 }

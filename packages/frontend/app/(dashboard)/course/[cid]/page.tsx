@@ -1,44 +1,45 @@
-'use client'
+'use client';
 
-import { QUERY_PARAMS, Role } from '@koh/common'
-import { Col, Row, Button, Alert } from 'antd'
-import { ReactElement, useEffect, useMemo, useState, use } from 'react'
-import QueueCard from './components/QueueCard'
-import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { getRoleInCourse, getErrorMessage } from '@/app/utils/generalUtils'
-import { useCourse } from '@/app/hooks/useCourse'
-import CreateQueueModal from './components/CreateQueueModal'
-import AsyncCentreCard from './components/AsyncCentreCard'
-import AssignmentFeedbackStartCard from './components/AIAssignmentFeedbackStartCard'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
-import CoursePageCheckInButton from './components/CoursePageCheckInButton'
-import PopularTimes from './components/popularTimes/PopularTimes'
-import { arrayRotate, collapseHeatmap } from './utils/popularTimesFunctions'
-import moment from 'moment'
-import { sortQueues } from './utils/commonCourseFunctions'
-import TAFacultySchedulePanel from './schedule/components/TASchedulePanel'
-import StudentSchedulePanel from './schedule/components/StudentSchedulePanel'
-import { useChatbotContext } from './components/chatbot/ChatbotProvider'
-import Chatbot from './components/chatbot/Chatbot'
-import { useRouter } from 'next/navigation'
-import { useSearchParams } from 'next/navigation'
+import { QUERY_PARAMS, Role } from '@koh/common';
+import { Col, Row, Button, Alert } from 'antd';
+import type { ReactElement } from 'react';
+import { useEffect, useMemo, useState, use } from 'react';
+import QueueCard from './components/QueueCard';
+import { useCourseFeatures } from '@/app/hooks/useCourseFeatures';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { getRoleInCourse, getErrorMessage } from '@/app/utils/generalUtils';
+import { useCourse } from '@/app/hooks/useCourse';
+import CreateQueueModal from './components/CreateQueueModal';
+import AsyncCentreCard from './components/AsyncCentreCard';
+import AssignmentFeedbackStartCard from './components/AIAssignmentFeedbackStartCard';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
+import CoursePageCheckInButton from './components/CoursePageCheckInButton';
+import PopularTimes from './components/popularTimes/PopularTimes';
+import { arrayRotate, collapseHeatmap } from './utils/popularTimesFunctions';
+import moment from 'moment';
+import { sortQueues } from './utils/commonCourseFunctions';
+import TAFacultySchedulePanel from './schedule/components/TASchedulePanel';
+import StudentSchedulePanel from './schedule/components/StudentSchedulePanel';
+import { useChatbotContext } from './components/chatbot/ChatbotProvider';
+import Chatbot from './components/chatbot/Chatbot';
+import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 type CoursePageProps = {
-  params: Promise<{ cid: string }>
-}
+  params: Promise<{ cid: string }>;
+};
 
 export default function CoursePage(props: CoursePageProps): ReactElement {
-  const params = use(props.params)
-  const cid = Number(params.cid)
-  const { userInfo } = useUserInfo()
-  const role = getRoleInCourse(userInfo, cid)
-  const { course, error: courseError } = useCourse(cid)
+  const params = use(props.params);
+  const cid = Number(params.cid);
+  const { userInfo } = useUserInfo();
+  const role = getRoleInCourse(userInfo, cid);
+  const { course, error: courseError } = useCourse(cid);
 
-  const searchParams = useSearchParams()
-  const queryParamNotice = searchParams.get('notice')
-  const [createQueueModalOpen, setCreateQueueModalOpen] = useState(false)
-  const courseFeatures = useCourseFeatures(cid)
+  const searchParams = useSearchParams();
+  const queryParamNotice = searchParams.get('notice');
+  const [createQueueModalOpen, setCreateQueueModalOpen] = useState(false);
+  const courseFeatures = useCourseFeatures(cid);
   const onlyChatBotEnabled = useMemo(
     () =>
       courseFeatures?.chatBotEnabled &&
@@ -46,7 +47,7 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
       !courseFeatures?.asyncQueueEnabled &&
       !courseFeatures?.assignmentEvaluationEnabled,
     [courseFeatures],
-  )
+  );
   // chatbot
   const {
     setCid,
@@ -63,44 +64,44 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
     setHelpmeQuestionId,
     chatbotQuestionType,
     setChatbotQuestionType,
-  } = useChatbotContext()
+  } = useChatbotContext();
   useEffect(() => {
-    setCid(cid)
-  }, [cid, setCid])
+    setCid(cid);
+  }, [cid, setCid]);
   useEffect(() => {
     const shouldRenderSmallChatbot =
       courseFeatures?.queueEnabled &&
       courseFeatures?.chatBotEnabled &&
-      courseFeatures?.scheduleOnFrontPage
-    setRenderSmallChatbot(!!shouldRenderSmallChatbot)
-  }, [courseFeatures, setRenderSmallChatbot])
+      courseFeatures?.scheduleOnFrontPage;
+    setRenderSmallChatbot(!!shouldRenderSmallChatbot);
+  }, [courseFeatures, setRenderSmallChatbot]);
 
   const sortedQueues = useMemo(() => {
-    if (!course?.queues) return []
-    return sortQueues(course.queues)
-  }, [course?.queues])
+    if (!course?.queues) return [];
+    return sortQueues(course.queues);
+  }, [course?.queues]);
 
   const skipLinkTarget: 'first-queue' | 'async-centre' | 'chatbot-input' | '' =
     useMemo(() => {
       if (courseFeatures?.queueEnabled) {
-        return 'first-queue'
+        return 'first-queue';
       } else if (courseFeatures?.asyncQueueEnabled) {
-        return 'async-centre'
+        return 'async-centre';
       } else if (courseFeatures?.chatBotEnabled) {
-        return 'chatbot-input'
+        return 'chatbot-input';
       }
-      return ''
-    }, [courseFeatures])
+      return '';
+    }, [courseFeatures]);
 
   const isAccessDenied =
     courseError?.response?.status === 404 ||
-    courseError?.response?.status === 403
-  const router = useRouter()
+    courseError?.response?.status === 403;
+  const router = useRouter();
   const errorText = isAccessDenied
     ? 'You do not have access to this course or this course does not exist.'
     : courseError
       ? `${courseError.response?.statusText ?? 'Error'}: ${getErrorMessage(courseError)}`
-      : ''
+      : '';
 
   if (isAccessDenied) {
     return (
@@ -112,9 +113,9 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
           Return to Dashboard
         </Button>
       </div>
-    )
+    );
   } else if (!course || !courseFeatures) {
-    return <CenteredSpinner tip="Loading Course Data..." />
+    return <CenteredSpinner tip="Loading Course Data..." />;
   } else {
     return (
       <>
@@ -134,10 +135,10 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                         switch (queryParamNotice) {
                           case QUERY_PARAMS.profInvite.notice
                             .adminAlreadyInCourse:
-                            return 'You (admin) are already in this course. Professor invite not consumed and still working'
+                            return 'You (admin) are already in this course. Professor invite not consumed and still working';
                           case QUERY_PARAMS.profInvite.notice
                             .adminAcceptedInviteNotConsumed:
-                            return `Professor invite successfully accepted! You are now a professor inside this course. Since you are an admin, the professor invite was not consumed and still working`
+                            return `Professor invite successfully accepted! You are now a professor inside this course. Since you are an admin, the professor invite was not consumed and still working`;
                           case QUERY_PARAMS.profInvite.notice.inviteAccepted: // TODO: Start the tutorial from here
                             return (
                               <div className="flex flex-col items-center">
@@ -169,9 +170,9 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
                                   </li>
                                 </ul>
                               </div>
-                            )
+                            );
                           default:
-                            return queryParamNotice
+                            return queryParamNotice;
                         }
                       })()}
                       type="info"
@@ -332,6 +333,6 @@ export default function CoursePage(props: CoursePageProps): ReactElement {
           </div>
         )}
       </>
-    )
+    );
   }
 }

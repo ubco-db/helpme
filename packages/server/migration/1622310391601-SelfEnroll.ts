@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class SelfEnroll1622310391601 implements MigrationInterface {
   name = 'SelfEnroll1622310391601';

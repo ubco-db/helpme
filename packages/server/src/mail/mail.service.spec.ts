@@ -1,8 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { MailerService } from './mailer.service';
 import { MailService } from './mail.service';
 import { MailServiceModel } from './mail-services.entity';
-import { UserModel } from 'profile/user.entity';
+import type { UserModel } from 'profile/user.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 import * as Common from '@koh/common';
 import { MailServiceType, OrganizationRole, Role } from '@koh/common';

@@ -1,6 +1,6 @@
 // HTML Template for the weekly summary email
 
-import { CourseModel } from '../course/course.entity';
+import type { CourseModel } from '../course/course.entity';
 import * as cheerio from 'cheerio';
 
 export interface ChatbotStats {

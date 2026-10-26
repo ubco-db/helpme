@@ -1,35 +1,37 @@
-'use client'
+'use client';
 
-import { useEffect, useRef, useState, ReactNode } from 'react'
-import Image, { StaticImageData } from 'next/image'
-import { Carousel } from 'antd'
-import { LeftOutlined, RightOutlined } from '@ant-design/icons'
-import PhotoSwipeLightbox from 'photoswipe/lightbox'
+import type { ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { StaticImageData } from 'next/image';
+import Image from 'next/image';
+import { Carousel } from 'antd';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons';
+import PhotoSwipeLightbox from 'photoswipe/lightbox';
 // @ts-expect-error - photoswipe-dynamic-caption-plugin has no type declarations
-import PhotoSwipeDynamicCaptionRaw from 'photoswipe-dynamic-caption-plugin'
+import PhotoSwipeDynamicCaptionRaw from 'photoswipe-dynamic-caption-plugin';
 
-import 'photoswipe/dist/photoswipe.css'
-import 'photoswipe-dynamic-caption-plugin/photoswipe-dynamic-caption-plugin.css'
-import { CarouselRef } from 'antd/lib/carousel'
-import styles from './ImageCarousel.module.css'
-import { cn } from '../utils/generalUtils'
+import 'photoswipe/dist/photoswipe.css';
+import 'photoswipe-dynamic-caption-plugin/photoswipe-dynamic-caption-plugin.css';
+import type { CarouselRef } from 'antd/lib/carousel';
+import styles from './ImageCarousel.module.css';
+import { cn } from '../utils/generalUtils';
 
 interface DynamicCaptionOptions {
-  type?: 'auto' | 'aside' | 'below'
-  captionContent?: string | ((slide: any) => string | HTMLElement | null)
-  mobileLayoutBreakpoint?: number
-  mobileCaptionOverlapRatio?: number
+  type?: 'auto' | 'aside' | 'below';
+  captionContent?: string | ((slide: any) => string | HTMLElement | null);
+  mobileLayoutBreakpoint?: number;
+  mobileCaptionOverlapRatio?: number;
 }
 
 const PhotoSwipeDynamicCaption = PhotoSwipeDynamicCaptionRaw as new (
   lightbox: PhotoSwipeLightbox,
   options?: DynamicCaptionOptions,
-) => any
+) => any;
 
 interface CustomArrowProps {
-  className?: string
-  style?: React.CSSProperties
-  onClick?: () => void
+  className?: string;
+  style?: React.CSSProperties;
+  onClick?: () => void;
 }
 
 function PrevArrow({ className, style, onClick }: CustomArrowProps) {
@@ -39,14 +41,14 @@ function PrevArrow({ className, style, onClick }: CustomArrowProps) {
       className={className}
       style={{ ...style }}
       onClick={(e) => {
-        e.stopPropagation()
-        onClick?.()
+        e.stopPropagation();
+        onClick?.();
       }}
       aria-label="Previous slide"
     >
       <LeftOutlined />
     </button>
-  )
+  );
 }
 
 function NextArrow({ className, style, onClick }: CustomArrowProps) {
@@ -56,43 +58,43 @@ function NextArrow({ className, style, onClick }: CustomArrowProps) {
       className={className}
       style={{ ...style }}
       onClick={(e) => {
-        e.stopPropagation()
-        onClick?.()
+        e.stopPropagation();
+        onClick?.();
       }}
       aria-label="Next slide"
     >
       <RightOutlined />
     </button>
-  )
+  );
 }
 
 export interface CarouselImageItem {
-  src: string | StaticImageData
-  alt: string
-  caption?: ReactNode
-  width?: number
-  height?: number
+  src: string | StaticImageData;
+  alt: string;
+  caption?: ReactNode;
+  width?: number;
+  height?: number;
 }
 
 interface ImageCarouselProps {
-  images: CarouselImageItem[]
+  images: CarouselImageItem[];
 }
 
 export default function ImageCarousel({ images }: ImageCarouselProps) {
-  const lightboxRef = useRef<PhotoSwipeLightbox | null>(null)
-  const carouselRef = useRef<CarouselRef | null>(null)
-  const containerRef = useRef<HTMLDivElement | null>(null)
+  const lightboxRef = useRef<PhotoSwipeLightbox | null>(null);
+  const carouselRef = useRef<CarouselRef | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [dimensions, setDimensions] = useState<
     Record<string, { width: number; height: number }>
-  >({})
+  >({});
 
   // Automatically fetch natural width/height for string URLs if not provided
   useEffect(() => {
     images.forEach((img) => {
       if (typeof img.src === 'string' && (!img.width || !img.height)) {
-        const srcStr = img.src
-        const tempImg = new window.Image()
-        tempImg.src = srcStr
+        const srcStr = img.src;
+        const tempImg = new window.Image();
+        tempImg.src = srcStr;
         tempImg.onload = () => {
           setDimensions((prev) => ({
             ...prev,
@@ -100,11 +102,11 @@ export default function ImageCarousel({ images }: ImageCarouselProps) {
               width: tempImg.naturalWidth,
               height: tempImg.naturalHeight,
             },
-          }))
-        }
+          }));
+        };
       }
-    })
-  }, [images])
+    });
+  }, [images]);
 
   // Initialize PhotoSwipe Lightbox
   useEffect(() => {
@@ -119,38 +121,38 @@ export default function ImageCarousel({ images }: ImageCarouselProps) {
           bottom: 30,
           left: viewportSize.x < 600 ? 0 : 70,
           right: viewportSize.x < 600 ? 0 : 70,
-        }
+        };
       },
-    })
+    });
 
     // Setup the Dynamic Caption Plugin
     new PhotoSwipeDynamicCaption(lightbox, {
       type: 'auto',
       captionContent: (slide) => {
-        const index = slide.index
+        const index = slide.index;
         const container = containerRef.current
           ? containerRef.current.querySelector(`.pswp-caption-source-${index}`)
-          : null
-        return container ? container.innerHTML : slide.data.alt || ''
+          : null;
+        return container ? container.innerHTML : slide.data.alt || '';
       },
-    })
+    });
 
     // Listen to slide change inside PhotoSwipe to sync it back to the carousel
     lightbox.on('change', () => {
-      const currentIndex = lightbox.pswp?.currIndex
+      const currentIndex = lightbox.pswp?.currIndex;
       if (typeof currentIndex === 'number' && carouselRef.current) {
-        carouselRef.current.goTo(currentIndex, true)
+        carouselRef.current.goTo(currentIndex, true);
       }
-    })
+    });
 
-    lightbox.init()
-    lightboxRef.current = lightbox
+    lightbox.init();
+    lightboxRef.current = lightbox;
 
     return () => {
-      lightbox.destroy()
-      lightboxRef.current = null
-    }
-  }, [images])
+      lightbox.destroy();
+      lightboxRef.current = null;
+    };
+  }, [images]);
 
   const getSlideData = (img: CarouselImageItem) => {
     if (typeof img.src !== 'string') {
@@ -158,32 +160,32 @@ export default function ImageCarousel({ images }: ImageCarouselProps) {
         src: img.src.src,
         width: img.width || img.src.width,
         height: img.height || img.src.height,
-      }
+      };
     } else {
-      const srcStr = img.src
+      const srcStr = img.src;
       return {
         src: srcStr,
         width: img.width || dimensions[srcStr]?.width || 1200,
         height: img.height || dimensions[srcStr]?.height || 800,
-      }
+      };
     }
-  }
+  };
 
   const openLightbox = (index: number, clickedFigure: HTMLElement) => {
-    if (!lightboxRef.current) return
+    if (!lightboxRef.current) return;
 
     const originalSlides = containerRef.current
       ? containerRef.current.querySelectorAll(
           '.ant-carousel .slick-slide:not(.slick-cloned) figure',
         )
-      : []
+      : [];
 
     const dataSource = images.map((img, idx) => {
-      const slideData = getSlideData(img)
+      const slideData = getSlideData(img);
       const element =
         idx === index
           ? clickedFigure
-          : (originalSlides[idx] as HTMLElement) || undefined
+          : (originalSlides[idx] as HTMLElement) || undefined;
 
       return {
         src: slideData.src,
@@ -194,20 +196,20 @@ export default function ImageCarousel({ images }: ImageCarouselProps) {
         height: slideData.height,
         alt: img.alt,
         element: element,
-      }
-    })
+      };
+    });
 
-    lightboxRef.current.loadAndOpen(index, dataSource)
-  }
+    lightboxRef.current.loadAndOpen(index, dataSource);
+  };
 
   const tallestAspectRatio = (() => {
-    if (images.length === 0) return 16 / 9
+    if (images.length === 0) return 16 / 9;
     const ratios = images.map((img) => {
-      const data = getSlideData(img)
-      return data.width && data.height ? data.width / data.height : 16 / 9
-    })
-    return Math.min(...ratios)
-  })()
+      const data = getSlideData(img);
+      return data.width && data.height ? data.width / data.height : 16 / 9;
+    });
+    return Math.min(...ratios);
+  })();
 
   return (
     <div
@@ -227,7 +229,7 @@ export default function ImageCarousel({ images }: ImageCarouselProps) {
         draggable={true}
       >
         {images.map((img, index) => {
-          const slideData = getSlideData(img)
+          const slideData = getSlideData(img);
           return (
             <div key={`${index}-${img.src}`} className="outline-none">
               <figure
@@ -262,9 +264,9 @@ export default function ImageCarousel({ images }: ImageCarouselProps) {
                 )}
               </figure>
             </div>
-          )
+          );
         })}
       </Carousel>
     </div>
-  )
+  );
 }

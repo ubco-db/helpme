@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class RemoveGroupableNullable1634951986080
-  implements MigrationInterface
-{
+export class RemoveGroupableNullable1634951986080 implements MigrationInterface {
   name = 'RemoveGroupableNullable1634951986080';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

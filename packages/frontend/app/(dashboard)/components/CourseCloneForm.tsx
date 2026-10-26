@@ -1,21 +1,25 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import { Checkbox, Form, FormInstance, Input, message, Select } from 'antd'
-import { GetOrganizationResponse, OrganizationProfessor } from '@koh/common'
-import { API } from '@/app/api'
-import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
-import ProfessorSelector from './ProfessorSelector'
+import { useEffect, useState } from 'react';
+import type { FormInstance } from 'antd';
+import { Checkbox, Form, Input, message, Select } from 'antd';
+import type {
+  GetOrganizationResponse,
+  OrganizationProfessor,
+} from '@koh/common';
+import { API } from '@/app/api';
+import { formatSemesterDate } from '@/app/utils/timeFormatUtils';
+import ProfessorSelector from './ProfessorSelector';
 
 type CourseCloneFormProps = {
-  form: FormInstance
-  isAdmin: boolean
-  organization: GetOrganizationResponse
-  courseSemesterId?: number
-  courseSectionGroupName: string
-}
+  form: FormInstance;
+  isAdmin: boolean;
+  organization: GetOrganizationResponse;
+  courseSemesterId?: number;
+  courseSectionGroupName: string;
+};
 
-const formItemClassNames = 'mb-2 [&>div>div>label]:font-normal'
+const formItemClassNames = 'mb-2 [&>div>div>label]:font-normal';
 
 const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
   form,
@@ -24,30 +28,30 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
   courseSemesterId,
   courseSectionGroupName,
 }) => {
-  const [professors, setProfessors] = useState<OrganizationProfessor[]>()
+  const [professors, setProfessors] = useState<OrganizationProfessor[]>();
 
   useEffect(() => {
     form.setFieldsValue({
       newSemesterId: courseSemesterId,
       newSection: courseSectionGroupName,
-    })
-  }, [])
+    });
+  }, []);
 
   useEffect(() => {
     const fetchProfessors = async () => {
-      if (!isAdmin) return
+      if (!isAdmin) return;
       await API.organizations
         .getProfessors(organization.id)
         .then((response) => {
-          setProfessors(response ?? [])
+          setProfessors(response ?? []);
         })
         .catch((error) => {
-          message.error(error.response.data.message)
-          setProfessors([])
-        })
-    }
-    fetchProfessors()
-  }, [isAdmin, organization.id])
+          message.error(error.response.data.message);
+          setProfessors([]);
+        });
+    };
+    fetchProfessors();
+  }, [isAdmin, organization.id]);
 
   return (
     <Form form={form} layout="vertical" className="w-full">
@@ -243,7 +247,7 @@ const CourseCloneForm: React.FC<CourseCloneFormProps> = ({
         </Form.Item>
       </div>
     </Form>
-  )
-}
+  );
+};
 
-export default CourseCloneForm
+export default CourseCloneForm;

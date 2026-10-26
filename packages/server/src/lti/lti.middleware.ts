@@ -1,22 +1,25 @@
-import { HttpException, INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
+import { HttpException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, getMetadataArgsStorage } from 'typeorm';
-import {
+import type {
   NextFunction,
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
 import { isProd } from '@koh/common';
-import {
-  ContextTokenModel,
-  Database,
-  Debug,
+import type {
   DynamicRegistrationSecondaryOptions,
   IdToken,
   LtiMessageRegistration,
   LtiPlatformRegistration,
-  PlatformModel,
   Provider,
+} from '@bhunt02/lti-typescript';
+import {
+  ContextTokenModel,
+  Database,
+  Debug,
+  PlatformModel,
   register,
 } from '@bhunt02/lti-typescript';
 import { JwtService } from '@nestjs/jwt';

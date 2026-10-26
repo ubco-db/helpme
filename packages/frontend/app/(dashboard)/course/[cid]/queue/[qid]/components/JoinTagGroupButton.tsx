@@ -1,14 +1,9 @@
-import { cn, getErrorMessage } from '@/app/utils/generalUtils'
-import {
-  OpenQuestionStatus,
-  Question,
-  QuestionLocations,
-  QuestionType,
-  QuestionTypeParams,
-} from '@koh/common'
-import { Button, message } from 'antd'
-import { Check, LogIn, LogOut } from 'lucide-react'
-import { useState } from 'react'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils';
+import type { Question, QuestionType, QuestionTypeParams } from '@koh/common';
+import { OpenQuestionStatus, QuestionLocations } from '@koh/common';
+import { Button, message } from 'antd';
+import { Check, LogIn, LogOut } from 'lucide-react';
+import { useState } from 'react';
 
 type JoinTagGroupButtonProps = {
   createQuestion: (
@@ -17,22 +12,22 @@ type JoinTagGroupButtonProps = {
     force: boolean,
     isTaskQuestion: boolean,
     location?: QuestionLocations,
-  ) => Promise<void>
+  ) => Promise<void>;
   updateQuestion: (
     text: string,
     questionTypes: QuestionTypeParams[],
     groupable: boolean,
     isTaskQuestion: boolean,
     location: QuestionLocations,
-  ) => Promise<void>
-  leaveQueue: (isTaskQuestion: boolean) => Promise<void>
-  studentQuestion?: Question
-  studentDemo?: Question
-  disabled?: boolean
-  isDone?: boolean
-  questionType?: QuestionType
-  taskId?: string
-}
+  ) => Promise<void>;
+  leaveQueue: (isTaskQuestion: boolean) => Promise<void>;
+  studentQuestion?: Question;
+  studentDemo?: Question;
+  disabled?: boolean;
+  isDone?: boolean;
+  questionType?: QuestionType;
+  taskId?: string;
+};
 
 /**
  * Button to join or leave a tag group
@@ -56,31 +51,33 @@ const JoinTagGroupButton: React.FC<JoinTagGroupButtonProps> = ({
       : taskId && studentDemo && studentDemo.text
         ? studentDemo.text.includes(` "${taskId}"`)
         : false,
-  )
-  const [isLoading, setIsLoading] = useState(false)
+  );
+  const [isLoading, setIsLoading] = useState(false);
 
   // just used to disable the button so students can't modify their question while being helped
   const beingHelped =
     (questionType &&
       studentQuestion &&
       studentQuestion.status === OpenQuestionStatus.Helping) ||
-    (taskId && studentDemo && studentDemo.status === OpenQuestionStatus.Helping)
+    (taskId &&
+      studentDemo &&
+      studentDemo.status === OpenQuestionStatus.Helping);
 
   const onClick = async (event: { stopPropagation: () => void }) => {
-    event.stopPropagation()
-    setIsLoading(true)
-    const isJoining = !isJoined
+    event.stopPropagation();
+    setIsLoading(true);
+    const isJoining = !isJoined;
     try {
       if (isJoining) {
         if (questionType) {
           if (!studentQuestion) {
             // if student doesn't already have a question, create one
-            await createQuestion('', [questionType], false, false)
+            await createQuestion('', [questionType], false, false);
           } else {
             // if the student already has a question, update it with the new question type appended
             const newQuestionTypes = studentQuestion.questionTypes
               ? [...studentQuestion.questionTypes, questionType]
-              : [questionType]
+              : [questionType];
 
             await updateQuestion(
               studentQuestion.text ?? '',
@@ -88,47 +85,47 @@ const JoinTagGroupButton: React.FC<JoinTagGroupButtonProps> = ({
               studentQuestion.groupable,
               studentQuestion.isTaskQuestion ?? false,
               studentQuestion.location ?? QuestionLocations.Unselected,
-            )
+            );
           }
         } else if (taskId) {
           // basically the same thing, but with tasks
           if (!studentDemo) {
             // tasks get put as "Mark "taskId" "taskId2" and have no questionTypes
-            await createQuestion(`Mark "${taskId}"`, [], false, true)
+            await createQuestion(`Mark "${taskId}"`, [], false, true);
           } else {
-            const newQuestionText = studentDemo.text + ` "${taskId}"`
+            const newQuestionText = studentDemo.text + ` "${taskId}"`;
             await updateQuestion(
               newQuestionText,
               [],
               studentDemo.groupable,
               studentDemo.isTaskQuestion ?? true,
               studentDemo.location ?? QuestionLocations.Unselected,
-            )
+            );
           }
         } else {
           console.error(
             'Error: This component was used incorrectly. No questionType or taskId provided',
-          )
+          );
         }
       } else {
         // If leaving the tag group, remove the questionType (for tag) or remove off the task from the question text
         if (questionType) {
           if (!studentQuestion) {
-            message.error('Error: Student does not have a question to leave')
-            return
+            message.error('Error: Student does not have a question to leave');
+            return;
           }
           if (
             studentQuestion.text === '' &&
             studentQuestion.questionTypes &&
             studentQuestion.questionTypes.length === 1
           ) {
-            await leaveQueue(false)
+            await leaveQueue(false);
           } else {
             const newQuestionTypes = studentQuestion.questionTypes
               ? studentQuestion.questionTypes.filter(
                   (qt) => qt.id !== questionType.id,
                 )
-              : []
+              : [];
 
             await updateQuestion(
               studentQuestion.text ?? '',
@@ -136,41 +133,41 @@ const JoinTagGroupButton: React.FC<JoinTagGroupButtonProps> = ({
               studentQuestion.groupable,
               studentQuestion.isTaskQuestion ?? false,
               studentQuestion.location ?? QuestionLocations.Unselected,
-            )
+            );
           }
         } else if (taskId) {
           if (!studentDemo) {
-            message.error('Error: Student does not have a task to leave')
-            return
+            message.error('Error: Student does not have a task to leave');
+            return;
           }
           if (studentDemo.text === `Mark "${taskId}"`) {
-            await leaveQueue(true)
+            await leaveQueue(true);
           } else {
             const newQuestionText = studentDemo.text
               ? studentDemo.text.replace(` "${taskId}"`, '')
-              : ''
+              : '';
             await updateQuestion(
               newQuestionText,
               [],
               studentDemo.groupable,
               studentDemo.isTaskQuestion ?? true,
               studentDemo.location ?? QuestionLocations.Unselected,
-            )
+            );
           }
         } else {
           console.error(
             'Error: This component was used incorrectly. No questionType or taskId provided',
-          )
+          );
         }
       }
-      setIsJoined(!isJoined)
+      setIsJoined(!isJoined);
     } catch (e) {
-      const errorMessage = getErrorMessage(e)
+      const errorMessage = getErrorMessage(e);
       // The main errors that can be thrown are from createQuestion and updateQuestion, which already display an error message to the user.
-      console.error('Error:' + errorMessage)
+      console.error('Error:' + errorMessage);
     }
-    setIsLoading(false)
-  }
+    setIsLoading(false);
+  };
 
   return (
     <Button
@@ -209,7 +206,7 @@ const JoinTagGroupButton: React.FC<JoinTagGroupButtonProps> = ({
     >
       {isDone ? 'Done' : isJoined ? 'Leave' : 'Join'}
     </Button>
-  )
-}
+  );
+};
 
-export default JoinTagGroupButton
+export default JoinTagGroupButton;

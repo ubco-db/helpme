@@ -4,7 +4,8 @@ import {
   LMSIntegrationService,
   LMSUpload,
 } from './lmsIntegration.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   TestChatbotConnectionOptions,
@@ -26,20 +27,22 @@ import {
   OrganizationFactory,
   UserFactory,
 } from '../../test/util/factories';
-import {
-  ERROR_MESSAGES,
+import type {
   LMSAnnouncement,
-  LMSApiResponseStatus,
   LMSAssignment,
   LMSCourseAPIResponse,
-  LMSIntegrationPlatform,
   LMSPostResponseBody,
+} from '@koh/common';
+import {
+  ERROR_MESSAGES,
+  LMSApiResponseStatus,
+  LMSIntegrationPlatform,
 } from '@koh/common';
 import { LMSCourseIntegrationModel } from './lmsCourseIntegration.entity';
 import { BadRequestException, HttpStatus } from '@nestjs/common';
 import { LMSOrganizationIntegrationModel } from './lmsOrgIntegration.entity';
-import { CourseModel } from '../course/course.entity';
-import { OrganizationModel } from '../organization/organization.entity';
+import type { CourseModel } from '../course/course.entity';
+import type { OrganizationModel } from '../organization/organization.entity';
 import { LMSAnnouncementModel } from './lmsAnnouncement.entity';
 import { LMSAssignmentModel } from './lmsAssignment.entity';
 import { FactoryModule } from 'factory/factory.module';
@@ -47,7 +50,7 @@ import { FactoryService } from 'factory/factory.service';
 import { ChatbotModule } from '../chatbot/chatbot.module';
 import { ChatbotApiService } from '../chatbot/chatbot-api.service';
 import { LMSAccessTokenModel } from './lms-access-token.entity';
-import { UserModel } from '../profile/user.entity';
+import type { UserModel } from '../profile/user.entity';
 import * as crypto from 'crypto';
 import { pick } from 'lodash';
 import { LMSAuthStateModel } from './lms-auth-state.entity';
@@ -517,7 +520,6 @@ describe('LMSIntegrationService', () => {
           return false;
         },
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         async Get(_url: string): Promise<{
           status: LMSApiResponseStatus;
           data?: any;

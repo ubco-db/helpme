@@ -1,16 +1,18 @@
-import { cn } from '@/app/utils/generalUtils'
-import { Button, ButtonProps } from 'antd'
-import React, { PropsWithChildren } from 'react'
+import { cn } from '@/app/utils/generalUtils';
+import type { ButtonProps } from 'antd';
+import { Button } from 'antd';
+import type { PropsWithChildren } from 'react';
+import type React from 'react';
 
 const JoinZoomButton: React.FC<
   PropsWithChildren<QueueInfoColumnButtonProps>
 > = (props) => (
   <QueueInfoColumnButton type="primary" onClick={props.onClick} {...props} />
-)
+);
 
 const JoinQueueButton: React.FC<
   PropsWithChildren<QueueInfoColumnButtonProps>
-> = (props) => <QueueInfoColumnButton type="primary" {...props} />
+> = (props) => <QueueInfoColumnButton type="primary" {...props} />;
 
 const EditQueueButton: React.FC<
   PropsWithChildren<QueueInfoColumnButtonProps>
@@ -19,7 +21,7 @@ const EditQueueButton: React.FC<
     className={`text-gray-900 enabled:hover:bg-gray-100 enabled:focus:bg-gray-100 ${props.className}`}
     {...props}
   />
-)
+);
 
 const DisableQueueButton: React.FC<
   PropsWithChildren<QueueInfoColumnButtonProps>
@@ -28,7 +30,7 @@ const DisableQueueButton: React.FC<
     className={`bg-red-600 text-white hover:bg-red-500 focus:bg-red-500 ${props.className}`}
     {...props}
   />
-)
+);
 
 const ClearQueueButton: React.FC<
   PropsWithChildren<QueueInfoColumnButtonProps>
@@ -37,10 +39,10 @@ const ClearQueueButton: React.FC<
     className={`border border-red-600 bg-white text-red-600 hover:bg-gray-100 focus:bg-gray-100 ${props.className}`}
     {...props}
   />
-)
+);
 
 interface QueueInfoColumnButtonProps extends ButtonProps {
-  mobileWidth?: string
+  mobileWidth?: string;
 }
 /**
  * These buttons are used in the QueueInfoColumn component (i.e. the column on the left side of the Queue Page).
@@ -65,8 +67,8 @@ const QueueInfoColumnButton: React.FC<
     >
       {children}
     </Button>
-  )
-}
+  );
+};
 
 export {
   QueueInfoColumnButton,
@@ -75,4 +77,4 @@ export {
   JoinZoomButton,
   DisableQueueButton,
   ClearQueueButton,
-}
+};

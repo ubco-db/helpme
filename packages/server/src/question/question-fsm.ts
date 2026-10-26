@@ -1,9 +1,8 @@
+import type { QuestionStatus, Role } from '@koh/common';
 import {
   ClosedQuestionStatus,
   LimboQuestionStatus,
   OpenQuestionStatus,
-  QuestionStatus,
-  Role,
 } from '@koh/common';
 
 interface AllowableTransitions {

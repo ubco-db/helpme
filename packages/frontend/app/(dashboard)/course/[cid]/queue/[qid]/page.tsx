@@ -1,140 +1,136 @@
-'use client'
+'use client';
 
-import {
-  ReactElement,
-  use,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
-import {
-  ClosedQuestionStatus,
+import type { ReactElement } from 'react';
+import { use, useCallback, useEffect, useRef, useState } from 'react';
+import type {
   ConfigTasksWithAssignmentProgress,
-  ERROR_MESSAGES,
-  LimboQuestionStatus,
-  OpenQuestionStatus,
   Question,
-  QuestionLocations,
   QuestionStatus,
   QuestionType,
   QuestionTypeParams,
-  Role,
   TaskTree,
+} from '@koh/common';
+import {
+  ClosedQuestionStatus,
+  ERROR_MESSAGES,
+  LimboQuestionStatus,
+  OpenQuestionStatus,
+  QuestionLocations,
+  Role,
   transformIntoTaskTree,
-} from '@koh/common'
-import { Button, Divider, message, notification, Tooltip } from 'antd'
-import { mutate } from 'swr'
-import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons'
-import { CheckCheck, ListChecks, ListTodoIcon } from 'lucide-react'
-import { useQueue } from '@/app/hooks/useQueue'
-import { useUserInfo } from '@/app/contexts/userContext'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { useQuestions } from '@/app/hooks/useQuestions'
+} from '@koh/common';
+import { Button, Divider, message, notification, Tooltip } from 'antd';
+import { mutate } from 'swr';
+import { EditOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons';
+import { CheckCheck, ListChecks, ListTodoIcon } from 'lucide-react';
+import { useQueue } from '@/app/hooks/useQueue';
+import { useUserInfo } from '@/app/contexts/userContext';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
+import { useQuestions } from '@/app/hooks/useQuestions';
 import {
   EditQueueButton,
   JoinQueueButton,
-} from '@/app/(dashboard)/course/[cid]/components/QueueInfoColumnButton'
-import VerticalDivider from '@/app/components/VerticalDivider'
-import QueueHeader from './components/QueueHeader'
-import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
-import { useCourse } from '@/app/hooks/useCourse'
-import { useStudentAssignmentProgress } from '@/app/hooks/useStudentAssignmentProgress'
-import QuestionCard from './components/QuestionCard'
-import { useStudentQuestion } from '@/app/hooks/useStudentQuestion'
-import { isCheckedIn } from '../../utils/commonCourseFunctions'
+} from '@/app/(dashboard)/course/[cid]/components/QueueInfoColumnButton';
+import VerticalDivider from '@/app/components/VerticalDivider';
+import QueueHeader from './components/QueueHeader';
+import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils';
+import { useCourse } from '@/app/hooks/useCourse';
+import { useStudentAssignmentProgress } from '@/app/hooks/useStudentAssignmentProgress';
+import QuestionCard from './components/QuestionCard';
+import { useStudentQuestion } from '@/app/hooks/useStudentQuestion';
+import { isCheckedIn } from '../../utils/commonCourseFunctions';
 import {
   getHelpingQuestions,
   getPausedQuestions,
-} from './utils/commonQueueFunctions'
-import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
-import { useLocalStorage } from '@/app/hooks/useLocalStorage'
-import QueueInfoColumn from './components/QueueInfoColumn'
-import TACheckinButton from '../../components/TACheckinButton'
-import { API } from '@/app/api'
-import QueueQuestions from './components/QueueQuestions'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import CreateQuestionModal from './components/modals/CreateQuestionModal'
-import StudentRemovedFromQueueModal from './components/modals/StudentRemovedFromQueueModal'
-import StudentBanner from './components/StudentBanner'
-import EditQueueModal from './components/modals/EditQueueModal'
-import AddStudentsToQueueModal from './components/modals/AddStudentsToQueueModal'
-import CreateDemoModal from './components/modals/CreateDemoModal'
-import AssignmentReportModal from './components/modals/AssignmentReportModal'
-import CantFindModal from './components/modals/CantFindModal'
-import { useChatbotContext } from '../../components/chatbot/ChatbotProvider'
-import CircleButton from './components/CircleButton'
-import JoinZoomNowModal from './components/modals/JoinZoomNowModal'
-import JoinZoomButton from './components/JoinZoomButton'
-import { useMediaQuery } from '@/app/hooks/useMediaQuery'
-import { useQueueChatsMetadatas } from '@/app/hooks/useQueueChatsMetadatas'
-import QueueChats from '../../components/QueueChats'
+} from './utils/commonQueueFunctions';
+import { useQuestionTypes } from '@/app/hooks/useQuestionTypes';
+import { useLocalStorage } from '@/app/hooks/useLocalStorage';
+import QueueInfoColumn from './components/QueueInfoColumn';
+import TACheckinButton from '../../components/TACheckinButton';
+import { API } from '@/app/api';
+import QueueQuestions from './components/QueueQuestions';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import CreateQuestionModal from './components/modals/CreateQuestionModal';
+import StudentRemovedFromQueueModal from './components/modals/StudentRemovedFromQueueModal';
+import StudentBanner from './components/StudentBanner';
+import EditQueueModal from './components/modals/EditQueueModal';
+import AddStudentsToQueueModal from './components/modals/AddStudentsToQueueModal';
+import CreateDemoModal from './components/modals/CreateDemoModal';
+import AssignmentReportModal from './components/modals/AssignmentReportModal';
+import CantFindModal from './components/modals/CantFindModal';
+import { useChatbotContext } from '../../components/chatbot/ChatbotProvider';
+import CircleButton from './components/CircleButton';
+import JoinZoomNowModal from './components/modals/JoinZoomNowModal';
+import JoinZoomButton from './components/JoinZoomButton';
+import { useMediaQuery } from '@/app/hooks/useMediaQuery';
+import { useQueueChatsMetadatas } from '@/app/hooks/useQueueChatsMetadatas';
+import QueueChats from '../../components/QueueChats';
 import {
   NotificationStates,
   registerNotificationSubscription,
   requestNotificationPermission,
-} from '@/app/utils/notificationUtils'
+} from '@/app/utils/notificationUtils';
 
 type QueuePageProps = {
-  params: Promise<{ cid: string; qid: string }>
-}
+  params: Promise<{ cid: string; qid: string }>;
+};
 
 export default function QueuePage(props: QueuePageProps): ReactElement {
-  const params = use(props.params)
-  const isMobile = useMediaQuery('(max-width: 768px)')
-  const cid = Number(params.cid)
-  const searchParams = useSearchParams()
-  const qid = Number(params.qid)
-  const router = useRouter()
-  const { queue } = useQueue(qid)
-  const { queueChats, mutateQueueChats } = useQueueChatsMetadatas(qid)
-  const isQueueHybrid = queue?.type == 'hybrid'
-  const { queueQuestions, mutateQuestions } = useQuestions(qid)
-  const [queueSettingsModalOpen, setQueueSettingsModalOpen] = useState(false)
-  const [addStudentsModalOpen, setAddStudentsModalOpen] = useState(false)
+  const params = use(props.params);
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const cid = Number(params.cid);
+  const searchParams = useSearchParams();
+  const qid = Number(params.qid);
+  const router = useRouter();
+  const { queue } = useQueue(qid);
+  const { queueChats, mutateQueueChats } = useQueueChatsMetadatas(qid);
+  const isQueueHybrid = queue?.type == 'hybrid';
+  const { queueQuestions, mutateQuestions } = useQuestions(qid);
+  const [queueSettingsModalOpen, setQueueSettingsModalOpen] = useState(false);
+  const [addStudentsModalOpen, setAddStudentsModalOpen] = useState(false);
   const [assignmentReportModalOpen, setAssignmentReportModalOpen] =
-    useState(false)
-  const [clickedZoomModal, setClickedZoomModal] = useState(false)
-  const [staffListHidden, setStaffListHidden] = useState(false)
+    useState(false);
+  const [clickedZoomModal, setClickedZoomModal] = useState(false);
+  const [staffListHidden, setStaffListHidden] = useState(false);
   const [isFinishAllHelpingButtonLoading, setIsFinishAllHelpingButtonLoading] =
-    useState(false)
+    useState(false);
   const {
     studentQuestion,
     studentDemo,
     studentQuestions,
     studentQuestionIndex,
     studentDemoIndex,
-  } = useStudentQuestion(qid)
-  const { userInfo, setUserInfo } = useUserInfo()
-  const isUserCheckedIn = isCheckedIn(queue?.staffList, userInfo.id)
-  const { course } = useCourse(cid)
-  const [editQuestionModalOpen, setEditQuestionModalOpen] = useState(false)
-  const [editDemoModalOpen, setEditDemoModalOpen] = useState(false)
-  const pathname = usePathname()
+  } = useStudentQuestion(qid);
+  const { userInfo, setUserInfo } = useUserInfo();
+  const isUserCheckedIn = isCheckedIn(queue?.staffList, userInfo.id);
+  const { course } = useCourse(cid);
+  const [editQuestionModalOpen, setEditQuestionModalOpen] = useState(false);
+  const [editDemoModalOpen, setEditDemoModalOpen] = useState(false);
+  const pathname = usePathname();
 
-  const editQuestionQueryParam = searchParams.get('edit_question') === 'true'
+  const editQuestionQueryParam = searchParams.get('edit_question') === 'true';
   useEffect(() => {
     if (editQuestionQueryParam && studentQuestion) {
-      setEditQuestionModalOpen(true)
+      setEditQuestionModalOpen(true);
       // Create a copy of current searchParams and remove 'edit_question'
-      const params = new URLSearchParams(searchParams.toString())
-      params.delete('edit_question')
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('edit_question');
 
       const newUrl = params.toString()
         ? `${pathname}?${params.toString()}`
-        : pathname
-      router.replace(newUrl, { scroll: false })
+        : pathname;
+      router.replace(newUrl, { scroll: false });
     }
-  }, [editQuestionQueryParam, studentQuestion])
+  }, [editQuestionQueryParam, studentQuestion]);
 
-  const role = getRoleInCourse(userInfo, cid)
-  const isStaff = role === Role.TA || role === Role.PROFESSOR
-  const [questionTypes] = useQuestionTypes(cid, qid)
-  const queueConfig = queue?.config
-  const configTasks = queueConfig?.tasks
-  const [notifApi, notifContextHolder] = notification.useNotification()
+  const role = getRoleInCourse(userInfo, cid);
+  const isStaff = role === Role.TA || role === Role.PROFESSOR;
+  const [questionTypes] = useQuestionTypes(cid, qid);
+  const queueConfig = queue?.config;
+  const configTasks = queueConfig?.tasks;
+  const [notifApi, notifContextHolder] = notification.useNotification();
 
-  const isDemoQueue: boolean = !!configTasks && !!queueConfig.assignment_id
+  const isDemoQueue: boolean = !!configTasks && !!queueConfig.assignment_id;
   const [studentAssignmentProgress, mutateStudentAssignmentProgress] =
     useStudentAssignmentProgress(
       cid,
@@ -142,8 +138,8 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
       queueConfig?.assignment_id,
       isDemoQueue,
       isStaff,
-    )
-  const [taskTree, setTaskTree] = useState<TaskTree>({} as TaskTree)
+    );
+  const [taskTree, setTaskTree] = useState<TaskTree>({} as TaskTree);
   const [isJoiningQuestion, setIsJoiningQuestion] = useState(
     queueQuestions &&
       studentQuestions &&
@@ -152,7 +148,7 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
           question.status !== OpenQuestionStatus.Queued &&
           !question.isTaskQuestion,
       ),
-  )
+  );
   const [isJoiningDemo, setIsJoiningDemo] = useState(
     queueQuestions &&
       studentQuestions &&
@@ -161,34 +157,34 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
           question.status !== OpenQuestionStatus.Queued &&
           question.isTaskQuestion,
       ),
-  )
-  const [isJoinQueueModalLoading, setIsJoinQueueModalLoading] = useState(false)
+  );
+  const [isJoinQueueModalLoading, setIsJoinQueueModalLoading] = useState(false);
   const [isCreateDemoModalLoading, setIsCreateDemoModalLoading] =
-    useState(false)
+    useState(false);
   const [tagGroupsEnabled, setTagGroupsEnabled] = useState(
     queueConfig?.default_view === 'tag_groups',
-  )
+  );
   const [isFirstQuestion, setIsFirstQuestion] = useLocalStorage(
     'isFirstQuestion',
     true,
-  )
-  const [isEnablingNotifications, setIsEnablingNotifications] = useState(false)
+  );
+  const [isEnablingNotifications, setIsEnablingNotifications] = useState(false);
   const { helpingQuestions, isHelping } = getHelpingQuestions(
     queueQuestions,
     userInfo.id,
     role,
-  )
-  const { pausedQuestions } = getPausedQuestions(queueQuestions, role)
+  );
+  const { pausedQuestions } = getPausedQuestions(queueQuestions, role);
 
   const resetClickedZoomModal = useCallback(() => {
     if (studentQuestion?.status !== OpenQuestionStatus.Helping) {
-      setClickedZoomModal(false)
+      setClickedZoomModal(false);
     }
-  }, [clickedZoomModal, studentQuestion])
+  }, [clickedZoomModal, studentQuestion]);
 
   useEffect(() => {
-    resetClickedZoomModal()
-  }, [resetClickedZoomModal, clickedZoomModal, studentQuestion])
+    resetClickedZoomModal();
+  }, [resetClickedZoomModal, clickedZoomModal, studentQuestion]);
 
   // chatbot
   const {
@@ -197,36 +193,38 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
     setIsOpen,
     isOpen,
     renderSmallChatbot,
-  } = useChatbotContext()
-  const setChatbotOpen = setIsOpen // just to rename it
-  const isChatbotOpen = isOpen // just to rename it
+  } = useChatbotContext();
+  const setChatbotOpen = setIsOpen; // just to rename it
+  const isChatbotOpen = isOpen; // just to rename it
   useEffect(() => {
-    setCid(cid)
-  }, [cid, setCid])
+    setCid(cid);
+  }, [cid, setCid]);
   useEffect(() => {
-    setRenderSmallChatbot(true)
-    return () => setRenderSmallChatbot(false) // make the chatbot inactive when the user leaves the page
-  }, [setRenderSmallChatbot])
+    setRenderSmallChatbot(true);
+    return () => setRenderSmallChatbot(false); // make the chatbot inactive when the user leaves the page
+  }, [setRenderSmallChatbot]);
 
-  const [openTagGroups, setOpenTagGroups] = useState<string[]>([])
-  const tagGroupsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null) // need to keep track of timeouts so that old timeouts won't keep running when the user starts a new timeout (to prevent flickering when a tag group is spammed open/closed, UX thing)
+  const [openTagGroups, setOpenTagGroups] = useState<string[]>([]);
+  const tagGroupsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  ); // need to keep track of timeouts so that old timeouts won't keep running when the user starts a new timeout (to prevent flickering when a tag group is spammed open/closed, UX thing)
   const onOpenTagGroupsChange = (key: string | string[]) => {
     // Delay before setting the openTagGroups state to allow the css transition to finish
     // If the old state is the same as the new state, don't set the state again (to prevent unnecessary timeouts) - Needs to be deep equality
     if (openTagGroups.toString() === key.toString()) {
-      return
+      return;
     }
     // Clear the previous timeout
     if (tagGroupsTimeoutRef.current) {
-      clearTimeout(tagGroupsTimeoutRef.current)
+      clearTimeout(tagGroupsTimeoutRef.current);
     }
     tagGroupsTimeoutRef.current = setTimeout(() => {
-      setOpenTagGroups(Array.isArray(key) ? key : [key])
-      tagGroupsTimeoutRef.current = null // Clear the ref once the timeout completes
-    }, 300)
-  }
+      setOpenTagGroups(Array.isArray(key) ? key : [key]);
+      tagGroupsTimeoutRef.current = null; // Clear the ref once the timeout completes
+    }, 300);
+  };
 
-  const hasDefaultsBeenInitializedRef = useRef(false) // used to track if the defaults have been initialized. Can use when the default value for useState doesn't work due to delayed data
+  const hasDefaultsBeenInitializedRef = useRef(false); // used to track if the defaults have been initialized. Can use when the default value for useState doesn't work due to delayed data
   useEffect(() => {
     // Only initialize once when queueConfig becomes defined and hasn't been initialized before
     if (
@@ -237,47 +235,47 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
       questionTypes
     ) {
       // Set default values based on queueConfig
-      const newTagGroupsEnabled = queueConfig.default_view === 'tag_groups'
-      setTagGroupsEnabled(newTagGroupsEnabled)
+      const newTagGroupsEnabled = queueConfig.default_view === 'tag_groups';
+      setTagGroupsEnabled(newTagGroupsEnabled);
 
       // if you're staff and there's less than 10 questions in the queue, open all tag groups by default
       if (isStaff && queueQuestions.questions?.length < 10) {
         setOpenTagGroups([
           ...Object.keys(configTasks),
           ...questionTypes.map((qt) => qt.id.toString()),
-        ])
+        ]);
       } else {
-        setOpenTagGroups([])
+        setOpenTagGroups([]);
       }
 
       // Mark as initialized to prevent future updates
-      hasDefaultsBeenInitializedRef.current = true
+      hasDefaultsBeenInitializedRef.current = true;
     }
-  }, [queueConfig, configTasks, isStaff, queueQuestions, questionTypes])
+  }, [queueConfig, configTasks, isStaff, queueQuestions, questionTypes]);
 
-  const studentQuestionId = studentQuestion?.id
-  const studentQuestionStatus = studentQuestion?.status
-  const studentDemoId = studentDemo?.id
-  const studentDemoStatus = studentDemo?.status
+  const studentQuestionId = studentQuestion?.id;
+  const studentQuestionStatus = studentQuestion?.status;
+  const studentDemoId = studentDemo?.id;
+  const studentDemoStatus = studentDemo?.status;
 
   // whenever the student's demo goes from defined to undefined, re-run mutateStudentTaskProgress so that the student gets their updated progress right away
   useEffect(() => {
     if (!isStaff && studentDemo === undefined) {
-      mutateStudentAssignmentProgress()
+      mutateStudentAssignmentProgress();
     }
-  }, [isStaff, studentDemo, mutateStudentAssignmentProgress])
+  }, [isStaff, studentDemo, mutateStudentAssignmentProgress]);
 
   const updateQuestionStatus = useCallback(
     async (id: number, status: QuestionStatus) => {
       await API.questions.update(id, { status }).catch((e) => {
-        const errorMessage = getErrorMessage(e)
-        message.error(errorMessage)
-        throw e
-      })
-      await mutateQuestions()
+        const errorMessage = getErrorMessage(e);
+        message.error(errorMessage);
+        throw e;
+      });
+      await mutateQuestions();
     },
     [mutateQuestions],
-  )
+  );
 
   const createQuestion = useCallback(
     async (
@@ -302,55 +300,55 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
           qid,
         )
         .then(async (newQuestion) => {
-          await updateQuestionStatus(newQuestion.id, OpenQuestionStatus.Queued)
+          await updateQuestionStatus(newQuestion.id, OpenQuestionStatus.Queued);
         })
         .catch((e) => {
-          const errorMessage = getErrorMessage(e)
-          message.error(errorMessage)
-          throw e
-        })
+          const errorMessage = getErrorMessage(e);
+          message.error(errorMessage);
+          throw e;
+        });
     },
     [isQueueHybrid, qid, updateQuestionStatus],
-  )
+  );
 
   const rejoinQueue = useCallback(
     (isTaskQuestion: boolean) => {
-      const id = isTaskQuestion ? studentDemoId : studentQuestionId
+      const id = isTaskQuestion ? studentDemoId : studentQuestionId;
       if (id === undefined) {
-        return
+        return;
       }
-      updateQuestionStatus(id, OpenQuestionStatus.Queued)
+      updateQuestionStatus(id, OpenQuestionStatus.Queued);
     },
     [studentDemoId, studentQuestionId, updateQuestionStatus],
-  )
+  );
 
   const setRequeuing = useCallback(
     async (isTaskQuestion: boolean) => {
-      const id = isTaskQuestion ? studentDemoId : studentQuestionId
+      const id = isTaskQuestion ? studentDemoId : studentQuestionId;
       if (id === undefined) {
-        return
+        return;
       }
-      await updateQuestionStatus(id, LimboQuestionStatus.ReQueueing)
+      await updateQuestionStatus(id, LimboQuestionStatus.ReQueueing);
     },
     [studentDemoId, studentQuestionId, updateQuestionStatus],
-  )
+  );
 
   const joinQueueAfterDeletion = useCallback(
     async (isTaskQuestion: boolean) => {
-      const question = isTaskQuestion ? studentDemo : studentQuestion
-      const id = isTaskQuestion ? studentDemoId : studentQuestionId
+      const question = isTaskQuestion ? studentDemo : studentQuestion;
+      const id = isTaskQuestion ? studentDemoId : studentQuestionId;
       if (id === undefined || question === undefined) {
-        return
+        return;
       }
       // delete the old question and create a new one
-      updateQuestionStatus(id, ClosedQuestionStatus.ConfirmedDeleted)
+      updateQuestionStatus(id, ClosedQuestionStatus.ConfirmedDeleted);
       await createQuestion(
         question.text,
         question.questionTypes ?? [],
         true,
         isTaskQuestion,
         question.location,
-      )
+      );
     },
     [
       studentDemo,
@@ -360,35 +358,35 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
       updateQuestionStatus,
       createQuestion,
     ],
-  )
+  );
 
   const openEditQuestionDemoModal = useCallback(
     (isTaskQuestion: boolean) => {
       if (isTaskQuestion) {
-        setEditDemoModalOpen(true)
+        setEditDemoModalOpen(true);
       } else {
-        setEditQuestionModalOpen(true)
+        setEditQuestionModalOpen(true);
       }
-      mutate(`/api/v1/queues/${qid}/questions`)
+      mutate(`/api/v1/queues/${qid}/questions`);
     },
     [qid],
-  )
+  );
 
   const closeEditQuestionDemoModal = useCallback((isTaskQuestion: boolean) => {
     if (isTaskQuestion) {
-      setEditDemoModalOpen(false)
-      setIsJoiningDemo(false)
+      setEditDemoModalOpen(false);
+      setIsJoiningDemo(false);
     } else {
-      setEditQuestionModalOpen(false)
-      setIsJoiningQuestion(false)
+      setEditQuestionModalOpen(false);
+      setIsJoiningQuestion(false);
     }
-  }, [])
+  }, []);
 
   const joinQueueOpenModal = useCallback(
     async (force: boolean, isTaskQuestion: boolean) => {
       const specificErrorMessage = isTaskQuestion
         ? ERROR_MESSAGES.questionController.createQuestion.oneDemoAtATime
-        : ERROR_MESSAGES.questionController.createQuestion.oneQuestionAtATime
+        : ERROR_MESSAGES.questionController.createQuestion.oneQuestionAtATime;
       await API.questions
         .create(
           {
@@ -406,15 +404,15 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
             const questionsWithNewQuestionAppended = [
               ...queueQuestions.questions,
               createdQuestion,
-            ]
+            ];
             await mutateQuestions({
               ...queueQuestions,
               questions: questionsWithNewQuestionAppended,
-            })
+            });
           }
           isTaskQuestion
             ? setEditDemoModalOpen(true)
-            : setEditQuestionModalOpen(true)
+            : setEditQuestionModalOpen(true);
         })
         .catch((e) => {
           if (e.response?.data?.message?.includes(specificErrorMessage)) {
@@ -424,15 +422,15 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
               } in a queue for this course. Please delete your previous ${
                 isTaskQuestion ? 'demo' : 'question'
               } before joining this queue.`,
-            )
+            );
           } else {
-            const errorMessage = getErrorMessage(e)
-            message.error(errorMessage)
+            const errorMessage = getErrorMessage(e);
+            message.error(errorMessage);
           }
-        })
+        });
     },
     [mutateQuestions, qid, queueQuestions],
-  )
+  );
 
   const leaveQueue = useCallback(
     async (isTaskQuestion: boolean) => {
@@ -440,12 +438,12 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
         await updateQuestionStatus(
           studentDemoId,
           ClosedQuestionStatus.ConfirmedDeleted,
-        )
+        );
       } else if (studentQuestionId) {
         await updateQuestionStatus(
           studentQuestionId,
           ClosedQuestionStatus.ConfirmedDeleted,
-        )
+        );
       }
       // preemptively mutate the queue chats to remove any queue chats that are associated with the deleted question
       if (queueChats) {
@@ -453,10 +451,10 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
           isTaskQuestion
             ? chat.questionId !== studentDemoId
             : chat.questionId !== studentQuestionId,
-        )
-        mutateQueueChats(updatedQueueChats)
+        );
+        mutateQueueChats(updatedQueueChats);
       }
-      closeEditQuestionDemoModal(isTaskQuestion)
+      closeEditQuestionDemoModal(isTaskQuestion);
     },
     [
       closeEditQuestionDemoModal,
@@ -466,7 +464,7 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
       queueChats,
       mutateQueueChats,
     ],
-  )
+  );
 
   /**
    *  basically an "update question" function. Used for both when students "finish" creating a question and when they edit it
@@ -479,10 +477,10 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
       isTaskQuestion: boolean,
       location: QuestionLocations,
     ) => {
-      const status = isTaskQuestion ? studentDemoStatus : studentQuestionStatus
-      const id = isTaskQuestion ? studentDemoId : studentQuestionId
+      const status = isTaskQuestion ? studentDemoStatus : studentQuestionStatus;
+      const id = isTaskQuestion ? studentDemoId : studentQuestionId;
       if (id === undefined) {
-        return
+        return;
       }
       const updateStudent = {
         text,
@@ -494,28 +492,28 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
             ? OpenQuestionStatus.Queued
             : status,
         location,
-      }
+      };
 
       const updatedQuestionFromStudent = await API.questions.update(
         id,
         updateStudent,
-      )
+      );
 
       // preemptively update the local question data by finding the student's new question and updating it
       if (queueQuestions) {
         const yourUpdatedQuestions = studentQuestions?.map(
           (question: Question) =>
             question.id === id ? updatedQuestionFromStudent : question,
-        )
+        );
         const questionsWithUpdatedInfo = queueQuestions.questions?.map(
           (question: Question) =>
             question.id === id ? updatedQuestionFromStudent : question,
-        )
+        );
         mutateQuestions({
           ...queueQuestions,
           yourQuestions: yourUpdatedQuestions,
           questions: questionsWithUpdatedInfo,
-        })
+        });
       }
     },
     [
@@ -527,14 +525,14 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
       queueQuestions,
       mutateQuestions,
     ],
-  )
+  );
 
   const handleFirstQuestionNotification = useCallback(
     (cid: number) => {
       if (isFirstQuestion) {
         // If they've asked a question, don't show this notification again
-        setIsFirstQuestion(false)
-        const key = 'enable-notifications'
+        setIsFirstQuestion(false);
+        const key = 'enable-notifications';
         notifApi.warning({
           key,
           message: 'Enable Notifications',
@@ -549,23 +547,23 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
                 disabled={isEnablingNotifications}
                 onClick={async () => {
                   try {
-                    setIsEnablingNotifications(true)
-                    await API.profile.patch({ desktopNotifsEnabled: true }) //link it directly to the desktop notifications API
-                    const canNotify = await requestNotificationPermission()
+                    setIsEnablingNotifications(true);
+                    await API.profile.patch({ desktopNotifsEnabled: true }); //link it directly to the desktop notifications API
+                    const canNotify = await requestNotificationPermission();
                     if (canNotify === NotificationStates.notAllowed) {
                       message.warning(
                         'Please allow notifications in this browser',
-                      ) //if the user doesn't allow notifications, show a warning
-                      return
+                      ); //if the user doesn't allow notifications, show a warning
+                      return;
                     }
                     if (canNotify === NotificationStates.granted) {
-                      await registerNotificationSubscription()
+                      await registerNotificationSubscription();
                     }
                     setUserInfo({
                       //update the user info
                       ...userInfo,
                       desktopNotifsEnabled: true,
-                    })
+                    });
                     notifApi.success({
                       key,
                       message: 'Success!',
@@ -573,17 +571,17 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
                         'Notifications have been enabled for this device.',
                       placement: 'bottomRight', //show the notification at the bottom right of the screen
                       duration: 2,
-                    })
+                    });
                     setTimeout(() => {
-                      notifApi.destroy(key)
-                    }, 3000)
+                      notifApi.destroy(key);
+                    }, 3000);
                   } catch (e) {
-                    const errorMessage = getErrorMessage(e)
+                    const errorMessage = getErrorMessage(e);
                     message.error(
                       `Failed to enable notifications: ${errorMessage}`,
-                    )
+                    );
                   } finally {
-                    setIsEnablingNotifications(false)
+                    setIsEnablingNotifications(false);
                   }
                 }}
                 className="ml-2"
@@ -596,7 +594,7 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
           ),
           placement: 'bottomRight',
           duration: 0,
-        })
+        });
       }
     },
     [
@@ -605,10 +603,10 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
       setIsFirstQuestion,
       userInfo.desktopNotifsEnabled,
     ],
-  )
+  );
 
   const finishHelpingAllStudents = useCallback(async () => {
-    setIsFinishAllHelpingButtonLoading(true)
+    setIsFinishAllHelpingButtonLoading(true);
     const promises = helpingQuestions
       .filter((q) => q.status !== OpenQuestionStatus.Paused)
       .map(async (question) => {
@@ -617,19 +615,19 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
             status: ClosedQuestionStatus.Resolved,
           })
           .catch((e) => {
-            const errorMessage = getErrorMessage(e)
-            message.error(errorMessage)
-            throw e
-          })
-      })
+            const errorMessage = getErrorMessage(e);
+            message.error(errorMessage);
+            throw e;
+          });
+      });
     Promise.all(promises)
       .catch((e) => {
-        message.error('One or more status updates failed:' + e)
+        message.error('One or more status updates failed:' + e);
       })
       .finally(() => {
-        setIsFinishAllHelpingButtonLoading(false)
-      })
-  }, [helpingQuestions])
+        setIsFinishAllHelpingButtonLoading(false);
+      });
+  }, [helpingQuestions]);
 
   // used for the "Join" button on the tag groups feature (specifically, for the tasks)
   useEffect(() => {
@@ -637,27 +635,27 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
     if (tagGroupsEnabled) {
       const configTasksCopy: ConfigTasksWithAssignmentProgress = {
         ...configTasks,
-      } // Create a copy of configTasks (since the function will mutate it)
+      }; // Create a copy of configTasks (since the function will mutate it)
       // For each task that is marked as done, give it the isDone = true attribute
       if (studentAssignmentProgress) {
         for (const [taskKey, taskValue] of Object.entries(
           studentAssignmentProgress,
         )) {
           if (taskValue?.isDone && configTasksCopy[taskKey]) {
-            configTasksCopy[taskKey].isDone = true
+            configTasksCopy[taskKey].isDone = true;
           }
         }
       }
-      setTaskTree(transformIntoTaskTree(configTasksCopy)) // transformIntoTaskTree changes each precondition to carry a reference to the actual task object instead of just a string
+      setTaskTree(transformIntoTaskTree(configTasksCopy)); // transformIntoTaskTree changes each precondition to carry a reference to the actual task object instead of just a string
     }
-  }, [tagGroupsEnabled, configTasks, studentAssignmentProgress])
+  }, [tagGroupsEnabled, configTasks, studentAssignmentProgress]);
 
   if (!course) {
-    return <CenteredSpinner tip="Loading Course Data..." />
+    return <CenteredSpinner tip="Loading Course Data..." />;
   } else if (!queue) {
-    return <CenteredSpinner tip="Loading Queue Data..." />
+    return <CenteredSpinner tip="Loading Queue Data..." />;
   } else if (queueQuestions === undefined || queueQuestions === null) {
-    return <CenteredSpinner tip="Loading Questions..." />
+    return <CenteredSpinner tip="Loading Questions..." />;
   } else {
     return (
       <div className="flex h-full flex-1 flex-col md:flex-row">
@@ -797,14 +795,14 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
                       !!studentQuestion
                     }
                     onClick={() => {
-                      setIsJoinQueueModalLoading(true)
-                      joinQueueOpenModal(false, false)
+                      setIsJoinQueueModalLoading(true);
+                      joinQueueOpenModal(false, false);
                       // fallback: After 3s, if the modal hasn't opened, stop the loading state
                       setTimeout(() => {
                         if (isJoinQueueModalLoading) {
-                          setIsJoinQueueModalLoading(false)
+                          setIsJoinQueueModalLoading(false);
                         }
-                      }, 3000)
+                      }, 3000);
                     }}
                     icon={<LoginOutlined aria-hidden="true" />}
                   >
@@ -833,14 +831,14 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
                         !!studentDemo
                       }
                       onClick={() => {
-                        setIsCreateDemoModalLoading(true)
-                        joinQueueOpenModal(false, true)
+                        setIsCreateDemoModalLoading(true);
+                        joinQueueOpenModal(false, true);
                         // fallback: After 3s, if the modal hasn't opened, stop the loading state
                         setTimeout(() => {
                           if (isCreateDemoModalLoading) {
-                            setIsCreateDemoModalLoading(false)
+                            setIsCreateDemoModalLoading(false);
                           }
-                        }, 3000)
+                        }, 3000);
                       }}
                       icon={<ListTodoIcon aria-hidden="true" />}
                     >
@@ -905,7 +903,7 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
                         studentAssignmentProgress={studentAssignmentProgress}
                         isStaff={isStaff}
                       />
-                    )
+                    );
                   })}
                   <Divider className={'my-2 hidden md:block'} />
                 </>
@@ -1000,8 +998,8 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
               assignmentId={queueConfig?.assignment_id}
               open={addStudentsModalOpen}
               onAddStudent={() => {
-                mutateQuestions()
-                setAddStudentsModalOpen(false)
+                mutateQuestions();
+                setAddStudentsModalOpen(false);
               }}
               onCancel={() => setAddStudentsModalOpen(false)}
             />
@@ -1041,9 +1039,9 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
                   groupable,
                   isTaskQuestion,
                   location,
-                )
-                handleFirstQuestionNotification(cid)
-                closeEditQuestionDemoModal(isTaskQuestion)
+                );
+                handleFirstQuestionNotification(cid);
+                closeEditQuestionDemoModal(isTaskQuestion);
               }}
               position={
                 studentQuestionIndex === undefined
@@ -1076,7 +1074,7 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
               notes={queue?.notes}
               zoomLink={queue.zoomLink ?? course?.zoomLink}
               onJoin={() => {
-                setClickedZoomModal(true)
+                setClickedZoomModal(true);
               }}
               setRequeuing={() => setRequeuing(false)}
             />
@@ -1102,9 +1100,9 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
                       groupable,
                       isTaskQuestion,
                       location,
-                    )
-                    handleFirstQuestionNotification(cid)
-                    closeEditQuestionDemoModal(isTaskQuestion)
+                    );
+                    handleFirstQuestionNotification(cid);
+                    closeEditQuestionDemoModal(isTaskQuestion);
                   }}
                   position={
                     studentDemoIndex === undefined
@@ -1138,6 +1136,6 @@ export default function QueuePage(props: QueuePageProps): ReactElement {
           queueChats={queueChats}
         />
       </div>
-    )
+    );
   }
 }

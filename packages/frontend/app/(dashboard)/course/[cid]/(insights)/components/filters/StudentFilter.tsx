@@ -1,38 +1,38 @@
-import { Button, Modal, Pagination, Checkbox, List, Input } from 'antd'
-import { useMemo, useState } from 'react'
-import { useInsightContext } from '@/app/(dashboard)/course/[cid]/(insights)/context/InsightsContext'
-import { UserPartial } from '@koh/common'
-import UserAvatar from '@/app/components/UserAvatar'
-import { DownOutlined, SearchOutlined } from '@ant-design/icons'
-import FilterWrapper from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/FilterWrapper'
+import { Button, Modal, Pagination, Checkbox, List, Input } from 'antd';
+import { useMemo, useState } from 'react';
+import { useInsightContext } from '@/app/(dashboard)/course/[cid]/(insights)/context/InsightsContext';
+import type { UserPartial } from '@koh/common';
+import UserAvatar from '@/app/components/UserAvatar';
+import { DownOutlined, SearchOutlined } from '@ant-design/icons';
+import FilterWrapper from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/FilterWrapper';
 
 type StudentFilterProps = {
-  selectedStudents: number[]
-  setSelectedStudents: (value: number[]) => void
-}
+  selectedStudents: number[];
+  setSelectedStudents: (value: number[]) => void;
+};
 
 const StudentFilter: React.FC<StudentFilterProps> = ({
   selectedStudents,
   setSelectedStudents,
 }) => {
-  const insightContext = useInsightContext()
+  const insightContext = useInsightContext();
   const studentDetails = useMemo(
     () => insightContext.studentDetails,
     [insightContext],
-  )
-  const [modalOpen, setModalOpen] = useState<boolean>(false)
-  const [search, setSearch] = useState<string>('')
+  );
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [search, setSearch] = useState<string>('');
   const updateSelectedStudents = (student: number) => {
     setSelectedStudents(
       selectedStudents.includes(student)
         ? selectedStudents.filter((s) => s != student)
         : [...selectedStudents, student],
-    )
-  }
+    );
+  };
 
   const onClose = () => {
-    setModalOpen(false)
-  }
+    setModalOpen(false);
+  };
 
   return (
     studentDetails != undefined && (
@@ -97,7 +97,7 @@ const StudentFilter: React.FC<StudentFilterProps> = ({
         </FilterWrapper>
       </>
     )
-  )
-}
+  );
+};
 
-export default StudentFilter
+export default StudentFilter;

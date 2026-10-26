@@ -1,4 +1,5 @@
-import { DataSource, QueryRunner } from 'typeorm';
+import type { QueryRunner } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
 import { MultipleLtiRegistrations1791249527689 } from '../migration/1791249527689-multiple-lti-registrations';
 

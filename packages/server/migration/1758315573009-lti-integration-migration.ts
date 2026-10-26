@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class LtiIntegrationMigration1758315573009
-  implements MigrationInterface
-{
+export class LtiIntegrationMigration1758315573009 implements MigrationInterface {
   name = 'LtiIntegrationMigration1758315573009';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

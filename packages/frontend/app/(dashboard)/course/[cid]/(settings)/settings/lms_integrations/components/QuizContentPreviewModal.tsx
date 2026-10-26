@@ -1,21 +1,23 @@
-'use client'
+'use client';
 
-import React, { useState, useEffect } from 'react'
-import { Modal, Select, Typography, Spin, Alert, Button } from 'antd'
-import { EyeOutlined } from '@ant-design/icons'
-import { LMSQuiz, LMSQuizAccessLevel } from '@koh/common'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import type React from 'react';
+import { useState, useEffect } from 'react';
+import { Modal, Select, Typography, Spin, Alert, Button } from 'antd';
+import { EyeOutlined } from '@ant-design/icons';
+import type { LMSQuiz } from '@koh/common';
+import { LMSQuizAccessLevel } from '@koh/common';
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
 
-const { Option } = Select
-const { Text } = Typography
+const { Option } = Select;
+const { Text } = Typography;
 
 interface QuizContentPreviewModalProps {
-  quiz: LMSQuiz
-  courseId: number
-  currentAccessLevel: LMSQuizAccessLevel
-  open: boolean
-  onClose: () => void
+  quiz: LMSQuiz;
+  courseId: number;
+  currentAccessLevel: LMSQuizAccessLevel;
+  open: boolean;
+  onClose: () => void;
 }
 
 const ACCESS_LEVEL_LABELS = {
@@ -24,7 +26,7 @@ const ACCESS_LEVEL_LABELS = {
   [LMSQuizAccessLevel.LOGISTICS_QUESTIONS_GENERAL_COMMENTS]:
     'Logistics, Questions & Comments',
   [LMSQuizAccessLevel.FULL_ACCESS]: 'Full Access',
-}
+};
 
 const ACCESS_LEVEL_DESCRIPTIONS = {
   [LMSQuizAccessLevel.LOGISTICS_ONLY]:
@@ -35,47 +37,47 @@ const ACCESS_LEVEL_DESCRIPTIONS = {
     'Basic info + questions + general comments',
   [LMSQuizAccessLevel.FULL_ACCESS]:
     'Complete quiz content including answers and feedback',
-}
+};
 
 export const QuizContentPreviewModal: React.FC<
   QuizContentPreviewModalProps
 > = ({ quiz, courseId, currentAccessLevel, open, onClose }) => {
   const [selectedAccessLevel, setSelectedAccessLevel] =
-    useState<LMSQuizAccessLevel>(currentAccessLevel)
-  const [previewContent, setPreviewContent] = useState<string>('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+    useState<LMSQuizAccessLevel>(currentAccessLevel);
+  const [previewContent, setPreviewContent] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
-      setSelectedAccessLevel(currentAccessLevel)
-      fetchPreview(currentAccessLevel)
+      setSelectedAccessLevel(currentAccessLevel);
+      fetchPreview(currentAccessLevel);
     }
-  }, [open, currentAccessLevel])
+  }, [open, currentAccessLevel]);
 
   const fetchPreview = async (accessLevel: LMSQuizAccessLevel) => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
       const response = await API.lmsIntegration.getQuizContentPreview(
         courseId,
         quiz.id,
         accessLevel,
-      )
-      setPreviewContent(response.content)
+      );
+      setPreviewContent(response.content);
     } catch (err) {
-      setError(`Failed to load preview content: ${getErrorMessage(err)}.`)
-      console.error('Preview error:', err)
+      setError(`Failed to load preview content: ${getErrorMessage(err)}.`);
+      console.error('Preview error:', err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleAccessLevelChange = (accessLevel: LMSQuizAccessLevel) => {
-    setSelectedAccessLevel(accessLevel)
-    fetchPreview(accessLevel)
-  }
+    setSelectedAccessLevel(accessLevel);
+    fetchPreview(accessLevel);
+  };
 
   return (
     <Modal
@@ -164,7 +166,7 @@ export const QuizContentPreviewModal: React.FC<
         </div>
       )}
     </Modal>
-  )
-}
+  );
+};
 
-export default QuizContentPreviewModal
+export default QuizContentPreviewModal;

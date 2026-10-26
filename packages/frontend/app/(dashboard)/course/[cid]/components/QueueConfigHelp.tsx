@@ -1,4 +1,5 @@
-import { Collapse, CollapseProps, List } from 'antd'
+import type { CollapseProps } from 'antd';
+import { Collapse, List } from 'antd';
 
 const items: CollapseProps['items'] = [
   {
@@ -126,7 +127,7 @@ const items: CollapseProps['items'] = [
       </List>
     ),
   },
-]
+];
 
 /**
  * returns a help glossary that shows what each attribute in the json config does
@@ -135,7 +136,7 @@ const items: CollapseProps['items'] = [
 const QueueConfigHelp: React.FC = () => {
   return (
     <Collapse className="bg-gray-100" bordered={false} items={items}></Collapse>
-  )
-}
+  );
+};
 
-export default QueueConfigHelp
+export default QueueConfigHelp;

@@ -17,7 +17,6 @@ export class ProfileSubscriber implements EntitySubscriberInterface<UserModel> {
     dataSource.subscribers.push(this);
   }
 
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   listenTo() {
     return UserModel;
   }

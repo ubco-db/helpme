@@ -1,12 +1,13 @@
-import { API } from '@/app/api'
-import UserAvatar from '@/app/components/UserAvatar'
-import { useUserInfo } from '@/app/contexts/userContext'
+import { API } from '@/app/api';
+import UserAvatar from '@/app/components/UserAvatar';
+import { useUserInfo } from '@/app/contexts/userContext';
 import {
   LoadingOutlined,
   SearchOutlined,
   UserDeleteOutlined,
-} from '@ant-design/icons'
-import { LMSIntegrationPlatform, Role, UserPartial } from '@koh/common'
+} from '@ant-design/icons';
+import type { LMSIntegrationPlatform, UserPartial } from '@koh/common';
+import { Role } from '@koh/common';
 import {
   Button,
   Card,
@@ -19,16 +20,17 @@ import {
   Spin,
   Statistic,
   Tag,
-} from 'antd'
-import { ReactNode, useEffect, useMemo, useState } from 'react'
-import { checkNameAgainst, cn } from '@/app/utils/generalUtils'
+} from 'antd';
+import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { checkNameAgainst, cn } from '@/app/utils/generalUtils';
 
 type LMSRosterTableProps = {
-  courseId: number
-  lmsStudents: string[]
-  lmsPlatform: LMSIntegrationPlatform
-  loadingLMSData?: boolean
-}
+  courseId: number;
+  lmsStudents: string[];
+  lmsPlatform: LMSIntegrationPlatform;
+  loadingLMSData?: boolean;
+};
 
 const LMSRosterTable: React.FC<LMSRosterTableProps> = ({
   courseId,
@@ -36,59 +38,59 @@ const LMSRosterTable: React.FC<LMSRosterTableProps> = ({
   lmsPlatform,
   loadingLMSData = false,
 }) => {
-  const [page, setPage] = useState(1)
-  const [search, setSearch] = useState('')
-  const [users, setUsers] = useState<UserPartial[]>([])
-  const [totalUsers, setTotalUsers] = useState<number>(0)
-  const [view, setView] = useState<boolean>(true)
-  const { userInfo } = useUserInfo()
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [users, setUsers] = useState<UserPartial[]>([]);
+  const [totalUsers, setTotalUsers] = useState<number>(0);
+  const [view, setView] = useState<boolean>(true);
+  const { userInfo } = useUserInfo();
 
   const handleSearch = (event: any) => {
-    setSearch(event.target.value)
-    setPage(1)
-  }
+    setSearch(event.target.value);
+    setPage(1);
+  };
 
   useEffect(() => {
-    ;(async () => {
-      const data0 = await API.course.getUserInfo(courseId, 1, Role.STUDENT)
-      setTotalUsers(data0.total)
+    (async () => {
+      const data0 = await API.course.getUserInfo(courseId, 1, Role.STUDENT);
+      setTotalUsers(data0.total);
 
-      const numPages = Math.ceil(data0.total / 50)
-      const students: UserPartial[] = [...data0.users]
+      const numPages = Math.ceil(data0.total / 50);
+      const students: UserPartial[] = [...data0.users];
       for (let i = 2; i <= numPages; i++) {
-        const data = await API.course.getUserInfo(courseId, i, Role.STUDENT)
-        students.push(...data.users)
+        const data = await API.course.getUserInfo(courseId, i, Role.STUDENT);
+        students.push(...data.users);
       }
       students.sort((a: UserPartial, b: UserPartial) => {
-        const aNotEnrolled = !checkNameAgainst(a.name ?? '', lmsStudents)
-        const bNotEnrolled = !checkNameAgainst(b.name ?? '', lmsStudents)
+        const aNotEnrolled = !checkNameAgainst(a.name ?? '', lmsStudents);
+        const bNotEnrolled = !checkNameAgainst(b.name ?? '', lmsStudents);
         if (aNotEnrolled && !bNotEnrolled) {
-          return -1
+          return -1;
         } else if (bNotEnrolled && !aNotEnrolled) {
-          return 1
+          return 1;
         } else {
-          return (a.name ?? '').localeCompare(b.name ?? '')
+          return (a.name ?? '').localeCompare(b.name ?? '');
         }
-      })
-      setUsers(students)
-    })()
-  }, [courseId, lmsStudents])
+      });
+      setUsers(students);
+    })();
+  }, [courseId, lmsStudents]);
 
   const lmsUsers = useMemo(() => {
-    const studentNames = users.map((u) => u.name ?? '')
+    const studentNames = users.map((u) => u.name ?? '');
     const noMatch: string[] = lmsStudents.filter(
       (s) => !checkNameAgainst(s, studentNames),
-    )
-    const lmsUsers: UserPartial[] = []
+    );
+    const lmsUsers: UserPartial[] = [];
     for (const name of noMatch) {
       lmsUsers.push({
         id: -1,
         name: name,
         photoURL: undefined,
-      } satisfies UserPartial)
+      } satisfies UserPartial);
     }
-    return lmsUsers
-  }, [lmsStudents, users])
+    return lmsUsers;
+  }, [lmsStudents, users]);
 
   const matchingUsers = useMemo(
     () =>
@@ -96,48 +98,48 @@ const LMSRosterTable: React.FC<LMSRosterTableProps> = ({
         (s.name ?? '').toLowerCase().includes(search.toLowerCase()),
       ),
     [search, users],
-  )
+  );
   const matchingLMSUsers = useMemo(
     () =>
       lmsUsers.filter((s) =>
         (s.name ?? '').toLowerCase().includes(search.toLowerCase()),
       ),
     [search, lmsUsers],
-  )
+  );
 
   const paginatedLMSUsers = useMemo(
     () => matchingLMSUsers.slice((page - 1) * 50, page * 50),
     [page, matchingLMSUsers],
-  )
+  );
 
   const paginatedUsers = useMemo(
     () => matchingUsers.slice((page - 1) * 50, page * 50),
     [page, matchingUsers],
-  )
+  );
 
   const RosterItem: React.FC<{ item: UserPartial; className?: string }> = ({
     item,
     className,
   }) => {
-    let tagText: ReactNode = `Enrolled in ${lmsPlatform ?? 'LMS'} Course`
-    let tagColor = 'rgb(0,220,120)'
+    let tagText: ReactNode = `Enrolled in ${lmsPlatform ?? 'LMS'} Course`;
+    let tagColor = 'rgb(0,220,120)';
     if (loadingLMSData) {
       tagText = (
         <span className={'flex items-center gap-2'}>
           <Spin indicator={<LoadingOutlined spin />} size="small" />
           {`Loading ${lmsPlatform ?? 'LMS'} Data...`}
         </span>
-      )
-      tagColor = 'rgb(30,120,255)'
+      );
+      tagColor = 'rgb(30,120,255)';
     } else if (
       item.id != -1 &&
       !checkNameAgainst(item.name ?? '', lmsStudents)
     ) {
-      tagText = `Not enrolled in ${lmsPlatform ?? 'LMS'} Course`
-      tagColor = 'rgb(255,50,70)'
+      tagText = `Not enrolled in ${lmsPlatform ?? 'LMS'} Course`;
+      tagColor = 'rgb(255,50,70)';
     } else if (item.id == -1) {
-      tagText = `No match in HelpMe students`
-      tagColor = 'rgb(240,220,30)'
+      tagText = `No match in HelpMe students`;
+      tagColor = 'rgb(240,220,30)';
     }
 
     const hasTwin =
@@ -145,7 +147,7 @@ const LMSRosterTable: React.FC<LMSRosterTableProps> = ({
       checkNameAgainst(
         item.name ?? '',
         users.filter((s) => s.id != item.id).map((s) => s.name ?? ''),
-      )
+      );
 
     return (
       <List.Item
@@ -207,26 +209,26 @@ const LMSRosterTable: React.FC<LMSRosterTableProps> = ({
                     .then(() => {
                       message.success(
                         `${item.name} successfully removed from the course`,
-                      )
-                      setTotalUsers((prev) => prev - 1)
-                      setUsers((prev) => prev.filter((u) => u.id != item.id))
+                      );
+                      setTotalUsers((prev) => prev - 1);
+                      setUsers((prev) => prev.filter((u) => u.id != item.id));
                     })
                     .catch(() => {
                       message.error(
                         `Failed to remove ${item.name} from the course`,
-                      )
-                    })
+                      );
+                    });
                 },
-              })
+              });
             }}
           />
         )}
       </List.Item>
-    )
-  }
+    );
+  };
 
   const LMSUserList = (props: { items: UserPartial[] }) => {
-    const { items } = props
+    const { items } = props;
     return (
       <List
         className={'p-2'}
@@ -235,26 +237,26 @@ const LMSRosterTable: React.FC<LMSRosterTableProps> = ({
         size="small"
         renderItem={(item: UserPartial) => <RosterItem item={item} />}
       ></List>
-    )
-  }
+    );
+  };
 
   const toggleView = (state: boolean) => {
-    setPage(1)
-    setSearch('')
-    setView(state)
-  }
+    setPage(1);
+    setSearch('');
+    setView(state);
+  };
 
   const noMatchHelpMe = useMemo(
     () =>
       users.filter((u) => !checkNameAgainst(u.name ?? '', lmsStudents)).length,
     [users, lmsStudents],
-  )
+  );
 
   if (!users) {
-    return <Spin tip="Loading..." size="large" />
+    return <Spin tip="Loading..." size="large" />;
   } else {
     const totalItems =
-      view || lmsUsers.length <= 0 ? totalUsers : matchingLMSUsers.length
+      view || lmsUsers.length <= 0 ? totalUsers : matchingLMSUsers.length;
     return (
       <div>
         <div className="bg-white">
@@ -363,8 +365,8 @@ const LMSRosterTable: React.FC<LMSRosterTableProps> = ({
           </div>
         </div>
       </div>
-    )
+    );
   }
-}
+};
 
-export default LMSRosterTable
+export default LMSRosterTable;

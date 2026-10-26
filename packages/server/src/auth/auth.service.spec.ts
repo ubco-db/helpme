@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import {
   AUTH_URL,
   AuthService,
@@ -19,8 +20,8 @@ import {
   OrganizationUserFactory,
   UserFactory,
 } from '../../test/util/factories';
+import type { AccountRegistrationParams } from '@koh/common';
 import {
-  AccountRegistrationParams,
   AccountType,
   ERROR_MESSAGES,
   OrganizationRole,
@@ -39,7 +40,7 @@ import { LoginModule } from '../login/login.module';
 import { LoginService } from '../login/login.service';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { OrganizationModel } from '../organization/organization.entity';
+import type { OrganizationModel } from '../organization/organization.entity';
 import {
   BadRequestException,
   HttpStatus,

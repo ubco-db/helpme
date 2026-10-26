@@ -1,22 +1,23 @@
-import { ReactElement, useEffect, useMemo, useState } from 'react'
-import { Badge, Button, Popover } from 'antd'
-import { X } from 'lucide-react'
-import QueueChat from './QueueChat'
-import { cn } from '@/app/utils/generalUtils'
-import { GetQueueChatsResponse } from '@koh/common'
+import type { ReactElement } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Badge, Button, Popover } from 'antd';
+import { X } from 'lucide-react';
+import QueueChat from './QueueChat';
+import { cn } from '@/app/utils/generalUtils';
+import type { GetQueueChatsResponse } from '@koh/common';
 
 export interface MessageCount {
-  newMessages: number
+  newMessages: number;
 }
 
 interface QueueChatsProps {
-  queueId: number
-  isMobile: boolean
-  isStaff: boolean
-  isChatbotOpen: boolean
-  setRenderSmallChatbot: (render: boolean) => void
-  setChatbotOpen: (open: boolean) => void
-  queueChats?: GetQueueChatsResponse
+  queueId: number;
+  isMobile: boolean;
+  isStaff: boolean;
+  isChatbotOpen: boolean;
+  setRenderSmallChatbot: (render: boolean) => void;
+  setChatbotOpen: (open: boolean) => void;
+  queueChats?: GetQueueChatsResponse;
 }
 
 /* Widget that has all queue chats for the user.
@@ -35,52 +36,52 @@ const QueueChats: React.FC<QueueChatsProps> = ({
 }): ReactElement => {
   const [messageCounts, setMessageCounts] = useState<
     Record<string, MessageCount>
-  >({})
+  >({});
   const [mobileQueueChatsExpanded, setMobileQueueChatsExpanded] =
-    useState(false) // To store the state of the mobile queue chat drawer
-  const [currentChatId, setCurrentChatId] = useState<string | null>(null) // To store the currently opened chat via the question id
-  const [seenChatPopover, setSeenChatPopover] = useState(false)
-  const [showNameTooltips, setShowNameTooltips] = useState(false)
+    useState(false); // To store the state of the mobile queue chat drawer
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null); // To store the currently opened chat via the question id
+  const [seenChatPopover, setSeenChatPopover] = useState(false);
+  const [showNameTooltips, setShowNameTooltips] = useState(false);
 
   const newMessagesInQueueChats = useMemo(() => {
     return Object.values(messageCounts).reduce(
       (sum, chat) => sum + chat.newMessages,
       0,
-    )
-  }, [messageCounts])
+    );
+  }, [messageCounts]);
 
   const resetNewMessagesInQueueChats = () => {
-    setMessageCounts({})
-  }
+    setMessageCounts({});
+  };
 
   useEffect(() => {
     const seenQueueChatPopover =
-      localStorage.getItem('seenChatPopover') == 'true'
-    setSeenChatPopover(seenQueueChatPopover)
+      localStorage.getItem('seenChatPopover') == 'true';
+    setSeenChatPopover(seenQueueChatPopover);
     if (!seenQueueChatPopover) {
       setTimeout(() => {
-        setSeenChatPopover(true)
-        localStorage.setItem('seenChatPopover', 'true')
-      }, 6000) // message will disappear after 6 seconds
+        setSeenChatPopover(true);
+        localStorage.setItem('seenChatPopover', 'true');
+      }, 6000); // message will disappear after 6 seconds
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
     if (mobileQueueChatsExpanded) {
-      setShowNameTooltips(true)
+      setShowNameTooltips(true);
       setTimeout(() => {
-        setShowNameTooltips(false)
-      }, 1000)
+        setShowNameTooltips(false);
+      }, 1000);
     } else {
-      setShowNameTooltips(false)
+      setShowNameTooltips(false);
     }
     return () => {
-      setShowNameTooltips(false)
-    }
-  }, [mobileQueueChatsExpanded])
+      setShowNameTooltips(false);
+    };
+  }, [mobileQueueChatsExpanded]);
 
   if (!queueChats) {
-    return <></>
+    return <></>;
   }
 
   return isMobile ? (
@@ -106,10 +107,10 @@ const QueueChats: React.FC<QueueChatsProps> = ({
         style={{ zIndex: 1050 }}
         onClick={() => {
           if (mobileQueueChatsExpanded || queueChats.length <= 1) {
-            return
+            return;
           }
-          setMobileQueueChatsExpanded(true)
-          resetNewMessagesInQueueChats()
+          setMobileQueueChatsExpanded(true);
+          resetNewMessagesInQueueChats();
         }}
       >
         <Badge
@@ -133,10 +134,10 @@ const QueueChats: React.FC<QueueChatsProps> = ({
           >
             {queueChats.map((chat, index) => {
               if (!chat.staff || !chat.student || !chat.staff.id) {
-                console.error('chat attribute is not defined', chat)
-                return null // should always be defined
+                console.error('chat attribute is not defined', chat);
+                return null; // should always be defined
               }
-              const chatId = `${chat.questionId}-${chat.staff.id}`
+              const chatId = `${chat.questionId}-${chat.staff.id}`;
               return (
                 <div
                   className={cn(!mobileQueueChatsExpanded ? `transform` : '')}
@@ -166,15 +167,15 @@ const QueueChats: React.FC<QueueChatsProps> = ({
                     }
                     showNameTooltip={showNameTooltips}
                     onOpen={() => {
-                      setChatbotOpen(false)
-                      setRenderSmallChatbot(false)
-                      resetNewMessagesInQueueChats()
-                      setCurrentChatId(chatId)
+                      setChatbotOpen(false);
+                      setRenderSmallChatbot(false);
+                      resetNewMessagesInQueueChats();
+                      setCurrentChatId(chatId);
                     }}
                     onClose={() => {
-                      setRenderSmallChatbot(true)
-                      setCurrentChatId(null)
-                      setMobileQueueChatsExpanded(false)
+                      setRenderSmallChatbot(true);
+                      setCurrentChatId(null);
+                      setMobileQueueChatsExpanded(false);
                     }}
                     hidden={
                       (currentChatId != chatId && currentChatId != null) ||
@@ -182,7 +183,7 @@ const QueueChats: React.FC<QueueChatsProps> = ({
                     }
                   />
                 </div>
-              )
+              );
             })}
             {mobileQueueChatsExpanded && currentChatId === null && (
               <Button
@@ -192,8 +193,8 @@ const QueueChats: React.FC<QueueChatsProps> = ({
                 className="border border-gray-300 bg-gray-200 p-6 text-gray-500 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
                 icon={<X />}
                 onClick={() => {
-                  setMobileQueueChatsExpanded(false)
-                  resetNewMessagesInQueueChats()
+                  setMobileQueueChatsExpanded(false);
+                  resetNewMessagesInQueueChats();
                 }}
               />
             )}
@@ -213,9 +214,9 @@ const QueueChats: React.FC<QueueChatsProps> = ({
     >
       {queueChats?.map((chat) => {
         if (!chat.staff || !chat.student || !chat.staff.id) {
-          return null
+          return null;
         }
-        const chatId = `${chat.questionId}-${chat.staff.id}`
+        const chatId = `${chat.questionId}-${chat.staff.id}`;
         return (
           <QueueChat
             key={chatId}
@@ -229,10 +230,10 @@ const QueueChats: React.FC<QueueChatsProps> = ({
             setMessageCounts={setMessageCounts}
             bubbleHidden={false}
           />
-        )
+        );
       })}
     </div>
-  )
-}
+  );
+};
 
-export default QueueChats
+export default QueueChats;

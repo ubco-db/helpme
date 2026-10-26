@@ -26,14 +26,14 @@ import {
 } from './util/testUtils';
 import { LmsIntegrationModule } from '../src/lmsIntegration/lmsIntegration.module';
 import { OrganizationUserModel } from '../src/organization/organization-user.entity';
-import { CourseModel } from '../src/course/course.entity';
-import { UserModel } from '../src/profile/user.entity';
+import type { CourseModel } from '../src/course/course.entity';
+import type { UserModel } from '../src/profile/user.entity';
 import { LMSIntegrationService } from '../src/lmsIntegration/lmsIntegration.service';
 import * as crypto from 'crypto';
 import { LMSAccessTokenModel } from '../src/lmsIntegration/lms-access-token.entity';
-import { OrganizationModel } from '../src/organization/organization.entity';
+import type { OrganizationModel } from '../src/organization/organization.entity';
 import { LMSOrganizationIntegrationModel } from '../src/lmsIntegration/lmsOrgIntegration.entity';
-import { LMSAuthStateModel } from '../src/lmsIntegration/lms-auth-state.entity';
+import type { LMSAuthStateModel } from '../src/lmsIntegration/lms-auth-state.entity';
 import { AbstractLMSAdapter } from '../src/lmsIntegration/lmsIntegration.adapter';
 import { LMSCourseIntegrationModel } from '../src/lmsIntegration/lmsCourseIntegration.entity';
 

@@ -1,8 +1,5 @@
-import {
-  createParamDecorator,
-  ExecutionContext,
-  ForbiddenException,
-} from '@nestjs/common';
+import type { ExecutionContext } from '@nestjs/common';
+import { createParamDecorator, ForbiddenException } from '@nestjs/common';
 import { QueueModel } from '../queue/queue.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 

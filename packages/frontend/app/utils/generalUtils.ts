@@ -1,25 +1,27 @@
+import type {
+  OrganizationSettingsResponse,
+  StandardAntdTagColor,
+  User,
+} from '@koh/common';
 import {
   LLMType,
   OrganizationRole,
-  OrganizationSettingsResponse,
   Role,
-  StandardAntdTagColor,
   STANDARD_ANTD_TAG_COLORS,
-  User,
   getModelSpeedAndQualityEstimate,
-} from '@koh/common'
+} from '@koh/common';
 
-export { getModelSpeedAndQualityEstimate }
-import { type ClassValue, clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
-import * as Sentry from '@sentry/nextjs'
+export { getModelSpeedAndQualityEstimate };
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+import * as Sentry from '@sentry/nextjs';
 
 /**
  * A utility function to merge Tailwind CSS classes with clsx. "cn" stands for className.
  * Comes from shadcn
  */
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 /**
@@ -28,8 +30,8 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function toOrdinal(n: number): string {
   const s = ['th', 'st', 'nd', 'rd'],
-    v = n % 100
-  return n + (s[(v - 20) % 10] || s[v] || s[0])
+    v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
 /**
@@ -38,12 +40,12 @@ export function toOrdinal(n: number): string {
 export function getInitialsFromName(name: string): string {
   if (name) {
     const initialsRegex =
-      name.replace("'", '').replace('-', '').match(/\b\w/g) || []
+      name.replace("'", '').replace('-', '').match(/\b\w/g) || [];
     return (
       (initialsRegex.shift() || '') + (initialsRegex.pop() || '')
-    ).toUpperCase()
+    ).toUpperCase();
   }
-  return ''
+  return '';
 }
 
 /**
@@ -52,7 +54,7 @@ export function getInitialsFromName(name: string): string {
  * @param others
  */
 export function checkNameAgainst(name: string, others: string[]) {
-  return others.map((o) => o.toLowerCase()).includes(name.toLowerCase())
+  return others.map((o) => o.toLowerCase()).includes(name.toLowerCase());
 }
 
 /**
@@ -62,19 +64,19 @@ export function checkNameAgainst(name: string, others: string[]) {
  */
 export default function stringToHexColor(str: string): string {
   // Create a hash from the string
-  let hash = 0
+  let hash = 0;
   for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
 
   // Convert the hash to a hex string
-  let color = '#'
+  let color = '#';
   for (let i = 0; i < 3; i++) {
-    const value = (hash >> (i * 8)) & 0xff
-    color += `0${value.toString(16)}`.slice(-2)
+    const value = (hash >> (i * 8)) & 0xff;
+    color += `0${value.toString(16)}`.slice(-2);
   }
 
-  return color
+  return color;
 }
 
 /**
@@ -84,16 +86,16 @@ export default function stringToHexColor(str: string): string {
  * @returns A StandardAntdTagColor value
  */
 export function stringToAntdTagColor(str: string): StandardAntdTagColor {
-  let hash = 0
+  let hash = 0;
   for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
   // Ensure the hash is a positive index
   const index =
     ((hash % STANDARD_ANTD_TAG_COLORS.length) +
       STANDARD_ANTD_TAG_COLORS.length) %
-    STANDARD_ANTD_TAG_COLORS.length
-  return STANDARD_ANTD_TAG_COLORS[index]
+    STANDARD_ANTD_TAG_COLORS.length;
+  return STANDARD_ANTD_TAG_COLORS[index];
 }
 
 /**
@@ -106,7 +108,7 @@ export function generateRandomHexColor(): string {
     Math.floor(Math.random() * 16777215)
       .toString(16)
       .padStart(6, '0')
-  )
+  );
 }
 
 /**
@@ -116,7 +118,7 @@ export function getRoleInCourse(userInfo: User, courseId: number): Role {
   return (
     userInfo?.courses.find((e) => e.course.id === courseId)?.role ??
     Role.STUDENT
-  )
+  );
 }
 
 /**
@@ -127,7 +129,7 @@ export function getRoleInCourse(userInfo: User, courseId: number): Role {
 export function getErrorMessage(e: any): any {
   if (e.response && e.response.status && e.response.status >= 500) {
     // Handle Axios errors with status code >= 500
-    Sentry.captureException(e)
+    Sentry.captureException(e);
   }
   return (
     e.response?.data?.message ?? // e.response.data is from axios
@@ -138,7 +140,7 @@ export function getErrorMessage(e: any): any {
     e.statusText ?? // response.statusText from fetch
     JSON.stringify(e) ??
     e
-  )
+  );
 }
 
 /**
@@ -147,11 +149,11 @@ export function getErrorMessage(e: any): any {
  * @returns a number between 0 and 255 representing the brightness of the color
  */
 export function getBrightness(color: string): number {
-  const rgb = parseInt(color.slice(1), 16)
-  const r = (rgb >> 16) & 0xff
-  const g = (rgb >> 8) & 0xff
-  const b = (rgb >> 0) & 0xff
-  return (r * 299 + g * 587 + b * 114) / 1000
+  const rgb = parseInt(color.slice(1), 16);
+  const r = (rgb >> 16) & 0xff;
+  const g = (rgb >> 8) & 0xff;
+  const b = (rgb >> 0) & 0xff;
+  return (r * 299 + g * 587 + b * 114) / 1000;
 }
 
 /**
@@ -168,23 +170,23 @@ export function getCroppedImg(
   originalFileType: string, // Pass the original file type
 ): Promise<File> {
   return new Promise((resolve, reject) => {
-    const image = new Image()
-    image.src = imageSrc
+    const image = new Image();
+    image.src = imageSrc;
 
     image.onload = () => {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
 
       if (!ctx) {
-        reject(new Error('Failed to get canvas context'))
-        return
+        reject(new Error('Failed to get canvas context'));
+        return;
       }
 
-      const { width, height, x, y } = crop
+      const { width, height, x, y } = crop;
 
       // Set canvas width and height to match the cropped area
-      canvas.width = width
-      canvas.height = height
+      canvas.width = width;
+      canvas.height = height;
 
       // Draw the cropped area onto the canvas
       ctx.drawImage(
@@ -197,107 +199,107 @@ export function getCroppedImg(
         0,
         width,
         height, // Destination coordinates and dimensions
-      )
+      );
 
       // Choose the correct file extension and mime type based on the original file
-      let fileExtension = 'png' // default to png
-      let mimeType = 'image/png' // default to png
+      let fileExtension = 'png'; // default to png
+      let mimeType = 'image/png'; // default to png
 
       if (
         originalFileType.includes('jpeg') ||
         originalFileType.includes('jpg')
       ) {
-        fileExtension = 'jpg'
-        mimeType = 'image/jpeg'
+        fileExtension = 'jpg';
+        mimeType = 'image/jpeg';
       } else if (originalFileType.includes('png')) {
-        fileExtension = 'png'
-        mimeType = 'image/png'
+        fileExtension = 'png';
+        mimeType = 'image/png';
       } else if (originalFileType.includes('webp')) {
-        fileExtension = 'webp'
-        mimeType = 'image/webp'
+        fileExtension = 'webp';
+        mimeType = 'image/webp';
       } else if (originalFileType.includes('avif')) {
-        fileExtension = 'avif'
-        mimeType = 'image/avif'
+        fileExtension = 'avif';
+        mimeType = 'image/avif';
       } else if (originalFileType.includes('gif')) {
-        fileExtension = 'gif'
-        mimeType = 'image/gif'
+        fileExtension = 'gif';
+        mimeType = 'image/gif';
       } else if (originalFileType.includes('tiff')) {
-        fileExtension = 'tiff'
-        mimeType = 'image/tiff'
+        fileExtension = 'tiff';
+        mimeType = 'image/tiff';
       } else if (originalFileType.includes('svg')) {
-        fileExtension = 'svg'
-        mimeType = 'image/svg+xml'
+        fileExtension = 'svg';
+        mimeType = 'image/svg+xml';
       }
 
       // Convert the canvas content to a Blob and then to a File
       canvas.toBlob((blob) => {
         if (!blob) {
-          reject(new Error('Canvas is empty'))
-          return
+          reject(new Error('Canvas is empty'));
+          return;
         }
 
         // Convert Blob to File, dynamically setting name and mime type
         const file = new File([blob], `cropped-image.${fileExtension}`, {
           type: mimeType,
-        })
-        resolve(file)
-      }, mimeType) // Pass the appropriate mimeType here
-    }
+        });
+        resolve(file);
+      }, mimeType); // Pass the appropriate mimeType here
+    };
 
     image.onerror = () => {
-      reject(new Error('Failed to load image in cropper'))
-    }
-  })
+      reject(new Error('Failed to load image in cropper'));
+    };
+  });
 }
 
 /* Used by chatbot to pass what page the user is on when the user is asking a System question */
 export function convertPathnameToPageName(pathname: string): string {
-  const URLSegments = pathname.split('/')
+  const URLSegments = pathname.split('/');
   // optimize this computer science major i dare you
   if (URLSegments[4] === 'edit_questions') {
-    return 'Edit Questions Page (Under Course Settings)'
+    return 'Edit Questions Page (Under Course Settings)';
   } else if (URLSegments[4] === 'chatbot_questions') {
-    return 'Edit Chatbot Questions Page (Under Course Settings)'
+    return 'Edit Chatbot Questions Page (Under Course Settings)';
   } else if (URLSegments[4] === 'chatbot_settings') {
-    return 'Chatbot Settings Page (Under Course Settings)'
+    return 'Chatbot Settings Page (Under Course Settings)';
   } else if (URLSegments[4] === 'queue_invites') {
-    return 'Queue Invites Page (Under Course Settings)'
+    return 'Queue Invites Page (Under Course Settings)';
   } else if (URLSegments[4] === 'check_in') {
-    return 'TA Check In/Out Times Page (Under Course Settings)'
+    return 'TA Check In/Out Times Page (Under Course Settings)';
   } else if (URLSegments[4] === 'roster') {
-    return 'Roster Page (Under Course Settings)'
+    return 'Roster Page (Under Course Settings)';
   } else if (
     URLSegments[1] === 'course' &&
     URLSegments[3] === 'settings' &&
     !URLSegments[4]
   ) {
-    return 'Course Settings Page'
+    return 'Course Settings Page';
   } else if (URLSegments[3] === 'async_centre') {
-    return 'Anytime Questions Page'
+    return 'Anytime Questions Page';
   } else if (URLSegments[3] === 'queue') {
-    return 'Queue Page'
+    return 'Queue Page';
   } else if (URLSegments[1] === 'course' && !URLSegments[3]) {
-    return 'Course Home Page'
+    return 'Course Home Page';
   } else if (URLSegments[3] === 'schedule') {
-    return 'Schedule Page'
+    return 'Schedule Page';
   }
-  return pathname
+  return pathname;
 }
 
 export function parseThinkBlock(answer: string) {
   // Look for <think>...</think> (the "s" flag lets it match across multiple lines)
-  const thinkRegex = /<think>([\s\S]*?)<\/think>/
-  const match = answer.match(thinkRegex)
+  const thinkRegex = /<think>([\s\S]*?)<\/think>/;
+  const match = answer.match(thinkRegex);
 
   if (!match) {
     // No <think> block, return the text unchanged
-    return { thinkText: null, cleanAnswer: answer }
+    return { thinkText: null, cleanAnswer: answer };
   }
 
-  const thinkText = match[1].trim()
-  const cleanAnswer = answer.replace(thinkRegex, '').trim()
+  const thinkText = match[1].trim();
+  const cleanAnswer = answer.replace(thinkRegex, '').trim();
 
-  return { thinkText, cleanAnswer }
+  return { thinkText, cleanAnswer };
 }
 
 export function checkCourseCreatePermissions(
@@ -308,5 +310,5 @@ export function checkCourseCreatePermissions(
     userInfo?.organization?.organizationRole == OrganizationRole.ADMIN ||
     (userInfo?.organization?.organizationRole == OrganizationRole.PROFESSOR &&
       organizationSettings?.allowProfCourseCreate)
-  )
+  );
 }

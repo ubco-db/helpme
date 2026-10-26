@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class asyncQuestionComments1738617591310 implements MigrationInterface {
   name = 'asyncQuestionComments1738617591310';

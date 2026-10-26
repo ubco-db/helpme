@@ -1,7 +1,7 @@
 import { config } from 'dotenv';
 import { isProd } from '@koh/common';
 import * as fs from 'fs';
-import { DataSourceOptions } from 'typeorm';
+import type { DataSourceOptions } from 'typeorm';
 import { CourseModel } from './src/course/course.entity';
 import { SemesterModel } from './src/semester/semester.entity';
 import { DesktopNotifModel } from './src/notification/desktop-notif.entity';

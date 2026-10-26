@@ -1,21 +1,23 @@
-import {
+import type {
   BatchCourseCloneAttributes,
   CourseCloneAttributes,
   CourseResponse,
   GetOrganizationResponse,
-} from '@koh/common'
-import Table, { ColumnsType } from 'antd/es/table'
-import React, { useEffect, useMemo, useState } from 'react'
-import { Button, Form, message, notification } from 'antd'
-import CourseCloneForm from '../../components/CourseCloneForm'
+} from '@koh/common';
+import type { ColumnsType } from 'antd/es/table';
+import Table from 'antd/es/table';
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Button, Form, message, notification } from 'antd';
+import CourseCloneForm from '../../components/CourseCloneForm';
 
 interface CustomizeCloneSettingsProps {
-  courses: CourseResponse[]
-  selectedCourseIds: number[]
-  defaultCloneSettings: CourseCloneAttributes
-  customCloneSettings: BatchCourseCloneAttributes
-  setCustomCloneSettings: (settings: BatchCourseCloneAttributes) => void
-  organization: GetOrganizationResponse
+  courses: CourseResponse[];
+  selectedCourseIds: number[];
+  defaultCloneSettings: CourseCloneAttributes;
+  customCloneSettings: BatchCourseCloneAttributes;
+  setCustomCloneSettings: (settings: BatchCourseCloneAttributes) => void;
+  organization: GetOrganizationResponse;
 }
 
 const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
@@ -26,32 +28,32 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
   setCustomCloneSettings,
   organization,
 }) => {
-  const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null)
+  const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [isSelectedCourseSaved, setIsSelectedCourseSaved] =
-    useState<boolean>(true)
-  const [form] = Form.useForm()
+    useState<boolean>(true);
+  const [form] = Form.useForm();
 
   useEffect(() => {
-    const updatedSettings: BatchCourseCloneAttributes = {}
+    const updatedSettings: BatchCourseCloneAttributes = {};
 
     selectedCourseIds.forEach((courseId) => {
-      const course = courses.find((course) => course.courseId === courseId)
+      const course = courses.find((course) => course.courseId === courseId);
       if (course) {
         updatedSettings[courseId] = {
           ...updatedSettings,
           ...defaultCloneSettings,
-        }
+        };
       }
-    })
-    setCustomCloneSettings(updatedSettings)
-  }, [selectedCourseIds, defaultCloneSettings])
+    });
+    setCustomCloneSettings(updatedSettings);
+  }, [selectedCourseIds, defaultCloneSettings]);
 
   // Update form values when selected course changes
   useEffect(() => {
     if (selectedCourseId && customCloneSettings[selectedCourseId]) {
-      form.setFieldsValue(customCloneSettings[selectedCourseId])
+      form.setFieldsValue(customCloneSettings[selectedCourseId]);
     }
-  }, [selectedCourseId, form, customCloneSettings])
+  }, [selectedCourseId, form, customCloneSettings]);
 
   const handleSaveClick = () => {
     if (selectedCourseId) {
@@ -62,15 +64,15 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
             ...customCloneSettings[selectedCourseId],
             ...values,
           },
-        }
-        setCustomCloneSettings(updatedSettings)
-        setIsSelectedCourseSaved(true)
+        };
+        setCustomCloneSettings(updatedSettings);
+        setIsSelectedCourseSaved(true);
         message.success(
           `Saved changes to clone configuration for: ${courses.find((course) => course.courseId === selectedCourseId)?.courseName || 'selected course'}`,
-        )
-      })
+        );
+      });
     }
-  }
+  };
 
   const columns: ColumnsType<CourseResponse> = [
     {
@@ -94,9 +96,9 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
                     <Button
                       size="small"
                       onClick={() => {
-                        handleSaveClick()
-                        notification.destroy('course_not_saved_notification')
-                        setSelectedCourseId(course.courseId)
+                        handleSaveClick();
+                        notification.destroy('course_not_saved_notification');
+                        setSelectedCourseId(course.courseId);
                       }}
                       type="primary"
                     >
@@ -106,18 +108,18 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
                       size="small"
                       onClick={() => {
                         // Without hitting the save button, the previous settings will already be set
-                        notification.destroy('course_not_saved_notification')
-                        setIsSelectedCourseSaved(true)
-                        setSelectedCourseId(course.courseId)
+                        notification.destroy('course_not_saved_notification');
+                        setIsSelectedCourseSaved(true);
+                        setSelectedCourseId(course.courseId);
                       }}
                     >
                       Revert to Previous
                     </Button>
                   </div>
                 ),
-              })
+              });
             } else {
-              setSelectedCourseId(course.courseId)
+              setSelectedCourseId(course.courseId);
             }
           }}
         >
@@ -125,13 +127,13 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
         </div>
       ),
     },
-  ]
+  ];
 
   const selectedCourses = useMemo(
     () =>
       courses.filter((course) => selectedCourseIds.includes(course.courseId)),
     [courses, selectedCourseIds],
-  )
+  );
   return (
     <div className="relative flex h-full gap-2">
       <div className="flex w-1/3">
@@ -175,7 +177,7 @@ const CustomizeCloneSettings: React.FC<CustomizeCloneSettingsProps> = ({
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default CustomizeCloneSettings
+export default CustomizeCloneSettings;

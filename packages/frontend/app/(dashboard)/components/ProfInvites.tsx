@@ -1,19 +1,19 @@
-'use client'
+'use client';
 
-import { API } from '@/app/api'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { cn, getErrorMessage } from '@/app/utils/generalUtils'
+import { API } from '@/app/api';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { cn, getErrorMessage } from '@/app/utils/generalUtils';
 import {
   CopyOutlined,
   DeleteOutlined,
   PlusOutlined,
   QuestionCircleOutlined,
-} from '@ant-design/icons'
-import {
+} from '@ant-design/icons';
+import type {
   GetProfInviteResponse,
   OrganizationCourseResponse,
-  OrganizationRole,
-} from '@koh/common'
+} from '@koh/common';
+import { OrganizationRole } from '@koh/common';
 import {
   Alert,
   Button,
@@ -26,75 +26,75 @@ import {
   message,
   Popconfirm,
   Tooltip,
-} from 'antd'
-import { useEffect, useState } from 'react'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
-import { useSearchParams } from 'next/navigation'
-import Link from 'next/link'
+} from 'antd';
+import { useEffect, useState } from 'react';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
-dayjs.extend(relativeTime)
+dayjs.extend(relativeTime);
 
 const isInviteUsable = (profInvite: GetProfInviteResponse) => {
   return (
     profInvite.expiresAt > new Date() &&
     profInvite.usesUsed < profInvite.maxUses
-  )
-}
+  );
+};
 
 interface FormValues {
-  maxUses: number
-  expiresAt: dayjs.Dayjs
-  makeOrgProf: boolean
+  maxUses: number;
+  expiresAt: dayjs.Dayjs;
+  makeOrgProf: boolean;
 }
 
 type ProfInvitesProps = {
-  courseData: OrganizationCourseResponse
-}
+  courseData: OrganizationCourseResponse;
+};
 
 const ProfInvites: React.FC<ProfInvitesProps> = ({ courseData }) => {
-  const [form] = Form.useForm()
-  const { userInfo } = useUserInfo()
-  const [profInvites, setProfInvites] = useState<GetProfInviteResponse[]>([])
-  const [showUnusableProfInvites, setShowUnusableProfInvites] = useState(false)
-  const [createProfInviteLoading, setCreateProfInviteLoading] = useState(false)
-  const searchParams = useSearchParams()
+  const [form] = Form.useForm();
+  const { userInfo } = useUserInfo();
+  const [profInvites, setProfInvites] = useState<GetProfInviteResponse[]>([]);
+  const [showUnusableProfInvites, setShowUnusableProfInvites] = useState(false);
+  const [createProfInviteLoading, setCreateProfInviteLoading] = useState(false);
+  const searchParams = useSearchParams();
   const showCreateProfNotice =
-    searchParams.get('show-create-prof-notice') === 'true'
+    searchParams.get('show-create-prof-notice') === 'true';
 
   const fetchProfInvites = async () => {
     if (
       userInfo.organization?.organizationRole !== OrganizationRole.ADMIN &&
       userInfo.organization?.organizationRole !== OrganizationRole.PROFESSOR
     ) {
-      return // shouldn't be necessary since the component is only rendered if the user is an admin or prof but just in case
+      return; // shouldn't be necessary since the component is only rendered if the user is an admin or prof but just in case
     }
     if (courseData.organizationId && courseData.courseId) {
       await API.profInvites
         .getAll(courseData.organizationId, courseData.courseId)
         .then((profInvites) => {
-          setProfInvites(profInvites)
-        })
+          setProfInvites(profInvites);
+        });
     } else {
       message.error(
         'Error fetching ProfInvites: organizationId or courseId not set',
-      )
+      );
     }
-  }
+  };
 
   const usableProfInvites = profInvites.filter((profInvite) =>
     isInviteUsable(profInvite),
-  )
+  );
   const unusableProfInvites = profInvites.filter(
     (profInvite) => !isInviteUsable(profInvite),
-  )
+  );
 
   useEffect(() => {
-    fetchProfInvites()
-  }, [])
+    fetchProfInvites();
+  }, []);
 
   const handleCreateProfInvite = async (values: FormValues) => {
-    setCreateProfInviteLoading(true)
+    setCreateProfInviteLoading(true);
     await API.profInvites
       .create(courseData.organizationId, {
         orgId: courseData.organizationId,
@@ -104,24 +104,24 @@ const ProfInvites: React.FC<ProfInvitesProps> = ({ courseData }) => {
         makeOrgProf: values.makeOrgProf,
       })
       .then(async () => {
-        await fetchProfInvites()
+        await fetchProfInvites();
       })
       .catch((error) => {
-        message.error('Error creating ProfInvite: ' + getErrorMessage(error))
-      })
-    setCreateProfInviteLoading(false)
-  }
+        message.error('Error creating ProfInvite: ' + getErrorMessage(error));
+      });
+    setCreateProfInviteLoading(false);
+  };
 
   useEffect(() => {
     // Putting the link as organization/course/${courseId}/edit?show-create-prof-notice=true#create-prof-invite-notice
     // didn't seem to work since the hash/anchor would seem to resolve before the component is rendered and not scroll
     if (showCreateProfNotice) {
-      const el = document.getElementById('create-prof-invite-notice')
+      const el = document.getElementById('create-prof-invite-notice');
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
-  }, [showCreateProfNotice])
+  }, [showCreateProfNotice]);
 
   return (
     <>
@@ -236,74 +236,74 @@ const ProfInvites: React.FC<ProfInvitesProps> = ({ courseData }) => {
           ))}
       </Card>
     </>
-  )
-}
+  );
+};
 
 const ProfInviteItem: React.FC<{
-  profInvite: GetProfInviteResponse
-  orgId: number
-  fetchProfInvites: () => void
+  profInvite: GetProfInviteResponse;
+  orgId: number;
+  fetchProfInvites: () => void;
 }> = ({ profInvite, orgId, fetchProfInvites }) => {
-  const [copyLinkText, setCopyLinkText] = useState('Copy Link')
-  const [isDeleteLoading, setIsDeleteLoading] = useState(false)
+  const [copyLinkText, setCopyLinkText] = useState('Copy Link');
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
 
   // used to make deletion of an invite instant only if it's < 1min since creation or < 10s after copying a link.
   // Assumption is that the cases where you're usually going to be certain you will want to delete it is either:
   // A: right after creating the invite (mistake, etc.)
   // B: right before you go to share it (you realize something is wrong, etc.)
-  const [lastCopiedAt, setLastCopiedAt] = useState<Date | null>(null)
-  const [isDeletePopoverOpen, setIsDeletePopoverOpen] = useState(false)
+  const [lastCopiedAt, setLastCopiedAt] = useState<Date | null>(null);
+  const [isDeletePopoverOpen, setIsDeletePopoverOpen] = useState(false);
   const handleDeletePopoverOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       // always allow closing
-      setIsDeletePopoverOpen(newOpen)
-      return
+      setIsDeletePopoverOpen(newOpen);
+      return;
     }
 
     // Instant delete if: created within 1 min OR copied within last 10s
-    const now = Date.now()
+    const now = Date.now();
     if (
       now - profInvite.createdAt.getTime() < 60 * 1000 ||
       (lastCopiedAt && now - lastCopiedAt.getTime() < 10 * 1000)
     ) {
-      handleDelete().then(() => setIsDeletePopoverOpen(false))
+      handleDelete().then(() => setIsDeletePopoverOpen(false));
     } else {
-      setIsDeletePopoverOpen(newOpen)
+      setIsDeletePopoverOpen(newOpen);
     }
-  }
+  };
 
-  const isHttps = window.location.protocol === 'https:'
-  const baseURL = `${isHttps ? 'https' : 'http'}://${window.location.host}`
-  const inviteURL = `${baseURL}/invite/prof/${profInvite.id}?&c=${profInvite.code}`
+  const isHttps = window.location.protocol === 'https:';
+  const baseURL = `${isHttps ? 'https' : 'http'}://${window.location.host}`;
+  const inviteURL = `${baseURL}/invite/prof/${profInvite.id}?&c=${profInvite.code}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(inviteURL).then(() => {
-      setCopyLinkText('Copied!')
-      setLastCopiedAt(new Date())
+      setCopyLinkText('Copied!');
+      setLastCopiedAt(new Date());
       setTimeout(() => {
-        setCopyLinkText('Copy Link')
-      }, 1000)
-    })
-  }
+        setCopyLinkText('Copy Link');
+      }, 1000);
+    });
+  };
 
   const handleDelete = async () => {
-    setIsDeleteLoading(true)
+    setIsDeleteLoading(true);
     await API.profInvites
       .delete(orgId, profInvite.id)
       .then(() => {
-        message.success('Professor invite deleted')
+        message.success('Professor invite deleted');
       })
       .catch((error) => {
-        message.error('Error deleting ProfInvite: ' + getErrorMessage(error))
+        message.error('Error deleting ProfInvite: ' + getErrorMessage(error));
       })
       .finally(() => {
-        setIsDeleteLoading(false)
-        fetchProfInvites()
-      })
-  }
+        setIsDeleteLoading(false);
+        fetchProfInvites();
+      });
+  };
 
-  const expiresAt = dayjs(profInvite.expiresAt)
-  const isInviteUnusable = !isInviteUsable(profInvite)
+  const expiresAt = dayjs(profInvite.expiresAt);
+  const isInviteUnusable = !isInviteUsable(profInvite);
 
   return (
     <List.Item className={cn(isInviteUnusable ? 'opacity-80 grayscale' : '')}>
@@ -394,7 +394,7 @@ const ProfInviteItem: React.FC<{
         </div>
       </div>
     </List.Item>
-  )
-}
+  );
+};
 
-export default ProfInvites
+export default ProfInvites;

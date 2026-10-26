@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class fixAsyncVotesDeletions1723745314496 implements MigrationInterface {
   name = 'fixAsyncVotesDeletions1723745314496';

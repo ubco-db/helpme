@@ -1,15 +1,17 @@
-import React from 'react'
-import { Button, Collapse, Popover, Tag, Typography } from 'antd'
-import { Role, SemesterPartial, UserCourse } from '@koh/common'
-import Link from 'next/link'
-import Table, { ColumnsType } from 'antd/es/table'
+import type React from 'react';
+import { Button, Collapse, Popover, Tag, Typography } from 'antd';
+import type { SemesterPartial, UserCourse } from '@koh/common';
+import { Role } from '@koh/common';
+import Link from 'next/link';
+import type { ColumnsType } from 'antd/es/table';
+import Table from 'antd/es/table';
 
-const { Panel } = Collapse
-const { Text } = Typography
+const { Panel } = Collapse;
+const { Text } = Typography;
 
 interface ArchivedCoursesProps {
-  archivedCourses: UserCourse[]
-  semesters: SemesterPartial[]
+  archivedCourses: UserCourse[];
+  semesters: SemesterPartial[];
 }
 
 const columns: ColumnsType<UserCourse> = [
@@ -53,14 +55,14 @@ const columns: ColumnsType<UserCourse> = [
             </p>
           )}
         </div>
-      ) : null
+      ) : null;
       return (
         <Popover content={popoverContent} title={semester?.name}>
           <Tag color="blue" className="text-base">
             {semester?.name ?? 'No Semester'}
           </Tag>
         </Popover>
-      )
+      );
     },
   },
   {
@@ -107,7 +109,7 @@ const columns: ColumnsType<UserCourse> = [
       </div>
     ),
   },
-]
+];
 
 const ArchivedCoursesSection: React.FC<ArchivedCoursesProps> = ({
   archivedCourses,
@@ -124,8 +126,8 @@ const ArchivedCoursesSection: React.FC<ArchivedCoursesProps> = ({
             .map((userCourse) => {
               const semester = semesters.find(
                 (s) => s.id === userCourse.course.semesterId,
-              )
-              return { ...userCourse, semester }
+              );
+              return { ...userCourse, semester };
             })}
           rowKey={(userCourse: UserCourse) => userCourse.course.id}
           pagination={archivedCourses.length > 5 ? { pageSize: 5 } : false}
@@ -133,7 +135,7 @@ const ArchivedCoursesSection: React.FC<ArchivedCoursesProps> = ({
         />
       </Panel>
     </Collapse>
-  )
-}
+  );
+};
 
-export default ArchivedCoursesSection
+export default ArchivedCoursesSection;

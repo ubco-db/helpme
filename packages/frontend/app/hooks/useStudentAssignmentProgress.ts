@@ -1,6 +1,6 @@
-import useSWR from 'swr'
-import { API } from '../api'
-import { StudentAssignmentProgress } from '@koh/common'
+import useSWR from 'swr';
+import { API } from '../api';
+import type { StudentAssignmentProgress } from '@koh/common';
 
 // needed to make this use useSWR so that the student's client gets updated with the new tasks they finished
 // could also use websockets, but that's a bit overkill
@@ -14,7 +14,7 @@ export function useStudentAssignmentProgress(
   const key =
     cid && userId && assignmentId
       ? `/api/studentTaskProgress/student/${userId}/${cid}/${assignmentId}`
-      : null
+      : null;
   const {
     data: studentAssignmentProgress,
     mutate: mutateStudentAssignmentProgress,
@@ -24,10 +24,10 @@ export function useStudentAssignmentProgress(
         userId,
         cid,
         assignmentId,
-      )
+      );
     } else {
-      return undefined
+      return undefined;
     }
-  })
-  return [studentAssignmentProgress, mutateStudentAssignmentProgress]
+  });
+  return [studentAssignmentProgress, mutateStudentAssignmentProgress];
 }

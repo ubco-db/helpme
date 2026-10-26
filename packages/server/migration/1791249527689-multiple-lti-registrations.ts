@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class MultipleLtiRegistrations1791249527689 implements MigrationInterface {
   name = 'MultipleLtiRegistrations1791249527689';

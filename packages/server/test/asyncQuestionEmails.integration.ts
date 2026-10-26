@@ -1,9 +1,9 @@
 import { asyncQuestionStatus, MailServiceType, Role } from '@koh/common';
-import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
+import type { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import { asyncQuestionModule } from 'asyncQuestion/asyncQuestion.module';
-import { CourseModel } from 'course/course.entity';
+import type { CourseModel } from 'course/course.entity';
 import { UserSubscriptionModel } from 'mail/user-subscriptions.entity';
-import { UserModel } from 'profile/user.entity';
+import type { UserModel } from 'profile/user.entity';
 import {
   AsyncQuestionCommentFactory,
   AsyncQuestionFactory,
@@ -20,7 +20,7 @@ import {
   overrideEmailService,
   setupIntegrationTest,
 } from './util/testUtils';
-import { MailServiceModel } from 'mail/mail-services.entity';
+import type { MailServiceModel } from 'mail/mail-services.entity';
 
 /* These are integration tests to make sure they are sending the right emails.
     The reason why these aren't in asyncQuestion.integration.ts is these have different setups and mocks and separating them helps keep it organised.

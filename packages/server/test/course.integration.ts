@@ -1,17 +1,19 @@
+import type {
+  CourseCloneAttributes,
+  AlertPayloadToast,
+  CloneCoursePayload,
+  TACheckinTimesResponse,
+} from '@koh/common';
 import {
   AlertDeliveryMode,
   AlertType,
   asyncQuestionStatus,
-  CourseCloneAttributes,
-  AlertPayloadToast,
-  CloneCoursePayload,
   ERROR_MESSAGES,
   ExtraTAStatus,
   OrganizationRole,
   QuestionStatusKeys,
   Role,
   SuperCoursePurpose,
-  TACheckinTimesResponse,
   ToastType,
   UserCourse,
   validFeatures,

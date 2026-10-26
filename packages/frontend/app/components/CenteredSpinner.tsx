@@ -1,8 +1,8 @@
-import { Spin } from 'antd'
-import { ReactElement } from 'react'
+import { Spin } from 'antd';
+import type { ReactElement } from 'react';
 
 interface CenteredSpinnerProps {
-  tip: string
+  tip: string;
 }
 
 const CenteredSpinner: React.FC<CenteredSpinnerProps> = ({
@@ -14,7 +14,7 @@ const CenteredSpinner: React.FC<CenteredSpinnerProps> = ({
         <div className="p-20" />
       </Spin>
     </div>
-  )
-}
+  );
+};
 
-export default CenteredSpinner
+export default CenteredSpinner;

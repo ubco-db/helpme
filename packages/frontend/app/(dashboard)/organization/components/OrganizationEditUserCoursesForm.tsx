@@ -1,22 +1,22 @@
-import { API } from '@/app/api'
-import {
+import { API } from '@/app/api';
+import type {
   GetOrganizationResponse,
   GetOrganizationUserResponse,
-} from '@koh/common'
-import { Button, message, Table } from 'antd'
-import { ColumnsType } from 'antd/lib/table'
-import { useState } from 'react'
+} from '@koh/common';
+import { Button, message, Table } from 'antd';
+import type { ColumnsType } from 'antd/lib/table';
+import { useState } from 'react';
 
 type OrganizationEditUserCoursesFormProps = {
-  userData: GetOrganizationUserResponse
-  organization: GetOrganizationResponse
-  fetchUserData: () => void
-}
+  userData: GetOrganizationUserResponse;
+  organization: GetOrganizationResponse;
+  fetchUserData: () => void;
+};
 
 interface CourseType {
-  id: number
-  name: string
-  role: string
+  id: number;
+  name: string;
+  role: string;
 }
 
 const courseColumns: ColumnsType<CourseType> = [
@@ -32,23 +32,23 @@ const courseColumns: ColumnsType<CourseType> = [
     title: 'Course Role',
     dataIndex: 'role',
   },
-]
+];
 
 const OrganizationEditUserCoursesForm: React.FC<
   OrganizationEditUserCoursesFormProps
 > = ({ userData, organization, fetchUserData }) => {
-  const [hasSelected, setHasSelected] = useState(false)
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
+  const [hasSelected, setHasSelected] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   const onSelectChange = (selectedRowKeys: React.Key[]) => {
-    setSelectedRowKeys(selectedRowKeys)
-    setHasSelected(selectedRowKeys.length > 0)
-  }
+    setSelectedRowKeys(selectedRowKeys);
+    setHasSelected(selectedRowKeys.length > 0);
+  };
 
   const dropCourses = async () => {
     if (!hasSelected) {
-      message.error('No courses were selected')
-      return
+      message.error('No courses were selected');
+      return;
     }
 
     await API.organizations
@@ -58,17 +58,17 @@ const OrganizationEditUserCoursesForm: React.FC<
         selectedRowKeys as number[],
       )
       .then(() => {
-        message.success('User courses were dropped')
+        message.success('User courses were dropped');
         setTimeout(async () => {
-          fetchUserData()
-        }, 1750)
+          fetchUserData();
+        }, 1750);
       })
       .catch((error) => {
-        const errorMessage = error.response.data.message
+        const errorMessage = error.response.data.message;
 
-        message.error(errorMessage)
-      })
-  }
+        message.error(errorMessage);
+      });
+  };
 
   return (
     <div>
@@ -92,7 +92,7 @@ const OrganizationEditUserCoursesForm: React.FC<
         columns={courseColumns}
       />
     </div>
-  )
-}
+  );
+};
 
-export default OrganizationEditUserCoursesForm
+export default OrganizationEditUserCoursesForm;

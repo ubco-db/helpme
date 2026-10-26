@@ -1,12 +1,6 @@
-'use client'
-import {
-  Fragment,
-  ReactElement,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+'use client';
+import type { ReactElement } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Avatar,
   Button,
@@ -18,66 +12,61 @@ import {
   Space,
   Spin,
   Tooltip,
-} from 'antd'
+} from 'antd';
 import {
   CheckCircleOutlined,
   CloseOutlined,
   RobotOutlined,
   UserOutlined,
-} from '@ant-design/icons'
-import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
-import { useUserInfo } from '@/app/contexts/userContext'
+} from '@ant-design/icons';
+import { useCourseFeatures } from '@/app/hooks/useCourseFeatures';
+import { useUserInfo } from '@/app/contexts/userContext';
 import {
   cn,
   convertPathnameToPageName,
   getErrorMessage,
   getRoleInCourse,
-} from '@/app/utils/generalUtils'
-import { Feedback } from './Feedback'
+} from '@/app/utils/generalUtils';
+import { Feedback } from './Feedback';
+import type { ChatbotQuestionType } from '@/app/typings/chatbot';
 import {
-  ChatbotQuestionType,
   chatbotStartingMessageCourse,
   chatbotStartingMessageSystem,
-} from '@/app/typings/chatbot'
-import { API } from '@/app/api'
-import MarkdownCustom from '@/app/components/Markdown'
-import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { useCourse } from '@/app/hooks/useCourse'
-import {
-  isProd,
-  Message,
-  parseThinkBlock,
-  PreDeterminedQuestion,
-  Role,
-} from '@koh/common'
-import { Bot } from 'lucide-react'
-import { useChatbotContext } from './ChatbotProvider'
+} from '@/app/typings/chatbot';
+import { API } from '@/app/api';
+import MarkdownCustom from '@/app/components/Markdown';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { useCourse } from '@/app/hooks/useCourse';
+import type { Message, PreDeterminedQuestion } from '@koh/common';
+import { isProd, parseThinkBlock, Role } from '@koh/common';
+import { Bot } from 'lucide-react';
+import { useChatbotContext } from './ChatbotProvider';
 
-const { TextArea } = Input
-type AgentSelectValue = number | Extract<ChatbotQuestionType, 'System'>
+const { TextArea } = Input;
+type AgentSelectValue = number | Extract<ChatbotQuestionType, 'System'>;
 
 interface ChatbotProps {
-  cid: number
-  variant?: 'small' | 'big' | 'huge'
-  preDeterminedQuestions: PreDeterminedQuestion[]
+  cid: number;
+  variant?: 'small' | 'big' | 'huge';
+  preDeterminedQuestions: PreDeterminedQuestion[];
   setPreDeterminedQuestions: React.Dispatch<
     React.SetStateAction<PreDeterminedQuestion[]>
-  >
-  questionsLeft: number
-  setQuestionsLeft: React.Dispatch<React.SetStateAction<number>>
-  messages: Message[]
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>
-  isOpen: boolean
-  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>
-  interactionId?: number
-  setInteractionId: React.Dispatch<React.SetStateAction<number | undefined>>
-  helpmeQuestionId: number | undefined
-  setHelpmeQuestionId: React.Dispatch<React.SetStateAction<number | undefined>>
-  chatbotQuestionType: ChatbotQuestionType
+  >;
+  questionsLeft: number;
+  setQuestionsLeft: React.Dispatch<React.SetStateAction<number>>;
+  messages: Message[];
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  isOpen: boolean;
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  interactionId?: number;
+  setInteractionId: React.Dispatch<React.SetStateAction<number | undefined>>;
+  helpmeQuestionId: number | undefined;
+  setHelpmeQuestionId: React.Dispatch<React.SetStateAction<number | undefined>>;
+  chatbotQuestionType: ChatbotQuestionType;
   setChatbotQuestionType: React.Dispatch<
     React.SetStateAction<ChatbotQuestionType>
-  >
+  >;
 }
 
 const Chatbot: React.FC<ChatbotProps> = ({
@@ -98,37 +87,37 @@ const Chatbot: React.FC<ChatbotProps> = ({
   chatbotQuestionType,
   setChatbotQuestionType,
 }): ReactElement => {
-  const [input, setInput] = useState('')
-  const { userInfo, setUserInfo } = useUserInfo()
-  const [isLoading, setIsLoading] = useState(false)
-  const courseFeatures = useCourseFeatures(cid)
-  const { course } = useCourse(cid)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const hasAskedQuestion = useRef(false) // to track if the user has asked a question
-  const pathname = usePathname()
-  const router = useRouter()
-  const currentPageTitle = convertPathnameToPageName(pathname)
-  const [popResetOpen, setPopResetOpen] = useState(false)
+  const [input, setInput] = useState('');
+  const { userInfo, setUserInfo } = useUserInfo();
+  const [isLoading, setIsLoading] = useState(false);
+  const courseFeatures = useCourseFeatures(cid);
+  const { course } = useCourse(cid);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasAskedQuestion = useRef(false); // to track if the user has asked a question
+  const pathname = usePathname();
+  const router = useRouter();
+  const currentPageTitle = convertPathnameToPageName(pathname);
+  const [popResetOpen, setPopResetOpen] = useState(false);
   // used to temporarily store what question type the user is trying to change to
   const [tempChatbotQuestionType, setTempChatbotQuestionType] =
-    useState<ChatbotQuestionType | null>(null)
+    useState<ChatbotQuestionType | null>(null);
   const {
     agents,
     hasLoadedAgents,
     selectedAgentCourseId,
     setSelectedAgentCourseId,
-  } = useChatbotContext()
+  } = useChatbotContext();
   const [tempAgentSelectValue, setTempAgentSelectValue] = useState<
     AgentSelectValue | undefined
-  >()
-  const role = getRoleInCourse(userInfo, cid)
-  const helpMeCourseId = Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID)
-  const hasHelpMeSystem = Boolean(helpMeCourseId)
+  >();
+  const role = getRoleInCourse(userInfo, cid);
+  const helpMeCourseId = Number(process.env.NEXT_PUBLIC_HELPME_COURSE_ID);
+  const hasHelpMeSystem = Boolean(helpMeCourseId);
 
-  const isLti = useMemo(() => pathname.startsWith('/lti'), [pathname])
+  const isLti = useMemo(() => pathname.startsWith('/lti'), [pathname]);
   const courseIdToUse =
     selectedAgentCourseId ??
-    (chatbotQuestionType === 'System' ? helpMeCourseId || -1 : cid)
+    (chatbotQuestionType === 'System' ? helpMeCourseId || -1 : cid);
 
   useEffect(() => {
     if (
@@ -136,20 +125,20 @@ const Chatbot: React.FC<ChatbotProps> = ({
       hasLoadedAgents &&
       (agents.length === 0 || chatbotQuestionType === 'System')
     ) {
-      setPreDeterminedQuestions([])
+      setPreDeterminedQuestions([]);
       API.chatbot.studentsOrStaff
         .getSuggestedQuestions(courseIdToUse)
         .then((questions) => {
-          setPreDeterminedQuestions(questions)
+          setPreDeterminedQuestions(questions);
         })
         .catch((err) => {
           if (isProd()) {
-            console.error(err)
+            console.error(err);
           } // ignore on dev since it's annoying seeing nextjs give a red warning on every page
-        })
+        });
     }
     if (userInfo.chat_token) {
-      setQuestionsLeft(userInfo.chat_token.max_uses - userInfo.chat_token.used)
+      setQuestionsLeft(userInfo.chat_token.max_uses - userInfo.chat_token.used);
     }
   }, [
     userInfo,
@@ -160,15 +149,15 @@ const Chatbot: React.FC<ChatbotProps> = ({
     agents.length,
     chatbotQuestionType,
     hasLoadedAgents,
-  ])
+  ]);
 
   const handleAsk = async () => {
     if (!hasAskedQuestion.current) {
-      hasAskedQuestion.current = true
-      setPreDeterminedQuestions([]) // clear predetermined questions upon the first question
+      hasAskedQuestion.current = true;
+      setPreDeterminedQuestions([]); // clear predetermined questions upon the first question
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     const data = {
       question:
@@ -179,15 +168,15 @@ const Chatbot: React.FC<ChatbotProps> = ({
           : input,
       history: messages,
       interactionId: interactionId,
-    }
+    };
 
     await API.chatbot.studentsOrStaff
       .askQuestion(courseIdToUse, data)
       .then((chatbotResponse) => {
-        const answer = chatbotResponse.chatbotRepoVersion.answer
-        const { thinkText, cleanAnswer } = parseThinkBlock(answer)
+        const answer = chatbotResponse.chatbotRepoVersion.answer;
+        const { thinkText, cleanAnswer } = parseThinkBlock(answer);
         const sourceDocuments =
-          chatbotResponse.chatbotRepoVersion.sourceDocuments ?? []
+          chatbotResponse.chatbotRepoVersion.sourceDocuments ?? [];
         setMessages((prevMessages: Message[]) => [
           ...prevMessages,
           { type: 'userMessage', message: input },
@@ -199,13 +188,13 @@ const Chatbot: React.FC<ChatbotProps> = ({
             questionId: chatbotResponse.chatbotRepoVersion.questionId,
             thinkText: thinkText,
           },
-        ])
-        setHelpmeQuestionId(chatbotResponse?.helpmeRepoVersion?.id)
-        setInteractionId(chatbotResponse?.helpmeRepoVersion?.interactionId)
+        ]);
+        setHelpmeQuestionId(chatbotResponse?.helpmeRepoVersion?.id);
+        setInteractionId(chatbotResponse?.helpmeRepoVersion?.interactionId);
       })
       .catch((err) => {
-        console.error(err)
-        const answer = `Sorry, I couldn't find the answer. An error occurred: ${getErrorMessage(err)}`
+        console.error(err);
+        const answer = `Sorry, I couldn't find the answer. An error occurred: ${getErrorMessage(err)}`;
         setMessages((prevMessages: Message[]) => [
           ...prevMessages,
           { type: 'userMessage', message: input },
@@ -217,28 +206,30 @@ const Chatbot: React.FC<ChatbotProps> = ({
             questionId: undefined,
             thinkText: null,
           },
-        ])
+        ]);
       })
       .finally(() => {
         if (questionsLeft > 0) {
-          setQuestionsLeft(questionsLeft - 1)
+          setQuestionsLeft(questionsLeft - 1);
           setUserInfo({
             ...userInfo,
             chat_token: {
               ...userInfo.chat_token,
               used: userInfo.chat_token.used + 1,
             },
-          })
+          });
         }
-        setIsLoading(false)
-        setInput('')
-      })
-  }
+        setIsLoading(false);
+        setInput('');
+      });
+  };
 
   const answerPreDeterminedQuestion = async (
     question: PreDeterminedQuestion,
   ) => {
-    const { thinkText, cleanAnswer } = parseThinkBlock(question.metadata.answer)
+    const { thinkText, cleanAnswer } = parseThinkBlock(
+      question.metadata.answer,
+    );
     setMessages((prevMessages) => [
       ...prevMessages,
       { type: 'userMessage', message: question.pageContent },
@@ -250,18 +241,18 @@ const Chatbot: React.FC<ChatbotProps> = ({
         questionId: question.id,
         thinkText: thinkText,
       },
-    ])
-    setPreDeterminedQuestions([])
+    ]);
+    setPreDeterminedQuestions([]);
 
     const helpmeQuestion =
       await API.chatbot.studentsOrStaff.askSuggestedQuestion(courseIdToUse, {
         vectorStoreId: question.id,
         question: question.pageContent,
         responseText: question.metadata.answer, // store full question (including think text) in db
-      })
-    setHelpmeQuestionId(helpmeQuestion.id)
-    setInteractionId(helpmeQuestion.interactionId)
-  }
+      });
+    setHelpmeQuestionId(helpmeQuestion.id);
+    setInteractionId(helpmeQuestion.interactionId);
+  };
 
   /* newChatbotQuestionType was added to allow us to reset the chat using a new chatbotQuestionType.
   The reason being is that you can't just setChatbotQuestionType and then call resetChat because the resetChat call will finish before react updates the state
@@ -275,28 +266,28 @@ const Chatbot: React.FC<ChatbotProps> = ({
             ? chatbotStartingMessageSystem
             : chatbotStartingMessageCourse,
       },
-    ])
-    hasAskedQuestion.current = false
-    setInteractionId(undefined)
-    setHelpmeQuestionId(undefined)
-    setInput('')
-  }
+    ]);
+    hasAskedQuestion.current = false;
+    setInteractionId(undefined);
+    setHelpmeQuestionId(undefined);
+    setInput('');
+  };
 
   const selectedAgentSelectValue =
-    chatbotQuestionType === 'System' ? 'System' : selectedAgentCourseId
+    chatbotQuestionType === 'System' ? 'System' : selectedAgentCourseId;
 
   const applyAgentSelectValue = (newValue: AgentSelectValue) => {
     if (newValue === 'System') {
-      setChatbotQuestionType('System')
-      setSelectedAgentCourseId(undefined)
-      resetChat('System')
-      return
+      setChatbotQuestionType('System');
+      setSelectedAgentCourseId(undefined);
+      resetChat('System');
+      return;
     }
 
-    setChatbotQuestionType('Course')
-    setSelectedAgentCourseId(newValue)
-    resetChat('Course')
-  }
+    setChatbotQuestionType('Course');
+    setSelectedAgentCourseId(newValue);
+    resetChat('Course');
+  };
 
   const agentSelect = (
     <Select<AgentSelectValue>
@@ -328,19 +319,19 @@ const Chatbot: React.FC<ChatbotProps> = ({
       ]}
       onChange={(newValue) => {
         if (newValue === selectedAgentSelectValue) {
-          return
+          return;
         }
         if (messages.length > 1) {
-          setTempAgentSelectValue(newValue)
+          setTempAgentSelectValue(newValue);
         } else {
-          applyAgentSelectValue(newValue)
+          applyAgentSelectValue(newValue);
         }
       }}
     />
-  )
+  );
 
   if (!cid || !courseFeatures?.chatBotEnabled) {
-    return <></>
+    return <></>;
   } else {
     return isOpen ? (
       <div
@@ -383,8 +374,8 @@ const Chatbot: React.FC<ChatbotProps> = ({
                     open={tempAgentSelectValue !== undefined}
                     onConfirm={() => {
                       if (tempAgentSelectValue !== undefined) {
-                        applyAgentSelectValue(tempAgentSelectValue)
-                        setTempAgentSelectValue(undefined)
+                        applyAgentSelectValue(tempAgentSelectValue);
+                        setTempAgentSelectValue(undefined);
                       }
                     }}
                     onCancel={() => setTempAgentSelectValue(undefined)}
@@ -405,9 +396,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
                   open={tempChatbotQuestionType !== null}
                   onConfirm={() => {
                     if (tempChatbotQuestionType) {
-                      setChatbotQuestionType(tempChatbotQuestionType)
-                      setTempChatbotQuestionType(null)
-                      resetChat(tempChatbotQuestionType)
+                      setChatbotQuestionType(tempChatbotQuestionType);
+                      setTempChatbotQuestionType(null);
+                      resetChat(tempChatbotQuestionType);
                     }
                   }}
                   onCancel={() => setTempChatbotQuestionType(null)}
@@ -418,7 +409,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                     value={chatbotQuestionType}
                     onChange={(newValue) => {
                       if (newValue !== chatbotQuestionType) {
-                        setTempChatbotQuestionType(newValue)
+                        setTempChatbotQuestionType(newValue);
                       }
                     }}
                   />
@@ -429,8 +420,8 @@ const Chatbot: React.FC<ChatbotProps> = ({
                     options={['Course', 'System']}
                     value={chatbotQuestionType}
                     onChange={(value) => {
-                      setChatbotQuestionType(value)
-                      resetChat(value)
+                      setChatbotQuestionType(value);
+                      resetChat(value);
                     }}
                   />
                 )
@@ -443,10 +434,10 @@ const Chatbot: React.FC<ChatbotProps> = ({
                 open={popResetOpen}
                 onOpenChange={(open) => {
                   if (messages.length > 1) {
-                    setPopResetOpen(open)
+                    setPopResetOpen(open);
                   } else {
                     // reset chat right away if there are no messages
-                    resetChat()
+                    resetChat();
                   }
                 }}
                 onConfirm={() => resetChat()}
@@ -675,7 +666,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                       onConfirm={() => {
                         router.push(
                           `/course/${cid}/async_centre?convertChatbotQ=true`,
-                        )
+                        );
                       }}
                     >
                       <Link
@@ -684,7 +675,7 @@ const Chatbot: React.FC<ChatbotProps> = ({
                           query: { convertChatbotQ: true },
                         }}
                         onNavigate={(e) => {
-                          e.preventDefault()
+                          e.preventDefault();
                         }}
                       >
                         Convert to Anytime Question
@@ -704,9 +695,9 @@ const Chatbot: React.FC<ChatbotProps> = ({
                   placeholder="Ask something... (Shift+Enter for new line)"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
+                      e.preventDefault();
                       if (input.trim().length > 0 && !isLoading) {
-                        handleAsk()
+                        handleAsk();
                       }
                     }
                   }}
@@ -755,21 +746,21 @@ const Chatbot: React.FC<ChatbotProps> = ({
           onClick={() => setIsOpen(true)}
         />
       </div>
-    )
+    );
   }
-}
+};
 
-export default Chatbot
+export default Chatbot;
 
 const SourceLinkButton: React.FC<{
-  docName: string
-  sourceLink?: string
-  part?: number
+  docName: string;
+  sourceLink?: string;
+  part?: number;
 }> = ({ docName, sourceLink, part }) => {
   if (!sourceLink) {
-    return null
+    return null;
   }
-  const pageNumber = part && !isNaN(part) ? Number(part) : undefined
+  const pageNumber = part && !isNaN(part) ? Number(part) : undefined;
 
   return (
     <a
@@ -791,5 +782,5 @@ const SourceLinkButton: React.FC<{
         {part ? `p. ${part}` : 'Source'}
       </p>
     </a>
-  )
-}
+  );
+};

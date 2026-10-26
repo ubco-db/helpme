@@ -1,22 +1,22 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import FullCalendar from '@fullcalendar/react'
-import timeGridPlugin from '@fullcalendar/timegrid'
-import listPlugin from '@fullcalendar/list'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import { message, Spin } from 'antd'
-import { API } from '@/app/api'
-import { format } from 'date-fns'
-import { Calendar } from '@koh/common'
-import { Event } from '@/app/typings/types'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { useMediaQuery } from '@/app/hooks/useMediaQuery'
-import tinycolor from 'tinycolor2'
-import EventTooltip from './EventTooltip'
+import { useState, useEffect, useRef, useCallback } from 'react';
+import FullCalendar from '@fullcalendar/react';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import listPlugin from '@fullcalendar/list';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import { message, Spin } from 'antd';
+import { API } from '@/app/api';
+import { format } from 'date-fns';
+import type { Calendar } from '@koh/common';
+import type { Event } from '@/app/typings/types';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { useMediaQuery } from '@/app/hooks/useMediaQuery';
+import tinycolor from 'tinycolor2';
+import EventTooltip from './EventTooltip';
 
 type ScheduleProps = {
-  courseId: number
-  defaultView?: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek'
-}
+  courseId: number;
+  defaultView?: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek';
+};
 
 /**
  * Note that for mobile, the defaultView gets ovverriden to 'timeGridDay'
@@ -25,39 +25,39 @@ const StudentSchedulePanel: React.FC<ScheduleProps> = ({
   courseId,
   defaultView = 'timeGridWeek',
 }) => {
-  const isMobile = useMediaQuery('(max-width: 768px)')
-  const [events, setEvents] = useState<any>([])
-  const calendarRef = useRef<FullCalendar>(null)
-  const spinnerRef = useRef<HTMLDivElement | null>(null)
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const [events, setEvents] = useState<any>([]);
+  const calendarRef = useRef<FullCalendar>(null);
+  const spinnerRef = useRef<HTMLDivElement | null>(null);
 
   const getEvent = useCallback(async () => {
     try {
-      const result = await API.calendar.getEvents(Number(courseId))
-      const modifiedEvents = result.map((event) => parseEvent(event))
-      setEvents(modifiedEvents)
+      const result = await API.calendar.getEvents(Number(courseId));
+      const modifiedEvents = result.map((event) => parseEvent(event));
+      setEvents(modifiedEvents);
     } catch (error) {
-      const errorMessage = getErrorMessage(error)
-      message.error('An error occurred while fetching events:' + errorMessage)
+      const errorMessage = getErrorMessage(error);
+      message.error('An error occurred while fetching events:' + errorMessage);
     }
-  }, [courseId, setEvents])
+  }, [courseId, setEvents]);
 
   useEffect(() => {
     if (courseId) {
-      getEvent()
+      getEvent();
     }
-  }, [courseId, getEvent])
+  }, [courseId, getEvent]);
 
   const parseEvent = (event: Calendar) => {
-    const startTime = new Date(event.start)
-    const endTime = new Date(event.end)
+    const startTime = new Date(event.start);
+    const endTime = new Date(event.end);
     const textColor = event.color
       ? tinycolor(event.color).isDark()
         ? '#fff'
         : '#000'
-      : '#fff'
+      : '#fff';
     const borderColor = event.color
       ? tinycolor(event.color).darken(10).toString()
-      : '#3788d8'
+      : '#3788d8';
     const returnEvent: Event = {
       id: event.id,
       title: event.title,
@@ -71,25 +71,25 @@ const StudentSchedulePanel: React.FC<ScheduleProps> = ({
       borderColor: borderColor,
       textColor: textColor,
       staffNames: event.staffNames ?? [],
-    }
+    };
     if (event.endDate) {
-      returnEvent['endRecur'] = event.endDate
-      returnEvent['daysOfWeek'] = event.daysOfWeek
-      returnEvent['startTime'] = format(startTime, 'HH:mm')
-      returnEvent['endTime'] = format(endTime, 'HH:mm')
-      return returnEvent
+      returnEvent['endRecur'] = event.endDate;
+      returnEvent['daysOfWeek'] = event.daysOfWeek;
+      returnEvent['startTime'] = format(startTime, 'HH:mm');
+      returnEvent['endTime'] = format(endTime, 'HH:mm');
+      return returnEvent;
     } else {
-      return returnEvent
+      return returnEvent;
     }
-  }
+  };
 
   // sets default view to timeGridDay on mobile
   useEffect(() => {
     if (calendarRef.current) {
-      const calendarApi = calendarRef.current.getApi()
-      calendarApi.changeView(isMobile ? 'timeGridDay' : defaultView)
+      const calendarApi = calendarRef.current.getApi();
+      calendarApi.changeView(isMobile ? 'timeGridDay' : defaultView);
     }
-  }, [isMobile, defaultView])
+  }, [isMobile, defaultView]);
 
   return (
     <div>
@@ -119,7 +119,7 @@ const StudentSchedulePanel: React.FC<ScheduleProps> = ({
           }}
           loading={(loading) => {
             if (spinnerRef.current)
-              spinnerRef.current.style.display = loading ? 'flex' : 'none'
+              spinnerRef.current.style.display = loading ? 'flex' : 'none';
           }}
           height="57em"
           timeZone="local"
@@ -127,7 +127,7 @@ const StudentSchedulePanel: React.FC<ScheduleProps> = ({
         />
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default StudentSchedulePanel
+export default StudentSchedulePanel;

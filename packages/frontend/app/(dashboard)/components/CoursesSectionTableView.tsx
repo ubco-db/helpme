@@ -1,34 +1,35 @@
-import { API } from '@/app/api'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { getErrorMessage, cn } from '@/app/utils/generalUtils'
-import { StarFilled, StarOutlined } from '@ant-design/icons'
-import { SemesterPartial, UserCourse, Role } from '@koh/common'
-import { message, Tag, Button, Popover, Divider, Table, Tooltip } from 'antd'
-import { ColumnsType } from 'antd/es/table'
-import Link from 'next/link'
-import { useMemo } from 'react'
+import { API } from '@/app/api';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { getErrorMessage, cn } from '@/app/utils/generalUtils';
+import { StarFilled, StarOutlined } from '@ant-design/icons';
+import type { SemesterPartial, UserCourse } from '@koh/common';
+import { Role } from '@koh/common';
+import { message, Tag, Button, Popover, Divider, Table, Tooltip } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import Link from 'next/link';
+import { useMemo } from 'react';
 
 interface CoursesSectionTableViewProps {
-  semesters: SemesterPartial[]
-  highlightedCourseId?: number
+  semesters: SemesterPartial[];
+  highlightedCourseId?: number;
 }
 
 const CoursesSectionTableView: React.FC<CoursesSectionTableViewProps> = ({
   semesters,
   highlightedCourseId,
 }) => {
-  const { userInfo, setUserInfo } = useUserInfo()
+  const { userInfo, setUserInfo } = useUserInfo();
 
   // Updated toggleFavourite function to use API object
   const toggleFavourite = (course: UserCourse) => {
-    const newStatus = !course.favourited
+    const newStatus = !course.favourited;
     // immediately set local userInfo state so the UI is updated immediately
     setUserInfo((prev) => ({
       ...prev,
       courses: prev.courses.map((c) =>
         c.course.id === course.course.id ? { ...c, favourited: newStatus } : c,
       ),
-    }))
+    }));
     // now update in the background
     API.course
       .toggleFavourited(course.course.id)
@@ -40,7 +41,7 @@ const CoursesSectionTableView: React.FC<CoursesSectionTableViewProps> = ({
               ? { ...c, favourited: newStatus }
               : c,
           ),
-        }))
+        }));
       })
       .catch((err) => {
         // revert local userInfo state if API call fails
@@ -51,19 +52,19 @@ const CoursesSectionTableView: React.FC<CoursesSectionTableViewProps> = ({
               ? { ...c, favourited: !newStatus }
               : c,
           ),
-        }))
-        message.error(getErrorMessage(err))
-      })
-  }
+        }));
+        message.error(getErrorMessage(err));
+      });
+  };
 
   // Allow recalculation for course favouriting feature (harder to memoize)
   const coursesWithoutSemester = useMemo(() => {
     return userInfo.courses.filter((userCourse) => {
       return !semesters?.some(
         (semester) => semester.id === userCourse.course.semesterId,
-      )
-    })
-  }, [userInfo.courses, semesters])
+      );
+    });
+  }, [userInfo.courses, semesters]);
 
   const columns: ColumnsType<UserCourse> = [
     {
@@ -154,7 +155,7 @@ const CoursesSectionTableView: React.FC<CoursesSectionTableViewProps> = ({
         </div>
       ),
     },
-  ]
+  ];
 
   return (
     <>
@@ -162,18 +163,18 @@ const CoursesSectionTableView: React.FC<CoursesSectionTableViewProps> = ({
         ?.sort((a, b) => {
           const aTime = a.startDate
             ? new Date(a.startDate).getTime()
-            : -Infinity
+            : -Infinity;
           const bTime = b.startDate
             ? new Date(b.startDate).getTime()
-            : -Infinity
-          return bTime - aTime
+            : -Infinity;
+          return bTime - aTime;
         })
         .map((semester) => {
           const semesterCourses = userInfo.courses.filter(
             (userCourse) => userCourse.course.semesterId === semester.id,
-          )
+          );
           if (semesterCourses.length === 0) {
-            return null
+            return null;
           }
 
           const popoverContent = (
@@ -196,7 +197,7 @@ const CoursesSectionTableView: React.FC<CoursesSectionTableViewProps> = ({
                 </p>
               )}
             </div>
-          )
+          );
 
           return (
             <div key={semester.id}>
@@ -216,7 +217,7 @@ const CoursesSectionTableView: React.FC<CoursesSectionTableViewProps> = ({
                 showHeader={false}
               />
             </div>
-          )
+          );
         })}
 
       {coursesWithoutSemester.length > 0 && (
@@ -239,7 +240,7 @@ const CoursesSectionTableView: React.FC<CoursesSectionTableViewProps> = ({
         </div>
       )}
     </>
-  )
-}
+  );
+};
 
-export default CoursesSectionTableView
+export default CoursesSectionTableView;

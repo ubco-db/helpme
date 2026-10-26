@@ -1,48 +1,46 @@
+import type { Question, QueuePartial, StaffMember } from '@koh/common';
 import {
   ExtraTAStatus,
   OpenQuestionStatus,
-  Question,
   QueueChatPartial,
-  QueuePartial,
   Role,
-  StaffMember,
-} from '@koh/common'
-import { Badge, Button, Col, message, Popover, Row, Tooltip } from 'antd'
-import { useQuestions } from '@/app/hooks/useQuestions'
-import UserAvatar from '@/app/components/UserAvatar'
-import RenderEvery from '@/app/components/RenderEvery'
-import { formatWaitTime } from '@/app/utils/timeFormatUtils'
-import TextArea from 'antd/es/input/TextArea'
-import { useState } from 'react'
-import { API } from '@/app/api'
-import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils'
-import { QuestionCircleOutlined } from '@ant-design/icons'
-import { useUserInfo } from '@/app/contexts/userContext'
-import MessageButton from './MessageButton'
-import { useQueue } from '@/app/hooks/useQueue'
+} from '@koh/common';
+import { Badge, Button, Col, message, Popover, Row, Tooltip } from 'antd';
+import { useQuestions } from '@/app/hooks/useQuestions';
+import UserAvatar from '@/app/components/UserAvatar';
+import RenderEvery from '@/app/components/RenderEvery';
+import { formatWaitTime } from '@/app/utils/timeFormatUtils';
+import TextArea from 'antd/es/input/TextArea';
+import { useState } from 'react';
+import { API } from '@/app/api';
+import { getErrorMessage, getRoleInCourse } from '@/app/utils/generalUtils';
+import { QuestionCircleOutlined } from '@ant-design/icons';
+import { useUserInfo } from '@/app/contexts/userContext';
+import MessageButton from './MessageButton';
+import { useQueue } from '@/app/hooks/useQueue';
 
 interface StaffListProps {
-  queue: QueuePartial
-  queueId: number
-  courseId: number
+  queue: QueuePartial;
+  queueId: number;
+  courseId: number;
 }
 /**
  * Row of ta statuses
  */
 const StaffList: React.FC<StaffListProps> = ({ queue, queueId, courseId }) => {
-  const { queueQuestions } = useQuestions(queueId)
-  const { userInfo } = useUserInfo()
-  const role = getRoleInCourse(userInfo, courseId)
+  const { queueQuestions } = useQuestions(queueId);
+  const { userInfo } = useUserInfo();
+  const role = getRoleInCourse(userInfo, courseId);
 
-  const staffList = queue?.staffList ?? []
+  const staffList = queue?.staffList ?? [];
   if (!queueQuestions) {
-    return null
+    return null;
   }
 
-  const taToQuestions: Record<number, Question[]> = {}
-  const taIds = staffList.map((t) => t.id)
-  const helpingQuestions = queueQuestions.questionsGettingHelp
-  const groups = queueQuestions.groups
+  const taToQuestions: Record<number, Question[]> = {};
+  const taIds = staffList.map((t) => t.id);
+  const helpingQuestions = queueQuestions.questionsGettingHelp;
+  const groups = queueQuestions.groups;
   // for each TA, give them an array of questions that they are helping
   for (const question of helpingQuestions) {
     if (
@@ -51,12 +49,12 @@ const StaffList: React.FC<StaffListProps> = ({ queue, queueId, courseId }) => {
       taIds.includes(question.taHelped.id)
     ) {
       if (!taToQuestions[question.taHelped.id]) {
-        taToQuestions[question.taHelped.id] = []
+        taToQuestions[question.taHelped.id] = [];
       }
-      taToQuestions[question.taHelped.id].push(question)
+      taToQuestions[question.taHelped.id].push(question);
     }
   }
-  const myQuestionId = queueQuestions.yourQuestions?.[0]?.id
+  const myQuestionId = queueQuestions.yourQuestions?.[0]?.id;
 
   return (
     <Col className="my-1 flex flex-col gap-y-2 md:block">
@@ -83,20 +81,20 @@ const StaffList: React.FC<StaffListProps> = ({ queue, queueId, courseId }) => {
         </Col>
       ))}
     </Col>
-  )
-}
+  );
+};
 
 interface StatusCardProps {
-  courseId: number
-  queueId: number
-  myQuestionId?: number
-  ta: StaffMember
-  myRole?: Role
-  myId?: number
-  studentName?: string
-  busySince?: Date
-  grouped?: boolean
-  isForPublic?: boolean // true for queue invite page
+  courseId: number;
+  queueId: number;
+  myQuestionId?: number;
+  ta: StaffMember;
+  myRole?: Role;
+  myId?: number;
+  studentName?: string;
+  busySince?: Date;
+  grouped?: boolean;
+  isForPublic?: boolean; // true for queue invite page
 }
 /**
  * View component just renders TA status
@@ -113,14 +111,14 @@ const StatusCard: React.FC<StatusCardProps> = ({
   grouped,
   isForPublic,
 }) => {
-  const isBusy = !!busySince || !!ta.extraStatus
-  const [canSave, setCanSave] = useState(false)
-  const [popoverOpen, setPopoverOpen] = useState(false)
-  const isStaff = myRole === Role.TA || myRole === Role.PROFESSOR
+  const isBusy = !!busySince || !!ta.extraStatus;
+  const [canSave, setCanSave] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const isStaff = myRole === Role.TA || myRole === Role.PROFESSOR;
 
   // you can edit the notes if it's you or if you're a professor
   const shouldShowEdit =
-    myRole === Role.PROFESSOR || (myRole === Role.TA && myId === ta.id)
+    myRole === Role.PROFESSOR || (myRole === Role.TA && myId === ta.id);
 
   // NOTE: if you modify this popover, you might also want to make changes to the popover on the courseRosterTable
   return (
@@ -238,23 +236,25 @@ const StatusCard: React.FC<StatusCardProps> = ({
         </div>
       </div>
     </Popover>
-  )
-}
+  );
+};
 
 // Had to refactor this into its own component because it needs to use mutateQueue to update the frontend variables for the queue notes
 // and I can't use the useQueue hook in the StatusCard component since the queueInvitePage also uses StatusCard and I can't conditionally use hooks
 const UpdateTANotesForm: React.FC<{
-  courseId: number
-  queueId: number
-  ta: StaffMember
-  canSave: boolean
-  setCanSave: (canSave: boolean) => void
-  setPopoverOpen: (popoverOpen: boolean) => void
+  courseId: number;
+  queueId: number;
+  ta: StaffMember;
+  canSave: boolean;
+  setCanSave: (canSave: boolean) => void;
+  setPopoverOpen: (popoverOpen: boolean) => void;
 }> = ({ courseId, queueId, ta, canSave, setCanSave, setPopoverOpen }) => {
-  const [tempTaNotes, setTempTaNotes] = useState<string | undefined>(ta.TANotes)
-  const [saveLoading, setSaveLoading] = useState(false)
-  const [saveSuccessful, setSaveSuccessful] = useState(false)
-  const { queue, mutateQueue } = useQueue(queueId)
+  const [tempTaNotes, setTempTaNotes] = useState<string | undefined>(
+    ta.TANotes,
+  );
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [saveSuccessful, setSaveSuccessful] = useState(false);
+  const { queue, mutateQueue } = useQueue(queueId);
 
   return (
     <>
@@ -263,8 +263,8 @@ const UpdateTANotesForm: React.FC<{
         autoSize={{ minRows: 4, maxRows: 7 }}
         value={tempTaNotes}
         onChange={(e) => {
-          setCanSave(e.target.value !== ta.TANotes)
-          setTempTaNotes(e.target.value)
+          setCanSave(e.target.value !== ta.TANotes);
+          setTempTaNotes(e.target.value);
         }}
       />
       <div className="flex items-center justify-between">
@@ -273,7 +273,7 @@ const UpdateTANotesForm: React.FC<{
             disabled={!canSave}
             loading={saveLoading}
             onClick={async () => {
-              setSaveLoading(true)
+              setSaveLoading(true);
               await API.course
                 .updateTANotes(courseId, ta.id, tempTaNotes ?? '')
                 .then(async () => {
@@ -286,22 +286,22 @@ const UpdateTANotesForm: React.FC<{
                           ? { ...ta, TANotes: tempTaNotes }
                           : tempTA,
                       ),
-                    })
+                    });
                   }
-                  setSaveSuccessful(true)
-                  setCanSave(false)
+                  setSaveSuccessful(true);
+                  setCanSave(false);
                   // saved goes away after 1s
                   setTimeout(() => {
-                    setSaveSuccessful(false)
-                  }, 1000)
+                    setSaveSuccessful(false);
+                  }, 1000);
                 })
                 .catch((e) => {
-                  const errorMessage = getErrorMessage(e)
-                  message.error(errorMessage)
+                  const errorMessage = getErrorMessage(e);
+                  message.error(errorMessage);
                 })
                 .finally(() => {
-                  setSaveLoading(false)
-                })
+                  setSaveLoading(false);
+                });
             }}
           >
             Save
@@ -320,9 +320,9 @@ const UpdateTANotesForm: React.FC<{
         </div>
         <Button
           onClick={() => {
-            setTempTaNotes(ta.TANotes)
-            setCanSave(false)
-            setPopoverOpen(false)
+            setTempTaNotes(ta.TANotes);
+            setCanSave(false);
+            setPopoverOpen(false);
           }}
           danger={canSave}
         >
@@ -330,12 +330,12 @@ const UpdateTANotesForm: React.FC<{
         </Button>
       </div>
     </>
-  )
-}
+  );
+};
 interface HelpingForProps {
-  studentName?: string
-  extraTAStatus?: ExtraTAStatus
-  busySince: Date
+  studentName?: string;
+  extraTAStatus?: ExtraTAStatus;
+  busySince: Date;
 }
 const HelpingFor: React.FC<HelpingForProps> = ({
   studentName,
@@ -344,9 +344,9 @@ const HelpingFor: React.FC<HelpingForProps> = ({
 }) => {
   // A dirty fix until we can get the serializer working properly again (i renamed `questions` in SSEQueueResponse to `queueQuestions` and renamed `queue` in ListQuestionsResponse to `questions` and stuff broke for some reason)
   // TODO: update: just need to set up the api method inside api/index.ts so it uses a responseClass
-  let tempDate = busySince
+  let tempDate = busySince;
   if (typeof busySince === 'string') {
-    tempDate = new Date(Date.parse(busySince))
+    tempDate = new Date(Date.parse(busySince));
   }
   return (
     <RenderEvery
@@ -367,8 +367,8 @@ const HelpingFor: React.FC<HelpingForProps> = ({
       )}
       interval={60 * 1000}
     />
-  )
-}
+  );
+};
 
-export { StaffList, StatusCard, HelpingFor }
-export default StaffList
+export { StaffList, StatusCard, HelpingFor };
+export default StaffList;

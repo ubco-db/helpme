@@ -1,8 +1,8 @@
-import React from 'react'
+import type React from 'react';
 
 interface ContentCardProps {
-  children: React.ReactNode
-  className?: string
+  children: React.ReactNode;
+  className?: string;
 }
 
 const StandardPageContainer: React.FC<ContentCardProps> = ({
@@ -15,7 +15,7 @@ const StandardPageContainer: React.FC<ContentCardProps> = ({
     >
       {children}
     </div>
-  )
-}
+  );
+};
 
-export default StandardPageContainer
+export default StandardPageContainer;

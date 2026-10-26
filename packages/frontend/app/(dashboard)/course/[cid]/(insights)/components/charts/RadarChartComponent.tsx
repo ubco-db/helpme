@@ -4,14 +4,15 @@ import {
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
-} from '@/app/components/ui/chart'
-import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from 'recharts'
-import React, { useMemo } from 'react'
-import {
+} from '@/app/components/ui/chart';
+import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from 'recharts';
+import type React from 'react';
+import { useMemo } from 'react';
+import type {
   ChartComponentProps,
   PointChartProps,
-  RadialChartClasses,
-} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types'
+} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
+import { RadialChartClasses } from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
 
 const RadarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
@@ -23,19 +24,19 @@ const RadarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     labelFormatter,
     valueFormatter,
     legendFormatter,
-  } = props
+  } = props;
 
-  let { includeLegend, includeTooltip, showPoints } = props as PointChartProps
+  let { includeLegend, includeTooltip, showPoints } = props as PointChartProps;
 
-  showPoints ??= false
-  includeLegend ??= true
-  includeTooltip ??= true
+  showPoints ??= false;
+  includeLegend ??= true;
+  includeTooltip ??= true;
 
   const className = useMemo(() => {
     return size != undefined && RadialChartClasses[size] != undefined
       ? RadialChartClasses[size]
-      : RadialChartClasses['md']
-  }, [size])
+      : RadialChartClasses['md'];
+  }, [size]);
 
   return (
     <ChartContainer config={chartConfig} className={className}>
@@ -69,7 +70,7 @@ const RadarChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           ))}
       </RadarChart>
     </ChartContainer>
-  )
-}
+  );
+};
 
-export default RadarChartComponent
+export default RadarChartComponent;

@@ -1,42 +1,36 @@
-'use client'
+'use client';
 
-import { Button, Card, Col, Form, Input, message, Row } from 'antd'
-import React, {
-  ReactElement,
-  Suspense,
-  use,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react'
-import ReCAPTCHA from 'react-google-recaptcha'
-import { LeftOutlined } from '@ant-design/icons'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { useLocalStorage } from '@/app/hooks/useLocalStorage'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
-import Link from 'next/link'
-import { OrganizationResponse } from '@koh/common'
+import { Button, Card, Col, Form, Input, message, Row } from 'antd';
+import type { ReactElement } from 'react';
+import React, { Suspense, use, useEffect, useMemo, useState } from 'react';
+import ReCAPTCHA from 'react-google-recaptcha';
+import { LeftOutlined } from '@ant-design/icons';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { useLocalStorage } from '@/app/hooks/useLocalStorage';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
+import Link from 'next/link';
+import type { OrganizationResponse } from '@koh/common';
 
 const parseFromParam = (oid: any) => {
-  return parseInt(String(oid ?? ''))
-}
+  return parseInt(String(oid ?? ''));
+};
 
 export default function RegisterPage(props: {
-  params: Promise<{ oid?: number }>
+  params: Promise<{ oid?: number }>;
 }): ReactElement {
-  const [domLoaded, setDomLoaded] = useState(false)
-  const router = useRouter()
-  const pathName = usePathname()
-  const searchParams = useSearchParams()
-  const redirect = searchParams.get('redirect')
-  const params = use(props.params)
+  const [domLoaded, setDomLoaded] = useState(false);
+  const router = useRouter();
+  const pathName = usePathname();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect');
+  const params = use(props.params);
 
   const [storedId, setStoredId] = useLocalStorage<number>(
     'organizationId',
     null,
-  )
+  );
 
   const organizationId = useMemo(
     () =>
@@ -46,71 +40,71 @@ export default function RegisterPage(props: {
           ? parseInt(String(storedId))
           : undefined,
     [params.oid, storedId],
-  )
+  );
 
   useEffect(() => {
     if (organizationId) {
-      setStoredId(organizationId)
-      fetchOrganization(organizationId).then()
+      setStoredId(organizationId);
+      fetchOrganization(organizationId).then();
     }
-  }, [organizationId])
+  }, [organizationId]);
 
   const isLti = useMemo(() => {
-    return pathName.startsWith('/lti')
-  }, [pathName])
+    return pathName.startsWith('/lti');
+  }, [pathName]);
 
-  const [registerForm] = Form.useForm()
-  const recaptchaRef = React.createRef<ReCAPTCHA>()
+  const [registerForm] = Form.useForm();
+  const recaptchaRef = React.createRef<ReCAPTCHA>();
 
   async function onReCAPTCHAChange(captchaCode: string | null) {
-    if (!captchaCode) return
+    if (!captchaCode) return;
 
-    recaptchaRef?.current?.reset()
+    recaptchaRef?.current?.reset();
   }
 
   async function createAccount() {
     if (!organizationId || isNaN(organizationId)) {
-      message.error('Organization not found.')
-      return
+      message.error('Organization not found.');
+      return;
     }
-    const token = await recaptchaRef?.current?.executeAsync()
+    const token = await recaptchaRef?.current?.executeAsync();
 
-    const registerFormValues = await registerForm.validateFields()
+    const registerFormValues = await registerForm.validateFields();
 
     const registerParams = {
       ...registerFormValues,
       organizationId,
       recaptchaToken: token ?? '',
-    }
+    };
 
     const response = await (
       isLti
         ? API.lti.auth.registerAccount(registerParams)
         : API.auth.registerAccount(registerParams)
     ).catch((err) => {
-      message.error(getErrorMessage(err))
-      return
-    })
+      message.error(getErrorMessage(err));
+      return;
+    });
 
-    if (!response) return
+    if (!response) return;
 
-    router.push(redirect ? redirect : isLti ? '/lti' : '/courses')
+    router.push(redirect ? redirect : isLti ? '/lti' : '/courses');
   }
 
   // Fetch all organizations for SSO settings
-  const [organization, setOrganization] = useState<OrganizationResponse>()
+  const [organization, setOrganization] = useState<OrganizationResponse>();
 
   async function fetchOrganization(organizationId: number) {
     await API.organizations
       .getOrganizations()
       .then((res) => {
         if (res) {
-          setOrganization(res.find((org) => org.id == organizationId))
+          setOrganization(res.find((org) => org.id == organizationId));
         }
       })
       .catch((err) => {
-        message.error(`Failed to fetch organization: ${getErrorMessage(err)}`)
-      })
+        message.error(`Failed to fetch organization: ${getErrorMessage(err)}`);
+      });
   }
 
   // Check if email matches SSO patterns for the current organization
@@ -120,7 +114,7 @@ export default function RegisterPage(props: {
       !organization.ssoEnabled ||
       !organization.ssoEmailPatterns
     ) {
-      return null
+      return null;
     }
     const errorMessage = (
       <span>
@@ -137,31 +131,31 @@ export default function RegisterPage(props: {
         </Link>{' '}
         instead?
       </span>
-    )
-    const patterns = organization.ssoEmailPatterns ?? []
+    );
+    const patterns = organization.ssoEmailPatterns ?? [];
     for (const pattern of patterns) {
       if (pattern.startsWith('r')) {
         try {
-          const regexPattern = pattern.substring(1)
-          const regex = new RegExp(regexPattern, 'i')
+          const regexPattern = pattern.substring(1);
+          const regex = new RegExp(regexPattern, 'i');
           if (regex.test(email)) {
-            return errorMessage
+            return errorMessage;
           }
         } catch (_error) {
-          console.warn(`Invalid regex pattern: ${pattern}`)
+          console.warn(`Invalid regex pattern: ${pattern}`);
         }
       } else {
         if (email.includes(pattern)) {
-          return errorMessage
+          return errorMessage;
         }
       }
     }
-    return null
+    return null;
   }
 
   useEffect(() => {
-    setDomLoaded(true)
-  }, [])
+    setDomLoaded(true);
+  }, []);
 
   if (!organizationId) {
     return (
@@ -180,7 +174,7 @@ export default function RegisterPage(props: {
           </Card>
         </div>
       </Suspense>
-    )
+    );
   }
 
   return (
@@ -294,20 +288,20 @@ export default function RegisterPage(props: {
                     {
                       warningOnly: true,
                       validator: async (_, value) => {
-                        if (!value) return Promise.resolve()
+                        if (!value) return Promise.resolve();
                         if (!organization) {
-                          return Promise.resolve()
+                          return Promise.resolve();
                         }
 
                         try {
-                          const ssoError = checkSsoEmailPatterns(value)
+                          const ssoError = checkSsoEmailPatterns(value);
                           if (ssoError) {
-                            return Promise.reject(ssoError)
+                            return Promise.reject(ssoError);
                           }
-                          return Promise.resolve()
+                          return Promise.resolve();
                         } catch (err) {
-                          console.error('Error in email validation:', err)
-                          return Promise.resolve() // fallback to not blocking user
+                          console.error('Error in email validation:', err);
+                          return Promise.resolve(); // fallback to not blocking user
                         }
                       },
                     },
@@ -349,11 +343,11 @@ export default function RegisterPage(props: {
                     ({ getFieldValue }) => ({
                       validator(_, value) {
                         if (!value || getFieldValue('password') === value) {
-                          return Promise.resolve()
+                          return Promise.resolve();
                         }
                         return Promise.reject(
                           new Error('Passwords do not match'),
-                        )
+                        );
                       },
                     }),
                   ]}
@@ -391,5 +385,5 @@ export default function RegisterPage(props: {
         )}
       </div>
     </Suspense>
-  )
+  );
 }

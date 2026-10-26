@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class addCalendarStaffModel1737915342299 implements MigrationInterface {
   name = 'addCalendarStaffModel1737915342299';

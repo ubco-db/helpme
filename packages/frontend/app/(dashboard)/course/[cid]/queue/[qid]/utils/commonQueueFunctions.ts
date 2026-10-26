@@ -1,9 +1,5 @@
-import {
-  ListQuestionsResponse,
-  OpenQuestionStatus,
-  QueueTypes,
-  Role,
-} from '@koh/common'
+import type { ListQuestionsResponse } from '@koh/common';
+import { OpenQuestionStatus, QueueTypes, Role } from '@koh/common';
 
 export function getHelpingQuestions(
   queueQuestions: ListQuestionsResponse | undefined,
@@ -11,16 +7,16 @@ export function getHelpingQuestions(
   role: Role,
 ) {
   if (role !== Role.TA && role !== Role.PROFESSOR) {
-    return { helpingQuestions: [], isHelping: false }
+    return { helpingQuestions: [], isHelping: false };
   }
   const helpingQuestions =
     queueQuestions?.questionsGettingHelp.filter(
       (question) =>
         question.status != OpenQuestionStatus.Paused &&
         question.taHelped?.id === userId,
-    ) ?? []
-  const isHelping = helpingQuestions.length > 0
-  return { helpingQuestions, isHelping }
+    ) ?? [];
+  const isHelping = helpingQuestions.length > 0;
+  return { helpingQuestions, isHelping };
 }
 
 export function getPausedQuestions(
@@ -28,24 +24,24 @@ export function getPausedQuestions(
   role: Role,
 ) {
   if (role !== Role.TA && role !== Role.PROFESSOR) {
-    return { pausedQuestions: [] }
+    return { pausedQuestions: [] };
   }
   const pausedQuestions =
     queueQuestions?.questionsGettingHelp.filter(
       (question) => question.status == OpenQuestionStatus.Paused,
-    ) ?? []
-  return { pausedQuestions }
+    ) ?? [];
+  return { pausedQuestions };
 }
 
 export const getQueueTypeLabel = (type: QueueTypes) => {
   switch (type) {
     case QueueTypes.Online:
-      return 'Online'
+      return 'Online';
     case QueueTypes.Hybrid:
-      return 'Hybrid'
+      return 'Hybrid';
     case QueueTypes.InPerson:
-      return 'In-Person'
+      return 'In-Person';
     default:
-      return 'Invalid Queue Type'
+      return 'Invalid Queue Type';
   }
-}
+};

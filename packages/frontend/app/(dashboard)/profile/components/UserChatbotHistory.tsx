@@ -1,60 +1,61 @@
-'use client'
+'use client';
 
-import { Collapse, Typography, Card, Space, CollapseProps } from 'antd'
-import { useEffect, useMemo, useState } from 'react'
-import { API } from '@/app/api'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
-import {
+import type { CollapseProps } from 'antd';
+import { Collapse, Typography, Card, Space } from 'antd';
+import { useEffect, useMemo, useState } from 'react';
+import { API } from '@/app/api';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils';
+import type {
   GetChatbotHistoryResponse,
   InteractionResponse,
   ChatbotQuestionResponseHelpMeDB,
-} from '@koh/common'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
-import { Tooltip } from 'antd'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+} from '@koh/common';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import { Tooltip } from 'antd';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
+import { getErrorMessage } from '@/app/utils/generalUtils';
 
-dayjs.extend(relativeTime)
+dayjs.extend(relativeTime);
 
-const { Panel } = Collapse
-const { Text, Paragraph } = Typography
+const { Panel } = Collapse;
+const { Text, Paragraph } = Typography;
 
 const UserChatbotHistory: React.FC = () => {
-  const { userInfo } = useUserInfo()
-  const [loading, setLoading] = useState(false)
-  const [history, setHistory] = useState<InteractionResponse[]>([])
-  const [error, setError] = useState<string | null>(null)
+  const { userInfo } = useUserInfo();
+  const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState<InteractionResponse[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!userInfo?.id) return
-    setLoading(true)
-    setError(null)
+    if (!userInfo?.id) return;
+    setLoading(true);
+    setError(null);
     API.chatbot.studentsOrStaff
       .getChatHistory()
       .then((res: GetChatbotHistoryResponse) => {
-        setHistory(res.history)
+        setHistory(res.history);
       })
       .catch((err) => {
         if (err?.response?.status === 403) {
-          setError("You are not allowed to access this user's history.")
+          setError("You are not allowed to access this user's history.");
         } else {
-          setError(getErrorMessage(err))
+          setError(getErrorMessage(err));
         }
       })
-      .finally(() => setLoading(false))
-  }, [userInfo?.id])
+      .finally(() => setLoading(false));
+  }, [userInfo?.id]);
 
   const sortedHistory = useMemo(() => {
     return history.sort((a, b) => {
-      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    })
-  }, [history])
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
+  }, [history]);
 
   const collapseItems: CollapseProps['items'] = sortedHistory.map(
     (interaction) => {
-      const firstQuestionText = interaction.questions?.[0]?.questionText
+      const firstQuestionText = interaction.questions?.[0]?.questionText;
       return {
         key: interaction.id,
         label: (
@@ -103,9 +104,9 @@ const UserChatbotHistory: React.FC = () => {
             )}
           </Space>
         ),
-      }
+      };
     },
-  )
+  );
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -120,7 +121,7 @@ const UserChatbotHistory: React.FC = () => {
         <Collapse accordion items={collapseItems} />
       )}
     </div>
-  )
-}
+  );
+};
 
-export default UserChatbotHistory
+export default UserChatbotHistory;

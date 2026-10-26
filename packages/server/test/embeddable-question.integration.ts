@@ -6,7 +6,8 @@ import {
   UserCourseFactory,
   UserFactory,
 } from './util/factories';
-import { QuestionGradingSettings, Role } from '@koh/common';
+import type { QuestionGradingSettings } from '@koh/common';
+import { Role } from '@koh/common';
 import { EmbeddableQuestionModel } from '../src/lti/embeddable-question/embeddable-question.entity';
 import { EmbeddableQuestionFeedbackModel } from '../src/lti/embeddable-question/embeddable-question-feedback.entity';
 import { QuestionGradingService } from '../src/lti/embeddable-question/question-grading.service';

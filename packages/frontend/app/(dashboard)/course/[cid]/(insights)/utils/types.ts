@@ -1,26 +1,18 @@
-import { ChartConfig } from '@/app/components/ui/chart'
-import { CurveType } from 'recharts/types/shape/Curve'
-import {
+import type { ChartConfig } from '@/app/components/ui/chart';
+import type { CurveType } from 'recharts/types/shape/Curve';
+import type {
   NameType,
   Payload as TooltipPayload,
   Formatter as TooltipFormatter,
-} from 'recharts/types/component/DefaultTooltipContent'
-import { Formatter } from 'recharts/types/component/DefaultLegendContent'
-import { numToWeekday } from '@koh/common'
+} from 'recharts/types/component/DefaultTooltipContent';
+import type { Formatter } from 'recharts/types/component/DefaultLegendContent';
+import { numToWeekday } from '@koh/common';
 import {
   generateAxisRange,
   getMinutesToTime,
-} from '@/app/(dashboard)/course/[cid]/(insights)/utils/functions'
+} from '@/app/(dashboard)/course/[cid]/(insights)/utils/functions';
 export type ChartSize =
-  | 'xxs'
-  | 'xs'
-  | 'sm'
-  | 'md'
-  | 'lg'
-  | 'xl'
-  | '2xl'
-  | '3xl'
-  | '4xl'
+  'xxs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
 
 export const AxisChartClasses = {
   xxs: 'mx-auto chart-xxs',
@@ -32,7 +24,7 @@ export const AxisChartClasses = {
   '2xl': 'mx-auto chart-2xl sm:chart-md md:chart-lg',
   '3xl': 'mx-auto chart-3xl sm:chart-md md:chart-lg',
   '4xl': 'mx-auto chart-4xl sm:chart-md md:chart-lg',
-}
+};
 
 export const RadialChartClasses = {
   xxs: 'mx-auto aspect-square chart-xxs',
@@ -44,7 +36,7 @@ export const RadialChartClasses = {
   '2xl': 'mx-auto aspect-square chart-2xl sm:chart-md md:chart-lg',
   '3xl': 'mx-auto aspect-square chart-3xl sm:chart-md md:chart-lg',
   '4xl': 'mx-auto aspect-square chart-4xl sm:chart-md md:chart-lg',
-}
+};
 
 export type ChartComponentProps = {
   props:
@@ -54,114 +46,108 @@ export type ChartComponentProps = {
     | StackChartProps
     | BarChartProps
     | PointChartProps
-    | LinearChartProps
-}
+    | LinearChartProps;
+};
 
 export type GanttChartComponentProps = {
-  props: GanttChartProps
-}
+  props: GanttChartProps;
+};
 
 export interface DefaultChartProps {
-  valueKeys: string[]
-  chartConfig: ChartConfig
-  chartData: ChartDataType[]
-  includeLegend?: boolean
-  includeTooltip?: boolean
-  valueFills?: { [key: string]: string }
-  xType?: 'numeric' | 'category'
-  yType?: 'numeric' | 'category'
-  size?: ChartSize
+  valueKeys: string[];
+  chartConfig: ChartConfig;
+  chartData: ChartDataType[];
+  includeLegend?: boolean;
+  includeTooltip?: boolean;
+  valueFills?: { [key: string]: string };
+  xType?: 'numeric' | 'category';
+  yType?: 'numeric' | 'category';
+  size?: ChartSize;
   labelFormatter?: (
     label: any,
     payload: TooltipPayload<string, NameType>[],
-  ) => React.ReactNode
-  valueFormatter?: TooltipFormatter<any, NameType>
-  legendFormatter?: Formatter
+  ) => React.ReactNode;
+  valueFormatter?: TooltipFormatter<any, NameType>;
+  legendFormatter?: Formatter;
 }
 
 export interface StackChartProps extends DefaultChartProps {
-  stackData?: boolean
+  stackData?: boolean;
 }
 
 export interface RadialChartProps extends StackChartProps {
-  innerRadius?: number
-  showLabels?: boolean
+  innerRadius?: number;
+  showLabels?: boolean;
 }
 
 export interface AxisChartProps extends DefaultChartProps {
-  verticalAxis?: boolean
-  tickLine?: boolean
-  tickMargin?: number
-  minTickGap?: number
-  angle?: number
-  axisLine?: boolean
-  tickFormatter?: (label: string) => string
-  aspectRatio?: number
+  verticalAxis?: boolean;
+  tickLine?: boolean;
+  tickMargin?: number;
+  minTickGap?: number;
+  angle?: number;
+  axisLine?: boolean;
+  tickFormatter?: (label: string) => string;
+  aspectRatio?: number;
 }
 
 export interface BarChartProps extends AxisChartProps, StackChartProps {}
 
 export interface PointChartProps extends AxisChartProps {
-  showPoints?: boolean
-  fullPointFill?: boolean
+  showPoints?: boolean;
+  fullPointFill?: boolean;
 }
 
 export interface LinearChartProps extends PointChartProps {
-  curveType?: CurveType
+  curveType?: CurveType;
 }
 
 export interface GanttChartProps {
-  chartConfig: ChartConfig
-  chartData: ChartDataType[]
-  size: ChartSize
-  includeTooltip?: boolean
-  xKey: string
-  yKey: string
-  zKey?: string
-  numCategories: number
+  chartConfig: ChartConfig;
+  chartData: ChartDataType[];
+  size: ChartSize;
+  includeTooltip?: boolean;
+  xKey: string;
+  yKey: string;
+  zKey?: string;
+  numCategories: number;
   labelFormatter?: (
     label: any,
     payload: TooltipPayload<string, NameType>[],
-  ) => React.ReactNode
-  valueFormatter?: TooltipFormatter<any, NameType>
-  xTickFormatter?: (label: string) => string
-  yTickFormatter?: (label: string) => string
-  xRange?: (chartData: ChartDataType[]) => number[]
-  aspectRatio?: number
-  yIsCategory?: boolean
-  yDomain?: string[]
+  ) => React.ReactNode;
+  valueFormatter?: TooltipFormatter<any, NameType>;
+  xTickFormatter?: (label: string) => string;
+  yTickFormatter?: (label: string) => string;
+  xRange?: (chartData: ChartDataType[]) => number[];
+  aspectRatio?: number;
+  yIsCategory?: boolean;
+  yDomain?: string[];
 }
 
-export type ChartDataType = { key: string; fill?: string; [key: string]: any }
+export type ChartDataType = { key: string; fill?: string; [key: string]: any };
 
 export type ChartType =
-  | 'Area'
-  | 'Bar'
-  | 'Line'
-  | 'Pie'
-  | 'Radar'
-  | 'Radial'
-  | 'Scatter'
+  'Area' | 'Bar' | 'Line' | 'Pie' | 'Radar' | 'Radial' | 'Scatter';
 
 export type ChartComponent = {
-  chartType: ChartType
-  categoryKeys?: boolean
-  allowDataFiltering?: boolean
+  chartType: ChartType;
+  categoryKeys?: boolean;
+  allowDataFiltering?: boolean;
   props:
     | Partial<DefaultChartProps>
     | Partial<RadialChartProps>
     | Partial<AxisChartProps>
     | Partial<PointChartProps>
     | Partial<LinearChartProps>
-    | Partial<BarChartProps>
-}
+    | Partial<BarChartProps>;
+};
 
 export type GanttChartComponent = {
-  props: Partial<GanttChartProps>
-}
+  props: Partial<GanttChartProps>;
+};
 
 export const charts: {
-  [key: string]: ChartComponent
+  [key: string]: ChartComponent;
 } = {
   QuestionTypeBreakdown: {
     chartType: 'Pie',
@@ -206,9 +192,9 @@ export const charts: {
               month: 'short',
               day: 'numeric',
             },
-          )
+          );
         } else {
-          return label
+          return label;
         }
       },
     },
@@ -254,15 +240,15 @@ export const charts: {
       valueFormatter: (value: any, name: any) =>
         `${name.replace(/_/g, ' ')}: ${value} min`,
       tickFormatter: (label) => {
-        const split = ('' + label).split('_')
+        const split = ('' + label).split('_');
         return split.reduce((prev, curr) => {
-          const isFirst = prev == 'START'
+          const isFirst = prev == 'START';
           if (isFirst) {
-            return curr + ' '
+            return curr + ' ';
           } else {
-            return prev + curr.charAt(0) + '.'
+            return prev + curr.charAt(0) + '.';
           }
-        }, 'START')
+        }, 'START');
       },
     },
   },
@@ -281,15 +267,15 @@ export const charts: {
       valueFormatter: (value: any, name: any) =>
         `${name.replace(/_/g, ' ')}: ${value} questions`,
       tickFormatter: (label) => {
-        const split = ('' + label).split('_')
+        const split = ('' + label).split('_');
         return split.reduce((prev, curr) => {
-          const isFirst = prev == 'START'
+          const isFirst = prev == 'START';
           if (isFirst) {
-            return curr + ' '
+            return curr + ' ';
           } else {
-            return prev + curr.charAt(0) + '.'
+            return prev + curr.charAt(0) + '.';
           }
-        }, 'START')
+        }, 'START');
       },
     },
   },
@@ -307,8 +293,8 @@ export const charts: {
           day: 'numeric',
         }),
       valueFormatter: (value: any, name: any) => {
-        if (value > 0) return `${name}: ${value}`
-        else return
+        if (value > 0) return `${name}: ${value}`;
+        else return;
       },
       labelFormatter: (label, payload) => {
         if (payload != undefined) {
@@ -319,17 +305,17 @@ export const charts: {
               month: 'short',
               day: 'numeric',
             },
-          )
+          );
         } else {
-          return label
+          return label;
         }
       },
     },
   },
-}
+};
 
 export const gantt_charts: {
-  [key: string]: GanttChartComponent
+  [key: string]: GanttChartComponent;
 } = {
   MostActiveTimes: {
     props: {
@@ -340,35 +326,35 @@ export const gantt_charts: {
         payload: TooltipPayload<string, NameType>[],
       ) => {
         if (payload != undefined) {
-          const p = (payload as any[])[0]?.payload
+          const p = (payload as any[])[0]?.payload;
           return (
             numToWeekday(p.Weekday) + `  (${getMinutesToTime(p.key as number)})`
-          )
+          );
         } else {
-          return label
+          return label;
         }
       },
       xTickFormatter: (label: string) => {
-        const num = parseInt(label)
+        const num = parseInt(label);
         if (isNaN(num)) {
-          return ''
+          return '';
         }
-        return getMinutesToTime(num)
+        return getMinutesToTime(num);
       },
       yTickFormatter: (label: string) =>
         numToWeekday(parseInt(label)).substring(0, 3),
       valueFormatter: (label: any, key: any, body: any) => {
         if (key == 'key') {
-          const payload: any = body.payload
-          return 'Questions: ' + (payload?.Amount ?? 0)
+          const payload: any = body.payload;
+          return 'Questions: ' + (payload?.Amount ?? 0);
         }
-        return undefined
+        return undefined;
       },
       xRange: (chartData: ChartDataType[]) => {
-        const range = generateAxisRange(chartData, ['key'], 60)
-        range[0] = range[0] >= 60 ? range[0] - 60 : range[0]
-        range[1] = range[1] <= 1380 ? range[1] + 60 : range[1]
-        return range
+        const range = generateAxisRange(chartData, ['key'], 60);
+        range[0] = range[0] >= 60 ? range[0] - 60 : range[0];
+        range[1] = range[1] <= 1380 ? range[1] + 60 : range[1];
+        return range;
       },
       aspectRatio: 3,
     },
@@ -382,45 +368,45 @@ export const gantt_charts: {
         payload: TooltipPayload<string, NameType>[],
       ) => {
         if (payload != undefined) {
-          const p = (payload as any[])[0]?.payload
-          return `${p['Staff_Member']} @ ${getMinutesToTime(p.key as number)}`
+          const p = (payload as any[])[0]?.payload;
+          return `${p['Staff_Member']} @ ${getMinutesToTime(p.key as number)}`;
         } else {
-          return label
+          return label;
         }
       },
       xTickFormatter: (label: string) => {
-        const num = parseInt(label)
+        const num = parseInt(label);
         if (isNaN(num)) {
-          return ''
+          return '';
         }
-        return getMinutesToTime(num)
+        return getMinutesToTime(num);
       },
       yTickFormatter: (label: string) => {
-        const splitName = label.split(' ')
+        const splitName = label.split(' ');
         return splitName.reduce((prev, curr) => {
           if (prev == 'START') {
-            return curr + ' '
+            return curr + ' ';
           } else {
-            return prev + curr.charAt(0) + '.'
+            return prev + curr.charAt(0) + '.';
           }
-        }, 'START')
+        }, 'START');
       },
       valueFormatter: (label: any, key: any, body: any) => {
         if (key == 'key') {
-          const payload: any = body.payload
+          const payload: any = body.payload;
           return (
             'Average Question Time: ' +
             (payload?.Average_Question_Time ?? 0) +
             ' min'
-          )
+          );
         }
-        return undefined
+        return undefined;
       },
       xRange: (chartData: ChartDataType[]) => {
-        const range = generateAxisRange(chartData, ['key'], 60)
-        range[0] = range[0] >= 60 ? range[0] - 60 : range[0]
-        range[1] = range[1] <= 1380 ? range[1] + 60 : range[1]
-        return range
+        const range = generateAxisRange(chartData, ['key'], 60);
+        range[0] = range[0] >= 60 ? range[0] - 60 : range[0];
+        range[1] = range[1] <= 1380 ? range[1] + 60 : range[1];
+        return range;
       },
       aspectRatio: 1.5,
       yIsCategory: true,
@@ -435,44 +421,44 @@ export const gantt_charts: {
         payload: TooltipPayload<string, NameType>[],
       ) => {
         if (payload != undefined) {
-          const p = (payload as any[])[0]?.payload
-          return `${p['Staff_Member']} @ ${getMinutesToTime(p.key as number)}`
+          const p = (payload as any[])[0]?.payload;
+          return `${p['Staff_Member']} @ ${getMinutesToTime(p.key as number)}`;
         } else {
-          return label
+          return label;
         }
       },
       xTickFormatter: (label: string) => {
-        const num = parseInt(label)
+        const num = parseInt(label);
         if (isNaN(num)) {
-          return ''
+          return '';
         }
-        return getMinutesToTime(num)
+        return getMinutesToTime(num);
       },
       yTickFormatter: (label: string) => {
-        const splitName = label.split(' ')
+        const splitName = label.split(' ');
         return splitName.reduce((prev, curr) => {
           if (prev == 'START') {
-            return curr + ' '
+            return curr + ' ';
           } else {
-            return prev + curr.charAt(0) + '.'
+            return prev + curr.charAt(0) + '.';
           }
-        }, 'START')
+        }, 'START');
       },
       valueFormatter: (label: any, key: any, body: any) => {
         if (key == 'key') {
-          const payload: any = body.payload
-          return 'Questions: ' + (payload?.Amount ?? 0)
+          const payload: any = body.payload;
+          return 'Questions: ' + (payload?.Amount ?? 0);
         }
-        return undefined
+        return undefined;
       },
       xRange: (chartData: ChartDataType[]) => {
-        const range = generateAxisRange(chartData, ['key'], 60)
-        range[0] = range[0] >= 60 ? range[0] - 60 : range[0]
-        range[1] = range[1] <= 1380 ? range[1] + 60 : range[1]
-        return range
+        const range = generateAxisRange(chartData, ['key'], 60);
+        range[0] = range[0] >= 60 ? range[0] - 60 : range[0];
+        range[1] = range[1] <= 1380 ? range[1] + 60 : range[1];
+        return range;
       },
       aspectRatio: 1.5,
       yIsCategory: true,
     },
   },
-}
+};

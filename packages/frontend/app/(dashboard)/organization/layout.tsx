@@ -1,15 +1,15 @@
-import SidebarNavigation from './components/SidebarNavigation'
-import { Metadata } from 'next'
-import { ReactNode } from 'react'
+import SidebarNavigation from './components/SidebarNavigation';
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 
 export const metadata: Metadata = {
   title: 'HelpMe | Organization Panel',
-}
+};
 
 export default function OrganizationLayout({
   children, // will be a page or nested layout
 }: {
-  children: ReactNode
+  children: ReactNode;
 }) {
   return (
     <div className="mt-2">
@@ -19,5 +19,5 @@ export default function OrganizationLayout({
         <div className="md:col-span-7 lg:col-span-8">{children}</div>
       </div>
     </div>
-  )
+  );
 }

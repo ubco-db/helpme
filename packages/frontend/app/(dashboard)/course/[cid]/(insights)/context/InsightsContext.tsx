@@ -1,81 +1,83 @@
-'use client'
+'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
-import { API } from '@/app/api'
-import { QueuePartial, Role, UserPartial } from '@koh/common'
-import { useCourse } from '@/app/hooks/useCourse'
+import type React from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { API } from '@/app/api';
+import type { QueuePartial, UserPartial } from '@koh/common';
+import { Role } from '@koh/common';
+import { useCourse } from '@/app/hooks/useCourse';
 
 type InsightContextType = {
   studentDetails?: {
-    students: UserPartial[]
-    totalStudents: number
-    page: number
-    setPage: (n: number) => void
-    search: string
-    setSearch: (s: string) => void
-  }
+    students: UserPartial[];
+    totalStudents: number;
+    page: number;
+    setPage: (n: number) => void;
+    search: string;
+    setSearch: (s: string) => void;
+  };
   staffDetails?: {
-    staff: UserPartial[]
-    totalStaff: number
-    page: number
-    setPage: (n: number) => void
-    search: string
-    setSearch: (s: string) => void
-  }
-  queueDetails?: QueuePartial[]
-}
+    staff: UserPartial[];
+    totalStaff: number;
+    page: number;
+    setPage: (n: number) => void;
+    search: string;
+    setSearch: (s: string) => void;
+  };
+  queueDetails?: QueuePartial[];
+};
 
-const InsightContext = createContext<InsightContextType>({})
+const InsightContext = createContext<InsightContextType>({});
 
 const useInsightContext = () => {
-  const context = useContext(InsightContext)
+  const context = useContext(InsightContext);
   if (context == undefined) {
     throw new Error(
       'Cannot use InsightContext outside of an InsightContextProvider.',
-    )
+    );
   }
-  return context
-}
+  return context;
+};
 
 const InsightContextProvider: React.FC<{
-  courseId: number
-  children: React.ReactNode
+  courseId: number;
+  children: React.ReactNode;
 }> = ({ courseId, children }) => {
-  const { course } = useCourse(courseId)
-  const [students, setStudents] = useState<UserPartial[]>([])
-  const [totalStudents, setTotalStudents] = useState<number>(0)
-  const [page, setPage] = useState<number>(1)
-  const [search, setSearch] = useState<string>('')
-  const [tas, settas] = useState<UserPartial[]>([])
-  const [totalStaff, setTotalStaff] = useState<number>(0)
-  const [staffSearch, setStaffSearch] = useState<string>('')
-  const [staffPage, setStaffPage] = useState<number>(1)
+  const { course } = useCourse(courseId);
+  const [students, setStudents] = useState<UserPartial[]>([]);
+  const [totalStudents, setTotalStudents] = useState<number>(0);
+  const [page, setPage] = useState<number>(1);
+  const [search, setSearch] = useState<string>('');
+  const [tas, settas] = useState<UserPartial[]>([]);
+  const [totalStaff, setTotalStaff] = useState<number>(0);
+  const [staffSearch, setStaffSearch] = useState<string>('');
+  const [staffPage, setStaffPage] = useState<number>(1);
 
   useEffect(() => {
-    ;(async () => {
+    (async () => {
       const data = await API.course.getUserInfo(
         courseId,
         page,
         Role.STUDENT,
         search,
-      )
-      setStudents(data.users)
-      setTotalStudents(data.total)
-    })()
-  }, [courseId, page, search])
+      );
+      setStudents(data.users);
+      setTotalStudents(data.total);
+    })();
+  }, [courseId, page, search]);
 
   useEffect(() => {
-    ;(async () => {
+    (async () => {
       const data = await API.course.getUserInfo(
         courseId,
         page,
         'staff',
         staffSearch,
-      )
-      settas(data.users)
-      setTotalStaff(data.total)
-    })()
-  }, [courseId, page, staffSearch])
+      );
+      settas(data.users);
+      setTotalStaff(data.total);
+    })();
+  }, [courseId, page, staffSearch]);
 
   return (
     <InsightContext.Provider
@@ -88,9 +90,9 @@ const InsightContextProvider: React.FC<{
           search: search,
           setSearch: (s: string) => {
             if (s == undefined) {
-              setSearch('')
+              setSearch('');
             } else {
-              setSearch(s)
+              setSearch(s);
             }
           },
         },
@@ -102,9 +104,9 @@ const InsightContextProvider: React.FC<{
           search: staffSearch,
           setSearch: (s: string) => {
             if (s == undefined) {
-              setStaffSearch('')
+              setStaffSearch('');
             } else {
-              setStaffSearch(s)
+              setStaffSearch(s);
             }
           },
         },
@@ -113,7 +115,7 @@ const InsightContextProvider: React.FC<{
     >
       {children}
     </InsightContext.Provider>
-  )
-}
+  );
+};
 
-export { useInsightContext, InsightContextProvider }
+export { useInsightContext, InsightContextProvider };

@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { ConfigTasks } from '@koh/common'
-import { getBrightness } from '@/app/utils/generalUtils'
+import { useState } from 'react';
+import type { ConfigTasks } from '@koh/common';
+import { getBrightness } from '@/app/utils/generalUtils';
 
 /*
   This component is used when the TA is helping a student (used on the QuestionCard). 
@@ -8,12 +8,12 @@ import { getBrightness } from '@/app/utils/generalUtils'
 */
 
 interface CheckableMarkingTaskProps {
-  taskId: string
-  taskName: string
-  taskColor: string
-  onChange: (taskId: string, checked: boolean) => void
-  checked: boolean
-  decorative: boolean
+  taskId: string;
+  taskName: string;
+  taskColor: string;
+  onChange: (taskId: string, checked: boolean) => void;
+  checked: boolean;
+  decorative: boolean;
 }
 
 const CheckableMarkingTask: React.FC<CheckableMarkingTaskProps> = ({
@@ -28,33 +28,33 @@ const CheckableMarkingTask: React.FC<CheckableMarkingTaskProps> = ({
     ? getBrightness(taskColor) < 128
       ? 'white'
       : 'black'
-    : 'gray'
+    : 'gray';
 
   const handleClick = () => {
-    onChange(taskId, !checked)
-  }
+    onChange(taskId, !checked);
+  };
 
   // for making it so you can press enter to toggle it
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter') {
-      handleClick()
+      handleClick();
     }
-  }
+  };
 
   // for applying hover and focus styles
-  const [isHovered, setIsHovered] = useState(false)
+  const [isHovered, setIsHovered] = useState(false);
   const handleMouseEnter = () => {
-    setIsHovered(true)
-  }
+    setIsHovered(true);
+  };
   const handleMouseLeave = () => {
-    setIsHovered(false)
-  }
+    setIsHovered(false);
+  };
   const handleFocus = () => {
-    setIsHovered(true)
-  }
+    setIsHovered(true);
+  };
   const handleBlur = () => {
-    setIsHovered(false)
-  }
+    setIsHovered(false);
+  };
 
   // if it's not decorative, it's a checkbox
   return (
@@ -93,16 +93,16 @@ const CheckableMarkingTask: React.FC<CheckableMarkingTaskProps> = ({
         {taskName}
       </div>
     </div>
-  )
-}
+  );
+};
 
 interface TaskMarkingSelectorProps {
-  onChange: (selectedTaskIds: string[]) => void
-  tasksStudentWouldLikeMarked: string[]
-  configTasks: ConfigTasks
-  className?: string
-  ariaLabel?: string
-  ariaLabelledBy?: string
+  onChange: (selectedTaskIds: string[]) => void;
+  tasksStudentWouldLikeMarked: string[];
+  configTasks: ConfigTasks;
+  className?: string;
+  ariaLabel?: string;
+  ariaLabelledBy?: string;
 }
 
 const TaskMarkingSelector: React.FC<TaskMarkingSelectorProps> = ({
@@ -113,16 +113,16 @@ const TaskMarkingSelector: React.FC<TaskMarkingSelectorProps> = ({
   ariaLabel,
   ariaLabelledBy,
 }) => {
-  const [selectedTasks, setSelectedTasks] = useState<string[]>([])
+  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
 
   const handleTaskClick = (taskId: string, checked: boolean) => {
     const newSelectedTasks = checked
       ? [...selectedTasks, taskId]
-      : selectedTasks.filter((id) => id !== taskId)
+      : selectedTasks.filter((id) => id !== taskId);
 
-    setSelectedTasks(newSelectedTasks)
-    onChange(newSelectedTasks)
-  }
+    setSelectedTasks(newSelectedTasks);
+    onChange(newSelectedTasks);
+  };
 
   return (
     <div
@@ -147,7 +147,7 @@ const TaskMarkingSelector: React.FC<TaskMarkingSelectorProps> = ({
         />
       ))}
     </div>
-  )
-}
+  );
+};
 
-export default TaskMarkingSelector
+export default TaskMarkingSelector;

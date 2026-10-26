@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class isDisabledAdd1636320319497 implements MigrationInterface {
   name = 'isDisabledAdd1636320319497';

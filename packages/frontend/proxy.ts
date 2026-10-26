@@ -1,14 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { isProd, OrganizationRole, User, UserRole } from './proxyType'
-import * as Sentry from '@sentry/nextjs'
-import { getAuthTokenString } from '@/app/api/cookie-utils'
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+import type { User } from './proxyType';
+import { isProd, OrganizationRole, UserRole } from './proxyType';
+import * as Sentry from '@sentry/nextjs';
+import { getAuthTokenString } from '@/app/api/cookie-utils';
 
 // These are files that do not require authentication. Used for displaying logos outside of HelpMe.
 const publicFiles: RegExp[] = [
   new RegExp('^/helpme_logo_(full|medium|small)[.]png$'),
   new RegExp('^/ubc_logo[.]png$'),
   new RegExp('^/actually_public/.*$'),
-]
+];
 
 // These are the public pages that do not require authentication. Adding an * will match any characters after the page (e.g. if the page has search query params).
 const publicPages: string[] = [
@@ -27,7 +29,7 @@ const publicPages: string[] = [
   '/lti/password*',
   '/lti/deep-link*',
   '/lti/embeddable/*',
-]
+];
 
 /* This represents the proxy on the FRONTEND NEXT.JS server.
 
@@ -51,11 +53,11 @@ const publicPages: string[] = [
 export async function proxy(
   request: NextRequest,
 ): Promise<NextResponse<unknown>> {
-  const { url, nextUrl, cookies } = request
+  const { url, nextUrl, cookies } = request;
 
-  const isPublicPageRequested = isPublicPage(nextUrl.pathname)
+  const isPublicPageRequested = isPublicPage(nextUrl.pathname);
 
-  const isPublicFileRequested = isPublicFile(nextUrl.pathname)
+  const isPublicFileRequested = isPublicFile(nextUrl.pathname);
 
   const searchParams =
     url.indexOf('?') > 0
@@ -65,24 +67,24 @@ export async function proxy(
           .map((v) => v.split('='))
           .map(([k, v]) => ({ [decodeURIComponent(k)]: decodeURIComponent(v) }))
           .reduce((p, c) => ({ ...p, ...c }), {})
-      : {}
-  const isLaunchFromLti = searchParams['launch_from_lti']
+      : {};
+  const isLaunchFromLti = searchParams['launch_from_lti'];
 
   if (isLaunchFromLti) {
-    const response = NextResponse.redirect(new URL(`/login`, url))
-    response.cookies.delete('lti_auth_token')
-    return response
+    const response = NextResponse.redirect(new URL(`/login`, url));
+    response.cookies.delete('lti_auth_token');
+    return response;
   }
 
   // // Case: If not on production, allow access to /dev pages (to skip other middleware checks)
   if (nextUrl.pathname.startsWith('/dev') && !isProd()) {
-    return NextResponse.next()
+    return NextResponse.next();
   }
 
-  const hasToken = cookies.has('lti_auth_token') || cookies.has('auth_token')
-  const isInLti = cookies.has('lti_auth_token') && !cookies.has('auth_token')
-  const cookieName = isInLti ? 'lti_auth_token' : 'auth_token'
-  const defaultPage = isInLti ? '/lti' : '/courses'
+  const hasToken = cookies.has('lti_auth_token') || cookies.has('auth_token');
+  const isInLti = cookies.has('lti_auth_token') && !cookies.has('auth_token');
+  const cookieName = isInLti ? 'lti_auth_token' : 'auth_token';
+  const defaultPage = isInLti ? '/lti' : '/courses';
 
   // Case: User tries to access a page that requires authentication without an auth token
   if (!hasToken && !isPublicPageRequested && !isPublicFileRequested) {
@@ -91,27 +93,27 @@ export async function proxy(
         `${isInLti ? '/lti' : ''}/login?redirect=${nextUrl.pathname}`,
         url,
       ),
-    )
+    );
   }
 
-  let response: Response | undefined
-  let userData: User | undefined
+  let response: Response | undefined;
+  let userData: User | undefined;
 
   try {
     response =
       isPublicPageRequested || isPublicFileRequested
         ? undefined
-        : await fetchUser(cookies, cookieName)
+        : await fetchUser(cookies, cookieName);
 
     userData =
       response &&
       ((response.status >= 200 && response.status < 300) ||
         response.status == 302)
         ? ((await response.json()) as User)
-        : undefined
+        : undefined;
   } catch (error) {
     return await handleRetry(request, async () => {
-      console.error('Error fetching user data in proxy.ts:', await error)
+      console.error('Error fetching user data in proxy.ts:', await error);
       Sentry.captureEvent({
         message: `Unknown error in proxy.ts`,
         level: 'error',
@@ -119,14 +121,14 @@ export async function proxy(
           requestedRoute: nextUrl.pathname,
           error,
         },
-      })
+      });
       return NextResponse.redirect(
         new URL(
           `${isInLti ? '/lti' : ''}/login?error=fetchError&redirect=${nextUrl.pathname}`,
           url,
         ),
-      )
-    })
+      );
+    });
   }
 
   // Case: User has auth token and tries to access a page that requires authentication
@@ -143,30 +145,30 @@ export async function proxy(
               `${isInLti ? '/lti' : ''}/login?error=sessionExpired&redirect=${nextUrl.pathname}`,
               url,
             ),
-          )
-          response.cookies.delete('auth_token')
-          response.cookies.delete('lti_auth_token')
-          return response
+          );
+          response.cookies.delete('auth_token');
+          response.cookies.delete('lti_auth_token');
+          return response;
         },
         1, // retry only once
-      )
+      );
     } else if (response.status >= 300 && response.status < 400) {
       // The user was redirected (from some other part of our app, maybe even this proxy)
       // We should just let them through to the next page
-      return NextResponse.next()
+      return NextResponse.next();
     } else if (response.status === 429) {
       // Too many requests (somehow. This should never happen since the getUser api has no throttler, but i'm leaving this here in case that changes).
       // Ideally, we would just do an antd message.error, but we can't do that in middelware since it's server-side.
       // The best solution we have right now is just sending them to the /429 page, which has a back button.
       // This should now never happen since the handleRetry will try again after 0.25s, 1s, and then 2s.
       return await handleRetry(request, () => {
-        return NextResponse.redirect(new URL('/error_pages/429', url))
-      })
+        return NextResponse.redirect(new URL('/error_pages/429', url));
+      });
     } else if (response.status >= 400) {
       // this really is not meant to happen
-      const contentType = response.headers?.get('Content-Type')
+      const contentType = response.headers?.get('Content-Type');
       if (contentType?.includes('application/json')) {
-        const userData: User = (await response.json()) as User
+        const userData: User = (await response.json()) as User;
         Sentry.captureEvent({
           message: `Unknown error in proxy.ts ${response.status}: ${response.statusText}`,
           level: 'error',
@@ -178,9 +180,9 @@ export async function proxy(
             userEmail: userData.email,
             userRole: userData.organization?.organizationRole,
           },
-        })
+        });
       } else if (contentType?.includes('text/html')) {
-        const text = (await response.text()) as string
+        const text = (await response.text()) as string;
         Sentry.captureEvent({
           message: `Unknown error in proxy.ts ${response.status}: ${response.statusText}`,
           level: 'error',
@@ -190,7 +192,7 @@ export async function proxy(
             statusCode: response.status,
             text,
           },
-        })
+        });
       } else {
         Sentry.captureEvent({
           message: `Unknown error in proxy.ts ${response.status}: ${response.statusText}`,
@@ -200,7 +202,7 @@ export async function proxy(
             statusText: response.statusText,
             statusCode: response.status,
           },
-        })
+        });
       }
       return await handleRetry(request, () => {
         const redirectResponse = NextResponse.redirect(
@@ -208,11 +210,11 @@ export async function proxy(
             `${isInLti ? '/lti' : ''}/login?error=errorCode${response.status}${encodeURIComponent(response.statusText)}&redirect=${nextUrl.pathname}`,
             url,
           ),
-        )
-        redirectResponse.cookies.delete('auth_token')
-        redirectResponse.cookies.delete('lti_auth_token')
-        return redirectResponse
-      })
+        );
+        redirectResponse.cookies.delete('auth_token');
+        redirectResponse.cookies.delete('lti_auth_token');
+        return redirectResponse;
+      });
     }
   }
 
@@ -225,31 +227,31 @@ export async function proxy(
     !isPublicPageRequested &&
     !isPublicFileRequested
   ) {
-    const pathOrPaths = userData.restrictPaths
-    const requestPath = nextUrl.pathname
-    let isAllowedOnPath: boolean
+    const pathOrPaths = userData.restrictPaths;
+    const requestPath = nextUrl.pathname;
+    let isAllowedOnPath: boolean;
     if (Array.isArray(pathOrPaths)) {
-      isAllowedOnPath = false
+      isAllowedOnPath = false;
       for (const path of pathOrPaths) {
         if (path.startsWith('r')) {
-          const regex = new RegExp(path.substring(1), 'i')
+          const regex = new RegExp(path.substring(1), 'i');
           if (regex.test(requestPath)) {
-            isAllowedOnPath = true
-            break
+            isAllowedOnPath = true;
+            break;
           }
         } else {
           if (requestPath == path) {
-            isAllowedOnPath = true
-            break
+            isAllowedOnPath = true;
+            break;
           }
         }
       }
     } else {
       if (pathOrPaths.startsWith('r')) {
-        const regex = new RegExp(pathOrPaths.substring(1), 'i')
-        isAllowedOnPath = regex.test(requestPath)
+        const regex = new RegExp(pathOrPaths.substring(1), 'i');
+        isAllowedOnPath = regex.test(requestPath);
       } else {
-        isAllowedOnPath = requestPath == (pathOrPaths as string)
+        isAllowedOnPath = requestPath == (pathOrPaths as string);
       }
     }
 
@@ -259,7 +261,7 @@ export async function proxy(
           `/api/v1/logout?redirect=${nextUrl.pathname}${isInLti ? '&lti=true' : ''}`,
           url,
         ),
-      )
+      );
     }
   }
 
@@ -273,16 +275,16 @@ export async function proxy(
       nextUrl.pathname.startsWith(`${isInLti ? '/lti' : ''}/verify`) &&
       !isEmailVerified(userData)
     ) {
-      return NextResponse.next()
+      return NextResponse.next();
     } else if (
       nextUrl.pathname.startsWith(`${isInLti ? '/lti' : ''}/verify`) &&
       isEmailVerified(userData)
     ) {
-      return NextResponse.redirect(new URL(defaultPage, url))
+      return NextResponse.redirect(new URL(defaultPage, url));
     } else if (!isEmailVerified(userData)) {
       return NextResponse.redirect(
         new URL(`${isInLti ? '/lti' : ''}/verify`, url),
-      )
+      );
     }
 
     // Redirect to /courses if user is not an admin and tries to access pages that should be accessed by organization admin (or professor)
@@ -292,7 +294,7 @@ export async function proxy(
       userData.organization.organizationRole !== OrganizationRole.ADMIN &&
       userData.organization.organizationRole !== OrganizationRole.PROFESSOR
     ) {
-      return NextResponse.redirect(new URL(defaultPage, url))
+      return NextResponse.redirect(new URL(defaultPage, url));
     }
 
     // Redirect to /courses if user is not an admin and tries to access pages that should be accessed by an application admin
@@ -300,7 +302,7 @@ export async function proxy(
       nextUrl.pathname.startsWith('/admin') &&
       userData.userRole !== UserRole.ADMIN
     ) {
-      return NextResponse.redirect(new URL(defaultPage, url))
+      return NextResponse.redirect(new URL(defaultPage, url));
     }
   }
 
@@ -315,36 +317,36 @@ export async function proxy(
     !nextUrl.pathname.startsWith('/about') &&
     nextUrl.pathname !== '/' // let logged-in users access landing page
   ) {
-    return NextResponse.redirect(new URL(defaultPage, url))
+    return NextResponse.redirect(new URL(defaultPage, url));
   }
 
-  return NextResponse.next()
+  return NextResponse.next();
 }
 
 const isPublicPage = (url: string) => {
   return publicPages.some((page) => {
-    const regex = new RegExp(`^${page.replace('*', '.*')}$`)
-    return regex.test(url)
-  })
-}
+    const regex = new RegExp(`^${page.replace('*', '.*')}$`);
+    return regex.test(url);
+  });
+};
 
 const isPublicFile = (url: string) => {
-  return publicFiles.some((file) => file.test(url))
-}
+  return publicFiles.some((file) => file.test(url));
+};
 
 const isEmailVerified = (userData: User): boolean => {
-  return userData.emailVerified
-}
+  return userData.emailVerified;
+};
 
 async function fetchUser(
   cookies: NextRequest['cookies'],
   cookieName = 'auth_token',
 ): Promise<Response | undefined> {
   if (!cookies.has(cookieName)) {
-    return undefined
+    return undefined;
   }
 
-  const authToken = await getAuthTokenString()
+  const authToken = await getAuthTokenString();
   const response: Response = await fetch(
     `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/profile`,
     {
@@ -356,13 +358,13 @@ async function fetchUser(
       },
       credentials: 'include',
     },
-  ).then((res) => res)
+  ).then((res) => res);
 
-  const contentType = response?.headers?.get('Content-Type')
+  const contentType = response?.headers?.get('Content-Type');
   if (contentType?.includes('application/json')) {
-    return response // Type assertion needed due to conditional return type
+    return response; // Type assertion needed due to conditional return type
   } else if (contentType?.includes('text/html')) {
-    const text = response.text()
+    const text = response.text();
     Sentry.captureEvent({
       message: `Unknown error in getUser ${response.status}: ${response.statusText}`,
       level: 'error',
@@ -370,10 +372,12 @@ async function fetchUser(
         text,
         response,
       },
-    })
-    return Promise.reject(text)
+    });
+    return Promise.reject(text);
   } else {
-    return Promise.reject('Unknown error in getUser' + JSON.stringify(response))
+    return Promise.reject(
+      'Unknown error in getUser' + JSON.stringify(response),
+    );
   }
 }
 
@@ -386,23 +390,23 @@ async function handleRetry(
   failureCallback: () => NextResponse | Promise<NextResponse>,
   maxRetries = 3,
 ) {
-  const { cookies } = request
-  const retryCookie = cookies.get('retry_attempts')?.value ?? '0'
-  const currentRetries = Number(retryCookie)
+  const { cookies } = request;
+  const retryCookie = cookies.get('retry_attempts')?.value ?? '0';
+  const currentRetries = Number(retryCookie);
 
   // 1st retry → 250ms, 2nd → 1000ms, 3rd → 2000ms
-  const WAIT_TIMES = [250, 1000, 2000]
+  const WAIT_TIMES = [250, 1000, 2000];
 
   if (currentRetries < maxRetries) {
-    const waitTime = WAIT_TIMES[currentRetries] ?? 2000
-    await sleep(waitTime)
+    const waitTime = WAIT_TIMES[currentRetries] ?? 2000;
+    await sleep(waitTime);
 
     // I realize that setting cookies like this essentially turns it into a counter variable, but I tried adding a counter variable to proxy() instead and it didn't work
-    cookies.set('retry_attempts', (currentRetries + 1).toString())
-    return await proxy(request) // try again
+    cookies.set('retry_attempts', (currentRetries + 1).toString());
+    return await proxy(request); // try again
   } else {
     // Exceeded retry attempts
-    return await failureCallback()
+    return await failureCallback();
   }
 }
 
@@ -410,7 +414,7 @@ async function handleRetry(
  * Small helper to pause execution in proxy.
  */
 function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export const config = {
@@ -431,4 +435,4 @@ export const config = {
      */
     '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|scripts|styles|sentry-tunnel).*)',
   ],
-}
+};

@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import type React from 'react';
+import { useState } from 'react';
 import {
   Button,
   Checkbox,
@@ -9,36 +10,37 @@ import {
   Popconfirm,
   Spin,
   Tooltip,
-} from 'antd'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
-import { QuestionTagSelector } from '../../../components/QuestionTagElement'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { AsyncQuestion, asyncQuestionStatus } from '@koh/common'
-import { DeleteOutlined } from '@ant-design/icons'
+} from 'antd';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { useQuestionTypes } from '@/app/hooks/useQuestionTypes';
+import { QuestionTagSelector } from '../../../components/QuestionTagElement';
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import type { AsyncQuestion } from '@koh/common';
+import { asyncQuestionStatus } from '@koh/common';
+import { DeleteOutlined } from '@ant-design/icons';
 import {
   deleteAsyncQuestion,
   formatQuestionForChatbot,
-} from '../../utils/commonAsyncFunctions'
-import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
-import { Wand2 } from 'lucide-react'
+} from '../../utils/commonAsyncFunctions';
+import { useCourseFeatures } from '@/app/hooks/useCourseFeatures';
+import { Wand2 } from 'lucide-react';
 
 interface FormValues {
-  QuestionAbstract: string
-  questionText: string
-  questionTypesInput: number[]
-  refreshAIAnswer: boolean
-  setVisible: boolean
-  setAnonymous: boolean
+  QuestionAbstract: string;
+  questionText: string;
+  questionTypesInput: number[];
+  refreshAIAnswer: boolean;
+  setVisible: boolean;
+  setAnonymous: boolean;
 }
 
 interface CreateAsyncQuestionModalProps {
-  courseId: number
-  open: boolean
-  onCancel: () => void
-  onCreateOrUpdateQuestion: () => void
-  question?: AsyncQuestion // if it's defined, then it's an edit modal
+  courseId: number;
+  open: boolean;
+  onCancel: () => void;
+  onCreateOrUpdateQuestion: () => void;
+  question?: AsyncQuestion; // if it's defined, then it's an edit modal
 }
 
 const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
@@ -48,33 +50,33 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
   onCreateOrUpdateQuestion,
   question,
 }) => {
-  const { userInfo } = useUserInfo()
-  const [questionTypes] = useQuestionTypes(courseId, null)
-  const [form] = Form.useForm()
-  const [isLoading, setIsLoading] = useState(false)
-  const [deleteLoading, setDeleteLoading] = useState(false)
-  const [isGeneratingAbstract, setIsGeneratingAbstract] = useState(false)
-  const courseFeatures = useCourseFeatures(courseId)
-  const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false
+  const { userInfo } = useUserInfo();
+  const [questionTypes] = useQuestionTypes(courseId, null);
+  const [form] = Form.useForm();
+  const [isLoading, setIsLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [isGeneratingAbstract, setIsGeneratingAbstract] = useState(false);
+  const courseFeatures = useCourseFeatures(courseId);
+  const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false;
 
   const fallbackGenerateAbstract = (question: string) => {
-    const words = question.split(' ').slice(0, 8)
-    const fallbackTitle = words.join(' ')
+    const words = question.split(' ').slice(0, 8);
+    const fallbackTitle = words.join(' ');
     return fallbackTitle.length > 100
       ? fallbackTitle.substring(0, 97) + '...'
-      : fallbackTitle
-  }
+      : fallbackTitle;
+  };
 
   const onGenerateAbstract = async () => {
-    const questionText = form.getFieldValue('questionText')
+    const questionText = form.getFieldValue('questionText');
     if (!questionText) {
       message.error(
         'Please enter your question text before generating an abstract.',
-      )
-      return
+      );
+      return;
     }
 
-    setIsGeneratingAbstract(true)
+    setIsGeneratingAbstract(true);
     try {
       const response = await API.chatbot.studentsOrStaff.queryChatbot(
         courseId,
@@ -82,29 +84,29 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           query: questionText,
           type: 'abstract',
         },
-      )
+      );
 
-      const idx = response.indexOf(':')
-      let generatedAbstract = response.substring(idx + 1)
-      generatedAbstract = generatedAbstract.replace(/^["']|["']$/g, '').trim()
+      const idx = response.indexOf(':');
+      let generatedAbstract = response.substring(idx + 1);
+      generatedAbstract = generatedAbstract.replace(/^["']|["']$/g, '').trim();
 
       if (generatedAbstract.length > 100 || generatedAbstract.includes('\n')) {
-        generatedAbstract = fallbackGenerateAbstract(generatedAbstract)
+        generatedAbstract = fallbackGenerateAbstract(generatedAbstract);
       }
 
-      form.setFieldsValue({ QuestionAbstract: generatedAbstract })
+      form.setFieldsValue({ QuestionAbstract: generatedAbstract });
     } catch (chatbotError) {
-      console.warn('Chatbot failed, using fallback', chatbotError)
-      const fallbackAbstract = fallbackGenerateAbstract(questionText)
-      form.setFieldsValue({ QuestionAbstract: fallbackAbstract })
+      console.warn('Chatbot failed, using fallback', chatbotError);
+      const fallbackAbstract = fallbackGenerateAbstract(questionText);
+      form.setFieldsValue({ QuestionAbstract: fallbackAbstract });
     } finally {
-      setIsGeneratingAbstract(false)
+      setIsGeneratingAbstract(false);
     }
-  }
+  };
 
   const getAiAnswer = async (question: string) => {
     if (!courseFeatures?.asyncCentreAIAnswers) {
-      return ''
+      return '';
     }
     try {
       if (userInfo.chat_token.used < userInfo.chat_token.max_uses) {
@@ -112,28 +114,28 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           question: question,
           history: [],
           onlySaveInChatbotDB: true,
-        }
+        };
         const response = await API.chatbot.studentsOrStaff.askQuestion(
           courseId,
           data,
-        )
-        return response.chatbotRepoVersion.answer
+        );
+        return response.chatbotRepoVersion.answer;
       } else {
-        return 'All AI uses have been used up for today. Please try again tomorrow.'
+        return 'All AI uses have been used up for today. Please try again tomorrow.';
       }
     } catch (e) {
-      return ''
+      return '';
     }
-  }
+  };
 
   const onFinish = async (values: FormValues) => {
-    setIsLoading(true)
+    setIsLoading(true);
     const newQuestionTypeInput =
       values.questionTypesInput && questionTypes
         ? questionTypes.filter((questionType) =>
             values.questionTypesInput.includes(questionType.id),
           )
-        : []
+        : [];
 
     // If editing a question, update the question. Else create a new one
     if (question) {
@@ -156,16 +158,16 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
               answerText: aiAnswer,
             })
             .then(() => {
-              message.success('Question Updated')
-              setIsLoading(false)
-              onCreateOrUpdateQuestion()
+              message.success('Question Updated');
+              setIsLoading(false);
+              onCreateOrUpdateQuestion();
             })
             .catch((e) => {
-              const errorMessage = getErrorMessage(e)
-              message.error('Error updating question:' + errorMessage)
-              setIsLoading(false)
-            })
-        })
+              const errorMessage = getErrorMessage(e);
+              message.error('Error updating question:' + errorMessage);
+              setIsLoading(false);
+            });
+        });
       } else {
         await API.asyncQuestions
           .studentUpdate(question.id, {
@@ -176,16 +178,16 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
             authorSetVisible: authorCanSetVisible ? values.setVisible : false,
           })
           .then(() => {
-            message.success('Question Updated')
-            onCreateOrUpdateQuestion()
+            message.success('Question Updated');
+            onCreateOrUpdateQuestion();
           })
           .catch((e) => {
-            const errorMessage = getErrorMessage(e)
-            message.error('Error updating question:' + errorMessage)
+            const errorMessage = getErrorMessage(e);
+            message.error('Error updating question:' + errorMessage);
           })
           .finally(() => {
-            setIsLoading(false)
-          })
+            setIsLoading(false);
+          });
       }
     } else {
       // since the ai chatbot may not be running, we don't have a catch statement if it fails and instead we just give it a question text of ''
@@ -213,18 +215,18 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
             courseId,
           )
           .then(() => {
-            message.success('Question Posted')
-            setIsLoading(false)
-            onCreateOrUpdateQuestion()
+            message.success('Question Posted');
+            setIsLoading(false);
+            onCreateOrUpdateQuestion();
           })
           .catch((e) => {
-            const errorMessage = getErrorMessage(e)
-            message.error('Error creating question:' + errorMessage)
-            setIsLoading(false)
-          })
-      })
+            const errorMessage = getErrorMessage(e);
+            message.error('Error creating question:' + errorMessage);
+            setIsLoading(false);
+          });
+      });
     }
-  }
+  };
 
   return (
     <Modal
@@ -255,13 +257,13 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
               getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
               okButtonProps={{ loading: deleteLoading }}
               onConfirm={async () => {
-                setDeleteLoading(true)
+                setDeleteLoading(true);
                 await deleteAsyncQuestion(
                   question.id,
                   false,
                   onCreateOrUpdateQuestion,
-                )
-                setDeleteLoading(false)
+                );
+                setDeleteLoading(false);
               }}
             >
               <Button danger type="primary" icon={<DeleteOutlined />}>
@@ -402,7 +404,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           </Tooltip>
         )}
     </Modal>
-  )
-}
+  );
+};
 
-export default CreateAsyncQuestionModal
+export default CreateAsyncQuestionModal;

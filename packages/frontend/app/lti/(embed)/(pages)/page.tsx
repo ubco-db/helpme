@@ -1,77 +1,79 @@
-'use client'
+'use client';
 
-import React, { ReactElement, useEffect, useState } from 'react'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { Alert, Empty, message } from 'antd'
-import CoursesSection from '@/app/(dashboard)/components/coursesSection'
-import Image from 'next/image'
-import { API } from '@/app/api'
-import { LMSIntegrationPlatform, SemesterPartial } from '@koh/common'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useSessionStorage } from '@/app/hooks/useSessionStorage'
+import type { ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { Alert, Empty, message } from 'antd';
+import CoursesSection from '@/app/(dashboard)/components/coursesSection';
+import Image from 'next/image';
+import { API } from '@/app/api';
+import type { SemesterPartial } from '@koh/common';
+import { LMSIntegrationPlatform } from '@koh/common';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useSessionStorage } from '@/app/hooks/useSessionStorage';
 
 export default function LtiLandingPage(): ReactElement {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [shouldClose, setShouldClose] = useState(false)
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [shouldClose, setShouldClose] = useState(false);
   const [lmsInfo, setLmsInfo] = useSessionStorage<{
-    apiCourseId: string
-    platform: LMSIntegrationPlatform
-  }>('lms_info', null)
+    apiCourseId: string;
+    platform: LMSIntegrationPlatform;
+  }>('lms_info', null);
 
   useEffect(() => {
-    if (window.self !== window.top || !searchParams.get('force_close')) return
+    if (window.self !== window.top || !searchParams.get('force_close')) return;
 
-    window.close()
-    const timeout = window.setTimeout(() => setShouldClose(true), 0)
-    return () => window.clearTimeout(timeout)
-  }, [searchParams])
+    window.close();
+    const timeout = window.setTimeout(() => setShouldClose(true), 0);
+    return () => window.clearTimeout(timeout);
+  }, [searchParams]);
 
   useEffect(() => {
-    if (shouldClose) return
-    const platform = searchParams.get('lms_platform')
-    const apiCourseId = searchParams.get('api_course_id')
+    if (shouldClose) return;
+    const platform = searchParams.get('lms_platform');
+    const apiCourseId = searchParams.get('api_course_id');
     const lmsPlatform = Object.values(LMSIntegrationPlatform).find(
       (value) => value === platform,
-    )
+    );
     if (lmsPlatform && apiCourseId) {
       setLmsInfo((current) =>
         current?.platform === lmsPlatform && current.apiCourseId === apiCourseId
           ? current
           : { platform: lmsPlatform, apiCourseId },
-      )
+      );
     }
-    const cid = searchParams.get('cid')
+    const cid = searchParams.get('cid');
     if (cid) {
-      const newSearchParams = new URLSearchParams()
+      const newSearchParams = new URLSearchParams();
       searchParams.forEach((v, k) =>
         k != 'cid' ? newSearchParams.set(k, v) : '',
-      )
+      );
       router.push(
         `/lti/${cid}${newSearchParams.size > 0 ? '?' + newSearchParams.toString() : ''}`,
-      )
+      );
     }
-  }, [router, searchParams, setLmsInfo, shouldClose])
+  }, [router, searchParams, setLmsInfo, shouldClose]);
 
-  const { userInfo } = useUserInfo()
+  const { userInfo } = useUserInfo();
 
-  const [semesters, setSemesters] = useState<SemesterPartial[]>([])
+  const [semesters, setSemesters] = useState<SemesterPartial[]>([]);
 
   useEffect(() => {
-    if (shouldClose) return
+    if (shouldClose) return;
     API.semesters
       .get(userInfo.organization?.orgId || -1)
       .then((semesters) => {
-        setSemesters(semesters)
+        setSemesters(semesters);
       })
       .catch((error) => {
-        console.error(error)
+        console.error(error);
         message.error(
           'Failed to fetch semesters for organization with id: ' +
             userInfo.organization?.orgId,
-        )
-      })
-  }, [shouldClose, userInfo.organization?.orgId])
+        );
+      });
+  }, [shouldClose, userInfo.organization?.orgId]);
 
   if (shouldClose) {
     return (
@@ -87,7 +89,7 @@ export default function LtiLandingPage(): ReactElement {
           />
         </div>
       </main>
-    )
+    );
   }
 
   return (
@@ -156,5 +158,5 @@ export default function LtiLandingPage(): ReactElement {
         )}
       </div>
     </>
-  )
+  );
 }

@@ -5,7 +5,6 @@ import { PipeTransform, Injectable, ArgumentMetadata } from '@nestjs/common';
  */
 @Injectable()
 export class StripUndefinedPipe implements PipeTransform {
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   transform(value: any, metadata: ArgumentMetadata): any {
     if (metadata.type === 'body') {
       this.dropUndefined(value);

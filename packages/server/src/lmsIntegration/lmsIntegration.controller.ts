@@ -913,7 +913,6 @@ export class LMSIntegrationController {
                 LMSUpload.Quizzes,
                 'Clear',
               );
-              // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (_err) {
               failures++;
               // Continue with other quizzes even if one fails
@@ -963,7 +962,6 @@ export class LMSIntegrationController {
 
         return `Successfully enabled sync for ${body.quizIds.length} quiz${body.quizIds.length !== 1 ? 'es' : ''}`;
       }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_err) {
       throw new HttpException(
         ERROR_MESSAGES.lmsController.failedToUpdateQuizSync,
