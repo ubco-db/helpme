@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { exec, spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { pipeline } from 'stream';
 import { promisify } from 'util';
 import * as Sentry from '@sentry/nestjs';
 import { createGzip, createGunzip } from 'zlib';
@@ -145,6 +146,15 @@ export class BackupService {
     Logger.log(`Restoring database backup from ${backupPath}`, 'BackupService');
 
     try {
+      // pg_dumpall recreates databases, so connect to the maintenance database,
+      // not psql's default (a database named after the configured user).
+      const restoreCommand = `${basePsqlCommand} -d postgres`;
+      Logger.log(
+        'Checking PostgreSQL connection before dropping databases',
+        'BackupService',
+      );
+      await execPromise(`${restoreCommand} -c "SELECT 1;"`, { timeout: 60000 });
+
       // Drop the specified databases so the restore can recreate them
       for (const db of databasesToDrop) {
         const dropCommand = `${basePsqlCommand} -d postgres -c "DROP DATABASE IF EXISTS ${db};"`;
@@ -156,39 +166,100 @@ export class BackupService {
       }
 
       Logger.log(
-        `Restoring backup via Node streams: ${basePsqlCommand}`,
+        `Restoring backup via Node streams: ${restoreCommand}`,
         'BackupService',
       );
       await new Promise<void>((resolve, reject) => {
-        const child = spawn(basePsqlCommand, { shell: true });
+        const child = spawn(restoreCommand, { shell: true });
         const readStream = fs.createReadStream(backupPath);
         const gunzip = createGunzip();
-
-        readStream.pipe(gunzip).pipe(child.stdin);
-
-        child.on('error', (err) =>
-          reject(new Error(`Spawn failed: ${err.message}`)),
-        );
-
         let errorOutput = '';
-        child.stderr.on('data', (data) => {
-          errorOutput += data.toString();
-        });
+        let streamError: Error | null = null;
+        let streamFinished = false;
+        let childClosed = false;
+        let exitCode: number | null = null;
+        let settled = false;
+
+        const finish = (error?: Error) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeoutId);
+          readStream.destroy();
+          gunzip.destroy();
+          child.stdin.destroy();
+          if (error) {
+            reject(error);
+          } else {
+            if (errorOutput.trim()) {
+              Logger.warn(
+                `Restore command stderr: ${errorOutput.trim()}`,
+                'BackupService',
+              );
+            }
+            resolve();
+          }
+        };
+
+        const checkComplete = () => {
+          if (!childClosed) return;
+          // Wait for both the input pipeline and psql, not just one of them.
+          if (exitCode === 0 && !streamFinished) return;
+          if (exitCode !== 0 || streamError) {
+            finish(
+              new Error(
+                [
+                  `Restore command exited with code ${exitCode}`,
+                  streamError
+                    ? `Backup stream failed: ${streamError.message}`
+                    : '',
+                  errorOutput.trim(),
+                ]
+                  .filter(Boolean)
+                  .join(': '),
+              ),
+            );
+          } else {
+            finish();
+          }
+        };
 
         const timeoutId = setTimeout(() => {
           child.kill();
-          reject(new Error('Backup restore timed out after 10 minutes'));
+          finish(
+            new Error(
+              `Backup restore timed out after 10 minutes${errorOutput.trim() ? `: ${errorOutput.trim()}` : ''}`,
+            ),
+          );
         }, LONG_TIMEOUT_MS);
 
+        // psql emits progress on stdout; leaving it unread can stall a large restore.
+        child.stdout.resume();
+        child.stderr.on('data', (data) => {
+          errorOutput += data.toString();
+        });
+        child.on('error', (err) => {
+          finish(new Error(`Restore spawn failed: ${err.message}`));
+        });
         child.on('close', (code) => {
-          clearTimeout(timeoutId);
-          if (code !== 0) {
-            reject(
-              new Error(`Command exited with code ${code}: ${errorOutput}`),
-            );
-          } else {
-            resolve();
+          childClosed = true;
+          exitCode = code;
+          checkComplete();
+        });
+
+        pipeline(readStream, gunzip, child.stdin, (err) => {
+          if (settled) return;
+          streamFinished = true;
+          streamError = err;
+          // EPIPE usually means psql already exited. Let it close naturally so
+          // its stderr (the actual cause) is captured before rejecting.
+          if (
+            err &&
+            (err as NodeJS.ErrnoException).code !== 'EPIPE' &&
+            !childClosed
+          ) {
+            child.kill();
           }
+          checkComplete();
         });
       });
 

@@ -36,8 +36,8 @@
 5. Run `yarn dev:db:up` to start the database via docker; `yarn dev:db:down` will stop it (this step might not be needed).
 6. Start the app in development with `yarn dev`
 7. Visit the app at http://localhost:3000/dev and click the "seed" button to seed the database with dummy data. 
-  - You may need to first create a `dev`, `test`, and `chatbot` database in your local postgres database (using psql or Beekeeper Studio). 
-  - You can do this by running `CREATE DATABASE dev;`, `CREATE DATABASE test;`, and `CREATE DATABASE chatbot;` in psql.
+  - You may need to first create a `dev`, `test`, `chatbot`, and `chatbot_test` database in your local postgres database (using psql or Beekeeper Studio). 
+  - You can do this by running `CREATE DATABASE dev;`, `CREATE DATABASE test;`, `CREATE DATABASE chatbot;`, and `CREATE DATABASE chatbot_test;` in psql.
 8. Visit the app at http://localhost:3000
 9. On the login page, you have access to the following dummy users (assuming the database is properly seeded):
    1.  Ramon@ubc.ca
