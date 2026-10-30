@@ -244,8 +244,7 @@ Deploy chatbot's structured feedback support first; it continues accepting the
 existing LTI caller's `params.systemPrompt`. Then apply the HelpMe migrations
 (including `CanvasBatchRunError1790080000000`) and deploy HelpMe. Roll back HelpMe
 before rolling back chatbot. Remove the legacy contract only after every caller
-has migrated. See [the grading evaluation handoff](CANVAS_GRADING_HANDOFF.md) for
-the request contract and evaluation entry point.
+has migrated.
 
 A failed run shows its error in Canvas Batch Grading and stops polling. Resolve
 the error, check SpeedGrader, and start a new run. The failed run remains available
