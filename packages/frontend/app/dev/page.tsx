@@ -1,21 +1,22 @@
-'use client'
+'use client';
 
-import { isProd } from '@koh/common'
-import { Button, Divider, Input, Tooltip } from 'antd'
-import { notFound } from 'next/navigation'
-import React, { ReactElement, useState } from 'react'
-import { message } from 'antd'
-import { getErrorMessage } from '../utils/generalUtils'
-import { API } from '../api'
+import { isProd } from '@koh/common';
+import { Button, Divider, Input, Tooltip } from 'antd';
+import { notFound } from 'next/navigation';
+import type { ReactElement } from 'react';
+import React, { useState } from 'react';
+import { message } from 'antd';
+import { getErrorMessage } from '../utils/generalUtils';
+import { API } from '../api';
 
 export default function DevPanel(): ReactElement {
   if (isProd()) {
     // shouldn't be needed due to the redirect in layout.tsx but just in case
-    notFound()
+    notFound();
   }
 
-  const [migrationName, setMigrationName] = useState('')
-  const [isMigrating, setIsMigrating] = useState(false)
+  const [migrationName, setMigrationName] = useState('');
+  const [isMigrating, setIsMigrating] = useState(false);
 
   return (
     <div className="mt-10 flex flex-col items-center justify-center gap-y-10">
@@ -32,14 +33,14 @@ export default function DevPanel(): ReactElement {
               API.seeds
                 .delete()
                 .then(() => {
-                  message.success('Data deleted successfully')
+                  message.success('Data deleted successfully');
                 })
                 .catch((error) => {
-                  const errorMessage = getErrorMessage(error)
+                  const errorMessage = getErrorMessage(error);
                   message.error(
                     `Error occurred while deleting the data: ${errorMessage}`,
-                  )
-                })
+                  );
+                });
             }}
           >
             Delete Data
@@ -51,14 +52,14 @@ export default function DevPanel(): ReactElement {
               API.seeds
                 .create()
                 .then(() => {
-                  message.success('Data seeded successfully')
+                  message.success('Data seeded successfully');
                 })
                 .catch((error) => {
-                  const errorMessage = getErrorMessage(error)
+                  const errorMessage = getErrorMessage(error);
                   message.error(
                     `Error occurred while seeding data: ${errorMessage}`,
-                  )
-                })
+                  );
+                });
             }}
           >
             Seed Data
@@ -70,14 +71,14 @@ export default function DevPanel(): ReactElement {
               API.seeds
                 .fillQueue()
                 .then(() => {
-                  message.success('Queue filled successfully')
+                  message.success('Queue filled successfully');
                 })
                 .catch((error) => {
-                  const errorMessage = getErrorMessage(error)
+                  const errorMessage = getErrorMessage(error);
                   message.error(
                     `Error occurred while adding questions to the queue: ${errorMessage}`,
-                  )
-                })
+                  );
+                });
             }}
           >
             Add Questions to Queue
@@ -91,14 +92,14 @@ export default function DevPanel(): ReactElement {
                 .then(() => {
                   message.success(
                     'Successfully created 100 test Anytime Questions',
-                  )
+                  );
                 })
                 .catch((error) => {
-                  const errorMessage = getErrorMessage(error)
+                  const errorMessage = getErrorMessage(error);
                   message.error(
                     `Error occurred while creating anytime questions: ${errorMessage}`,
-                  )
-                })
+                  );
+                });
             }}
           >
             Generate 100 Anytime Questions
@@ -111,14 +112,14 @@ export default function DevPanel(): ReactElement {
                 API.seeds
                   .createMailServices()
                   .then((msg) => {
-                    message.success(msg)
+                    message.success(msg);
                   })
                   .catch((error) => {
-                    const errorMessage = getErrorMessage(error)
+                    const errorMessage = getErrorMessage(error);
                     message.error(
                       `Error occurred while creating mail services: ${errorMessage}`,
-                    )
-                  })
+                    );
+                  });
               }}
             >
               Create Mail Services & Populate mail subscriptions
@@ -149,18 +150,18 @@ export default function DevPanel(): ReactElement {
               style={{ marginRight: '15px' }}
               type="default"
               onClick={() => {
-                const hide = message.loading('Exporting backup...', 0)
+                const hide = message.loading('Exporting backup...', 0);
                 API.seeds
                   .exportBackup()
                   .then((msg) => {
-                    hide()
-                    message.success(msg)
+                    hide();
+                    message.success(msg);
                   })
                   .catch((error) => {
-                    hide()
-                    const errorMessage = getErrorMessage(error)
-                    message.error(`Error exporting backup: ${errorMessage}`)
-                  })
+                    hide();
+                    const errorMessage = getErrorMessage(error);
+                    message.error(`Error exporting backup: ${errorMessage}`);
+                  });
               }}
             >
               Export Backup
@@ -171,18 +172,18 @@ export default function DevPanel(): ReactElement {
               style={{ marginRight: '15px' }}
               type="default"
               onClick={() => {
-                const hide = message.loading('Loading backup...', 0)
+                const hide = message.loading('Loading backup...', 0);
                 API.seeds
                   .loadBackup()
                   .then((msg) => {
-                    hide()
-                    message.success(msg)
+                    hide();
+                    message.success(msg);
                   })
                   .catch((error) => {
-                    hide()
-                    const errorMessage = getErrorMessage(error)
-                    message.error(`Error loading backup: ${errorMessage}`)
-                  })
+                    hide();
+                    const errorMessage = getErrorMessage(error);
+                    message.error(`Error loading backup: ${errorMessage}`);
+                  });
               }}
             >
               Load Backup
@@ -207,28 +208,28 @@ export default function DevPanel(): ReactElement {
             style={{ width: 300 }}
             onPressEnter={() => {
               if (migrationName.trim() && !isMigrating) {
-                setIsMigrating(true)
+                setIsMigrating(true);
                 const hide = message.loading(
                   'Running migration (this may take a minute, check server console for progress)...',
                   0,
-                )
+                );
                 API.seeds
                   .migrateWithBackup(migrationName.trim())
                   .then((msg) => {
-                    hide()
+                    hide();
                     message.success({
                       content:
                         'Migration completed! Check server logs for details.',
                       duration: 8,
-                    })
-                    console.log('Migration result:', msg)
+                    });
+                    console.log('Migration result:', msg);
                   })
                   .catch((error) => {
-                    hide()
-                    const errorMessage = getErrorMessage(error)
-                    message.error(`Error during migration: ${errorMessage}`)
+                    hide();
+                    const errorMessage = getErrorMessage(error);
+                    message.error(`Error during migration: ${errorMessage}`);
                   })
-                  .finally(() => setIsMigrating(false))
+                  .finally(() => setIsMigrating(false));
               }
             }}
           />
@@ -238,28 +239,28 @@ export default function DevPanel(): ReactElement {
               loading={isMigrating}
               disabled={!migrationName.trim()}
               onClick={() => {
-                setIsMigrating(true)
+                setIsMigrating(true);
                 const hide = message.loading(
                   'Running migration (this may take a minute)...',
                   0,
-                )
+                );
                 API.seeds
                   .migrateWithBackup(migrationName.trim())
                   .then((msg) => {
-                    hide()
+                    hide();
                     message.success({
                       content:
                         'Migration completed! Check server logs for details.',
                       duration: 8,
-                    })
-                    console.log('Migration result:', msg)
+                    });
+                    console.log('Migration result:', msg);
                   })
                   .catch((error) => {
-                    hide()
-                    const errorMessage = getErrorMessage(error)
-                    message.error(`Error during migration: ${errorMessage}`)
+                    hide();
+                    const errorMessage = getErrorMessage(error);
+                    message.error(`Error during migration: ${errorMessage}`);
                   })
-                  .finally(() => setIsMigrating(false))
+                  .finally(() => setIsMigrating(false));
               }}
             >
               Generate Migration
@@ -268,5 +269,5 @@ export default function DevPanel(): ReactElement {
         </div>
       </div>
     </div>
-  )
+  );
 }

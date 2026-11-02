@@ -1,6 +1,7 @@
 import { DataSource } from 'typeorm';
 import { OrganizationService } from './organization.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { OrganizationUserModel } from './organization-user.entity';
 import {

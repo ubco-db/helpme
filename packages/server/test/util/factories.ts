@@ -1,4 +1,4 @@
-import { FactoryService } from 'factory/factory.service';
+import type { FactoryService } from 'factory/factory.service';
 
 // IMPORTANT: In order to use ANY of these factories, you must make sure FactoryModule is an import in createTestingModule
 // AND you must get the FactoryService and pass it into initFactoriesFromService

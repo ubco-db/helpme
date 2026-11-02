@@ -1,36 +1,38 @@
-import { GetQueueResponse, QueuePartial, SSEQueueResponse } from '@koh/common'
-import useSWR, { mutate, SWRResponse } from 'swr'
-import { useCallback, useEffect } from 'react'
-import { useEventSource } from './useEventSource'
-import { plainToClass } from 'class-transformer'
-import { API } from '../api'
+import type { QueuePartial, SSEQueueResponse } from '@koh/common';
+import { GetQueueResponse } from '@koh/common';
+import type { SWRResponse } from 'swr';
+import useSWR, { mutate } from 'swr';
+import { useCallback, useEffect } from 'react';
+import { useEventSource } from './useEventSource';
+import { plainToClass } from 'class-transformer';
+import { API } from '../api';
 
-type queueResponse = SWRResponse<QueuePartial, any>
+type queueResponse = SWRResponse<QueuePartial, any>;
 
 interface UseQueueReturn {
-  queue: queueResponse['data']
-  queueError: queueResponse['error']
-  mutateQueue: queueResponse['mutate']
-  isLive: boolean
+  queue: queueResponse['data'];
+  queueError: queueResponse['error'];
+  mutateQueue: queueResponse['mutate'];
+  isLive: boolean;
 }
 
-type OnUpdate = (value: Date) => void
+type OnUpdate = (value: Date) => void;
 
 interface RefreshInfo {
-  lastUpdated: Date
-  onUpdates: Set<OnUpdate>
+  lastUpdated: Date;
+  onUpdates: Set<OnUpdate>;
 }
 
 // Keep track of all the different Refresh information and callbacks.
 // This is a global because useQueue can be used multiple times, but SWR's onSuccess overwrites other instances
-const REFRESH_INFO: Record<string, RefreshInfo> = {}
+const REFRESH_INFO: Record<string, RefreshInfo> = {};
 
 /**
  * Notify all onUpdate subscribers that new data came in.
  */
 function callOnUpdates(key: string) {
-  const refreshInfo = REFRESH_INFO[key]
-  refreshInfo.onUpdates.forEach((cb) => cb(refreshInfo.lastUpdated))
+  const refreshInfo = REFRESH_INFO[key];
+  refreshInfo.onUpdates.forEach((cb) => cb(refreshInfo.lastUpdated));
 }
 
 /**
@@ -47,25 +49,25 @@ export function useQueueWithQueueInvite(
 ): UseQueueReturn {
   const key = isQuestionsVisible
     ? `/api/v1/queueInvites/${qid}/${queueInviteCode}/queue`
-    : null
+    : null;
   if (key && !(key in REFRESH_INFO)) {
     REFRESH_INFO[key] = {
       lastUpdated: new Date(),
       onUpdates: new Set(),
-    }
+    };
   }
 
   // Register onUpdate callback
   useEffect(() => {
     if (onUpdate && key) {
-      const refreshInfo = REFRESH_INFO[key]
-      refreshInfo.onUpdates.add(onUpdate)
-      onUpdate(refreshInfo.lastUpdated)
+      const refreshInfo = REFRESH_INFO[key];
+      refreshInfo.onUpdates.add(onUpdate);
+      onUpdate(refreshInfo.lastUpdated);
       return () => {
-        refreshInfo.onUpdates.delete(onUpdate)
-      }
+        refreshInfo.onUpdates.delete(onUpdate);
+      };
     }
-  }, [onUpdate, key])
+  }, [onUpdate, key]);
 
   const isLive = useEventSource(
     isQuestionsVisible
@@ -75,14 +77,14 @@ export function useQueueWithQueueInvite(
     useCallback(
       (data: SSEQueueResponse) => {
         if (data.queue && key) {
-          mutate(key, plainToClass(GetQueueResponse, data.queue), false)
-          REFRESH_INFO[key].lastUpdated = new Date()
-          callOnUpdates(key)
+          mutate(key, plainToClass(GetQueueResponse, data.queue), false);
+          REFRESH_INFO[key].lastUpdated = new Date();
+          callOnUpdates(key);
         }
       },
       [key],
     ),
-  )
+  );
 
   const {
     data: queue,
@@ -97,16 +99,16 @@ export function useQueueWithQueueInvite(
     {
       refreshInterval: isLive ? 0 : 10 * 1000,
       onSuccess: (_, key) => {
-        REFRESH_INFO[key].lastUpdated = new Date()
-        callOnUpdates(key)
+        REFRESH_INFO[key].lastUpdated = new Date();
+        callOnUpdates(key);
       },
     },
-  )
+  );
 
   return {
     queue,
     queueError,
     mutateQueue,
     isLive,
-  }
+  };
 }

@@ -1,39 +1,39 @@
-import { Button, Modal, Checkbox, List, Input } from 'antd'
-import { useMemo, useState } from 'react'
-import { useInsightContext } from '@/app/(dashboard)/course/[cid]/(insights)/context/InsightsContext'
-import { QueuePartial } from '@koh/common'
-import { DownOutlined, SearchOutlined } from '@ant-design/icons'
-import FilterWrapper from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/FilterWrapper'
+import { Button, Modal, Checkbox, List, Input } from 'antd';
+import { useMemo, useState } from 'react';
+import { useInsightContext } from '@/app/(dashboard)/course/[cid]/(insights)/context/InsightsContext';
+import type { QueuePartial } from '@koh/common';
+import { DownOutlined, SearchOutlined } from '@ant-design/icons';
+import FilterWrapper from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/FilterWrapper';
 
 type QueueFilterProps = {
-  selectedQueues: number[]
-  setSelectedQueues: (value: number[]) => void
-}
+  selectedQueues: number[];
+  setSelectedQueues: (value: number[]) => void;
+};
 
 const QueueFilter: React.FC<QueueFilterProps> = ({
   selectedQueues,
   setSelectedQueues,
 }) => {
-  const insightContext = useInsightContext()
+  const insightContext = useInsightContext();
   const queueDetails = useMemo(
     () => insightContext.queueDetails,
     [insightContext],
-  )
+  );
 
-  const [modalOpen, setModalOpen] = useState<boolean>(false)
-  const [search, setSearch] = useState<string>('')
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [search, setSearch] = useState<string>('');
 
   const updateSelectedQueues = (queue: number) => {
     setSelectedQueues(
       selectedQueues.includes(queue)
         ? selectedQueues.filter((s) => s != queue)
         : [...selectedQueues, queue],
-    )
-  }
+    );
+  };
 
   const onClose = () => {
-    setModalOpen(false)
-  }
+    setModalOpen(false);
+  };
 
   return (
     queueDetails != undefined && (
@@ -87,7 +87,7 @@ const QueueFilter: React.FC<QueueFilterProps> = ({
         </FilterWrapper>
       </>
     )
-  )
-}
+  );
+};
 
-export default QueueFilter
+export default QueueFilter;

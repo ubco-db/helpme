@@ -1,6 +1,7 @@
 import { DataSource } from 'typeorm';
 import { JwtModule, JwtService } from '@nestjs/jwt';
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import {
   MockResponse,
   TestConfigModule,
@@ -23,14 +24,14 @@ import {
 import { LoginService } from './login.service';
 import { EmbeddableQuestionService } from '../lti/embeddable-question/embeddable-question.service';
 import { ERROR_MESSAGES, QUERY_PARAMS } from '@koh/common';
-import { Request } from 'express';
-import { UserModel } from '../profile/user.entity';
+import type { Request } from 'express';
+import type { UserModel } from '../profile/user.entity';
 import { CourseService } from '../course/course.service';
 import { LtiService } from '../lti/lti.service';
 import { ProfInviteService } from '../course/prof-invite/prof-invite.service';
-import { CourseModel } from '../course/course.entity';
-import { QueueModel } from '../queue/queue.entity';
-import { OrganizationModel } from '../organization/organization.entity';
+import type { CourseModel } from '../course/course.entity';
+import type { QueueModel } from '../queue/queue.entity';
+import type { OrganizationModel } from '../organization/organization.entity';
 import { UnauthorizedException } from '@nestjs/common';
 
 describe('LoginService', () => {

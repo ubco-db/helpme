@@ -1,15 +1,16 @@
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { SendOutlined } from '@ant-design/icons'
-import { Form, FormProps, message, Popover, Button, Input, Tooltip } from 'antd'
-import { MessageCircleMore } from 'lucide-react'
-import { useState, useEffect, useRef } from 'react'
-import CircleButton from './CircleButton'
-import { useQueueChatsMetadatas } from '@/app/hooks/useQueueChatsMetadatas'
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { SendOutlined } from '@ant-design/icons';
+import type { FormProps } from 'antd';
+import { Form, message, Popover, Button, Input, Tooltip } from 'antd';
+import { MessageCircleMore } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import CircleButton from './CircleButton';
+import { useQueueChatsMetadatas } from '@/app/hooks/useQueueChatsMetadatas';
 
 type FormValues = {
-  message?: string
-}
+  message?: string;
+};
 
 /* This is the button for students or TAs to start a chat with one another.
 
@@ -19,66 +20,66 @@ For students, this button appears on each StatusCard on the StaffList.
 
 */
 const MessageButton: React.FC<{
-  recipientName: string
-  staffId: number
-  queueId: number
-  questionId?: number
-  isStaff: boolean
+  recipientName: string;
+  staffId: number;
+  queueId: number;
+  questionId?: number;
+  isStaff: boolean;
 }> = ({ recipientName, staffId, queueId, questionId, isStaff }) => {
-  const [isTooltipOpen, setIsTooltipOpen] = useState(false)
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false)
-  const [isSendingLoading, setIsSendingLoading] = useState(false)
-  const { queueChats, mutateQueueChats } = useQueueChatsMetadatas(queueId) // TODO: figure out a way to make useQueueChatMetadatas more efficient since there can be a lot of MessageButtons (probably with a context, but while you're at it you probably want to do something similar with useQueue and useQuestions)
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [isSendingLoading, setIsSendingLoading] = useState(false);
+  const { queueChats, mutateQueueChats } = useQueueChatsMetadatas(queueId); // TODO: figure out a way to make useQueueChatMetadatas more efficient since there can be a lot of MessageButtons (probably with a context, but while you're at it you probably want to do something similar with useQueue and useQuestions)
   const hasAssociatedQueueChat = queueChats?.some(
     (chat) => chat.questionId === questionId && chat.staff.id === staffId,
-  )
-  const [form] = Form.useForm()
-  const textAreaRef = useRef<HTMLTextAreaElement>(null)
+  );
+  const [form] = Form.useForm();
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   const sendMessage: FormProps<FormValues>['onFinish'] = async (values) => {
     if (!questionId) {
-      message.error('You must have a question to send a message')
-      return
+      message.error('You must have a question to send a message');
+      return;
     }
     try {
-      setIsSendingLoading(true)
+      setIsSendingLoading(true);
       const newQueueChatMetadata = await API.queueChats.startQueueChat(
         queueId,
         questionId,
         staffId,
-      )
+      );
       await API.queueChats.sendMessage(
         queueId,
         questionId,
         staffId,
         values.message ?? '',
-      )
+      );
       // preemptively mutate the queue chats to add a new queue chat
-      mutateQueueChats([...(queueChats ?? []), newQueueChatMetadata])
-      setIsPopoverOpen(false)
-      setIsTooltipOpen(false)
+      mutateQueueChats([...(queueChats ?? []), newQueueChatMetadata]);
+      setIsPopoverOpen(false);
+      setIsTooltipOpen(false);
     } catch (error) {
-      message.error('Failed to send message: ' + getErrorMessage(error))
+      message.error('Failed to send message: ' + getErrorMessage(error));
     } finally {
-      setIsSendingLoading(false)
+      setIsSendingLoading(false);
     }
-  }
+  };
 
   const onFinishFailed: FormProps<FormValues>['onFinishFailed'] = (
     errorInfo,
   ) => {
     message.error(
       'Failed to send message: ' + errorInfo.errorFields[0].errors[0],
-    )
-  }
+    );
+  };
 
   useEffect(() => {
     if (isPopoverOpen && textAreaRef.current) {
       setTimeout(() => {
-        textAreaRef.current?.focus()
-      }, 100)
+        textAreaRef.current?.focus();
+      }, 100);
     }
-  }, [isPopoverOpen])
+  }, [isPopoverOpen]);
 
   return (
     <Form form={form} onFinish={sendMessage} onFinishFailed={onFinishFailed}>
@@ -97,8 +98,8 @@ const MessageButton: React.FC<{
                 autoSize={{ minRows: 1, maxRows: 6 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    form.submit()
+                    e.preventDefault();
+                    form.submit();
                   }
                 }}
               />
@@ -117,12 +118,12 @@ const MessageButton: React.FC<{
         open={isPopoverOpen}
         onOpenChange={(open) => {
           if (hasAssociatedQueueChat) {
-            setIsPopoverOpen(false)
-            return
+            setIsPopoverOpen(false);
+            return;
           }
-          setIsPopoverOpen(open)
+          setIsPopoverOpen(open);
           if (open) {
-            setIsTooltipOpen(false)
+            setIsTooltipOpen(false);
           }
         }}
       >
@@ -138,7 +139,7 @@ const MessageButton: React.FC<{
           }
           open={isTooltipOpen}
           onOpenChange={(open) => {
-            setIsTooltipOpen(open)
+            setIsTooltipOpen(open);
           }}
         >
           <span>
@@ -165,7 +166,7 @@ const MessageButton: React.FC<{
         </Tooltip>
       </Popover>
     </Form>
-  )
-}
+  );
+};
 
-export default MessageButton
+export default MessageButton;

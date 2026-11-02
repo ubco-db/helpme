@@ -1,25 +1,26 @@
-'use client'
+'use client';
 
 import {
   EditOutlined,
   NotificationOutlined,
   StopOutlined,
-} from '@ant-design/icons'
-import { Button, Card, Divider, Input, message, Row, Tag, Tooltip } from 'antd'
-import Link from 'next/link'
-import { ReactElement, useState } from 'react'
-import UserAvatar from '@/app/components/UserAvatar'
-import { QueuePartial } from '@koh/common'
-import { getQueueTypeLabel } from '../queue/[qid]/utils/commonQueueFunctions'
-import { useCourse } from '@/app/hooks/useCourse'
-import { API } from '@/app/api'
-import { cn, getErrorMessage } from '@/app/utils/generalUtils'
+} from '@ant-design/icons';
+import { Button, Card, Divider, Input, message, Row, Tag, Tooltip } from 'antd';
+import Link from 'next/link';
+import type { ReactElement } from 'react';
+import { useState } from 'react';
+import UserAvatar from '@/app/components/UserAvatar';
+import type { QueuePartial } from '@koh/common';
+import { getQueueTypeLabel } from '../queue/[qid]/utils/commonQueueFunctions';
+import { useCourse } from '@/app/hooks/useCourse';
+import { API } from '@/app/api';
+import { cn, getErrorMessage } from '@/app/utils/generalUtils';
 
 interface QueueCardProps {
-  cid: number
-  queue: QueuePartial
-  isStaff: boolean
-  linkId: string
+  cid: number;
+  queue: QueuePartial;
+  isStaff: boolean;
+  linkId: string;
 }
 
 const QueueCard: React.FC<QueueCardProps> = ({
@@ -28,28 +29,28 @@ const QueueCard: React.FC<QueueCardProps> = ({
   isStaff,
   linkId,
 }): ReactElement => {
-  const { mutateCourse } = useCourse(cid)
-  const [editingNotes, setEditingNotes] = useState(false)
-  const [updatedNotes, setUpdatedNotes] = useState(queue.notes)
-  const [isLinkEnabled, setIsLinkEnabled] = useState(true) // for enabling/disabling the link to the queue when editing notes
+  const { mutateCourse } = useCourse(cid);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [updatedNotes, setUpdatedNotes] = useState(queue.notes);
+  const [isLinkEnabled, setIsLinkEnabled] = useState(true); // for enabling/disabling the link to the queue when editing notes
 
   const getQueueTypeColor = (type: string) => {
     switch (type) {
       case 'inPerson':
-        return '#097969'
+        return '#097969';
       case 'hybrid':
-        return '#06808E'
+        return '#06808E';
       case 'online':
-        return '#0488B4'
+        return '#0488B4';
       default:
-        return '#008080' // just in case, this default will match the color of hybrid
+        return '#008080'; // just in case, this default will match the color of hybrid
     }
-  }
+  };
 
   const handleSaveQueueNotes = async (e: { preventDefault: () => void }) => {
-    e.preventDefault()
-    setIsLinkEnabled(true)
-    setEditingNotes(false)
+    e.preventDefault();
+    setIsLinkEnabled(true);
+    setEditingNotes(false);
     // update the queue notes
     await API.queues
       .update(queue.id, {
@@ -57,14 +58,14 @@ const QueueCard: React.FC<QueueCardProps> = ({
         allowQuestions: queue.allowQuestions,
       })
       .then(() => {
-        mutateCourse()
-        message.success('Queue notes updated successfully')
+        mutateCourse();
+        message.success('Queue notes updated successfully');
       })
       .catch((e) => {
-        const errorMessage = getErrorMessage(e)
-        message.error(`Error updating queue notes: ${errorMessage}`)
-      })
-  }
+        const errorMessage = getErrorMessage(e);
+        message.error(`Error updating queue notes: ${errorMessage}`);
+      });
+  };
   return (
     <Link
       href={isLinkEnabled ? `/course/${cid}/queue/${queue.id}` : ''}
@@ -191,9 +192,9 @@ const QueueCard: React.FC<QueueCardProps> = ({
                   <Button
                     className="rounded-md border px-4 py-2 text-base font-medium"
                     onClick={(e) => {
-                      e.preventDefault()
-                      setIsLinkEnabled(false)
-                      setEditingNotes(true)
+                      e.preventDefault();
+                      setIsLinkEnabled(false);
+                      setEditingNotes(true);
                     }}
                     icon={<EditOutlined />}
                   />
@@ -204,7 +205,7 @@ const QueueCard: React.FC<QueueCardProps> = ({
         </Row>
       </Card>
     </Link>
-  )
-}
+  );
+};
 
-export default QueueCard
+export default QueueCard;

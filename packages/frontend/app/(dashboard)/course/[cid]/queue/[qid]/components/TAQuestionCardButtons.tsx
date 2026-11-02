@@ -5,7 +5,12 @@ import {
   PauseOutlined,
   QuestionOutlined,
   UndoOutlined,
-} from '@ant-design/icons'
+} from '@ant-design/icons';
+import type {
+  Question,
+  QuestionStatus,
+  RephraseQuestionPayload,
+} from '@koh/common';
 import {
   AlertDeliveryMode,
   AlertType,
@@ -14,33 +19,31 @@ import {
   LimboQuestionStatus,
   OpenQuestionStatus,
   parseTaskIdsFromQuestionText,
-  Question,
-  QuestionStatus,
-  RephraseQuestionPayload,
-} from '@koh/common'
-import { message, Popconfirm, Tooltip } from 'antd'
-import React, { useCallback, useEffect, useState } from 'react'
-import { Play } from 'lucide-react'
-import CircleButton from './CircleButton'
-import { useCourse } from '@/app/hooks/useCourse'
-import { useQuestions } from '@/app/hooks/useQuestions'
-import { isCheckedIn } from '../../../utils/commonCourseFunctions'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { API } from '@/app/api'
-import MessageButton from './MessageButton'
-import { useQueueChatsMetadatas } from '@/app/hooks/useQueueChatsMetadatas'
+} from '@koh/common';
+import { message, Popconfirm, Tooltip } from 'antd';
+import type React from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Play } from 'lucide-react';
+import CircleButton from './CircleButton';
+import { useCourse } from '@/app/hooks/useCourse';
+import { useQuestions } from '@/app/hooks/useQuestions';
+import { isCheckedIn } from '../../../utils/commonCourseFunctions';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { API } from '@/app/api';
+import MessageButton from './MessageButton';
+import { useQueueChatsMetadatas } from '@/app/hooks/useQueueChatsMetadatas';
 
 const PRORITY_QUEUED_MESSAGE_TEXT =
-  'This student has been temporarily removed from the queue. They must select to rejoin the queue and will then be placed where they were before'
+  'This student has been temporarily removed from the queue. They must select to rejoin the queue and will then be placed where they were before';
 
 interface TAQuestionCardButtonsProps {
-  courseId: number
-  queueId: number
-  question: Question
-  hasUnresolvedRephraseAlert: boolean
-  tasksSelectedForMarking: string[]
-  className?: string
+  courseId: number;
+  queueId: number;
+  question: Question;
+  hasUnresolvedRephraseAlert: boolean;
+  tasksSelectedForMarking: string[];
+  className?: string;
 }
 
 const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
@@ -51,31 +54,31 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
   tasksSelectedForMarking,
   className,
 }) => {
-  const { course } = useCourse(courseId)
-  const { mutateQuestions } = useQuestions(queueId)
-  const { mutateQueueChats, queueChats } = useQueueChatsMetadatas(queueId)
-  const { userInfo } = useUserInfo()
-  const staffList = course?.queues?.find((q) => q.id === queueId)?.staffList
-  const isUserCheckedIn = isCheckedIn(staffList, userInfo.id)
+  const { course } = useCourse(courseId);
+  const { mutateQuestions } = useQuestions(queueId);
+  const { mutateQueueChats, queueChats } = useQueueChatsMetadatas(queueId);
+  const { userInfo } = useUserInfo();
+  const staffList = course?.queues?.find((q) => q.id === queueId)?.staffList;
+  const isUserCheckedIn = isCheckedIn(staffList, userInfo.id);
   // loading states for buttons
-  const [helpButtonLoading, setHelpButtonLoading] = useState(false)
-  const [rephraseButtonLoading, setRephraseButtonLoading] = useState(false)
-  const [deleteButtonLoading, setDeleteButtonLoading] = useState(false)
+  const [helpButtonLoading, setHelpButtonLoading] = useState(false);
+  const [rephraseButtonLoading, setRephraseButtonLoading] = useState(false);
+  const [deleteButtonLoading, setDeleteButtonLoading] = useState(false);
   const [finishHelpingButtonLoading, setFinishHelpingButtonLoading] =
-    useState(false)
-  const [cantFindButtonLoading, setCantFindButtonLoading] = useState(false)
-  const [requeueButtonLoading, setRequeueButtonLoading] = useState(false)
-  const [pauseButtonLoading, setPauseButtonLoading] = useState(false)
+    useState(false);
+  const [cantFindButtonLoading, setCantFindButtonLoading] = useState(false);
+  const [requeueButtonLoading, setRequeueButtonLoading] = useState(false);
+  const [pauseButtonLoading, setPauseButtonLoading] = useState(false);
 
   const preemptivelyDeleteAssociatedQueueChatsForQuestion = useCallback(() => {
     // preemptively mutate (i.e. update locally) the queue chats to remove any queue chats that are associated with the deleted question
     if (queueChats) {
       const updatedQueueChats = queueChats.filter(
         (chat) => chat.questionId !== question.id,
-      )
-      mutateQueueChats(updatedQueueChats)
+      );
+      mutateQueueChats(updatedQueueChats);
     }
-  }, [queueChats, mutateQueueChats, question.id])
+  }, [queueChats, mutateQueueChats, question.id]);
 
   const changeStatus = useCallback(
     async (status: QuestionStatus) => {
@@ -84,76 +87,76 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           status,
         })
         .then((responseQuestion) => {
-          mutateQuestions()
+          mutateQuestions();
           if (status === ClosedQuestionStatus.Resolved) {
             if (responseQuestion.isTaskQuestion) {
               const tasksMarkedDone =
                 responseQuestion.text
                   ?.match(/"(.*?)"/g)
-                  ?.map((task) => task.slice(1, -1)) || []
+                  ?.map((task) => task.slice(1, -1)) || [];
               if (tasksMarkedDone.length == 0) {
-                message.warning('No tasks marked done')
+                message.warning('No tasks marked done');
               } else {
                 message.success(
                   'Marked ' + tasksMarkedDone.join(', ') + ' as done',
-                )
+                );
               }
             } else {
-              message.success('Your Question has ended')
+              message.success('Your Question has ended');
             }
-            preemptivelyDeleteAssociatedQueueChatsForQuestion()
+            preemptivelyDeleteAssociatedQueueChatsForQuestion();
           }
         })
         .catch((e) => {
-          const errorMessage = getErrorMessage(e)
-          message.error('Failed to update question status: ' + errorMessage)
-        })
+          const errorMessage = getErrorMessage(e);
+          message.error('Failed to update question status: ' + errorMessage);
+        });
     },
     [
       question.id,
       mutateQuestions,
       preemptivelyDeleteAssociatedQueueChatsForQuestion,
     ],
-  )
+  );
 
   const markSelected = useCallback(async () => {
     const newQuestionText = `Mark ${tasksSelectedForMarking
       .map((task) => `"${task}"`)
-      .join(' ')}`
+      .join(' ')}`;
     try {
       const responseQuestion = await API.questions.update(question.id, {
         status: ClosedQuestionStatus.Resolved,
         text: newQuestionText,
-      })
-      await mutateQuestions()
+      });
+      await mutateQuestions();
       const tasksMarkedDone = parseTaskIdsFromQuestionText(
         responseQuestion.text,
-      )
+      );
       if (tasksMarkedDone.length == 0) {
-        message.warning('No tasks marked done')
+        message.warning('No tasks marked done');
       } else {
         message.success(
           'Marked ' + tasksSelectedForMarking.join(', ') + ' as done',
-        )
+        );
       }
-      preemptivelyDeleteAssociatedQueueChatsForQuestion()
+      preemptivelyDeleteAssociatedQueueChatsForQuestion();
     } catch (e) {
-      message.error('Failed to mark tasks as done')
+      message.error('Failed to mark tasks as done');
     }
   }, [
     tasksSelectedForMarking,
     question.id,
     mutateQuestions,
     preemptivelyDeleteAssociatedQueueChatsForQuestion,
-  ])
+  ]);
 
   const sendRephraseAlert = async () => {
-    setRephraseButtonLoading(true)
+    setRephraseButtonLoading(true);
     const payload: RephraseQuestionPayload = {
       queueId,
       questionId: question.id,
       courseId,
-    }
+    };
     try {
       await API.alerts.create({
         alertType: AlertType.REPHRASE_QUESTION,
@@ -161,9 +164,9 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
         payload,
         targetUserId: question.creatorId,
         deliveryMode: AlertDeliveryMode.MODAL,
-      })
+      });
       // await mutateQuestions()
-      message.success('Successfully asked student to rephrase their question.')
+      message.success('Successfully asked student to rephrase their question.');
     } catch (e: any) {
       if (
         e.response?.data?.message ===
@@ -171,50 +174,50 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
       ) {
         message.error(
           'This student has already been asked to rephrase their question',
-        )
+        );
       }
     } finally {
-      setRephraseButtonLoading(false)
+      setRephraseButtonLoading(false);
     }
-  }
+  };
 
   const helpStudent = () => {
-    setHelpButtonLoading(true)
+    setHelpButtonLoading(true);
     changeStatus(OpenQuestionStatus.Helping).then(() => {
-      setHelpButtonLoading(false)
-    })
-  }
+      setHelpButtonLoading(false);
+    });
+  };
   const deleteQuestion = async () => {
-    setDeleteButtonLoading(true)
+    setDeleteButtonLoading(true);
     await changeStatus(
       question.status === OpenQuestionStatus.Drafting
         ? ClosedQuestionStatus.DeletedDraft
         : LimboQuestionStatus.TADeleted,
     ).then(() => {
-      setDeleteButtonLoading(false)
-      preemptivelyDeleteAssociatedQueueChatsForQuestion()
-    })
-    await API.questions.notify(question.id)
-  }
+      setDeleteButtonLoading(false);
+      preemptivelyDeleteAssociatedQueueChatsForQuestion();
+    });
+    await API.questions.notify(question.id);
+  };
 
   const [isFinishHelpingTooltipVisible, setIsFinishHelpingTooltipVisible] =
-    useState(false)
+    useState(false);
   const [previousTasksSelectedForMarking, setPreviousTasksSelectedForMarking] =
-    useState<number>(0)
+    useState<number>(0);
   // show the isFinishHelpingToolTip for 2 seconds when tasksSelectedForMarking changes
   useEffect(() => {
     if (
       previousTasksSelectedForMarking - tasksSelectedForMarking.length !==
       0
     ) {
-      setIsFinishHelpingTooltipVisible(true)
-      setPreviousTasksSelectedForMarking(tasksSelectedForMarking.length)
+      setIsFinishHelpingTooltipVisible(true);
+      setPreviousTasksSelectedForMarking(tasksSelectedForMarking.length);
     }
     const timer = setTimeout(() => {
-      setIsFinishHelpingTooltipVisible(false)
-    }, 2000)
-    return () => clearTimeout(timer)
-  }, [tasksSelectedForMarking, previousTasksSelectedForMarking])
+      setIsFinishHelpingTooltipVisible(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [tasksSelectedForMarking, previousTasksSelectedForMarking]);
 
   if (
     question.status === OpenQuestionStatus.Helping ||
@@ -231,11 +234,11 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           okText="Yes"
           cancelText="No"
           onConfirm={async () => {
-            setRequeueButtonLoading(true)
+            setRequeueButtonLoading(true);
             await changeStatus(LimboQuestionStatus.ReQueueing).then(() => {
-              message.success(PRORITY_QUEUED_MESSAGE_TEXT, 3)
-              setRequeueButtonLoading(false)
-            })
+              message.success(PRORITY_QUEUED_MESSAGE_TEXT, 3);
+              setRequeueButtonLoading(false);
+            });
           }}
         >
           <Tooltip title="Requeue Student">
@@ -255,12 +258,12 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           okText="Yes"
           cancelText="No"
           onConfirm={async () => {
-            setCantFindButtonLoading(true)
+            setCantFindButtonLoading(true);
             await changeStatus(LimboQuestionStatus.CantFind).then(async () => {
-              message.success(PRORITY_QUEUED_MESSAGE_TEXT, 3)
-              setCantFindButtonLoading(false)
-              await API.questions.notify(question.id)
-            })
+              message.success(PRORITY_QUEUED_MESSAGE_TEXT, 3);
+              setCantFindButtonLoading(false);
+              await API.questions.notify(question.id);
+            });
           }}
         >
           <Tooltip title="Can't Find">
@@ -300,18 +303,18 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
               }
               onClick={() => {
                 // setCheckOutTimer()
-                setFinishHelpingButtonLoading(true)
+                setFinishHelpingButtonLoading(true);
                 if (
                   question.isTaskQuestion &&
                   tasksSelectedForMarking.length > 0
                 ) {
                   markSelected().then(() => {
-                    setFinishHelpingButtonLoading(false)
-                  })
+                    setFinishHelpingButtonLoading(false);
+                  });
                 } else {
                   changeStatus(ClosedQuestionStatus.Resolved).then(() => {
-                    setFinishHelpingButtonLoading(false)
-                  })
+                    setFinishHelpingButtonLoading(false);
+                  });
                 }
               }}
             />
@@ -329,10 +332,10 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
                 finishHelpingButtonLoading
               }
               onClick={() => {
-                setPauseButtonLoading(true)
+                setPauseButtonLoading(true);
                 changeStatus(OpenQuestionStatus.Helping).then(() =>
                   setPauseButtonLoading(false),
-                )
+                );
               }}
             />
           </Tooltip>
@@ -348,44 +351,44 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
                 finishHelpingButtonLoading
               }
               onClick={() => {
-                setPauseButtonLoading(true)
+                setPauseButtonLoading(true);
                 changeStatus(OpenQuestionStatus.Paused).then(() =>
                   setPauseButtonLoading(false),
-                )
+                );
               }}
             />
           </Tooltip>
         )}
       </div>
-    )
+    );
   } else {
     const [canHelp, helpTooltip] = ((): [boolean, string] => {
       if (!isUserCheckedIn) {
-        return [false, 'You must check in to help students!']
+        return [false, 'You must check in to help students!'];
       } else {
-        return [true, 'Help Student']
+        return [true, 'Help Student'];
       }
-    })()
+    })();
     const [canRephrase, rephraseTooltip] = ((): [boolean, string] => {
       if (!isUserCheckedIn) {
         return [
           false,
           'You must check in to ask this student to rephrase their question',
-        ]
+        ];
       } else if (hasUnresolvedRephraseAlert) {
         return [
           false,
           'The student has already been asked to rephrase their question',
-        ]
+        ];
       } else if (question.status === OpenQuestionStatus.Drafting) {
         return [
           false,
           'The student must finish drafting before they can be asked to rephrase their question',
-        ]
+        ];
       } else {
-        return [true, 'Ask the student to add more detail to their question']
+        return [true, 'Ask the student to add more detail to their question'];
       }
-    })()
+    })();
     return (
       <div
         className={className}
@@ -398,7 +401,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           okText="Yes"
           cancelText="No"
           onConfirm={async () => {
-            await deleteQuestion()
+            await deleteQuestion();
           }}
         >
           <Tooltip
@@ -461,7 +464,7 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
                 onClick={() => {
                   // message.success("timer cleared")
                   // clearTimeout(timerCheckout.current);
-                  helpStudent()
+                  helpStudent();
                 }}
                 disabled={
                   !canHelp || rephraseButtonLoading || deleteButtonLoading
@@ -473,8 +476,8 @@ const TAQuestionCardButtons: React.FC<TAQuestionCardButtonsProps> = ({
           </Tooltip>
         )}
       </div>
-    )
+    );
   }
-}
+};
 
-export default TAQuestionCardButtons
+export default TAQuestionCardButtons;

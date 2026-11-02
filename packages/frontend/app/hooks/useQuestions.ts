@@ -1,21 +1,23 @@
-import { ListQuestionsResponse, SSEQueueResponse } from '@koh/common'
-import { plainToInstance } from 'class-transformer'
-import { useCallback, useMemo } from 'react'
-import useSWR, { mutate, SWRResponse } from 'swr'
-import { useEventSource } from './useEventSource'
-import { API } from '../api'
-import { updateWaitTime } from '../utils/timeFormatUtils'
+import type { SSEQueueResponse } from '@koh/common';
+import { ListQuestionsResponse } from '@koh/common';
+import { plainToInstance } from 'class-transformer';
+import { useCallback, useMemo } from 'react';
+import type { SWRResponse } from 'swr';
+import useSWR, { mutate } from 'swr';
+import { useEventSource } from './useEventSource';
+import { API } from '../api';
+import { updateWaitTime } from '../utils/timeFormatUtils';
 
-type questionsResponse = SWRResponse<ListQuestionsResponse, any>
+type questionsResponse = SWRResponse<ListQuestionsResponse, any>;
 
 interface UseQuestionReturn {
-  queueQuestions?: questionsResponse['data']
-  questionsError: questionsResponse['error']
-  mutateQuestions: questionsResponse['mutate']
+  queueQuestions?: questionsResponse['data'];
+  questionsError: questionsResponse['error'];
+  mutateQuestions: questionsResponse['mutate'];
 }
 
 export function useQuestions(qid: number): UseQuestionReturn {
-  const key = `/api/v1/queues/${qid}/questions`
+  const key = `/api/v1/queues/${qid}/questions`;
   // Subscribe to sse
   const isLive = useEventSource(
     `/api/v1/queues/${qid}/sse`,
@@ -27,12 +29,12 @@ export function useQuestions(qid: number): UseQuestionReturn {
             key,
             plainToInstance(ListQuestionsResponse, data.queueQuestions),
             false,
-          )
+          );
         }
       },
       [key],
     ),
-  )
+  );
 
   const {
     data: queueQuestions,
@@ -42,7 +44,7 @@ export function useQuestions(qid: number): UseQuestionReturn {
     // If the EventSource/SSE stuff fails, like for old browsers that don't support EventSourcee,
     // use Short Polling as a fallback (every 10s re-fetch for updates)
     refreshInterval: isLive ? 0 : 10 * 1000,
-  })
+  });
 
   //
   // frontend dataprocessing logic.
@@ -51,28 +53,28 @@ export function useQuestions(qid: number): UseQuestionReturn {
   // This should basically have the same performance as putting these calculations in the getWaitTime in timeFormatUtils since the same calcs are being made.
   //
   const sortedQuestions = useMemo(() => {
-    if (!queueQuestions?.questions) return []
+    if (!queueQuestions?.questions) return [];
     return (
       queueQuestions.questions
         .map((question) => updateWaitTime(question))
         // sort by wait time DESC
         .sort((a, b) => b.waitTime - a.waitTime)
-    )
-  }, [queueQuestions])
+    );
+  }, [queueQuestions]);
 
   const questionsGettingHelpWithWaitTime = useMemo(() => {
-    if (!queueQuestions?.questionsGettingHelp) return []
+    if (!queueQuestions?.questionsGettingHelp) return [];
     return queueQuestions.questionsGettingHelp.map((question) =>
       updateWaitTime(question),
-    )
-  }, [queueQuestions])
+    );
+  }, [queueQuestions]);
 
   const yourQuestionsWithWaitTime = useMemo(() => {
-    if (!queueQuestions?.yourQuestions) return []
+    if (!queueQuestions?.yourQuestions) return [];
     return queueQuestions.yourQuestions.map((question) =>
       updateWaitTime(question),
-    )
-  }, [queueQuestions])
+    );
+  }, [queueQuestions]);
 
   // priority queue is unused right now, save some calcs
   // const priorityQueueWithWaitTime = useMemo(() => {
@@ -89,7 +91,7 @@ export function useQuestions(qid: number): UseQuestionReturn {
     yourQuestions: yourQuestionsWithWaitTime,
     priorityQueue: queueQuestions?.priorityQueue || [],
     groups: queueQuestions?.groups || [],
-  }
+  };
 
-  return { queueQuestions: newQueueQuestions, questionsError, mutateQuestions }
+  return { queueQuestions: newQueueQuestions, questionsError, mutateQuestions };
 }

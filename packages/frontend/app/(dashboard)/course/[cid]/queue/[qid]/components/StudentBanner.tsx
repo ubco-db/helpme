@@ -1,33 +1,29 @@
-'use client'
+'use client';
 
 import {
   DeleteRowOutlined,
   EditOutlined,
   TeamOutlined,
   UndoOutlined,
-} from '@ant-design/icons'
-import {
-  ConfigTasks,
-  OpenQuestionStatus,
-  parseTaskIdsFromQuestionText,
-  Question,
-} from '@koh/common'
-import { Col, message, Popconfirm, Row, Tooltip } from 'antd'
-import { QuestionTagElement } from '../../../components/QuestionTagElement'
-import { cn, getErrorMessage, toOrdinal } from '@/app/utils/generalUtils'
-import { API } from '@/app/api'
-import { useStudentQuestion } from '@/app/hooks/useStudentQuestion'
-import CircleButton from './CircleButton'
-import { useState } from 'react'
+} from '@ant-design/icons';
+import type { ConfigTasks, Question } from '@koh/common';
+import { OpenQuestionStatus, parseTaskIdsFromQuestionText } from '@koh/common';
+import { Col, message, Popconfirm, Row, Tooltip } from 'antd';
+import { QuestionTagElement } from '../../../components/QuestionTagElement';
+import { cn, getErrorMessage, toOrdinal } from '@/app/utils/generalUtils';
+import { API } from '@/app/api';
+import { useStudentQuestion } from '@/app/hooks/useStudentQuestion';
+import CircleButton from './CircleButton';
+import { useState } from 'react';
 
 interface StudentBannerProps {
-  queueId: number
-  editQuestion: () => void
-  editDemo: () => void
-  leaveQueueQuestion: () => Promise<void>
-  leaveQueueDemo: () => Promise<void>
-  configTasks?: ConfigTasks
-  isQueueHybrid?: boolean
+  queueId: number;
+  editQuestion: () => void;
+  editDemo: () => void;
+  leaveQueueQuestion: () => Promise<void>;
+  leaveQueueDemo: () => Promise<void>;
+  configTasks?: ConfigTasks;
+  isQueueHybrid?: boolean;
 }
 const StudentBanner: React.FC<StudentBannerProps> = ({
   queueId,
@@ -43,7 +39,7 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
     studentDemo,
     studentQuestionIndex,
     studentDemoIndex,
-  } = useStudentQuestion(queueId)
+  } = useStudentQuestion(queueId);
 
   const getTitle = (
     questionStatus: string | undefined,
@@ -51,43 +47,43 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
   ): string => {
     switch (questionStatus) {
       case 'Drafting':
-        return 'Your Questions - Please finish writing your question'
+        return 'Your Questions - Please finish writing your question';
       case 'Helping':
         return `Your Questions - ${
           studentQuestion?.taHelped?.name ?? 'A TA'
-        } is ready for you now`
+        } is ready for you now`;
       case 'ReQueueing':
-        return 'Your Questions - Are you ready to re-join the queue?'
+        return 'Your Questions - Are you ready to re-join the queue?';
       case 'PriorityQueued':
         return (
           'Your Questions - You are now in a priority queue, you will be helped soon. Last helped by: ' +
           studentQuestion?.taHelped?.name
-        )
+        );
       case 'Paused':
-        return `Your Questions - Your question is currently paused by staff, you will be helped soon`
+        return `Your Questions - Your question is currently paused by staff, you will be helped soon`;
       default:
         switch (demoStatus) {
           case 'Drafting':
-            return 'Your Questions - Please finish creating your demo'
+            return 'Your Questions - Please finish creating your demo';
           case 'Helping':
             return `Your Questions - ${
               studentDemo?.taHelped?.name ?? 'A TA'
-            } is coming to check your demo`
+            } is coming to check your demo`;
           case 'ReQueueing':
-            return 'Your Questions - Are you ready to re-join the queue?'
+            return 'Your Questions - Are you ready to re-join the queue?';
           case 'PriorityQueued':
             return (
               'Your Questions - You are now in a priority queue, you will be helped soon.  Last helped by: ' +
               studentQuestion?.taHelped?.name
-            )
+            );
           default:
-            return 'Your Questions'
+            return 'Your Questions';
         }
     }
-  }
+  };
 
   if (!studentQuestion && !studentDemo) {
-    return <></>
+    return <></>;
   }
 
   return (
@@ -129,11 +125,11 @@ const StudentBanner: React.FC<StudentBannerProps> = ({
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
 function LeaveQueueButton({ leaveQueue }: { leaveQueue: () => Promise<void> }) {
-  const [isLeavingLoading, setIsLeavingLoading] = useState(false)
+  const [isLeavingLoading, setIsLeavingLoading] = useState(false);
   return (
     <Popconfirm
       title={`Are you sure you want to leave the queue?`}
@@ -142,8 +138,8 @@ function LeaveQueueButton({ leaveQueue }: { leaveQueue: () => Promise<void> }) {
       getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
       okButtonProps={{ loading: isLeavingLoading }}
       onConfirm={() => {
-        setIsLeavingLoading(true)
-        leaveQueue().finally(() => setIsLeavingLoading(false))
+        setIsLeavingLoading(true);
+        leaveQueue().finally(() => setIsLeavingLoading(false));
       }}
     >
       <Tooltip title="Leave Queue">
@@ -154,16 +150,16 @@ function LeaveQueueButton({ leaveQueue }: { leaveQueue: () => Promise<void> }) {
         />
       </Tooltip>
     </Popconfirm>
-  )
+  );
 }
 
 interface QuestionDetailCardProps {
-  question: Question | undefined
-  configTasks?: ConfigTasks
-  spot: number | undefined
-  isQueueHybrid: boolean
-  leaveQueue: () => Promise<void>
-  edit: () => void
+  question: Question | undefined;
+  configTasks?: ConfigTasks;
+  spot: number | undefined;
+  isQueueHybrid: boolean;
+  leaveQueue: () => Promise<void>;
+  edit: () => void;
 }
 
 const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
@@ -174,31 +170,31 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
   leaveQueue,
   edit,
 }) => {
-  const [isRejoinLoading, setIsRejoinLoading] = useState(false)
-  const [isDeleteDraftLoading, setIsDeleteDraftLoading] = useState(false)
+  const [isRejoinLoading, setIsRejoinLoading] = useState(false);
+  const [isDeleteDraftLoading, setIsDeleteDraftLoading] = useState(false);
   if (!question) {
-    return <></>
+    return <></>;
   }
   const tasks = question.isTaskQuestion
     ? parseTaskIdsFromQuestionText(question.text)
-    : []
+    : [];
 
   const getStatusBorderColor = (status: string) => {
     switch (status) {
       case 'Drafting':
-        return 'border-[#faad14]'
+        return 'border-[#faad14]';
       case 'Helping':
-        return 'border-[#4dc186]'
+        return 'border-[#4dc186]';
       case 'Paused':
-        return 'border-amber-200'
+        return 'border-amber-200';
       case 'ReQueueing':
-        return 'border-[#66BB6A]'
+        return 'border-[#66BB6A]';
       case 'PriorityQueued':
-        return 'border-helpmeblue'
+        return 'border-helpmeblue';
       default:
-        return 'border-none'
+        return 'border-none';
     }
-  }
+  };
 
   return (
     <div
@@ -221,14 +217,14 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
         question.isTaskQuestion && tasks && configTasks ? (
           <div>
             {tasks.map((task, index) => {
-              const taskValue = configTasks[task] // get the task's background colour and name
+              const taskValue = configTasks[task]; // get the task's background colour and name
               return (
                 <QuestionTagElement
                   key={index}
                   tagName={taskValue.display_name}
                   tagColor={taskValue.color_hex}
                 />
-              )
+              );
             })}
           </div>
         ) : (
@@ -285,7 +281,7 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
           {(() => {
             switch (question.status) {
               case 'Helping':
-                return <></> // Join zoom button shows up as a modal instead
+                return <></>; // Join zoom button shows up as a modal instead
               case 'Drafting':
                 return (
                   <Tooltip title="Finish Draft">
@@ -299,7 +295,7 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
                       />
                     </div>
                   </Tooltip>
-                )
+                );
               case 'ReQueueing':
                 return (
                   <Tooltip title="Rejoin Queue">
@@ -311,21 +307,21 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
                         icon={<UndoOutlined />}
                         loading={isRejoinLoading}
                         onClick={async () => {
-                          setIsRejoinLoading(true)
+                          setIsRejoinLoading(true);
                           await API.questions
                             .update(question.id, {
                               status: OpenQuestionStatus.Queued,
                             })
                             .catch((e) => {
-                              const errorMessage = getErrorMessage(e)
-                              message.error(errorMessage)
+                              const errorMessage = getErrorMessage(e);
+                              message.error(errorMessage);
                             })
-                            .finally(() => setIsRejoinLoading(false))
+                            .finally(() => setIsRejoinLoading(false));
                         }}
                       />
                     </div>
                   </Tooltip>
-                )
+                );
               default:
                 return (
                   <Tooltip
@@ -333,7 +329,7 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
                   >
                     <CircleButton icon={<EditOutlined />} onClick={edit} />
                   </Tooltip>
-                )
+                );
             }
           })()}
 
@@ -343,8 +339,8 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
                 icon={<DeleteRowOutlined />}
                 loading={isDeleteDraftLoading}
                 onClick={() => {
-                  setIsDeleteDraftLoading(true)
-                  leaveQueue().finally(() => setIsDeleteDraftLoading(false))
+                  setIsDeleteDraftLoading(true);
+                  leaveQueue().finally(() => setIsDeleteDraftLoading(false));
                 }}
               />
             </Tooltip>
@@ -354,7 +350,7 @@ const QuestionDetailCard: React.FC<QuestionDetailCardProps> = ({
         </Row>
       </Col>
     </div>
-  )
-}
+  );
+};
 
-export default StudentBanner
+export default StudentBanner;

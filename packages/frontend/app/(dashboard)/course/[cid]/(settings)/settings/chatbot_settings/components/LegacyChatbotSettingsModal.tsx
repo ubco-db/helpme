@@ -1,6 +1,7 @@
-'use client'
+'use client';
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react';
+import type { ProgressProps } from 'antd';
 import {
   Button,
   Form,
@@ -9,25 +10,24 @@ import {
   message,
   Modal,
   Progress,
-  ProgressProps,
   Select,
   Space,
   Tooltip,
-} from 'antd'
+} from 'antd';
 import {
   ExclamationCircleOutlined,
   InfoCircleOutlined,
   SettingOutlined,
-} from '@ant-design/icons'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { ChatbotSettingsMetadata } from '@koh/common'
-import ChatbotHelpTooltip from '../../components/ChatbotHelpTooltip'
+} from '@ant-design/icons';
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import type { ChatbotSettingsMetadata } from '@koh/common';
+import ChatbotHelpTooltip from '../../components/ChatbotHelpTooltip';
 
 interface LegacyChatbotSettingsModalProps {
-  open: boolean
-  courseId: number
-  onClose: () => void
+  open: boolean;
+  courseId: number;
+  onClose: () => void;
 }
 
 enum AvailableModelTypes {
@@ -42,54 +42,54 @@ const LegacyChatbotSettingsModal: React.FC<LegacyChatbotSettingsModalProps> = ({
   courseId,
   onClose,
 }) => {
-  const [form] = Form.useForm()
-  const [loading, setLoading] = useState(false)
-  const [loadingModels, setLoadingModels] = useState(false)
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const [loadingModels, setLoadingModels] = useState(false);
   const [availableModels, setAvailableModels] = useState<Record<
     string,
     string
-  > | null>(null)
+  > | null>(null);
 
   const fetchAvailableModels = useCallback(async () => {
-    setLoadingModels(true)
+    setLoadingModels(true);
     API.chatbot.staffOnly.legacy
       .getModels(courseId)
       .then((availableModels) => {
-        setAvailableModels(availableModels)
+        setAvailableModels(availableModels);
       })
       .catch((error) => {
         message.error(
           'Failed to load available models: ' + getErrorMessage(error),
-        )
+        );
       })
-      .finally(() => setLoadingModels(false))
-  }, [courseId])
+      .finally(() => setLoadingModels(false));
+  }, [courseId]);
 
   const fetchChatbotSettings = useCallback(async () => {
-    setLoading(true)
+    setLoading(true);
     await API.chatbot.staffOnly.legacy
       .getSettings(courseId)
       .then((currentChatbotSettings) => {
         form.setFieldsValue({
           ...currentChatbotSettings.metadata,
-        })
+        });
       })
       .catch((error) => {
         message.error(
           'Failed to load chatbot settings: ' + getErrorMessage(error),
-        )
+        );
       })
       .finally(() => {
-        setLoading(false)
-      })
-  }, [courseId, form])
+        setLoading(false);
+      });
+  }, [courseId, form]);
 
   useEffect(() => {
     if (open && courseId) {
-      fetchAvailableModels().then()
-      fetchChatbotSettings().then()
+      fetchAvailableModels().then();
+      fetchChatbotSettings().then();
     }
-  }, [open, courseId, fetchChatbotSettings, fetchAvailableModels])
+  }, [open, courseId, fetchChatbotSettings, fetchAvailableModels]);
 
   const handleUpdate = async (values: ChatbotSettingsMetadata) => {
     const updateData = {
@@ -98,22 +98,22 @@ const LegacyChatbotSettingsModal: React.FC<LegacyChatbotSettingsModalProps> = ({
       similarityThresholdDocuments: values.similarityThresholdDocuments,
       temperature: values.temperature,
       topK: values.topK,
-    }
+    };
 
-    setLoading(true)
+    setLoading(true);
     await API.chatbot.staffOnly.legacy
       .updateSettings(courseId, updateData)
       .then(() => {
-        message.success('Settings updated successfully')
-        onClose()
+        message.success('Settings updated successfully');
+        onClose();
       })
       .catch((err) => {
-        message.error('Failed to update settings' + getErrorMessage(err))
+        message.error('Failed to update settings' + getErrorMessage(err));
       })
       .finally(() => {
-        setLoading(false)
-      })
-  }
+        setLoading(false);
+      });
+  };
 
   const handleReset = () => {
     Modal.confirm({
@@ -122,28 +122,28 @@ const LegacyChatbotSettingsModal: React.FC<LegacyChatbotSettingsModalProps> = ({
       content:
         'This will revert all settings to their default values and cannot be undone.',
       onOk: async () => {
-        setLoading(true)
+        setLoading(true);
         await API.chatbot.staffOnly.legacy
           .resetSettings(courseId)
           .then(() => {
-            message.success('Settings have been reset successfully')
-            fetchChatbotSettings() // Reload settings to update UI
+            message.success('Settings have been reset successfully');
+            fetchChatbotSettings(); // Reload settings to update UI
           })
           .catch((err) => {
-            message.error('Failed to reset settings' + getErrorMessage(err))
+            message.error('Failed to reset settings' + getErrorMessage(err));
           })
           .finally(() => {
-            setLoading(false)
-          })
+            setLoading(false);
+          });
       },
-    })
-  }
+    });
+  };
 
   // Build the options only from availableModels provided by chatbot server
   const selectOptions = !availableModels
     ? []
     : Object.keys(availableModels).map((modelKey) => {
-        const model = availableModels[modelKey]
+        const model = availableModels[modelKey];
         switch (model) {
           case AvailableModelTypes.GPT4o_mini:
             return {
@@ -165,7 +165,7 @@ const LegacyChatbotSettingsModal: React.FC<LegacyChatbotSettingsModalProps> = ({
                 </span>
               ),
               value: model,
-            }
+            };
           case AvailableModelTypes.GPT4o:
             return {
               label: (
@@ -186,7 +186,7 @@ const LegacyChatbotSettingsModal: React.FC<LegacyChatbotSettingsModalProps> = ({
                 </span>
               ),
               value: model,
-            }
+            };
           case AvailableModelTypes.DEEPSEEK:
             return {
               label: (
@@ -211,7 +211,7 @@ const LegacyChatbotSettingsModal: React.FC<LegacyChatbotSettingsModalProps> = ({
                 </span>
               ),
               value: model,
-            }
+            };
           case AvailableModelTypes.Qwen:
             return {
               label: (
@@ -235,14 +235,14 @@ const LegacyChatbotSettingsModal: React.FC<LegacyChatbotSettingsModalProps> = ({
                 </span>
               ),
               value: model,
-            }
+            };
           default:
             return {
               label: model,
               value: model,
-            }
+            };
         }
-      })
+      });
 
   return (
     <Modal
@@ -345,21 +345,21 @@ const LegacyChatbotSettingsModal: React.FC<LegacyChatbotSettingsModalProps> = ({
         </Space>
       </Form>
     </Modal>
-  )
-}
+  );
+};
 
-export default LegacyChatbotSettingsModal
+export default LegacyChatbotSettingsModal;
 
 const scaleColors: ProgressProps['strokeColor'] = {
   '0%': '#108ee9',
   '100%': '#87d068',
-}
-const trailColor = '#cfcfcf'
+};
+const trailColor = '#cfcfcf';
 
 const ModelTooltipInfo: React.FC<{
-  speed: number
-  quality: number
-  additionalNotes?: string[]
+  speed: number;
+  quality: number;
+  additionalNotes?: string[];
 }> = ({ speed, quality, additionalNotes }) => {
   return (
     <div>
@@ -393,5 +393,5 @@ const ModelTooltipInfo: React.FC<{
         </ul>
       )}
     </div>
-  )
-}
+  );
+};

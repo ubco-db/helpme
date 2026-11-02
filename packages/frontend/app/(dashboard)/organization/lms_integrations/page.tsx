@@ -1,6 +1,7 @@
-'use client'
+'use client';
 
-import { ReactElement, useCallback, useEffect, useMemo, useState } from 'react'
+import type { ReactElement } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
   Card,
@@ -10,52 +11,52 @@ import {
   Modal,
   Table,
   Tooltip,
-} from 'antd'
-import { PenBoxIcon, PlusIcon, TrashIcon } from 'lucide-react'
-import {
+} from 'antd';
+import { PenBoxIcon, PlusIcon, TrashIcon } from 'lucide-react';
+import type {
   LMSCourseIntegrationPartial,
-  LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSToken,
   UpsertLMSOrganizationParams,
-} from '@koh/common'
-import { API } from '@/app/api'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { cn, getErrorMessage } from '@/app/utils/generalUtils'
-import UpsertOrgIntegrationModal from '@/app/(dashboard)/organization/lms_integrations/components/UpsertOrgIntegrationModal'
+} from '@koh/common';
+import { LMSIntegrationPlatform } from '@koh/common';
+import { API } from '@/app/api';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { cn, getErrorMessage } from '@/app/utils/generalUtils';
+import UpsertOrgIntegrationModal from '@/app/(dashboard)/organization/lms_integrations/components/UpsertOrgIntegrationModal';
 import {
   CheckCircleOutlined,
   DeleteOutlined,
   KeyOutlined,
   StopOutlined,
   WarningOutlined,
-} from '@ant-design/icons'
+} from '@ant-design/icons';
 
 export default function LMSIntegrationsPage(): ReactElement {
-  const { userInfo } = useUserInfo()
+  const { userInfo } = useUserInfo();
   const [lmsIntegrations, setLmsIntegrations] = useState<
     LMSOrganizationIntegrationPartial[]
-  >([])
+  >([]);
   const [focusIntegration, setFocusIntegration] = useState<
     LMSOrganizationIntegrationPartial | undefined
-  >(undefined)
+  >(undefined);
 
-  const [modalOpen, setModalOpen] = useState<boolean>(false)
-  const [delModalOpen, setDelModalOpen] = useState<boolean>(false)
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [delModalOpen, setDelModalOpen] = useState<boolean>(false);
 
   const fetchDataAsync = useCallback(async () => {
     const response = await API.lmsIntegration.getOrganizationIntegrations(
       Number(userInfo?.organization?.orgId) ?? -1,
-    )
-    setLmsIntegrations(response)
-  }, [userInfo?.organization?.orgId])
+    );
+    setLmsIntegrations(response);
+  }, [userInfo?.organization?.orgId]);
 
   useEffect(() => {
-    fetchDataAsync()
-  }, [fetchDataAsync])
+    fetchDataAsync();
+  }, [fetchDataAsync]);
 
   const mappedLMS = useMemo(() => {
-    const pairs: { [key: string]: string } = {}
+    const pairs: { [key: string]: string } = {};
     Object.keys(LMSIntegrationPlatform)
       .filter(
         (integration) =>
@@ -66,14 +67,14 @@ export default function LMSIntegrationsPage(): ReactElement {
         (integration: string) =>
           (pairs[integration] =
             LMSIntegrationPlatform[integration as LMSIntegrationPlatform]),
-      )
-    return pairs
-  }, [])
+      );
+    return pairs;
+  }, []);
 
   const platformOptions = useMemo(
     () =>
       Object.keys(mappedLMS).map((key) => {
-        const disabled = !!lmsIntegrations?.find((i) => i.apiPlatform == key)
+        const disabled = !!lmsIntegrations?.find((i) => i.apiPlatform == key);
         return {
           value: key,
           label: (
@@ -84,28 +85,28 @@ export default function LMSIntegrationsPage(): ReactElement {
             </Tooltip>
           ),
           disabled,
-        }
+        };
       }),
     [lmsIntegrations, mappedLMS],
-  )
+  );
 
   const modalCleanup = () => {
-    setModalOpen(false)
-    setFocusIntegration(undefined)
-  }
+    setModalOpen(false);
+    setFocusIntegration(undefined);
+  };
 
   const upsertIntegration = async (
     fields: UpsertLMSOrganizationParams,
     operation: 'create' | 'update',
     clientSecretEdited: boolean,
   ) => {
-    const { apiPlatform, rootUrl, secure, clientId } = fields
-    let { clientSecret } = fields
+    const { apiPlatform, rootUrl, secure, clientId } = fields;
+    let { clientSecret } = fields;
 
     if (!clientSecretEdited) {
-      delete fields.clientSecret
+      delete fields.clientSecret;
     } else if (clientSecretEdited && !clientSecret) {
-      clientSecret = null as any
+      clientSecret = null as any;
     }
 
     return await API.lmsIntegration
@@ -121,27 +122,27 @@ export default function LMSIntegrationsPage(): ReactElement {
       )
       .then((result) => {
         if (result != undefined && result.includes('Success')) {
-          message.success(result)
-          return true
+          message.success(result);
+          return true;
         } else {
           throw new Error(
             `Unknown error occurred, could not ${operation} the LMS integration`,
-          )
+          );
         }
       })
       .catch((error) => {
-        message.error(getErrorMessage(error))
-        return false
+        message.error(getErrorMessage(error));
+        return false;
       })
       .finally(() => {
-        fetchDataAsync()
-      })
-  }
+        fetchDataAsync();
+      });
+  };
 
   const deleteIntegration = () => {
     if (focusIntegration == undefined) {
-      message.error('No integration was specified')
-      return
+      message.error('No integration was specified');
+      return;
     }
 
     API.lmsIntegration
@@ -153,59 +154,59 @@ export default function LMSIntegrationsPage(): ReactElement {
       )
       .then((result) => {
         if (result != undefined && result.includes('Success')) {
-          message.success(result)
-          setDelModalOpen(false)
-          setFocusIntegration(undefined)
+          message.success(result);
+          setDelModalOpen(false);
+          setFocusIntegration(undefined);
         } else {
           throw new Error(
             `Unknown error occurred, could not delete the LMS integration`,
-          )
+          );
         }
       })
       .catch((error) => {
-        message.error(getErrorMessage(error))
+        message.error(getErrorMessage(error));
       })
       .finally(() => {
-        fetchDataAsync()
-      })
-  }
+        fetchDataAsync();
+      });
+  };
 
-  const [lmsTokens, setLMSTokens] = useState<LMSToken[]>([])
-  const [deletingLMSTokens, setDeletingLMSTokens] = useState<number[]>([])
+  const [lmsTokens, setLMSTokens] = useState<LMSToken[]>([]);
+  const [deletingLMSTokens, setDeletingLMSTokens] = useState<number[]>([]);
 
   useEffect(() => {
     const getLMSTokens = async () => {
       await API.lmsIntegration
         .getOrganizationAccessTokens(userInfo?.organization?.orgId ?? -1)
         .then((tokens) => {
-          setLMSTokens(tokens)
+          setLMSTokens(tokens);
         })
-        .catch((_) => {})
-    }
-    getLMSTokens()
-  }, [])
+        .catch((_) => {});
+    };
+    getLMSTokens();
+  }, []);
 
   const deleteLMSToken = (tokenId: number) => {
-    setDeletingLMSTokens((prev) => [...prev, tokenId])
+    setDeletingLMSTokens((prev) => [...prev, tokenId]);
     API.lmsIntegration
       .deleteAccessToken(tokenId)
       .then((result) => {
         if (result) {
-          message.success('Successfully invalidated token!')
-          setLMSTokens((prev) => prev.filter((t) => t.id != tokenId))
+          message.success('Successfully invalidated token!');
+          setLMSTokens((prev) => prev.filter((t) => t.id != tokenId));
         } else {
           message.error(
             'An error occurred while invalidating token. Please try again later.',
-          )
+          );
         }
       })
       .catch((err) => {
-        message.error(getErrorMessage(err))
+        message.error(getErrorMessage(err));
       })
       .finally(() => {
-        setDeletingLMSTokens((prev) => prev.filter((v) => v != tokenId))
-      })
-  }
+        setDeletingLMSTokens((prev) => prev.filter((v) => v != tokenId));
+      });
+  };
 
   return (
     <div className={'flex w-full flex-col gap-8'}>
@@ -324,9 +325,9 @@ export default function LMSIntegrationsPage(): ReactElement {
                       'border-helpmeblue text-helpmeblue md:hover:bg-helpmeblue md:hover:border-helpmeblue border-2 bg-white p-4 transition-all md:hover:text-white'
                     }
                     onClick={() => {
-                      modalCleanup()
-                      setFocusIntegration(integration)
-                      setModalOpen(true)
+                      modalCleanup();
+                      setFocusIntegration(integration);
+                      setModalOpen(true);
                     }}
                   >
                     Edit <PenBoxIcon />
@@ -336,8 +337,8 @@ export default function LMSIntegrationsPage(): ReactElement {
                       'border-2 border-red-500 bg-white p-4 text-red-500 transition-all md:hover:border-red-500 md:hover:bg-red-500 md:hover:text-white'
                     }
                     onClick={() => {
-                      setFocusIntegration(integration)
-                      setDelModalOpen(true)
+                      setFocusIntegration(integration);
+                      setDelModalOpen(true);
                     }}
                   >
                     Delete <TrashIcon />
@@ -352,8 +353,8 @@ export default function LMSIntegrationsPage(): ReactElement {
                 'border-helpmeblue text-helpmeblue md:hover:bg-helpmeblue md:hover:border-helpmeblue border-2 bg-white p-4 transition-all md:hover:text-white'
               }
               onClick={() => {
-                modalCleanup()
-                setModalOpen(true)
+                modalCleanup();
+                setModalOpen(true);
               }}
             >
               Add New Integration <PlusIcon />
@@ -370,7 +371,7 @@ export default function LMSIntegrationsPage(): ReactElement {
             const inUseCount = lmsIntegrations
               .map((v) => v.courseIntegrations)
               .reduce((p, c) => [...p, ...c], [])
-              .filter((v) => v.accessTokenId == token.id).length
+              .filter((v) => v.accessTokenId == token.id).length;
             return (
               <List.Item
                 className={'rounded-lg border-2 border-gray-100 shadow-sm'}
@@ -415,7 +416,7 @@ export default function LMSIntegrationsPage(): ReactElement {
                   </div>
                 </div>
               </List.Item>
-            )
+            );
           }}
           pagination={{
             position: 'top',
@@ -440,8 +441,8 @@ export default function LMSIntegrationsPage(): ReactElement {
           open={delModalOpen}
           onOk={() => deleteIntegration()}
           onCancel={() => {
-            setFocusIntegration(undefined)
-            setDelModalOpen(false)
+            setFocusIntegration(undefined);
+            setDelModalOpen(false);
           }}
           okText={'Delete Integration'}
           okButtonProps={{
@@ -460,5 +461,5 @@ export default function LMSIntegrationsPage(): ReactElement {
         </Modal>
       )}
     </div>
-  )
+  );
 }

@@ -1,26 +1,28 @@
-'use client'
+'use client';
 
-import { CourseSettingsResponse, GetCourseResponse } from '@koh/common'
-import React, { createContext, ReactNode, useContext } from 'react'
+import type { CourseSettingsResponse, GetCourseResponse } from '@koh/common';
+import type { ReactNode } from 'react';
+import type React from 'react';
+import { createContext, useContext } from 'react';
 
 // Define context type
 interface LtiCourseContextType {
-  courseId: number
-  course?: GetCourseResponse
-  courseFeatures?: CourseSettingsResponse
+  courseId: number;
+  course?: GetCourseResponse;
+  courseFeatures?: CourseSettingsResponse;
 }
 
 // Create context
 const ltiCourseContext = createContext<LtiCourseContextType | undefined>(
   undefined,
-)
+);
 
 // Define props type for LtiCourseProvider
 interface LtiCourseProviderProps {
-  children: ReactNode
-  courseId: number
-  course?: GetCourseResponse
-  courseFeatures?: CourseSettingsResponse
+  children: ReactNode;
+  courseId: number;
+  course?: GetCourseResponse;
+  courseFeatures?: CourseSettingsResponse;
 }
 
 export const LtiCourseProvider: React.FC<LtiCourseProviderProps> = ({
@@ -34,15 +36,15 @@ export const LtiCourseProvider: React.FC<LtiCourseProviderProps> = ({
     <ltiCourseContext.Provider value={{ courseId, course, courseFeatures }}>
       {children}
     </ltiCourseContext.Provider>
-  )
-}
+  );
+};
 
 export const useLtiCourse = (): LtiCourseContextType => {
-  const context = useContext(ltiCourseContext)
+  const context = useContext(ltiCourseContext);
 
   if (context === undefined) {
-    throw new Error('useLtiCourse must be used within a LtiCourseProvider')
+    throw new Error('useLtiCourse must be used within a LtiCourseProvider');
   }
 
-  return context
-}
+  return context;
+};

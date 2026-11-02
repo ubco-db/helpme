@@ -4,7 +4,7 @@ import {
   QUERY_PARAMS,
   Role,
 } from '@koh/common';
-import { TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
 import { ProfInviteModule } from './prof-invite.module';
 import { ProfInviteService } from './prof-invite.service';
 import { ProfInviteModel } from './prof-invite.entity';
@@ -22,9 +22,9 @@ import {
   UserCourseFactory,
   UserFactory,
 } from '../../../test/util/factories';
-import { UserModel } from 'profile/user.entity';
-import { CourseModel } from 'course/course.entity';
-import { OrganizationModel } from 'organization/organization.entity';
+import type { UserModel } from 'profile/user.entity';
+import type { CourseModel } from 'course/course.entity';
+import type { OrganizationModel } from 'organization/organization.entity';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { UserCourseModel } from 'profile/user-course.entity';
 

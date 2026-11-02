@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class unreadAsyncBugfixBugfix1738903833331
-  implements MigrationInterface
-{
+export class unreadAsyncBugfixBugfix1738903833331 implements MigrationInterface {
   name = 'unreadAsyncBugfixBugfix1738903833331';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

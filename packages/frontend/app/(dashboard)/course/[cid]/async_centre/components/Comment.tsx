@@ -1,8 +1,8 @@
-import MarkdownCustom from '@/app/components/Markdown'
-import UserAvatar from '@/app/components/UserAvatar'
-import { cn, getErrorMessage } from '@/app/utils/generalUtils'
-import { Role, ANONYMOUS_ANIMAL_AVATAR, getAnonAnimal } from '@koh/common'
-import { CommentProps } from '../utils/types'
+import MarkdownCustom from '@/app/components/Markdown';
+import UserAvatar from '@/app/components/UserAvatar';
+import { cn, getErrorMessage } from '@/app/utils/generalUtils';
+import { Role, ANONYMOUS_ANIMAL_AVATAR, getAnonAnimal } from '@koh/common';
+import type { CommentProps } from '../utils/types';
 import {
   CheckCircleOutlined,
   DeleteOutlined,
@@ -12,7 +12,7 @@ import {
   MoreOutlined,
   StopOutlined,
   WarningOutlined,
-} from '@ant-design/icons'
+} from '@ant-design/icons';
 import {
   Button,
   Checkbox,
@@ -21,13 +21,13 @@ import {
   message,
   Popconfirm,
   Tooltip,
-} from 'antd'
-import { useEffect, useMemo, useState } from 'react'
-import { API } from '@/app/api'
-import { getAvatarTooltip } from '../utils/commonAsyncFunctions'
-import { useUserInfo } from '@/app/contexts/userContext'
+} from 'antd';
+import { useEffect, useMemo, useState } from 'react';
+import { API } from '@/app/api';
+import { getAvatarTooltip } from '../utils/commonAsyncFunctions';
+import { useUserInfo } from '@/app/contexts/userContext';
 
-const { TextArea } = Input
+const { TextArea } = Input;
 
 const COLOR_CODING = {
   ['you']: 'text-green-500',
@@ -35,7 +35,7 @@ const COLOR_CODING = {
   [Role.STUDENT]: 'text-gray-500',
   [Role.TA]: 'text-purple-500',
   [Role.PROFESSOR]: 'text-teal-500',
-}
+};
 
 const DISPLAY_TEXT_AS = {
   ['you']: '(You)',
@@ -44,7 +44,7 @@ const DISPLAY_TEXT_AS = {
   [Role.TA]: '(TA)',
   [Role.PROFESSOR]: '(Professor)',
   [Role.PROFESSOR + 'mobile']: '(Prof)',
-}
+};
 
 const Comment: React.FC<CommentProps> = ({
   commentId,
@@ -64,27 +64,27 @@ const Comment: React.FC<CommentProps> = ({
   onEndorseSuccess,
   className,
 }) => {
-  const { userInfo } = useUserInfo()
-  const [deleteLoading, setDeleteLoading] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
-  const [savePopoverOpen, setSavePopoverOpen] = useState(false)
+  const { userInfo } = useUserInfo();
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [savePopoverOpen, setSavePopoverOpen] = useState(false);
   // Form state that stores the edited comment content
-  const [newContent, setNewContent] = useState(content)
-  const [editLoading, setEditLoading] = useState(false)
-  const [endorseLoading, setEndorseLoading] = useState(false)
+  const [newContent, setNewContent] = useState(content);
+  const [editLoading, setEditLoading] = useState(false);
+  const [endorseLoading, setEndorseLoading] = useState(false);
 
   const [isUserShown, setIsUserShown] = useState(
     (IAmStaff && showStudents) || !isAnonymous,
-  )
+  );
 
-  const isSelf = userInfo.id === author.id // comment.creator.id is only defined if they're staff or if its you (or if you are staff)
+  const isSelf = userInfo.id === author.id; // comment.creator.id is only defined if they're staff or if its you (or if you are staff)
   const authorType = isSelf
     ? 'you'
     : author.isAuthor
       ? 'author'
-      : author.courseRole
+      : author.courseRole;
 
-  const IAmAuthor = useMemo(() => author.isAuthor && isSelf, [author, isSelf])
+  const IAmAuthor = useMemo(() => author.isAuthor && isSelf, [author, isSelf]);
   // Form state that allows the user to specify whether or not they would like their comment to be anonymous
   const [newAnonymous, setNewAnonymous] = useState<boolean>(
     IAmStaff && !IAmAuthor
@@ -92,7 +92,7 @@ const Comment: React.FC<CommentProps> = ({
       : IAmAuthor
         ? questionIsAnonymous
         : isAnonymous,
-  )
+  );
   useEffect(
     () =>
       setNewAnonymous(
@@ -103,18 +103,18 @@ const Comment: React.FC<CommentProps> = ({
             : isAnonymous,
       ),
     [IAmStaff, IAmAuthor, isAnonymous, questionIsAnonymous],
-  )
+  );
 
   useEffect(() => {
-    setIsUserShown((IAmStaff && showStudents) || !isAnonymous)
-  }, [IAmStaff, isAnonymous, author.courseRole, showStudents])
+    setIsUserShown((IAmStaff && showStudents) || !isAnonymous);
+  }, [IAmStaff, isAnonymous, author.courseRole, showStudents]);
 
   const avatarTooltipTitle = getAvatarTooltip(
     IAmStaff,
     showStudents,
     authorType,
-  )
-  const anonAnimal = getAnonAnimal(author.anonId)
+  );
+  const anonAnimal = getAnonAnimal(author.anonId);
 
   return (
     <div
@@ -152,8 +152,8 @@ const Comment: React.FC<CommentProps> = ({
                   author.courseRole === Role.TA
                 )
               ) {
-                e?.stopPropagation()
-                setIsUserShown(!isUserShown)
+                e?.stopPropagation();
+                setIsUserShown(!isUserShown);
               }
             }}
           />
@@ -186,8 +186,8 @@ const Comment: React.FC<CommentProps> = ({
                   author.courseRole === Role.TA
                 )
               ) {
-                e?.stopPropagation()
-                setIsUserShown(!isUserShown)
+                e?.stopPropagation();
+                setIsUserShown(!isUserShown);
               }
             }}
           />
@@ -205,16 +205,16 @@ const Comment: React.FC<CommentProps> = ({
                   key: 'edit',
                   label: 'Edit',
                   onClick: (e) => {
-                    e.domEvent.stopPropagation()
-                    setIsEditing(true)
-                    dispatchUIStateChange({ type: 'LOCK_EXPANDED' })
+                    e.domEvent.stopPropagation();
+                    setIsEditing(true);
+                    dispatchUIStateChange({ type: 'LOCK_EXPANDED' });
                   },
                   icon: <EditOutlined />,
                 },
                 {
                   key: 'delete',
                   onClick: (e) => {
-                    e.domEvent.stopPropagation()
+                    e.domEvent.stopPropagation();
                   },
                   className: 'this-dropdown-has-popconfirm',
                   label: (
@@ -225,22 +225,22 @@ const Comment: React.FC<CommentProps> = ({
                       okButtonProps={{ loading: deleteLoading }}
                       cancelButtonProps={{ disabled: deleteLoading }}
                       onConfirm={async (e) => {
-                        e?.stopPropagation()
-                        setDeleteLoading(true)
+                        e?.stopPropagation();
+                        setDeleteLoading(true);
                         await API.asyncQuestions
                           .deleteComment(questionId, commentId)
                           .then(() => {
-                            message.success('Comment Deleted')
-                            onDeleteSuccess()
+                            message.success('Comment Deleted');
+                            onDeleteSuccess();
                           })
                           .catch((e) => {
                             message.error(
                               'Failed to delete comment: ' + getErrorMessage(e),
-                            )
+                            );
                           })
                           .finally(() => {
-                            setDeleteLoading(false)
-                          })
+                            setDeleteLoading(false);
+                          });
                       }}
                     >
                       <div className="px-3 py-[5px]">
@@ -258,7 +258,7 @@ const Comment: React.FC<CommentProps> = ({
               className="mt-1 text-xl text-gray-600"
               type="text"
               onClick={(e) => {
-                e.stopPropagation()
+                e.stopPropagation();
               }}
               icon={<MoreOutlined className="mb-2" />}
             />
@@ -302,28 +302,28 @@ const Comment: React.FC<CommentProps> = ({
                 size="small"
                 loading={endorseLoading}
                 onClick={async (e) => {
-                  e.stopPropagation()
-                  setEndorseLoading(true)
+                  e.stopPropagation();
+                  setEndorseLoading(true);
                   await API.asyncQuestions
                     .endorseComment(questionId, commentId, {
                       isEndorsed: !endorsedBy,
                     })
                     .then(() => {
-                      onEndorseSuccess()
+                      onEndorseSuccess();
                       message.success(
                         !endorsedBy
                           ? 'Comment endorsed'
                           : 'Endorsement removed',
-                      )
+                      );
                     })
                     .catch((e) => {
                       message.error(
                         'Failed to endorse comment: ' + getErrorMessage(e),
-                      )
+                      );
                     })
                     .finally(() => {
-                      setEndorseLoading(false)
-                    })
+                      setEndorseLoading(false);
+                    });
                 }}
                 icon={endorsedBy ? <LikeFilled /> : <LikeOutlined />}
               />
@@ -343,7 +343,7 @@ const Comment: React.FC<CommentProps> = ({
             autoSize={{ minRows: 1, maxRows: 12 }}
             value={newContent}
             onChange={(e) => {
-              setNewContent(e.target.value)
+              setNewContent(e.target.value);
             }}
           />
         )}
@@ -366,12 +366,12 @@ const Comment: React.FC<CommentProps> = ({
         <div className="clear-both mt-2">
           <Button
             onClick={(e) => {
-              e.stopPropagation()
-              setNewContent(content)
-              setNewAnonymous(isAnonymous)
-              setIsEditing(false)
-              setSavePopoverOpen(false)
-              dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
+              e.stopPropagation();
+              setNewContent(content);
+              setNewAnonymous(isAnonymous);
+              setIsEditing(false);
+              setSavePopoverOpen(false);
+              dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' });
             }}
             danger
             variant="outlined"
@@ -397,37 +397,39 @@ const Comment: React.FC<CommentProps> = ({
                 </div>
               }
               onOpenChange={(open) => {
-                if (open) setSavePopoverOpen(open)
+                if (open) setSavePopoverOpen(open);
               }}
               onCancel={(e) => {
-                e?.stopPropagation()
-                setSavePopoverOpen(false)
+                e?.stopPropagation();
+                setSavePopoverOpen(false);
               }}
               onConfirm={async (e) => {
-                e?.stopPropagation()
-                setEditLoading(true)
+                e?.stopPropagation();
+                setEditLoading(true);
                 const anonValue =
-                  author.isAuthor && isSelf ? questionIsAnonymous : newAnonymous
+                  author.isAuthor && isSelf
+                    ? questionIsAnonymous
+                    : newAnonymous;
                 await API.asyncQuestions
                   .updateComment(questionId, commentId, {
                     commentText: newContent,
                     isAnonymous: anonValue,
                   })
                   .then(() => {
-                    message.success('Comment Updated')
-                    onEditSuccess(newContent, anonValue)
-                    setIsEditing(false)
-                    dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
+                    message.success('Comment Updated');
+                    onEditSuccess(newContent, anonValue);
+                    setIsEditing(false);
+                    dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' });
                   })
                   .catch((e) => {
                     message.error(
                       'Failed to update comment: ' + getErrorMessage(e),
-                    )
+                    );
                   })
                   .finally(() => {
-                    setEditLoading(false)
-                    setSavePopoverOpen(false)
-                  })
+                    setEditLoading(false);
+                    setSavePopoverOpen(false);
+                  });
               }}
             >
               <Button
@@ -449,29 +451,31 @@ const Comment: React.FC<CommentProps> = ({
               loading={editLoading}
               disabled={newContent === content && newAnonymous === isAnonymous}
               onClick={async (e) => {
-                e.stopPropagation()
-                setEditLoading(true)
+                e.stopPropagation();
+                setEditLoading(true);
                 const anonValue =
-                  author.isAuthor && isSelf ? questionIsAnonymous : newAnonymous
+                  author.isAuthor && isSelf
+                    ? questionIsAnonymous
+                    : newAnonymous;
                 await API.asyncQuestions
                   .updateComment(questionId, commentId, {
                     commentText: newContent,
                     isAnonymous: anonValue,
                   })
                   .then(() => {
-                    message.success('Comment Updated')
-                    onEditSuccess(newContent, anonValue)
-                    setIsEditing(false)
-                    dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' })
+                    message.success('Comment Updated');
+                    onEditSuccess(newContent, anonValue);
+                    setIsEditing(false);
+                    dispatchUIStateChange({ type: 'UNLOCK_EXPANDED' });
                   })
                   .catch((e) => {
                     message.error(
                       'Failed to update comment: ' + getErrorMessage(e),
-                    )
+                    );
                   })
                   .finally(() => {
-                    setEditLoading(false)
-                  })
+                    setEditLoading(false);
+                  });
               }}
             >
               Save
@@ -530,7 +534,7 @@ const Comment: React.FC<CommentProps> = ({
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default Comment
+export default Comment;

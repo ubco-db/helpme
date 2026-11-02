@@ -269,7 +269,6 @@ export class LoginService {
       // the cookie is used upon a new login to set their preferred account.
       // Do not throw if this fails, as it's not a critical error.
       // On the next LTI launch, the pipeline will be re-executed
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_ignored) {}
   }
 

@@ -1,92 +1,93 @@
-'use client'
+'use client';
 
-import { useLtiCourse } from '@/app/contexts/LtiCourseContext'
-import UpsertIntegrationModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/UpsertIntegrationModal'
-import {
+import { useLtiCourse } from '@/app/contexts/LtiCourseContext';
+import UpsertIntegrationModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/UpsertIntegrationModal';
+import type {
   CoursePartial,
-  LMSApiResponseStatus,
   LMSCourseIntegrationPartial,
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   OrganizationSettingsResponse,
-} from '@koh/common'
-import React, { useEffect, useMemo, useState } from 'react'
-import { API } from '@/app/api'
-import { cn, getErrorMessage } from '@/app/utils/generalUtils'
-import { Button, Card, message, Modal } from 'antd'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
+} from '@koh/common';
+import { LMSApiResponseStatus } from '@koh/common';
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { API } from '@/app/api';
+import { cn, getErrorMessage } from '@/app/utils/generalUtils';
+import { Button, Card, message, Modal } from 'antd';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
 import {
   DeleteOutlined,
   EditOutlined,
   PlusCircleOutlined,
   SyncOutlined,
-} from '@ant-design/icons'
-import { useSessionStorage } from '@/app/hooks/useSessionStorage'
+} from '@ant-design/icons';
+import { useSessionStorage } from '@/app/hooks/useSessionStorage';
 
 export default function LtiIntegrationPage(): React.ReactElement {
   const [lmsInfo] = useSessionStorage<{
-    platform: LMSIntegrationPlatform
-    apiCourseId: string
-  }>('lms_info', null)
+    platform: LMSIntegrationPlatform;
+    apiCourseId: string;
+  }>('lms_info', null);
 
   const { platform, apiCourseId } = useMemo(() => {
     if (lmsInfo) {
-      return lmsInfo
+      return lmsInfo;
     } else {
       return {
         platform: undefined,
         apiCourseId: undefined,
-      }
+      };
     }
-  }, [lmsInfo])
+  }, [lmsInfo]);
 
   const [submitFlag, setSubmitFlag] = useSessionStorage<boolean>(
     'submit_lms_integration',
     false,
-  )
+  );
 
   useEffect(() => {
     if (submitFlag) {
       message.info(
         `Ensure you click the "Integrate with ${platform}" or "Update existing integration" button and submit the shown form with your new token!`,
         10,
-      )
-      setSubmitFlag(false)
+      );
+      setSubmitFlag(false);
     }
-  }, [])
+  }, []);
 
-  const { courseId, course } = useLtiCourse()
+  const { courseId, course } = useLtiCourse();
 
-  const [modalOpen, setModalOpen] = useState(false)
-  const [delModalOpen, setDelModalOpen] = useState(false)
-  const [isTesting, setIsTesting] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false);
+  const [delModalOpen, setDelModalOpen] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const [orgIntegration, setOrgIntegration] =
-    useState<LMSOrganizationIntegrationPartial>()
+    useState<LMSOrganizationIntegrationPartial>();
   const [integrationOptions, setIntegrationOptions] = useState<
     LMSOrganizationIntegrationPartial[]
-  >([])
+  >([]);
   const [courseIntegration, setCourseIntegration] =
-    useState<LMSCourseIntegrationPartial>()
-  const [integrationExists, setIntegrationExists] = useState(false)
-  const [updateFlag, setUpdateFlag] = useState(false)
-  const [generatingToken, setGeneratingToken] = useState(false)
+    useState<LMSCourseIntegrationPartial>();
+  const [integrationExists, setIntegrationExists] = useState(false);
+  const [updateFlag, setUpdateFlag] = useState(false);
+  const [generatingToken, setGeneratingToken] = useState(false);
 
   useEffect(() => {
     const getIntegrations = () => {
       API.lmsIntegration
         .getCourseOrganizationIntegrations(courseId)
         .then((res) => {
-          setOrgIntegration(res.find((v) => v.apiPlatform == platform))
-          setIntegrationOptions(res)
+          setOrgIntegration(res.find((v) => v.apiPlatform == platform));
+          setIntegrationOptions(res);
         })
-        .catch(() => {})
+        .catch(() => {});
 
       API.lmsIntegration
         .getCourseIntegration(courseId)
         .then((res) => {
           if (res) {
-            setCourseIntegration(res)
-            setIntegrationExists(true)
+            setCourseIntegration(res);
+            setIntegrationExists(true);
           } else {
             setCourseIntegration({
               courseId,
@@ -98,14 +99,14 @@ export default function LtiIntegrationPage(): React.ReactElement {
               isExpired: false,
               hasApiKey: false,
               apiKeyExpiry: undefined,
-            } satisfies LMSCourseIntegrationPartial)
-            setIntegrationExists(false)
+            } satisfies LMSCourseIntegrationPartial);
+            setIntegrationExists(false);
           }
         })
-        .catch(() => {})
-    }
-    getIntegrations()
-  }, [platform, apiCourseId, updateFlag])
+        .catch(() => {});
+    };
+    getIntegrations();
+  }, [platform, apiCourseId, updateFlag]);
 
   const testLMSConnection = async (
     apiCourseId: string,
@@ -114,16 +115,16 @@ export default function LtiIntegrationPage(): React.ReactElement {
     accessTokenId?: number,
   ) => {
     if (accessTokenId == undefined) {
-      message.warning('Access Token is required')
-      return LMSApiResponseStatus.Error
+      message.warning('Access Token is required');
+      return LMSApiResponseStatus.Error;
     }
 
     if (apiCourseId == undefined || String(apiCourseId).trim() == '') {
-      message.warning('API Course ID is required')
-      return LMSApiResponseStatus.Error
+      message.warning('API Course ID is required');
+      return LMSApiResponseStatus.Error;
     }
 
-    setIsTesting(true)
+    setIsTesting(true);
     const response = await API.lmsIntegration
       .testIntegration(courseId, {
         apiPlatform: apiPlatform,
@@ -132,17 +133,17 @@ export default function LtiIntegrationPage(): React.ReactElement {
         apiCourseId: apiCourseId,
       })
       .then((response) => {
-        if (response == LMSApiResponseStatus.Success) message.success(response)
-        else message.warning(response)
-        return response
+        if (response == LMSApiResponseStatus.Success) message.success(response);
+        else message.warning(response);
+        return response;
       })
       .catch((error) => {
-        message.error(getErrorMessage(error))
-        return LMSApiResponseStatus.Error
-      })
-    setIsTesting(false)
-    return response
-  }
+        message.error(getErrorMessage(error));
+        return LMSApiResponseStatus.Error;
+      });
+    setIsTesting(false);
+    return response;
+  };
 
   const deleteIntegration = async () => {
     API.lmsIntegration
@@ -151,20 +152,20 @@ export default function LtiIntegrationPage(): React.ReactElement {
         if (!result) {
           message.error(
             `Unknown error occurred, could not delete the LMS integration`,
-          )
+          );
         } else if (result.includes('Success')) {
-          message.success(result)
-          setDelModalOpen(false)
+          message.success(result);
+          setDelModalOpen(false);
         } else {
-          message.error(result)
+          message.error(result);
         }
-        setUpdateFlag(!updateFlag)
+        setUpdateFlag(!updateFlag);
       })
-      .catch((err) => message.error(getErrorMessage(err)))
-  }
+      .catch((err) => message.error(getErrorMessage(err)));
+  };
 
   if (!courseIntegration) {
-    return <CenteredSpinner tip={'Loading...'} />
+    return <CenteredSpinner tip={'Loading...'} />;
   }
 
   if (!lmsInfo) {
@@ -200,12 +201,12 @@ export default function LtiIntegrationPage(): React.ReactElement {
           }
         />
       </div>
-    )
+    );
   }
 
   const onTokenGenerate = async () => {
-    setGeneratingToken(true)
-  }
+    setGeneratingToken(true);
+  };
 
   if (generatingToken) {
     return (
@@ -238,8 +239,8 @@ export default function LtiIntegrationPage(): React.ReactElement {
             </p>
             <Button
               onClick={() => {
-                setSubmitFlag(true)
-                window.location.reload()
+                setSubmitFlag(true);
+                window.location.reload();
               }}
               className={'p-6 text-lg font-semibold'}
               variant={'solid'}
@@ -251,7 +252,7 @@ export default function LtiIntegrationPage(): React.ReactElement {
           </div>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -283,7 +284,7 @@ export default function LtiIntegrationPage(): React.ReactElement {
         open={delModalOpen}
         onOk={() => deleteIntegration()}
         onCancel={() => {
-          setDelModalOpen(false)
+          setDelModalOpen(false);
         }}
         okText={'Delete Integration'}
         okButtonProps={{
@@ -387,7 +388,7 @@ export default function LtiIntegrationPage(): React.ReactElement {
                 !integrationExists ? <PlusCircleOutlined /> : <EditOutlined />
               }
               onClick={() => {
-                setModalOpen(true)
+                setModalOpen(true);
               }}
             >
               {!integrationExists
@@ -408,26 +409,26 @@ export default function LtiIntegrationPage(): React.ReactElement {
         </Card>
       </Card>
     </>
-  )
+  );
 }
 
 const MiniAlert: React.FC<{
-  alertType: 'error' | 'warning' | 'success' | 'info'
-  title?: React.ReactNode
-  description?: React.ReactNode
+  alertType: 'error' | 'warning' | 'success' | 'info';
+  title?: React.ReactNode;
+  description?: React.ReactNode;
 }> = ({ alertType, title, description }) => {
   const color = (() => {
     switch (alertType) {
       case 'success':
-        return `border-green-500 bg-green-100 text-green-700`
+        return `border-green-500 bg-green-100 text-green-700`;
       case 'warning':
-        return `border-yellow-500 bg-yellow-50 text-yellow-700`
+        return `border-yellow-500 bg-yellow-50 text-yellow-700`;
       case 'error':
-        return `border-red-500 bg-red-100 text-red-700`
+        return `border-red-500 bg-red-100 text-red-700`;
       default:
-        return `border-blue-500 bg-blue-100 text-blue-700`
+        return `border-blue-500 bg-blue-100 text-blue-700`;
     }
-  })()
+  })();
 
   return (
     <div
@@ -443,5 +444,5 @@ const MiniAlert: React.FC<{
         <span className={'text-md'}>{description}</span>
       )}
     </div>
-  )
-}
+  );
+};

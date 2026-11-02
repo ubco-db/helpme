@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddCreatedAtVarious1768954613282 implements MigrationInterface {
   name = 'AddCreatedAtVarious1768954613282';

@@ -1,18 +1,19 @@
-'use client'
+'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ConfigTasks, Task, TaskTree, transformIntoTaskTree } from '@koh/common'
-import { getBrightness } from '@/app/utils/generalUtils'
-import tinycolor from 'tinycolor2'
-import { ArrowRightOutlined } from '@ant-design/icons'
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ConfigTasks, Task, TaskTree } from '@koh/common';
+import { transformIntoTaskTree } from '@koh/common';
+import { getBrightness } from '@/app/utils/generalUtils';
+import tinycolor from 'tinycolor2';
+import { ArrowRightOutlined } from '@ant-design/icons';
 
 interface DisplayTaskProps {
-  taskName: string
-  taskColor: string
+  taskName: string;
+  taskColor: string;
 }
 
 const DisplayTask: React.FC<DisplayTaskProps> = ({ taskName, taskColor }) => {
-  const textColor = getBrightness(taskColor) < 128 ? 'white' : 'black'
+  const textColor = getBrightness(taskColor) < 128 ? 'white' : 'black';
 
   return (
     <div
@@ -27,14 +28,14 @@ const DisplayTask: React.FC<DisplayTaskProps> = ({ taskName, taskColor }) => {
     >
       <div style={{ fontSize: 'smaller', color: textColor }}>{taskName}</div>
     </div>
-  )
-}
+  );
+};
 
 interface TaskDisplayProps {
-  configTasks: ConfigTasks
-  value?: string[]
-  className?: string
-  [key: string]: any
+  configTasks: ConfigTasks;
+  value?: string[];
+  className?: string;
+  [key: string]: any;
 }
 
 /**
@@ -47,23 +48,23 @@ const TaskDisplay: React.FC<TaskDisplayProps> = ({
   className,
   ...props
 }) => {
-  const [taskTree, setTaskTree] = useState<TaskTree>({} as TaskTree)
+  const [taskTree, setTaskTree] = useState<TaskTree>({} as TaskTree);
 
   useEffect(() => {
     const configTasksCopy = {
       ...configTasks,
-    } // Create a copy of configTasks (since the function will mutate it)
+    }; // Create a copy of configTasks (since the function will mutate it)
 
-    setTaskTree(transformIntoTaskTree(configTasksCopy))
-  }, [configTasks, value])
+    setTaskTree(transformIntoTaskTree(configTasksCopy));
+  }, [configTasks, value]);
 
   const printDependents = useCallback(
     (taskID: string, accumulatedTasks: React.ReactNode[] = []) => {
-      const task: Task = taskTree[taskID]
+      const task: Task = taskTree[taskID];
 
       if (!task) {
-        console.error('Task not found in taskTree: ', taskID)
-        return accumulatedTasks
+        console.error('Task not found in taskTree: ', taskID);
+        return accumulatedTasks;
       }
 
       // Display the task and mark it as already been displayed
@@ -75,8 +76,8 @@ const TaskDisplay: React.FC<TaskDisplayProps> = ({
             taskColor={task.color_hex}
           />
         </div>,
-      )
-      task.checked = true
+      );
+      task.checked = true;
 
       // Now that the task has been displayed, display any tasks that depend on it
       for (const tempTask in taskTree) {
@@ -84,14 +85,14 @@ const TaskDisplay: React.FC<TaskDisplayProps> = ({
           taskTree[tempTask].precondition &&
           taskTree[tempTask].precondition?.taskId === taskID
         ) {
-          printDependents(tempTask, accumulatedTasks)
+          printDependents(tempTask, accumulatedTasks);
         }
       }
 
-      return accumulatedTasks
+      return accumulatedTasks;
     },
     [taskTree],
-  )
+  );
 
   const printTasks = useMemo(() => {
     return Object.entries(taskTree).map(([taskKey, task]) => {
@@ -101,12 +102,12 @@ const TaskDisplay: React.FC<TaskDisplayProps> = ({
           <div key={taskKey} className="flex items-center justify-start">
             {printDependents(taskKey).flat()}
           </div>
-        )
+        );
       }
-    })
+    });
     //I'm not sure why, but putting proper dependencies here causes this to be ran more times than it should
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taskTree])
+  }, [taskTree]);
 
   return (
     <div
@@ -116,7 +117,7 @@ const TaskDisplay: React.FC<TaskDisplayProps> = ({
     >
       {printTasks}
     </div>
-  )
-}
+  );
+};
 
-export default TaskDisplay
+export default TaskDisplay;

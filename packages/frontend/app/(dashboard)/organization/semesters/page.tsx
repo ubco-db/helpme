@@ -1,34 +1,35 @@
-'use client'
+'use client';
 
-import { ReactNode, useEffect, useMemo, useState } from 'react'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { SemesterPartial } from '@koh/common'
-import { SemesterManagement } from './components/SemesterManagement'
-import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
+import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useUserInfo } from '@/app/contexts/userContext';
+import type { SemesterPartial } from '@koh/common';
+import { SemesterManagement } from './components/SemesterManagement';
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings';
 import {
   checkCourseCreatePermissions,
   getErrorMessage,
-} from '@/app/utils/generalUtils'
-import { API } from '@/app/api'
-import { message } from 'antd'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
+} from '@/app/utils/generalUtils';
+import { API } from '@/app/api';
+import { message } from 'antd';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
 
 export default function SemesterManagementPage(): ReactNode {
-  const { userInfo } = useUserInfo()
+  const { userInfo } = useUserInfo();
   const organizationId = useMemo(
     () => Number(userInfo?.organization?.orgId) ?? -1,
     [userInfo?.organization?.orgId],
-  )
+  );
 
-  const [isSemestersLoading, setIsSemestersLoading] = useState(true)
+  const [isSemestersLoading, setIsSemestersLoading] = useState(true);
   const [organizationSemesters, setOrganizationSemesters] = useState<
     SemesterPartial[]
-  >([])
-  const organizationSettings = useOrganizationSettings(organizationId)
+  >([]);
+  const organizationSettings = useOrganizationSettings(organizationId);
 
   useEffect(() => {
     const fetchDataAsync = async () => {
-      setIsSemestersLoading(true)
+      setIsSemestersLoading(true);
       await API.organizations
         .get(organizationId)
         .then((res) => {
@@ -39,20 +40,20 @@ export default function SemesterManagementPage(): ReactNode {
             endDate: s.endDate ? new Date(s.endDate) : null,
             description: s.description,
             color: s.color,
-          }))
-          setOrganizationSemesters(semesters)
+          }));
+          setOrganizationSemesters(semesters);
         })
         .catch((err) => {
-          message.error('Failed to load semesters:' + getErrorMessage(err))
+          message.error('Failed to load semesters:' + getErrorMessage(err));
         })
         .finally(() => {
-          setIsSemestersLoading(false)
-        })
-    }
+          setIsSemestersLoading(false);
+        });
+    };
     if (organizationId > 0) {
-      fetchDataAsync()
+      fetchDataAsync();
     }
-  }, [organizationId])
+  }, [organizationId]);
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -71,5 +72,5 @@ export default function SemesterManagementPage(): ReactNode {
         </p>
       )}
     </div>
-  )
+  );
 }

@@ -4,7 +4,8 @@ import {
   QuestionStatusKeys,
   Role,
 } from '@koh/common';
-import { TestingModule, Test } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { NotificationService } from 'notification/notification.service';
 import { DataSource } from 'typeorm';
 import {

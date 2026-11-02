@@ -1,38 +1,41 @@
-'use client'
+'use client';
 
-import { API } from '@/app/api'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { GetOrganizationResponse, OrganizationRole, OrgUser } from '@koh/common'
-import { Alert, Card, message, Modal } from 'antd'
-import { useState } from 'react'
-import UsersTable from './UsersTable'
+import { API } from '@/app/api';
+import { useUserInfo } from '@/app/contexts/userContext';
+import type { GetOrganizationResponse, OrgUser } from '@koh/common';
+import { OrganizationRole } from '@koh/common';
+import { Alert, Card, message, Modal } from 'antd';
+import { useState } from 'react';
+import UsersTable from './UsersTable';
 
 interface UsersTableProps {
-  organization: GetOrganizationResponse
+  organization: GetOrganizationResponse;
 }
 
 const OrganizationUsers: React.FC<UsersTableProps> = ({ organization }) => {
-  const { userInfo } = useUserInfo()
-  const [isRoleChangeModalVisible, setRoleChangeModalVisible] = useState(false)
-  const [selectedUserData, setSelectedUserData] = useState<OrgUser | null>(null)
+  const { userInfo } = useUserInfo();
+  const [isRoleChangeModalVisible, setRoleChangeModalVisible] = useState(false);
+  const [selectedUserData, setSelectedUserData] = useState<OrgUser | null>(
+    null,
+  );
   const [updatedRole, setUpdatedRole] = useState<OrganizationRole>(
     OrganizationRole.MEMBER,
-  )
-  const [updateFlag, setUpdateFlag] = useState<boolean>(false)
+  );
+  const [updateFlag, setUpdateFlag] = useState<boolean>(false);
 
   const toggleRoleChangeModal = (userData: OrgUser) => {
-    setSelectedUserData(userData)
-    setRoleChangeModalVisible(!isRoleChangeModalVisible)
-  }
+    setSelectedUserData(userData);
+    setRoleChangeModalVisible(!isRoleChangeModalVisible);
+  };
 
   const prepareAndShowConfirmationModal =
     (user: OrgUser) => async (newRole: string) => {
-      setUpdatedRole(newRole as OrganizationRole)
-      toggleRoleChangeModal(user)
-    }
+      setUpdatedRole(newRole as OrganizationRole);
+      toggleRoleChangeModal(user);
+    };
 
   const updateRole = async () => {
-    const { userId } = selectedUserData as OrgUser
+    const { userId } = selectedUserData as OrgUser;
 
     await API.organizations
       .updateOrganizationUserRole(userInfo.organization?.orgId || -1, {
@@ -40,15 +43,15 @@ const OrganizationUsers: React.FC<UsersTableProps> = ({ organization }) => {
         organizationRole: updatedRole,
       })
       .then(() => {
-        setUpdateFlag((prev) => !prev)
-        toggleRoleChangeModal(selectedUserData as OrgUser)
-        message.success('Successfully updated user role.')
+        setUpdateFlag((prev) => !prev);
+        toggleRoleChangeModal(selectedUserData as OrgUser);
+        message.success('Successfully updated user role.');
       })
       .catch((error) => {
-        const errorMessage = error.response.data.message
-        message.error(errorMessage)
-      })
-  }
+        const errorMessage = error.response.data.message;
+        message.error(errorMessage);
+      });
+  };
 
   return (
     <>
@@ -90,7 +93,7 @@ const OrganizationUsers: React.FC<UsersTableProps> = ({ organization }) => {
         </Modal>
       )}
     </>
-  )
-}
+  );
+};
 
-export default OrganizationUsers
+export default OrganizationUsers;

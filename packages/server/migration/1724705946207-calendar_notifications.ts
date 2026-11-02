@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class calendarNotifications1724705946207 implements MigrationInterface {
   name = 'calendarNotifications1724705946207';

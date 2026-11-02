@@ -1,21 +1,19 @@
-import {
+import type {
   ChartOutputType,
   GanttChartOutputType,
   InsightFilterOption,
   InsightObject,
-  InsightType,
   MultipleGanttChartOutputType,
-  numToWeekday,
-  Role,
   StringMap,
   TableOutputType,
   ValueOutputType,
 } from '@koh/common';
+import { InsightType, numToWeekday, Role } from '@koh/common';
 import { UserCourseModel } from '../profile/user-course.entity';
 import { UserModel } from '../profile/user.entity';
 import { QuestionModel } from '../question/question.entity';
-import { SelectQueryBuilder } from 'typeorm';
-import { Cache } from 'cache-manager';
+import type { SelectQueryBuilder } from 'typeorm';
+import type { Cache } from 'cache-manager';
 import { AsyncQuestionModel } from '../asyncQuestion/asyncQuestion.entity';
 import { InteractionModel } from '../chatbot/interaction.entity';
 import { AsyncQuestionVotesModel } from '../asyncQuestion/asyncQuestionVotes.entity';

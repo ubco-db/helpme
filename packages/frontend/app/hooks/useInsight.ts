@@ -1,6 +1,6 @@
-import { API } from '@/app/api'
-import { InsightOutput, InsightParamsType } from '@koh/common'
-import { useMemo } from 'react'
+import { API } from '@/app/api';
+import type { InsightOutput, InsightParamsType } from '@koh/common';
+import { useMemo } from 'react';
 
 export function useInsight(
   courseId: number,
@@ -16,7 +16,7 @@ export function useInsight(
       students: (params?.students as number[])?.join(','),
       queues: (params?.queues as number[])?.join(','),
       staff: (params?.staff as number[])?.join(','),
-    })
+    });
   }, [
     courseId,
     insightName,
@@ -26,5 +26,5 @@ export function useInsight(
     params?.students,
     params?.queues,
     params?.staff,
-  ])
+  ]);
 }

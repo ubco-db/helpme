@@ -1,22 +1,22 @@
-import Modal from 'antd/lib/modal/Modal'
-import { useState } from 'react'
-import { AdminNoticePayload } from '@koh/common'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
-import MarkdownCustom from './Markdown'
-dayjs.extend(relativeTime)
+import Modal from 'antd/lib/modal/Modal';
+import { useState } from 'react';
+import type { AdminNoticePayload } from '@koh/common';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import MarkdownCustom from './Markdown';
+dayjs.extend(relativeTime);
 
 type AdminNoticeModalProps = {
-  payload: AdminNoticePayload
-  sentAt: Date
-  handleClose: () => Promise<void>
-}
+  payload: AdminNoticePayload;
+  sentAt: Date;
+  handleClose: () => Promise<void>;
+};
 const AdminNoticeModal: React.FC<AdminNoticeModalProps> = ({
   payload,
   sentAt,
   handleClose,
 }) => {
-  const [handleCloseLoading, setHandleCloseLoading] = useState(false)
+  const [handleCloseLoading, setHandleCloseLoading] = useState(false);
 
   return (
     <Modal
@@ -24,14 +24,14 @@ const AdminNoticeModal: React.FC<AdminNoticeModalProps> = ({
       confirmLoading={handleCloseLoading}
       cancelButtonProps={{ loading: handleCloseLoading }}
       onCancel={async () => {
-        setHandleCloseLoading(true)
-        await handleClose()
-        setHandleCloseLoading(false)
+        setHandleCloseLoading(true);
+        await handleClose();
+        setHandleCloseLoading(false);
       }}
       onOk={async () => {
-        setHandleCloseLoading(true)
-        await handleClose()
-        setHandleCloseLoading(false)
+        setHandleCloseLoading(true);
+        await handleClose();
+        setHandleCloseLoading(false);
       }}
       title={
         <div className="flex flex-col justify-center gap-0">
@@ -46,6 +46,6 @@ const AdminNoticeModal: React.FC<AdminNoticeModalProps> = ({
     >
       <MarkdownCustom>{payload.message}</MarkdownCustom>
     </Modal>
-  )
-}
-export default AdminNoticeModal
+  );
+};
+export default AdminNoticeModal;

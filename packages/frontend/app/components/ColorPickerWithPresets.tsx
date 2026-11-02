@@ -1,5 +1,6 @@
-import React from 'react'
-import { Col, ColorPicker, ColorPickerProps, Divider, Row, theme } from 'antd'
+import type React from 'react';
+import type { ColorPickerProps } from 'antd';
+import { Col, ColorPicker, Divider, Row, theme } from 'antd';
 import {
   generate,
   green,
@@ -7,27 +8,27 @@ import {
   red,
   gold,
   magenta,
-} from '@ant-design/colors'
+} from '@ant-design/colors';
 
-type Presets = Required<ColorPickerProps>['presets'][number]
+type Presets = Required<ColorPickerProps>['presets'][number];
 
 /**
  * A simple antd ColorPicker with some preset color palettes.
  */
 const ColorPickerWithPresets: React.FC<ColorPickerProps> = ({ ...props }) => {
-  const { token } = theme.useToken()
+  const { token } = theme.useToken();
   const genColorPresets = (presets = presetPalettes) =>
     Object.entries(presets).map<Presets>(([label, colors]) => ({
       label,
       colors,
-    }))
+    }));
   const colorPresets = genColorPresets({
     primary: generate(token.colorPrimary),
     red,
     green,
     gold,
     magenta,
-  })
+  });
 
   const customPanelRender: ColorPickerProps['panelRender'] = (
     _,
@@ -42,7 +43,7 @@ const ColorPickerWithPresets: React.FC<ColorPickerProps> = ({ ...props }) => {
         <Picker />
       </Col>
     </Row>
-  )
+  );
 
   return (
     <ColorPicker
@@ -51,7 +52,7 @@ const ColorPickerWithPresets: React.FC<ColorPickerProps> = ({ ...props }) => {
       panelRender={customPanelRender}
       presets={colorPresets}
     />
-  )
-}
+  );
+};
 
-export default ColorPickerWithPresets
+export default ColorPickerWithPresets;

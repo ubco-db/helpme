@@ -4,14 +4,15 @@ import {
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
-} from '@/app/components/ui/chart'
-import { LabelList, RadialBar, RadialBarChart } from 'recharts'
-import React, { useMemo } from 'react'
-import {
+} from '@/app/components/ui/chart';
+import { LabelList, RadialBar, RadialBarChart } from 'recharts';
+import type React from 'react';
+import { useMemo } from 'react';
+import type {
   RadialChartProps,
-  RadialChartClasses,
   ChartComponentProps,
-} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types'
+} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
+import { RadialChartClasses } from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
 
 const RadialChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
@@ -23,21 +24,21 @@ const RadialChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     labelFormatter,
     valueFormatter,
     legendFormatter,
-  } = props
+  } = props;
 
-  const { stackData } = props as RadialChartProps
+  const { stackData } = props as RadialChartProps;
 
-  let { includeLegend, includeTooltip, showLabels } = props as RadialChartProps
+  let { includeLegend, includeTooltip, showLabels } = props as RadialChartProps;
 
-  includeLegend ??= true
-  includeTooltip ??= true
-  showLabels ??= true
+  includeLegend ??= true;
+  includeTooltip ??= true;
+  showLabels ??= true;
 
   const className = useMemo(() => {
     return size != undefined && RadialChartClasses[size] != undefined
       ? RadialChartClasses[size]
-      : RadialChartClasses['md']
-  }, [size])
+      : RadialChartClasses['md'];
+  }, [size]);
 
   return (
     <ChartContainer config={chartConfig} className={className}>
@@ -82,7 +83,7 @@ const RadialChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           ))}
       </RadialBarChart>
     </ChartContainer>
-  )
-}
+  );
+};
 
-export default RadialChartComponent
+export default RadialChartComponent;

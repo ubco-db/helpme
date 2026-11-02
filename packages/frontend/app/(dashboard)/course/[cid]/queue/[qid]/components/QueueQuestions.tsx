@@ -1,11 +1,10 @@
-'use client'
+'use client';
 
-import { Collapse, Divider } from 'antd'
-import QueueHeader from './QueueHeader'
-import TagGroupSwitch from './TagGroupSwitch'
-import {
+import { Collapse, Divider } from 'antd';
+import QueueHeader from './QueueHeader';
+import TagGroupSwitch from './TagGroupSwitch';
+import type {
   ConfigTasks,
-  parseTaskIdsFromQuestionText,
   Question,
   QuestionLocations,
   QuestionType,
@@ -15,52 +14,53 @@ import {
   StudentAssignmentProgress,
   Task,
   TaskTree,
-} from '@koh/common'
-import { QuestionTagElement } from '../../../components/QuestionTagElement'
-import QuestionCard from './QuestionCard'
-import JoinTagGroupButton from './JoinTagGroupButton'
-import { useCallback } from 'react'
+} from '@koh/common';
+import { parseTaskIdsFromQuestionText } from '@koh/common';
+import { QuestionTagElement } from '../../../components/QuestionTagElement';
+import QuestionCard from './QuestionCard';
+import JoinTagGroupButton from './JoinTagGroupButton';
+import { useCallback } from 'react';
 
-const Panel = Collapse.Panel
+const Panel = Collapse.Panel;
 
 interface QueueQuestionsProps {
-  questions: Question[]
-  questionsGettingHelp: Question[]
-  pausedQuestions: Question[]
-  queueType: QueueTypes
-  cid: number
-  qid: number
-  isStaff: boolean
-  studentQuestionId?: number
-  studentDemoId?: number
-  studentAssignmentProgress?: StudentAssignmentProgress
-  queueConfig?: QueueConfig
-  configTasks?: ConfigTasks
-  tagGroupsEnabled: boolean
-  setTagGroupsEnabled: (enabled: boolean) => void
-  taskTree?: TaskTree
-  isDemoQueue: boolean
-  questionTypes?: QuestionType[]
-  studentQuestion?: Question
-  studentDemo?: Question
+  questions: Question[];
+  questionsGettingHelp: Question[];
+  pausedQuestions: Question[];
+  queueType: QueueTypes;
+  cid: number;
+  qid: number;
+  isStaff: boolean;
+  studentQuestionId?: number;
+  studentDemoId?: number;
+  studentAssignmentProgress?: StudentAssignmentProgress;
+  queueConfig?: QueueConfig;
+  configTasks?: ConfigTasks;
+  tagGroupsEnabled: boolean;
+  setTagGroupsEnabled: (enabled: boolean) => void;
+  taskTree?: TaskTree;
+  isDemoQueue: boolean;
+  questionTypes?: QuestionType[];
+  studentQuestion?: Question;
+  studentDemo?: Question;
   createQuestion: (
     text: string | undefined,
     questionTypes: QuestionType[],
     force: boolean,
     isTaskQuestion: boolean,
     location?: QuestionLocations,
-  ) => Promise<void>
+  ) => Promise<void>;
   finishQuestionOrDemo: (
     text: string,
     questionTypes: QuestionTypeParams[],
     groupable: boolean,
     isTaskQuestion: boolean,
     location: QuestionLocations,
-  ) => Promise<void>
-  leaveQueue: (isTaskQuestion: boolean) => Promise<void>
-  onOpenTagGroupsChange: (key: string | string[]) => void
-  openTagGroups: string[]
-  staffListLength: number
+  ) => Promise<void>;
+  leaveQueue: (isTaskQuestion: boolean) => Promise<void>;
+  onOpenTagGroupsChange: (key: string | string[]) => void;
+  openTagGroups: string[];
+  staffListLength: number;
 }
 
 /**
@@ -101,16 +101,14 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
     ): boolean => {
       // Goal: Before joining, for the task's preconditions, make sure there are no blocking tasks that are not done (this is done recursively)
       if (task.blocking && !task.isDone && !isFirst) {
-        return false
+        return false;
       }
       // Goal: Before joining, all the task's preconditions must be in the student's demo (this is also done recursively)
-      if (
-        !(
-          !task.precondition ||
-          studentDemoText?.includes(` "${task.precondition.taskId}"`)
-        )
-      ) {
-        return false
+      if (!(
+        !task.precondition ||
+        studentDemoText?.includes(` "${task.precondition.taskId}"`)
+      )) {
+        return false;
       }
       // Goal: Before leaving, the student's demo must not have any tasks that depend on this task
       if (isFirst) {
@@ -120,21 +118,21 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
             return (
               tempTask.precondition?.taskId === task.taskId &&
               studentDemoText?.includes(` "${tempTask.taskId}"`)
-            )
+            );
           })
         ) {
-          return false
+          return false;
         }
       }
       // If there's a precondition, recursively check it, marking it as not the first task
       if (task.precondition) {
-        return isTaskJoinable(task.precondition, false, studentDemoText)
+        return isTaskJoinable(task.precondition, false, studentDemoText);
       }
       // If none of the above conditions are met, the task is valid
-      return true
+      return true;
     },
     [taskTree],
-  )
+  );
 
   // TODO: this does still needs to be updated to the newest version of Collapse from antd, where it uses the 'items' prop instead of Collapse.Panel.
   // This will help with all the console deprecation warnings.
@@ -177,10 +175,10 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                 (question: Question) => {
                   const tasks = question.isTaskQuestion
                     ? parseTaskIdsFromQuestionText(question.text)
-                    : []
-                  return question.isTaskQuestion && tasks.includes(taskKey)
+                    : [];
+                  return question.isTaskQuestion && tasks.includes(taskKey);
                 },
-              )
+              );
               return (
                 filteredQuestions &&
                 ((isStaff && filteredQuestions.length > 0) || !isStaff) && (
@@ -246,7 +244,7 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                     ))}
                   </Panel>
                 )
-              )
+              );
             })}
           {isDemoQueue && (
             <Divider
@@ -261,7 +259,7 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
               question.questionTypes?.some(
                 (questionType) => questionType.name === tag.name,
               ),
-            )
+            );
             return (
               filteredQuestions &&
               ((isStaff && filteredQuestions.length > 0) || !isStaff) && (
@@ -315,7 +313,7 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
                   ))}
                 </Panel>
               )
-            )
+            );
           })}
         </Collapse>
       ) : (
@@ -375,7 +373,7 @@ const QueueQuestions: React.FC<QueueQuestionsProps> = ({
         </>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default QueueQuestions
+export default QueueQuestions;

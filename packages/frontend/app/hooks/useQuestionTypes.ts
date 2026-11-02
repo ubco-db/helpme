@@ -1,6 +1,6 @@
-import useSWR from 'swr'
-import { API } from '../api'
-import { QuestionType } from '@koh/common'
+import useSWR from 'swr';
+import { API } from '../api';
+import type { QuestionType } from '@koh/common';
 
 export function useQuestionTypes(
   cid: number,
@@ -12,10 +12,10 @@ export function useQuestionTypes(
     shouldRevalidate?: boolean,
   ) => Promise<QuestionType[] | undefined>,
 ] {
-  const key = `/api/v1/questionType/${cid}/${qid}`
+  const key = `/api/v1/questionType/${cid}/${qid}`;
 
   const { data: questionTypes, mutate } = useSWR(key, async () => {
-    return await API.questionType.getQuestionTypes(cid, qid)
-  })
-  return [questionTypes, mutate]
+    return await API.questionType.getQuestionTypes(cid, qid);
+  });
+  return [questionTypes, mutate];
 }

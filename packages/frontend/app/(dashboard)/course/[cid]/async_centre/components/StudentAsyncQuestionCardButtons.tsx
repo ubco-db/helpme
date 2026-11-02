@@ -1,25 +1,25 @@
-import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
-import { AsyncQuestion } from '@koh/common'
-import { Popconfirm, Tooltip } from 'antd'
-import { useState } from 'react'
-import CircleButton from '../../queue/[qid]/components/CircleButton'
-import CreateAsyncQuestionModal from './modals/CreateAsyncQuestionModal'
-import { useMediaQuery } from '@/app/hooks/useMediaQuery'
-import { deleteAsyncQuestion } from '../utils/commonAsyncFunctions'
+import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import type { AsyncQuestion } from '@koh/common';
+import { Popconfirm, Tooltip } from 'antd';
+import { useState } from 'react';
+import CircleButton from '../../queue/[qid]/components/CircleButton';
+import CreateAsyncQuestionModal from './modals/CreateAsyncQuestionModal';
+import { useMediaQuery } from '@/app/hooks/useMediaQuery';
+import { deleteAsyncQuestion } from '../utils/commonAsyncFunctions';
 
 type StudentAsyncQuestionCardButtonsProps = {
-  question: AsyncQuestion
-  onAsyncQuestionUpdate: () => void
-  courseId: number
-}
+  question: AsyncQuestion;
+  onAsyncQuestionUpdate: () => void;
+  courseId: number;
+};
 
 const StudentAsyncQuestionCardButtons: React.FC<
   StudentAsyncQuestionCardButtonsProps
 > = ({ question, onAsyncQuestionUpdate, courseId }) => {
   const [createAsyncQuestionModalOpen, setCreateAsyncQuestionModalOpen] =
-    useState(false)
-  const [deleteLoading, setDeleteLoading] = useState(false)
-  const isMobile = useMediaQuery('(max-width: 768px)')
+    useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   return (
     <>
@@ -32,9 +32,9 @@ const StudentAsyncQuestionCardButtons: React.FC<
         getPopupContainer={(trigger) => trigger.parentNode as HTMLElement}
         okButtonProps={{ loading: deleteLoading }}
         onConfirm={async () => {
-          setDeleteLoading(true)
-          await deleteAsyncQuestion(question.id, false, onAsyncQuestionUpdate)
-          setDeleteLoading(false)
+          setDeleteLoading(true);
+          await deleteAsyncQuestion(question.id, false, onAsyncQuestionUpdate);
+          setDeleteLoading(false);
         }}
       >
         <Tooltip title={isMobile ? '' : 'Delete Question'}>
@@ -46,7 +46,7 @@ const StudentAsyncQuestionCardButtons: React.FC<
           className="mt-0"
           icon={<EditOutlined />}
           onClick={() => {
-            setCreateAsyncQuestionModalOpen(true)
+            setCreateAsyncQuestionModalOpen(true);
           }}
         />
       </Tooltip>
@@ -56,12 +56,12 @@ const StudentAsyncQuestionCardButtons: React.FC<
         open={createAsyncQuestionModalOpen}
         onCancel={() => setCreateAsyncQuestionModalOpen(false)}
         onCreateOrUpdateQuestion={() => {
-          setCreateAsyncQuestionModalOpen(false)
-          onAsyncQuestionUpdate()
+          setCreateAsyncQuestionModalOpen(false);
+          onAsyncQuestionUpdate();
         }}
       />
     </>
-  )
-}
+  );
+};
 
-export default StudentAsyncQuestionCardButtons
+export default StudentAsyncQuestionCardButtons;

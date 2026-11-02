@@ -1,21 +1,22 @@
-import React, { useMemo } from 'react'
-import { GenericInsightComponentProps } from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightComponent'
-import { GanttChartOutputType } from '@koh/common'
-import {
+import type React from 'react';
+import { useMemo } from 'react';
+import type { GenericInsightComponentProps } from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightComponent';
+import type { GanttChartOutputType } from '@koh/common';
+import type {
   ChartDataType,
   ChartSize,
-  gantt_charts,
-} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types'
+} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
+import { gantt_charts } from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
 import {
   constructChartConfig,
   generateUniqueColor,
-} from '@/app/(dashboard)/course/[cid]/(insights)/utils/functions'
-import GanttChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/components/charts/GanttChartComponent'
-import InsightCard from '@/app/(dashboard)/course/[cid]/(insights)/components/InsightCard'
-import { Empty } from 'antd'
+} from '@/app/(dashboard)/course/[cid]/(insights)/utils/functions';
+import GanttChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/components/charts/GanttChartComponent';
+import InsightCard from '@/app/(dashboard)/course/[cid]/(insights)/components/InsightCard';
+import { Empty } from 'antd';
 
 interface InsightGanttChartComponentProps extends GenericInsightComponentProps {
-  partOfSeries?: boolean
+  partOfSeries?: boolean;
 }
 const InsightGanttChartComponent: React.FC<InsightGanttChartComponentProps> = ({
   insight,
@@ -23,10 +24,10 @@ const InsightGanttChartComponent: React.FC<InsightGanttChartComponentProps> = ({
   filterContent,
   partOfSeries,
 }) => {
-  const chartOutput = insight.output as GanttChartOutputType
-  const matchingChart = gantt_charts[insightName]
+  const chartOutput = insight.output as GanttChartOutputType;
+  const matchingChart = gantt_charts[insightName];
 
-  const chartData = useMemo(() => chartOutput.data, [chartOutput.data])
+  const chartData = useMemo(() => chartOutput.data, [chartOutput.data]);
 
   const chartRender = useMemo(() => {
     if (matchingChart) {
@@ -34,7 +35,7 @@ const InsightGanttChartComponent: React.FC<InsightGanttChartComponentProps> = ({
         ? chartData
             .map((v) => v[chartOutput.yKey])
             .filter((v, i, a) => a.indexOf(v) == i)
-        : undefined
+        : undefined;
 
       const data: ChartDataType[] = chartData.map((v) => {
         const d = {
@@ -50,16 +51,16 @@ const InsightGanttChartComponent: React.FC<InsightGanttChartComponentProps> = ({
                   parseInt(v[chartOutput.yKey] ?? '0'),
                   chartOutput.numCategories,
                 ),
-        } as ChartDataType
+        } as ChartDataType;
 
         if (chartOutput.zKey != undefined) {
-          d[chartOutput.zKey] = v[chartOutput.zKey]
+          d[chartOutput.zKey] = v[chartOutput.zKey];
         }
 
-        return d
-      })
+        return d;
+      });
 
-      const chartConfig = constructChartConfig(data, chartOutput.yKey)
+      const chartConfig = constructChartConfig(data, chartOutput.yKey);
 
       const props = {
         chartData: data,
@@ -71,9 +72,9 @@ const InsightGanttChartComponent: React.FC<InsightGanttChartComponentProps> = ({
         numCategories: chartOutput.numCategories,
         yDomain: categoryKeys,
         ...matchingChart.props,
-      }
+      };
 
-      return <GanttChartComponent props={props} />
+      return <GanttChartComponent props={props} />;
     }
   }, [
     matchingChart,
@@ -82,7 +83,7 @@ const InsightGanttChartComponent: React.FC<InsightGanttChartComponentProps> = ({
     chartOutput.zKey,
     chartOutput.numCategories,
     chartOutput.xKey,
-  ])
+  ]);
 
   if (partOfSeries) {
     return (
@@ -97,7 +98,7 @@ const InsightGanttChartComponent: React.FC<InsightGanttChartComponentProps> = ({
           </div>
         )}
       </div>
-    )
+    );
   }
   return (
     <InsightCard title={insight.title} description={insight.description}>
@@ -110,7 +111,7 @@ const InsightGanttChartComponent: React.FC<InsightGanttChartComponentProps> = ({
         </div>
       )}
     </InsightCard>
-  )
-}
+  );
+};
 
-export default InsightGanttChartComponent
+export default InsightGanttChartComponent;

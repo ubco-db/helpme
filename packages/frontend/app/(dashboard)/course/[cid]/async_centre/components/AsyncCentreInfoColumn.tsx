@@ -1,9 +1,9 @@
-import { QuestionCircleOutlined } from '@ant-design/icons'
-import { Tooltip } from 'antd'
-import { ReactNode } from 'react'
+import { QuestionCircleOutlined } from '@ant-design/icons';
+import { Tooltip } from 'antd';
+import type { ReactNode } from 'react';
 
 interface AsyncCentreInfoColumnProps {
-  buttons: ReactNode
+  buttons: ReactNode;
 }
 
 const AsyncCentreInfoColumn: React.FC<AsyncCentreInfoColumnProps> = ({
@@ -24,7 +24,7 @@ const AsyncCentreInfoColumn: React.FC<AsyncCentreInfoColumnProps> = ({
 
       {buttons}
     </div>
-  )
-}
+  );
+};
 
-export default AsyncCentreInfoColumn
+export default AsyncCentreInfoColumn;

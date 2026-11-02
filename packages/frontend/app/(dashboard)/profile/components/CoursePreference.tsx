@@ -1,42 +1,43 @@
-import { API } from '@/app/api'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { useCourse } from '@/app/hooks/useCourse'
-import { useMediaQuery } from '@/app/hooks/useMediaQuery'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { ExclamationCircleOutlined } from '@ant-design/icons'
-import { UserCourse } from '@koh/common'
-import { Button, message, Modal, Table, TableColumnsType } from 'antd'
+import { API } from '@/app/api';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { useCourse } from '@/app/hooks/useCourse';
+import { useMediaQuery } from '@/app/hooks/useMediaQuery';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { ExclamationCircleOutlined } from '@ant-design/icons';
+import type { UserCourse } from '@koh/common';
+import type { TableColumnsType } from 'antd';
+import { Button, message, Modal, Table } from 'antd';
 
-const { confirm } = Modal
+const { confirm } = Modal;
 
 const CoursePreference: React.FC = () => {
-  const { userInfo, setUserInfo } = useUserInfo()
-  const isMobile = useMediaQuery('(max-width: 768px)')
+  const { userInfo, setUserInfo } = useUserInfo();
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   async function withdraw(course: UserCourse) {
     await API.course
       .withdrawCourse(course.course.id)
       .then(async (res) => {
-        message.success('Successfully withdrew from ' + course.course.name)
+        message.success('Successfully withdrew from ' + course.course.name);
         setUserInfo({
           ...userInfo,
           courses: userInfo.courses.filter(
             (c) => c.course.id !== course.course.id,
           ),
-        })
+        });
       })
       .catch((e) => {
-        const errorMessage = getErrorMessage(e)
+        const errorMessage = getErrorMessage(e);
         message.error(
           `Failed to withdraw from ${course.course.name}: ${errorMessage}`,
-        )
-      })
+        );
+      });
   }
 
   function showConfirm(courseId: number) {
-    const course = userInfo?.courses.find((c) => c.course.id === courseId)
+    const course = userInfo?.courses.find((c) => c.course.id === courseId);
     if (!course) {
-      return
+      return;
     }
     confirm({
       title: `Please Confirm!`,
@@ -47,20 +48,20 @@ const CoursePreference: React.FC = () => {
         formattedRoles[course.role]
       }.  The only way to get back is by contacting a professor!`,
       onOk() {
-        withdraw(course)
+        withdraw(course);
       },
-    })
+    });
   }
 
   const InstructorCell = ({ courseId }: { courseId: number }) => {
-    const course = useCourse(courseId)
+    const course = useCourse(courseId);
 
     return (
       <div className="max-w-[5.45rem] overflow-x-scroll whitespace-nowrap md:max-w-full md:overflow-x-auto">
         {course.course?.coordinator_email}
       </div>
-    )
-  }
+    );
+  };
 
   const columns: TableColumnsType = [
     {
@@ -78,7 +79,7 @@ const CoursePreference: React.FC = () => {
       dataIndex: 'instructor',
       key: 'instructor',
       render: function createInstructorCell(courseId: number) {
-        return <InstructorCell courseId={courseId} />
+        return <InstructorCell courseId={courseId} />;
       },
     },
     {
@@ -92,16 +93,16 @@ const CoursePreference: React.FC = () => {
             type="primary"
             shape="round"
             onClick={() => {
-              showConfirm(courseId)
+              showConfirm(courseId);
             }}
             danger
           >
             Withdraw
           </Button>
-        )
+        );
       },
     },
-  ]
+  ];
 
   function createCourseDataSource() {
     return userInfo?.courses.map((c) => ({
@@ -110,14 +111,14 @@ const CoursePreference: React.FC = () => {
       role: formattedRoles[c.role],
       instructor: c.course.id,
       courseId: c.course.id,
-    }))
+    }));
   }
 
   const formattedRoles = {
     student: 'Student',
     ta: 'TA',
     professor: 'Professor',
-  }
+  };
 
   return (
     userInfo && (
@@ -129,7 +130,7 @@ const CoursePreference: React.FC = () => {
         />
       </div>
     )
-  )
-}
+  );
+};
 
-export default CoursePreference
+export default CoursePreference;

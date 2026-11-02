@@ -1,107 +1,104 @@
-'use client'
+'use client';
 
-import { Button, Input, message, Pagination, Progress, Table } from 'antd'
-import {
-  ReactElement,
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react'
-import Link from 'next/link'
-import { TableRowSelection } from 'antd/es/table/interface'
-import LegacyChatbotSettingsModal from './components/LegacyChatbotSettingsModal'
-import Highlighter from 'react-highlight-words'
-import AddChatbotDocumentModal from './components/AddChatbotDocumentModal'
-import { ChatbotServiceType, SourceDocument } from '@koh/common'
-import { FileAddOutlined, SettingOutlined } from '@ant-design/icons'
-import { API } from '@/app/api'
-import { useUserInfo } from '@/app/contexts/userContext'
-import ChatbotHelpTooltip from '../components/ChatbotHelpTooltip'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import ChatbotSettingsModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/chatbot_settings/components/ChatbotSettingsModal'
+import { Button, Input, message, Pagination, Progress, Table } from 'antd';
+import type { ReactElement } from 'react';
+import { use, useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import type { TableRowSelection } from 'antd/es/table/interface';
+import LegacyChatbotSettingsModal from './components/LegacyChatbotSettingsModal';
+import Highlighter from 'react-highlight-words';
+import AddChatbotDocumentModal from './components/AddChatbotDocumentModal';
+import type { SourceDocument } from '@koh/common';
+import { ChatbotServiceType } from '@koh/common';
+import { FileAddOutlined, SettingOutlined } from '@ant-design/icons';
+import { API } from '@/app/api';
+import { useUserInfo } from '@/app/contexts/userContext';
+import ChatbotHelpTooltip from '../components/ChatbotHelpTooltip';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import ChatbotSettingsModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/chatbot_settings/components/ChatbotSettingsModal';
 
 interface ChatbotPanelProps {
-  params: Promise<{ cid: string }>
+  params: Promise<{ cid: string }>;
 }
 export default function ChatbotSettings(
   props: ChatbotPanelProps,
 ): ReactElement {
-  const params = use(props.params)
-  const { userInfo } = useUserInfo()
-  const courseId = useMemo(() => Number(params.cid), [params.cid])
+  const params = use(props.params);
+  const { userInfo } = useUserInfo();
+  const courseId = useMemo(() => Number(params.cid), [params.cid]);
   const [chatbotParameterModalOpen, setChatbotParameterModalOpen] =
-    useState(false)
-  const [addDocumentModalOpen, setAddDocumentModalOpen] = useState(false)
-  const [search, setSearch] = useState('')
-  const [selectViewEnabled, setSelectViewEnabled] = useState(false)
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
-  const [chatbotDocuments, setChatbotDocuments] = useState<SourceDocument[]>([])
-  const [loading, setLoading] = useState(false)
-  const [countProcessed, setCountProcessed] = useState(0)
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+    useState(false);
+  const [addDocumentModalOpen, setAddDocumentModalOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [selectViewEnabled, setSelectViewEnabled] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [chatbotDocuments, setChatbotDocuments] = useState<SourceDocument[]>(
+    [],
+  );
+  const [loading, setLoading] = useState(false);
+  const [countProcessed, setCountProcessed] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [courseServiceType, setCourseServiceType] =
-    useState<ChatbotServiceType>()
+    useState<ChatbotServiceType>();
 
   const rowSelection: TableRowSelection<SourceDocument> = {
     type: 'checkbox',
     onChange: (newSelectedRowKeys: React.Key[]) => {
-      setSelectedRowKeys(newSelectedRowKeys)
+      setSelectedRowKeys(newSelectedRowKeys);
     },
-  }
-  const hasSelected = selectedRowKeys.length > 0
+  };
+  const hasSelected = selectedRowKeys.length > 0;
 
   useEffect(() => {
     const getCourseServiceType = () => {
       return API.chatbot.staffOnly
         .getCourseServiceType(courseId)
         .then((response) => {
-          setCourseServiceType(response)
+          setCourseServiceType(response);
         })
         .catch((err) =>
           message.error(
             `Failed to determine course service type, cannot allow chatbot settings to be edited/viewed: ${getErrorMessage(err)}`,
           ),
-        )
-    }
-    getCourseServiceType().then()
-  }, [courseId])
+        );
+    };
+    getCourseServiceType().then();
+  }, [courseId]);
 
   const handleDeleteSelectedDocuments = async () => {
     try {
       for (const docId of selectedRowKeys) {
-        await API.chatbot.staffOnly.deleteDocument(courseId, docId.toString())
-        setCountProcessed(countProcessed + 1)
+        await API.chatbot.staffOnly.deleteDocument(courseId, docId.toString());
+        setCountProcessed(countProcessed + 1);
       }
-      message.success('Documents deleted.')
-      getDocuments()
+      message.success('Documents deleted.');
+      getDocuments();
     } catch (_e) {
-      message.error('Failed to delete documents.')
+      message.error('Failed to delete documents.');
     } finally {
-      setSelectViewEnabled(false)
-      setSelectedRowKeys([])
-      setLoading(false)
-      setCountProcessed(0)
+      setSelectViewEnabled(false);
+      setSelectedRowKeys([]);
+      setLoading(false);
+      setCountProcessed(0);
     }
-  }
+  };
 
   const handleDeleteDocument = async (record: any) => {
-    setLoading(true)
+    setLoading(true);
     await API.chatbot.staffOnly
       .deleteDocument(courseId, record.docId.toString())
       .then(() => {
-        message.success('Document deleted.')
-        getDocuments()
+        message.success('Document deleted.');
+        getDocuments();
       })
       .catch(() => {
-        message.error('Failed to delete document.')
+        message.error('Failed to delete document.');
       })
       .finally(() => {
-        setLoading(false)
-      })
-  }
+        setLoading(false);
+      });
+  };
 
   const columns = [
     {
@@ -182,7 +179,7 @@ export default function ChatbotSettings(
           </Button>
         ),
     },
-  ]
+  ];
 
   const getDocuments = useCallback(async () => {
     await API.chatbot.staffOnly
@@ -195,29 +192,29 @@ export default function ChatbotSettings(
           pageContent: doc.pageContent, // idk what's going on here why is there both a docName and pageContent
           sourceLink: doc.metadata?.source ?? '',
           pageNumbers: [],
-        }))
-        setChatbotDocuments(formattedDocuments)
+        }));
+        setChatbotDocuments(formattedDocuments);
       })
       .catch((e) => {
-        console.error(e)
-        setChatbotDocuments([])
-      })
-  }, [courseId, setChatbotDocuments])
+        console.error(e);
+        setChatbotDocuments([]);
+      });
+  }, [courseId, setChatbotDocuments]);
 
   useEffect(() => {
-    getDocuments()
-  }, [getDocuments])
+    getDocuments();
+  }, [getDocuments]);
 
   const filteredDocuments = useMemo(() => {
     return chatbotDocuments.filter((doc) =>
       doc.docName.toLowerCase().includes(search.toLowerCase()),
-    )
-  }, [search, chatbotDocuments])
+    );
+  }, [search, chatbotDocuments]);
 
   const totalDocuments = useMemo(
     () => filteredDocuments.length,
     [filteredDocuments],
-  )
+  );
 
   const paginatedDocuments = useMemo(
     () =>
@@ -226,7 +223,7 @@ export default function ChatbotSettings(
         pageSize * (page - 1) + pageSize,
       ),
     [filteredDocuments, page, pageSize],
-  )
+  );
 
   return (
     <div className="m-auto my-5">
@@ -274,8 +271,8 @@ export default function ChatbotSettings(
         // prefix={<SearchOutlined />}
         value={search}
         onChange={(e) => {
-          e.preventDefault()
-          setSearch(e.target.value)
+          e.preventDefault();
+          setSearch(e.target.value);
         }}
         onPressEnter={getDocuments}
       />
@@ -292,8 +289,8 @@ export default function ChatbotSettings(
         pageSizeOptions={[10, 20, 30, 50]}
         showSizeChanger
         onChange={(page, pageSize) => {
-          setPage(page)
-          setPageSize(pageSize)
+          setPage(page);
+          setPageSize(pageSize);
         }}
       />
       {chatbotParameterModalOpen &&
@@ -311,5 +308,5 @@ export default function ChatbotSettings(
           />
         ))}
     </div>
-  )
+  );
 }

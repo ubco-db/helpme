@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class NullableSemesterDatesCourseInviteExpiry1767125601515
-  implements MigrationInterface
-{
+export class NullableSemesterDatesCourseInviteExpiry1767125601515 implements MigrationInterface {
   name = 'NullableSemesterDatesCourseInviteExpiry1767125601515';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class addedFavouritedColumnToUserCourseModel1742770456081
-  implements MigrationInterface
-{
+export class addedFavouritedColumnToUserCourseModel1742770456081 implements MigrationInterface {
   name = 'addedFavouritedColumnToUserCourseModel1742770456081';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

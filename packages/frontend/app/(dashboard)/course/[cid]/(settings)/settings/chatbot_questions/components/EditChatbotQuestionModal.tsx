@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
 import {
   Button,
   Checkbox,
@@ -8,43 +8,43 @@ import {
   message,
   Modal,
   Tooltip,
-} from 'antd'
-import {
+} from 'antd';
+import type {
   AddDocumentChunkParams,
   SourceDocument,
   UpdateChatbotQuestionParams,
-} from '@koh/common'
-import { ChatbotQuestionFrontend } from '../page'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+} from '@koh/common';
+import type { ChatbotQuestionFrontend } from '../page';
+import { getErrorMessage } from '@/app/utils/generalUtils';
 import {
   CloseOutlined,
   DeleteOutlined,
   ExclamationCircleFilled,
   FileAddOutlined,
   QuestionCircleOutlined,
-} from '@ant-design/icons'
-import MarkdownGuideTooltipBody from './MarkdownGuideTooltipBody'
-import { API } from '@/app/api'
+} from '@ant-design/icons';
+import MarkdownGuideTooltipBody from './MarkdownGuideTooltipBody';
+import { API } from '@/app/api';
 
 interface FormValues {
-  question: string
-  answer: string
-  verified: boolean
-  suggested: boolean
-  sourceDocuments: SourceDocument[]
+  question: string;
+  answer: string;
+  verified: boolean;
+  suggested: boolean;
+  sourceDocuments: SourceDocument[];
   selectedDocuments: {
-    docId: string
-    pageNumbersString: string
-  }[]
+    docId: string;
+    pageNumbersString: string;
+  }[];
 }
 
 interface EditChatbotQuestionModalProps {
-  open: boolean
-  editingRecord: ChatbotQuestionFrontend
-  onCancel: () => void
-  onSuccessfulUpdate: () => void
-  cid: number
-  deleteQuestion: (id: string) => void
+  open: boolean;
+  editingRecord: ChatbotQuestionFrontend;
+  onCancel: () => void;
+  onSuccessfulUpdate: () => void;
+  cid: number;
+  deleteQuestion: (id: string) => void;
 }
 
 const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
@@ -55,20 +55,20 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
   cid,
   deleteQuestion,
 }) => {
-  const [form] = Form.useForm()
-  const [saveLoading, setSaveLoading] = useState(false)
+  const [form] = Form.useForm();
+  const [saveLoading, setSaveLoading] = useState(false);
 
-  const [successfulQAInsert, setSuccessfulQAInsert] = useState(false)
+  const [successfulQAInsert, setSuccessfulQAInsert] = useState(false);
   // reset successfulQAInsert when the modal is closed
   useEffect(() => {
     if (!open) {
-      setSuccessfulQAInsert(false)
+      setSuccessfulQAInsert(false);
     }
-  }, [open])
+  }, [open]);
 
   const handleOkInsert = async () => {
-    const values = await form.validateFields()
-    setSaveLoading(true)
+    const values = await form.validateFields();
+    setSaveLoading(true);
     const newChunk: AddDocumentChunkParams = {
       documentText: values.question + '\nAnswer:' + values.answer,
       metadata: {
@@ -77,37 +77,37 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
         id: editingRecord.vectorStoreId,
         courseId: cid,
       },
-    }
+    };
     await API.chatbot.staffOnly
       .addDocumentChunk(cid, newChunk)
       .then(async (docChunks: SourceDocument[]) => {
         const updatedQuestion: UpdateChatbotQuestionParams = {
           id: editingRecord.vectorStoreId,
           inserted: true,
-        }
+        };
         await API.chatbot.staffOnly
           .updateQuestion(cid, updatedQuestion)
           .then(() => {
             message.success(
               `Document${docChunks.length > 1 ? 's' : ''} inserted successfully. You can now cancel or save the changes you made to the Q&A`,
               6,
-            )
+            );
             if (docChunks.length > 1)
               message.info(
                 `Question text was too large! Inserted document was split into ${docChunks.length} document chunks.`,
                 6,
-              )
-            setSuccessfulQAInsert(true)
-          })
+              );
+            setSuccessfulQAInsert(true);
+          });
       })
       .catch((e) => {
-        const errorMessage = getErrorMessage(e)
-        message.error('Failed to add document: ' + errorMessage)
+        const errorMessage = getErrorMessage(e);
+        message.error('Failed to add document: ' + errorMessage);
       })
       .finally(() => {
-        setSaveLoading(false)
-      })
-  }
+        setSaveLoading(false);
+      });
+  };
 
   const confirmInsert = () => {
     Modal.confirm({
@@ -133,8 +133,8 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
       type: 'info',
       icon: <ExclamationCircleFilled className="text-blue-500" />,
       okText: 'Insert',
-    })
-  }
+    });
+  };
 
   const onFinish = async (values: FormValues) => {
     if (values.sourceDocuments) {
@@ -145,28 +145,28 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
             .split(',')
             .map((page) => page.trim())
             .filter((page) => page !== '')
-            .map((page) => parseInt(page, 10))
+            .map((page) => parseInt(page, 10));
         }
-      })
+      });
     }
 
     const valuesWithId = {
       ...values,
       id: editingRecord.vectorStoreId,
       sourceDocuments: values.sourceDocuments || [],
-    }
+    };
 
     await API.chatbot.staffOnly
       .updateQuestion(cid, valuesWithId)
       .then(() => {
-        message.success('Question updated successfully')
-        onSuccessfulUpdate()
+        message.success('Question updated successfully');
+        onSuccessfulUpdate();
       })
       .catch((e) => {
-        const errorMessage = getErrorMessage(e)
-        message.error('Error updating question:' + errorMessage)
-      })
-  }
+        const errorMessage = getErrorMessage(e);
+        message.error('Error updating question:' + errorMessage);
+      });
+  };
 
   return (
     <Modal
@@ -201,10 +201,10 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
                 okType: 'danger',
                 cancelText: 'No',
                 onOk() {
-                  deleteQuestion(editingRecord.vectorStoreId)
-                  onCancel()
+                  deleteQuestion(editingRecord.vectorStoreId);
+                  onCancel();
                 },
-              })
+              });
             }}
           >
             {' '}
@@ -406,27 +406,27 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
                                 if (value && typeof value === 'string') {
                                   const pageNumbersArray = value.split(
                                     ',',
-                                  ) as string[]
+                                  ) as string[];
                                   if (
                                     !pageNumbersArray ||
                                     pageNumbersArray.length === 0
                                   ) {
                                     return Promise.reject(
                                       'Please provide page numbers.',
-                                    )
+                                    );
                                   }
                                   const invalidPageNumbers = pageNumbersArray
                                     .map((page) => page.trim())
                                     .filter((page) => page !== '')
                                     .map((page) => parseInt(page, 10))
-                                    .filter((page) => isNaN(page))
+                                    .filter((page) => isNaN(page));
                                   if (invalidPageNumbers.length > 0) {
                                     return Promise.reject(
                                       'Please provide valid page numbers (e.g. 1,2,3).',
-                                    )
+                                    );
                                   }
                                 }
-                                return Promise.resolve()
+                                return Promise.resolve();
                               },
                             },
                           ]}
@@ -451,7 +451,7 @@ const EditChatbotQuestionModal: React.FC<EditChatbotQuestionModalProps> = ({
           </Form.List>
         )}
     </Modal>
-  )
-}
+  );
+};
 
-export default EditChatbotQuestionModal
+export default EditChatbotQuestionModal;

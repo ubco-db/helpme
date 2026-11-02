@@ -1,31 +1,31 @@
-import { DeleteOutlined, EditOutlined, FormOutlined } from '@ant-design/icons'
-import { AsyncQuestion } from '@koh/common'
-import { Popconfirm, Tooltip } from 'antd'
-import { useState } from 'react'
-import CircleButton from '../../queue/[qid]/components/CircleButton'
-import PostResponseModal from './modals/PostResponseModal'
-import { useMediaQuery } from '@/app/hooks/useMediaQuery'
-import { deleteAsyncQuestion } from '../utils/commonAsyncFunctions'
-import { useUserInfo } from '@/app/contexts/userContext'
-import CreateAsyncQuestionModal from '@/app/(dashboard)/course/[cid]/async_centre/components/modals/CreateAsyncQuestionModal'
+import { DeleteOutlined, EditOutlined, FormOutlined } from '@ant-design/icons';
+import type { AsyncQuestion } from '@koh/common';
+import { Popconfirm, Tooltip } from 'antd';
+import { useState } from 'react';
+import CircleButton from '../../queue/[qid]/components/CircleButton';
+import PostResponseModal from './modals/PostResponseModal';
+import { useMediaQuery } from '@/app/hooks/useMediaQuery';
+import { deleteAsyncQuestion } from '../utils/commonAsyncFunctions';
+import { useUserInfo } from '@/app/contexts/userContext';
+import CreateAsyncQuestionModal from '@/app/(dashboard)/course/[cid]/async_centre/components/modals/CreateAsyncQuestionModal';
 
 type TAAsyncQuestionCardButtonsProps = {
-  question: AsyncQuestion
-  onAsyncQuestionUpdate: () => void
-  courseId: number
-}
+  question: AsyncQuestion;
+  onAsyncQuestionUpdate: () => void;
+  courseId: number;
+};
 
 const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
   question,
   onAsyncQuestionUpdate,
   courseId,
 }) => {
-  const { userInfo } = useUserInfo()
-  const [postResponseModalOpen, setPostResponseModalOpen] = useState(false)
+  const { userInfo } = useUserInfo();
+  const [postResponseModalOpen, setPostResponseModalOpen] = useState(false);
   const [createAsyncQuestionModalOpen, setCreateAsyncQuestionModalOpen] =
-    useState(false)
-  const [deleteLoading, setDeleteLoading] = useState(false)
-  const isMobile = useMediaQuery('(max-width: 768px)')
+    useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   return (
     <>
@@ -37,9 +37,9 @@ const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
         cancelText="No"
         okButtonProps={{ loading: deleteLoading }}
         onConfirm={async () => {
-          setDeleteLoading(true)
-          await deleteAsyncQuestion(question.id, true, onAsyncQuestionUpdate)
-          setDeleteLoading(false)
+          setDeleteLoading(true);
+          await deleteAsyncQuestion(question.id, true, onAsyncQuestionUpdate);
+          setDeleteLoading(false);
         }}
       >
         <Tooltip title={isMobile ? '' : 'Delete Question'}>
@@ -53,7 +53,7 @@ const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
             customVariant="primary"
             icon={<EditOutlined />}
             onClick={() => {
-              setCreateAsyncQuestionModalOpen(true)
+              setCreateAsyncQuestionModalOpen(true);
             }}
           />
         </Tooltip>
@@ -64,7 +64,7 @@ const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
           customVariant="green"
           icon={<FormOutlined />}
           onClick={() => {
-            setPostResponseModalOpen(true)
+            setPostResponseModalOpen(true);
           }}
         />
       </Tooltip>
@@ -74,8 +74,8 @@ const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
         open={createAsyncQuestionModalOpen}
         onCancel={() => setCreateAsyncQuestionModalOpen(false)}
         onCreateOrUpdateQuestion={() => {
-          setCreateAsyncQuestionModalOpen(false)
-          onAsyncQuestionUpdate()
+          setCreateAsyncQuestionModalOpen(false);
+          onAsyncQuestionUpdate();
         }}
       />
       <PostResponseModal
@@ -83,14 +83,14 @@ const TAAsyncQuestionCardButtons: React.FC<TAAsyncQuestionCardButtonsProps> = ({
         question={question}
         onCancel={() => setPostResponseModalOpen(false)}
         onPostResponse={() => {
-          onAsyncQuestionUpdate()
-          setPostResponseModalOpen(false)
+          onAsyncQuestionUpdate();
+          setPostResponseModalOpen(false);
         }}
         courseId={courseId}
         setCreateAsyncQuestionModalOpen={setCreateAsyncQuestionModalOpen}
       />
     </>
-  )
-}
+  );
+};
 
-export default TAAsyncQuestionCardButtons
+export default TAAsyncQuestionCardButtons;

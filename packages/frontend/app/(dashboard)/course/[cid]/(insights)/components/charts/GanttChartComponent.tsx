@@ -1,18 +1,19 @@
-import {
-  AxisChartClasses,
+import type {
   ChartDataType,
   GanttChartComponentProps,
-} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types'
-import React, { useMemo } from 'react'
+} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
+import { AxisChartClasses } from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
+import type React from 'react';
+import { useMemo } from 'react';
 import {
   generateAxisRange,
   generateTickRange,
-} from '@/app/(dashboard)/course/[cid]/(insights)/utils/functions'
+} from '@/app/(dashboard)/course/[cid]/(insights)/utils/functions';
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from '@/app/components/ui/chart'
+} from '@/app/components/ui/chart';
 import {
   CartesianGrid,
   Scatter,
@@ -20,7 +21,7 @@ import {
   XAxis,
   YAxis,
   ZAxis,
-} from 'recharts'
+} from 'recharts';
 
 const GanttChartComponent: React.FC<GanttChartComponentProps> = ({ props }) => {
   const {
@@ -33,7 +34,7 @@ const GanttChartComponent: React.FC<GanttChartComponentProps> = ({ props }) => {
     aspectRatio,
     yIsCategory,
     yDomain,
-  } = props
+  } = props;
 
   let {
     includeTooltip,
@@ -42,65 +43,65 @@ const GanttChartComponent: React.FC<GanttChartComponentProps> = ({ props }) => {
     yTickFormatter,
     valueFormatter,
     xRange,
-  } = props
+  } = props;
 
-  includeTooltip ??= true
-  labelFormatter ??= (label: string) => label
-  xTickFormatter ??= (tick: string) => tick
-  yTickFormatter ??= (tick: string) => tick
-  valueFormatter ??= (value: string) => value
+  includeTooltip ??= true;
+  labelFormatter ??= (label: string) => label;
+  xTickFormatter ??= (tick: string) => tick;
+  yTickFormatter ??= (tick: string) => tick;
+  valueFormatter ??= (value: string) => value;
   xRange ??= (chartData: ChartDataType[]) =>
-    generateAxisRange(chartData, ['key'], 10)
+    generateAxisRange(chartData, ['key'], 10);
 
   const className = useMemo(() => {
     return size != undefined && AxisChartClasses[size] != undefined
       ? AxisChartClasses[size]
-      : AxisChartClasses['md']
-  }, [size])
+      : AxisChartClasses['md'];
+  }, [size]);
 
   const xAxis = useMemo(
     () => (xRange != undefined ? xRange(chartData) : []),
     [chartData, xRange],
-  )
+  );
 
-  const xTicks = useMemo(() => generateTickRange(xAxis, 4), [xAxis])
+  const xTicks = useMemo(() => generateTickRange(xAxis, 4), [xAxis]);
   const yTicks = useMemo(() => {
-    const range: number[] = []
+    const range: number[] = [];
     for (let i = -1; i <= numCategories; i++) {
-      range.push(i)
+      range.push(i);
     }
-    return range
-  }, [numCategories])
+    return range;
+  }, [numCategories]);
 
   const bubbleDomain = useMemo(() => {
     if (zKey != undefined) {
       return [
         Math.min(...chartData.map((d) => d[zKey])),
         Math.max(...chartData.map((d) => d[zKey])),
-      ]
+      ];
     }
-  }, [chartData, zKey])
+  }, [chartData, zKey]);
 
   const bubbleSizeRange = useMemo(() => {
     switch (size) {
       case '4xl':
       case '3xl':
-        return [32, 256]
+        return [32, 256];
       case '2xl':
       case 'lg':
-        return [32, 128]
+        return [32, 128];
       case 'md':
-        return [24, 96]
+        return [24, 96];
       case 'sm':
-        return [16, 64]
+        return [16, 64];
       case 'xs':
-        return [16, 48]
+        return [16, 48];
       case 'xxs':
-        return [16, 32]
+        return [16, 32];
       default:
-        return [24, 96]
+        return [24, 96];
     }
-  }, [size])
+  }, [size]);
 
   return (
     <ChartContainer
@@ -151,7 +152,7 @@ const GanttChartComponent: React.FC<GanttChartComponentProps> = ({ props }) => {
         />
       </ScatterChart>
     </ChartContainer>
-  )
-}
+  );
+};
 
-export default GanttChartComponent
+export default GanttChartComponent;

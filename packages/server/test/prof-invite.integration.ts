@@ -13,15 +13,11 @@ import {
 } from './util/factories';
 import { ProfInviteModel } from 'course/prof-invite/prof-invite.entity';
 import { ProfInviteService } from 'course/prof-invite/prof-invite.service';
-import {
-  CreateProfInviteParams,
-  MailServiceType,
-  OrganizationRole,
-  QUERY_PARAMS,
-} from '@koh/common';
+import type { CreateProfInviteParams } from '@koh/common';
+import { MailServiceType, OrganizationRole, QUERY_PARAMS } from '@koh/common';
 import { UserModel } from 'profile/user.entity';
-import { OrganizationModel } from 'organization/organization.entity';
-import { CourseModel } from 'course/course.entity';
+import type { OrganizationModel } from 'organization/organization.entity';
+import type { CourseModel } from 'course/course.entity';
 
 describe('ProfInvite Integration', () => {
   const { supertest, getTestModule } = setupIntegrationTest(

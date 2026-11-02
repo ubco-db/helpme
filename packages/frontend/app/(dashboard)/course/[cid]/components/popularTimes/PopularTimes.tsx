@@ -4,18 +4,18 @@ import {
   HourglassOutlined,
   LeftOutlined,
   RightOutlined,
-} from '@ant-design/icons'
-import { Heatmap } from '@koh/common'
-import { ParentSize } from '@visx/responsive'
-import { Dropdown } from 'antd'
-import { chunk, uniq, mean, sortBy } from 'lodash'
-import { useState } from 'react'
-import TimeGraph from './TimeGraph'
-import { formatDateHour, formatWaitTime } from '@/app/utils/timeFormatUtils'
-import { findWeekMinAndMax } from '../../utils/popularTimesFunctions'
+} from '@ant-design/icons';
+import type { Heatmap } from '@koh/common';
+import { ParentSize } from '@visx/responsive';
+import { Dropdown } from 'antd';
+import { chunk, uniq, mean, sortBy } from 'lodash';
+import { useState } from 'react';
+import TimeGraph from './TimeGraph';
+import { formatDateHour, formatWaitTime } from '@/app/utils/timeFormatUtils';
+import { findWeekMinAndMax } from '../../utils/popularTimesFunctions';
 
 interface HeatmapProps {
-  heatmap: Heatmap
+  heatmap: Heatmap;
 }
 
 const DAYS_OF_WEEK = [
@@ -26,7 +26,7 @@ const DAYS_OF_WEEK = [
   'Thursday',
   'Friday',
   'Saturday',
-]
+];
 
 const BUSY = {
   shortest: 'the shortest',
@@ -34,7 +34,7 @@ const BUSY = {
   avg: 'average',
   longer: 'longer than usual',
   longest: 'the longest',
-}
+};
 
 // Mapping for text describing level of business, given the length of the unique wait times that week (to account for days without hours)
 const BUSY_TEXTS: Record<number, string[]> = {
@@ -60,13 +60,15 @@ const BUSY_TEXTS: Record<number, string[]> = {
     BUSY.longer,
     BUSY.longest,
   ],
-}
+};
 
 function generateBusyText(day: number, dailySumWaitTimes: number[]): string {
-  const dayWaitTime = dailySumWaitTimes[day]
-  const uniqSumWaitTimes = uniq(sortBy(dailySumWaitTimes.filter((v) => v >= 0)))
-  const rank = uniqSumWaitTimes.indexOf(dayWaitTime)
-  return BUSY_TEXTS[uniqSumWaitTimes.length][rank]
+  const dayWaitTime = dailySumWaitTimes[day];
+  const uniqSumWaitTimes = uniq(
+    sortBy(dailySumWaitTimes.filter((v) => v >= 0)),
+  );
+  const rank = uniqSumWaitTimes.indexOf(dayWaitTime);
+  return BUSY_TEXTS[uniqSumWaitTimes.length][rank];
 }
 
 /**
@@ -74,12 +76,12 @@ function generateBusyText(day: number, dailySumWaitTimes: number[]): string {
  * This was barely touched during the great frontend refactor except for making it more accessible.
  */
 const PopularTimes: React.FC<HeatmapProps> = ({ heatmap }) => {
-  const [currentDayOfWeek, setCurrentDayOfWeek] = useState(new Date().getDay())
-  const [firstHour, lastHour] = findWeekMinAndMax(heatmap)
+  const [currentDayOfWeek, setCurrentDayOfWeek] = useState(new Date().getDay());
+  const [firstHour, lastHour] = findWeekMinAndMax(heatmap);
   const dailyAvgWaitTimes: number[] = chunk(heatmap, 24).map((hours) => {
-    const filteredOfficeHours = hours.filter((v) => v !== -1)
-    return filteredOfficeHours.length > 0 ? mean(filteredOfficeHours) : -1
-  })
+    const filteredOfficeHours = hours.filter((v) => v !== -1);
+    return filteredOfficeHours.length > 0 ? mean(filteredOfficeHours) : -1;
+  });
 
   return (
     <div>
@@ -159,7 +161,7 @@ const PopularTimes: React.FC<HeatmapProps> = ({ heatmap }) => {
           </div>
         )}
     </div>
-  )
-}
+  );
+};
 
-export default PopularTimes
+export default PopularTimes;

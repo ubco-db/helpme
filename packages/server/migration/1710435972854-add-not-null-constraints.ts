@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class addNotNullConstraints1710435972854 implements MigrationInterface {
   name = 'addNotNullConstraints1710435972854';

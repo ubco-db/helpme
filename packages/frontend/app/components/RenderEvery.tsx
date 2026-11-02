@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, ReactNode } from 'react'
+import type { ReactNode } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface RenderEveryProps {
-  render: () => ReactNode
+  render: () => ReactNode;
   /** ms between rerenders */
-  interval: number
+  interval: number;
 }
 
 /**
@@ -19,20 +20,20 @@ interface RenderEveryProps {
  * @returns {ReactNode} The ReactNode returned by the `render` function.
  */
 const RenderEvery: React.FC<RenderEveryProps> = ({ render, interval }) => {
-  const [, updateState] = useState({})
-  const forceUpdate = useCallback(() => updateState({}), [])
+  const [, updateState] = useState({});
+  const forceUpdate = useCallback(() => updateState({}), []);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      forceUpdate()
-    }, interval)
+      forceUpdate();
+    }, interval);
 
     return () => {
-      clearInterval(timer)
-    }
-  }, [forceUpdate, interval])
+      clearInterval(timer);
+    };
+  }, [forceUpdate, interval]);
 
-  return <>{render()}</>
-}
+  return <>{render()}</>;
+};
 
-export default RenderEvery
+export default RenderEvery;

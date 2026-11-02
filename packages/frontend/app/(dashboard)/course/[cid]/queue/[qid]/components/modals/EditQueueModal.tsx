@@ -1,7 +1,8 @@
-'use client'
+'use client';
 
-import { useRef, useEffect, useState, useCallback } from 'react'
-import Modal from 'antd/lib/modal/Modal'
+import { useRef, useEffect, useState, useCallback } from 'react';
+import Modal from 'antd/lib/modal/Modal';
+import type { ColorPickerProps, GetProp } from 'antd';
 import {
   Input,
   Form,
@@ -12,22 +13,18 @@ import {
   Tooltip,
   Collapse,
   Space,
-  ColorPickerProps,
-  GetProp,
   Dropdown,
   Segmented,
   Checkbox,
   Select,
-} from 'antd'
+} from 'antd';
+import type { ConfigTasks, QueueConfig, UpdateQueueParams } from '@koh/common';
 import {
-  ConfigTasks,
   generateTagIdFromName,
   isCycleInTasks,
-  QueueConfig,
-  UpdateQueueParams,
   validateQueueConfigInput,
-} from '@koh/common'
-import { debounce, pick } from 'lodash'
+} from '@koh/common';
+import { debounce, pick } from 'lodash';
 import {
   ClearOutlined,
   CloseOutlined,
@@ -35,70 +32,68 @@ import {
   DownOutlined,
   PlusOutlined,
   QuestionCircleOutlined,
-} from '@ant-design/icons'
-import { API } from '@/app/api'
-import { useCourse } from '@/app/hooks/useCourse'
-import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
-import { useQueue } from '@/app/hooks/useQueue'
-import QueueConfigHelp from '../../../../components/QueueConfigHelp'
+} from '@ant-design/icons';
+import { API } from '@/app/api';
+import { useCourse } from '@/app/hooks/useCourse';
+import { useQuestionTypes } from '@/app/hooks/useQuestionTypes';
+import { useQueue } from '@/app/hooks/useQueue';
+import QueueConfigHelp from '../../../../components/QueueConfigHelp';
 import {
   DisableQueueButton,
   ClearQueueButton,
-} from '../../../../components/QueueInfoColumnButton'
+} from '../../../../components/QueueInfoColumnButton';
 import {
   confirmDisable,
   clearQueue,
-} from '../../../../utils/commonCourseFunctions'
-import {
-  EditedQuestionTag,
-  QuestionTagEditor,
-} from '../../../../components/QuestionTagElement'
-import { useRouter } from 'next/navigation'
+} from '../../../../utils/commonCourseFunctions';
+import type { EditedQuestionTag } from '../../../../components/QuestionTagElement';
+import { QuestionTagEditor } from '../../../../components/QuestionTagElement';
+import { useRouter } from 'next/navigation';
 import {
   generateRandomHexColor,
   getErrorMessage,
-} from '@/app/utils/generalUtils'
-import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
-import exampleConfig from '@/public/exampleQueueConfig.json'
-import exampleLabConfig from '@/public/exampleQueueLabConfig.json'
-import TaskDisplay from '../TaskDisplay'
+} from '@/app/utils/generalUtils';
+import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets';
+import exampleConfig from '@/public/exampleQueueConfig.json';
+import exampleLabConfig from '@/public/exampleQueueLabConfig.json';
+import TaskDisplay from '../TaskDisplay';
 
-const { TextArea } = Input
+const { TextArea } = Input;
 type Color = Extract<
   GetProp<ColorPickerProps, 'value'>,
   string | { cleared: any }
->
+>;
 
 type TaskParams = {
-  id: string
-  display_name: string
-  short_display_name: string
-  blocking: boolean
-  color_hex: string | Color
-  precondition?: string
-}
+  id: string;
+  display_name: string;
+  short_display_name: string;
+  blocking: boolean;
+  color_hex: string | Color;
+  precondition?: string;
+};
 type QuestionTypeForCreation = {
-  name: string
-  color: string | Color
-}
+  name: string;
+  color: string | Color;
+};
 interface FormValues {
-  notes: string
-  allowQuestions: boolean
-  editedQuestionTags: EditedQuestionTag[]
-  questionTypesForCreation: QuestionTypeForCreation[]
-  minTags: string
-  assignmentId?: string
-  tasks?: TaskParams[]
-  zoomLink: string
-  queue_config: string
+  notes: string;
+  allowQuestions: boolean;
+  editedQuestionTags: EditedQuestionTag[];
+  questionTypesForCreation: QuestionTypeForCreation[];
+  minTags: string;
+  assignmentId?: string;
+  tasks?: TaskParams[];
+  zoomLink: string;
+  queue_config: string;
 }
 
 interface EditQueueModalProps {
-  queueId: number
-  courseId: number
-  open: boolean
-  onCancel: () => void
-  onEditSuccess: () => void
+  queueId: number;
+  courseId: number;
+  open: boolean;
+  onCancel: () => void;
+  onEditSuccess: () => void;
 }
 
 const EditQueueModal: React.FC<EditQueueModalProps> = ({
@@ -108,32 +103,34 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
   onCancel,
   onEditSuccess,
 }) => {
-  const { queue, mutateQueue } = useQueue(queueId)
-  const [form] = Form.useForm()
-  const [saveChangesLoading, setSaveChangesLoading] = useState(false)
-  const { course, mutateCourse } = useCourse(courseId)
+  const { queue, mutateQueue } = useQueue(queueId);
+  const [form] = Form.useForm();
+  const [saveChangesLoading, setSaveChangesLoading] = useState(false);
+  const { course, mutateCourse } = useCourse(courseId);
   const [questionTypes, mutateQuestionTypes] = useQuestionTypes(
     courseId,
     queueId,
-  )
-  const router = useRouter()
-  const lastSavedQueueConfig = useRef<QueueConfig | null>(queue?.config || null)
+  );
+  const router = useRouter();
+  const lastSavedQueueConfig = useRef<QueueConfig | null>(
+    queue?.config || null,
+  );
   // gets updated whenever the config text box changes. Just stores the string
   const [localQueueConfigString, setLocalQueueConfigString] = useState(
     JSON.stringify(lastSavedQueueConfig.current, null, 2),
-  )
+  );
   // both of these are used to determine if the "Save Queue Changes" button should be enabled
-  const [isValidConfig, setIsValidConfig] = useState(true)
-  const [configHasChanges, setConfigHasChanges] = useState(false)
+  const [isValidConfig, setIsValidConfig] = useState(true);
+  const [configHasChanges, setConfigHasChanges] = useState(false);
 
   const [assignmentIdEmpty, setAssignmentIdEmpty] = useState(
     !lastSavedQueueConfig.current?.assignment_id,
-  )
+  );
   const [localTaskIds, setLocalTaskIds] = useState<string[]>(
     lastSavedQueueConfig.current?.tasks
       ? Object.keys(lastSavedQueueConfig.current.tasks)
       : [],
-  )
+  );
 
   // reset localTaskIds back to normal when re-opening modal
   useEffect(() => {
@@ -142,51 +139,51 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         lastSavedQueueConfig.current?.tasks
           ? Object.keys(lastSavedQueueConfig.current.tasks)
           : [],
-      )
+      );
     }
-  }, [open])
+  }, [open]);
 
   const resetQueueConfig = useCallback(() => {
     if (open && queue && queue.config) {
-      const currentConfigString = JSON.stringify(queue.config, null, 2)
-      setLocalQueueConfigString(currentConfigString)
-      setConfigHasChanges(false)
-      lastSavedQueueConfig.current = queue.config
-      form.setFieldsValue({ queue_config: currentConfigString })
+      const currentConfigString = JSON.stringify(queue.config, null, 2);
+      setLocalQueueConfigString(currentConfigString);
+      setConfigHasChanges(false);
+      lastSavedQueueConfig.current = queue.config;
+      form.setFieldsValue({ queue_config: currentConfigString });
     }
-  }, [open, queue, form])
+  }, [open, queue, form]);
 
   // if someone or something else updates the queue config, reset the queue config
   useEffect(() => {
     if (open && queue?.config) {
-      const newConfigString = JSON.stringify(queue.config, null, 2)
+      const newConfigString = JSON.stringify(queue.config, null, 2);
       // this check is needed otherwise *any* updates to the queue (including creating/modifying questions) will cause this to run and reset the user's changes
       if (
         newConfigString !==
         JSON.stringify(lastSavedQueueConfig.current, null, 2)
       ) {
-        resetQueueConfig()
+        resetQueueConfig();
       }
     }
-  }, [open, queue?.config, resetQueueConfig])
+  }, [open, queue?.config, resetQueueConfig]);
 
   // Values and labels for Segmented component for queue types
   const queueTypeOptions = [
     { label: 'Online', value: 'online' },
     { label: 'Hybrid', value: 'hybrid' },
     { label: 'In-Person', value: 'inPerson' },
-  ]
+  ];
 
   const onFinish = async (values: FormValues) => {
-    setSaveChangesLoading(true)
+    setSaveChangesLoading(true);
     // set a timeout that if it's still loading after 5 seconds, stop loading
     setTimeout(() => {
       if (saveChangesLoading) {
-        setSaveChangesLoading(false)
-        message.error('Failed to save changes. Please try again.')
+        setSaveChangesLoading(false);
+        message.error('Failed to save changes. Please try again.');
       }
-    }, 5000)
-    let errorsHaveOccurred = false
+    }, 5000);
+    let errorsHaveOccurred = false;
 
     // Create an updated "tags" object based on the editedQuestionTags and the current question tags
     const updatedTags =
@@ -204,14 +201,14 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
               // for each old tag, find corresponding questionType from questionTypes (matching name with display_name)
               const questionType = questionTypes?.find(
                 (questionType) => questionType.name === oldTag.display_name,
-              )
+              );
               // find the corresponding editedQuestionTag
               const editedTag = values.editedQuestionTags.find(
                 (editedTag) => editedTag.newValues?.id === questionType?.id,
-              )
+              );
               // if there is no editedTag, return the old tag
               if (!editedTag) {
-                acc[id] = oldTag
+                acc[id] = oldTag;
                 // if the editedTag is marked for deletion, do not add it to the accumulator
               } else if (!editedTag.markedForDeletion) {
                 // else return the updated tag
@@ -219,15 +216,15 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                   display_name:
                     editedTag.newValues?.name ?? oldTag.display_name,
                   color_hex: editedTag.newValues?.color ?? oldTag.color_hex,
-                }
+                };
               }
-              return acc
+              return acc;
             },
             {} as {
-              [tagKey: string]: { display_name: string; color_hex: string }
+              [tagKey: string]: { display_name: string; color_hex: string };
             },
           )
-        : lastSavedQueueConfig.current?.tags || {}
+        : lastSavedQueueConfig.current?.tags || {};
 
     // create a new queue config
     const newQueueConfig: QueueConfig = {
@@ -240,15 +237,15 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
           // add the new tags
           ...values.questionTypesForCreation.reduce(
             (acc, questionType) => {
-              let newTagId = generateTagIdFromName(questionType.name)
+              let newTagId = generateTagIdFromName(questionType.name);
               if (newTagId.length === 0) {
                 // give random id if the name is only made of illegal characters
-                newTagId = Math.random().toString(36).substring(7)
+                newTagId = Math.random().toString(36).substring(7);
               }
               // make sure there's no duplicate tag id
               if (acc[newTagId] || updatedTags[newTagId]) {
-                message.error(`tagId ${newTagId} already exists`)
-                errorsHaveOccurred = true
+                message.error(`tagId ${newTagId} already exists`);
+                errorsHaveOccurred = true;
               } else {
                 acc[newTagId] = {
                   display_name: questionType.name,
@@ -256,12 +253,12 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                     typeof questionType.color === 'string'
                       ? questionType.color
                       : questionType.color.toHexString(),
-                }
+                };
               }
-              return acc
+              return acc;
             },
             {} as {
-              [tagKey: string]: { display_name: string; color_hex: string }
+              [tagKey: string]: { display_name: string; color_hex: string };
             },
           ),
         },
@@ -282,23 +279,23 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                     ? task.color_hex
                     : task.color_hex.toHexString(),
                 precondition: task.precondition ?? null,
-              }
-              return acc
+              };
+              return acc;
             }, {} as ConfigTasks),
           }
         : {}),
-    }
+    };
 
     const tasksChanged =
       JSON.stringify(newQueueConfig.tasks || {}) !==
-      JSON.stringify(lastSavedQueueConfig.current?.tasks || {})
+      JSON.stringify(lastSavedQueueConfig.current?.tasks || {});
     const minimumTagsChanged =
-      lastSavedQueueConfig.current?.minimum_tags !== Number(values.minTags)
+      lastSavedQueueConfig.current?.minimum_tags !== Number(values.minTags);
     const assignmentIdChanged =
-      lastSavedQueueConfig.current?.assignment_id !== values.assignmentId
+      lastSavedQueueConfig.current?.assignment_id !== values.assignmentId;
     const tagsChanged =
       values.editedQuestionTags.length > 0 ||
-      values.questionTypesForCreation.length > 0
+      values.questionTypesForCreation.length > 0;
 
     // if the tasks changed, make sure there's no cycle in the new tasks
     if (
@@ -308,9 +305,9 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
     ) {
       message.error(
         'Error: Cycle detected in task preconditions. Please fix this before saving.',
-      )
-      setSaveChangesLoading(false)
-      return
+      );
+      setSaveChangesLoading(false);
+      return;
     }
     const queueConfigPromise =
       tasksChanged || minimumTagsChanged || assignmentIdChanged || tagsChanged
@@ -318,10 +315,10 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
             .updateConfig(queueId, newQueueConfig)
             .then((updatedTagsMessages) => {
               if (minimumTagsChanged) {
-                message.success('Minimum Tags updated to ' + values.minTags)
+                message.success('Minimum Tags updated to ' + values.minTags);
               }
               if (tasksChanged) {
-                message.success('Tasks updated successfully')
+                message.success('Tasks updated successfully');
               }
               if (assignmentIdChanged) {
                 message.success(
@@ -329,30 +326,30 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                     lastSavedQueueConfig.current?.assignment_id +
                     ' to ' +
                     values.assignmentId,
-                )
+                );
               }
               if (
                 tagsChanged &&
                 updatedTagsMessages.questionTypeMessages.length > 0
               ) {
-                mutateQuestionTypes()
+                mutateQuestionTypes();
                 for (const tagMessage of updatedTagsMessages.questionTypeMessages) {
-                  message.info(tagMessage)
+                  message.info(tagMessage);
                 }
               }
             })
             .catch((e) => {
-              errorsHaveOccurred = true
-              const errorMessage = getErrorMessage(e)
-              message.error(`Update failed: ${errorMessage}`)
+              errorsHaveOccurred = true;
+              const errorMessage = getErrorMessage(e);
+              message.error(`Update failed: ${errorMessage}`);
             })
-        : Promise.resolve()
+        : Promise.resolve();
     const updateQueueParams: UpdateQueueParams = pick(values, [
       'type',
       'notes',
       'allowQuestions',
       'zoomLink',
-    ])
+    ]);
     const updateQueuePromise =
       updateQueueParams.type !== queue?.type ||
       updateQueueParams.notes !== queue?.notes ||
@@ -361,44 +358,44 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         ? API.queues
             .update(queueId, updateQueueParams)
             .then(() => {
-              message.success('Queue details saved')
+              message.success('Queue details saved');
             })
             .catch((e) => {
-              errorsHaveOccurred = true
-              const errorMessage = getErrorMessage(e)
-              message.error(`Failed to save queue details: ${errorMessage}`)
+              errorsHaveOccurred = true;
+              const errorMessage = getErrorMessage(e);
+              message.error(`Failed to save queue details: ${errorMessage}`);
             })
-        : Promise.resolve()
+        : Promise.resolve();
     if (!errorsHaveOccurred) {
-      await Promise.all([queueConfigPromise, updateQueuePromise])
+      await Promise.all([queueConfigPromise, updateQueuePromise]);
     }
-    mutateQuestionTypes()
-    mutateQueue()
+    mutateQuestionTypes();
+    mutateQueue();
     if (!errorsHaveOccurred) {
-      onEditSuccess()
+      onEditSuccess();
     }
-    setSaveChangesLoading(false)
-  }
+    setSaveChangesLoading(false);
+  };
 
   // Debounce the form values change to prevent too many updates (e.g. when typing)
   const handleValuesChange = debounce(
     (changedValues: any, allValues: FormValues) => {
       if (changedValues.assignmentId !== undefined) {
-        setAssignmentIdEmpty(!changedValues.assignmentId)
+        setAssignmentIdEmpty(!changedValues.assignmentId);
       }
       // Whenever one of the taskIds changes, update localTaskIds to reflect the new taskIds
       // This will be used to check for duplicate taskIds
       const taskWithId = changedValues.tasks?.find(
         (task: any) => task?.id !== undefined,
-      )
+      );
       if (taskWithId) {
         setLocalTaskIds(
           allValues.tasks ? allValues.tasks.map((task) => task?.id) : [],
-        )
+        );
       }
     },
     300,
-  )
+  );
 
   return (
     <Modal
@@ -482,7 +479,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         {(fields, { add, remove }) => (
           <>
             {fields.map(({ key, name, ...restField }) => {
-              const defaultColor = generateRandomHexColor()
+              const defaultColor = generateRandomHexColor();
               return (
                 <Space key={key} className="flex" align="center">
                   <Form.Item
@@ -500,9 +497,9 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                           if (
                             questionTypes?.find((tag) => tag.name === value)
                           ) {
-                            return Promise.reject('Duplicate tag name')
+                            return Promise.reject('Duplicate tag name');
                           }
-                          return Promise.resolve()
+                          return Promise.resolve();
                         },
                       },
                     ]}
@@ -532,7 +529,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                     onClick={() => remove(name)}
                   />
                 </Space>
-              )
+              );
             })}
             <Form.Item>
               <Button
@@ -620,7 +617,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                 {fields.map(({ key, name, ...restField }, index) => {
                   const defaultColor =
                     form.getFieldValue(['tasks', name, 'color_hex']) ||
-                    generateRandomHexColor()
+                    generateRandomHexColor();
                   return (
                     <Space
                       key={key}
@@ -650,11 +647,11 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                               // The reason we check for 2 is because it includes the current task ID
                               const duplicateCount = localTaskIds.filter(
                                 (id) => id === value,
-                              ).length
+                              ).length;
                               if (duplicateCount >= 2) {
-                                return Promise.reject('Duplicate Task ID')
+                                return Promise.reject('Duplicate Task ID');
                               }
-                              return Promise.resolve()
+                              return Promise.resolve();
                             },
                           },
                         ]}
@@ -761,7 +758,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                         onClick={() => remove(name)}
                       />
                     </Space>
-                  )
+                  );
                 })}
                 <Form.Item>
                   <Button
@@ -850,36 +847,36 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                   {
                     // using this as an onChange for the textArea. The validator promises will show nice error messages
                     validator: (_, value) => {
-                      setLocalQueueConfigString(value)
+                      setLocalQueueConfigString(value);
                       setConfigHasChanges(
                         JSON.stringify(lastSavedQueueConfig.current, null, 2) !=
                           value,
-                      )
+                      );
                       try {
                         // parse the config (any errors will be caught by the try-catch)
-                        const parsedConfig = JSON.parse(value)
+                        const parsedConfig = JSON.parse(value);
                         // TODO: figure out a way to warn the user if there are duplicate keys in the config (JSON.parse will not throw an error, it will just overwrite the first object with the second one. It'd just be for UX)
                         // Hours spent trying to do so without success: 3.5
                         // For something so simple, I could not find a simple way to do it. At this point. it might be worth just getting a proper JSON editor component or make the UI to build the config instead of a json
 
                         // More error checking
                         const configError =
-                          validateQueueConfigInput(parsedConfig)
+                          validateQueueConfigInput(parsedConfig);
                         if (configError) {
-                          setIsValidConfig(false)
-                          return Promise.reject(new Error(configError))
+                          setIsValidConfig(false);
+                          return Promise.reject(new Error(configError));
                         }
                         // config is good
-                        setIsValidConfig(true)
-                        return Promise.resolve()
+                        setIsValidConfig(true);
+                        return Promise.resolve();
                       } catch (error) {
-                        setIsValidConfig(false)
+                        setIsValidConfig(false);
                         if (error instanceof Error) {
                           return Promise.reject(
                             new Error('Invalid JSON: ' + error.message),
-                          )
+                          );
                         } else {
-                          return Promise.reject(new Error('Invalid JSON'))
+                          return Promise.reject(new Error('Invalid JSON'));
                         }
                       }
                     },
@@ -896,12 +893,12 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                         try {
                           const parsedConfig = JSON.parse(
                             localQueueConfigString,
-                          )
+                          );
                           const configError =
-                            validateQueueConfigInput(parsedConfig)
+                            validateQueueConfigInput(parsedConfig);
                           if (configError) {
-                            message.error(configError)
-                            return
+                            message.error(configError);
+                            return;
                           }
                           if (
                             parsedConfig.tasks &&
@@ -909,41 +906,41 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                           ) {
                             message.error(
                               'Error: Cycle detected in task preconditions. Please fix this before saving.',
-                            )
-                            return
+                            );
+                            return;
                           }
                           try {
                             const updatedTagsMessages =
                               await API.queues.updateConfig(
                                 queueId,
                                 parsedConfig,
-                              )
-                            message.success('Queue config saved')
-                            lastSavedQueueConfig.current = parsedConfig
-                            setConfigHasChanges(false)
+                              );
+                            message.success('Queue config saved');
+                            lastSavedQueueConfig.current = parsedConfig;
+                            setConfigHasChanges(false);
                             // if any of the questionTypes were created/updated/deleted, update the questionTypes and message the user
                             if (
                               updatedTagsMessages.questionTypeMessages.length >
                               0
                             ) {
-                              mutateQuestionTypes()
+                              mutateQuestionTypes();
                               for (const tagMessage of updatedTagsMessages.questionTypeMessages) {
-                                message.info(tagMessage)
+                                message.info(tagMessage);
                               }
                             }
                           } catch (error) {
-                            const errorMessage = getErrorMessage(error)
+                            const errorMessage = getErrorMessage(error);
                             message.error(
                               `Failed to save queue config: ${errorMessage}`,
-                            )
+                            );
                           }
                         } catch (error) {
                           if (error instanceof Error) {
                             return Promise.reject(
                               new Error('Invalid JSON: ' + error.message),
-                            )
+                            );
                           } else {
-                            return Promise.reject(new Error('Invalid JSON'))
+                            return Promise.reject(new Error('Invalid JSON'));
                           }
                         }
                       }}
@@ -969,12 +966,12 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                                 exampleConfig,
                                 null,
                                 2,
-                              )
-                              setLocalQueueConfigString(exampleConfigString)
+                              );
+                              setLocalQueueConfigString(exampleConfigString);
                               form.setFieldsValue({
                                 queue_config: exampleConfigString,
-                              })
-                              setConfigHasChanges(true)
+                              });
+                              setConfigHasChanges(true);
                             },
                           },
                           {
@@ -985,12 +982,12 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
                                 exampleLabConfig,
                                 null,
                                 2,
-                              )
-                              setLocalQueueConfigString(exampleLabConfigString)
+                              );
+                              setLocalQueueConfigString(exampleLabConfigString);
                               form.setFieldsValue({
                                 queue_config: exampleLabConfigString,
-                              })
-                              setConfigHasChanges(true)
+                              });
+                              setConfigHasChanges(true);
                             },
                           },
                         ],
@@ -1011,7 +1008,7 @@ const EditQueueModal: React.FC<EditQueueModalProps> = ({
         ]}
       />
     </Modal>
-  )
-}
+  );
+};
 
-export default EditQueueModal
+export default EditQueueModal;

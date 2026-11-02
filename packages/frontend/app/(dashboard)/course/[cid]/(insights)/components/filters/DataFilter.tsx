@@ -1,22 +1,24 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { Button, Checkbox, Dropdown, MenuProps } from 'antd'
-import FilterWrapper from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/FilterWrapper'
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { MenuProps } from 'antd';
+import { Button, Checkbox, Dropdown } from 'antd';
+import FilterWrapper from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/FilterWrapper';
 
 type DataFilterProps = {
-  dataKeys: string[]
-  selectedData: string[]
-  setSelectedData: (arr: string[]) => void
-}
+  dataKeys: string[];
+  selectedData: string[];
+  setSelectedData: (arr: string[]) => void;
+};
 const DataFilter: React.FC<DataFilterProps> = ({
   dataKeys,
   selectedData,
   setSelectedData,
 }) => {
   useEffect(() => {
-    setSelectedData(dataKeys)
-  }, [dataKeys, setSelectedData])
+    setSelectedData(dataKeys);
+  }, [dataKeys, setSelectedData]);
 
-  const [open, setOpen] = useState<boolean>(false)
+  const [open, setOpen] = useState<boolean>(false);
 
   const items = useMemo(
     () =>
@@ -35,16 +37,16 @@ const DataFilter: React.FC<DataFilterProps> = ({
                     : dataKeys.filter(
                         (s) => selectedData.includes(s) || s == key,
                       ),
-                )
+                );
               }}
             >
               {(key + '').replace(/_/g, ' ')}
             </Checkbox>
           ),
-        }
+        };
       }) as MenuProps['items'],
     [dataKeys, selectedData, setSelectedData],
-  )
+  );
 
   return (
     items != undefined && (
@@ -57,7 +59,7 @@ const DataFilter: React.FC<DataFilterProps> = ({
           trigger={['click']}
           onOpenChange={(open, info) => {
             if (info.source == 'trigger' || open) {
-              setOpen(open)
+              setOpen(open);
             }
           }}
           open={open}
@@ -66,7 +68,7 @@ const DataFilter: React.FC<DataFilterProps> = ({
         </Dropdown>
       </FilterWrapper>
     )
-  )
-}
+  );
+};
 
-export default DataFilter
+export default DataFilter;

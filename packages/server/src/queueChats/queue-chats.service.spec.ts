@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { QueueChatService } from './queue-chats.service';
 import { QueueChatsModel } from './queue-chats.entity';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';

@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class addLmsIntegrationModels1737915783083
-  implements MigrationInterface
-{
+export class addLmsIntegrationModels1737915783083 implements MigrationInterface {
   name = 'addLmsIntegrationModels1737915783083';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

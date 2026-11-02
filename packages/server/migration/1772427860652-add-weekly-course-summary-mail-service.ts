@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddWeeklyCourseSummaryMailService1772427860652
-  implements MigrationInterface
-{
+export class AddWeeklyCourseSummaryMailService1772427860652 implements MigrationInterface {
   name = 'AddWeeklyCourseSummaryMailService1772427860652';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

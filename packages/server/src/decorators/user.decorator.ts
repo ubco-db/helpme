@@ -1,6 +1,7 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import type { ExecutionContext } from '@nestjs/common';
+import { createParamDecorator } from '@nestjs/common';
 import { UserModel } from '../profile/user.entity';
-import { FindOptionsRelations } from 'typeorm';
+import type { FindOptionsRelations } from 'typeorm';
 
 export const User = createParamDecorator<FindOptionsRelations<UserModel>>(
   async (relations: FindOptionsRelations<UserModel>, ctx: ExecutionContext) => {

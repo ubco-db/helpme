@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class LMSPageBodyDropNotNull1755999708148 implements MigrationInterface {
   name = 'Test1755999708148';

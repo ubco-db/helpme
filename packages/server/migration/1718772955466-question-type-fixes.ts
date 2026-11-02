@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class questionTypeFixes1718772955466 implements MigrationInterface {
   name = 'questionTypeFixes1718772955466';

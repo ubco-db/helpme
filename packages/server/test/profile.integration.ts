@@ -14,7 +14,7 @@ import { ProfileModule } from '../src/profile/profile.module';
 import { DesktopNotifModel } from 'notification/desktop-notif.entity';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { AccountType, OrganizationRole, Role } from '@koh/common';
-import { CourseModel } from 'course/course.entity';
+import type { CourseModel } from 'course/course.entity';
 import { UserModel } from 'profile/user.entity';
 import * as fs from 'fs';
 import * as path from 'path';

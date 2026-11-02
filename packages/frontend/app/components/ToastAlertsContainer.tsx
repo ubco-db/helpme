@@ -1,22 +1,23 @@
-import React, { useEffect, useEffectEvent } from 'react'
-import { ExternalToast, toast, Toaster, ToastT, useSonner } from 'sonner'
-import { useAlerts } from '../contexts/AlertsContext'
-import {
+import type React from 'react';
+import { useEffect, useEffectEvent } from 'react';
+import type { ExternalToast, ToastT } from 'sonner';
+import { toast, Toaster, useSonner } from 'sonner';
+import { useAlerts } from '../contexts/AlertsContext';
+import type {
   Alert,
   AlertPayloadToast,
-  AlertType,
   ChatbotDocumentProcessedPayload,
   CloneCoursePayload,
-  ToastType,
-} from '@koh/common'
-import Link from 'next/link'
-import { useUserInfo } from '../contexts/userContext'
+} from '@koh/common';
+import { AlertType, ToastType } from '@koh/common';
+import Link from 'next/link';
+import { useUserInfo } from '../contexts/userContext';
 
 const commonToastProps: ExternalToast = {
   richColors: true,
   dismissible: true,
   closeButton: true,
-}
+};
 
 /** Fulfils two purposes:
   - Handles all TOAST alerts (from AlertsContext) and converts them into sonner toasts (similar idea with ModalAlertsContainer)
@@ -26,10 +27,10 @@ const commonToastProps: ExternalToast = {
   - Has a <Toaster> component, meaning you can import sonner `toast` from 'sonner' and use `toast.info/error/success/etc.` (if you wanted something different instead of antd's `message`)
 */
 export const ToastAlertsContainer: React.FC = () => {
-  const { setUserInfo } = useUserInfo()
+  const { setUserInfo } = useUserInfo();
 
-  const { toasts } = useSonner()
-  const { toastAlerts, markAlertRead } = useAlerts()
+  const { toasts } = useSonner();
+  const { toastAlerts, markAlertRead } = useAlerts();
 
   // We create/update/delete the toasts whenever toastAlerts changes
   const handleToastAlertsChange = useEffectEvent(
@@ -44,31 +45,31 @@ export const ToastAlertsContainer: React.FC = () => {
       const { mainDPSuccessAlert, extraDPSuccessAlerts } = getDPSuccessAlerts(
         updatedToastAlerts,
         toasts,
-      )
+      );
 
       /* Assuming I got my logic right,
        *   extraDPSuccessAlerts, newAlertsToMakeToast, and toastsToDismiss should have absolutely NO overlap.
        */
       const newAlertsToMakeToast = updatedToastAlerts.filter((alert) => {
-        const alreadyHasToast = toasts.some((t) => t.id === alert.id)
-        const isThereOnlyOneDPSuccessToast = extraDPSuccessAlerts.length === 0
+        const alreadyHasToast = toasts.some((t) => t.id === alert.id);
+        const isThereOnlyOneDPSuccessToast = extraDPSuccessAlerts.length === 0;
         const isDPSuccessToast =
           alert.alertType === AlertType.CHATBOT_DOCUMENT_PROCESSED &&
           (alert.payload as ChatbotDocumentProcessedPayload).toastType ===
-            ToastType.SUCCESS
+            ToastType.SUCCESS;
         return (
           !alreadyHasToast &&
           (!isDPSuccessToast || isThereOnlyOneDPSuccessToast) &&
           !alert.readAt
-        )
-      })
+        );
+      });
       // If there's a toast who doesn't have a corresponding alert, the alert was either deleted or read, so we can dismiss it here
       const toastsToDismiss = toasts.filter((t) => {
         const hasCorrespondingAlert = updatedToastAlerts.some(
           (alert) => alert.id === t.id,
-        )
-        return !hasCorrespondingAlert
-      })
+        );
+        return !hasCorrespondingAlert;
+      });
 
       //
       // UPSERT DPSuccess TOAST
@@ -78,7 +79,7 @@ export const ToastAlertsContainer: React.FC = () => {
           mainAlert: mainDPSuccessAlert,
           extraAlerts: extraDPSuccessAlerts,
           markAlertRead,
-        })
+        });
       }
       //
       // DISMISS TOASTS
@@ -90,14 +91,14 @@ export const ToastAlertsContainer: React.FC = () => {
           ...t,
           onDismiss: () => {},
           onAutoClose: () => {},
-        })
-        toast.dismiss(t.id)
+        });
+        toast.dismiss(t.id);
       }
       //
       // CREATE TOASTS
       //
       for (const alert of newAlertsToMakeToast) {
-        const payload = alert.payload as AlertPayloadToast
+        const payload = alert.payload as AlertPayloadToast;
 
         const toastOptions: ExternalToast = {
           ...commonToastProps,
@@ -121,10 +122,10 @@ export const ToastAlertsContainer: React.FC = () => {
           ),
           id: alert.id,
           onDismiss: () => {
-            markAlertRead(alert.id)
+            markAlertRead(alert.id);
           },
           onAutoClose: () => {
-            markAlertRead(alert.id)
+            markAlertRead(alert.id);
           },
           position: payload.position || 'bottom-left',
           duration: payload.durationMs || Infinity,
@@ -149,23 +150,23 @@ export const ToastAlertsContainer: React.FC = () => {
                 View
               </Link>
             ) : undefined,
-        }
+        };
         switch (payload.toastType) {
           case ToastType.ERROR:
-            toast.error(payload.title, toastOptions)
-            break
+            toast.error(payload.title, toastOptions);
+            break;
           case ToastType.INFO:
-            toast.info(payload.title, toastOptions)
-            break
+            toast.info(payload.title, toastOptions);
+            break;
           case ToastType.SUCCESS:
-            toast.success(payload.title, toastOptions)
-            break
+            toast.success(payload.title, toastOptions);
+            break;
           case ToastType.WARNING:
-            toast.warning(payload.title, toastOptions)
-            break
+            toast.warning(payload.title, toastOptions);
+            break;
           default:
-            toast(payload.title, toastOptions)
-            break
+            toast(payload.title, toastOptions);
+            break;
         }
 
         // whenever a new TOAST notification is created notifying about a new cloned course, add it to the UserInfo context
@@ -173,28 +174,28 @@ export const ToastAlertsContainer: React.FC = () => {
           alert.alertType === AlertType.COURSE_CLONED &&
           (payload as AlertPayloadToast).toastType === ToastType.SUCCESS
         ) {
-          const newUserCourse = (payload as CloneCoursePayload).newUserCourse
+          const newUserCourse = (payload as CloneCoursePayload).newUserCourse;
           if (newUserCourse) {
             setUserInfo((prev) => {
               const alreadyExists = prev.courses.some(
                 (c) => c.course.id === newUserCourse.course.id,
-              )
-              if (alreadyExists) return prev
+              );
+              if (alreadyExists) return prev;
               return {
                 ...prev,
                 courses: [...prev.courses, newUserCourse],
-              }
-            })
+              };
+            });
           }
         }
       }
     },
-  )
+  );
   useEffect(() => {
     // Needed to put inside useEffectEvent since we want this useEffect to run whenever toastAlerts
     // changes but not when useSonner's `toasts` changes, but we still need updated `toasts` values.
-    handleToastAlertsChange(toastAlerts)
-  }, [toastAlerts])
+    handleToastAlertsChange(toastAlerts);
+  }, [toastAlerts]);
 
   return (
     <Toaster
@@ -203,8 +204,8 @@ export const ToastAlertsContainer: React.FC = () => {
         className: 'rounded p-4 text-md font-semibold min-h-18 w-96',
       }}
     />
-  )
-}
+  );
+};
 
 /** Adds or updates existing Document Processed Success toast.
  *
@@ -231,17 +232,17 @@ function upsertDPSuccessToast({
   extraAlerts,
   markAlertRead,
 }: {
-  mainAlert: Alert
-  extraAlerts: Alert[]
-  markAlertRead: (alertId: number) => void
+  mainAlert: Alert;
+  extraAlerts: Alert[];
+  markAlertRead: (alertId: number) => void;
 }) {
-  const payload = mainAlert.payload as ChatbotDocumentProcessedPayload
+  const payload = mainAlert.payload as ChatbotDocumentProcessedPayload;
   const markAllTheseAlertsRead = () => {
-    markAlertRead(mainAlert.id)
+    markAlertRead(mainAlert.id);
     extraAlerts.forEach((alert) => {
-      markAlertRead(alert.id)
-    })
-  }
+      markAlertRead(alert.id);
+    });
+  };
   toast.success(payload.title, {
     ...commonToastProps,
     id: mainAlert.id, // if the ID matches an existing toast, it updates it instead of creating a new one.
@@ -262,15 +263,15 @@ function upsertDPSuccessToast({
         <ul className="max-h-32 list-inside list-disc overflow-y-auto">
           <li key={mainAlert.id}>{payload.documentName}</li>
           {extraAlerts.map((alert) => {
-            const payload = alert.payload as ChatbotDocumentProcessedPayload
-            return <li key={alert.id}>{payload.documentName}</li>
+            const payload = alert.payload as ChatbotDocumentProcessedPayload;
+            return <li key={alert.id}>{payload.documentName}</li>;
           })}
         </ul>
       </>
     ),
     position: payload.position || 'bottom-left',
     duration: payload.durationMs || Infinity,
-  })
+  });
 }
 
 /** Helper function that gets the main SUCCESS CHATBOT_DOCUMENT_PROCESSED alert and a list of extra
@@ -290,8 +291,8 @@ function getDPSuccessAlerts(
   updatedToastAlerts: Alert[],
   toasts: ToastT[],
 ): {
-  mainDPSuccessAlert: Alert | undefined
-  extraDPSuccessAlerts: Alert[]
+  mainDPSuccessAlert: Alert | undefined;
+  extraDPSuccessAlerts: Alert[];
 } {
   const DPSuccessAlerts = updatedToastAlerts.filter(
     (a) =>
@@ -299,24 +300,24 @@ function getDPSuccessAlerts(
       (a.payload as ChatbotDocumentProcessedPayload).toastType ===
         ToastType.SUCCESS &&
       !a.readAt,
-  )
+  );
 
   if (DPSuccessAlerts.length === 0) {
     return {
       mainDPSuccessAlert: undefined,
       extraDPSuccessAlerts: [],
-    }
+    };
   } else if (DPSuccessAlerts.length === 1) {
     return {
       mainDPSuccessAlert: DPSuccessAlerts[0],
       extraDPSuccessAlerts: [],
-    }
+    };
   } else {
     // before deciding the mainAlert, first look through toasts.
     // If there's already a DPSuccess toast, then that's the main one and we should just add on to that one.
     const existingMainDPSuccessAlert = DPSuccessAlerts.find((alert) => {
-      return toasts.some((t) => t.id === alert.id)
-    })
+      return toasts.some((t) => t.id === alert.id);
+    });
 
     if (existingMainDPSuccessAlert) {
       return {
@@ -324,12 +325,12 @@ function getDPSuccessAlerts(
         extraDPSuccessAlerts: DPSuccessAlerts.filter(
           (alert) => alert.id !== existingMainDPSuccessAlert.id,
         ),
-      }
+      };
     } else {
       return {
         mainDPSuccessAlert: DPSuccessAlerts[0],
         extraDPSuccessAlerts: DPSuccessAlerts.slice(1),
-      }
+      };
     }
   }
 }

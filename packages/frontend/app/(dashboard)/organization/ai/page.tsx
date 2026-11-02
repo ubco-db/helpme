@@ -1,107 +1,111 @@
-'use client'
+'use client';
 
-import React, { ReactElement, useEffect, useMemo, useState } from 'react'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { API } from '@/app/api'
-import { CourseChatbotSettings, OrganizationChatbotSettings } from '@koh/common'
-import OrganizationChatbotSettingsForm from '@/app/(dashboard)/organization/ai/components/OrganizationChatbotSettingsForm'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { Button, Divider, message, Tabs, Tooltip } from 'antd'
-import CourseSettingTable from '@/app/(dashboard)/organization/ai/components/CourseSettingTable'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { InfoCircleOutlined } from '@ant-design/icons'
+import type { ReactElement } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { API } from '@/app/api';
+import type {
+  CourseChatbotSettings,
+  OrganizationChatbotSettings,
+} from '@koh/common';
+import OrganizationChatbotSettingsForm from '@/app/(dashboard)/organization/ai/components/OrganizationChatbotSettingsForm';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { Button, Divider, message, Tabs, Tooltip } from 'antd';
+import CourseSettingTable from '@/app/(dashboard)/organization/ai/components/CourseSettingTable';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { InfoCircleOutlined } from '@ant-design/icons';
 
 export default function OrganizationChatbotSettingsPage(): ReactElement {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { userInfo } = useUserInfo()
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { userInfo } = useUserInfo();
+  const [isLoading, setIsLoading] = useState(false);
   const [organizationSettings, setOrganizationSettings] =
-    useState<OrganizationChatbotSettings>()
+    useState<OrganizationChatbotSettings>();
   const [courseChatbotSettingsInstances, setCourseSettingsInstances] =
-    useState<CourseChatbotSettings[]>()
+    useState<CourseChatbotSettings[]>();
 
   const organizationId = useMemo(
     () => Number(userInfo?.organization?.orgId) ?? -1,
     [userInfo?.organization?.orgId],
-  )
+  );
 
   const [currentTab, setCurrentTab] = useState<'organization' | 'course'>(
     'organization',
-  )
+  );
 
   useEffect(() => {
-    const tab = searchParams.get('tab')
+    const tab = searchParams.get('tab');
     if (tab != undefined && (tab == 'organization' || tab == 'course')) {
-      setCurrentTab(tab)
+      setCurrentTab(tab);
     }
-  }, [searchParams])
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchOrganizationSettings = async () => {
-      if (organizationSettings) return
+      if (organizationSettings) return;
 
       await API.chatbot.adminOnly
         .getOrganizationSettings(organizationId)
         .then((response) => {
           if (response) {
-            setOrganizationSettings(response)
+            setOrganizationSettings(response);
           }
         })
         .catch((err) => {
           if ('status' in err && err.status != 404) {
             message.error(
               `Failed to retrieve organization chatbot settings: ${getErrorMessage(err)}`,
-            )
+            );
           }
-        })
-    }
+        });
+    };
 
     const fetchCourseSettingsInstances = async () => {
-      if (!organizationSettings) return
+      if (!organizationSettings) return;
 
       await API.chatbot.adminOnly
         .getOrganizationCourseSettings(organizationId)
         .then((response) => {
           if (response) {
-            setCourseSettingsInstances(response)
+            setCourseSettingsInstances(response);
           }
         })
         .catch((err) => {
           if ('status' in err && err.status != 404) {
             message.error(
               `Failed to retrieve organization course chatbot settings instances: ${getErrorMessage(err)}`,
-            )
+            );
           }
-        })
-    }
+        });
+    };
 
     const fetchData = async () => {
-      setIsLoading(true)
+      setIsLoading(true);
       await Promise.all([
         await fetchOrganizationSettings(),
         await fetchCourseSettingsInstances(),
-      ]).finally(() => setIsLoading(false))
-    }
-    fetchData().then()
-  }, [organizationId, organizationSettings])
+      ]).finally(() => setIsLoading(false));
+    };
+    fetchData().then();
+  }, [organizationId, organizationSettings]);
 
   const resetChatUsageLimit = async () => {
     await API.organizations
       .resetChatbotTokenLimit(organizationId)
       .then((msg: string) => {
-        message.success(msg)
+        message.success(msg);
       })
       .catch((err) => {
         message.error(
           `Failed to reset chat usage limit: ${getErrorMessage(err)}`,
-        )
-      })
-  }
+        );
+      });
+  };
 
   if (isLoading && !organizationSettings) {
-    return <CenteredSpinner tip={'Loading...'} />
+    return <CenteredSpinner tip={'Loading...'} />;
   }
 
   return (
@@ -125,7 +129,7 @@ export default function OrganizationChatbotSettingsPage(): ReactElement {
             activeKey={currentTab}
             defaultActiveKey={'organization'}
             onChange={(value) => {
-              router.push(`/organization/ai?tab=${value}`)
+              router.push(`/organization/ai?tab=${value}`);
             }}
             items={[
               {
@@ -168,22 +172,22 @@ export default function OrganizationChatbotSettingsPage(): ReactElement {
                       const indexOf =
                         courseChatbotSettingsInstances?.findIndex(
                           (c) => c.id == courseSettings.id,
-                        ) ?? -1
+                        ) ?? -1;
                       if (courseChatbotSettingsInstances) {
                         if (indexOf >= 0) {
                           setCourseSettingsInstances((prev) => [
                             ...prev!.slice(0, indexOf),
                             courseSettings,
                             ...prev!.slice(indexOf + 1),
-                          ])
+                          ]);
                         } else {
                           setCourseSettingsInstances((prev) => [
                             ...(prev ?? []),
                             courseSettings,
-                          ])
+                          ]);
                         }
                       } else {
-                        setCourseSettingsInstances([courseSettings])
+                        setCourseSettingsInstances([courseSettings]);
                       }
                     }}
                   />
@@ -203,5 +207,5 @@ export default function OrganizationChatbotSettingsPage(): ReactElement {
         )}
       </div>
     </div>
-  )
+  );
 }

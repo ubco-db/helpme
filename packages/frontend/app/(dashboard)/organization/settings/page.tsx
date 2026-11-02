@@ -1,68 +1,65 @@
-'use client'
+'use client';
 
-import { EditOutlined } from '@ant-design/icons'
-import { Button, Card, Col, Form, Input, message, Row, Switch } from 'antd'
-import TextArea from 'antd/es/input/TextArea'
-import { ReactNode, useEffect, useMemo, useState } from 'react'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { API } from '@/app/api'
-import Image from 'next/image'
-import ImageCropperModal from '@/app/(dashboard)/components/ImageCropperModal'
-import {
-  GetOrganizationResponse,
-  OrganizationRole,
-  OrganizationSettingsDefaults,
-  SemesterPartial,
-} from '@koh/common'
-import OrganizationSettingSwitch from '@/app/(dashboard)/organization/settings/components/OrganizationSettingSwitch'
-import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
-import { AllProfInvites } from './components/AllProfInvites'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
+import { EditOutlined } from '@ant-design/icons';
+import { Button, Card, Col, Form, Input, message, Row, Switch } from 'antd';
+import TextArea from 'antd/es/input/TextArea';
+import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { API } from '@/app/api';
+import Image from 'next/image';
+import ImageCropperModal from '@/app/(dashboard)/components/ImageCropperModal';
+import type { GetOrganizationResponse, SemesterPartial } from '@koh/common';
+import { OrganizationRole, OrganizationSettingsDefaults } from '@koh/common';
+import OrganizationSettingSwitch from '@/app/(dashboard)/organization/settings/components/OrganizationSettingSwitch';
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings';
+import { AllProfInvites } from './components/AllProfInvites';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
 
 export default function SettingsPage(): ReactNode {
   // Handler to update SSO patterns
   const updateSSO = async () => {
     try {
-      const formValues = await formSSO.validateFields()
-      const ssoEmailPatterns = formValues.ssoEmailPatterns || []
+      const formValues = await formSSO.validateFields();
+      const ssoEmailPatterns = formValues.ssoEmailPatterns || [];
       await API.organizations.patch(organization?.id ?? -1, {
         ssoEmailPatterns,
-      })
-      message.success('SSO patterns updated')
+      });
+      message.success('SSO patterns updated');
       setOrganization((prev) =>
         prev ? { ...prev, ssoEmailPatterns: ssoEmailPatterns } : prev,
-      )
+      );
     } catch (error: any) {
       const errorMessage =
-        error?.response?.data?.message || 'Failed to update SSO patterns'
-      message.error(errorMessage)
+        error?.response?.data?.message || 'Failed to update SSO patterns';
+      message.error(errorMessage);
     }
-  }
-  const [formGeneral] = Form.useForm()
-  const [formSSO] = Form.useForm()
+  };
+  const [formGeneral] = Form.useForm();
+  const [formSSO] = Form.useForm();
 
   const [isCropperModalOpen, setIsCropperModalOpen] = useState<{
-    logo: boolean
-    banner: boolean
-  }>({ logo: false, banner: false })
+    logo: boolean;
+    banner: boolean;
+  }>({ logo: false, banner: false });
   const [isUploadingImg, setUploadingImg] = useState<{
-    logo: boolean
-    banner: boolean
-  }>({ logo: false, banner: false })
+    logo: boolean;
+    banner: boolean;
+  }>({ logo: false, banner: false });
 
-  const { userInfo, setUserInfo } = useUserInfo()
+  const { userInfo, setUserInfo } = useUserInfo();
   const organizationId = useMemo(
     () => Number(userInfo?.organization?.orgId) ?? -1,
     [userInfo?.organization?.orgId],
-  )
+  );
 
-  const [organization, setOrganization] = useState<GetOrganizationResponse>()
+  const [organization, setOrganization] = useState<GetOrganizationResponse>();
 
-  const organizationSettings = useOrganizationSettings(organizationId)
+  const organizationSettings = useOrganizationSettings(organizationId);
 
   useEffect(() => {
     const fetchDataAsync = async () => {
-      const response = await API.organizations.get(organizationId)
+      const response = await API.organizations.get(organizationId);
       const semesters = response.semesters.map((s: SemesterPartial) => ({
         id: s.id,
         name: s.name,
@@ -70,34 +67,34 @@ export default function SettingsPage(): ReactNode {
         endDate: s.endDate ? new Date(s.endDate) : null,
         description: s.description,
         color: s.color,
-      }))
+      }));
       setOrganization({
         ...response,
         semesters,
-      })
+      });
 
       formGeneral.setFieldsValue({
         organizationName: response.name,
         organizationDescription: response.description,
         organizationWebsiteUrl: response.websiteUrl,
-      })
+      });
       formSSO.setFieldsValue({
         ssoEmailPatterns: response.ssoEmailPatterns?.length
           ? response.ssoEmailPatterns
           : [''],
-      })
-    }
+      });
+    };
     if (organizationId > 0) {
-      fetchDataAsync()
+      fetchDataAsync();
     }
-  }, [organizationId, formGeneral, formSSO])
+  }, [organizationId, formGeneral, formSSO]);
 
   const updateGeneral = async () => {
     const {
       organizationName,
       organizationDescription,
       organizationWebsiteUrl,
-    } = await formGeneral.validateFields()
+    } = await formGeneral.validateFields();
 
     if (
       organizationName === organization?.name &&
@@ -106,8 +103,8 @@ export default function SettingsPage(): ReactNode {
     ) {
       message.info(
         'Organization was not updated as information has not been changed',
-      )
-      return
+      );
+      return;
     }
 
     await API.organizations
@@ -117,7 +114,7 @@ export default function SettingsPage(): ReactNode {
         websiteUrl: organizationWebsiteUrl,
       })
       .then((_) => {
-        message.success('Organization updated')
+        message.success('Organization updated');
         setOrganization((prev) =>
           prev
             ? {
@@ -127,7 +124,7 @@ export default function SettingsPage(): ReactNode {
                 websiteUrl: organizationWebsiteUrl,
               }
             : prev,
-        )
+        );
 
         setUserInfo((prev) =>
           prev
@@ -142,15 +139,15 @@ export default function SettingsPage(): ReactNode {
                 },
               }
             : prev,
-        )
+        );
       })
 
       .catch((error) => {
-        const errorMessage = error.response.data.message
+        const errorMessage = error.response.data.message;
 
-        message.error(errorMessage)
-      })
-  }
+        message.error(errorMessage);
+      });
+  };
 
   return organization ? (
     <div className="flex flex-col items-center gap-3">
@@ -293,14 +290,14 @@ export default function SettingsPage(): ReactNode {
                           postURL={`/api/v1/organization/${organization?.id}/upload_logo`}
                           onUpdateComplete={() => {
                             setTimeout(() => {
-                              window.location.reload()
-                            }, 1750)
+                              window.location.reload();
+                            }, 1750);
                           }}
                           setUploading={(uploading: boolean) => {
                             setUploadingImg((prev) => ({
                               ...prev,
                               logo: uploading,
-                            }))
+                            }));
                           }}
                           onCancel={() =>
                             setIsCropperModalOpen((prev) => ({
@@ -347,14 +344,14 @@ export default function SettingsPage(): ReactNode {
                           postURL={`/api/v1/organization/${organization?.id}/upload_banner`}
                           onUpdateComplete={() => {
                             setTimeout(() => {
-                              window.location.reload()
-                            }, 1750)
+                              window.location.reload();
+                            }, 1750);
                           }}
                           setUploading={(uploading: boolean) => {
                             setUploadingImg((prev) => ({
                               ...prev,
                               banner: uploading,
-                            }))
+                            }));
                           }}
                           onCancel={() =>
                             setIsCropperModalOpen((prev) => ({
@@ -505,5 +502,5 @@ export default function SettingsPage(): ReactNode {
     </div>
   ) : (
     <CenteredSpinner tip="Loading Organization Settings..." />
-  )
+  );
 }

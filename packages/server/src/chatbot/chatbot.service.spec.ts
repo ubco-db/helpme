@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import { ChatbotService, openAIModels } from './chatbot.service';
 import {
@@ -23,26 +24,28 @@ import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { OrganizationChatbotSettingsModel } from './chatbot-infrastructure-models/organization-chatbot-settings.entity';
-import { OrganizationModel } from '../organization/organization.entity';
-import { CourseModel } from '../course/course.entity';
+import type { OrganizationModel } from '../organization/organization.entity';
+import type { CourseModel } from '../course/course.entity';
 import {
   BadRequestException,
   HttpException,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  ChatbotServiceProvider,
+import type {
   CreateChatbotProviderBody,
   CreateLLMTypeBody,
   CreateOrganizationChatbotSettingsBody,
-  dropUndefined,
-  ERROR_MESSAGES,
   OrganizationChatbotSettingsDefaults,
   UpdateChatbotProviderBody,
   UpdateLLMTypeBody,
   UpsertCourseChatbotSettings,
 } from '@koh/common';
-import { ChatbotProviderModel } from './chatbot-infrastructure-models/chatbot-provider.entity';
+import {
+  ChatbotServiceProvider,
+  dropUndefined,
+  ERROR_MESSAGES,
+} from '@koh/common';
+import type { ChatbotProviderModel } from './chatbot-infrastructure-models/chatbot-provider.entity';
 import { pick } from 'lodash';
 import { CourseChatbotSettingsModel } from './chatbot-infrastructure-models/course-chatbot-settings.entity';
 import { ChatbotSettingsSubscriber } from './chatbot-infrastructure-models/chatbot-settings.subscriber';

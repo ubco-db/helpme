@@ -1,22 +1,19 @@
-import {
-  ConfigTasks,
-  parseTaskIdsFromQuestionText,
-  Question,
-} from '@koh/common'
-import { Card, Col, Row } from 'antd'
-import { getServedTime, getWaitTime } from '@/app/utils/timeFormatUtils'
-import { QuestionTagElement } from '@/app/(dashboard)/course/[cid]/components/QuestionTagElement'
-import { useState, useEffect } from 'react'
-import { cn } from '@/app/utils/generalUtils'
-import styles from '../../../(dashboard)/course/[cid]/queue/[qid]/components/QuestionCard.module.css'
+import type { ConfigTasks, Question } from '@koh/common';
+import { parseTaskIdsFromQuestionText } from '@koh/common';
+import { Card, Col, Row } from 'antd';
+import { getServedTime, getWaitTime } from '@/app/utils/timeFormatUtils';
+import { QuestionTagElement } from '@/app/(dashboard)/course/[cid]/components/QuestionTagElement';
+import { useState, useEffect } from 'react';
+import { cn } from '@/app/utils/generalUtils';
+import styles from '../../../(dashboard)/course/[cid]/queue/[qid]/components/QuestionCard.module.css';
 
 interface QuestionCardSimpleProps {
-  question: Question
-  isBeingHelped?: boolean
-  isPaused?: boolean
-  isBeingReQueued?: boolean
-  configTasks?: ConfigTasks
-  className?: string // used to highlight questions or add other classes
+  question: Question;
+  isBeingHelped?: boolean;
+  isPaused?: boolean;
+  isBeingReQueued?: boolean;
+  configTasks?: ConfigTasks;
+  className?: string; // used to highlight questions or add other classes
 }
 
 /**
@@ -30,24 +27,24 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
   configTasks,
   className,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [truncateText, setTruncateText] = useState(true) // after the max-height transition is finished on expanding the text, truncate it to show a `...`
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [truncateText, setTruncateText] = useState(true); // after the max-height transition is finished on expanding the text, truncate it to show a `...`
 
   const tasks = question.isTaskQuestion
     ? parseTaskIdsFromQuestionText(question.text)
-    : [] // gives an array of "part1","part2",etc.
+    : []; // gives an array of "part1","part2",etc.
 
-  const [servedTime, setServedTime] = useState(getServedTime(question))
+  const [servedTime, setServedTime] = useState(getServedTime(question));
   useEffect(() => {
     if (isBeingHelped && question.helpedAt && !isPaused) {
       const interval = setInterval(() => {
-        setServedTime(getServedTime(question))
-      }, 1000)
-      return () => clearInterval(interval)
+        setServedTime(getServedTime(question));
+      }, 1000);
+      return () => clearInterval(interval);
     } else if (isPaused) {
-      setServedTime(getServedTime(question))
+      setServedTime(getServedTime(question));
     }
-  }, [isBeingHelped, question, isPaused])
+  }, [isBeingHelped, question, isPaused]);
 
   return (
     <Card
@@ -63,19 +60,19 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
       )}
       classNames={{ body: 'px-0.5 py-1.5 md:px-2.5 md:py-2' }}
       onClick={() => {
-        setIsExpanded(!isExpanded)
+        setIsExpanded(!isExpanded);
         // after the max-height transition is finished on expanding the text, truncate it to show a `...`
         // truncating the questionText before the animation is finished will cause the animation to jump
         // Also, this logic is reversed for some reason
         if (isExpanded) {
           //// Collapsing the card
           setTimeout(() => {
-            setTruncateText(true)
-          }, 300)
+            setTruncateText(true);
+          }, 300);
         } else {
           //// Expanding the card
           // however, we do want to instantly remove the truncation when expanding the card
-          setTruncateText(false)
+          setTruncateText(false);
         }
       }}
     >
@@ -175,7 +172,7 @@ const QuestionCardSimple: React.FC<QuestionCardSimpleProps> = ({
         </Col>
       </Row>
     </Card>
-  )
-}
+  );
+};
 
-export default QuestionCardSimple
+export default QuestionCardSimple;

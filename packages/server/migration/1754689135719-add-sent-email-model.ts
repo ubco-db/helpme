@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddSentEmailModel1754689135719 implements MigrationInterface {
   name = 'AddSentEmailModel1754689135719';

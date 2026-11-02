@@ -1,13 +1,12 @@
-import {
+import type {
   CallHandler,
-  ClassSerializerInterceptor,
   ClassSerializerInterceptorOptions,
   CustomDecorator,
   ExecutionContext,
-  SetMetadata,
 } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { Reflector } from '@nestjs/core';
+import { ClassSerializerInterceptor, SetMetadata } from '@nestjs/common';
+import type { Observable } from 'rxjs';
+import type { Reflector } from '@nestjs/core';
 
 export class IgnoreableClassSerializerInterceptor extends ClassSerializerInterceptor {
   constructor(

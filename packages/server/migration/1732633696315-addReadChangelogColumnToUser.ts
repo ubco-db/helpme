@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class addReadChangelogColumnToUser1732633696315
-  implements MigrationInterface
-{
+export class addReadChangelogColumnToUser1732633696315 implements MigrationInterface {
   name = 'addReadChangelogColumnToUser1732633696315';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

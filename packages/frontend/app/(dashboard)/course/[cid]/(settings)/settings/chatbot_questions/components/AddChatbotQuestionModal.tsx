@@ -1,23 +1,23 @@
-import { useState } from 'react'
-import { Checkbox, Form, Input, Modal, Select, message } from 'antd'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import MarkdownGuideTooltipBody from './MarkdownGuideTooltipBody'
-import { SourceDocument } from '@koh/common'
-import { API } from '@/app/api'
+import { useState } from 'react';
+import { Checkbox, Form, Input, Modal, Select, message } from 'antd';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import MarkdownGuideTooltipBody from './MarkdownGuideTooltipBody';
+import type { SourceDocument } from '@koh/common';
+import { API } from '@/app/api';
 
 interface FormValues {
-  question: string
-  answer: string
-  verified: boolean
-  suggested: boolean
+  question: string;
+  answer: string;
+  verified: boolean;
+  suggested: boolean;
 }
 
 interface AddChatbotQuestionModalProps {
-  open: boolean
-  courseId: number
-  existingDocuments: SourceDocument[]
-  onCancel: () => void
-  onAddSuccess: () => void
+  open: boolean;
+  courseId: number;
+  existingDocuments: SourceDocument[];
+  onCancel: () => void;
+  onAddSuccess: () => void;
 }
 
 const AddChatbotQuestionModal: React.FC<AddChatbotQuestionModalProps> = ({
@@ -27,14 +27,14 @@ const AddChatbotQuestionModal: React.FC<AddChatbotQuestionModalProps> = ({
   onCancel,
   onAddSuccess,
 }) => {
-  const [form] = Form.useForm()
+  const [form] = Form.useForm();
   const [selectedDocuments, setSelectedDocuments] = useState<SourceDocument[]>(
     [],
-  )
-  const [loading, setLoading] = useState(false)
+  );
+  const [loading, setLoading] = useState(false);
 
   const onFinish = async (values: FormValues) => {
-    setLoading(true)
+    setLoading(true);
     selectedDocuments.forEach((doc) => {
       // Convert string to array of numbers, trimming spaces and ignoring empty entries
       if (doc.pageNumbersString) {
@@ -42,9 +42,9 @@ const AddChatbotQuestionModal: React.FC<AddChatbotQuestionModalProps> = ({
           .split(',')
           .map((page) => page.trim())
           .filter((page) => page !== '')
-          .map((page) => parseInt(page, 10))
+          .map((page) => parseInt(page, 10));
       }
-    })
+    });
 
     await API.chatbot.staffOnly
       .addQuestion(courseId, {
@@ -55,17 +55,17 @@ const AddChatbotQuestionModal: React.FC<AddChatbotQuestionModalProps> = ({
         sourceDocuments: selectedDocuments,
       })
       .then(() => {
-        message.success('Question successfully added')
-        onAddSuccess()
+        message.success('Question successfully added');
+        onAddSuccess();
       })
       .catch((error) => {
-        const errorMessage = getErrorMessage(error)
-        message.error('Error adding question:' + errorMessage)
+        const errorMessage = getErrorMessage(error);
+        message.error('Error adding question:' + errorMessage);
       })
       .finally(() => {
-        setLoading(false)
-      })
-  }
+        setLoading(false);
+      });
+  };
 
   return (
     <Modal
@@ -137,17 +137,17 @@ const AddChatbotQuestionModal: React.FC<AddChatbotQuestionModalProps> = ({
         onSelect={(selectedDocId) => {
           const selectedDoc = existingDocuments.find(
             (doc) => doc.docId === selectedDocId,
-          )
+          );
           if (selectedDoc) {
             setSelectedDocuments((prev) => {
               const isAlreadySelected = prev.some(
                 (doc) => doc.docId === selectedDocId,
-              )
+              );
               if (!isAlreadySelected) {
-                return [...prev, { ...selectedDoc, pageNumbers: [] }]
+                return [...prev, { ...selectedDoc, pageNumbers: [] }];
               }
-              return prev
-            })
+              return prev;
+            });
           }
         }}
       >
@@ -167,13 +167,13 @@ const AddChatbotQuestionModal: React.FC<AddChatbotQuestionModalProps> = ({
             placeholder="Enter page numbers (comma separated)"
             value={doc.pageNumbersString}
             onChange={(e) => {
-              doc.pageNumbersString = e.target.value
+              doc.pageNumbersString = e.target.value;
             }}
           />
         </div>
       ))}
     </Modal>
-  )
-}
+  );
+};
 
-export default AddChatbotQuestionModal
+export default AddChatbotQuestionModal;

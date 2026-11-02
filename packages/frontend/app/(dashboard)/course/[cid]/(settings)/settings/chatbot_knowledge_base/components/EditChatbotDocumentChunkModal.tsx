@@ -1,24 +1,24 @@
-'use client'
+'use client';
 
-import { ReactElement } from 'react'
-import { Form, Input, message, Modal } from 'antd'
-import TextArea from 'antd/es/input/TextArea'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { SourceDocument } from '@koh/common'
-import { API } from '@/app/api'
+import type { ReactElement } from 'react';
+import { Form, Input, message, Modal } from 'antd';
+import TextArea from 'antd/es/input/TextArea';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import type { SourceDocument } from '@koh/common';
+import { API } from '@/app/api';
 
 interface FormValues {
-  documentName: string
-  content: string
-  source: string
+  documentName: string;
+  content: string;
+  source: string;
 }
 
 interface EditDocumentChunkModalProps {
-  editingRecord: SourceDocument
-  open: boolean
-  courseId: number
-  onSuccessfulUpdate: (value: SourceDocument[]) => void
-  onCancel: () => void
+  editingRecord: SourceDocument;
+  open: boolean;
+  courseId: number;
+  onSuccessfulUpdate: (value: SourceDocument[]) => void;
+  onCancel: () => void;
 }
 
 const EditDocumentChunkModal: React.FC<EditDocumentChunkModalProps> = ({
@@ -28,7 +28,7 @@ const EditDocumentChunkModal: React.FC<EditDocumentChunkModalProps> = ({
   onSuccessfulUpdate,
   onCancel,
 }): ReactElement => {
-  const [form] = Form.useForm()
+  const [form] = Form.useForm();
 
   const onFinish = async (values: FormValues) => {
     await API.chatbot.staffOnly
@@ -40,14 +40,14 @@ const EditDocumentChunkModal: React.FC<EditDocumentChunkModalProps> = ({
         },
       })
       .then((updatedDocs) => {
-        message.success('Document updated successfully.')
-        onSuccessfulUpdate(updatedDocs)
+        message.success('Document updated successfully.');
+        onSuccessfulUpdate(updatedDocs);
       })
       .catch((e) => {
-        const errorMessage = getErrorMessage(e)
-        message.error('Failed to update document: ' + errorMessage)
-      })
-  }
+        const errorMessage = getErrorMessage(e);
+        message.error('Failed to update document: ' + errorMessage);
+      });
+  };
 
   return (
     <Modal
@@ -106,7 +106,7 @@ const EditDocumentChunkModal: React.FC<EditDocumentChunkModalProps> = ({
         <Input />
       </Form.Item>
     </Modal>
-  )
-}
+  );
+};
 
-export default EditDocumentChunkModal
+export default EditDocumentChunkModal;

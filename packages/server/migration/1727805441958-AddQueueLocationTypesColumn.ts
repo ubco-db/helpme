@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddQueueLocationTypesColumn1727805441958
-  implements MigrationInterface
-{
+export class AddQueueLocationTypesColumn1727805441958 implements MigrationInterface {
   name = 'AddQueueLocationTypesColumn1727805441958';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

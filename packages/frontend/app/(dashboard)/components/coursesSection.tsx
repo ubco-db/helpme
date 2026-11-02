@@ -1,18 +1,20 @@
-import { OrganizationRole, Role, SemesterPartial } from '@koh/common'
-import { Button, Card, Tag, Tooltip } from 'antd'
-import React, { useMemo } from 'react'
-import Meta from 'antd/es/card/Meta'
-import Link from 'next/link'
-import stringToHexColor from '@/app/utils/generalUtils'
-import { useUserInfo } from '@/app/contexts/userContext'
-import SemesterInfoPopover from './SemesterInfoPopover'
-import CoursesSectionTableView from './CoursesSectionTableView'
+import type { SemesterPartial } from '@koh/common';
+import { OrganizationRole, Role } from '@koh/common';
+import { Button, Card, Tag, Tooltip } from 'antd';
+import type React from 'react';
+import { useMemo } from 'react';
+import Meta from 'antd/es/card/Meta';
+import Link from 'next/link';
+import stringToHexColor from '@/app/utils/generalUtils';
+import { useUserInfo } from '@/app/contexts/userContext';
+import SemesterInfoPopover from './SemesterInfoPopover';
+import CoursesSectionTableView from './CoursesSectionTableView';
 
 interface CoursesSectionProps {
-  semesters: SemesterPartial[]
-  enabledTableView: boolean
-  ltiView?: boolean
-  highlightedCourseId?: number
+  semesters: SemesterPartial[];
+  enabledTableView: boolean;
+  ltiView?: boolean;
+  highlightedCourseId?: number;
 }
 
 const CoursesSection: React.FC<CoursesSectionProps> = ({
@@ -24,8 +26,8 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
   // For some reason, jdenticon is not working when imported as a module and needs to use require
   // eslint-disable @typescript-eslint/no-var-requires
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const jdenticon = require('jdenticon')
-  const iconSize = 60
+  const jdenticon = require('jdenticon');
+  const iconSize = 60;
 
   jdenticon.configure({
     hues: [200],
@@ -37,11 +39,11 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
       color: 0.5,
       grayscale: 0.0,
     },
-  })
-  const { userInfo } = useUserInfo()
+  });
+  const { userInfo } = useUserInfo();
   const isStaff = useMemo(() => {
-    return userInfo?.organization?.organizationRole === OrganizationRole.ADMIN
-  }, [userInfo.organization])
+    return userInfo?.organization?.organizationRole === OrganizationRole.ADMIN;
+  }, [userInfo.organization]);
 
   const sortedCoursesInCardView = useMemo(() => {
     return [...userInfo.courses]
@@ -51,13 +53,13 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
       .sort((a, b) => {
         const semesterA = semesters?.find(
           (semester) => semester.id === a.course.semesterId,
-        )
+        );
         const semesterB = semesters?.find(
           (semester) => semester.id === b.course.semesterId,
-        )
+        );
         // Show courses with defined semesters first
-        if (semesterA && !semesterB) return -1
-        if (semesterB && !semesterA) return 1
+        if (semesterA && !semesterB) return -1;
+        if (semesterB && !semesterA) return 1;
 
         /*
          Note that this is implicitly true at this point, but to avoid TypeScript errors
@@ -72,23 +74,23 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
             ? new Date(semesterA.endDate).getTime()
             : semesterA.startDate
               ? new Date(semesterA.startDate).getTime()
-              : -Infinity
+              : -Infinity;
           const bTime = semesterB.endDate
             ? new Date(semesterB.endDate).getTime()
             : semesterB.startDate
               ? new Date(semesterB.startDate).getTime()
-              : -Infinity
+              : -Infinity;
 
-          const diff = bTime - aTime
+          const diff = bTime - aTime;
           if (diff === 0) {
-            return a.course.name.localeCompare(b.course.name)
+            return a.course.name.localeCompare(b.course.name);
           } else {
-            return diff
+            return diff;
           }
         }
-        return a.course.name.localeCompare(b.course.name)
-      })
-  }, [userInfo.courses, semesters])
+        return a.course.name.localeCompare(b.course.name);
+      });
+  }, [userInfo.courses, semesters]);
 
   return (
     <div className="mb-8 w-full">
@@ -101,12 +103,12 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
         <div className="mt-5 flex flex-wrap gap-3">
           {sortedCoursesInCardView.map((course, index) => {
             // Generate course icon
-            const iconSvg = jdenticon.toSvg(course.course.name, iconSize)
-            const iconDataUrl = `data:image/svg+xml;base64,${btoa(iconSvg)}`
+            const iconSvg = jdenticon.toSvg(course.course.name, iconSize);
+            const iconDataUrl = `data:image/svg+xml;base64,${btoa(iconSvg)}`;
 
             const courseSemester = semesters?.find(
               (s) => s.id === course.course.semesterId,
-            )
+            );
 
             const isThereAnotherCourseWithSameNameAndSemester =
               userInfo.courses.some(
@@ -114,7 +116,7 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                   c.course.id !== course.course.id &&
                   c.course.name === course.course.name &&
                   c.course.semesterId === course.course.semesterId,
-              )
+              );
 
             return (
               <Card
@@ -235,12 +237,12 @@ const CoursesSection: React.FC<CoursesSectionProps> = ({
                   </Link>
                 )}
               </Card>
-            )
+            );
           })}
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default CoursesSection
+export default CoursesSection;

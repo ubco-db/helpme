@@ -1,13 +1,9 @@
-'use client'
+'use client';
 
-import React, {
-  HTMLAttributeAnchorTarget,
-  useCallback,
-  useMemo,
-  useState,
-} from 'react'
-import { useUserInfoOptional } from '@/app/contexts/userContext'
-import { usePathname, useRouter } from 'next/navigation'
+import type { HTMLAttributeAnchorTarget } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { useUserInfoOptional } from '@/app/contexts/userContext';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -17,23 +13,18 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
   navigationMenuTriggerStyleForSubMenu,
-} from '@/app/components/ui/navigation-menu'
-import NextLink from 'next/link'
-import { SelfAvatar } from './UserAvatar'
+} from '@/app/components/ui/navigation-menu';
+import NextLink from 'next/link';
+import { SelfAvatar } from './UserAvatar';
 import {
   checkCourseCreatePermissions,
   cn,
   getRoleInCourse,
-} from '../utils/generalUtils'
-import {
-  GetCourseResponse,
-  OrganizationRole,
-  Role,
-  User,
-  UserRole,
-} from '@koh/common'
-import { useMediaQuery } from '../hooks/useMediaQuery'
-import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from './ui/drawer'
+} from '../utils/generalUtils';
+import type { GetCourseResponse, User } from '@koh/common';
+import { OrganizationRole, Role, UserRole } from '@koh/common';
+import { useMediaQuery } from '../hooks/useMediaQuery';
+import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from './ui/drawer';
 import {
   CalendarDays,
   LineChart,
@@ -43,22 +34,22 @@ import {
   Settings,
   Undo2,
   UsersRound,
-} from 'lucide-react'
+} from 'lucide-react';
 import {
   HomeOutlined,
   LogoutOutlined,
   MailOutlined,
   SyncOutlined,
-} from '@ant-design/icons'
-import { Badge, Popconfirm } from 'antd'
-import { sortQueues } from '../(dashboard)/course/[cid]/utils/commonCourseFunctions'
-import { useCourseFeatures } from '../hooks/useCourseFeatures'
-import CenteredSpinner from './CenteredSpinner'
-import NotificationBell from './NotificationBell'
-import Image from 'next/image'
-import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
-import { useCourse } from '@/app/hooks/useCourse'
-import { useAlerts, useAlertsOptional } from '../contexts/AlertsContext'
+} from '@ant-design/icons';
+import { Badge, Popconfirm } from 'antd';
+import { sortQueues } from '../(dashboard)/course/[cid]/utils/commonCourseFunctions';
+import { useCourseFeatures } from '../hooks/useCourseFeatures';
+import CenteredSpinner from './CenteredSpinner';
+import NotificationBell from './NotificationBell';
+import Image from 'next/image';
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings';
+import { useCourse } from '@/app/hooks/useCourse';
+import { useAlerts, useAlertsOptional } from '../contexts/AlertsContext';
 
 /**
  * This custom Link is wrapped around nextjs's Link to improve accessibility and styling. Not to be used outside of this navigation menu.
@@ -72,17 +63,17 @@ const Link = ({
   onClick,
   target,
 }: {
-  ref?: React.Ref<HTMLAnchorElement>
-  href: string
-  className?: string
-  children: React.ReactNode
-  isSubMenuLink?: boolean
-  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void
-  target?: HTMLAttributeAnchorTarget
+  ref?: React.Ref<HTMLAnchorElement>;
+  href: string;
+  className?: string;
+  children: React.ReactNode;
+  isSubMenuLink?: boolean;
+  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
+  target?: HTMLAttributeAnchorTarget;
 }) => {
-  const pathname = usePathname()
-  const isActive = href === pathname
-  const isLogout = href.startsWith('/api/v1/logout')
+  const pathname = usePathname();
+  const isActive = href === pathname;
+  const isLogout = href.startsWith('/api/v1/logout');
 
   return (
     <NavigationMenuLink ref={ref} asChild active={isActive}>
@@ -102,15 +93,15 @@ const Link = ({
         {children}
       </NextLink>
     </NavigationMenuLink>
-  )
-}
+  );
+};
 
 const ListItem = React.forwardRef<
   React.ElementRef<'a'>,
   React.ComponentPropsWithoutRef<'a'> & {
-    title: string
-    href: string
-    titleElement?: React.ReactNode
+    title: string;
+    href: string;
+    titleElement?: React.ReactNode;
   }
 >(({ className, title, children, href, titleElement, ...props }, ref) => {
   return (
@@ -133,9 +124,9 @@ const ListItem = React.forwardRef<
         </p>
       </Link>
     </li>
-  )
-})
-ListItem.displayName = 'ListItem'
+  );
+});
+ListItem.displayName = 'ListItem';
 
 /**
  * This is the Navbar (i.e. all the nav bar tabs). It is separate from the other components in the header.
@@ -154,47 +145,48 @@ const NavBar = ({
   orientation = 'horizontal',
   isLti = false,
 }: {
-  userInfo?: User
-  courseId?: number
-  course?: GetCourseResponse
-  isAQueuePage: boolean
-  isACourseSettingsPage: boolean
-  isAnOrganizationSettingsPage: boolean
-  isAnAdminPanelPage: boolean
-  setIsDrawerOpen?: React.Dispatch<React.SetStateAction<boolean>>
-  isProfilePage?: boolean
-  orientation?: 'horizontal' | 'vertical'
-  isLti?: boolean
+  userInfo?: User;
+  courseId?: number;
+  course?: GetCourseResponse;
+  isAQueuePage: boolean;
+  isACourseSettingsPage: boolean;
+  isAnOrganizationSettingsPage: boolean;
+  isAnAdminPanelPage: boolean;
+  setIsDrawerOpen?: React.Dispatch<React.SetStateAction<boolean>>;
+  isProfilePage?: boolean;
+  orientation?: 'horizontal' | 'vertical';
+  isLti?: boolean;
 }) => {
   const organizationSettings = useOrganizationSettings(
     userInfo?.organization?.orgId ?? -1,
-  )
-  const router = useRouter()
-  const courseFeatures = useCourseFeatures(courseId)
-  const role = courseId && userInfo ? getRoleInCourse(userInfo, courseId) : null
+  );
+  const router = useRouter();
+  const courseFeatures = useCourseFeatures(courseId);
+  const role =
+    courseId && userInfo ? getRoleInCourse(userInfo, courseId) : null;
   const sortedQueues = useMemo(() => {
-    if (!course?.queues) return []
-    return sortQueues(course.queues)
-  }, [course?.queues])
+    if (!course?.queues) return [];
+    return sortQueues(course.queues);
+  }, [course?.queues]);
 
   // This is to move the "Queues" and "Profile" submenu to show on the left or right side (there is only one component, so it needs to be moved around like this)
   const setNavigationSubMenuRightSide = useCallback(() => {
-    const viewportElement = document.getElementById('navigation-menu-viewport')
+    const viewportElement = document.getElementById('navigation-menu-viewport');
     if (viewportElement) {
-      viewportElement.classList.remove('left-0')
-      viewportElement.classList.add('right-0')
+      viewportElement.classList.remove('left-0');
+      viewportElement.classList.add('right-0');
     }
-  }, [])
+  }, []);
   const setNavigationSubMenuLeftSide = useCallback(() => {
     if (isLti) {
-      return
+      return;
     }
-    const viewportElement = document.getElementById('navigation-menu-viewport')
+    const viewportElement = document.getElementById('navigation-menu-viewport');
     if (viewportElement) {
-      viewportElement.classList.remove('right-0')
-      viewportElement.classList.add('left-0')
+      viewportElement.classList.remove('right-0');
+      viewportElement.classList.add('left-0');
     }
-  }, [])
+  }, []);
 
   // Could this redirect be put elsewhere? Yes it can. However, since all of the data needed is already here and this component is on all course pages, this way is easiest and most efficient.
   if (
@@ -205,11 +197,11 @@ const NavBar = ({
     userInfo &&
     userInfo.organization?.organizationRole !== OrganizationRole.ADMIN
   ) {
-    router.push(isLti ? '/lti' : '/courses')
-    return <CenteredSpinner tip="Course is archived. Redirecting..." />
+    router.push(isLti ? '/lti' : '/courses');
+    return <CenteredSpinner tip="Course is archived. Redirecting..." />;
   } else {
-    const coursePrefix = isLti ? '/lti' : '/course'
-    const logoutUrl = '/api/v1/logout' + (isLti ? '?lti=true' : '')
+    const coursePrefix = isLti ? '/lti' : '/course';
+    const logoutUrl = '/api/v1/logout' + (isLti ? '?lti=true' : '');
     return (
       <NavigationMenu orientation={orientation}>
         <NavigationMenuList>
@@ -475,8 +467,8 @@ const NavBar = ({
                         href=""
                         className="md:pl-8"
                         onClick={() => {
-                          router.back()
-                          if (setIsDrawerOpen) setIsDrawerOpen(false)
+                          router.back();
+                          if (setIsDrawerOpen) setIsDrawerOpen(false);
                         }}
                       >
                         <Undo2 strokeWidth={1.5} className="mr-3" />
@@ -637,8 +629,8 @@ const NavBar = ({
                 <Popconfirm
                   title="Are you sure you want to log out?"
                   onConfirm={() => {
-                    router.push(logoutUrl)
-                    if (setIsDrawerOpen) setIsDrawerOpen(false)
+                    router.push(logoutUrl);
+                    if (setIsDrawerOpen) setIsDrawerOpen(false);
                   }}
                   okText="Yes"
                   cancelText="No"
@@ -651,7 +643,7 @@ const NavBar = ({
                     href={logoutUrl}
                     className="text-red-700"
                     onClick={(e) => {
-                      e.preventDefault()
+                      e.preventDefault();
                     }}
                   >
                     <LogoutOutlined
@@ -666,52 +658,52 @@ const NavBar = ({
           )}
         </NavigationMenuList>
       </NavigationMenu>
-    )
+    );
   }
-}
+};
 
 /**
  * Navbar component that is rendered on each page.
  */
 const HeaderBar: React.FC = () => {
-  const { userInfo } = useUserInfoOptional()
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const isDesktop = useMediaQuery('(min-width: 768px)')
+  const { userInfo } = useUserInfoOptional();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const isDesktop = useMediaQuery('(min-width: 768px)');
   // This is not the usual way to get the courseId from the URL
   // (normally you're supposed to use `params` for the page.tsx and then pass it down as a prop).
   // However, doing it this way makes it much easier to add the navbar to layout.tsx.
-  const pathname = usePathname()
-  const isLti = pathname.startsWith('/lti')
-  const URLSegments = pathname.split('/')
+  const pathname = usePathname();
+  const isLti = pathname.startsWith('/lti');
+  const URLSegments = pathname.split('/');
 
   const courseId = useMemo(() => {
     // LTI only uses a numeric parameter in segment 2 for courses
     if (!isLti && URLSegments[1] !== 'course') {
-      return undefined
+      return undefined;
     }
-    const temp = parseInt(URLSegments[2])
-    if (!isNaN(temp)) return temp
-    return undefined
-  }, [URLSegments, isLti])
+    const temp = parseInt(URLSegments[2]);
+    if (!isNaN(temp)) return temp;
+    return undefined;
+  }, [URLSegments, isLti]);
 
-  const { course } = useCourse(courseId ?? null)
+  const { course } = useCourse(courseId ?? null);
 
   const queueId =
     URLSegments[3] === 'queue' && URLSegments[4] && Number(URLSegments[4])
       ? Number(URLSegments[4])
-      : null
-  const isAQueuePage = URLSegments[3] === 'queue'
+      : null;
+  const isAQueuePage = URLSegments[3] === 'queue';
   const isACourseSettingsPage =
-    URLSegments[3] === 'settings' && !!URLSegments[4]
-  const isAnOrganizationSettingsPage = URLSegments[1] === 'organization'
-  const isAnAdminPanelPage = URLSegments[1] === 'admin'
-  const isProfilePage = URLSegments[1] === 'profile'
+    URLSegments[3] === 'settings' && !!URLSegments[4];
+  const isAnOrganizationSettingsPage = URLSegments[1] === 'organization';
+  const isAnAdminPanelPage = URLSegments[1] === 'admin';
+  const isProfilePage = URLSegments[1] === 'profile';
 
   const queueRoom = queueId
     ? course?.queues?.find((queue) => queue.id === queueId)?.room
-    : ''
+    : '';
 
-  const alertsContextValue = useAlertsOptional()
+  const alertsContextValue = useAlertsOptional();
 
   // DESKTOP HEADER
   return isDesktop ? (
@@ -849,7 +841,7 @@ const HeaderBar: React.FC = () => {
         </DrawerContent>
       </Drawer>
     </div>
-  )
-}
+  );
+};
 
-export default HeaderBar
+export default HeaderBar;

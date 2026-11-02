@@ -1,12 +1,12 @@
-import { RephraseQuestionPayload } from '@koh/common'
-import { Button } from 'antd'
-import Modal from 'antd/lib/modal/Modal'
+import type { RephraseQuestionPayload } from '@koh/common';
+import { Button } from 'antd';
+import Modal from 'antd/lib/modal/Modal';
 
 type StudentRephraseModalProps = {
-  payload: RephraseQuestionPayload
-  handleClose: () => void
-  handleEdit: (courseId: number, queueId: number) => void
-}
+  payload: RephraseQuestionPayload;
+  handleClose: () => void;
+  handleEdit: (courseId: number, queueId: number) => void;
+};
 const StudentRephraseModal: React.FC<StudentRephraseModalProps> = ({
   payload,
   handleClose,
@@ -33,6 +33,6 @@ const StudentRephraseModal: React.FC<StudentRephraseModalProps> = ({
       the course staff. While you elaborate on your question your place in line
       will be reserved.
     </Modal>
-  )
-}
-export default StudentRephraseModal
+  );
+};
+export default StudentRephraseModal;

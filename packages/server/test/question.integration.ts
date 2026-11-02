@@ -5,9 +5,9 @@ import {
   QuestionStatusKeys,
   Role,
 } from '@koh/common';
-import { UserModel } from 'profile/user.entity';
-import { QueueModel } from 'queue/queue.entity';
-import supertest from 'supertest';
+import type { UserModel } from 'profile/user.entity';
+import type { QueueModel } from 'queue/queue.entity';
+import type supertest from 'supertest';
 import { QuestionModel } from '../src/question/question.entity';
 import { QuestionModule } from '../src/question/question.module';
 import {
@@ -29,7 +29,7 @@ import {
   modifyMockNotifs,
   setupIntegrationTest,
 } from './util/testUtils';
-import { QuestionTypeModel } from 'questionType/question-type.entity';
+import type { QuestionTypeModel } from 'questionType/question-type.entity';
 import { StudentTaskProgressModel } from 'studentTaskProgress/studentTaskProgress.entity';
 
 describe('Question Integration', () => {

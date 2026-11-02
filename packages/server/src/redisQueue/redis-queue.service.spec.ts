@@ -1,5 +1,6 @@
 import { RedisQueueService } from './redis-queue.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { asyncQuestionStatus } from '@koh/common';

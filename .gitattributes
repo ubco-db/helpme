@@ -1,0 +1,6 @@
+# Normalize detected text files and check them out with LF on either Linux or Windows (Windows uses CRLF).
+* text=auto eol=lf
+
+# Windows command scripts are the exception.
+*.bat text eol=crlf
+*.cmd text eol=crlf

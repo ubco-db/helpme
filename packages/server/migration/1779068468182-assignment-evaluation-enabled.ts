@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AssignmentEvaluationEnabled1779068468182
-  implements MigrationInterface
-{
+export class AssignmentEvaluationEnabled1779068468182 implements MigrationInterface {
   name = 'AssignmentEvaluationEnabled1779068468182';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

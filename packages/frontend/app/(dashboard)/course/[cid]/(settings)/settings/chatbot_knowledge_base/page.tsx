@@ -1,6 +1,7 @@
-'use client'
+'use client';
 
-import { ReactElement, use, useCallback, useEffect, useState } from 'react'
+import type { ReactElement } from 'react';
+import { use, useCallback, useEffect, useState } from 'react';
 import {
   Button,
   Empty,
@@ -10,44 +11,44 @@ import {
   message,
   Modal,
   Table,
-} from 'antd'
-import Link from 'next/link'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import Highlighter from 'react-highlight-words'
-import ExpandableText from '@/app/components/ExpandableText'
-import EditDocumentChunkModal from './components/EditChatbotDocumentChunkModal'
-import { AddDocumentChunkParams, SourceDocument } from '@koh/common'
-import { API } from '@/app/api'
-import ChatbotHelpTooltip from '../components/ChatbotHelpTooltip'
+} from 'antd';
+import Link from 'next/link';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import Highlighter from 'react-highlight-words';
+import ExpandableText from '@/app/components/ExpandableText';
+import EditDocumentChunkModal from './components/EditChatbotDocumentChunkModal';
+import type { AddDocumentChunkParams, SourceDocument } from '@koh/common';
+import { API } from '@/app/api';
+import ChatbotHelpTooltip from '../components/ChatbotHelpTooltip';
 
 interface FormValues {
-  content: string
-  source: string
-  pageNumber: string
-  name: string
+  content: string;
+  source: string;
+  pageNumber: string;
+  name: string;
 }
 
 interface ChatbotKnowledgeBaseProps {
-  params: Promise<{ cid: string }>
+  params: Promise<{ cid: string }>;
 }
 
 export default function ChatbotKnowledgeBase(
   props: ChatbotKnowledgeBaseProps,
 ): ReactElement {
-  const params = use(props.params)
-  const courseId = Number(params.cid)
-  const [documents, setDocuments] = useState<SourceDocument[]>([])
+  const params = use(props.params);
+  const courseId = Number(params.cid);
+  const [documents, setDocuments] = useState<SourceDocument[]>([]);
   const [filteredDocuments, setFilteredDocuments] = useState<SourceDocument[]>(
     [],
-  )
-  const [search, setSearch] = useState('')
+  );
+  const [search, setSearch] = useState('');
   const [editingRecord, setEditingRecord] = useState<SourceDocument | null>(
     null,
-  )
-  const [editRecordModalOpen, setEditRecordModalOpen] = useState(false)
-  const [form] = Form.useForm()
-  const [addDocChunkPopupVisible, setAddDocChunkPopupVisible] = useState(false)
-  const [dataLoading, setDataLoading] = useState(false)
+  );
+  const [editRecordModalOpen, setEditRecordModalOpen] = useState(false);
+  const [form] = Form.useForm();
+  const [addDocChunkPopupVisible, setAddDocChunkPopupVisible] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
 
   const addDocument = async (values: FormValues) => {
     const body: AddDocumentChunkParams = {
@@ -60,61 +61,61 @@ export default function ChatbotKnowledgeBase(
           ? { pageNumber: parseInt(values.pageNumber) }
           : undefined,
       },
-    }
+    };
     await API.chatbot.staffOnly
       .addDocumentChunk(courseId, body)
       .then((addedDocs) => {
         message.success(
           `Document${addedDocs.length > 1 ? 's' : ''} added successfully.`,
-        )
+        );
         if (addedDocs.length > 1) {
           message.info(
             `Document was too large to fit into one chunk. It was split into ${addedDocs.length} document chunks.`,
-          )
+          );
         }
-        fetchDocuments()
+        fetchDocuments();
       })
       .catch((e) => {
-        const errorMessage = getErrorMessage(e)
-        message.error('Failed to add document: ' + errorMessage)
-      })
-  }
+        const errorMessage = getErrorMessage(e);
+        message.error('Failed to add document: ' + errorMessage);
+      });
+  };
 
   const handleSearch = useCallback(
     (e: { target: { value: string } }) => {
-      const searchTerm = e.target.value
-      setSearch(searchTerm)
-      const filtered = filterDocuments(documents, searchTerm)
+      const searchTerm = e.target.value;
+      setSearch(searchTerm);
+      const filtered = filterDocuments(documents, searchTerm);
 
-      setFilteredDocuments(filtered)
+      setFilteredDocuments(filtered);
     },
     [documents],
-  )
+  );
 
   const fetchDocuments = useCallback(async () => {
     if (courseId) {
-      setDataLoading(true)
+      setDataLoading(true);
       await API.chatbot.staffOnly
         .getAllDocumentChunks(courseId)
         .then((response) => {
           response = response.map((doc) => ({
             ...doc,
             key: doc.id,
-          }))
-          setDocuments(response)
-          setFilteredDocuments(filterDocuments(response, search))
+          }));
+          setDocuments(response);
+          setFilteredDocuments(filterDocuments(response, search));
         })
         .catch((e) => {
-          const errorMessage = getErrorMessage(e)
-          message.error('Failed to load documents: ' + errorMessage)
-        })
+          const errorMessage = getErrorMessage(e);
+          message.error('Failed to load documents: ' + errorMessage);
+        });
     }
-    setDataLoading(false)
-  }, [courseId, setDocuments, setFilteredDocuments, search])
+    setDataLoading(false);
+  }, [courseId, setDocuments, setFilteredDocuments, search]);
 
   useEffect(() => {
-    fetchDocuments()
-  }, [fetchDocuments])
+    fetchDocuments();
+  }, [fetchDocuments]);
 
   const columns = [
     {
@@ -124,9 +125,9 @@ export default function ChatbotKnowledgeBase(
       width: 300,
       sorter: (a: SourceDocument, b: SourceDocument) => {
         if (a.metadata?.name && b.metadata?.name) {
-          return a.metadata.name.localeCompare(b.metadata.name)
+          return a.metadata.name.localeCompare(b.metadata.name);
         } else {
-          return 0
+          return 0;
         }
       },
       render: (text: string, record: SourceDocument) => (
@@ -190,11 +191,11 @@ export default function ChatbotKnowledgeBase(
                 cancelText: 'No',
                 onOk() {
                   if (!record.id) {
-                    return
+                    return;
                   }
-                  deleteDocument(record.id)
+                  deleteDocument(record.id);
                 },
-              })
+              });
             }}
           >
             Delete
@@ -202,25 +203,25 @@ export default function ChatbotKnowledgeBase(
         </div>
       ),
     },
-  ]
+  ];
 
   const showModal = (record: SourceDocument) => {
-    setEditingRecord(record)
-    setEditRecordModalOpen(true)
-  }
+    setEditingRecord(record);
+    setEditRecordModalOpen(true);
+  };
 
   const deleteDocument = async (documentId: string) => {
     await API.chatbot.staffOnly
       .deleteDocumentChunk(courseId, documentId)
       .then(() => {
-        fetchDocuments()
-        message.success('Document deleted successfully.')
+        fetchDocuments();
+        message.success('Document deleted successfully.');
       })
       .catch((e) => {
-        const errorMessage = getErrorMessage(e)
-        message.error('Failed to delete document: ' + errorMessage)
-      })
-  }
+        const errorMessage = getErrorMessage(e);
+        message.error('Failed to delete document: ' + errorMessage);
+      });
+  };
 
   return (
     <div className="m-auto my-5">
@@ -304,8 +305,8 @@ export default function ChatbotKnowledgeBase(
                   className="m-2"
                   key="cancel"
                   onClick={() => {
-                    form.resetFields() // clear form
-                    setAddDocChunkPopupVisible(false)
+                    form.resetFields(); // clear form
+                    setAddDocChunkPopupVisible(false);
                   }}
                 >
                   Cancel
@@ -360,34 +361,34 @@ export default function ChatbotKnowledgeBase(
           editingRecord={editingRecord}
           courseId={courseId}
           onCancel={() => {
-            setEditingRecord(null)
-            setEditRecordModalOpen(false)
+            setEditingRecord(null);
+            setEditRecordModalOpen(false);
           }}
           onSuccessfulUpdate={async (updatedDocs) => {
             if (updatedDocs.length > 1) {
               message.info(
                 `The text content was too large and it was split into ${updatedDocs.length} new document chunks.`,
                 6,
-              )
+              );
             }
-            await fetchDocuments()
-            setEditingRecord(null)
-            setEditRecordModalOpen(false)
+            await fetchDocuments();
+            setEditingRecord(null);
+            setEditRecordModalOpen(false);
           }}
         />
       )}
     </div>
-  )
+  );
 }
 
 const filterDocuments = (documents: SourceDocument[], search: string) => {
   return documents.filter((doc) => {
     const isNameMatch = doc.metadata?.name
       ? doc.metadata.name.toLowerCase().includes(search.toLowerCase())
-      : false
+      : false;
     const isContentMatch = doc.pageContent
       ? doc.pageContent.toLowerCase().includes(search.toLowerCase())
-      : false
-    return isNameMatch || isContentMatch
-  })
-}
+      : false;
+    return isNameMatch || isContentMatch;
+  });
+};

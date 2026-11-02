@@ -1,7 +1,8 @@
-import { TableOutputType } from '@koh/common'
-import React, { useMemo } from 'react'
-import { GenericInsightComponentProps } from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightComponent'
-import { Empty } from 'antd'
+import type { TableOutputType } from '@koh/common';
+import type React from 'react';
+import { useMemo } from 'react';
+import type { GenericInsightComponentProps } from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightComponent';
+import { Empty } from 'antd';
 
 const InsightTableComponent: React.FC<GenericInsightComponentProps> = ({
   insight,
@@ -10,7 +11,7 @@ const InsightTableComponent: React.FC<GenericInsightComponentProps> = ({
   const tableData = useMemo(
     () => insight.output as TableOutputType,
     [insight.output],
-  )
+  );
 
   return (
     <div className="flex flex-[1_1_30%] flex-col items-center justify-center gap-2 rounded-md bg-white p-4 shadow-lg transition-all">
@@ -33,10 +34,10 @@ const InsightTableComponent: React.FC<GenericInsightComponentProps> = ({
           </thead>
           <tbody>
             {tableData.data.map((row, index) => {
-              const cells: React.ReactNode[] = []
-              const keys = Object.keys(row)
+              const cells: React.ReactNode[] = [];
+              const keys = Object.keys(row);
               for (let i = 0; i < tableData.headerRow.length; i++) {
-                const cellKey = keys[i]
+                const cellKey = keys[i];
                 if (cellKey) {
                   cells.push(
                     <td
@@ -45,12 +46,12 @@ const InsightTableComponent: React.FC<GenericInsightComponentProps> = ({
                     >
                       {row[keys[i]]}
                     </td>,
-                  )
+                  );
                 } else {
-                  cells.push(<td key={index + '-' + i} className={'p-2'}></td>)
+                  cells.push(<td key={index + '-' + i} className={'p-2'}></td>);
                 }
               }
-              return <tr key={index}>{cells}</tr>
+              return <tr key={index}>{cells}</tr>;
             })}
           </tbody>
         </table>
@@ -60,7 +61,7 @@ const InsightTableComponent: React.FC<GenericInsightComponentProps> = ({
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default InsightTableComponent
+export default InsightTableComponent;

@@ -1,28 +1,28 @@
-import Modal from 'antd/lib/modal/Modal'
-import { Button, message, Card, Col, Row, Segmented } from 'antd'
-import {
+import Modal from 'antd/lib/modal/Modal';
+import { Button, message, Card, Col, Row, Segmented } from 'antd';
+import type {
   AllStudentAssignmentProgress,
   AssignmentProgressWithUser,
   ConfigTasks,
-} from '@koh/common'
-import { useEffect, useMemo, useState } from 'react'
+} from '@koh/common';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowDownOutlined,
   ArrowUpOutlined,
   ReloadOutlined,
-} from '@ant-design/icons'
-import { API } from '@/app/api'
-import UserAvatar from '@/app/components/UserAvatar'
-import { QuestionTagElement } from '../../../../components/QuestionTagElement'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+} from '@ant-design/icons';
+import { API } from '@/app/api';
+import UserAvatar from '@/app/components/UserAvatar';
+import { QuestionTagElement } from '../../../../components/QuestionTagElement';
+import { getErrorMessage } from '@/app/utils/generalUtils';
 
 interface AssignmentReportModalProps {
-  queueId: number
-  courseId: number
-  assignmentName: string | undefined
-  configTasks: ConfigTasks | undefined
-  open: boolean
-  onClose: () => void
+  queueId: number;
+  courseId: number;
+  assignmentName: string | undefined;
+  configTasks: ConfigTasks | undefined;
+  open: boolean;
+  onClose: () => void;
 }
 
 const AssignmentReportModal: React.FC<AssignmentReportModalProps> = ({
@@ -34,70 +34,70 @@ const AssignmentReportModal: React.FC<AssignmentReportModalProps> = ({
   onClose,
 }) => {
   const [allStudentAssignmentProgress, setAllStudentAssignmentProgress] =
-    useState<AllStudentAssignmentProgress>({})
-  const [refreshKey, setRefreshKey] = useState(0)
-  const [refreshDisabled, setRefreshDisabled] = useState(false)
-  const [refreshLoading, setRefreshLoading] = useState(false)
-  const [sortKey, setSortKey] = useState<'time' | 'name' | 'sid'>('time')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+    useState<AllStudentAssignmentProgress>({});
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshDisabled, setRefreshDisabled] = useState(false);
+  const [refreshLoading, setRefreshLoading] = useState(false);
+  const [sortKey, setSortKey] = useState<'time' | 'name' | 'sid'>('time');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const sortedEntries = useMemo(() => {
     const entries = Object.entries(allStudentAssignmentProgress) as [
       string,
       AssignmentProgressWithUser,
-    ][]
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    ][];
+
     return entries.sort(([_keyA, a], [_keyB, b]) => {
-      let result = 0
+      let result = 0;
 
       if (sortKey === 'time') {
-        result = 1
+        result = 1;
       } else if (sortKey === 'name') {
         if (!a.userDetails.name || !b.userDetails.name) {
-          result = 0
+          result = 0;
         } else {
-          result = a.userDetails.name.localeCompare(b.userDetails.name)
+          result = a.userDetails.name.localeCompare(b.userDetails.name);
         }
       } else if (sortKey === 'sid') {
         if (!a.userDetails.sid || !b.userDetails.sid) {
-          result = 0
+          result = 0;
         } else {
-          result = a.userDetails.sid - b.userDetails.sid
+          result = a.userDetails.sid - b.userDetails.sid;
         }
       }
 
-      return sortOrder === 'asc' ? result : -result
-    })
-  }, [allStudentAssignmentProgress, sortKey, sortOrder])
+      return sortOrder === 'asc' ? result : -result;
+    });
+  }, [allStudentAssignmentProgress, sortKey, sortOrder]);
 
   useEffect(() => {
     if (open && assignmentName) {
-      setRefreshLoading(true)
+      setRefreshLoading(true);
       API.studentTaskProgress
         .getAllAssignmentProgressForQueue(queueId, courseId, assignmentName)
         .then((response) => {
-          setAllStudentAssignmentProgress(response)
+          setAllStudentAssignmentProgress(response);
           if (refreshKey > 0) {
-            message.success('Assignment Progress Loaded')
+            message.success('Assignment Progress Loaded');
           }
         })
         .catch((error) => {
-          const errorMessage = getErrorMessage(error)
-          message.error('Failed to load assignment progress:' + errorMessage)
+          const errorMessage = getErrorMessage(error);
+          message.error('Failed to load assignment progress:' + errorMessage);
         })
         .finally(() => {
-          setRefreshLoading(false)
-        })
+          setRefreshLoading(false);
+        });
     }
-  }, [open, refreshKey, queueId, courseId, assignmentName])
+  }, [open, refreshKey, queueId, courseId, assignmentName]);
 
   const handleRefresh = () => {
-    setRefreshKey((prevKey) => prevKey + 1)
-    setRefreshDisabled(true)
+    setRefreshKey((prevKey) => prevKey + 1);
+    setRefreshDisabled(true);
     setTimeout(() => {
-      setRefreshDisabled(false)
-    }, 1500)
-  }
+      setRefreshDisabled(false);
+    }, 1500);
+  };
   return (
     <Modal
       title={
@@ -168,14 +168,14 @@ const AssignmentReportModal: React.FC<AssignmentReportModalProps> = ({
                             taskKey
                           ] &&
                           studentDetailsAndProgress.assignmentProgress[taskKey]
-                            ?.isDone
+                            ?.isDone;
                         return (
                           <QuestionTagElement
                             key={index}
                             tagName={`${taskValue.short_display_name} `}
                             tagColor={isTaskDone ? '#77e093' : '#f0f0f0'}
                           />
-                        )
+                        );
                       },
                     )}
                 </Row>
@@ -204,7 +204,7 @@ const AssignmentReportModal: React.FC<AssignmentReportModalProps> = ({
         ))}
       </div>
     </Modal>
-  )
-}
+  );
+};
 
-export default AssignmentReportModal
+export default AssignmentReportModal;

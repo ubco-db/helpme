@@ -1,13 +1,13 @@
-import { Message } from '@koh/common'
+import type { Message } from '@koh/common';
 
 export interface ChatbotQToConvertToAnytimeQ {
-  messages: Message[]
-  selectedAgentName?: string
+  messages: Message[];
+  selectedAgentName?: string;
 }
 
 export const chatbotStartingMessageCourse =
-  'Hello, how can I assist you? I can help with anything course related.'
+  'Hello, how can I assist you? I can help with anything course related.';
 export const chatbotStartingMessageSystem =
-  'Hello, how can I assist you? I can help with anything related to the HelpMe system. You can also leave feedback here.'
+  'Hello, how can I assist you? I can help with anything related to the HelpMe system. You can also leave feedback here.';
 
-export type ChatbotQuestionType = 'System' | 'Course'
+export type ChatbotQuestionType = 'System' | 'Course';

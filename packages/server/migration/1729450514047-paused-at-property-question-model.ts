@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class pausedAtPropertyQuestionModel1729450514047
-  implements MigrationInterface
-{
+export class pausedAtPropertyQuestionModel1729450514047 implements MigrationInterface {
   name = 'pausedAtPropertyQuestionModel1729450514047';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

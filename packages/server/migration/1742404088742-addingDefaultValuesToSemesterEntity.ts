@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class addingDefaultValuesToSemesterEntity1742404088742
-  implements MigrationInterface
-{
+export class addingDefaultValuesToSemesterEntity1742404088742 implements MigrationInterface {
   name = 'addingDefaultValuesToSemesterEntity1742404088742';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

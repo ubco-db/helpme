@@ -1,41 +1,34 @@
-import {
-  Fragment,
-  ReactElement,
-  SetStateAction,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
-import { Badge, Button, Card, message, Space } from 'antd'
-import UserAvatar from '@/app/components/UserAvatar'
-import TextArea from 'antd/es/input/TextArea'
-import { API } from '@/app/api'
-import { useQueueChat } from '@/app/hooks/useQueueChat'
-import { CloseOutlined } from '@ant-design/icons'
-import { Tooltip } from 'antd'
-import { cn } from '@/app/utils/generalUtils'
-import { MessageCount } from './QueueChats'
+import type { ReactElement, SetStateAction } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { Badge, Button, Card, message, Space } from 'antd';
+import UserAvatar from '@/app/components/UserAvatar';
+import TextArea from 'antd/es/input/TextArea';
+import { API } from '@/app/api';
+import { useQueueChat } from '@/app/hooks/useQueueChat';
+import { CloseOutlined } from '@ant-design/icons';
+import { Tooltip } from 'antd';
+import { cn } from '@/app/utils/generalUtils';
+import type { MessageCount } from './QueueChats';
 
 interface QueueChatProps {
-  queueId: number
-  questionId: number
-  staffId: number
-  isMobile: boolean
-  hidden: boolean
-  bubbleHidden: boolean
-  isStaff: boolean
-  messageCounts: Record<string, MessageCount>
+  queueId: number;
+  questionId: number;
+  staffId: number;
+  isMobile: boolean;
+  hidden: boolean;
+  bubbleHidden: boolean;
+  isStaff: boolean;
+  messageCounts: Record<string, MessageCount>;
   setMessageCounts: (
     messageCounts: SetStateAction<Record<string, MessageCount>>,
-  ) => void
-  isChatbotOpen?: boolean
-  onOpen?: () => void
-  onClose?: () => void
-  disableTheButton?: boolean // used to disable the onClick and hover effects of the button
-  className?: string
-  style?: React.CSSProperties
-  showNameTooltip?: boolean
+  ) => void;
+  isChatbotOpen?: boolean;
+  onOpen?: () => void;
+  onClose?: () => void;
+  disableTheButton?: boolean; // used to disable the onClick and hover effects of the button
+  className?: string;
+  style?: React.CSSProperties;
+  showNameTooltip?: boolean;
 }
 
 const QueueChat: React.FC<QueueChatProps> = ({
@@ -54,84 +47,84 @@ const QueueChat: React.FC<QueueChatProps> = ({
   isChatbotOpen = false,
   showNameTooltip,
   onOpen = () => {
-    return
+    return;
   },
   onClose = () => {
-    return
+    return;
   },
 }): ReactElement => {
-  const [isOpen, setIsOpen] = useState<boolean>(false)
-  const [input, setInput] = useState<string>('')
-  const [isLoading, setIsLoading] = useState<boolean>(false)
-  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [input, setInput] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const {
     queueChatData,
     queueChatError,
     mutateQueueChat,
     newMessageCount,
     resetNewMessageCount,
-  } = useQueueChat(queueId, questionId, staffId)
+  } = useQueueChat(queueId, questionId, staffId);
 
   const openChat = useCallback(() => {
-    setIsOpen(true)
-    resetNewMessageCount()
-    onOpen()
-  }, [onOpen, resetNewMessageCount, setIsOpen])
+    setIsOpen(true);
+    resetNewMessageCount();
+    onOpen();
+  }, [onOpen, resetNewMessageCount, setIsOpen]);
 
   const closeChat = useCallback(() => {
-    setIsOpen(false)
-    resetNewMessageCount()
-    onClose()
-  }, [onClose, resetNewMessageCount, setIsOpen])
+    setIsOpen(false);
+    resetNewMessageCount();
+    onClose();
+  }, [onClose, resetNewMessageCount, setIsOpen]);
 
-  const messagesEndRef = useRef<HTMLDivElement | null>(null) // This handles auto scrolling
+  const messagesEndRef = useRef<HTMLDivElement | null>(null); // This handles auto scrolling
   // To always auto scroll to the bottom of the page when new messages are added
   useEffect(() => {
     if (messagesEndRef.current && (isOpen || newMessageCount > 0)) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [isOpen, newMessageCount])
+  }, [isOpen, newMessageCount]);
 
   // To handle new message events
   useEffect(() => {
     if (newMessageCount == 0 || isOpen) {
-      return
+      return;
     }
     if (!isMobile) {
       // This is for desktop's default behavior (auto open the chat) -- mobile has css to handle this
-      openChat()
+      openChat();
     } else {
-      const chatId = `${questionId}-${staffId}`
+      const chatId = `${questionId}-${staffId}`;
       if (newMessageCount !== messageCounts[chatId]?.newMessages) {
         setMessageCounts({
           // For mobile "view chats" button in queue page to know there are new messages
           ...messageCounts,
           [chatId]: { newMessages: newMessageCount },
-        })
+        });
       }
     }
-  }, [isMobile, newMessageCount, openChat, isOpen])
+  }, [isMobile, newMessageCount, openChat, isOpen]);
 
   const sendMessage = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     if (questionId) {
       await API.queueChats
         .sendMessage(queueId, questionId, staffId, input)
         .then(async () => {
-          await mutateQueueChat()
-          setInput('')
+          await mutateQueueChat();
+          setInput('');
         })
         .catch((e) => {
-          message.error(e)
+          message.error(e);
         })
         .finally(() => {
-          setIsLoading(false)
-        })
+          setIsLoading(false);
+        });
     }
-  }
+  };
 
   if (!queueChatData || queueChatError) {
-    return <></>
+    return <></>;
   }
 
   return isOpen ? (
@@ -246,7 +239,7 @@ const QueueChat: React.FC<QueueChatProps> = ({
                       </div>
                     )}
                   </Fragment>
-                )
+                );
               })}
             <div ref={messagesEndRef} />
           </div>
@@ -262,9 +255,9 @@ const QueueChat: React.FC<QueueChatProps> = ({
                 placeholder={`Message ${isStaff ? `${queueChatData.student.firstName} ${queueChatData.student.lastName ?? ''}` : `${queueChatData.staff.firstName} ${queueChatData.staff.lastName ?? ''}`}...`}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
+                    e.preventDefault();
                     if (input.trim().length > 0 && !isLoading) {
-                      sendMessage()
+                      sendMessage();
                     }
                   }
                 }}
@@ -352,9 +345,9 @@ const QueueChat: React.FC<QueueChatProps> = ({
             }
             onClick={() => {
               if (disableTheButton) {
-                return
+                return;
               }
-              openChat()
+              openChat();
               if (!isMobile) {
                 // if not on mobile, auto-focus the input right away.
                 // I don't want to focus it on mobile since that would cause the
@@ -362,15 +355,15 @@ const QueueChat: React.FC<QueueChatProps> = ({
                 // just want to read your messages
                 setTimeout(() => {
                   if (inputRef.current) {
-                    inputRef.current.focus()
+                    inputRef.current.focus();
                   }
-                }, 100)
+                }, 100);
               }
             }}
           />
         </Badge>
       </Tooltip>
     </div>
-  )
-}
-export default QueueChat
+  );
+};
+export default QueueChat;

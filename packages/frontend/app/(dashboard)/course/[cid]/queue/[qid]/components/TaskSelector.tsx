@@ -1,24 +1,25 @@
-import React, { useCallback, useEffect, useState } from 'react'
-import { CheckOutlined } from '@ant-design/icons'
-import {
+import type React from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { CheckOutlined } from '@ant-design/icons';
+import type {
   ConfigTasks,
   ConfigTasksWithAssignmentProgress,
   StudentAssignmentProgress,
   Task,
   TaskTree,
-  transformIntoTaskTree,
-} from '@koh/common'
-import { getBrightness } from '@/app/utils/generalUtils'
-import tinycolor from 'tinycolor2'
+} from '@koh/common';
+import { transformIntoTaskTree } from '@koh/common';
+import { getBrightness } from '@/app/utils/generalUtils';
+import tinycolor from 'tinycolor2';
 
 interface CheckableTaskProps {
-  task: Task
-  taskId: string
-  onChange: (task: string, checked: boolean) => void
-  checked: boolean
-  onMouseEnterAndFocus: (task: string, isHovered: boolean) => void
-  onMouseLeaveAndBlur: () => void
-  isHovered: boolean
+  task: Task;
+  taskId: string;
+  onChange: (task: string, checked: boolean) => void;
+  checked: boolean;
+  onMouseEnterAndFocus: (task: string, isHovered: boolean) => void;
+  onMouseLeaveAndBlur: () => void;
+  isHovered: boolean;
 }
 
 /**
@@ -33,42 +34,42 @@ const CheckableTask: React.FC<CheckableTaskProps> = ({
   onMouseLeaveAndBlur,
   isHovered,
 }) => {
-  const taskName = task.display_name ? task.display_name : taskId
-  const taskColor = task.color_hex ? task.color_hex : '#f0f0f0'
-  const disabled = !!task.isDone
+  const taskName = task.display_name ? task.display_name : taskId;
+  const taskColor = task.color_hex ? task.color_hex : '#f0f0f0';
+  const disabled = !!task.isDone;
 
   const textColor = checked
     ? getBrightness(taskColor) < 128
       ? 'white'
       : 'black'
-    : 'gray'
+    : 'gray';
 
   const handleClick = () => {
-    if (!disabled) onChange(taskId, !checked)
-  }
+    if (!disabled) onChange(taskId, !checked);
+  };
 
   // for making it so you can press enter or space to toggle it
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (!disabled) {
       if (event.key === 'Enter' || event.key === ' ') {
-        handleClick()
+        handleClick();
       }
     }
-  }
+  };
 
   // for applying hover and focus styles
   const handleMouseEnter = () => {
-    if (!disabled) onMouseEnterAndFocus(taskId, checked)
-  }
+    if (!disabled) onMouseEnterAndFocus(taskId, checked);
+  };
   const handleMouseLeave = () => {
-    if (!disabled) onMouseLeaveAndBlur()
-  }
+    if (!disabled) onMouseLeaveAndBlur();
+  };
   const handleFocus = () => {
-    if (!disabled) onMouseEnterAndFocus(taskId, checked)
-  }
+    if (!disabled) onMouseEnterAndFocus(taskId, checked);
+  };
   const handleBlur = () => {
-    if (!disabled) onMouseLeaveAndBlur()
-  }
+    if (!disabled) onMouseLeaveAndBlur();
+  };
 
   return (
     <div
@@ -127,17 +128,17 @@ const CheckableTask: React.FC<CheckableTaskProps> = ({
         />
       )}
     </div>
-  )
-}
+  );
+};
 
 interface TaskSelectorProps {
-  studentAssignmentProgress: StudentAssignmentProgress | undefined
-  configTasks: ConfigTasks
-  onChange?: (newSelectedTasks: string[]) => void
-  value?: string[]
-  className?: string
-  ariaLabel?: string
-  ariaLabelledBy?: string
+  studentAssignmentProgress: StudentAssignmentProgress | undefined;
+  configTasks: ConfigTasks;
+  onChange?: (newSelectedTasks: string[]) => void;
+  value?: string[];
+  className?: string;
+  ariaLabel?: string;
+  ariaLabelledBy?: string;
 }
 
 /**
@@ -152,68 +153,68 @@ const TaskSelector: React.FC<TaskSelectorProps> = ({
   ariaLabel,
   ariaLabelledBy,
 }) => {
-  const [taskTree, setTaskTree] = useState<TaskTree>({} as TaskTree)
+  const [taskTree, setTaskTree] = useState<TaskTree>({} as TaskTree);
 
-  const [selectedTasks, setSelectedTasks] = useState<string[]>(value || [])
+  const [selectedTasks, setSelectedTasks] = useState<string[]>(value || []);
 
   // if either studentAssignmentProgress or configTasks changes, recompute the taskTree and reset selected tasks
   useEffect(() => {
     // First, assemble a tree data structure that will allow us to easily find the tasks that are prerequisites for each task.
     // This turns all the preconditions into object references instead of strings
     const configTasksCopy: ConfigTasksWithAssignmentProgress =
-      structuredClone(configTasks) // Create a copy of configTasks (since the function will mutate it)
+      structuredClone(configTasks); // Create a copy of configTasks (since the function will mutate it)
     // For each task that is marked as done, give it the isDone = true attribute
     if (studentAssignmentProgress) {
       for (const [taskKey, taskValue] of Object.entries(
         studentAssignmentProgress,
       )) {
         if (taskValue && taskValue.isDone && configTasksCopy[taskKey]) {
-          configTasksCopy[taskKey].isDone = true
+          configTasksCopy[taskKey].isDone = true;
         }
       }
     }
-    setTaskTree(transformIntoTaskTree(configTasksCopy))
-    setSelectedTasks(value || [])
-  }, [configTasks, studentAssignmentProgress, value])
+    setTaskTree(transformIntoTaskTree(configTasksCopy));
+    setSelectedTasks(value || []);
+  }, [configTasks, studentAssignmentProgress, value]);
 
   const handleTaskClick = useCallback(
     (taskId: string, checked: boolean) => {
-      const newSelectedTasks = [...selectedTasks]
-      const newTaskTree = { ...taskTree } // just to set the .checked attribute to true/false (needed for hovering effects)
+      const newSelectedTasks = [...selectedTasks];
+      const newTaskTree = { ...taskTree }; // just to set the .checked attribute to true/false (needed for hovering effects)
 
-      const checkStatus = { wasThereIncompleteBlockingTask: false } // need to make wasThereIncompleteBlockingTask an object so that it can be passed by reference up the stack
+      const checkStatus = { wasThereIncompleteBlockingTask: false }; // need to make wasThereIncompleteBlockingTask an object so that it can be passed by reference up the stack
 
       const checkPreconditions = (
         taskID: string,
         checkStatus: {
-          wasThereIncompleteBlockingTask: boolean
+          wasThereIncompleteBlockingTask: boolean;
         },
       ) => {
-        const task: Task = taskTree[taskID]
+        const task: Task = taskTree[taskID];
 
         // Bubbles down until it hits a task whose precondition is null
         if (task.precondition) {
-          checkPreconditions(task.precondition.taskId, checkStatus)
+          checkPreconditions(task.precondition.taskId, checkStatus);
         }
         // Marks task as checked and bubbles back up
         if (!checkStatus.wasThereIncompleteBlockingTask) {
           if (!newSelectedTasks.includes(taskID)) {
-            task.checked = true
-            newSelectedTasks.push(taskID)
+            task.checked = true;
+            newSelectedTasks.push(taskID);
           }
           if (task.blocking && !task.isDone) {
             // if the task is blocking and not done, don't check any dependent tasks as it bubbles up
-            console.log('blocking task not done') // leaving this here for now, maybe in the future we can give a message to the user
-            checkStatus.wasThereIncompleteBlockingTask = true
+            console.log('blocking task not done'); // leaving this here for now, maybe in the future we can give a message to the user
+            checkStatus.wasThereIncompleteBlockingTask = true;
           }
         }
-      }
+      };
 
       const removeTaskAndDependents = (taskID: string) => {
-        const index = newSelectedTasks.indexOf(taskID)
+        const index = newSelectedTasks.indexOf(taskID);
         if (index > -1) {
-          newSelectedTasks.splice(index, 1)
-          taskTree[taskID].checked = false
+          newSelectedTasks.splice(index, 1);
+          taskTree[taskID].checked = false;
         }
         // Remove dependent tasks
         for (const task in taskTree) {
@@ -221,84 +222,84 @@ const TaskSelector: React.FC<TaskSelectorProps> = ({
             taskTree[task].precondition &&
             taskTree[task].precondition?.taskId === taskID
           ) {
-            removeTaskAndDependents(task)
+            removeTaskAndDependents(task);
           }
         }
-      }
+      };
 
       // if the task is being checked, check all preconditions as well
       if (checked) {
-        checkPreconditions(taskId, checkStatus)
+        checkPreconditions(taskId, checkStatus);
       } else {
-        removeTaskAndDependents(taskId)
+        removeTaskAndDependents(taskId);
       }
 
-      setSelectedTasks(newSelectedTasks)
-      onChange?.(newSelectedTasks)
-      setTaskTree(newTaskTree)
+      setSelectedTasks(newSelectedTasks);
+      onChange?.(newSelectedTasks);
+      setTaskTree(newTaskTree);
     },
     [taskTree, selectedTasks, onChange],
-  )
+  );
 
-  const [hoveredTasks, setHoveredTasks] = useState<string[]>([])
+  const [hoveredTasks, setHoveredTasks] = useState<string[]>([]);
 
   // basically the same logic as handleTaskClick, but for hovering instead.
   const handleHover = useCallback(
     (taskId: string, isChecked: boolean) => {
-      const newHoveredTasks = [...hoveredTasks]
-      const checkStatus = { wasThereIncompleteBlockingTask: false } // need to make wasThereIncompleteBlockingTask an object so that it can be passed by reference up the stack
+      const newHoveredTasks = [...hoveredTasks];
+      const checkStatus = { wasThereIncompleteBlockingTask: false }; // need to make wasThereIncompleteBlockingTask an object so that it can be passed by reference up the stack
 
       const hoverPreconditions = (
         taskID: string,
         checkStatus: {
-          wasThereIncompleteBlockingTask: boolean
+          wasThereIncompleteBlockingTask: boolean;
         },
       ) => {
-        const task: Task = taskTree[taskID]
+        const task: Task = taskTree[taskID];
         // Bubbles down until it hits a task whose precondition is null
         if (task.precondition) {
-          hoverPreconditions(task.precondition.taskId, checkStatus)
+          hoverPreconditions(task.precondition.taskId, checkStatus);
         }
 
         // Marks task as hovered and bubbles back up
         if (!checkStatus.wasThereIncompleteBlockingTask) {
           if (!newHoveredTasks.includes(taskID)) {
-            newHoveredTasks.push(taskID)
+            newHoveredTasks.push(taskID);
           }
           if (task.blocking && !task.isDone) {
             // if the task is blocking and not done, don't hover any dependent tasks as it bubbles up
-            checkStatus.wasThereIncompleteBlockingTask = true
+            checkStatus.wasThereIncompleteBlockingTask = true;
           }
         }
-      }
+      };
 
       const hoverTaskAndDependents = (taskID: string) => {
-        newHoveredTasks.push(taskID)
+        newHoveredTasks.push(taskID);
         for (const task in taskTree) {
           if (
             taskTree[task].precondition &&
             taskTree[task].precondition?.taskId === taskID &&
             taskTree[task].checked
           ) {
-            hoverTaskAndDependents(task)
+            hoverTaskAndDependents(task);
           }
         }
-      }
+      };
 
       // if the task has been checked, only hover the task and all dependents. Else hover the task and all the preconditions
       if (isChecked) {
-        hoverTaskAndDependents(taskId)
+        hoverTaskAndDependents(taskId);
       } else {
-        hoverPreconditions(taskId, checkStatus)
+        hoverPreconditions(taskId, checkStatus);
       }
-      setHoveredTasks(newHoveredTasks)
+      setHoveredTasks(newHoveredTasks);
     },
     [taskTree, hoveredTasks],
-  )
+  );
 
   const handleUnHover = () => {
-    setHoveredTasks([])
-  }
+    setHoveredTasks([]);
+  };
 
   return (
     <div
@@ -320,7 +321,7 @@ const TaskSelector: React.FC<TaskSelectorProps> = ({
         />
       ))}
     </div>
-  )
-}
+  );
+};
 
-export default TaskSelector
+export default TaskSelector;

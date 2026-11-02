@@ -1,11 +1,12 @@
-import { DateRangeType } from '@koh/common'
-import React, { useState } from 'react'
-import { DatePicker, Select } from 'antd'
-import dayjs from 'dayjs'
-import FilterWrapper from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/FilterWrapper'
+import type { DateRangeType } from '@koh/common';
+import type React from 'react';
+import { useState } from 'react';
+import { DatePicker, Select } from 'antd';
+import dayjs from 'dayjs';
+import FilterWrapper from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/FilterWrapper';
 
-const { RangePicker } = DatePicker
-const { Option } = Select
+const { RangePicker } = DatePicker;
+const { Option } = Select;
 
 export type DateFilterOptionType =
   | 'Past_Week'
@@ -14,8 +15,8 @@ export type DateFilterOptionType =
   | 'Past_6_Months'
   | 'Past_Year'
   | 'All_Time'
-  | 'Custom'
-type DateSelectType = 'date' | 'week' | 'month' | 'year'
+  | 'Custom';
+type DateSelectType = 'date' | 'week' | 'month' | 'year';
 
 const DateFilterOptions: { [key in DateFilterOptionType]: string } = {
   Past_Week: 'Past Week',
@@ -25,22 +26,22 @@ const DateFilterOptions: { [key in DateFilterOptionType]: string } = {
   Past_Year: 'Past Year',
   All_Time: 'All Time',
   Custom: 'Custom',
-}
+};
 
 const DateSelectOptions: { [key in DateSelectType]: string } = {
   date: 'Date',
   week: 'Week',
   month: 'Month',
   year: 'Year',
-}
+};
 
 type DateOptionFilterProps = {
-  setRange: (value: DateRangeType) => void
-  allowNone?: boolean
-  dontShowTitle?: boolean
-  customOnly?: boolean
-  dontIncludeDateSelectOptions?: boolean
-}
+  setRange: (value: DateRangeType) => void;
+  allowNone?: boolean;
+  dontShowTitle?: boolean;
+  customOnly?: boolean;
+  dontIncludeDateSelectOptions?: boolean;
+};
 
 const DateOptionFilter: React.FC<DateOptionFilterProps> = ({
   setRange,
@@ -51,51 +52,51 @@ const DateOptionFilter: React.FC<DateOptionFilterProps> = ({
 }) => {
   const [selectedOption, setSelectedOption] = useState<DateFilterOptionType>(
     customOnly ? 'Custom' : 'All_Time',
-  )
-  const [selectedType, setSelectedType] = useState<DateSelectType>('date')
+  );
+  const [selectedType, setSelectedType] = useState<DateSelectType>('date');
 
   const getDateRange = (option: DateFilterOptionType) => {
     if (option == 'Custom') {
-      return
+      return;
     }
 
-    const currentMillis = Date.now()
+    const currentMillis = Date.now();
 
     const dateRange: DateRangeType = {
       start: new Date(0).toString(),
       end: new Date(currentMillis).toString(),
-    }
+    };
 
     switch (option) {
       case 'Past_Week':
-        dateRange.start = new Date(currentMillis - 7 * 86400000).toString()
-        break
+        dateRange.start = new Date(currentMillis - 7 * 86400000).toString();
+        break;
       case 'Past_Month':
-        dateRange.start = new Date(currentMillis - 31 * 86400000).toString()
-        break
+        dateRange.start = new Date(currentMillis - 31 * 86400000).toString();
+        break;
       case 'Past_3_Months':
-        dateRange.start = new Date(currentMillis - 93 * 86400000).toString()
-        break
+        dateRange.start = new Date(currentMillis - 93 * 86400000).toString();
+        break;
       case 'Past_6_Months':
-        dateRange.start = new Date(currentMillis - 186 * 86400000).toString()
-        break
+        dateRange.start = new Date(currentMillis - 186 * 86400000).toString();
+        break;
       case 'Past_Year':
-        dateRange.start = new Date(currentMillis - 392 * 86400000).toString()
-        break
+        dateRange.start = new Date(currentMillis - 392 * 86400000).toString();
+        break;
     }
 
-    return dateRange
-  }
+    return dateRange;
+  };
 
   const getCustomDateRange = (start: Date, end: Date) => {
-    return { start: start.toString(), end: end.toString() }
-  }
+    return { start: start.toString(), end: end.toString() };
+  };
 
   const onRangeChange = (_dates: any, dateStrings: [string, string]) => {
     setRange(
       getCustomDateRange(new Date(dateStrings[0]), new Date(dateStrings[1])),
-    )
-  }
+    );
+  };
 
   const filter = () => {
     return (
@@ -105,17 +106,17 @@ const DateOptionFilter: React.FC<DateOptionFilterProps> = ({
             className="min-w-32 flex-grow"
             value={selectedOption}
             onChange={(value) => {
-              setSelectedOption(value)
+              setSelectedOption(value);
               if ((value as string) == 'None') {
                 setRange({
                   start: '',
                   end: '',
-                })
-                return
+                });
+                return;
               }
-              const dateRange = getDateRange(value)
+              const dateRange = getDateRange(value);
               if (dateRange != undefined) {
-                setRange(dateRange)
+                setRange(dateRange);
               }
             }}
           >
@@ -150,14 +151,14 @@ const DateOptionFilter: React.FC<DateOptionFilterProps> = ({
           </div>
         )}
       </div>
-    )
-  }
+    );
+  };
 
   if (dontShowTitle) {
-    return filter()
+    return filter();
   }
 
-  return <FilterWrapper title={'Timeframe'}>{filter()}</FilterWrapper>
-}
+  return <FilterWrapper title={'Timeframe'}>{filter()}</FilterWrapper>;
+};
 
-export default DateOptionFilter
+export default DateOptionFilter;

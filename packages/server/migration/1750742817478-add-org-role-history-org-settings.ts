@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddOrgRoleHistoryOrgSettings1750742817478
-  implements MigrationInterface
-{
+export class AddOrgRoleHistoryOrgSettings1750742817478 implements MigrationInterface {
   name = 'AddOrgRoleHistoryOrgSettings1750742817478';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

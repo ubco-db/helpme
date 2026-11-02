@@ -1,41 +1,37 @@
-import { useLocalStorage } from '@/app/hooks/useLocalStorage'
-import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
-import {
-  OpenQuestionStatus,
-  Question,
-  QuestionLocations,
-  QuestionTypeParams,
-} from '@koh/common'
-import { Alert, Form, Modal, Segmented } from 'antd'
-import { QuestionTagSelector } from '../../../../components/QuestionTagElement'
-import { toOrdinal } from '@/app/utils/generalUtils'
-import TextArea from 'antd/es/input/TextArea'
-import { useEffect, useState } from 'react'
+import { useLocalStorage } from '@/app/hooks/useLocalStorage';
+import { useQuestionTypes } from '@/app/hooks/useQuestionTypes';
+import type { Question, QuestionTypeParams } from '@koh/common';
+import { OpenQuestionStatus, QuestionLocations } from '@koh/common';
+import { Alert, Form, Modal, Segmented } from 'antd';
+import { QuestionTagSelector } from '../../../../components/QuestionTagElement';
+import { toOrdinal } from '@/app/utils/generalUtils';
+import TextArea from 'antd/es/input/TextArea';
+import { useEffect, useState } from 'react';
 
 interface CreateQuestionModalProps {
-  queueId: number
-  courseId: number
-  isQueueHybrid: boolean
-  open: boolean
-  leaveQueue: () => Promise<void>
+  queueId: number;
+  courseId: number;
+  isQueueHybrid: boolean;
+  open: boolean;
+  leaveQueue: () => Promise<void>;
   finishQuestion: (
     text: string,
     questionTypes: QuestionTypeParams[] | undefined,
     location: QuestionLocations,
     isTaskQuestion: boolean,
     groupable: boolean,
-  ) => void
-  onCancel: () => void
-  question: Question | undefined
-  setIsJoinQueueModalLoading: (loading: boolean) => void
-  position?: number
-  minTags?: number
+  ) => void;
+  onCancel: () => void;
+  question: Question | undefined;
+  setIsJoinQueueModalLoading: (loading: boolean) => void;
+  position?: number;
+  minTags?: number;
 }
 
 interface FormValues {
-  questionTypesInput: number[]
-  questionText: string
-  location: QuestionLocations
+  questionTypesInput: number[];
+  questionText: string;
+  location: QuestionLocations;
 }
 
 const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
@@ -51,25 +47,25 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
   position,
   minTags = 0,
 }) => {
-  const drafting = question?.status === OpenQuestionStatus.Drafting
-  const helping = question?.status === OpenQuestionStatus.Helping
-  const [questionTypes] = useQuestionTypes(courseId, queueId)
-  const [isLeaveButtonLoading, setIsLeaveButtonLoading] = useState(false)
+  const drafting = question?.status === OpenQuestionStatus.Drafting;
+  const helping = question?.status === OpenQuestionStatus.Helping;
+  const [questionTypes] = useQuestionTypes(courseId, queueId);
+  const [isLeaveButtonLoading, setIsLeaveButtonLoading] = useState(false);
 
   const [
     storedDraftQuestion,
     setStoredDraftQuestion,
     deleteStoredDraftQuestion,
-  ] = useLocalStorage<FormValues>('draftQuestion', null)
+  ] = useLocalStorage<FormValues>('draftQuestion', null);
 
-  const [form] = Form.useForm()
+  const [form] = Form.useForm();
   const onFinish = (values: FormValues) => {
     const newQuestionTypeInput =
       values.questionTypesInput && questionTypes
         ? questionTypes.filter((questionType) =>
             values.questionTypesInput.includes(questionType.id),
           )
-        : []
+        : [];
 
     finishQuestion(
       values.questionText,
@@ -77,16 +73,16 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
       values.location,
       false, //isTaskQuestion
       false, //groupable
-    )
-    deleteStoredDraftQuestion()
-  }
+    );
+    deleteStoredDraftQuestion();
+  };
 
   useEffect(() => {
     if (open) {
       // Need to put this loading toggle inside the modal so that the Join Queue button stops loading once the modal is rendered
-      setIsJoinQueueModalLoading(false)
+      setIsJoinQueueModalLoading(false);
     }
-  }, [setIsJoinQueueModalLoading, open])
+  }, [setIsJoinQueueModalLoading, open]);
 
   return (
     <Modal
@@ -100,12 +96,12 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
         loading: isLeaveButtonLoading,
         onClick: async () => {
           if (drafting) {
-            setIsLeaveButtonLoading(true)
-            deleteStoredDraftQuestion()
-            await leaveQueue()
-            setIsLeaveButtonLoading(false)
+            setIsLeaveButtonLoading(true);
+            deleteStoredDraftQuestion();
+            await leaveQueue();
+            setIsLeaveButtonLoading(false);
           } else {
-            onCancel()
+            onCancel();
           }
         },
       }}
@@ -114,7 +110,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
       loading={!question}
       modalRender={(dom) => {
         if (!question) {
-          return <>{dom}</>
+          return <>{dom}</>;
         } else {
           return (
             <Form
@@ -136,14 +132,14 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
                     : QuestionLocations.Online,
               }}
               onValuesChange={(changedValues, values) => {
-                setStoredDraftQuestion(values)
+                setStoredDraftQuestion(values);
               }}
               clearOnDestroy
               onFinish={(values) => onFinish(values)}
             >
               {dom}
             </Form>
-          )
+          );
         }
       }}
     >
@@ -223,7 +219,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
         </Form.Item>
       )}
     </Modal>
-  )
-}
+  );
+};
 
-export default CreateQuestionModal
+export default CreateQuestionModal;

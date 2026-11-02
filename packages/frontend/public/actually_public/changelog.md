@@ -1,3 +1,14 @@
+## Version 1.10.7
+
+*Oct 12th, 2026*
+
+
+#### Improvements
+- Fixed issue where certain Chatbot queries were getting defaulted to a much smaller model for newly created courses. 
+
+***
+
+
 ## Version 1.10.6 
 
 *Oct 6th, 2026*

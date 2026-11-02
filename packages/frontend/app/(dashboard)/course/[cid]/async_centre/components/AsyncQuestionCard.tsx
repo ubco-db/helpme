@@ -1,48 +1,48 @@
-import { useEffect, useEffectEvent, useReducer, useState } from 'react'
-import { Button, Col, message, Row, Tag, Tooltip } from 'antd'
+import { useEffect, useEffectEvent, useReducer, useState } from 'react';
+import { Button, Col, message, Row, Tag, Tooltip } from 'antd';
+import type { AsyncQuestion } from '@koh/common';
 import {
-  AsyncQuestion,
   asyncQuestionStatus,
   asyncQuestionStatusDisplayMap as statusDisplayMap,
   parseThinkBlock,
   Role,
   ANONYMOUS_ANIMAL_AVATAR,
   getAnonAnimal,
-} from '@koh/common'
+} from '@koh/common';
 import {
   CheckCircleOutlined,
   DownOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
   UpOutlined,
-} from '@ant-design/icons'
-import { API } from '@/app/api'
-import UserAvatar from '@/app/components/UserAvatar'
-import { cn, getErrorMessage } from '@/app/utils/generalUtils'
-import { QuestionTagElement } from '../../components/QuestionTagElement'
-import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils'
-import TAAsyncQuestionCardButtons from './TAAsyncQuestionCardButtons'
-import StudentAsyncQuestionCardButtons from './StudentAsyncQuestionCardButtons'
-import { ArrowBigDown, ArrowBigUp } from 'lucide-react'
-import MarkdownCustom from '@/app/components/Markdown'
-import CommentSection from './CommentSection'
-import { getAvatarTooltip } from '../utils/commonAsyncFunctions'
-import styles from './AsyncQuestionCard.module.css'
+} from '@ant-design/icons';
+import { API } from '@/app/api';
+import UserAvatar from '@/app/components/UserAvatar';
+import { cn, getErrorMessage } from '@/app/utils/generalUtils';
+import { QuestionTagElement } from '../../components/QuestionTagElement';
+import { getAsyncWaitTime } from '@/app/utils/timeFormatUtils';
+import TAAsyncQuestionCardButtons from './TAAsyncQuestionCardButtons';
+import StudentAsyncQuestionCardButtons from './StudentAsyncQuestionCardButtons';
+import { ArrowBigDown, ArrowBigUp } from 'lucide-react';
+import MarkdownCustom from '@/app/components/Markdown';
+import CommentSection from './CommentSection';
+import { getAvatarTooltip } from '../utils/commonAsyncFunctions';
+import styles from './AsyncQuestionCard.module.css';
 import {
   AsyncQuestionCardUIReducer,
   initialUIState,
-} from './AsyncQuestionCardUIReducer'
-import { useCourseFeatures } from '@/app/hooks/useCourseFeatures'
+} from './AsyncQuestionCardUIReducer';
+import { useCourseFeatures } from '@/app/hooks/useCourseFeatures';
 
 interface AsyncQuestionCardProps {
-  question: AsyncQuestion
-  userCourseRole: Role
-  userId: number
-  courseId: number
-  mutateAsyncQuestions: () => void
-  showStudents: boolean
-  highlightCommentId?: number
-  className?: string
+  question: AsyncQuestion;
+  userCourseRole: Role;
+  userId: number;
+  courseId: number;
+  mutateAsyncQuestions: () => void;
+  showStudents: boolean;
+  highlightCommentId?: number;
+  className?: string;
 }
 
 const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
@@ -58,24 +58,24 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
   const [uiState, dispatch] = useReducer(
     AsyncQuestionCardUIReducer,
     initialUIState,
-  )
-  const [voteCount, setVoteCount] = useState(question.votesSum)
+  );
+  const [voteCount, setVoteCount] = useState(question.votesSum);
   const [thisUserThisQuestionVote, setThisUserThisQuestionVote] = useState(
     question.votes?.find((vote) => vote.userId === userId)?.vote,
-  )
-  const [satisfiedLoading, setSatisfiedLoading] = useState(false)
-  const [needsAttentionLoading, setNeedsAttentionLoading] = useState(false)
+  );
+  const [satisfiedLoading, setSatisfiedLoading] = useState(false);
+  const [needsAttentionLoading, setNeedsAttentionLoading] = useState(false);
   const shouldFlash =
     question.status === asyncQuestionStatus.AIAnswered &&
-    userId === question.creatorId
-  const courseFeatures = useCourseFeatures(courseId)
+    userId === question.creatorId;
+  const courseFeatures = useCourseFeatures(courseId);
 
   // make the card expanded if it is flashing (so they immediately see their answer)
   useEffect(() => {
     if (shouldFlash) {
-      dispatch({ type: 'EXPAND_QUESTION' })
+      dispatch({ type: 'EXPAND_QUESTION' });
     }
-  }, [shouldFlash])
+  }, [shouldFlash]);
 
   // When there's a highlightCommentId that belongs to this question, expand the card and scroll to the comment.
   // We want the useEffect to react to highlightCommentId, but not the rest of it (like we don't want the useEffect to re-run every time the question's comments change).
@@ -87,113 +87,113 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
         dispatch({
           type: 'SHOW_COMMENTS',
           numOfComments: question.comments.length,
-        })
+        });
         // find the comment elment and scroll to it after the comments are shown
         setTimeout(() => {
           const element = document.getElementById(
             `async-question-comment-${highlightCommentId}`,
-          )
-          element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        }, 300)
+          );
+          element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
       }
     },
-  )
+  );
   useEffect(() => {
     if (highlightCommentId) {
-      handleHighlightComment(highlightCommentId)
+      handleHighlightComment(highlightCommentId);
     }
-  }, [highlightCommentId])
+  }, [highlightCommentId]);
 
   const isStaff =
-    userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR
+    userCourseRole === Role.TA || userCourseRole === Role.PROFESSOR;
 
   // note: it is assumed that only students are creating questions. Staff creating questions will appear as anonymous (but their comments are not)
   const [isUserShown, setIsUserShown] = useState(
     (isStaff && showStudents) || !(question?.isAnonymous ?? true),
-  )
+  );
   useEffect(() => {
     setIsUserShown(
       (isStaff && showStudents) || !(question?.isAnonymous ?? true),
-    )
-  }, [isStaff, question.isAnonymous, showStudents])
+    );
+  }, [isStaff, question.isAnonymous, showStudents]);
 
-  const anonId = question.creator.anonId
-  const anonAnimal = getAnonAnimal(anonId)
+  const anonId = question.creator.anonId;
+  const anonAnimal = getAnonAnimal(anonId);
 
   const handleFeedback = async (resolved: boolean) => {
     const newstatus = resolved
       ? asyncQuestionStatus.AIAnsweredResolved
-      : asyncQuestionStatus.AIAnsweredNeedsAttention
+      : asyncQuestionStatus.AIAnsweredNeedsAttention;
     await API.asyncQuestions
       .studentUpdate(question.id, { status: newstatus })
       .then(() => {
-        mutateAsyncQuestions()
+        mutateAsyncQuestions();
         message.success(
           `Question has been marked as ${
             resolved ? 'resolved' : 'needing faculty attention'
           }.`,
-        )
+        );
       })
       .catch((e) => {
-        const errorMessage = getErrorMessage(e)
-        message.error('Failed to update question status:' + errorMessage)
-      })
-  }
+        const errorMessage = getErrorMessage(e);
+        message.error('Failed to update question status:' + errorMessage);
+      });
+  };
 
   const toggleComments = () => {
     // first expand the card, then after 0.3s (animation), expand the comments
     if (uiState.expandedState === 'collapsed') {
-      dispatch({ type: 'EXPAND_QUESTION' })
+      dispatch({ type: 'EXPAND_QUESTION' });
       setTimeout(() => {
         dispatch({
           type: 'SHOW_COMMENTS',
           numOfComments: question.comments.length,
-        })
-      }, 300)
+        });
+      }, 300);
     } else if (uiState.expandedState === 'expandedNoComments') {
       dispatch({
         type: 'SHOW_COMMENTS',
         numOfComments: question.comments.length,
-      })
+      });
     } else if (uiState.expandedState === 'expandedWithComments') {
       // hide the comments, but don't collapse the card right away
-      dispatch({ type: 'HIDE_COMMENTS' })
+      dispatch({ type: 'HIDE_COMMENTS' });
     }
-  }
+  };
 
   const toggleExpandQuestion = () => {
     if (uiState.expandedState === 'collapsed') {
-      dispatch({ type: 'EXPAND_QUESTION' })
+      dispatch({ type: 'EXPAND_QUESTION' });
     } else if (uiState.expandedState === 'expandedNoComments') {
       // after the max-height transition is finished on expanding the text, truncate it to show a `...`
       // truncating the questionText before the animation is finished will cause the animation to jump
-      dispatch({ type: 'COLLAPSE_QUESTION' })
+      dispatch({ type: 'COLLAPSE_QUESTION' });
       setTimeout(() => {
-        dispatch({ type: 'TRUNCATE_TEXT' })
-      }, 300)
+        dispatch({ type: 'TRUNCATE_TEXT' });
+      }, 300);
     }
-  }
+  };
 
   const handleVote = async (questionId: number, vote: number) => {
-    const resp = await API.asyncQuestions.vote(questionId, vote)
-    setVoteCount(resp.questionSumVotes)
-    setThisUserThisQuestionVote(resp.vote)
-  }
+    const resp = await API.asyncQuestions.vote(questionId, vote);
+    setVoteCount(resp.questionSumVotes);
+    setThisUserThisQuestionVote(resp.vote);
+  };
 
   const avatarTooltipTitle = getAvatarTooltip(
     isStaff,
     showStudents,
     userId === question.creatorId ? 'you' : Role.STUDENT,
-  )
+  );
 
   // Note that this logic is also in asyncQuestion.service.ts
   const questionIsPublic =
     (courseFeatures?.asyncCentreAuthorPublic ?? false)
       ? (question.staffSetVisible == null && question.authorSetVisible) ||
         question.staffSetVisible
-      : question.staffSetVisible
+      : question.staffSetVisible;
 
-  const { thinkText, cleanAnswer } = parseThinkBlock(question.answerText ?? '')
+  const { thinkText, cleanAnswer } = parseThinkBlock(question.answerText ?? '');
 
   return (
     <div
@@ -224,9 +224,9 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
               />
             }
             onClick={(e) => {
-              e.stopPropagation() // Prevent card expansion
+              e.stopPropagation(); // Prevent card expansion
               if (question.id) {
-                handleVote(question.id, 1)
+                handleVote(question.id, 1);
               }
             }}
           />
@@ -245,9 +245,9 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
               />
             }
             onClick={(e) => {
-              e.stopPropagation() // Prevent card expansion
+              e.stopPropagation(); // Prevent card expansion
               if (question.id) {
-                handleVote(question.id, -1)
+                handleVote(question.id, -1);
               }
             }}
           />
@@ -275,8 +275,8 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                     anonymous
                     onClick={(e) => {
                       if (isStaff) {
-                        e?.stopPropagation()
-                        setIsUserShown(!isUserShown)
+                        e?.stopPropagation();
+                        setIsUserShown(!isUserShown);
                       }
                     }}
                   />
@@ -298,8 +298,8 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                     anonymous
                     onClick={(e) => {
                       if (isStaff) {
-                        e?.stopPropagation()
-                        setIsUserShown(!isUserShown)
+                        e?.stopPropagation();
+                        setIsUserShown(!isUserShown);
                       }
                     }}
                   />
@@ -374,7 +374,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
 
               <div
                 onClick={(e) => {
-                  e.stopPropagation()
+                  e.stopPropagation();
                 }}
                 className="flex items-center"
               >
@@ -478,10 +478,10 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                 {/* Students vote on whether they still need faculty help */}
                 <Button
                   onClick={async (e) => {
-                    e.stopPropagation()
-                    setSatisfiedLoading(true)
-                    await handleFeedback(true)
-                    setSatisfiedLoading(false)
+                    e.stopPropagation();
+                    setSatisfiedLoading(true);
+                    await handleFeedback(true);
+                    setSatisfiedLoading(false);
                   }}
                   loading={satisfiedLoading}
                   disabled={needsAttentionLoading}
@@ -491,10 +491,10 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
                 <Button
                   type="primary"
                   onClick={async (e) => {
-                    e.stopPropagation()
-                    setNeedsAttentionLoading(true)
-                    await handleFeedback(false)
-                    setNeedsAttentionLoading(false)
+                    e.stopPropagation();
+                    setNeedsAttentionLoading(true);
+                    await handleFeedback(false);
+                    setNeedsAttentionLoading(false);
                   }}
                   loading={needsAttentionLoading}
                   disabled={satisfiedLoading}
@@ -511,8 +511,8 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
             className={`text-sm `}
             type="link"
             onClick={(e) => {
-              e.stopPropagation()
-              toggleComments()
+              e.stopPropagation();
+              toggleComments();
             }}
           >
             {uiState.expandedState === 'expandedWithComments'
@@ -533,7 +533,7 @@ const AsyncQuestionCard: React.FC<AsyncQuestionCardProps> = ({
         </Row>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default AsyncQuestionCard
+export default AsyncQuestionCard;

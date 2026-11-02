@@ -1,33 +1,36 @@
-'use client'
+'use client';
 
-import { API } from '@/app/api'
-import { SearchOutlined } from '@ant-design/icons'
+import { API } from '@/app/api';
+import { SearchOutlined } from '@ant-design/icons';
+import type { InputRef, TableColumnType } from 'antd';
 import {
   Button,
   Form,
   Input,
-  InputRef,
   message,
   Popconfirm,
   Space,
   Table,
-  TableColumnType,
   Typography,
-} from 'antd'
-import { use, useEffect, useRef, useState } from 'react'
-import type { FilterConfirmProps } from 'antd/es/table/interface'
-import { questions, QuestionType, UpdateQuestionParams } from '@koh/common'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import Highlighter from 'react-highlight-words'
+} from 'antd';
+import { use, useEffect, useRef, useState } from 'react';
+import type { FilterConfirmProps } from 'antd/es/table/interface';
+import type {
+  questions,
+  QuestionType,
+  UpdateQuestionParams,
+} from '@koh/common';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import Highlighter from 'react-highlight-words';
 import {
   QuestionTagElement,
   QuestionTagSelector,
-} from '../../../components/QuestionTagElement'
-import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
+} from '../../../components/QuestionTagElement';
+import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils';
 
 type EditQuestionsPageProps = {
-  params: Promise<{ cid: string }>
-}
+  params: Promise<{ cid: string }>;
+};
 
 /*
   Question but with some extra attributes:
@@ -36,20 +39,20 @@ type EditQuestionsPageProps = {
   - createdAtString: string - Used for searching, sorting, and displaying date created
 */
 interface ExtendedQuestion extends questions {
-  questionTypeNames: string[]
-  QuestionTypeIds: number[]
-  createdAtString: string
+  questionTypeNames: string[];
+  QuestionTypeIds: number[];
+  createdAtString: string;
 }
-type QuestionAttributes = keyof ExtendedQuestion
+type QuestionAttributes = keyof ExtendedQuestion;
 
 interface EditableCellProps extends React.HTMLAttributes<HTMLElement> {
-  editing: boolean
-  dataIndex: string
-  title: any
-  inputType: 'questionType' | 'text'
-  record: ExtendedQuestion | undefined
-  index: number
-  questionTypesForThisQueue: QuestionType[]
+  editing: boolean;
+  dataIndex: string;
+  title: any;
+  inputType: 'questionType' | 'text';
+  record: ExtendedQuestion | undefined;
+  index: number;
+  questionTypesForThisQueue: QuestionType[];
 }
 
 const EditableCell: React.FC<React.PropsWithChildren<EditableCellProps>> = ({
@@ -68,7 +71,7 @@ const EditableCell: React.FC<React.PropsWithChildren<EditableCellProps>> = ({
       <Input />
     ) : (
       <QuestionTagSelector questionTags={questionTypesForThisQueue} />
-    )
+    );
 
   return (
     <td {...restProps}>
@@ -86,24 +89,24 @@ const EditableCell: React.FC<React.PropsWithChildren<EditableCellProps>> = ({
         children
       )}
     </td>
-  )
-}
+  );
+};
 
 /**
  * Contains a table allowing staff to search, sort, and edit questions.
  * Combines multiple examples from antd's offical docs for Table, plus some custom logic.
  */
 const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
-  const params = use(props.params)
-  const cid = Number(params.cid)
-  const [editingKey, setEditingKey] = useState(-1)
+  const params = use(props.params);
+  const cid = Number(params.cid);
+  const [editingKey, setEditingKey] = useState(-1);
 
-  const [data, setData] = useState<ExtendedQuestion[]>([])
-  const [questionTypes, setQuestionTypes] = useState<QuestionType[]>([])
-  const [form] = Form.useForm()
-  const [searchText, setSearchText] = useState('')
-  const [searchedColumn, setSearchedColumn] = useState('')
-  const searchInput = useRef<InputRef>(null)
+  const [data, setData] = useState<ExtendedQuestion[]>([]);
+  const [questionTypes, setQuestionTypes] = useState<QuestionType[]>([]);
+  const [form] = Form.useForm();
+  const [searchText, setSearchText] = useState('');
+  const [searchedColumn, setSearchedColumn] = useState('');
+  const searchInput = useRef<InputRef>(null);
 
   //
   // populate table data and also get questionTypes
@@ -116,10 +119,10 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
           const newQuestions = d.map((question) => {
             const questionTypeNamesArray = question.questionTypes
               ? question.questionTypes.map((type) => type.name)
-              : []
+              : [];
             const questionTypeIdsArray = question.questionTypes
               ? question.questionTypes.map((type) => type.id ?? -1)
-              : []
+              : [];
             return {
               id: question.id,
               queueId: question.queueId,
@@ -132,43 +135,43 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
               helpName: question.helpName,
               questionTypeNames: questionTypeNamesArray,
               QuestionTypeIds: questionTypeIdsArray,
-            }
-          })
-          setData(newQuestions)
+            };
+          });
+          setData(newQuestions);
         })
         .catch((e) => {
-          const errorMessage = getErrorMessage(e)
-          message.error(`Error fetching questions: ${errorMessage}`)
-        })
+          const errorMessage = getErrorMessage(e);
+          message.error(`Error fetching questions: ${errorMessage}`);
+        });
       await API.course
         .getAllQuestionTypes(cid)
         .then((d) => {
-          setQuestionTypes(d)
+          setQuestionTypes(d);
         })
         .catch((e) => {
-          const errorMessage = getErrorMessage(e)
-          message.error(`Error fetching question types: ${errorMessage}`)
-        })
+          const errorMessage = getErrorMessage(e);
+          message.error(`Error fetching question types: ${errorMessage}`);
+        });
     }
-    fetchData()
-  }, [cid])
+    fetchData();
+  }, [cid]);
 
   //
   // For editing questions
   //
-  const isEditing = (record: ExtendedQuestion) => record.id === editingKey
+  const isEditing = (record: ExtendedQuestion) => record.id === editingKey;
   const edit = (record: Partial<ExtendedQuestion>) => {
-    form.setFieldsValue({ questionTypes: [], text: '', ...record })
+    form.setFieldsValue({ questionTypes: [], text: '', ...record });
     if (record.id) {
       // if statement just here to get rid of typescript error
-      setEditingKey(record.id)
+      setEditingKey(record.id);
     }
-  }
+  };
   const save = async (key: React.Key) => {
     try {
-      const row = (await form.validateFields()) as ExtendedQuestion
-      const newData = [...data]
-      const index = newData.findIndex((item) => key === item.id)
+      const row = (await form.validateFields()) as ExtendedQuestion;
+      const newData = [...data];
+      const index = newData.findIndex((item) => key === item.id);
       // send update request to backend
       const newQuestionTypes = row.QuestionTypeIds
         ? questionTypes.filter((questionType) =>
@@ -176,35 +179,35 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
 
             row.QuestionTypeIds!.includes(questionType.id),
           )
-        : []
-      const newQuestionTypeNames = newQuestionTypes.map((type) => type.name)
+        : [];
+      const newQuestionTypeNames = newQuestionTypes.map((type) => type.name);
       const updatedQuestion: UpdateQuestionParams = {
         text: row.text,
         questionTypes: newQuestionTypes,
-      }
-      await API.questions.update(newData[index].id, updatedQuestion)
+      };
+      await API.questions.update(newData[index].id, updatedQuestion);
       if (index > -1) {
-        const item = newData[index]
+        const item = newData[index];
         newData.splice(index, 1, {
           ...item,
           ...row,
           questionTypeNames: newQuestionTypeNames,
-        })
-        setData(newData)
-        setEditingKey(-1)
+        });
+        setData(newData);
+        setEditingKey(-1);
       } else {
-        newData.push({ ...row, questionTypeNames: newQuestionTypeNames })
-        setData(newData)
-        setEditingKey(-1)
+        newData.push({ ...row, questionTypeNames: newQuestionTypeNames });
+        setData(newData);
+        setEditingKey(-1);
       }
     } catch (err) {
-      const errorMessage = getErrorMessage(err)
-      message.error(`Error updating question: ${errorMessage}`)
+      const errorMessage = getErrorMessage(err);
+      message.error(`Error updating question: ${errorMessage}`);
     }
-  }
+  };
   const cancelEdit = () => {
-    setEditingKey(-1)
-  }
+    setEditingKey(-1);
+  };
 
   //
   // For searching questions in column headers
@@ -214,14 +217,14 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
     confirm: (param?: FilterConfirmProps) => void,
     dataIndex: string,
   ) => {
-    confirm()
-    setSearchText(selectedKeys[0])
-    setSearchedColumn(dataIndex)
-  }
+    confirm();
+    setSearchText(selectedKeys[0]);
+    setSearchedColumn(dataIndex);
+  };
   const handleReset = (clearFilters: () => void) => {
-    clearFilters()
-    setSearchText('')
-  }
+    clearFilters();
+    setSearchText('');
+  };
   const getColumnSearchProps = (
     dataIndex: QuestionAttributes,
   ): TableColumnType<ExtendedQuestion> => ({
@@ -268,9 +271,9 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
             type="link"
             size="small"
             onClick={() => {
-              confirm({ closeDropdown: false })
-              setSearchText((selectedKeys as string[])[0])
-              setSearchedColumn(dataIndex)
+              confirm({ closeDropdown: false });
+              setSearchText((selectedKeys as string[])[0]);
+              setSearchedColumn(dataIndex);
             }}
           >
             Filter
@@ -279,7 +282,7 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
             type="link"
             size="small"
             onClick={() => {
-              close()
+              close();
             }}
           >
             close
@@ -292,18 +295,18 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
     ),
     onFilter: (value, record) => {
       if (!record[dataIndex]) {
-        return false
+        return false;
       }
       return (
         record[dataIndex]
           ?.toString()
           .toLowerCase()
           .includes((value as string).toLowerCase()) ?? false
-      )
+      );
     },
     onFilterDropdownOpenChange: (visible) => {
       if (visible) {
-        setTimeout(() => searchInput.current?.select(), 100)
+        setTimeout(() => searchInput.current?.select(), 100);
       }
     },
     render: (text) => {
@@ -313,9 +316,9 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
             {text.map((tag: string) => {
               const myQuestionType = questionTypes.find(
                 (type) => type.name === tag,
-              )
+              );
               if (!myQuestionType) {
-                return null
+                return null;
               } else {
                 return (
                   <QuestionTagElement
@@ -323,11 +326,11 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
                     tagName={myQuestionType.name}
                     tagColor={myQuestionType.color}
                   />
-                )
+                );
               }
             })}
           </span>
-        )
+        );
       } else {
         return searchedColumn === dataIndex ? (
           <>
@@ -340,10 +343,10 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
           </>
         ) : (
           text
-        )
+        );
       }
     },
-  })
+  });
 
   //
   // Column headers
@@ -354,9 +357,9 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
       dataIndex: 'creatorName',
       key: 'creatorName',
       sorter: (a: ExtendedQuestion, b: ExtendedQuestion) => {
-        const nameA = a.creatorName || ''
-        const nameB = b.creatorName || ''
-        return nameA.localeCompare(nameB)
+        const nameA = a.creatorName || '';
+        const nameB = b.creatorName || '';
+        return nameA.localeCompare(nameB);
       },
       width: '15%',
       editable: false,
@@ -367,9 +370,9 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
       dataIndex: 'helpName',
       key: 'helpName',
       sorter: (a: ExtendedQuestion, b: ExtendedQuestion) => {
-        const nameA = a.helpName || ''
-        const nameB = b.helpName || ''
-        return nameA.localeCompare(nameB)
+        const nameA = a.helpName || '';
+        const nameB = b.helpName || '';
+        return nameA.localeCompare(nameB);
       },
       width: 150,
       editable: false,
@@ -380,9 +383,9 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
       dataIndex: 'status',
       key: 'status',
       sorter: (a: ExtendedQuestion, b: ExtendedQuestion) => {
-        const statusA = a.status || ''
-        const statusB = b.status || ''
-        return statusA.localeCompare(statusB)
+        const statusA = a.status || '';
+        const statusB = b.status || '';
+        return statusA.localeCompare(statusB);
       },
       width: 150,
       editable: false,
@@ -393,9 +396,9 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
       dataIndex: 'questionTypeNames',
       key: 'questionTypeNames',
       sorter: (a: ExtendedQuestion, b: ExtendedQuestion) => {
-        const questionTagsA = a.questionTypeNames.join(', ') || ''
-        const questionTagsB = b.questionTypeNames.join(', ') || ''
-        return questionTagsA.localeCompare(questionTagsB)
+        const questionTagsA = a.questionTypeNames.join(', ') || '';
+        const questionTagsB = b.questionTypeNames.join(', ') || '';
+        return questionTagsA.localeCompare(questionTagsB);
       },
       width: 150,
       editable: true,
@@ -425,7 +428,7 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
       width: 100,
       editable: false,
       render: (_: any, record: ExtendedQuestion) => {
-        const editable = isEditing(record)
+        const editable = isEditing(record);
         return editable ? (
           <span>
             <Typography.Link
@@ -445,15 +448,15 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
           >
             Edit
           </Typography.Link>
-        )
+        );
       },
     },
-  ]
+  ];
 
   // should be of type TableProps<ExtendedQuestion>['columns'], but it causes a typeScript error for some reason
   const mergedColumns: any = columns.map((col) => {
     if (!col.editable) {
-      return col
+      return col;
     }
     return {
       ...col,
@@ -471,15 +474,15 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
           col.dataIndex === 'questionTypeNames'
             ? questionTypes.filter((questionType) => {
                 if (record.queueId) {
-                  return questionType.queueId === record.queueId
+                  return questionType.queueId === record.queueId;
                 } else {
-                  return false
+                  return false;
                 }
               })
             : [],
       }),
-    }
-  })
+    };
+  });
 
   return (
     <Form form={form} component={false}>
@@ -500,7 +503,7 @@ const EditQuestionsPage: React.FC<EditQuestionsPageProps> = (props) => {
         }}
       />
     </Form>
-  )
-}
+  );
+};
 
-export default EditQuestionsPage
+export default EditQuestionsPage;

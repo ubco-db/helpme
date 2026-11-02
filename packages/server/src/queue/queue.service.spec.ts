@@ -1,5 +1,7 @@
-import { ListQuestionsResponse, QuestionStatusKeys, Role } from '@koh/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import type { ListQuestionsResponse } from '@koh/common';
+import { QuestionStatusKeys, Role } from '@koh/common';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { mapValues, zip } from 'lodash';
 import { QuestionModel } from 'question/question.entity';
 import { DataSource } from 'typeorm';
@@ -10,7 +12,7 @@ import {
   UserFactory,
 } from '../../test/util/factories';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
-import { QueueModel } from './queue.entity';
+import type { QueueModel } from './queue.entity';
 import { QueueService } from './queue.service';
 import { AlertsService } from '../alerts/alerts.service';
 import { ApplicationTestingConfigModule } from 'config/application_config.module';

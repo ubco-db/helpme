@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class EmbeddableQuestionsAndLtiOrganizations1789711196872 implements MigrationInterface {
   name = 'EmbeddableQuestionsAndLtiOrganizations1789711196872';

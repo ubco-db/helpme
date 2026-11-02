@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class addColorToQuestionType1702148376083 implements MigrationInterface {
   name = 'addColorToQuestionType1702148376083';

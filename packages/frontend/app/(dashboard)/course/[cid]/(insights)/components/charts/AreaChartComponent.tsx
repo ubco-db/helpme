@@ -1,18 +1,19 @@
-import {
-  AxisChartClasses,
+import type {
   ChartComponentProps,
   LinearChartProps,
-} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types'
-import React, { useMemo } from 'react'
+} from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
+import { AxisChartClasses } from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
+import type React from 'react';
+import { useMemo } from 'react';
 import {
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
-} from '@/app/components/ui/chart'
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/utils/functions'
+} from '@/app/components/ui/chart';
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { generateAxisRange } from '@/app/(dashboard)/course/[cid]/(insights)/utils/functions';
 
 const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
   const {
@@ -26,7 +27,7 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     legendFormatter,
     xType,
     yType,
-  } = props
+  } = props;
 
   // const { minTickGap, angle } = props as AxisChartProps
 
@@ -41,24 +42,24 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
     axisLine,
     aspectRatio,
     tickFormatter,
-  } = props as LinearChartProps
+  } = props as LinearChartProps;
 
-  curveType ??= 'monotone'
-  showPoints ??= false
-  includeLegend ??= true
-  includeTooltip ??= true
-  verticalAxis ??= true
-  tickLine ??= true
-  tickMargin ??= 8
-  axisLine ??= true
-  aspectRatio ??= 2
-  tickFormatter ??= (value) => (value as string).substring(0, 3)
+  curveType ??= 'monotone';
+  showPoints ??= false;
+  includeLegend ??= true;
+  includeTooltip ??= true;
+  verticalAxis ??= true;
+  tickLine ??= true;
+  tickMargin ??= 8;
+  axisLine ??= true;
+  aspectRatio ??= 2;
+  tickFormatter ??= (value) => (value as string).substring(0, 3);
 
   const className = useMemo(() => {
     return size != undefined && AxisChartClasses[size] != undefined
       ? AxisChartClasses[size]
-      : AxisChartClasses['md']
-  }, [size])
+      : AxisChartClasses['md'];
+  }, [size]);
 
   return (
     <ChartContainer
@@ -158,7 +159,7 @@ const AreaChartComponent: React.FC<ChartComponentProps> = ({ props }) => {
           ))}
       </AreaChart>
     </ChartContainer>
-  )
-}
+  );
+};
 
-export default AreaChartComponent
+export default AreaChartComponent;

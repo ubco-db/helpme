@@ -1,24 +1,24 @@
-import { Popconfirm, Tooltip } from 'antd'
-import { format } from 'date-fns'
+import { Popconfirm, Tooltip } from 'antd';
+import { format } from 'date-fns';
 import {
   calendarEventLocationType,
   getCalendarEventLocationTypeFormatted,
-} from '@koh/common'
-import { Event, FullCalendarEvent } from '@/app/typings/types'
+} from '@koh/common';
+import type { Event, FullCalendarEvent } from '@/app/typings/types';
 
 type EventTooltipProps = {
-  info: any // should be EventContentArg but it's not exported from FullCalendar
-}
+  info: any; // should be EventContentArg but it's not exported from FullCalendar
+};
 
 const EventTooltip: React.FC<EventTooltipProps> = ({ info }) => {
-  const event = info.event as FullCalendarEvent // should be EventImpl but it's not exported from FullCalendar
-  const extendedProps = info.event.extendedProps as Event // note that it is a subset of Event. Stuff like start and end are already in info.event
-  const formattedStart = event.start ? format(event.start, 'h:mm') : ''
-  const formattedEnd = event.end ? format(event.end, 'h:mm') : ''
+  const event = info.event as FullCalendarEvent; // should be EventImpl but it's not exported from FullCalendar
+  const extendedProps = info.event.extendedProps as Event; // note that it is a subset of Event. Stuff like start and end are already in info.event
+  const formattedStart = event.start ? format(event.start, 'h:mm') : '';
+  const formattedEnd = event.end ? format(event.end, 'h:mm') : '';
   const formattedStartWithAmPm = event.start
     ? format(event.start, 'h:mmaaa')
-    : ''
-  const formattedEndWithAmPm = event.end ? format(event.end, 'h:mmaaa') : ''
+    : '';
+  const formattedEndWithAmPm = event.end ? format(event.end, 'h:mmaaa') : '';
 
   return (
     <Tooltip
@@ -81,7 +81,7 @@ const EventTooltip: React.FC<EventTooltipProps> = ({ info }) => {
         </p>
       </div>
     </Tooltip>
-  )
-}
+  );
+};
 
-export default EventTooltip
+export default EventTooltip;

@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class addZoomLinkToQueues1728590701099 implements MigrationInterface {
   name = 'addZoomLinkToQueues1728590701099';

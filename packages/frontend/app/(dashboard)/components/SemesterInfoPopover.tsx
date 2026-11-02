@@ -1,17 +1,17 @@
-import React from 'react'
-import { SemesterPartial } from '@koh/common'
-import { Popover } from 'antd'
+import type React from 'react';
+import type { SemesterPartial } from '@koh/common';
+import { Popover } from 'antd';
 
 interface SemesterInfoPopoverProps {
-  semester: SemesterPartial | undefined | null
-  children: React.ReactNode
+  semester: SemesterPartial | undefined | null;
+  children: React.ReactNode;
 }
 
 const SemesterInfoPopover: React.FC<SemesterInfoPopoverProps> = ({
   semester,
   children,
 }) => {
-  if (!semester) return null
+  if (!semester) return null;
 
   return (
     <Popover
@@ -40,7 +40,7 @@ const SemesterInfoPopover: React.FC<SemesterInfoPopoverProps> = ({
     >
       {children}
     </Popover>
-  )
-}
+  );
+};
 
-export default SemesterInfoPopover
+export default SemesterInfoPopover;

@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class setDefaultQuestionTypeColor1706472881989
-  implements MigrationInterface
-{
+export class setDefaultQuestionTypeColor1706472881989 implements MigrationInterface {
   name = 'setDefaultQuestionTypeColor1706472881989';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

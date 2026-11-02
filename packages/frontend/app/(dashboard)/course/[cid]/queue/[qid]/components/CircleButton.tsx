@@ -1,8 +1,9 @@
-import { cn } from '@/app/utils/generalUtils'
-import { Button, ButtonProps } from 'antd'
+import { cn } from '@/app/utils/generalUtils';
+import type { ButtonProps } from 'antd';
+import { Button } from 'antd';
 
 interface CircleButtonProps extends ButtonProps {
-  customVariant?: 'default' | 'primary' | 'red' | 'orange' | 'green' | 'gray'
+  customVariant?: 'default' | 'primary' | 'red' | 'orange' | 'green' | 'gray';
 }
 
 const CircleButton: React.FC<CircleButtonProps> = ({
@@ -39,6 +40,6 @@ const CircleButton: React.FC<CircleButtonProps> = ({
   >
     {children}
   </Button>
-)
+);
 
-export default CircleButton
+export default CircleButton;

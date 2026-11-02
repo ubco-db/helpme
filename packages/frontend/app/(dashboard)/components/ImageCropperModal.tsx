@@ -1,35 +1,36 @@
-'use client'
+'use client';
 
-import { Button, Modal, Upload, message } from 'antd'
-import { UploadOutlined } from '@ant-design/icons'
-import React, { useCallback, useState } from 'react'
-import Cropper from 'react-easy-crop'
-import { getCroppedImg, getErrorMessage } from '@/app/utils/generalUtils'
+import { Button, Modal, Upload, message } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
+import type React from 'react';
+import { useCallback, useState } from 'react';
+import Cropper from 'react-easy-crop';
+import { getCroppedImg, getErrorMessage } from '@/app/utils/generalUtils';
 
 interface ImageCropperModalProps {
-  isOpen: boolean
-  circular: boolean
-  aspect: number // Fraction to represent the aspect ratio of crop
-  imgName: string // Don't confuse with file names, this referring to the type of image in the app (e.g. Avatar, Banner, etc.)
-  postURL: string // API URL to post the cropped image to
-  onUpdateComplete: (photoURL: string) => void
-  setUploading: (uploading: boolean) => void
-  onCancel: () => void
+  isOpen: boolean;
+  circular: boolean;
+  aspect: number; // Fraction to represent the aspect ratio of crop
+  imgName: string; // Don't confuse with file names, this referring to the type of image in the app (e.g. Avatar, Banner, etc.)
+  postURL: string; // API URL to post the cropped image to
+  onUpdateComplete: (photoURL: string) => void;
+  setUploading: (uploading: boolean) => void;
+  onCancel: () => void;
 }
 
 type CroppedArea = {
-  x: number
-  y: number
-  width: number
-  height: number
-}
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 type CroppedAreaPixels = {
-  x: number
-  y: number
-  width: number
-  height: number
-}
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
   isOpen,
@@ -41,20 +42,20 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
   setUploading,
   onCancel,
 }) => {
-  const [crop, setCrop] = useState({ x: 0, y: 0 })
-  const [zoom, setZoom] = useState(1)
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] =
-    useState<CroppedAreaPixels | null>(null)
-  const [imageType, setImageType] = useState<string | null>(null)
-  const [fileName, setFileName] = useState<string | null>(null)
-  const [imageSrc, setImageSrc] = useState<string | null>(null)
+    useState<CroppedAreaPixels | null>(null);
+  const [imageType, setImageType] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
 
   const onCropCompleteCallback = useCallback(
     (croppedArea: CroppedArea, croppedAreaPixels: CroppedAreaPixels) => {
-      setCroppedAreaPixels(croppedAreaPixels)
+      setCroppedAreaPixels(croppedAreaPixels);
     },
     [],
-  )
+  );
 
   // MIME types that are compatible as inputs with the sharp library in the backend
   const viableFileTypes = [
@@ -69,66 +70,66 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
     // I think it might have to do with the cropper. The cropper might be converting it to another file type and just
     // disguising it as a svg but our backend only looks at the magic bytes (which is what the file really is).
     'image/svg+xml',
-  ]
+  ];
 
   const beforeUpload = (file: any): boolean => {
-    const isValidMimeType = viableFileTypes.includes(file.type)
+    const isValidMimeType = viableFileTypes.includes(file.type);
 
     if (!isValidMimeType) {
       message.error(
         'Only the following image formats are supported: JPEG/JPG, PNG, GIF, AVIF, WEBP, TIFF, and SVG.',
-      )
+      );
     }
 
-    const isLt5M = file.size / 1024 / 1024 < 5
+    const isLt5M = file.size / 1024 / 1024 < 5;
     if (!isLt5M) {
-      message.error('Image must smaller than 5MB!')
+      message.error('Image must smaller than 5MB!');
     }
 
-    return isValidMimeType && isLt5M
-  }
+    return isValidMimeType && isLt5M;
+  };
 
   const handleUpload = async (file: any): Promise<void> => {
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = () => {
-      setImageSrc(reader.result as string)
-      setImageType(file.type)
-      setFileName(file.name)
-    }
-    reader.readAsDataURL(file)
-  }
+      setImageSrc(reader.result as string);
+      setImageType(file.type);
+      setFileName(file.name);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleCropComplete = async () => {
     if (!imageSrc || !croppedAreaPixels || !imageType) {
-      return
+      return;
     }
     try {
-      setUploading(true) // Start the upload state
+      setUploading(true); // Start the upload state
       const croppedImage = await getCroppedImg(
         imageSrc,
         croppedAreaPixels,
         imageType,
-      )
-      const formData = new FormData()
-      formData.append('file', croppedImage)
+      );
+      const formData = new FormData();
+      formData.append('file', croppedImage);
       const response = await fetch(postURL, {
         method: 'POST',
         body: formData,
-      })
-      const data = await response.json()
+      });
+      const data = await response.json();
       if (response.ok) {
-        message.success(`${fileName} file uploaded successfully`)
-        onUpdateComplete(data.fileName)
+        message.success(`${fileName} file uploaded successfully`);
+        onUpdateComplete(data.fileName);
       } else {
-        message.error(`${fileName} file upload failed: ${data.message}`)
+        message.error(`${fileName} file upload failed: ${data.message}`);
       }
     } catch (error) {
-      message.error(`Error uploading ${fileName}: ${getErrorMessage(error)}`)
+      message.error(`Error uploading ${fileName}: ${getErrorMessage(error)}`);
     } finally {
-      setUploading(false) // Reset the upload state regardless of success or error
-      onCancel() // Close the modal
+      setUploading(false); // Reset the upload state regardless of success or error
+      onCancel(); // Close the modal
     }
-  }
+  };
 
   return (
     <Modal
@@ -175,7 +176,7 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
         />
       </div>
     </Modal>
-  )
-}
+  );
+};
 
-export default ImageCropperModal
+export default ImageCropperModal;

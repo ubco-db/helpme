@@ -1,11 +1,11 @@
-import React from 'react'
-import DashboardLayout from '@/app/(dashboard)/layout'
-import SidebarNavigation from '@/app/admin/components/SidebarNavigation'
+import type React from 'react';
+import DashboardLayout from '@/app/(dashboard)/layout';
+import SidebarNavigation from '@/app/admin/components/SidebarNavigation';
 
 export default function AdminLayout({
   children, // will be a page or nested layout
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <DashboardLayout adminPage={true}>
@@ -15,5 +15,5 @@ export default function AdminLayout({
         <div className="md:col-span-8">{children}</div>
       </div>
     </DashboardLayout>
-  )
+  );
 }

@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class questionTypeNotNullable1729547252435
-  implements MigrationInterface
-{
+export class questionTypeNotNullable1729547252435 implements MigrationInterface {
   name = 'questionTypeNotNullable1729547252435';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

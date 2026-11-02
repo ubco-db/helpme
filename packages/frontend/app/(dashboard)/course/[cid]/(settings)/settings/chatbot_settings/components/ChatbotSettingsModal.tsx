@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { API } from '@/app/api'
+import { useEffect, useMemo, useState } from 'react';
+import { API } from '@/app/api';
 import {
   Button,
   Form,
@@ -10,36 +10,36 @@ import {
   Select,
   Space,
   Tooltip,
-} from 'antd'
+} from 'antd';
 import {
   getErrorMessage,
   getModelSpeedAndQualityEstimate,
-} from '@/app/utils/generalUtils'
-import {
+} from '@/app/utils/generalUtils';
+import type {
   ChatbotProvider,
-  ChatbotServiceProvider,
   CourseChatbotSettings,
   CourseChatbotSettingsForm,
-} from '@koh/common'
+} from '@koh/common';
+import { ChatbotServiceProvider } from '@koh/common';
 import {
   InfoCircleOutlined,
   SettingOutlined,
   StarFilled,
   StarOutlined,
   SyncOutlined,
-} from '@ant-design/icons'
-import ChatbotHelpTooltip from '@/app/(dashboard)/course/[cid]/(settings)/settings/components/ChatbotHelpTooltip'
-import { ClearInputSuffix } from '@/app/(dashboard)/organization/ai/components/OrganizationChatbotSettingsForm'
-import ChatbotModelInfoTooltip from '@/app/(dashboard)/components/ChatbotModelInfoTooltip'
-import LLMTypeDisplay from '@/app/(dashboard)/organization/ai/components/LLMTypeDisplay'
+} from '@ant-design/icons';
+import ChatbotHelpTooltip from '@/app/(dashboard)/course/[cid]/(settings)/settings/components/ChatbotHelpTooltip';
+import { ClearInputSuffix } from '@/app/(dashboard)/organization/ai/components/OrganizationChatbotSettingsForm';
+import ChatbotModelInfoTooltip from '@/app/(dashboard)/components/ChatbotModelInfoTooltip';
+import LLMTypeDisplay from '@/app/(dashboard)/organization/ai/components/LLMTypeDisplay';
 
 interface ChatbotSettingsModalProps {
-  open: boolean
-  courseId: number
-  onClose: () => void
-  updateCourseSettings?: (settings: CourseChatbotSettings) => void
-  preLoadedCourseSettings?: CourseChatbotSettings
-  preLoadedProviders?: ChatbotProvider[]
+  open: boolean;
+  courseId: number;
+  onClose: () => void;
+  updateCourseSettings?: (settings: CourseChatbotSettings) => void;
+  preLoadedCourseSettings?: CourseChatbotSettings;
+  preLoadedProviders?: ChatbotProvider[];
 }
 
 const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
@@ -50,45 +50,45 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
   preLoadedCourseSettings,
   updateCourseSettings,
 }) => {
-  const [form] = Form.useForm<CourseChatbotSettingsForm>()
-  const [isLoadingData, setLoadingData] = useState(false)
-  const [isPerformingAction, setIsPerformingAction] = useState(false)
+  const [form] = Form.useForm<CourseChatbotSettingsForm>();
+  const [isLoadingData, setLoadingData] = useState(false);
+  const [isPerformingAction, setIsPerformingAction] = useState(false);
 
   const [providers, setProviders] = useState<ChatbotProvider[] | undefined>(
     preLoadedProviders ?? undefined,
-  )
+  );
   const [courseSettings, setCourseSettings] = useState<CourseChatbotSettings>(
     preLoadedCourseSettings || undefined!,
-  )
-  const [defaults, setDefaults] = useState<CourseChatbotSettingsForm>()
+  );
+  const [defaults, setDefaults] = useState<CourseChatbotSettingsForm>();
 
-  const [formValues, setFormValues] = useState<CourseChatbotSettingsForm>({})
-  const [onReload, setOnReload] = useState(false)
+  const [formValues, setFormValues] = useState<CourseChatbotSettingsForm>({});
+  const [onReload, setOnReload] = useState(false);
 
-  const selectedLLM = useMemo(() => formValues['llmId'], [formValues])
+  const selectedLLM = useMemo(() => formValues['llmId'], [formValues]);
 
   useEffect(() => {
     if (onReload) {
-      const sets: Record<string, any> = { ...courseSettings }
-      delete sets['defaultModel']
+      const sets: Record<string, any> = { ...courseSettings };
+      delete sets['defaultModel'];
       form.setFieldsValue({
         ...sets,
-      })
+      });
       setFormValues({
         ...sets,
-      })
-      setOnReload(false)
+      });
+      setOnReload(false);
     }
-  }, [courseSettings, form, onReload])
+  }, [courseSettings, form, onReload]);
 
   useEffect(() => {
     if (courseSettings && !onReload) {
-      const sets: Record<string, any> = { ...courseSettings }
-      delete sets['defaultModel']
-      form.setFieldsValue({ ...sets, ...formValues })
-      setFormValues({ ...sets, ...formValues })
+      const sets: Record<string, any> = { ...courseSettings };
+      delete sets['defaultModel'];
+      form.setFieldsValue({ ...sets, ...formValues });
+      setFormValues({ ...sets, ...formValues });
     }
-  }, [courseSettings, form])
+  }, [courseSettings, form]);
 
   const areParamsDefault = useMemo(() => {
     return courseSettings != undefined && defaults != undefined
@@ -99,8 +99,8 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
               defaults[k as keyof CourseChatbotSettingsForm],
           )
           .reduce((p, c) => p && c, true)
-      : false
-  }, [courseSettings, defaults])
+      : false;
+  }, [courseSettings, defaults]);
 
   const haveSettingsChanged = useMemo(() => {
     return courseSettings !== undefined
@@ -111,44 +111,44 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
               courseSettings[k as keyof CourseChatbotSettings],
           )
           .reduce((p, c) => p || c, false)
-      : false
-  }, [formValues, courseSettings])
+      : false;
+  }, [formValues, courseSettings]);
 
   useEffect(() => {
     const getDefaults = () => {
-      if (defaults != undefined) return
+      if (defaults != undefined) return;
       return API.chatbot.staffOnly
         .getCourseSettingsDefaults(courseId)
         .then((response) => {
-          setDefaults(response)
+          setDefaults(response);
         })
         .catch((error) => {
           message
             .error('Failed to load defaults: ' + getErrorMessage(error))
-            .then()
-        })
-    }
+            .then();
+        });
+    };
 
     const getProviders = () => {
-      if (providers != undefined) return
+      if (providers != undefined) return;
       return API.chatbot.staffOnly
         .getCourseOrganizationProviders(courseId)
         .then((response) => {
-          setProviders(response)
+          setProviders(response);
         })
         .catch((error) => {
           message
             .error('Failed to load available models: ' + getErrorMessage(error))
-            .then()
-        })
-    }
+            .then();
+        });
+    };
 
     const getSettings = () => {
-      if (courseSettings != undefined) return
+      if (courseSettings != undefined) return;
       return API.chatbot.staffOnly
         .getCourseSettings(courseId)
         .then((response) => {
-          setCourseSettings(response)
+          setCourseSettings(response);
         })
         .catch((error) => {
           message
@@ -156,36 +156,36 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
               'Failed to load course chatbot settings: ' +
                 getErrorMessage(error),
             )
-            .then()
-        })
-    }
+            .then();
+        });
+    };
 
     const fetchData = async () => {
-      setLoadingData(true)
+      setLoadingData(true);
       await Promise.all([
         await getSettings(),
         await getDefaults(),
         await getProviders(),
       ]).finally(() => {
-        setLoadingData(false)
-      })
-    }
+        setLoadingData(false);
+      });
+    };
 
-    fetchData().then()
-  }, [courseId, defaults, providers, courseSettings])
+    fetchData().then();
+  }, [courseId, defaults, providers, courseSettings]);
 
   useEffect(() => {
     if (courseSettings) {
       form.setFieldsValue({
         ...defaults,
         ...courseSettings,
-      })
+      });
     }
-  }, [courseSettings, defaults, form])
+  }, [courseSettings, defaults, form]);
 
   const handleUpsert = (values: CourseChatbotSettingsForm) => {
-    if (isPerformingAction) return
-    setIsPerformingAction(true)
+    if (isPerformingAction) return;
+    setIsPerformingAction(true);
 
     API.chatbot.staffOnly
       .upsertCourseSettings(courseId, {
@@ -197,50 +197,50 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
           .success(
             `Successfully ${courseSettings == undefined ? 'created' : 'updated'} course chatbot settings!`,
           )
-          .then()
-        setCourseSettings(response)
-        if (updateCourseSettings) updateCourseSettings(response)
-        setOnReload(true)
+          .then();
+        setCourseSettings(response);
+        if (updateCourseSettings) updateCourseSettings(response);
+        setOnReload(true);
       })
       .catch((err) =>
         message.error(
           `Failed to update course chatbot settings: ${getErrorMessage(err)}`,
         ),
       )
-      .finally(() => setIsPerformingAction(false))
-  }
+      .finally(() => setIsPerformingAction(false));
+  };
 
   const handleReset = () => {
-    if (isPerformingAction) return
-    setIsPerformingAction(true)
+    if (isPerformingAction) return;
+    setIsPerformingAction(true);
 
     API.chatbot.staffOnly
       .resetCourseSettings(courseId)
       .then((response) => {
-        message.success(`Successfully reset course chatbot settings!`).then()
-        setCourseSettings(response)
-        if (updateCourseSettings) updateCourseSettings(response)
-        setOnReload(true)
+        message.success(`Successfully reset course chatbot settings!`).then();
+        setCourseSettings(response);
+        if (updateCourseSettings) updateCourseSettings(response);
+        setOnReload(true);
       })
       .catch((err) =>
         message.error(
           `Failed to reset course chatbot settings: ${getErrorMessage(err)}`,
         ),
       )
-      .finally(() => setIsPerformingAction(false))
-  }
+      .finally(() => setIsPerformingAction(false));
+  };
 
   const clearFormValue = (key: string) => {
-    const formKey = key as keyof CourseChatbotSettingsForm
-    form.resetFields([formKey])
+    const formKey = key as keyof CourseChatbotSettingsForm;
+    form.resetFields([formKey]);
     form.setFieldsValue({
       [formKey]: null,
-    })
+    });
     setFormValues((prev) => ({
       ...prev,
       [formKey]: defaults ? (defaults[formKey] ?? null) : null,
-    }))
-  }
+    }));
+  };
 
   return (
     <>
@@ -275,7 +275,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
             ...formValues,
           }}
           onValuesChange={(changedValues, values) => {
-            const overwriteValues: Partial<CourseChatbotSettingsForm> = {}
+            const overwriteValues: Partial<CourseChatbotSettingsForm> = {};
             Object.keys(changedValues)
               .filter((k) =>
                 [
@@ -286,43 +286,43 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
                 ].includes(k),
               )
               .forEach((key) => {
-                const formKey = key as keyof CourseChatbotSettingsForm
-                let newValue = changedValues[key]
+                const formKey = key as keyof CourseChatbotSettingsForm;
+                let newValue = changedValues[key];
                 if (newValue.trim() == '') {
-                  overwriteValues[formKey] = null as any
-                  return
+                  overwriteValues[formKey] = null as any;
+                  return;
                 }
 
-                const propertyName = key
+                const propertyName = key;
                 if (propertyName != 'prompt') {
-                  newValue = newValue.trim()
+                  newValue = newValue.trim();
                 }
                 switch (propertyName) {
                   case 'topK':
                     if (isNaN(parseInt(newValue))) {
-                      overwriteValues[formKey] = formValues[formKey] as any
+                      overwriteValues[formKey] = formValues[formKey] as any;
                     } else {
-                      overwriteValues[formKey] = parseInt(newValue) as any
+                      overwriteValues[formKey] = parseInt(newValue) as any;
                     }
-                    break
+                    break;
                   case 'temperature':
                   case 'similarityThresholdDocuments':
                     if (isNaN(parseFloat(newValue))) {
-                      overwriteValues[formKey] = formValues[formKey] as any
+                      overwriteValues[formKey] = formValues[formKey] as any;
                     } else {
-                      overwriteValues[formKey] = parseFloat(newValue) as any
+                      overwriteValues[formKey] = parseFloat(newValue) as any;
                     }
-                    break
+                    break;
                   default:
-                    overwriteValues[formKey] = newValue
+                    overwriteValues[formKey] = newValue;
                 }
-              })
-            form.setFieldsValue(overwriteValues)
+              });
+            form.setFieldsValue(overwriteValues);
             setFormValues({
               llmId: selectedLLM,
               ...values,
               ...overwriteValues,
-            })
+            });
           }}
           layout="vertical"
           onFinish={handleUpsert}
@@ -368,7 +368,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
                         .filter((model) => model.isText)
                         .map((model, index1) => {
                           const { speed, quality, notes } =
-                            getModelSpeedAndQualityEstimate(model)
+                            getModelSpeedAndQualityEstimate(model);
 
                           return (
                             <Select.Option
@@ -404,7 +404,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
                                 </Tooltip>
                               </div>
                             </Select.Option>
-                          )
+                          );
                         })}
                     </Select.OptGroup>
                   ))}
@@ -650,7 +650,7 @@ const ChatbotSettingsModal: React.FC<ChatbotSettingsModalProps> = ({
         </Form>
       </Modal>
     </>
-  )
-}
+  );
+};
 
-export default ChatbotSettingsModal
+export default ChatbotSettingsModal;

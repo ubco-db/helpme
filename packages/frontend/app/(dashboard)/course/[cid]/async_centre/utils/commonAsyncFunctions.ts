@@ -1,8 +1,9 @@
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { asyncQuestionStatus, QuestionType, Role } from '@koh/common'
-import { message } from 'antd'
-import { CommentAuthorType } from './types'
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import type { QuestionType } from '@koh/common';
+import { asyncQuestionStatus, Role } from '@koh/common';
+import { message } from 'antd';
+import type { CommentAuthorType } from './types';
 
 /**
  * This function used to make more sense when students and staff called the same endpoint.
@@ -20,13 +21,13 @@ export async function deleteAsyncQuestion(
         staffSetVisible: false,
       })
       .then(() => {
-        message.success('Removed Question')
-        successFunction()
+        message.success('Removed Question');
+        successFunction();
       })
       .catch((e) => {
-        const errorMessage = getErrorMessage(e)
-        message.error('Error deleting question:' + errorMessage)
-      })
+        const errorMessage = getErrorMessage(e);
+        message.error('Error deleting question:' + errorMessage);
+      });
   } else {
     await API.asyncQuestions
       .studentUpdate(questionId, {
@@ -34,13 +35,13 @@ export async function deleteAsyncQuestion(
         authorSetVisible: false,
       })
       .then(() => {
-        message.success('Question Successfully Deleted')
-        successFunction()
+        message.success('Question Successfully Deleted');
+        successFunction();
       })
       .catch((e) => {
-        const errorMessage = getErrorMessage(e)
-        message.error('Error deleting question:' + errorMessage)
-      })
+        const errorMessage = getErrorMessage(e);
+        message.error('Error deleting question:' + errorMessage);
+      });
   }
 }
 
@@ -53,28 +54,28 @@ export function getAvatarTooltip(
   commenterRole: CommentAuthorType,
 ) {
   if (commenterRole === 'you' && IAmStaff) {
-    return 'Since you are a staff member, students in the course can see who you are.'
+    return 'Since you are a staff member, students in the course can see who you are.';
   } else if (
     (commenterRole === Role.STUDENT || commenterRole === 'author') &&
     IAmStaff &&
     !showStudents
   ) {
     return `All students posts and comments are anonymized to other students (They get a different anonymous animal on each question).
-     Since you are staff, you can click to reveal who they are.`
+     Since you are staff, you can click to reveal who they are.`;
   } else if (
     (commenterRole === Role.STUDENT || commenterRole === 'author') &&
     IAmStaff &&
     showStudents
   ) {
-    return ''
+    return '';
   } else if (!IAmStaff && commenterRole === Role.STUDENT) {
-    return `All students posts and comments are anonymized to other students (They get a different anonymous animal on each question).`
+    return `All students posts and comments are anonymized to other students (They get a different anonymous animal on each question).`;
   } else if (!IAmStaff && commenterRole === 'author') {
-    return 'All students posts and comments are anonymized to other students (They get a different anonymous animal on each question). This is the author of this question.'
+    return 'All students posts and comments are anonymized to other students (They get a different anonymous animal on each question). This is the author of this question.';
   } else if (!IAmStaff && commenterRole === 'you') {
-    return 'All of your posts and comments are anonymized to other students (You get a different anonymous animal on each question). You are this animal for this question.'
+    return 'All of your posts and comments are anonymized to other students (You get a different anonymous animal on each question). You are this animal for this question.';
   } else {
-    return ''
+    return '';
   }
 }
 
@@ -85,18 +86,18 @@ export function formatQuestionForChatbot(
 ): string {
   // If neither questionText nor questionTypes are provided, just return the abstract
   if (!questionText && (!questionTypes || questionTypes.length === 0)) {
-    return questionAbstract
+    return questionAbstract;
   }
 
-  let result = `Question Abstract: ${questionAbstract}`
+  let result = `Question Abstract: ${questionAbstract}`;
 
   if (questionText) {
-    result += `\nQuestion Text: ${questionText}`
+    result += `\nQuestion Text: ${questionText}`;
   }
 
   if (questionTypes && questionTypes.length > 0) {
-    result += `\nQuestion Types: ${questionTypes.map((qt) => qt.name).join(', ')}`
+    result += `\nQuestion Types: ${questionTypes.map((qt) => qt.name).join(', ')}`;
   }
 
-  return result
+  return result;
 }

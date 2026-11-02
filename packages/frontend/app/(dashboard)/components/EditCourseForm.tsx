@@ -1,15 +1,15 @@
-'use client'
+'use client';
 
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { formatSemesterDate } from '@/app/utils/timeFormatUtils'
-import {
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { formatSemesterDate } from '@/app/utils/timeFormatUtils';
+import type {
   GetOrganizationResponse,
   OrganizationCourseResponse,
   OrganizationProfessor,
-  OrganizationRole,
   User,
-} from '@koh/common'
+} from '@koh/common';
+import { OrganizationRole } from '@koh/common';
 import {
   Alert,
   Button,
@@ -19,20 +19,20 @@ import {
   message,
   Select,
   Tooltip,
-} from 'antd'
-import { useEffect, useState } from 'react'
-import ProfessorSelector from './ProfessorSelector'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
+} from 'antd';
+import { useEffect, useState } from 'react';
+import ProfessorSelector from './ProfessorSelector';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 
-dayjs.extend(relativeTime)
+dayjs.extend(relativeTime);
 
 type EditCourseFormProps = {
-  courseData: OrganizationCourseResponse
-  organization: GetOrganizationResponse
-  fetchCourseData: () => void
-  user: User
-}
+  courseData: OrganizationCourseResponse;
+  organization: GetOrganizationResponse;
+  fetchCourseData: () => void;
+  user: User;
+};
 
 const EditCourseForm: React.FC<EditCourseFormProps> = ({
   courseData,
@@ -40,25 +40,25 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
   fetchCourseData,
   user,
 }) => {
-  const [formGeneral] = Form.useForm()
-  const [professors, setProfessors] = useState<OrganizationProfessor[]>()
+  const [formGeneral] = Form.useForm();
+  const [professors, setProfessors] = useState<OrganizationProfessor[]>();
   const [isCourseNameTooLong, setIsCourseNameTooLong] = useState(
     courseData?.course?.name?.length && courseData.course.name.length > 14,
-  )
+  );
 
   const isAdmin =
-    user && user.organization?.organizationRole === OrganizationRole.ADMIN
+    user && user.organization?.organizationRole === OrganizationRole.ADMIN;
 
   const updateGeneral = async () => {
-    const formValues = await formGeneral.getFieldsValue()
+    const formValues = await formGeneral.getFieldsValue();
 
-    const courseNameField = formValues.courseName
-    const coordinatorEmailField = formValues.coordinatorEmail
-    const sectionGroupNameField = formValues.sectionGroupName
-    const zoomLinkField = formValues.zoomLink
+    const courseNameField = formValues.courseName;
+    const coordinatorEmailField = formValues.coordinatorEmail;
+    const sectionGroupNameField = formValues.sectionGroupName;
+    const zoomLinkField = formValues.zoomLink;
     // const courseTimezoneField = formValues.courseTimezone
-    const semesterIdField = formValues.semesterId
-    const profIdsField = isAdmin ? formValues.professorsUserId : [user.id]
+    const semesterIdField = formValues.semesterId;
+    const profIdsField = isAdmin ? formValues.professorsUserId : [user.id];
 
     if (
       courseNameField === courseData.course?.name &&
@@ -69,21 +69,23 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
       semesterIdField === courseData.course?.semester?.id &&
       profIdsField === courseData.profIds
     ) {
-      message.info('Course was not updated as information has not been changed')
-      return
+      message.info(
+        'Course was not updated as information has not been changed',
+      );
+      return;
     }
 
     if (courseNameField.length < 1) {
-      message.error('Course name cannot be empty')
-      return
+      message.error('Course name cannot be empty');
+      return;
     }
 
     if (
       courseData.course?.coordinator_email &&
       coordinatorEmailField.length < 1
     ) {
-      message.error('Coordinator email cannot be empty')
-      return
+      message.error('Coordinator email cannot be empty');
+      return;
     }
 
     // if (courseData.course?.timezone && courseTimezoneField.length < 1) {
@@ -100,8 +102,8 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
             professors.find((prof) => prof.userId === profId),
         ))
     ) {
-      message.error('One or more selected professors are invalid')
-      return
+      message.error('One or more selected professors are invalid');
+      return;
     }
 
     await API.organizations
@@ -115,30 +117,30 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
         profIds: profIdsField,
       })
       .then(() => {
-        message.success('Course was updated')
-        fetchCourseData()
+        message.success('Course was updated');
+        fetchCourseData();
       })
       .catch((error) => {
-        const errorMessage = getErrorMessage(error)
-        message.error(errorMessage)
-      })
-  }
+        const errorMessage = getErrorMessage(error);
+        message.error(errorMessage);
+      });
+  };
 
   useEffect(() => {
     const fetchProfessors = async () => {
-      if (!isAdmin) return
+      if (!isAdmin) return;
       await API.organizations
         .getProfessors(organization.id, courseData.courseId)
         .then((response) => {
-          setProfessors(response ?? [])
+          setProfessors(response ?? []);
         })
         .catch((error) => {
-          message.error(error.response.data.message)
-          setProfessors([])
-        })
-    }
-    fetchProfessors()
-  }, [courseData.courseId, isAdmin, organization.id])
+          message.error(error.response.data.message);
+          setProfessors([]);
+        });
+    };
+    fetchProfessors();
+  }, [courseData.courseId, isAdmin, organization.id]);
 
   return (
     <>
@@ -169,9 +171,9 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
           onValuesChange={(changedValues, allValues) => {
             if (changedValues.courseName) {
               if (changedValues.courseName.length > 14) {
-                setIsCourseNameTooLong(true)
+                setIsCourseNameTooLong(true);
               } else {
-                setIsCourseNameTooLong(false)
+                setIsCourseNameTooLong(false);
               }
             }
           }}
@@ -316,7 +318,7 @@ const EditCourseForm: React.FC<EditCourseFormProps> = ({
         </Form>
       </Card>
     </>
-  )
-}
+  );
+};
 
-export default EditCourseForm
+export default EditCourseForm;

@@ -1,7 +1,8 @@
-'use client'
+'use client';
 
-import React from 'react'
-import { Menu, MenuProps } from 'antd'
+import type React from 'react';
+import type { MenuProps } from 'antd';
+import { Menu } from 'antd';
 import {
   AreaChartOutlined,
   DashboardOutlined,
@@ -9,54 +10,55 @@ import {
   QuestionCircleOutlined,
   RobotOutlined,
   TeamOutlined,
-} from '@ant-design/icons'
-import { InsightCategories, InsightCategory } from '@koh/common'
+} from '@ant-design/icons';
+import type { InsightCategory } from '@koh/common';
+import { InsightCategories } from '@koh/common';
 
 type InsightsMenuProps = {
-  category: InsightCategory
-  setCategory: (category: InsightCategory) => void
-}
+  category: InsightCategory;
+  setCategory: (category: InsightCategory) => void;
+};
 
-type MenuItem = Required<MenuProps>['items'][number]
+type MenuItem = Required<MenuProps>['items'][number];
 
 const InsightsMenu: React.FC<InsightsMenuProps> = ({
   category,
   setCategory,
 }) => {
   const insightsMenuItems: MenuItem[] = InsightCategories.map((v) => {
-    let icon: React.ReactNode = <LineChartOutlined />
+    let icon: React.ReactNode = <LineChartOutlined />;
     switch (v) {
       case 'Dashboard':
-        icon = <DashboardOutlined />
-        break
+        icon = <DashboardOutlined />;
+        break;
       case 'Tool_Usage_Statistics':
-        icon = <AreaChartOutlined />
-        break
+        icon = <AreaChartOutlined />;
+        break;
       case 'Questions':
-        icon = <QuestionCircleOutlined />
-        break
+        icon = <QuestionCircleOutlined />;
+        break;
       case 'Chatbot':
-        icon = <RobotOutlined />
-        break
+        icon = <RobotOutlined />;
+        break;
       case 'Staff':
-        icon = <TeamOutlined />
-        break
+        icon = <TeamOutlined />;
+        break;
     }
 
     return {
       label: v.replace(/_/g, ' '),
       icon: icon,
       key: v,
-    }
-  })
+    };
+  });
 
   const handleInsightsClick = (item: any) => {
     if (item == undefined) {
-      setCategory('Dashboard')
-      return
+      setCategory('Dashboard');
+      return;
     }
-    setCategory(item.key as InsightCategory)
-  }
+    setCategory(item.key as InsightCategory);
+  };
 
   return (
     <div className="mt-2">
@@ -67,7 +69,7 @@ const InsightsMenu: React.FC<InsightsMenuProps> = ({
         items={insightsMenuItems}
       />
     </div>
-  )
-}
+  );
+};
 
-export default InsightsMenu
+export default InsightsMenu;

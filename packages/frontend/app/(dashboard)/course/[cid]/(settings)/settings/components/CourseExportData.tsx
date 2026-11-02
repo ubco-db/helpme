@@ -1,64 +1,64 @@
-'use client'
+'use client';
 
-import { DownloadOutlined, InfoCircleOutlined } from '@ant-design/icons'
-import { Button, message, Tooltip } from 'antd'
-import { useEffect, useState } from 'react'
-import csvDownload from 'json-to-csv-export'
-import { API } from '@/app/api'
-import {
+import { DownloadOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { Button, message, Tooltip } from 'antd';
+import { useEffect, useState } from 'react';
+import csvDownload from 'json-to-csv-export';
+import { API } from '@/app/api';
+import type {
   GetCourseResponse,
   questions,
   StudentTaskProgressWithUser,
-} from '@koh/common'
-import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
-import ToolUsageExportModal from './ToolUsageExportModal'
+} from '@koh/common';
+import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils';
+import ToolUsageExportModal from './ToolUsageExportModal';
 
 type CourseExportDataProps = {
-  courseId: number
-}
+  courseId: number;
+};
 
 type Assignment = {
-  assignmentId: string
-  taskIds: string[]
-}
+  assignmentId: string;
+  taskIds: string[];
+};
 
-type AssignmentsAndTasks = [Assignment[], string[]]
+type AssignmentsAndTasks = [Assignment[], string[]];
 
 type FormattedAssignmentData = {
-  assignmentId: string
-  studentName: string | undefined
-  studentSid: number | undefined
-  studentEmail: string | undefined
-  totalAssignmentTasks: number
-  tasksCompleted: number
-  [key: string]: any // Index signature for dynamic task keys
-}
+  assignmentId: string;
+  studentName: string | undefined;
+  studentSid: number | undefined;
+  studentEmail: string | undefined;
+  totalAssignmentTasks: number;
+  tasksCompleted: number;
+  [key: string]: any; // Index signature for dynamic task keys
+};
 
 const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
-  const [loadingQuestions, setLoadingQuestions] = useState(false)
-  const [loadingAssignments, setLoadingAssignments] = useState(false)
-  const [course, setCourse] = useState<GetCourseResponse>()
-  const [toolUsageModalVisible, setToolUsageModalVisible] = useState(false)
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
+  const [course, setCourse] = useState<GetCourseResponse>();
+  const [toolUsageModalVisible, setToolUsageModalVisible] = useState(false);
 
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const courseData = await API.course.get(courseId)
-        setCourse(courseData)
+        const courseData = await API.course.get(courseId);
+        setCourse(courseData);
       } catch (error) {
-        message.error('Failed to fetch course')
+        message.error('Failed to fetch course');
       }
-    }
+    };
 
-    fetchCourse()
-  }, [courseId])
+    fetchCourse();
+  }, [courseId]);
 
   const fetchQuestions = async () => {
-    setLoadingQuestions(true)
+    setLoadingQuestions(true);
 
     try {
       const questionData: questions[] =
-        await API.questions.getAllQuestions(courseId)
+        await API.questions.getAllQuestions(courseId);
       // need to format data since not all questions have helpName, location, helpedAt, closedAt, or questionTypes,
       // which would cause the objects to be misaligned. The library we use expects all attributes to be defined and in the same order
       const formattedQuestionData = questionData.map((question) => ({
@@ -77,11 +77,14 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
         status: question.status ?? '',
         helperName: question.helpName ?? '',
         location: question.location ?? '',
-      }))
+      }));
 
-      const today = new Date()
-      const dateString = today.toISOString().split('T')[0] // Format: YYYY-MM-DD
-      const courseNameNoSpecialChars = course?.name.replace(/[^a-zA-Z0-9]/g, '')
+      const today = new Date();
+      const dateString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+      const courseNameNoSpecialChars = course?.name.replace(
+        /[^a-zA-Z0-9]/g,
+        '',
+      );
 
       const questionDataWithCSVSettings = {
         data: formattedQuestionData,
@@ -103,15 +106,15 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
           'helperName',
           'location',
         ],
-      }
-      setLoadingQuestions(false)
-      return questionDataWithCSVSettings
+      };
+      setLoadingQuestions(false);
+      return questionDataWithCSVSettings;
     } catch (error) {
-      message.error('Failed to fetch questions')
-      setLoadingQuestions(false)
-      return null
+      message.error('Failed to fetch questions');
+      setLoadingQuestions(false);
+      return null;
     }
-  }
+  };
 
   const makeAssignments = (
     assignmentData: StudentTaskProgressWithUser[],
@@ -122,52 +125,52 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
           Object.keys(studentTaskProgressWithUser.taskProgress || {}),
         ),
       ),
-    )
-    const seenTasksAcrossAllAssignments: Set<string> = new Set()
+    );
+    const seenTasksAcrossAllAssignments: Set<string> = new Set();
     // for each assignment key, go through all StudentTaskProgress objects and append unseen tasks to the list
     const assignments = assignmentKeys.map((assignmentKey): Assignment => {
-      const seenTasks: Set<string> = new Set()
+      const seenTasks: Set<string> = new Set();
       assignmentData.forEach((studentTaskProgressWithUser) => {
-        const studentTaskProgress = studentTaskProgressWithUser.taskProgress
+        const studentTaskProgress = studentTaskProgressWithUser.taskProgress;
         if (!studentTaskProgress || !studentTaskProgress[assignmentKey]) {
-          return
+          return;
         }
         const assignmentProgress =
-          studentTaskProgress[assignmentKey].assignmentProgress
+          studentTaskProgress[assignmentKey].assignmentProgress;
         Object.keys(assignmentProgress).forEach((taskId) => {
           if (!seenTasks.has(taskId)) {
-            seenTasks.add(taskId)
+            seenTasks.add(taskId);
             if (!seenTasksAcrossAllAssignments.has(taskId)) {
-              seenTasksAcrossAllAssignments.add(taskId)
+              seenTasksAcrossAllAssignments.add(taskId);
             }
           }
-        })
-      })
+        });
+      });
       return {
         assignmentId: assignmentKey,
         taskIds: Array.from(seenTasks),
-      }
-    })
-    return [assignments, Array.from(seenTasksAcrossAllAssignments)]
-  }
+      };
+    });
+    return [assignments, Array.from(seenTasksAcrossAllAssignments)];
+  };
 
   const fetchStudentTaskProgress = async () => {
-    setLoadingAssignments(true)
+    setLoadingAssignments(true);
 
     try {
       const assignmentData: StudentTaskProgressWithUser[] =
-        await API.studentTaskProgress.getAllTaskProgressForCourse(courseId)
+        await API.studentTaskProgress.getAllTaskProgressForCourse(courseId);
 
       // need to transform data into rows of non-nested objects like
       // [{assignment_id, student details, task1, task2, task3, part1, part2, part3, etc.},{...}]
 
-      const assignmentsAndTasks = makeAssignments(assignmentData)
-      const assignments = assignmentsAndTasks[0]
-      const tasks = assignmentsAndTasks[1]
+      const assignmentsAndTasks = makeAssignments(assignmentData);
+      const assignments = assignmentsAndTasks[0];
+      const tasks = assignmentsAndTasks[1];
       const students = assignmentData.map(
         (studentTaskProgressWithUser) =>
           studentTaskProgressWithUser.userDetails,
-      )
+      );
 
       const formattedAssignmentData: FormattedAssignmentData[] =
         assignments.flatMap((assignment) => {
@@ -180,21 +183,21 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
               studentEmail: student.email,
               totalAssignmentTasks: assignment.taskIds.length,
               tasksCompleted: 0,
-            }
+            };
 
             // Add task progress to the object
             // for each global task
             tasks.forEach((taskId) => {
               // If the assignment does not contain the task, just put an empty string.
               if (!assignment.taskIds.includes(taskId)) {
-                rowObject[taskId] = ''
-                return
+                rowObject[taskId] = '';
+                return;
               }
 
               const myStudentTaskProgress = assignmentData.find(
                 (studentTaskProgressWithUser) =>
                   studentTaskProgressWithUser.userDetails.id === student.id,
-              )?.taskProgress
+              )?.taskProgress;
               // if the student has never made progress on this assignment, put false
               // THIS ASSUMES THAT EVERY STUDENT WAS SUPPOSED TO DO THE ASSIGNMENT.
               // Alternatively, we could put an empty string here to show that the student never started the assignment.
@@ -204,33 +207,36 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
                 !myStudentTaskProgress[assignment.assignmentId]
                   .assignmentProgress
               ) {
-                rowObject[taskId] = false
-                return
+                rowObject[taskId] = false;
+                return;
               }
 
               const myAssignmentProgress =
                 myStudentTaskProgress[assignment.assignmentId]
-                  .assignmentProgress
+                  .assignmentProgress;
 
               // if the student has made progress on the assignment, put false if they haven't done the task.
               // Put the task's isDone value (which is always true as of now) if they have.
               if (!myAssignmentProgress[taskId]) {
-                rowObject[taskId] = false
+                rowObject[taskId] = false;
               } else {
-                rowObject[taskId] = myAssignmentProgress[taskId]?.isDone
+                rowObject[taskId] = myAssignmentProgress[taskId]?.isDone;
 
                 if (myAssignmentProgress[taskId]?.isDone) {
-                  rowObject.tasksCompleted++
+                  rowObject.tasksCompleted++;
                 }
               }
-            })
-            return rowObject
-          })
-        })
+            });
+            return rowObject;
+          });
+        });
 
-      const today = new Date()
-      const dateString = today.toISOString().split('T')[0] // Format: YYYY-MM-DD
-      const courseNameNoSpecialChars = course?.name.replace(/[^a-zA-Z0-9]/g, '')
+      const today = new Date();
+      const dateString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+      const courseNameNoSpecialChars = course?.name.replace(
+        /[^a-zA-Z0-9]/g,
+        '',
+      );
       const assignmentDataWithCSVSettings = {
         data: formattedAssignmentData,
         filename: `all-assignment-progress-${courseNameNoSpecialChars}-${dateString}`,
@@ -244,15 +250,15 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
           'tasksCompleted',
           ...tasks,
         ],
-      }
-      setLoadingAssignments(false)
-      return assignmentDataWithCSVSettings
+      };
+      setLoadingAssignments(false);
+      return assignmentDataWithCSVSettings;
     } catch (error) {
-      message.error('Failed to fetch/format student assignment progress')
-      setLoadingAssignments(false)
-      return null
+      message.error('Failed to fetch/format student assignment progress');
+      setLoadingAssignments(false);
+      return null;
     }
-  }
+  };
 
   return (
     course && (
@@ -262,15 +268,15 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
           <Button
             loading={loadingQuestions}
             onClick={async () => {
-              const questionDataWithCSVSettings = await fetchQuestions()
+              const questionDataWithCSVSettings = await fetchQuestions();
               if (questionDataWithCSVSettings) {
                 try {
-                  csvDownload(questionDataWithCSVSettings)
+                  csvDownload(questionDataWithCSVSettings);
                 } catch {
-                  message.error('Failed to format the data for download')
+                  message.error('Failed to format the data for download');
                 }
               } else {
-                message.error('Failed to format the data for download')
+                message.error('Failed to format the data for download');
               }
             }}
           >
@@ -301,15 +307,15 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
             loading={loadingAssignments}
             onClick={async () => {
               const assignmentDataWithCSVSettings =
-                await fetchStudentTaskProgress()
+                await fetchStudentTaskProgress();
               if (assignmentDataWithCSVSettings) {
                 try {
-                  csvDownload(assignmentDataWithCSVSettings)
+                  csvDownload(assignmentDataWithCSVSettings);
                 } catch {
-                  message.error('Failed to format the data for download')
+                  message.error('Failed to format the data for download');
                 }
               } else {
-                message.error('Failed to format the data for download')
+                message.error('Failed to format the data for download');
               }
             }}
           >
@@ -326,7 +332,7 @@ const CourseExportData: React.FC<CourseExportDataProps> = ({ courseId }) => {
         />
       </div>
     )
-  )
-}
+  );
+};
 
-export default CourseExportData
+export default CourseExportData;

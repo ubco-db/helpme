@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class chatbotDocumentSaving1742798450046 implements MigrationInterface {
   name = 'chatbotDocumentSaving1742798450046';

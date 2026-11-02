@@ -1,15 +1,16 @@
-import { Progress, ProgressProps } from 'antd'
+import type { ProgressProps } from 'antd';
+import { Progress } from 'antd';
 
 const scaleColors: ProgressProps['strokeColor'] = {
   '0%': '#108ee9',
   '100%': '#87d068',
-}
-const trailColor = '#cfcfcf'
+};
+const trailColor = '#cfcfcf';
 
 const ChatbotModelInfoTooltip: React.FC<{
-  speed: number
-  quality: number
-  additionalNotes?: string[]
+  speed: number;
+  quality: number;
+  additionalNotes?: string[];
 }> = ({ speed, quality, additionalNotes }) => {
   return (
     <div>
@@ -43,7 +44,7 @@ const ChatbotModelInfoTooltip: React.FC<{
         </ul>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default ChatbotModelInfoTooltip
+export default ChatbotModelInfoTooltip;

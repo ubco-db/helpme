@@ -1,9 +1,6 @@
 import { isProd } from '@koh/common';
-import {
-  INestApplication,
-  ValidationPipe,
-  ConsoleLogger,
-} from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
+import { ValidationPipe, ConsoleLogger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import * as cookieParser from 'cookie-parser';
 import * as morgan from 'morgan';
@@ -12,7 +9,7 @@ import { AppModule } from './app.module';
 import { StripUndefinedPipe } from './stripUndefined.pipe';
 import * as expressSession from 'express-session';
 import { ApplicationConfigService } from './config/application_config.service';
-import { NestExpressApplication } from '@nestjs/platform-express';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Chromiumly } from 'chromiumly';
 import helmet from 'helmet';
 import LtiMiddleware from './lti/lti.middleware';

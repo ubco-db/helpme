@@ -1,5 +1,5 @@
-import { ReactElement } from 'react'
+import type { ReactElement } from 'react';
 
 export default function AdminPage(): ReactElement {
-  return <div>Nothing here yet!</div>
+  return <div>Nothing here yet!</div>;
 }

@@ -1,27 +1,29 @@
-'use client'
+'use client';
 
-import { API } from '@/app/api'
-import { Card } from 'antd'
-import Link from 'next/link'
-import React, { ReactElement, useEffect, useState } from 'react'
-import { Tooltip } from 'antd'
+import { API } from '@/app/api';
+import { Card } from 'antd';
+import Link from 'next/link';
+import type { ReactElement } from 'react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import { Tooltip } from 'antd';
 
 interface AsyncCentreCardProps {
-  cid: number
-  linkId: string
+  cid: number;
+  linkId: string;
 }
 
 const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
   cid,
   linkId,
 }): ReactElement => {
-  const [unreadCount, setUnreadCount] = useState(0)
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     API.asyncQuestions
       .getUnreadAsyncCount(cid)
-      .then((res) => setUnreadCount(res.count))
-  }, [])
+      .then((res) => setUnreadCount(res.count));
+  }, []);
 
   return (
     <Link
@@ -54,7 +56,7 @@ const AsyncCentreCard: React.FC<AsyncCentreCardProps> = ({
         </div>
       </Card>
     </Link>
-  )
-}
+  );
+};
 
-export default AsyncCentreCard
+export default AsyncCentreCard;

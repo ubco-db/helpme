@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class addFlagsToQuestionTypes1709398996584
-  implements MigrationInterface
-{
+export class addFlagsToQuestionTypes1709398996584 implements MigrationInterface {
   name = 'addFlagsToQuestionTypes1709398996584';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class addQueueChatsModel1729618105742 implements MigrationInterface {
   name = 'addQueueChatsModel1729618105742';

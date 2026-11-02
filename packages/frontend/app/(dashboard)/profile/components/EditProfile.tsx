@@ -1,30 +1,27 @@
-'use client'
+'use client';
 
-import {
-  AccountType,
-  GetProfileResponse,
-  UpdateProfileParams,
-} from '@koh/common'
-import { Button, Card, Col, Form, Input, message, Row } from 'antd'
-import { useState } from 'react'
-import { pick } from 'lodash'
-import { API } from '@/app/api'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import type { UpdateProfileParams } from '@koh/common';
+import { AccountType, GetProfileResponse } from '@koh/common';
+import { Button, Card, Col, Form, Input, message, Row } from 'antd';
+import { useState } from 'react';
+import { pick } from 'lodash';
+import { API } from '@/app/api';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { getErrorMessage } from '@/app/utils/generalUtils';
 
 const EditProfile: React.FC = () => {
-  const [form] = Form.useForm()
-  const { userInfo, setUserInfo } = useUserInfo()
+  const [form] = Form.useForm();
+  const { userInfo, setUserInfo } = useUserInfo();
 
-  const [screenReaderMessage, setScreenReaderMessage] = useState(' ')
+  const [screenReaderMessage, setScreenReaderMessage] = useState(' ');
 
   const editProfile = async (updateProfile: UpdateProfileParams) => {
-    let newProfile = null
+    let newProfile = null;
 
     if (userInfo && userInfo.accountType === AccountType.LEGACY) {
-      newProfile = { ...userInfo, ...updateProfile }
-      newProfile.sid = parseInt(`${newProfile.sid}`, 10) || undefined
+      newProfile = { ...userInfo, ...updateProfile };
+      newProfile.sid = parseInt(`${newProfile.sid}`, 10) || undefined;
       if (userInfo.email === updateProfile.email) {
         await API.profile
           .patch(
@@ -37,9 +34,9 @@ const EditProfile: React.FC = () => {
           )
           .then(() => setUserInfo({ ...userInfo, ...updateProfile }))
           .catch((error) => {
-            const errorMessage = getErrorMessage(error)
-            message.error('Error updating profile:' + errorMessage)
-          })
+            const errorMessage = getErrorMessage(error);
+            message.error('Error updating profile:' + errorMessage);
+          });
       } else {
         await API.profile
           .patch(
@@ -53,9 +50,9 @@ const EditProfile: React.FC = () => {
           )
           .then(() => setUserInfo({ ...userInfo, ...updateProfile }))
           .catch((error) => {
-            const errorMessage = getErrorMessage(error)
-            message.error('Error updating profile:' + errorMessage)
-          })
+            const errorMessage = getErrorMessage(error);
+            message.error('Error updating profile:' + errorMessage);
+          });
       }
     } else {
       newProfile = {
@@ -66,9 +63,9 @@ const EditProfile: React.FC = () => {
           sid: updateProfile.sid,
           namePronunciation: updateProfile.namePronunciation,
         },
-      }
-      newProfile.sid = parseInt(`${newProfile.sid}`, 10) || undefined
-      setUserInfo(newProfile)
+      };
+      newProfile.sid = parseInt(`${newProfile.sid}`, 10) || undefined;
+      setUserInfo(newProfile);
       await API.profile
         .patch(
           pick(newProfile, [
@@ -79,28 +76,28 @@ const EditProfile: React.FC = () => {
           ]),
         )
         .catch((error) => {
-          const errorMessage = getErrorMessage(error)
-          message.error('Error updating profile:' + errorMessage)
-        })
+          const errorMessage = getErrorMessage(error);
+          message.error('Error updating profile:' + errorMessage);
+        });
     }
 
-    return newProfile
-  }
+    return newProfile;
+  };
 
   const handleOk = async () => {
-    const value = await form.validateFields()
-    const newProfile = await editProfile(value)
-    if (!newProfile) return
+    const value = await form.validateFields();
+    const newProfile = await editProfile(value);
+    if (!newProfile) return;
 
-    form.setFieldsValue(newProfile)
-    message.success('Your profile settings have been successfully updated')
+    form.setFieldsValue(newProfile);
+    message.success('Your profile settings have been successfully updated');
     setScreenReaderMessage(
       'Your profile settings have been successfully updated',
-    )
-  }
+    );
+  };
 
   if (!userInfo) {
-    return <CenteredSpinner tip="Loading Profile..." />
+    return <CenteredSpinner tip="Loading Profile..." />;
   } else {
     return (
       <div>
@@ -195,8 +192,8 @@ const EditProfile: React.FC = () => {
           </Button>
         </Card>
       </div>
-    )
+    );
   }
-}
+};
 
-export default EditProfile
+export default EditProfile;

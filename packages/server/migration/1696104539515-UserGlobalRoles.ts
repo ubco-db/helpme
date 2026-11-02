@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class UserGlobalRoles1696104539515 implements MigrationInterface {
   name = 'UserGlobalRoles1696104539515';

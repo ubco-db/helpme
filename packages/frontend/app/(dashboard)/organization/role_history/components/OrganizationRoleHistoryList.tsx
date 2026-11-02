@@ -1,61 +1,66 @@
-import { Badge, Col, Input, List, Pagination, Row, Select, Tooltip } from 'antd'
 import {
-  DateRangeType,
-  OrganizationRole,
-  OrgRoleChangeReason,
-  OrgRoleHistory,
-  OrgUser,
-} from '@koh/common'
-import { cn } from '@/app/utils/generalUtils'
-import UserAvatar from '@/app/components/UserAvatar'
-import { ArrowBigDown, ArrowBigRight } from 'lucide-react'
-import React, { useEffect, useMemo, useState } from 'react'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { API } from '@/app/api'
-import { QuestionCircleOutlined, SearchOutlined } from '@ant-design/icons'
-import DateOptionFilter from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/DateOptionFilter'
-import useWindowSize from '@/app/hooks/useWindowSize'
+  Badge,
+  Col,
+  Input,
+  List,
+  Pagination,
+  Row,
+  Select,
+  Tooltip,
+} from 'antd';
+import type { DateRangeType, OrgRoleHistory, OrgUser } from '@koh/common';
+import { OrganizationRole, OrgRoleChangeReason } from '@koh/common';
+import { cn } from '@/app/utils/generalUtils';
+import UserAvatar from '@/app/components/UserAvatar';
+import { ArrowBigDown, ArrowBigRight } from 'lucide-react';
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { API } from '@/app/api';
+import { QuestionCircleOutlined, SearchOutlined } from '@ant-design/icons';
+import DateOptionFilter from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/DateOptionFilter';
+import useWindowSize from '@/app/hooks/useWindowSize';
 
-const { Option } = Select
+const { Option } = Select;
 const roleOptions = Object.keys(OrganizationRole)
   .map((v) => v.toUpperCase())
   .filter((v, i, a) => a.indexOf(v) == i)
-  .map((v) => `${v.charAt(0)}${v.substring(1).toLowerCase()}`)
+  .map((v) => `${v.charAt(0)}${v.substring(1).toLowerCase()}`);
 
 const OrganizationRoleHistoryList: React.FC = () => {
-  const { userInfo } = useUserInfo()
+  const { userInfo } = useUserInfo();
 
-  const [page, setPage] = useState(1)
-  const [input, setInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [history, setHistory] = useState<OrgRoleHistory[]>([])
-  const [totalHistory, setTotalHistory] = useState<number>(0)
+  const [page, setPage] = useState(1);
+  const [input, setInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [history, setHistory] = useState<OrgRoleHistory[]>([]);
+  const [totalHistory, setTotalHistory] = useState<number>(0);
 
-  const [fromRole, setFromRole] = useState<OrganizationRole | 'none'>('none')
-  const [toRole, setToRole] = useState<OrganizationRole | 'none'>('none')
-  const windowSize = useWindowSize()
+  const [fromRole, setFromRole] = useState<OrganizationRole | 'none'>('none');
+  const [toRole, setToRole] = useState<OrganizationRole | 'none'>('none');
+  const windowSize = useWindowSize();
 
   const [dateRange, setDateRange] = useState<DateRangeType>({
     start: '',
     end: '',
-  })
+  });
 
   const handleInput = (event: any) => {
-    event.preventDefault()
-    setInput(event.target.value)
-  }
+    event.preventDefault();
+    setInput(event.target.value);
+  };
 
   const handleSearch = (event: any) => {
-    event.preventDefault()
-    setSearch(event.target.value)
-    setPage(1)
-  }
+    event.preventDefault();
+    setSearch(event.target.value);
+    setPage(1);
+  };
 
   const fetchHistory = async () => {
-    let hasDate = !!(dateRange.start && dateRange.end)
+    let hasDate = !!(dateRange.start && dateRange.end);
     if (dateRange.start == 'Invalid Date' || dateRange.end == 'Invalid Date') {
-      hasDate = false
-      setDateRange({ start: '', end: '' })
+      hasDate = false;
+      setDateRange({ start: '', end: '' });
     }
 
     const data = await API.organizations.getOrganizationRoleHistory(
@@ -68,16 +73,26 @@ const OrganizationRoleHistoryList: React.FC = () => {
         minDate: hasDate ? (dateRange.start as unknown as Date) : undefined,
         maxDate: hasDate ? (dateRange.end as unknown as Date) : undefined,
       },
-    )
-    setHistory(data.history)
-    setTotalHistory(data.totalHistory)
-  }
+    );
+    setHistory(data.history);
+    setTotalHistory(data.totalHistory);
+  };
 
   useEffect(() => {
-    fetchHistory().then()
-  }, [userInfo?.organization?.orgId, page, search, fromRole, toRole, dateRange])
+    fetchHistory().then();
+  }, [
+    userInfo?.organization?.orgId,
+    page,
+    search,
+    fromRole,
+    toRole,
+    dateRange,
+  ]);
 
-  const isMobile = useMemo(() => windowSize.width < 72 * 16, [windowSize.width])
+  const isMobile = useMemo(
+    () => windowSize.width < 72 * 16,
+    [windowSize.width],
+  );
 
   const filterElement = useMemo(() => {
     const searchInput = (
@@ -88,7 +103,7 @@ const OrganizationRoleHistoryList: React.FC = () => {
         onChange={handleInput}
         onPressEnter={handleSearch}
       />
-    )
+    );
     const fromRoleInput = (
       <Select className={'w-full'} value={fromRole} onChange={setFromRole}>
         <Option key={'NoneOption'} value={'none'}>
@@ -100,7 +115,7 @@ const OrganizationRoleHistoryList: React.FC = () => {
           </Option>
         ))}
       </Select>
-    )
+    );
     const toRoleInput = (
       <Select className={'w-full'} value={toRole} onChange={setToRole}>
         <Option key={'NoneOption'} value={'none'}>
@@ -112,7 +127,7 @@ const OrganizationRoleHistoryList: React.FC = () => {
           </Option>
         ))}
       </Select>
-    )
+    );
     const dateInput = (
       <DateOptionFilter
         setRange={setDateRange}
@@ -121,7 +136,7 @@ const OrganizationRoleHistoryList: React.FC = () => {
         dontShowTitle={true}
         dontIncludeDateSelectOptions={true}
       />
-    )
+    );
     if (!isMobile) {
       // Medium+
       return (
@@ -151,7 +166,7 @@ const OrganizationRoleHistoryList: React.FC = () => {
             </Row>
           </Col>
         </Row>
-      )
+      );
     } else {
       // Small
       return (
@@ -163,9 +178,9 @@ const OrganizationRoleHistoryList: React.FC = () => {
           </div>
           {dateInput}
         </div>
-      )
+      );
     }
-  }, [search, input, fromRole, toRole, dateRange, isMobile])
+  }, [search, input, fromRole, toRole, dateRange, isMobile]);
 
   return (
     <div>
@@ -219,10 +234,10 @@ const OrganizationRoleHistoryList: React.FC = () => {
         )}
       </Row>
     </div>
-  )
-}
+  );
+};
 
-export default OrganizationRoleHistoryList
+export default OrganizationRoleHistoryList;
 
 const RoleBadge: React.FC<{ role: OrganizationRole; isMobile?: boolean }> = ({
   role,
@@ -231,15 +246,15 @@ const RoleBadge: React.FC<{ role: OrganizationRole; isMobile?: boolean }> = ({
   const badgeColor = useMemo(() => {
     switch (role) {
       case 'admin':
-        return 'red'
+        return 'red';
       case 'professor':
-        return 'blue'
+        return 'blue';
       case 'member':
-        return 'green'
+        return 'green';
       default:
-        return 'gray'
+        return 'gray';
     }
-  }, [role])
+  }, [role]);
 
   return (
     <Badge
@@ -253,25 +268,25 @@ const RoleBadge: React.FC<{ role: OrganizationRole; isMobile?: boolean }> = ({
       }
       showZero={true}
     />
-  )
-}
+  );
+};
 
 const UserItem: React.FC<{ user: OrgUser; isMobile: boolean }> = ({
   user,
   isMobile = false,
 }) => {
-  let name = `${user.firstName ?? ''} ${user.lastName ?? ''}`
-  if (!name.trim()) name = 'Deleted User'
+  let name = `${user.firstName ?? ''} ${user.lastName ?? ''}`;
+  if (!name.trim()) name = 'Deleted User';
 
   if (name.length > (isMobile ? 8 : 16)) {
-    const parts = name.split(' ')
+    const parts = name.split(' ');
     name =
       parts[0] +
       ' ' +
       parts
         .slice(1)
         .map((p) => p.charAt(0) + '.')
-        .join(' ')
+        .join(' ');
   }
 
   return (
@@ -293,18 +308,18 @@ const UserItem: React.FC<{ user: OrgUser; isMobile: boolean }> = ({
         <RoleBadge role={user.organizationRole as OrganizationRole} />
       </div>
     </div>
-  )
-}
+  );
+};
 
 const RoleChangeItem: React.FC<{
-  item: OrgRoleHistory
-  isMobile?: boolean
-  className?: string
+  item: OrgRoleHistory;
+  isMobile?: boolean;
+  className?: string;
 }> = ({ item, isMobile = false, className }) => {
   const isAccountCreation =
     !item.fromRole &&
     item.toRole == OrganizationRole.MEMBER &&
-    !item.byUser?.userId
+    !item.byUser?.userId;
   return (
     <List.Item
       key={item.id}
@@ -446,5 +461,5 @@ const RoleChangeItem: React.FC<{
         </Row>
       )}
     </List.Item>
-  )
-}
+  );
+};

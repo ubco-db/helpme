@@ -9,9 +9,9 @@ import {
 import { setupIntegrationTest } from './util/testUtils';
 import { CalendarModel } from '../src/calendar/calendar.entity';
 import { CalendarModule } from '../src/calendar/calendar.module';
+import type { CronJob } from '@koh/common';
 import {
   calendarEventLocationType,
-  CronJob,
   ERROR_MESSAGES,
   OrganizationRole,
   Role,
@@ -19,9 +19,9 @@ import {
 } from '@koh/common';
 import { CalendarStaffModel } from '../src/calendar/calendar-staff.entity';
 import { OrganizationModule } from '../src/organization/organization.module';
-import { CourseModel } from 'course/course.entity';
-import { UserModel } from 'profile/user.entity';
-import { OrganizationModel } from 'organization/organization.entity';
+import type { CourseModel } from 'course/course.entity';
+import type { UserModel } from 'profile/user.entity';
+import type { OrganizationModel } from 'organization/organization.entity';
 import { AdminModule } from 'admin/admin.module';
 
 describe('Calendar Integration', () => {

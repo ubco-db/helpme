@@ -1,35 +1,36 @@
-import { Role } from '@koh/common'
-import { useRouter } from 'next/navigation'
-import React, { useState } from 'react'
-import TACheckinButton from './TACheckinButton'
-import CheckInModal from './CheckInModal'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { useCourse } from '@/app/hooks/useCourse'
-import { getRoleInCourse } from '@/app/utils/generalUtils'
-import { checkInTA } from '../utils/commonCourseFunctions'
+import { Role } from '@koh/common';
+import { useRouter } from 'next/navigation';
+import type React from 'react';
+import { useState } from 'react';
+import TACheckinButton from './TACheckinButton';
+import CheckInModal from './CheckInModal';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { useCourse } from '@/app/hooks/useCourse';
+import { getRoleInCourse } from '@/app/utils/generalUtils';
+import { checkInTA } from '../utils/commonCourseFunctions';
 
 interface CoursePageCheckInButtonProps {
-  courseId: number
+  courseId: number;
 }
 
 const CoursePageCheckInButton: React.FC<CoursePageCheckInButtonProps> = ({
   courseId,
 }) => {
   // state for check in modal
-  const [checkInModalVisible, setCheckInModalVisible] = useState(false)
+  const [checkInModalVisible, setCheckInModalVisible] = useState(false);
 
-  const { userInfo } = useUserInfo()
-  const router = useRouter()
-  const { course, mutateCourse } = useCourse(courseId)
-  const role = getRoleInCourse(userInfo, courseId)
+  const { userInfo } = useUserInfo();
+  const router = useRouter();
+  const { course, mutateCourse } = useCourse(courseId);
+  const role = getRoleInCourse(userInfo, courseId);
   const availableQueues =
     course?.queues?.filter((q) =>
       role === Role.TA ? !q.isProfessorQueue : true,
-    ) ?? []
+    ) ?? [];
   const queueCheckedIn = course?.queues?.find((queue) =>
     queue.staffList.find((staff) => staff.id === userInfo?.id),
-  )
-  const numQueues = course?.queues?.length ?? 0
+  );
+  const numQueues = course?.queues?.length ?? 0;
 
   return (
     <>
@@ -37,7 +38,7 @@ const CoursePageCheckInButton: React.FC<CoursePageCheckInButtonProps> = ({
         <CheckInModal
           visible={checkInModalVisible}
           onSubmit={async (queueId: number) => {
-            checkInTA(courseId, queueId, mutateCourse, router)
+            checkInTA(courseId, queueId, mutateCourse, router);
           }}
           onCancel={() => setCheckInModalVisible(false)}
           queues={availableQueues}
@@ -58,14 +59,14 @@ const CoursePageCheckInButton: React.FC<CoursePageCheckInButtonProps> = ({
               className="w-fit"
               preventDefaultAction={true}
               onClick={() => {
-                setCheckInModalVisible(true)
+                setCheckInModalVisible(true);
               }}
             />
           )}
         </>
       )}
     </>
-  )
-}
+  );
+};
 
-export default CoursePageCheckInButton
+export default CoursePageCheckInButton;

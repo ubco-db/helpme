@@ -1,16 +1,16 @@
-import { Card, Space, Button } from 'antd'
-import Meta from 'antd/es/card/Meta'
-import { ReactElement } from 'react'
+import { Card, Space, Button } from 'antd';
+import Meta from 'antd/es/card/Meta';
+import type { ReactElement } from 'react';
 
 type InviteCardProps = {
-  title: string
-  buttonLabel: string
-  buttonAction: () => void
-  description?: { title?: string; text?: string }
-  cover?: ReactElement
-  secondaryButtonLabel?: string
-  secondaryButtonAction?: () => void
-}
+  title: string;
+  buttonLabel: string;
+  buttonAction: () => void;
+  description?: { title?: string; text?: string };
+  cover?: ReactElement;
+  secondaryButtonLabel?: string;
+  secondaryButtonAction?: () => void;
+};
 
 const InviteCard: React.FC<InviteCardProps> = ({
   title,
@@ -43,7 +43,7 @@ const InviteCard: React.FC<InviteCardProps> = ({
         )}
       </Space>
     </Card>
-  )
-}
+  );
+};
 
-export default InviteCard
+export default InviteCard;

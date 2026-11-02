@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AllowForNullPhotoURLs1608861987157 implements MigrationInterface {
   name = 'AllowForNullPhotoURLs1608861987157';

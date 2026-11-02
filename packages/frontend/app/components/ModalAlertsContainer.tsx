@@ -1,22 +1,22 @@
-import {
+import type {
   AdminNoticePayload,
-  AlertType,
   PromptStudentToLeaveQueuePayload,
   RephraseQuestionPayload,
-} from '@koh/common'
-import { useRouter } from 'next/navigation'
-import StudentRephraseModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/StudentRephraseModal'
-import { useAlerts } from '@/app/contexts/AlertsContext'
-import EventEndedCheckoutStaffModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/EventEndedCheckoutStaffModal'
-import PromptStudentToLeaveQueueModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/PromptStudentToLeaveQueueModal'
+} from '@koh/common';
+import { AlertType } from '@koh/common';
+import { useRouter } from 'next/navigation';
+import StudentRephraseModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/StudentRephraseModal';
+import { useAlerts } from '@/app/contexts/AlertsContext';
+import EventEndedCheckoutStaffModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/EventEndedCheckoutStaffModal';
+import PromptStudentToLeaveQueueModal from '../(dashboard)/course/[cid]/queue/[qid]/components/modals/PromptStudentToLeaveQueueModal';
 
-import AdminNoticeModal from './AdminNoticeModal'
+import AdminNoticeModal from './AdminNoticeModal';
 
 /* This just holds all of the modal alert components. Similar idea with ToastAlertsContainer */
 const ModalAlertsContainer: React.FC = () => {
-  const router = useRouter()
-  const { modalAlerts, markAlertRead, currentCourseId: courseId } = useAlerts()
-  const alerts = modalAlerts
+  const router = useRouter();
+  const { modalAlerts, markAlertRead, currentCourseId: courseId } = useAlerts();
+  const alerts = modalAlerts;
 
   const alertDivs = alerts?.map((alert) => {
     switch (alert.alertType) {
@@ -26,14 +26,14 @@ const ModalAlertsContainer: React.FC = () => {
             key={alert.id}
             payload={alert.payload as RephraseQuestionPayload}
             handleEdit={async (courseId, queueId) => {
-              await markAlertRead(alert.id)
+              await markAlertRead(alert.id);
               router.push(
                 `/course/${courseId}/queue/${queueId}?edit_question=true`,
-              )
+              );
             }}
             handleClose={async () => await markAlertRead(alert.id)}
           />
-        )
+        );
       case AlertType.EVENT_ENDED_CHECKOUT_STAFF:
         return (
           courseId && (
@@ -41,11 +41,11 @@ const ModalAlertsContainer: React.FC = () => {
               key={alert.id}
               courseId={courseId}
               handleClose={async () => {
-                await markAlertRead(alert.id)
+                await markAlertRead(alert.id);
               }}
             />
           )
-        )
+        );
       case AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE:
         return (
           courseId && (
@@ -58,11 +58,11 @@ const ModalAlertsContainer: React.FC = () => {
                   .queueQuestionId
               }
               handleClose={async () => {
-                await markAlertRead(alert.id)
+                await markAlertRead(alert.id);
               }}
             />
           )
-        )
+        );
       case AlertType.ADMIN_NOTICE: {
         return (
           <AdminNoticeModal
@@ -70,16 +70,16 @@ const ModalAlertsContainer: React.FC = () => {
             payload={alert.payload as AdminNoticePayload}
             sentAt={alert.sentAt}
             handleClose={async () => {
-              await markAlertRead(alert.id)
+              await markAlertRead(alert.id);
             }}
           />
-        )
+        );
       }
     }
-  })
+  });
 
   // probably want some better way of handling multiple alerts
-  return <div>{alertDivs}</div>
-}
+  return <div>{alertDivs}</div>;
+};
 
-export default ModalAlertsContainer
+export default ModalAlertsContainer;

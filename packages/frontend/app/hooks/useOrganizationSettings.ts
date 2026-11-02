@@ -1,6 +1,6 @@
-import useSWR from 'swr'
-import { API } from '../api'
-import { OrganizationSettingsResponse } from '@koh/common'
+import useSWR from 'swr';
+import { API } from '../api';
+import type { OrganizationSettingsResponse } from '@koh/common';
 
 export function useOrganizationSettings(
   organizationId: number | undefined | null,
@@ -8,7 +8,7 @@ export function useOrganizationSettings(
   const key =
     organizationId === undefined || organizationId === null
       ? null
-      : `${organizationId}/settings`
+      : `${organizationId}/settings`;
 
   const { data: organizationSettings } = useSWR(
     key,
@@ -19,19 +19,19 @@ export function useOrganizationSettings(
         organizationId === -1 ||
         organizationId === 0
       )
-        return undefined
-      return await API.organizations.getOrganizationSettings(organizationId)
+        return undefined;
+      return await API.organizations.getOrganizationSettings(organizationId);
     },
     {
       onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
         // if the API responded with 404, stop retrying
-        if (error.response && error.response.status === 404) return
+        if (error.response && error.response.status === 404) return;
 
         // for other errors, retry with a delay
-        if (retryCount <= 5) setTimeout(() => revalidate({ retryCount }), 1000)
+        if (retryCount <= 5) setTimeout(() => revalidate({ retryCount }), 1000);
       },
     },
-  )
+  );
 
-  return organizationSettings
+  return organizationSettings;
 }

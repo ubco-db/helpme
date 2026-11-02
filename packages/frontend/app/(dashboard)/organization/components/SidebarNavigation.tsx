@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import React from 'react'
+import type React from 'react';
 import {
   CalendarOutlined,
   ExperimentOutlined,
@@ -9,13 +9,13 @@ import {
   SettingOutlined,
   TeamOutlined,
   UserOutlined,
-} from '@ant-design/icons'
-import { Select } from 'antd'
-import { usePathname, useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { cn } from '@/app/utils/generalUtils'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { OrganizationRole } from '@koh/common'
+} from '@ant-design/icons';
+import { Select } from 'antd';
+import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { cn } from '@/app/utils/generalUtils';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { OrganizationRole } from '@koh/common';
 
 const items = [
   {
@@ -60,12 +60,12 @@ const items = [
     icon: <UserOutlined />,
     url: '/organization/role_history',
   },
-]
+];
 
 const SidebarNavigation: React.FC = () => {
-  const pathname = usePathname()
-  const router = useRouter()
-  const { userInfo } = useUserInfo()
+  const pathname = usePathname();
+  const router = useRouter();
+  const { userInfo } = useUserInfo();
 
   if (
     userInfo.organization &&
@@ -77,9 +77,9 @@ const SidebarNavigation: React.FC = () => {
           <Select
             value={items.find((item) => item.url === pathname)?.key}
             onChange={(value) => {
-              const nextItem = items.find((item) => item.key === value)
+              const nextItem = items.find((item) => item.key === value);
               if (nextItem) {
-                router.push(nextItem.url)
+                router.push(nextItem.url);
               }
             }}
             className="w-full"
@@ -108,16 +108,16 @@ const SidebarNavigation: React.FC = () => {
                     </div>
                   </div>
                 </Link>
-              )
+              );
             })}
           </nav>
         </div>
       </>
-    )
+    );
   } else {
     // This is just to create a gap to center the content
-    return <div className="md:col-span-1"></div>
+    return <div className="md:col-span-1"></div>;
   }
-}
+};
 
-export default SidebarNavigation
+export default SidebarNavigation;

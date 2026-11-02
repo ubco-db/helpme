@@ -1,12 +1,13 @@
-import { cn } from '@/app/utils/generalUtils'
-import { Button, ButtonProps, Tooltip } from 'antd'
-import { PhoneOutlined } from '@ant-design/icons'
-import { PropsWithChildren } from 'react'
+import { cn } from '@/app/utils/generalUtils';
+import type { ButtonProps } from 'antd';
+import { Button, Tooltip } from 'antd';
+import { PhoneOutlined } from '@ant-design/icons';
+import type { PropsWithChildren } from 'react';
 
 interface JoinZoomButtonProps extends ButtonProps {
-  textSize?: 'sm' | 'md' | 'lg'
-  zoomLink?: string
-  onJoin?: () => void
+  textSize?: 'sm' | 'md' | 'lg';
+  zoomLink?: string;
+  onJoin?: () => void;
 }
 
 const JoinZoomButton: React.FC<PropsWithChildren<JoinZoomButtonProps>> = ({
@@ -26,8 +27,8 @@ const JoinZoomButton: React.FC<PropsWithChildren<JoinZoomButtonProps>> = ({
           className,
         )}
         onClick={() => {
-          if (onJoin) onJoin()
-          window.open(zoomLink, '_blank')
+          if (onJoin) onJoin();
+          window.open(zoomLink, '_blank');
         }}
         type={type}
         disabled={!zoomLink}
@@ -45,7 +46,7 @@ const JoinZoomButton: React.FC<PropsWithChildren<JoinZoomButtonProps>> = ({
         Once finished, this popup will automatically close.
       </p>
     </div>
-  )
-}
+  );
+};
 
-export default JoinZoomButton
+export default JoinZoomButton;

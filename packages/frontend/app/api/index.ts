@@ -1,9 +1,8 @@
-import {
+import type {
   AccountRegistrationParams,
   AddChatbotQuestionParams,
   AddDocumentChunkParams,
   AllStudentAssignmentProgress,
-  AsyncQuestionComment,
   AsyncQuestionCommentEndorseParams,
   AsyncQuestionCommentParams,
   BatchCourseCloneAttributes,
@@ -30,17 +29,14 @@ import {
   CourseResponse,
   CourseSettingsResponse,
   CreateAlertParams,
-  CreateAlertResponse,
   CreateAsyncQuestions,
   CreateChatbotProviderBody,
   CreateLLMTypeBody,
   CreateLtiPlatform,
   CreateOrganizationChatbotSettingsBody,
   CreateQuestionParams,
-  CreateQuestionResponse,
   CronJob,
   DesktopNotifBody,
-  DesktopNotifPartial,
   EditCourseInfoParams,
   EmbeddableQuestion,
   EmbeddableQuestionFeedback,
@@ -50,26 +46,20 @@ import {
   AssignmentFeedbackRequest,
   AssignmentFeedbackResponse,
   ExtraTAStatus,
-  AlertDeliveryMode,
   GetAsyncQuestionsResponse,
   GetAvailableModelsBody,
   GetChatbotHistoryResponse,
-  GetCourseResponse,
   GetCourseUserInfoResponse,
   GetInsightOutputResponse,
   GetInteractionsAndQuestionsResponse,
-  GetLimitedCourseResponse,
   GetOrganizationResponse,
   GetOrganizationUserResponse,
   GetProfileResponse,
-  GetQueueChatResponse,
   GetQueueChatsResponse,
-  GetQueueResponse,
   InsightDashboardPartial,
   InsightDetail,
   InsightParamsType,
   ListInsightsResponse,
-  ListQuestionsResponse,
   LLMType,
   LMSAnnouncement,
   LMSApiResponseStatus,
@@ -96,7 +86,6 @@ import {
   OrganizationRoleHistoryResponse,
   OrganizationSettingsResponse,
   OrganizationStatsResponse,
-  OrgUser,
   PasswordRequestResetBody,
   PasswordRequestResetWithTokenBody,
   PreDeterminedQuestion,
@@ -104,20 +93,16 @@ import {
   questions,
   QuestionType,
   QuestionTypeParams,
-  QueueChatPartial,
   QueueConfig,
   QueueInvite,
   QueueInviteParams,
-  QueuePartial,
   QueueTypes,
   RemoveLMSOrganizationParams,
   Role,
-  SemesterPartial,
   setQueueConfigResponse,
   SourceDocument,
   StudentAssignmentProgress,
   StudentTaskProgressWithUser,
-  TACheckinTimesResponse,
   TACheckoutResponse,
   TAUpdateStatusResponse,
   TestLMSIntegrationParams,
@@ -125,7 +110,6 @@ import {
   UBCOuserParam,
   UnreadAsyncQuestionResponse,
   UpdateAsyncQuestions,
-  UserPartial,
   UpdateChatbotProviderBody,
   UpdateChatbotQuestionParams,
   UpdateDocumentChunkParams,
@@ -136,7 +120,6 @@ import {
   UpdateOrganizationUserRole,
   UpdateProfileParams,
   UpdateQuestionParams,
-  UpdateQuestionResponse,
   UpdateQueueParams,
   UpsertCourseChatbotSettings,
   UpsertLMSCourseParams,
@@ -146,46 +129,67 @@ import {
   AcceptProfInviteParams,
   GetProfInviteDetailsResponse,
   CreateProfInviteParams,
-  GetProfInviteResponse,
   ValidateEmailTokenRequest,
   ValidateEmailTokenResponse,
+  CreateAlertAdminRequest,
+  DeleteAdminNoticeRequest,
+  UploadChatbotDocumentRequest,
+  UserCourse,
+} from '@koh/common';
+import {
+  AsyncQuestionComment,
+  CreateAlertResponse,
+  CreateQuestionResponse,
+  DesktopNotifPartial,
+  AlertDeliveryMode,
+  GetCourseResponse,
+  GetLimitedCourseResponse,
+  GetQueueChatResponse,
+  GetQueueResponse,
+  ListQuestionsResponse,
+  OrgUser,
+  QueueChatPartial,
+  QueuePartial,
+  SemesterPartial,
+  TACheckinTimesResponse,
+  UserPartial,
+  UpdateQuestionResponse,
+  GetProfInviteResponse,
   GetPageOfFeedAlerts,
   GetInitialAlertsResponse,
   Alert,
-  CreateAlertAdminRequest,
   GetAdminNoticeAlert,
   CreateAlertAdminResponse,
-  DeleteAdminNoticeRequest,
   DeleteAdminNoticeResponse,
   isProd,
-  UploadChatbotDocumentRequest,
-  UserCourse,
-} from '@koh/common'
-import Axios, {
+} from '@koh/common';
+import type {
   AxiosError,
   AxiosInstance,
   AxiosResponse,
   Method,
   AxiosProgressEvent,
-} from 'axios'
-import { ClassConstructor, plainToInstance } from 'class-transformer'
-import * as Sentry from '@sentry/nextjs'
-import { SetStateAction } from 'react'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { GetOrganizationUsersPaginatedResponse } from '@koh/common'
-import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
+} from 'axios';
+import Axios from 'axios';
+import type { ClassConstructor } from 'class-transformer';
+import { plainToInstance } from 'class-transformer';
+import * as Sentry from '@sentry/nextjs';
+import type { SetStateAction } from 'react';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import type { GetOrganizationUsersPaginatedResponse } from '@koh/common';
+import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 // Return type of array item, if T is an array
-type ItemIfArray<T> = T extends (infer I)[] ? I : T
+type ItemIfArray<T> = T extends (infer I)[] ? I : T;
 
 export class APIClient {
-  private axios: AxiosInstance
+  private axios: AxiosInstance;
 
   constructor(
     private baseURL = '',
     private authToken: string = '',
   ) {
-    this.axios = Axios.create({ baseURL: this.baseURL })
+    this.axios = Axios.create({ baseURL: this.baseURL });
   }
 
   /**
@@ -204,7 +208,7 @@ export class APIClient {
     body?: any,
     params?: any,
     onUploadProgress?: (progressEvent: AxiosProgressEvent) => void,
-  ): Promise<T>
+  ): Promise<T>;
   private async req<T>(
     method: Method,
     url: string,
@@ -213,7 +217,7 @@ export class APIClient {
     params?: any,
     onUploadProgress?: (progressEvent: AxiosProgressEvent) => void,
   ): Promise<T> {
-    const headers = this.authToken ? { cookie: this.authToken } : undefined
+    const headers = this.authToken ? { cookie: this.authToken } : undefined;
     const res = (
       await this.axios.request({
         method,
@@ -223,12 +227,12 @@ export class APIClient {
         headers,
         onUploadProgress,
       })
-    ).data
+    ).data;
     return responseClass
       ? plainToInstance(responseClass, res, {
           enableImplicitConversion: true, // needed otherwise dates won't be deserialized (converted from string to date object)
         })
-      : res
+      : res;
   }
 
   /**
@@ -244,14 +248,14 @@ export class APIClient {
     body?: any,
     params?: any,
   ): Promise<AxiosResponse> {
-    const headers = this.authToken ? { cookie: this.authToken } : undefined
+    const headers = this.authToken ? { cookie: this.authToken } : undefined;
     return await this.axios.request({
       method,
       url,
       data: body,
       params,
       headers,
-    })
+    });
   }
 
   login = {
@@ -259,18 +263,18 @@ export class APIClient {
       this.request('POST', `/api/v1/login`, loginData),
     entry: (params: URLSearchParams) =>
       `/api/v1/login/entry${params.size > 0 ? '?' + params.toString() : ''}`,
-  }
+  };
 
   auth = {
     shibboleth: (organizationId: any, redirect?: string | null) => {
-      const params = new URLSearchParams()
-      if (redirect) params.set('redirect', redirect)
-      const query = params.size > 0 ? '?' + params.toString() : ''
+      const params = new URLSearchParams();
+      if (redirect) params.set('redirect', redirect);
+      const query = params.size > 0 ? '?' + params.toString() : '';
       // In dev, use the mock SSO controller instead of the real shibboleth endpoint
       if (!isProd()) {
-        return `/api/v1/dev-sso/login/${organizationId}${query}`
+        return `/api/v1/dev-sso/login/${organizationId}${query}`;
       }
-      return `/api/v1/auth/shibboleth/${organizationId}${query}`
+      return `/api/v1/auth/shibboleth/${organizationId}${query}`;
     },
     registerAccount: async (registerData: AccountRegistrationParams) =>
       this.request('POST', '/api/v1/auth/register', registerData),
@@ -294,11 +298,11 @@ export class APIClient {
       this.req('GET', `/api/v1/auth/reset/validate/${token}`),
     loginWithGoogle: async (organizationId: number) =>
       this.request('GET', `/api/v1/auth/link/google/${organizationId}`),
-  }
+  };
   profile = {
     getUser: async (): Promise<GetProfileResponse> => {
-      const response = await this.profile.fullResponse()
-      const contentType = response.headers['content-type'] ?? ''
+      const response = await this.profile.fullResponse();
+      const contentType = response.headers['content-type'] ?? '';
 
       if (
         typeof contentType !== 'number' &&
@@ -306,16 +310,16 @@ export class APIClient {
         contentType.includes('application/json')
       ) {
         if (response.status >= 400) {
-          const body = response.data
-          return Promise.reject(body)
+          const body = response.data;
+          return Promise.reject(body);
         }
-        return response.data as any // Type assertion needed due to conditional return type
+        return response.data as any; // Type assertion needed due to conditional return type
       } else if (
         typeof contentType !== 'number' &&
         typeof contentType !== 'boolean' &&
         contentType.includes('text/html')
       ) {
-        const text = response.data as string
+        const text = response.data as string;
         Sentry.captureEvent({
           message: `Unknown error in getUser ${response.status}: ${response.statusText}`,
           level: 'error',
@@ -323,12 +327,12 @@ export class APIClient {
             text,
             response,
           },
-        })
-        return Promise.reject(text)
+        });
+        return Promise.reject(text);
       } else {
         return Promise.reject(
           'Unknown error in getUser' + JSON.stringify(response),
-        )
+        );
       }
     },
     fullResponse: async () => this.request('GET', `/api/v1/profile`),
@@ -340,11 +344,11 @@ export class APIClient {
       this.req('PATCH', `/api/v1/profile/read_changelog`, undefined),
     clearCache: async (): Promise<void> =>
       this.req('DELETE', `/api/v1/profile/clear_cache`),
-  }
+  };
   admin = {
     getCronJobs: async (): Promise<CronJob[]> =>
       this.req('GET', `/api/v1/admin/cronjobs`),
-  }
+  };
   chatbot = {
     studentsOrStaff: {
       // these endpoints are the main endpoints that students and staff use
@@ -474,11 +478,11 @@ export class APIClient {
         restOfBody: UploadChatbotDocumentRequest,
         onUploadProgress?: (progressEvent: AxiosProgressEvent) => void,
       ): Promise<void> => {
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('parseAsPng', String(restOfBody.parseAsPng))
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('parseAsPng', String(restOfBody.parseAsPng));
         if (restOfBody.uploadId) {
-          formData.append('uploadId', restOfBody.uploadId)
+          formData.append('uploadId', restOfBody.uploadId);
         }
         return this.req(
           'POST',
@@ -487,7 +491,7 @@ export class APIClient {
           formData,
           undefined,
           onUploadProgress,
-        )
+        );
       },
       addDocumentFromGithub: async (
         courseId: number,
@@ -672,21 +676,21 @@ export class APIClient {
           undefined,
         ),
     },
-  }
+  };
   /* A series of endpoints used for the "AI Essay Feedback" feature (used specifically be LLED courses for now) */
   aiAssignmentFeedback = {
     extractAssignmentText: async (
       courseId: number,
       file: File,
     ): Promise<AssignmentFeedbackExtractTextResponse> => {
-      const formData = new FormData()
-      formData.append('file', file)
+      const formData = new FormData();
+      formData.append('file', file);
       return this.req(
         'POST',
         `/api/v1/ai-assignment-feedback/${courseId}/extract-text`,
         undefined,
         formData,
-      )
+      );
     },
     generateAssignmentFeedback: async (
       courseId: number,
@@ -698,7 +702,7 @@ export class APIClient {
         undefined,
         { essay_text } satisfies AssignmentFeedbackRequest,
       ),
-  }
+  };
   course = {
     addStudent: async (courseId: number, sid: number): Promise<void> =>
       this.req(
@@ -824,10 +828,10 @@ export class APIClient {
         `/api/v1/courses/${courseId}/clone_course`,
         undefined,
         toClone,
-      )
+      );
     },
     toggleFavourited: async (courseId: number) => {
-      return this.req('PATCH', `/api/v1/courses/${courseId}/toggle_favourited`)
+      return this.req('PATCH', `/api/v1/courses/${courseId}/toggle_favourited`);
     },
     exportToolUsage: async (
       courseId: number,
@@ -841,15 +845,15 @@ export class APIClient {
         includeAnytimeQuestions: includeAnytimeQuestions.toString(),
         includeChatbotInteractions: includeChatbotInteractions.toString(),
         groupBy,
-      })
+      });
 
       return this.req(
         'GET',
         `/api/v1/courses/${courseId}/export-tool-usage?${queryParams.toString()}`,
         undefined,
-      )
+      );
     },
-  }
+  };
   profInvites = {
     accept: async (
       piid: number,
@@ -879,11 +883,11 @@ export class APIClient {
       this.req('POST', `/api/v1/prof_invites/${orgId}`, undefined, body),
     delete: async (orgId: number, piid: number): Promise<void> =>
       this.req('DELETE', `/api/v1/prof_invites/${orgId}/${piid}`),
-  }
+  };
   mail = {
     resendVerificationCode: async () =>
       this.request('POST', '/api/v1/mail/registration/resend'),
-  }
+  };
   emailNotification = {
     get: async (): Promise<MailServiceWithSubscription[]> =>
       this.req('GET', `/api/v1/mail-services`),
@@ -896,9 +900,9 @@ export class APIClient {
         `/api/v1/mail-services/${mailServiceId}`,
         undefined,
         { isSubscribed },
-      )
+      );
     },
-  }
+  };
   studentTaskProgress = {
     getAssignmentProgress: async (
       userId: number,
@@ -922,7 +926,7 @@ export class APIClient {
       courseId: number,
     ): Promise<StudentTaskProgressWithUser[]> =>
       this.req('GET', `/api/v1/studentTaskProgress/course/${courseId}`),
-  }
+  };
   taStatus = {
     checkMeIn: async (
       courseId: number,
@@ -934,9 +938,12 @@ export class APIClient {
       qid?: number,
     ): Promise<TACheckoutResponse> => {
       if (qid) {
-        return this.req('DELETE', `/api/v1/courses/${courseId}/checkout/${qid}`)
+        return this.req(
+          'DELETE',
+          `/api/v1/courses/${courseId}/checkout/${qid}`,
+        );
       } else {
-        return this.req('DELETE', `/api/v1/courses/${courseId}/checkout_all`)
+        return this.req('DELETE', `/api/v1/courses/${courseId}/checkout_all`);
       }
     },
     setExtraStatus: async (
@@ -950,7 +957,7 @@ export class APIClient {
         undefined,
         { status },
       ),
-  }
+  };
   asyncQuestions = {
     get: async (cid: number): Promise<GetAsyncQuestionsResponse> =>
       this.req('GET', `/api/v1/asyncQuestions/${cid}`, undefined),
@@ -1038,7 +1045,7 @@ export class APIClient {
         'PATCH',
         `/api/v1/asyncQuestions/unread_async_count/${courseId}`,
       ),
-  }
+  };
   questions = {
     index: async (queueId: number) =>
       this.req<ListQuestionsResponse>(
@@ -1078,7 +1085,7 @@ export class APIClient {
       ),
     notify: async (questionId: number): Promise<void> =>
       this.req('POST', `/api/v1/questions/${questionId}/notify`),
-  }
+  };
   questionType = {
     getQuestionTypes: async (
       courseId: number,
@@ -1089,10 +1096,9 @@ export class APIClient {
           'GET',
           `/api/v1/questionType/${courseId}/${queueId}`,
           undefined,
-        )
-        /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+        );
       } catch (_) {
-        return []
+        return [];
       }
     },
     addQuestionType: async (
@@ -1116,7 +1122,7 @@ export class APIClient {
         undefined,
         body,
       ),
-  }
+  };
   calendar = {
     addCalendar: async (body: Calendar, cid: number): Promise<Calendar> =>
       this.req('POST', `/api/v1/calendar/add_event/${cid}`, undefined, body),
@@ -1134,7 +1140,7 @@ export class APIClient {
       resetCronJobs: async (): Promise<void> =>
         this.req('POST', `/api/v1/calendar/reset_cron_jobs`),
     },
-  }
+  };
 
   queues = {
     get: async (queueId: number): Promise<GetQueueResponse> =>
@@ -1164,7 +1170,7 @@ export class APIClient {
         QueuePartial,
         { notes, type, isProfessorQueue, config },
       ),
-  }
+  };
 
   queueInvites = {
     create: async (queueId: number): Promise<string> =>
@@ -1185,7 +1191,7 @@ export class APIClient {
       code: string,
     ): Promise<GetQueueResponse> =>
       this.req('GET', `/api/v1/queueInvites/${queueId}/${code}/queue`),
-  }
+  };
 
   queueChats = {
     get: async (
@@ -1221,9 +1227,9 @@ export class APIClient {
         `/api/v1/queueChats/${queueId}/${questionId}/${staffId}`,
         undefined,
         { message },
-      )
+      );
     },
-  }
+  };
 
   notif = {
     desktop: {
@@ -1245,7 +1251,7 @@ export class APIClient {
           undefined,
         ),
     },
-  }
+  };
   seeds = {
     delete: async () => this.req('GET', `/api/v1/seeds/delete`),
     create: async () => this.req('GET', `/api/v1/seeds/create`),
@@ -1262,7 +1268,7 @@ export class APIClient {
       this.req('POST', `/api/v1/seeds/backup/migrate`, undefined, {
         migrationName,
       }),
-  }
+  };
   semesters = {
     get: async (oid: number): Promise<SemesterPartial[]> =>
       this.req('GET', `/api/v1/semesters/${oid}`),
@@ -1284,7 +1290,7 @@ export class APIClient {
       ),
     delete: async (oid: number, semesterId: number): Promise<void> =>
       this.req('DELETE', `/api/v1/semesters/${oid}/${semesterId}`),
-  }
+  };
   insights = {
     get: async (
       courseId: number,
@@ -1297,7 +1303,7 @@ export class APIClient {
         undefined,
         undefined,
         params,
-      )
+      );
     },
     list: async (): Promise<ListInsightsResponse> =>
       this.req('GET', `/api/v1/insights/list`),
@@ -1335,7 +1341,7 @@ export class APIClient {
           name,
         },
       ),
-  }
+  };
 
   alerts = {
     // Note that there's also a GET /sse endpoint, but that's to be used with an EventSource (1-way websocket to let server send new alerts to frontend)
@@ -1405,7 +1411,7 @@ export class APIClient {
           queryParams,
         ),
     },
-  }
+  };
 
   organizations = {
     getOrganizations: async (): Promise<OrganizationResponse[]> =>
@@ -1612,7 +1618,7 @@ export class APIClient {
         undefined,
         searchFilters,
       ),
-  }
+  };
 
   lmsIntegration = {
     getOrganizationIntegrations: async (
@@ -1798,18 +1804,18 @@ export class APIClient {
       courseId?: number,
       fromLti?: boolean,
     ): string => {
-      const qry = new URLSearchParams()
-      if (platform) qry.set('platform', String(platform))
-      if (courseId) qry.set('courseId', String(courseId))
-      if (fromLti) qry.set('fromLti', String(fromLti))
-      return `/api/v1/lms/oauth2/authorize${qry.size > 0 ? '?' + qry.toString() : ''}`
+      const qry = new URLSearchParams();
+      if (platform) qry.set('platform', String(platform));
+      if (courseId) qry.set('courseId', String(courseId));
+      if (fromLti) qry.set('fromLti', String(fromLti));
+      return `/api/v1/lms/oauth2/authorize${qry.size > 0 ? '?' + qry.toString() : ''}`;
     },
     testIntegration: async (
       courseId: number,
       props: TestLMSIntegrationParams,
     ): Promise<LMSApiResponseStatus> =>
       this.req('POST', `/api/v1/lms/${courseId}/test`, undefined, props),
-  }
+  };
 
   lti = {
     auth: {
@@ -1953,14 +1959,14 @@ export class APIClient {
           `/api/v1/lti/embeddable/canvas-batch/${courseId}/runs/${runId}/report`,
         ),
     },
-  }
+  };
 }
 
 /**
  * This is our main "API" that basically has function calls for all the endpoints in our backend.
  * TODO: Some of the ones here are old and should be removed, others are missing types, and the other Api files should be merged with this one.
  */
-export const API = new APIClient(process.env.NEXT_PUBLIC_API_URL)
+export const API = new APIClient(process.env.NEXT_PUBLIC_API_URL);
 
 export async function fetchUserDetails(
   setProfile: React.Dispatch<SetStateAction<any | undefined>>,
@@ -1972,19 +1978,21 @@ export async function fetchUserDetails(
   await API.profile
     .getUser()
     .then((userDetails) => {
-      setProfile(userDetails)
+      setProfile(userDetails);
     })
     .catch((error: AxiosError) => {
       if (setErrorGettingUser) {
-        setErrorGettingUser(getErrorMessage(error))
+        setErrorGettingUser(getErrorMessage(error));
       }
       if (error.status === 401) {
-        router?.push(`/api/v1/logout${pathname ? `?redirect=${pathname}` : ''}`)
+        router?.push(
+          `/api/v1/logout${pathname ? `?redirect=${pathname}` : ''}`,
+        );
       }
     })
     .finally(() => {
       if (onFinally) {
-        onFinally()
+        onFinally();
       }
-    })
+    });
 }

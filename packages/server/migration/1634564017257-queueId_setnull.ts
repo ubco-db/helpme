@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class queueIdSetnull1634564017257 implements MigrationInterface {
   name = 'queueIdSetnull1634564017257';

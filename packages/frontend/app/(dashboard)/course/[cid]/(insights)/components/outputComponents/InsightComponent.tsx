@@ -1,35 +1,36 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { useInsight } from '@/app/hooks/useInsight'
-import {
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useInsight } from '@/app/hooks/useInsight';
+import type {
   ChartOutputType,
   DateRangeType,
   InsightOutput,
   InsightParamsType,
-  InsightType,
   MultipleGanttChartOutputType,
-} from '@koh/common'
-import DateOptionFilter from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/DateOptionFilter'
-import { charts } from '@/app/(dashboard)/course/[cid]/(insights)/utils/types'
-import StudentFilter from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/StudentFilter'
-import QueueFilter from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/QueueFilter'
-import DataFilter from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/DataFilter'
-import InsightValueComponent from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightValueComponent'
-import InsightChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightChartComponent'
-import InsightTableComponent from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightTableComponent'
-import InsightGanttChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightGanttChartComponent'
-import InsightCard from '@/app/(dashboard)/course/[cid]/(insights)/components/InsightCard'
-import { Empty } from 'antd'
-import StaffFilter from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/StaffFilter'
+} from '@koh/common';
+import { InsightType } from '@koh/common';
+import DateOptionFilter from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/DateOptionFilter';
+import { charts } from '@/app/(dashboard)/course/[cid]/(insights)/utils/types';
+import StudentFilter from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/StudentFilter';
+import QueueFilter from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/QueueFilter';
+import DataFilter from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/DataFilter';
+import InsightValueComponent from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightValueComponent';
+import InsightChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightChartComponent';
+import InsightTableComponent from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightTableComponent';
+import InsightGanttChartComponent from '@/app/(dashboard)/course/[cid]/(insights)/components/outputComponents/InsightGanttChartComponent';
+import InsightCard from '@/app/(dashboard)/course/[cid]/(insights)/components/InsightCard';
+import { Empty } from 'antd';
+import StaffFilter from '@/app/(dashboard)/course/[cid]/(insights)/components/filters/StaffFilter';
 
 interface InsightComponentProps {
-  courseId: number
-  insightName: string
+  courseId: number;
+  insightName: string;
 }
 
 export interface GenericInsightComponentProps {
-  insight: InsightOutput
-  insightName: string
-  filterContent: React.ReactNode
+  insight: InsightOutput;
+  insightName: string;
+  filterContent: React.ReactNode;
 }
 
 const InsightComponent: React.FC<InsightComponentProps> = ({
@@ -38,14 +39,14 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
 }) => {
   const [insightOutput, setInsightOutput] = useState<InsightOutput | undefined>(
     undefined,
-  )
+  );
   const [dateRange, setDateRange] = useState<DateRangeType | undefined>(
     undefined,
-  )
-  const [selectedData, setSelectedData] = useState<string[]>([])
-  const [students, setStudents] = useState<number[]>([])
-  const [queues, setQueues] = useState<number[]>([])
-  const [staff, setStaff] = useState<number[]>([])
+  );
+  const [selectedData, setSelectedData] = useState<string[]>([]);
+  const [students, setStudents] = useState<number[]>([]);
+  const [queues, setQueues] = useState<number[]>([]);
+  const [staff, setStaff] = useState<number[]>([]);
 
   const insightParams = useMemo(() => {
     return {
@@ -54,31 +55,31 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
       students: students.length != 0 ? students : undefined,
       queues: queues.length != 0 ? queues : undefined,
       staff: staff.length != 0 ? staff : undefined,
-    } as InsightParamsType
-  }, [dateRange?.end, dateRange?.start, students, queues, staff])
+    } as InsightParamsType;
+  }, [dateRange?.end, dateRange?.start, students, queues, staff]);
 
   useInsight(courseId, insightName, insightParams).then((result) =>
     setInsightOutput(result),
-  )
+  );
 
   const chartKeys = useMemo(() => {
-    const matchingChart = charts[insightName]
+    const matchingChart = charts[insightName];
     if (matchingChart != undefined && insightOutput != undefined) {
-      const keys: string[] = []
-      const output = insightOutput.output as ChartOutputType
+      const keys: string[] = [];
+      const output = insightOutput.output as ChartOutputType;
       if (matchingChart.categoryKeys) {
         output.data.forEach((datum) => {
-          const key = datum[output.xKey]
+          const key = datum[output.xKey];
           if (!keys.includes(key)) {
-            keys.push(key)
+            keys.push(key);
           }
-        })
+        });
       } else {
-        keys.push(...(output.yKeys ?? []))
+        keys.push(...(output.yKeys ?? []));
       }
-      return keys
+      return keys;
     }
-  }, [insightOutput, insightName])
+  }, [insightOutput, insightName]);
 
   useEffect(() => {
     if (
@@ -88,12 +89,12 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
       charts[insightName] != undefined &&
       !charts[insightName].allowDataFiltering
     ) {
-      setSelectedData(chartKeys)
+      setSelectedData(chartKeys);
     }
-  }, [chartKeys, insightName, insightOutput])
+  }, [chartKeys, insightName, insightOutput]);
 
   const renderFilterOptions = useMemo(() => {
-    const filterOptions: React.ReactNode[] = []
+    const filterOptions: React.ReactNode[] = [];
 
     if (
       insightOutput != undefined &&
@@ -108,7 +109,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
                   key={`DateOption-${insightName}`}
                   setRange={setDateRange}
                 />
-              )
+              );
             case 'students':
               return (
                 <StudentFilter
@@ -116,7 +117,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
                   selectedStudents={students}
                   setSelectedStudents={setStudents}
                 />
-              )
+              );
             case 'queues':
               return (
                 <QueueFilter
@@ -124,7 +125,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
                   selectedQueues={queues}
                   setSelectedQueues={setQueues}
                 />
-              )
+              );
             case 'staff':
               return (
                 <StaffFilter
@@ -132,12 +133,12 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
                   selectedStaff={staff}
                   setSelectedStaff={setStaff}
                 />
-              )
+              );
             default:
-              return null
+              return null;
           }
         }),
-      )
+      );
       if (
         insightOutput.outputType == InsightType.Chart &&
         insightName != 'MostActiveTimes' &&
@@ -150,7 +151,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
             selectedData={selectedData}
             setSelectedData={setSelectedData}
           />,
-        )
+        );
       }
     }
 
@@ -160,7 +161,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
           {filterOptions}
         </div>
       )
-    )
+    );
   }, [
     insightOutput,
     insightName,
@@ -169,11 +170,11 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
     chartKeys,
     selectedData,
     staff,
-  ])
+  ]);
 
   return useMemo(() => {
     if (insightOutput == undefined) {
-      return
+      return;
     }
 
     switch (insightOutput.outputType) {
@@ -184,7 +185,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
             insightName={insightName}
             filterContent={renderFilterOptions}
           />
-        )
+        );
       case InsightType.Chart:
         return (
           <InsightChartComponent
@@ -193,7 +194,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
             filterContent={renderFilterOptions}
             selectedDataSets={selectedData}
           />
-        )
+        );
       case InsightType.Table:
         return (
           <InsightTableComponent
@@ -201,7 +202,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
             insightName={insightName}
             filterContent={renderFilterOptions}
           />
-        )
+        );
       case InsightType.GanttChart:
         return (
           <InsightGanttChartComponent
@@ -209,7 +210,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
             insightName={insightName}
             filterContent={renderFilterOptions}
           />
-        )
+        );
       case InsightType.MultipleGanttChart:
         return (
           <div className={'w-full'}>
@@ -240,7 +241,7 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
                           filterContent={<></>}
                           partOfSeries={true}
                         />
-                      )
+                      );
                     },
                   )}
                 </div>
@@ -251,9 +252,9 @@ const InsightComponent: React.FC<InsightComponentProps> = ({
               )}
             </InsightCard>
           </div>
-        )
+        );
     }
-  }, [insightName, insightOutput, renderFilterOptions, selectedData])
-}
+  }, [insightName, insightOutput, renderFilterOptions, selectedData]);
+};
 
-export default InsightComponent
+export default InsightComponent;

@@ -1,40 +1,40 @@
-import { useCallback } from 'react'
-import Modal from 'antd/lib/modal/Modal'
-import { Form, message, Checkbox, Input, Select, Segmented } from 'antd'
-import { useEffect, useState } from 'react'
-import {
+import { useCallback } from 'react';
+import Modal from 'antd/lib/modal/Modal';
+import { Form, message, Checkbox, Input, Select, Segmented } from 'antd';
+import { useEffect, useState } from 'react';
+import type {
   ConfigTasks,
-  OpenQuestionStatus,
   QuestionLocations,
   StudentAssignmentProgress,
   UserTiny,
-} from '@koh/common'
-import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
-import { QuestionTagSelector } from '../../../../components/QuestionTagElement'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
-import TaskSelector from '../TaskSelector'
+} from '@koh/common';
+import { OpenQuestionStatus } from '@koh/common';
+import { useQuestionTypes } from '@/app/hooks/useQuestionTypes';
+import { QuestionTagSelector } from '../../../../components/QuestionTagElement';
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
+import TaskSelector from '../TaskSelector';
 
 interface FormValues {
-  studentId: number
-  questionTypesInput: number[]
-  questionText: string
-  location: QuestionLocations
-  help: boolean
-  taskIds: string[]
+  studentId: number;
+  questionTypesInput: number[];
+  questionText: string;
+  location: QuestionLocations;
+  help: boolean;
+  taskIds: string[];
 }
 
 interface AddStudentsToQueueModalProps {
-  queueId: number
-  courseId: number
-  isQueueHybrid: boolean
-  isDemoQueue: boolean
-  configTasks?: ConfigTasks
-  assignmentId?: string
-  open: boolean
-  onAddStudent: () => void
-  onCancel: () => void
+  queueId: number;
+  courseId: number;
+  isQueueHybrid: boolean;
+  isDemoQueue: boolean;
+  configTasks?: ConfigTasks;
+  assignmentId?: string;
+  open: boolean;
+  onAddStudent: () => void;
+  onCancel: () => void;
 }
 
 const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
@@ -48,59 +48,59 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
   onAddStudent,
   onCancel,
 }) => {
-  const [form] = Form.useForm()
-  const [questionTypes] = useQuestionTypes(courseId, queueId)
-  const [isloading, setIsLoading] = useState(false)
+  const [form] = Form.useForm();
+  const [questionTypes] = useQuestionTypes(courseId, queueId);
+  const [isloading, setIsLoading] = useState(false);
   //studentState stores all students
-  const [studentsState, setStudentsState] = useState<UserTiny[]>()
-  const [studentsLoading, setStudentsLoading] = useState(true)
-  const [selectedStudent, setSelectedStudent] = useState<UserTiny>()
-  const [addingDemo, setAddingDemo] = useState(false)
+  const [studentsState, setStudentsState] = useState<UserTiny[]>();
+  const [studentsLoading, setStudentsLoading] = useState(true);
+  const [selectedStudent, setSelectedStudent] = useState<UserTiny>();
+  const [addingDemo, setAddingDemo] = useState(false);
   const [
     currentStudentsAssignmentProgress,
     setCurrentStudentsAssignmentProgress,
-  ] = useState<StudentAssignmentProgress | undefined>(undefined)
+  ] = useState<StudentAssignmentProgress | undefined>(undefined);
 
   const populateStudents = useCallback(
     async (courseId: number, withATaskQuestion: boolean) => {
-      setStudentsLoading(true)
+      setStudentsLoading(true);
       await API.course
         .getAllStudentsNotInQueue(courseId, withATaskQuestion)
         .then((students) => {
-          setStudentsState(students)
-          setStudentsLoading(false)
+          setStudentsState(students);
+          setStudentsLoading(false);
         })
         .catch((err) => {
-          const errorMessage = getErrorMessage(err)
-          message.error(errorMessage)
-        })
+          const errorMessage = getErrorMessage(err);
+          message.error(errorMessage);
+        });
     },
     [setStudentsState],
-  )
+  );
 
   useEffect(() => {
     if (open) {
-      populateStudents(courseId, addingDemo)
+      populateStudents(courseId, addingDemo);
     }
-  }, [populateStudents, courseId, open, addingDemo])
+  }, [populateStudents, courseId, open, addingDemo]);
 
   const onFinish = async (values: FormValues) => {
     if (studentsState?.length == 0) {
-      onCancel()
-      return
+      onCancel();
+      return;
     }
     if (!selectedStudent) {
-      message.error('Please select a student')
-      return
+      message.error('Please select a student');
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
     const newQuestionTypeInput =
       values.questionTypesInput && questionTypes
         ? questionTypes.filter((questionType) =>
             values.questionTypesInput.includes(questionType.id),
           )
-        : []
+        : [];
     await API.questions
       .TAcreate(
         {
@@ -117,26 +117,26 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
         selectedStudent.id,
       )
       .then(async (response) => {
-        message.success(`${selectedStudent.name} has been added to the queue`)
+        message.success(`${selectedStudent.name} has been added to the queue`);
         if (values.help) {
           await API.questions
             .update(response.id, {
               status: OpenQuestionStatus.Helping,
             })
             .catch(() => {
-              message.error('Failed to help student')
-            })
+              message.error('Failed to help student');
+            });
         }
-        onAddStudent()
+        onAddStudent();
       })
       .catch((err) => {
-        const errorMessage = getErrorMessage(err)
-        message.error(errorMessage)
+        const errorMessage = getErrorMessage(err);
+        message.error(errorMessage);
       })
       .finally(() => {
-        setIsLoading(false)
-      })
-  }
+        setIsLoading(false);
+      });
+  };
 
   return (
     <Modal
@@ -195,7 +195,7 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
                 studentsState?.find(
                   (student) => student.id === changedValues.studentId,
                 ),
-              )
+              );
               if (addingDemo && assignmentId) {
                 API.studentTaskProgress
                   .getAssignmentProgress(
@@ -204,18 +204,18 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
                     assignmentId,
                   )
                   .then((progress) => {
-                    setCurrentStudentsAssignmentProgress(progress)
+                    setCurrentStudentsAssignmentProgress(progress);
                     form.setFieldsValue({
                       taskIds: [],
-                    })
+                    });
                   })
                   .catch((err) => {
-                    const errorMessage = getErrorMessage(err)
+                    const errorMessage = getErrorMessage(err);
                     message.error(
                       "Error fetching student's assignment progress:",
                       errorMessage,
-                    )
-                  })
+                    );
+                  });
               }
             }
           }}
@@ -316,7 +316,7 @@ const AddStudentsToQueueModal: React.FC<AddStudentsToQueueModalProps> = ({
         </>
       )}
     </Modal>
-  )
-}
+  );
+};
 
-export default AddStudentsToQueueModal
+export default AddStudentsToQueueModal;

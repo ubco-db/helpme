@@ -1,28 +1,30 @@
-import {
+import type {
   Alert,
-  AlertDeliveryMode,
-  AlertType,
   AdminNoticePayload,
   AdminNoticeToastPayload,
   ChatbotDocumentProcessedPayload,
   CreateAlertAdminResponse,
   CreateAlertResponse,
   DeleteAdminNoticeResponse,
-  ERROR_MESSAGES,
   GetAdminNoticeAlert,
   GetInitialAlertsResponse,
   GetPageOfFeedAlerts,
   RephraseQuestionPayload,
+  AsyncQuestionUpdatePayload,
+} from '@koh/common';
+import {
+  AlertDeliveryMode,
+  AlertType,
+  ERROR_MESSAGES,
   Role,
   ToastType,
   UserRole,
-  AsyncQuestionUpdatePayload,
   AsyncQuestionUpdateSubtype,
 } from '@koh/common';
 import { AlertsModule } from 'alerts/alerts.module';
 import { AlertModel } from 'alerts/alerts.entity';
 import { UserModel } from 'profile/user.entity';
-import { QueueModel } from 'queue/queue.entity';
+import type { QueueModel } from 'queue/queue.entity';
 import {
   AlertFactory,
   CourseFactory,
@@ -40,8 +42,8 @@ import {
   overrideEmailService,
   expectEmailNotSent,
 } from './util/testUtils';
-import { OrganizationModel } from 'organization/organization.entity';
-import { CourseModel } from 'course/course.entity';
+import type { OrganizationModel } from 'organization/organization.entity';
+import type { CourseModel } from 'course/course.entity';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 

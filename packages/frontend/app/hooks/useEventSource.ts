@@ -1,15 +1,16 @@
-import { isProd } from '@koh/common'
-import { useEffect, useEffectEvent, useState } from 'react'
-import { createEventSource, EventSourceClient } from 'eventsource-client'
+import { isProd } from '@koh/common';
+import { useEffect, useEffectEvent, useState } from 'react';
+import type { EventSourceClient } from 'eventsource-client';
+import { createEventSource } from 'eventsource-client';
 
 interface ListenerAndCount {
-  listener: (d: any) => void
-  count: number
+  listener: (d: any) => void;
+  count: number;
 }
 interface SourceAndCount {
-  eventSource: EventSourceClient
-  listeners: Record<string, ListenerAndCount>
-  isLiveSetters: Set<(live: boolean) => void>
+  eventSource: EventSourceClient;
+  listeners: Record<string, ListenerAndCount>;
+  isLiveSetters: Set<(live: boolean) => void>;
 }
 /* This "EVENTSOURCES" is BS nonsense. 
 The person who implemented this thought this would work like a global state variable. 
@@ -52,7 +53,7 @@ EDIT1: Actually I guess this would be taking advantage of how the bundler works 
 Since if multiple components on the same page import the same thing, it only does the import once
 or something I think. Meaning there's only 1 shared EVENTSOURCES variable between all the imports.
 */
-const EVENTSOURCES: Record<string, SourceAndCount> = {}
+const EVENTSOURCES: Record<string, SourceAndCount> = {};
 
 /**
  * Listen to eventsource at given url calling the given onMessage when messages are received.
@@ -124,23 +125,23 @@ export const useEventSource = (
       TODO: maybe do this someday
   
     */
-  const onMessageEvent = useEffectEvent(onMessage)
+  const onMessageEvent = useEffectEvent(onMessage);
 
-  const [isLive, setIsLive] = useState<boolean>(false)
+  const [isLive, setIsLive] = useState<boolean>(false);
   useEffect(() => {
     if (url) {
-      let source: SourceAndCount
+      let source: SourceAndCount;
       if (url in EVENTSOURCES) {
-        source = EVENTSOURCES[url]
-        setIsLive(source.eventSource.readyState === 'open')
-        source.isLiveSetters.add(setIsLive)
+        source = EVENTSOURCES[url];
+        setIsLive(source.eventSource.readyState === 'open');
+        source.isLiveSetters.add(setIsLive);
       } else {
-        let retries = 0
-        const MAX_RETRIES = isProd() ? 15 : 7
-        const INITIAL_BACKOFF = 1000
-        const MAX_BACKOFF = 30000
+        let retries = 0;
+        const MAX_RETRIES = isProd() ? 15 : 7;
+        const INITIAL_BACKOFF = 1000;
+        const MAX_BACKOFF = 30000;
         // jitter: so if the server goes down, all clients aren't spamming the backend at the exact same time while it's booting up again
-        const JITTER = 0.5
+        const JITTER = 0.5;
 
         const client = createEventSource({
           url,
@@ -149,17 +150,17 @@ export const useEventSource = (
               // Reset retries here (not in onConnect) because the library fires
               // onConnect on ANY HTTP response, including 504s. Only receiving
               // actual SSE data proves the connection is truly healthy.
-              retries = 0
-              const eventData = JSON.parse(event.data)
-              const values = Object.values(source.listeners)
-              values.forEach((lac) => lac.listener(eventData))
+              retries = 0;
+              const eventData = JSON.parse(event.data);
+              const values = Object.values(source.listeners);
+              values.forEach((lac) => lac.listener(eventData));
             }
           },
           onConnect: () => {
-            source.isLiveSetters.forEach((set) => set(true))
+            source.isLiveSetters.forEach((set) => set(true));
           },
           onDisconnect: () => {
-            source.isLiveSetters.forEach((set) => set(false))
+            source.isLiveSetters.forEach((set) => set(false));
           },
           // Adam: idk i let the llm figure out the implementation details for jitter + backoff. It wrote some stuff:
           // Override the library's built-in reconnect with exponential backoff + jitter.
@@ -172,69 +173,69 @@ export const useEventSource = (
           // early without setting the library's own reconnect timer. Our setTimeout
           // then calls connect(), which creates a fresh AbortController and fetch.
           onScheduleReconnect: () => {
-            retries++
+            retries++;
             if (retries >= MAX_RETRIES) {
               console.error(
                 `Max retries (${MAX_RETRIES}) reached for ${url}. Closing connection.`,
-              )
-              client.close()
-              return
+              );
+              client.close();
+              return;
             }
 
             // Cancel the library's built-in reconnect
-            client.close()
+            client.close();
 
             // Exponential backoff with jitter
             const backoff = Math.min(
               MAX_BACKOFF,
               INITIAL_BACKOFF * Math.pow(2, retries - 1),
-            )
-            const jitteredBackoff = backoff * (1 - JITTER * Math.random())
+            );
+            const jitteredBackoff = backoff * (1 - JITTER * Math.random());
 
             console.log(
               `Connection to ${url} lost. Retrying in ${Math.round(jitteredBackoff)}ms (Attempt ${retries} of ${MAX_RETRIES})`,
-            )
+            );
 
             setTimeout(() => {
-              client.connect()
-            }, jitteredBackoff)
+              client.connect();
+            }, jitteredBackoff);
           },
-        })
+        });
 
         source = {
           eventSource: client,
           listeners: {},
           isLiveSetters: new Set(),
-        }
-        EVENTSOURCES[url] = source
+        };
+        EVENTSOURCES[url] = source;
 
-        setIsLive(source.eventSource.readyState === 'open')
-        source.isLiveSetters.add(setIsLive)
+        setIsLive(source.eventSource.readyState === 'open');
+        source.isLiveSetters.add(setIsLive);
       }
 
-      let listener = source.listeners[listenerKey]
+      let listener = source.listeners[listenerKey];
 
       if (source.listeners[listenerKey]) {
-        listener.count++
+        listener.count++;
       } else {
-        listener = { listener: onMessageEvent, count: 1 }
-        source.listeners[listenerKey] = listener
+        listener = { listener: onMessageEvent, count: 1 };
+        source.listeners[listenerKey] = listener;
       }
 
       return () => {
         // Close event source if no one is listening
-        listener.count--
-        source.isLiveSetters.delete(setIsLive)
+        listener.count--;
+        source.isLiveSetters.delete(setIsLive);
         if (listener.count === 0) {
-          delete source.listeners[listenerKey]
+          delete source.listeners[listenerKey];
           if (Object.values(source.listeners).length === 0) {
-            source.eventSource.close()
-            delete EVENTSOURCES[url]
+            source.eventSource.close();
+            delete EVENTSOURCES[url];
           }
         }
-      }
+      };
     }
-  }, [url, listenerKey])
+  }, [url, listenerKey]);
 
-  return isLive
-}
+  return isLive;
+};

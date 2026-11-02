@@ -1,14 +1,17 @@
-'use client'
+'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type {
+  AsyncQuestionUpdatePayload,
+  AdminNoticePayload,
+} from '@koh/common';
 import {
   AlertType,
   ChatbotDocumentProcessedPayload,
-  AsyncQuestionUpdatePayload,
   AsyncQuestionUpdateSubtype,
-  AdminNoticePayload,
   QUERY_PARAMS,
-} from '@koh/common'
+} from '@koh/common';
 import {
   Badge,
   Button,
@@ -19,38 +22,41 @@ import {
   Tag,
   Alert as AntdAlert,
   Tooltip,
-} from 'antd'
-import { Bell } from 'lucide-react'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
-import { FEED_PAGE_SIZE, useAlerts } from '@/app/contexts/AlertsContext'
-import { getErrorMessage, stringToAntdTagColor } from '@/app/utils/generalUtils'
-import Link from 'next/link'
-import Linkify from './Linkify'
-import { CheckOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons'
+} from 'antd';
+import { Bell } from 'lucide-react';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import { FEED_PAGE_SIZE, useAlerts } from '@/app/contexts/AlertsContext';
+import {
+  getErrorMessage,
+  stringToAntdTagColor,
+} from '@/app/utils/generalUtils';
+import Link from 'next/link';
+import Linkify from './Linkify';
+import { CheckOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
 
-const { Text, Paragraph } = Typography
-dayjs.extend(relativeTime)
+const { Text, Paragraph } = Typography;
+dayjs.extend(relativeTime);
 
 type NotificationBellProps = {
-  className?: string
-}
+  className?: string;
+};
 
 type FeedAlertFrontendItem = {
-  alertId: number
-  sentAt: Date
-  readAt?: Date
-  courseId?: number | null
-  courseName?: string
-  title: string
-  description?: string
-  ctaLabel?: string
-  destination?: string
-  onOpen?: () => Promise<void> | void
-}
+  alertId: number;
+  sentAt: Date;
+  readAt?: Date;
+  courseId?: number | null;
+  courseName?: string;
+  title: string;
+  description?: string;
+  ctaLabel?: string;
+  destination?: string;
+  onOpen?: () => Promise<void> | void;
+};
 
 const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false);
 
   const {
     feedAlerts,
@@ -66,21 +72,21 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
     setShowReadAtAlerts,
     markAllFeedAlertsRead,
     markAlertRead,
-  } = useAlerts()
+  } = useAlerts();
 
   const handlePopoverOpenChange = useCallback(
     (newOpen: boolean) => {
       if (newOpen) {
-        setOpen(true)
+        setOpen(true);
       } else {
-        setOpen(false)
-        setShowReadAtAlerts(false)
-        setCurrentPageIdx(0)
-        markAllFeedAlertsRead()
+        setOpen(false);
+        setShowReadAtAlerts(false);
+        setCurrentPageIdx(0);
+        markAllFeedAlertsRead();
       }
     },
     [setOpen, setShowReadAtAlerts, setCurrentPageIdx, markAllFeedAlertsRead],
-  )
+  );
 
   const pagesOfFeedAlerts: FeedAlertFrontendItem[][] = useMemo(() => {
     const sortedAlerts: FeedAlertFrontendItem[] = feedAlerts
@@ -92,45 +98,45 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
         if (!a.sentAt.getTime || !b.sentAt.getTime) {
           console.error(
             `Error: Alert ${a.id} has invalid sentAt. sentAt: ${a.sentAt}, ${b.id}: ${b.sentAt}`,
-          )
-          return 0
+          );
+          return 0;
         }
         if (!a.readAt && !b.readAt) {
-          return b.sentAt.getTime() - a.sentAt.getTime()
+          return b.sentAt.getTime() - a.sentAt.getTime();
         }
         if (!a.readAt) {
-          return -1
+          return -1;
         }
         if (!b.readAt) {
-          return 1
+          return 1;
         }
-        return b.sentAt.getTime() - a.sentAt.getTime()
+        return b.sentAt.getTime() - a.sentAt.getTime();
       })
       .filter((a) => {
         if (!showReadAtAlerts) {
-          return !a.readAt
+          return !a.readAt;
         }
-        return true
+        return true;
       })
       .map((alert) => {
         switch (alert.alertType) {
           case AlertType.ASYNC_QUESTION_UPDATE: {
-            const payload = alert.payload as AsyncQuestionUpdatePayload
-            const courseId = alert.courseId ?? payload.courseId
-            const query = new URLSearchParams()
+            const payload = alert.payload as AsyncQuestionUpdatePayload;
+            const courseId = alert.courseId ?? payload.courseId;
+            const query = new URLSearchParams();
             query.set(
               QUERY_PARAMS.asyncQuestion.highlightAsyncQuestionId,
               payload.questionId.toString(),
-            )
+            );
             if (payload.commentId) {
               query.set(
                 QUERY_PARAMS.asyncQuestion.highlightCommentId,
                 payload.commentId.toString(),
-              )
+              );
             }
             const destination = courseId
               ? `/course/${courseId}/async_centre?${query.toString()}`
-              : undefined
+              : undefined;
 
             const subtitleMap: Record<string, string> = {
               [AsyncQuestionUpdateSubtype.COMMENT_ON_MY_POST]: 'New Comment',
@@ -142,9 +148,9 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
               [AsyncQuestionUpdateSubtype.STATUS_CHANGED]:
                 'Anytime Question Status Changed',
               [AsyncQuestionUpdateSubtype.UPVOTED]: 'Anytime Question Upvoted',
-            }
+            };
             const title =
-              subtitleMap[payload.subtype] ?? 'Anytime Question Generic Update'
+              subtitleMap[payload.subtype] ?? 'Anytime Question Generic Update';
             return {
               alertId: alert.id,
               title,
@@ -156,11 +162,11 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
               sentAt: alert.sentAt,
               courseId: courseId,
               courseName: alert.courseName,
-            } satisfies FeedAlertFrontendItem
+            } satisfies FeedAlertFrontendItem;
           }
           case AlertType.ADMIN_NOTICE: {
-            const payload = alert.payload as AdminNoticePayload
-            const courseId = alert.courseId
+            const payload = alert.payload as AdminNoticePayload;
+            const courseId = alert.courseId;
             return {
               alertId: alert.id,
               title: payload.title || 'Admin Notice',
@@ -170,12 +176,12 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
               sentAt: alert.sentAt,
               courseId: courseId,
               courseName: alert.courseName,
-            } satisfies FeedAlertFrontendItem
+            } satisfies FeedAlertFrontendItem;
           }
           default: {
             console.warn(
               `Error: Alert ${alert.id} has unknown alert type. alert: ${alert}`,
-            )
+            );
             return {
               alertId: alert.id,
               title: `${alert.alertType} alert`,
@@ -183,23 +189,23 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
               sentAt: alert.sentAt,
               courseId: alert.courseId,
               courseName: alert.courseName,
-            } satisfies FeedAlertFrontendItem
+            } satisfies FeedAlertFrontendItem;
           }
         }
-      })
+      });
 
-    const totalPages = Math.ceil(sortedAlerts.length / FEED_PAGE_SIZE)
-    const pages: FeedAlertFrontendItem[][] = new Array(totalPages)
+    const totalPages = Math.ceil(sortedAlerts.length / FEED_PAGE_SIZE);
+    const pages: FeedAlertFrontendItem[][] = new Array(totalPages);
 
     for (
       let i = 0, pageIndex = 0;
       i < sortedAlerts.length;
       i += FEED_PAGE_SIZE, pageIndex++
     ) {
-      pages[pageIndex] = sortedAlerts.slice(i, i + FEED_PAGE_SIZE) // put into chunks/pages
+      pages[pageIndex] = sortedAlerts.slice(i, i + FEED_PAGE_SIZE); // put into chunks/pages
     }
-    return pages
-  }, [feedAlerts, markAlertRead, showReadAtAlerts])
+    return pages;
+  }, [feedAlerts, markAlertRead, showReadAtAlerts]);
 
   return (
     <Popover
@@ -293,7 +299,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
                           <Link
                             href={item.destination}
                             onClick={async (e) => {
-                              if (item.onOpen) await item.onOpen()
+                              if (item.onOpen) await item.onOpen();
                             }}
                           >
                             {item.ctaLabel}
@@ -303,8 +309,8 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
                             type="link"
                             size="small"
                             onClick={async (e) => {
-                              e.stopPropagation()
-                              if (item.onOpen) await item.onOpen()
+                              e.stopPropagation();
+                              if (item.onOpen) await item.onOpen();
                             }}
                           >
                             {item.ctaLabel}
@@ -413,7 +419,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ className }) => {
         </Button>
       </Badge>
     </Popover>
-  )
-}
+  );
+};
 
-export default NotificationBell
+export default NotificationBell;

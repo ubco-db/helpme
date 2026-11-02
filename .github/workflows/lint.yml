@@ -9,21 +9,26 @@ jobs:
     name: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: install node v14
-        uses: actions/setup-node@v1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 14
-      - uses: bahmutov/npm-install@v1
-      - run: yarn lint
+          node-version: 22
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - run: yarn lint:config:test
+      - run: yarn lint:full
   typescript:
     name: typescript
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_HOST_PROTOCOL: https
+      NEXT_PUBLIC_HOSTNAME: localhost
+      NEXT_PUBLIC_DEV_PORT: '443'
     steps:
-      - uses: actions/checkout@v2
-      - name: install node v14
-        uses: actions/setup-node@v1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 14
-      - uses: bahmutov/npm-install@v1
+          node-version: 22
+          cache: yarn
+      - run: yarn install --frozen-lockfile
       - run: yarn tsc

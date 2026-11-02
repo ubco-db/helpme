@@ -1,48 +1,48 @@
-import { API } from '@/app/api'
-import { Button, Card, Form, message, Switch, Tooltip } from 'antd'
-import useSWR from 'swr'
-import { pick } from 'lodash'
-import { GetProfileResponse, UpdateProfileParams } from '@koh/common'
-import { BellOutlined, QuestionCircleOutlined } from '@ant-design/icons'
-import DeviceNotificationPanel from './DeviceNotificationPanel'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { useUserInfo } from '@/app/contexts/userContext'
+import { API } from '@/app/api';
+import { Button, Card, Form, message, Switch, Tooltip } from 'antd';
+import useSWR from 'swr';
+import { pick } from 'lodash';
+import type { GetProfileResponse, UpdateProfileParams } from '@koh/common';
+import { BellOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import DeviceNotificationPanel from './DeviceNotificationPanel';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { useUserInfo } from '@/app/contexts/userContext';
 
 const NotificationsSettings: React.FC = () => {
   const { data: profile, mutate } = useSWR(`api/v1/profile`, async () =>
     API.profile.getUser(),
-  )
-  const { userInfo, setUserInfo } = useUserInfo()
+  );
+  const { userInfo, setUserInfo } = useUserInfo();
 
-  const [form] = Form.useForm()
+  const [form] = Form.useForm();
 
   const editProfile = async (updateProfile: UpdateProfileParams) => {
-    const newProfile = { ...profile, ...updateProfile }
-    mutate(newProfile as GetProfileResponse, false)
-    await API.profile.patch(pick(newProfile, ['desktopNotifsEnabled']))
-    const newUser = await mutate() //update the context
+    const newProfile = { ...profile, ...updateProfile };
+    mutate(newProfile as GetProfileResponse, false);
+    await API.profile.patch(pick(newProfile, ['desktopNotifsEnabled']));
+    const newUser = await mutate(); //update the context
     setUserInfo({
       ...userInfo,
       desktopNotifsEnabled: newUser
         ? newUser.desktopNotifsEnabled
         : userInfo.desktopNotifsEnabled,
-    })
-    return newProfile
-  }
+    });
+    return newProfile;
+  };
 
   const handleOk = async () => {
-    const value = await form.validateFields()
+    const value = await form.validateFields();
     try {
-      const newProfile = await editProfile(value)
-      form.setFieldsValue(newProfile)
+      const newProfile = await editProfile(value);
+      form.setFieldsValue(newProfile);
       message.success(
         'Your notification settings have been successfully updated',
-      )
+      );
     } catch (e) {
-      const errorMessage = getErrorMessage(e)
-      message.error('Error updating notification settings:' + errorMessage)
+      const errorMessage = getErrorMessage(e);
+      message.error('Error updating notification settings:' + errorMessage);
     }
-  }
+  };
 
   return (
     <Card
@@ -95,7 +95,7 @@ const NotificationsSettings: React.FC = () => {
         Save
       </Button>
     </Card>
-  )
-}
+  );
+};
 
-export default NotificationsSettings
+export default NotificationsSettings;

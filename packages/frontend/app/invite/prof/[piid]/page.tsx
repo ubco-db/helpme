@@ -1,27 +1,28 @@
-'use client'
+'use client';
 
-import { Button, Result } from 'antd'
-import { ReactElement, use, useEffect, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
-import Link from 'next/link'
-import { setProfInviteCookie } from '@/app/api/cookie-utils'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import { Button, Result } from 'antd';
+import type { ReactElement } from 'react';
+import { use, useEffect, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
+import Link from 'next/link';
+import { setProfInviteCookie } from '@/app/api/cookie-utils';
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
 
 type ProfInvitePageProps = {
-  params: Promise<{ piid: string }> // piid stands for Prof Invite ID
-}
+  params: Promise<{ piid: string }>; // piid stands for Prof Invite ID
+};
 
 export default function ProfInvitePage(
   props: ProfInvitePageProps,
 ): ReactElement {
-  const params = use(props.params)
-  const piid = Number(params.piid)
-  const searchParams = useSearchParams()
-  const profInviteCode = searchParams.get('c') || ''
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const router = useRouter()
+  const params = use(props.params);
+  const piid = Number(params.piid);
+  const searchParams = useSearchParams();
+  const profInviteCode = searchParams.get('c') || '';
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     // accept the invite right away if logged in.
@@ -36,17 +37,17 @@ export default function ProfInvitePage(
             code: profInviteCode,
           })
           .then((url) => {
-            router.replace(url)
+            router.replace(url);
           })
           .catch((err) => {
             // note that "error" redirect URLS will still be a 200 success. The only errors here would be more niche ones (like the browser failing to fetch)
-            setErrorMessage(getErrorMessage(err))
-          })
+            setErrorMessage(getErrorMessage(err));
+          });
       })
       .catch(async () => {
         console.log(
           'User not logged in, setting cookies and redirecting to /login',
-        )
+        );
         // If not logged in, set cookies and redirect to /login
         await API.profInvites
           .getDetails(piid)
@@ -58,17 +59,17 @@ export default function ProfInvitePage(
               profInviteCode,
             )
               .then(() => {
-                router.push(`/login`)
+                router.push(`/login`);
               })
               .catch((err) => {
-                setErrorMessage(getErrorMessage(err))
-              })
+                setErrorMessage(getErrorMessage(err));
+              });
           })
           .catch((err) => {
-            setErrorMessage(getErrorMessage(err))
-          })
-      })
-  }, [])
+            setErrorMessage(getErrorMessage(err));
+          });
+      });
+  }, []);
 
   if (errorMessage) {
     return (
@@ -81,8 +82,8 @@ export default function ProfInvitePage(
           </Link>
         }
       />
-    )
+    );
   } else {
-    return <CenteredSpinner tip="Loading..." />
+    return <CenteredSpinner tip="Loading..." />;
   }
 }

@@ -1,40 +1,38 @@
-import {
-  GetQueueChatResponse,
-  GetQueueChatsResponse,
-  SSEQueueResponse,
-} from '@koh/common'
-import useSWR, { mutate, SWRResponse } from 'swr'
-import { useCallback, useEffect } from 'react'
-import { useEventSource } from './useEventSource'
-import { plainToClass, plainToInstance } from 'class-transformer'
-import { API } from '../api'
+import type { GetQueueChatsResponse, SSEQueueResponse } from '@koh/common';
+import { GetQueueChatResponse } from '@koh/common';
+import type { SWRResponse } from 'swr';
+import useSWR, { mutate } from 'swr';
+import { useCallback, useEffect } from 'react';
+import { useEventSource } from './useEventSource';
+import { plainToClass, plainToInstance } from 'class-transformer';
+import { API } from '../api';
 
-type queueChatsResponse = SWRResponse<GetQueueChatsResponse, any>
+type queueChatsResponse = SWRResponse<GetQueueChatsResponse, any>;
 
 export interface UseQueueChatsMetadatasReturn {
-  queueChats: queueChatsResponse['data']
-  queueChatsError: queueChatsResponse['error']
-  mutateQueueChats: queueChatsResponse['mutate']
-  isLive: boolean
+  queueChats: queueChatsResponse['data'];
+  queueChatsError: queueChatsResponse['error'];
+  mutateQueueChats: queueChatsResponse['mutate'];
+  isLive: boolean;
 }
 
-type OnUpdate = (value: Date) => void
+type OnUpdate = (value: Date) => void;
 
 interface RefreshInfo {
-  lastUpdated: Date
-  onUpdates: Set<OnUpdate>
+  lastUpdated: Date;
+  onUpdates: Set<OnUpdate>;
 }
 
 // Keep track of all the different Refresh information and callbacks.
 // This is a global because useQueue can be used multiple times, but SWR's onSuccess overwrites other instances
-const REFRESH_INFO: Record<string, RefreshInfo> = {}
+const REFRESH_INFO: Record<string, RefreshInfo> = {};
 
 /**
  * Notify all onUpdate subscribers that new data came in.
  */
 function callOnUpdates(key: string) {
-  const refreshInfo = REFRESH_INFO[key]
-  refreshInfo.onUpdates.forEach((cb) => cb(refreshInfo.lastUpdated))
+  const refreshInfo = REFRESH_INFO[key];
+  refreshInfo.onUpdates.forEach((cb) => cb(refreshInfo.lastUpdated));
 }
 
 /**
@@ -48,25 +46,25 @@ export function useQueueChatsMetadatas(
   qid: number,
   onUpdate?: OnUpdate,
 ): UseQueueChatsMetadatasReturn {
-  const key = `/api/v1/queues/${qid}/queueChats`
+  const key = `/api/v1/queues/${qid}/queueChats`;
   if (!(key in REFRESH_INFO)) {
     REFRESH_INFO[key] = {
       lastUpdated: new Date(),
       onUpdates: new Set(),
-    }
+    };
   }
 
   // Register onUpdate callback
   useEffect(() => {
     if (onUpdate) {
-      const refreshInfo = REFRESH_INFO[key]
-      refreshInfo.onUpdates.add(onUpdate)
-      onUpdate(refreshInfo.lastUpdated)
+      const refreshInfo = REFRESH_INFO[key];
+      refreshInfo.onUpdates.add(onUpdate);
+      onUpdate(refreshInfo.lastUpdated);
       return () => {
-        refreshInfo.onUpdates.delete(onUpdate)
-      }
+        refreshInfo.onUpdates.delete(onUpdate);
+      };
     }
-  }, [onUpdate, key])
+  }, [onUpdate, key]);
 
   const isLive = useEventSource(
     `/api/v1/queues/${qid}/sse`,
@@ -78,14 +76,14 @@ export function useQueueChatsMetadatas(
             key,
             plainToInstance(GetQueueChatResponse, data.queueChats),
             false,
-          )
-          REFRESH_INFO[key].lastUpdated = new Date()
-          callOnUpdates(key)
+          );
+          REFRESH_INFO[key].lastUpdated = new Date();
+          callOnUpdates(key);
         }
       },
       [key],
     ),
-  )
+  );
 
   const {
     data: queueChats,
@@ -97,16 +95,16 @@ export function useQueueChatsMetadatas(
     {
       refreshInterval: isLive ? 0 : 10 * 1000,
       onSuccess: (_, key) => {
-        REFRESH_INFO[key].lastUpdated = new Date()
-        callOnUpdates(key)
+        REFRESH_INFO[key].lastUpdated = new Date();
+        callOnUpdates(key);
       },
     },
-  )
+  );
 
   return {
     queueChats,
     queueChatsError,
     mutateQueueChats,
     isLive,
-  }
+  };
 }

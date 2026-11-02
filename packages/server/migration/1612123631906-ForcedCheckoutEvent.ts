@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class ForcedCheckoutEvent1612123631906 implements MigrationInterface {
   name = 'ForcedCheckoutEvent1612123631906';

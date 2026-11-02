@@ -1,15 +1,17 @@
-import React, { useState } from 'react'
-import { Modal, Form, Input, DatePicker, FormInstance, Select, Tag } from 'antd'
-import { antdTagColor } from '@koh/common'
+import type React from 'react';
+import { useState } from 'react';
+import type { FormInstance } from 'antd';
+import { Modal, Form, Input, DatePicker, Select, Tag } from 'antd';
+import { antdTagColor } from '@koh/common';
 
-const { TextArea } = Input
+const { TextArea } = Input;
 
 interface SemesterModalProps {
-  isSemesterModalOpen: boolean
-  setIsSemesterModalOpen: (open: boolean) => void
-  handleSubmit: () => Promise<void>
-  semesterForm: FormInstance<any>
-  creatingSemester: boolean
+  isSemesterModalOpen: boolean;
+  setIsSemesterModalOpen: (open: boolean) => void;
+  handleSubmit: () => Promise<void>;
+  semesterForm: FormInstance<any>;
+  creatingSemester: boolean;
 }
 
 export const SemesterModal: React.FC<SemesterModalProps> = ({
@@ -19,11 +21,11 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
   semesterForm,
   creatingSemester,
 }) => {
-  const [isSaveLoading, setIsSaveLoading] = useState(false)
+  const [isSaveLoading, setIsSaveLoading] = useState(false);
   const handleCloseModal = () => {
-    semesterForm.resetFields()
-    setIsSemesterModalOpen(false)
-  }
+    semesterForm.resetFields();
+    setIsSemesterModalOpen(false);
+  };
 
   return (
     <Modal
@@ -31,9 +33,9 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
       open={isSemesterModalOpen}
       onCancel={handleCloseModal}
       onOk={async () => {
-        setIsSaveLoading(true)
-        await handleSubmit()
-        setIsSaveLoading(false)
+        setIsSaveLoading(true);
+        await handleSubmit();
+        setIsSaveLoading(false);
       }}
       okText="Save"
       cancelText="Cancel"
@@ -88,5 +90,5 @@ export const SemesterModal: React.FC<SemesterModalProps> = ({
         </Form.Item>
       </Form>
     </Modal>
-  )
-}
+  );
+};

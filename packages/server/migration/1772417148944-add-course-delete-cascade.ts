@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddCourseDeleteCascade1772417148944 implements MigrationInterface {
   name = 'AddCourseDeleteCascade1772417148944';

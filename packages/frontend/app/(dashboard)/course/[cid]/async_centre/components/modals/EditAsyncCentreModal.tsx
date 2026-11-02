@@ -1,47 +1,38 @@
-import Modal from 'antd/lib/modal/Modal'
-import {
-  Input,
-  Form,
-  Button,
-  message,
-  GetProp,
-  ColorPickerProps,
-  Space,
-} from 'antd'
-import { CloseOutlined, PlusOutlined } from '@ant-design/icons'
-import { API } from '@/app/api'
-import { useQuestionTypes } from '@/app/hooks/useQuestionTypes'
+import Modal from 'antd/lib/modal/Modal';
+import type { GetProp, ColorPickerProps } from 'antd';
+import { Input, Form, Button, message, Space } from 'antd';
+import { CloseOutlined, PlusOutlined } from '@ant-design/icons';
+import { API } from '@/app/api';
+import { useQuestionTypes } from '@/app/hooks/useQuestionTypes';
 import {
   generateRandomHexColor,
   getErrorMessage,
-} from '@/app/utils/generalUtils'
-import { QuestionTypeParams } from '@koh/common'
-import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets'
-import {
-  EditedQuestionTag,
-  QuestionTagEditor,
-} from '../../../components/QuestionTagElement'
+} from '@/app/utils/generalUtils';
+import type { QuestionTypeParams } from '@koh/common';
+import ColorPickerWithPresets from '@/app/components/ColorPickerWithPresets';
+import type { EditedQuestionTag } from '../../../components/QuestionTagElement';
+import { QuestionTagEditor } from '../../../components/QuestionTagElement';
 
 type Color = Extract<
   GetProp<ColorPickerProps, 'value'>,
   string | { cleared: any }
->
+>;
 
 type QuestionTypeForCreation = {
-  name: string
-  color: string | Color
-}
+  name: string;
+  color: string | Color;
+};
 interface FormValues {
-  notes: string
-  editedQuestionTags: EditedQuestionTag[]
-  questionTypesForCreation: QuestionTypeForCreation[]
+  notes: string;
+  editedQuestionTags: EditedQuestionTag[];
+  questionTypesForCreation: QuestionTypeForCreation[];
 }
 
 interface EditAsyncCentreModalProps {
-  courseId: number
-  open: boolean
-  onCancel: () => void
-  onEditSuccess: () => void
+  courseId: number;
+  open: boolean;
+  onCancel: () => void;
+  onEditSuccess: () => void;
 }
 
 const EditAsyncCentreModal: React.FC<EditAsyncCentreModalProps> = ({
@@ -50,56 +41,56 @@ const EditAsyncCentreModal: React.FC<EditAsyncCentreModalProps> = ({
   onCancel,
   onEditSuccess,
 }) => {
-  const [form] = Form.useForm()
-  const [questionTypes, mutateQuestionTypes] = useQuestionTypes(courseId, null)
+  const [form] = Form.useForm();
+  const [questionTypes, mutateQuestionTypes] = useQuestionTypes(courseId, null);
 
   const onFinish = async (values: FormValues) => {
-    let errorsHaveOccurred = false
+    let errorsHaveOccurred = false;
 
     const questionTypesForDeletion = values.editedQuestionTags
       .filter((tag) => tag.markedForDeletion)
-      .map((tag) => tag.newValues?.id || -1)
+      .map((tag) => tag.newValues?.id || -1);
 
     const deletePromises =
       questionTypesForDeletion.map((tagID) =>
         API.questionType
           .deleteQuestionType(courseId, tagID)
           .then((responseMessage) => {
-            message.success(responseMessage)
+            message.success(responseMessage);
           })
           .catch((e) => {
-            errorsHaveOccurred = true
-            const errorMessage = getErrorMessage(e)
-            message.error(`Error deleting question tag: ${errorMessage}`)
+            errorsHaveOccurred = true;
+            const errorMessage = getErrorMessage(e);
+            message.error(`Error deleting question tag: ${errorMessage}`);
           }),
-      ) || []
+      ) || [];
 
     const questionTypesToBeEdited = values.editedQuestionTags.filter(
       (tag) => !tag.markedForDeletion,
-    )
+    );
     const editPromises = questionTypesToBeEdited.map((tag) => {
       if (!tag.newValues) {
-        return Promise.resolve()
+        return Promise.resolve();
       }
       if (!tag.newValues?.id) {
-        message.error('Error editing question tag: ID not found')
-        return Promise.resolve()
+        message.error('Error editing question tag: ID not found');
+        return Promise.resolve();
       }
       const updatePayload: QuestionTypeParams = {
         name: tag.newValues.name,
         color: tag.newValues.color,
-      }
+      };
       return API.questionType
         .updateQuestionType(courseId, tag.newValues.id, updatePayload)
         .then((responseMessage) => {
-          message.success(responseMessage)
+          message.success(responseMessage);
         })
         .catch((e) => {
-          errorsHaveOccurred = true
-          const errorMessage = getErrorMessage(e)
-          message.error(`Error editing question tag: ${errorMessage}`)
-        })
-    })
+          errorsHaveOccurred = true;
+          const errorMessage = getErrorMessage(e);
+          message.error(`Error editing question tag: ${errorMessage}`);
+        });
+    });
 
     const createPromises =
       values.questionTypesForCreation.map((questionType) => {
@@ -111,25 +102,25 @@ const EditAsyncCentreModal: React.FC<EditAsyncCentreModalProps> = ({
             typeof questionType.color === 'string'
               ? questionType.color
               : questionType.color.toHexString(),
-        }
+        };
         return API.questionType
           .addQuestionType(courseId, newQuestionType)
           .then((responseMessage) => {
-            message.success(responseMessage)
+            message.success(responseMessage);
           })
           .catch((e) => {
-            errorsHaveOccurred = true
-            const errorMessage = getErrorMessage(e)
-            message.error(`Error creating question tag: ${errorMessage}`)
-          })
-      }) || []
+            errorsHaveOccurred = true;
+            const errorMessage = getErrorMessage(e);
+            message.error(`Error creating question tag: ${errorMessage}`);
+          });
+      }) || [];
 
-    await Promise.all([...deletePromises, ...editPromises, ...createPromises])
-    mutateQuestionTypes()
+    await Promise.all([...deletePromises, ...editPromises, ...createPromises]);
+    mutateQuestionTypes();
     if (!errorsHaveOccurred) {
-      onEditSuccess()
+      onEditSuccess();
     }
-  }
+  };
 
   return (
     <Modal
@@ -169,7 +160,7 @@ const EditAsyncCentreModal: React.FC<EditAsyncCentreModalProps> = ({
         {(fields, { add, remove }) => (
           <>
             {fields.map(({ key, name, ...restField }) => {
-              const defaultColor = generateRandomHexColor()
+              const defaultColor = generateRandomHexColor();
               return (
                 <Space key={key} className="flex" align="center">
                   <Form.Item
@@ -187,9 +178,9 @@ const EditAsyncCentreModal: React.FC<EditAsyncCentreModalProps> = ({
                           if (
                             questionTypes?.find((tag) => tag.name === value)
                           ) {
-                            return Promise.reject('Duplicate tag name')
+                            return Promise.reject('Duplicate tag name');
                           }
-                          return Promise.resolve()
+                          return Promise.resolve();
                         },
                       },
                     ]}
@@ -219,7 +210,7 @@ const EditAsyncCentreModal: React.FC<EditAsyncCentreModalProps> = ({
                     onClick={() => remove(name)}
                   />
                 </Space>
-              )
+              );
             })}
             <Form.Item>
               <Button
@@ -235,7 +226,7 @@ const EditAsyncCentreModal: React.FC<EditAsyncCentreModalProps> = ({
         )}
       </Form.List>
     </Modal>
-  )
-}
+  );
+};
 
-export default EditAsyncCentreModal
+export default EditAsyncCentreModal;

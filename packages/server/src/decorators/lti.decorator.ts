@@ -1,6 +1,7 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { FindOptionsRelations } from 'typeorm';
-import { IdToken } from '@bhunt02/lti-typescript';
+import type { ExecutionContext } from '@nestjs/common';
+import { createParamDecorator } from '@nestjs/common';
+import type { FindOptionsRelations } from 'typeorm';
+import type { IdToken } from '@bhunt02/lti-typescript';
 import { UserModel } from '../profile/user.entity';
 import { CourseModel } from '../course/course.entity';
 

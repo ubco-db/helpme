@@ -1,6 +1,6 @@
 import { ForbiddenException } from '@nestjs/common';
 import { AssignmentFeedbackService } from './assignment-feedback.service';
-import { ChatbotApiService } from '../chatbot/chatbot-api.service';
+import type { ChatbotApiService } from '../chatbot/chatbot-api.service';
 import { CourseSettingsModel } from '../course/course_settings.entity';
 
 /**

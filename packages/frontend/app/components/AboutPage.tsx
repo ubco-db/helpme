@@ -1,9 +1,9 @@
-import { Avatar, Card } from 'antd'
-import { ReactElement } from 'react'
-import Meta from 'antd/es/card/Meta'
-import { GithubOutlined, MailOutlined } from '@ant-design/icons'
-import AboutPageModals from './AboutPageModals'
-import Link from 'next/link'
+import { Avatar, Card } from 'antd';
+import type { ReactElement } from 'react';
+import Meta from 'antd/es/card/Meta';
+import { GithubOutlined, MailOutlined } from '@ant-design/icons';
+import AboutPageModals from './AboutPageModals';
+import Link from 'next/link';
 
 /* Placing this inside the global app components since it's used in multiple spots (on landing page and inside login - which has a 'back' button) */
 const AboutPage: React.FC = (): ReactElement => {
@@ -260,7 +260,7 @@ const AboutPage: React.FC = (): ReactElement => {
         </div>
       </div>
     </>
-  )
-}
+  );
+};
 
-export default AboutPage
+export default AboutPage;

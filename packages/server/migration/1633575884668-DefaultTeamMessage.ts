@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class DefaultTeamMessage1633575884668 implements MigrationInterface {
   name = 'DefaultTeamMessage1633575884668';

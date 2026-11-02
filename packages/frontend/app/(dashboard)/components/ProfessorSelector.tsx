@@ -1,14 +1,15 @@
-'use client'
+'use client';
 
-import { OrganizationProfessor, OrganizationRole } from '@koh/common'
-import { Select, Tag, Tooltip } from 'antd'
-import { CrownFilled } from '@ant-design/icons'
+import type { OrganizationProfessor } from '@koh/common';
+import { OrganizationRole } from '@koh/common';
+import { Select, Tag, Tooltip } from 'antd';
+import { CrownFilled } from '@ant-design/icons';
 
-import { SelectProps } from 'antd'
+import type { SelectProps } from 'antd';
 
 type ProfessorSelectorProps = {
-  professors: OrganizationProfessor[]
-} & SelectProps
+  professors: OrganizationProfessor[];
+} & SelectProps;
 
 const ProfessorSelector: React.FC<ProfessorSelectorProps> = ({
   professors,
@@ -56,21 +57,21 @@ const ProfessorSelector: React.FC<ProfessorSelectorProps> = ({
         </div>
       )}
       tagRender={(props) => {
-        const { label, value, closable, onClose } = props
+        const { label, value, closable, onClose } = props;
         const onPreventMouseDown = (
           event: React.MouseEvent<HTMLSpanElement>,
         ) => {
-          event.preventDefault()
-          event.stopPropagation()
-        }
+          event.preventDefault();
+          event.stopPropagation();
+        };
         // find the professor with the given id and see if they have lacksProfOrgRole
         const match = professors.find(
           (prof) => prof.organizationUser.id === value,
-        )
+        );
         const lacksProfOrgRole = ![
           OrganizationRole.ADMIN,
           OrganizationRole.PROFESSOR,
-        ].includes(match?.trueRole ?? OrganizationRole.MEMBER)
+        ].includes(match?.trueRole ?? OrganizationRole.MEMBER);
 
         return (
           <Tooltip
@@ -90,11 +91,11 @@ const ProfessorSelector: React.FC<ProfessorSelectorProps> = ({
               <span>{label}</span>
             </Tag>
           </Tooltip>
-        )
+        );
       }}
       {...selectProps}
     />
-  )
-}
+  );
+};
 
-export default ProfessorSelector
+export default ProfessorSelector;

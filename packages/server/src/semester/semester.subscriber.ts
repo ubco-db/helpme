@@ -11,9 +11,7 @@ import { UserCourseModel } from '../profile/user-course.entity';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
 
 @EventSubscriber()
-export class SemesterSubscriber
-  implements EntitySubscriberInterface<SemesterModel>
-{
+export class SemesterSubscriber implements EntitySubscriberInterface<SemesterModel> {
   constructor(
     private readonly redisProfileService: RedisProfileService,
     dataSource: DataSource,
@@ -21,7 +19,6 @@ export class SemesterSubscriber
     dataSource.subscribers.push(this);
   }
 
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   listenTo() {
     return SemesterModel;
   }

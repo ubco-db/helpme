@@ -1,16 +1,19 @@
-import {
-  AlertDeliveryMode,
-  AlertType,
+import type {
   AsyncQuestionUpdatePayload,
   RephraseQuestionPayload,
   AdminNoticePayload,
   AdminNoticeToastPayload,
+} from '@koh/common';
+import {
+  AlertDeliveryMode,
+  AlertType,
   ToastType,
   AsyncQuestionUpdateSubtype,
   OrganizationRole,
   Role,
 } from '@koh/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import {
   AlertFactory,
   CourseFactory,
@@ -26,13 +29,14 @@ import {
 } from '../../test/util/factories';
 import { TestTypeOrmModule } from '../../test/util/testUtils';
 import { AlertsService, formatAlertForFrontend } from './alerts.service';
-import { DataSource, EntityManager } from 'typeorm';
+import type { EntityManager } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
 import { AlertModel } from './alerts.entity';
-import { CourseModel } from 'course/course.entity';
-import { UserModel } from 'profile/user.entity';
-import { OrganizationModel } from 'organization/organization.entity';
+import type { CourseModel } from 'course/course.entity';
+import type { UserModel } from 'profile/user.entity';
+import type { OrganizationModel } from 'organization/organization.entity';
 
 describe('Alerts service', () => {
   let service: AlertsService;

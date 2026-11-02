@@ -14,13 +14,8 @@ import {
 } from './util/factories';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import { OrganizationCourseModel } from 'organization/organization-course.entity';
-import {
-  ERROR_MESSAGES,
-  OrganizationRole,
-  Role,
-  UserCourse,
-  UserRole,
-} from '@koh/common';
+import type { UserCourse } from '@koh/common';
+import { ERROR_MESSAGES, OrganizationRole, Role, UserRole } from '@koh/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { UserCourseModel } from 'profile/user-course.entity';

@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class addAsyncQuestionQuestionType1707670631753
-  implements MigrationInterface
-{
+export class addAsyncQuestionQuestionType1707670631753 implements MigrationInterface {
   name = 'addAsyncQuestionQuestionType1707670631753';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

@@ -1,13 +1,14 @@
-import { API } from '@/app/api'
-import { GetOrganizationResponse } from '@koh/common'
-import useSWR, { SWRResponse } from 'swr'
+import { API } from '@/app/api';
+import type { GetOrganizationResponse } from '@koh/common';
+import type { SWRResponse } from 'swr';
+import useSWR from 'swr';
 
-type OrganizationResponse = SWRResponse<GetOrganizationResponse, any>
+type OrganizationResponse = SWRResponse<GetOrganizationResponse, any>;
 
 interface UseOrganizationReturn {
-  organization?: OrganizationResponse['data']
-  organizationError: OrganizationResponse['error']
-  mutateOrganization: OrganizationResponse['mutate']
+  organization?: OrganizationResponse['data'];
+  organizationError: OrganizationResponse['error'];
+  mutateOrganization: OrganizationResponse['mutate'];
 }
 
 export function useOrganization(organizationId: number): UseOrganizationReturn {
@@ -18,11 +19,11 @@ export function useOrganization(organizationId: number): UseOrganizationReturn {
   } = useSWR<GetOrganizationResponse>(
     organizationId ? `/api/v1/organizations/${organizationId}` : null,
     () => API.organizations.get(organizationId),
-  )
+  );
 
   return {
     organization,
     organizationError,
     mutateOrganization,
-  }
+  };
 }

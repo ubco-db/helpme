@@ -1,6 +1,7 @@
-import { useState, Dispatch, SetStateAction } from 'react'
+import type { Dispatch, SetStateAction } from 'react';
+import { useState } from 'react';
 
-const isWindow = typeof window !== 'undefined'
+const isWindow = typeof window !== 'undefined';
 
 export function useLocalStorage<T>(
   key: string,
@@ -12,39 +13,39 @@ export function useLocalStorage<T>(
 ] {
   const [storedValue, setStoredValue] = useState<T | null>(() => {
     try {
-      const item = isWindow && window.localStorage.getItem(key)
-      return item ? JSON.parse(item) : initialValue
+      const item = isWindow && window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
     } catch (error) {
-      console.error(error)
-      return initialValue
+      console.error(error);
+      return initialValue;
     }
-  })
+  });
 
   const setValue: Dispatch<SetStateAction<T | null>> = (value) => {
     try {
       const valueToStore =
-        value instanceof Function ? value(storedValue) : value
-      setStoredValue(valueToStore)
+        value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
 
       if (isWindow) {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore))
+        window.localStorage.setItem(key, JSON.stringify(valueToStore));
       }
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
-  }
+  };
 
   const removeValue = () => {
     try {
-      setStoredValue(null)
+      setStoredValue(null);
 
       if (isWindow) {
-        window.localStorage.removeItem(key)
+        window.localStorage.removeItem(key);
       }
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
-  }
+  };
 
-  return [storedValue, setValue, removeValue]
+  return [storedValue, setValue, removeValue];
 }

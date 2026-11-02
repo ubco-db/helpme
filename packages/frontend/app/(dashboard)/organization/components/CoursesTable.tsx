@@ -1,56 +1,56 @@
-'use client'
+'use client';
 
-import { API } from '@/app/api'
-import { useUserInfo } from '@/app/contexts/userContext'
-import { SearchOutlined } from '@ant-design/icons'
-import {
+import { API } from '@/app/api';
+import { useUserInfo } from '@/app/contexts/userContext';
+import { SearchOutlined } from '@ant-design/icons';
+import type {
   CourseResponse,
   GetOrganizationResponse,
   SemesterPartial,
-} from '@koh/common'
-import { Button, Checkbox, Col, Input, Row, Tag, Table } from 'antd'
-import { ColumnsType } from 'antd/es/table'
-import type { SortOrder } from 'antd/es/table/interface'
-import { useEffect, useState } from 'react'
-import useSWR from 'swr'
-import BatchCourseCloneModal from './BatchCourseCloneModal'
-import { organizationApi } from '@/app/api/organizationApi'
-import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils'
-import CenteredSpinner from '@/app/components/CenteredSpinner'
-import SemesterInfoPopover from '../../components/SemesterInfoPopover'
+} from '@koh/common';
+import { Button, Checkbox, Col, Input, Row, Tag, Table } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import type { SortOrder } from 'antd/es/table/interface';
+import { useEffect, useState } from 'react';
+import useSWR from 'swr';
+import BatchCourseCloneModal from './BatchCourseCloneModal';
+import { organizationApi } from '@/app/api/organizationApi';
+import { formatDateAndTimeForExcel } from '@/app/utils/timeFormatUtils';
+import CenteredSpinner from '@/app/components/CenteredSpinner';
+import SemesterInfoPopover from '../../components/SemesterInfoPopover';
 
 const CoursesTable: React.FC = () => {
-  const { userInfo } = useUserInfo()
-  const [input, setInput] = useState('')
-  const [search, setSearch] = useState('')
-  const [organization, setOrganization] = useState<GetOrganizationResponse>()
+  const { userInfo } = useUserInfo();
+  const [input, setInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [organization, setOrganization] = useState<GetOrganizationResponse>();
 
-  const [isCloneModalOpen, setIsCloneModalOpen] = useState(false)
+  const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
 
   const handleInput = (event: any) => {
-    event.preventDefault()
-    setInput(event.target.value)
-  }
+    event.preventDefault();
+    setInput(event.target.value);
+  };
 
   const handleSearch = (event: any) => {
-    event.preventDefault()
-    setSearch(event.target.value)
-  }
+    event.preventDefault();
+    setSearch(event.target.value);
+  };
 
   useEffect(() => {
     const fetchOrganization = async () => {
       if (!userInfo.organization?.orgId) {
-        return
+        return;
       }
 
       await organizationApi
         .getOrganization(userInfo.organization.orgId)
         .then((res) => {
-          setOrganization(res)
-        })
-    }
-    fetchOrganization()
-  }, [userInfo.organization?.orgId])
+          setOrganization(res);
+        });
+    };
+    fetchOrganization();
+  }, [userInfo.organization?.orgId]);
 
   const { data: courses } = useSWR(
     `courses/${search}`,
@@ -60,44 +60,44 @@ const CoursesTable: React.FC = () => {
         undefined,
         search,
       ),
-  )
+  );
 
   const getDateValue = (value?: Date | string | null): number | null => {
-    if (!value) return null
-    const dateValue = typeof value === 'string' ? new Date(value) : value
-    const time = dateValue.getTime()
-    return Number.isNaN(time) ? null : time
-  }
+    if (!value) return null;
+    const dateValue = typeof value === 'string' ? new Date(value) : value;
+    const time = dateValue.getTime();
+    return Number.isNaN(time) ? null : time;
+  };
 
   const getSemesterEndTime = (
     semester?: SemesterPartial | null,
   ): number | null => {
-    if (!semester) return null
-    if (semester.name === 'Legacy Semester') return null
-    return getDateValue(semester.endDate ?? null)
-  }
+    if (!semester) return null;
+    if (semester.name === 'Legacy Semester') return null;
+    return getDateValue(semester.endDate ?? null);
+  };
 
   const compareSemesters = (
     a: CourseResponse,
     b: CourseResponse,
     sortOrder?: SortOrder,
   ): number => {
-    const order: SortOrder = sortOrder === 'descend' ? 'descend' : 'ascend'
-    const aTime = getSemesterEndTime(a.semester)
-    const bTime = getSemesterEndTime(b.semester)
-    const aIsNull = aTime === null
-    const bIsNull = bTime === null
+    const order: SortOrder = sortOrder === 'descend' ? 'descend' : 'ascend';
+    const aTime = getSemesterEndTime(a.semester);
+    const bTime = getSemesterEndTime(b.semester);
+    const aIsNull = aTime === null;
+    const bIsNull = bTime === null;
 
     const desiredCompare = () => {
-      if (aIsNull && bIsNull) return 0
-      if (aIsNull) return -1
-      if (bIsNull) return 1
-      return order === 'ascend' ? aTime - bTime : bTime - aTime
-    }
+      if (aIsNull && bIsNull) return 0;
+      if (aIsNull) return -1;
+      if (bIsNull) return 1;
+      return order === 'ascend' ? aTime - bTime : bTime - aTime;
+    };
 
-    const result = desiredCompare()
-    return order === 'ascend' ? result : -result
-  }
+    const result = desiredCompare();
+    return order === 'ascend' ? result : -result;
+  };
 
   const columns: ColumnsType<CourseResponse> = [
     {
@@ -112,9 +112,9 @@ const CoursesTable: React.FC = () => {
       dataIndex: 'courseName',
       key: 'courseName',
       sorter: (a: CourseResponse, b: CourseResponse) => {
-        const A = a.courseName || ''
-        const B = b.courseName || ''
-        return A.localeCompare(B)
+        const A = a.courseName || '';
+        const B = b.courseName || '';
+        return A.localeCompare(B);
       },
       render: (name: string, record: CourseResponse) => (
         <div className="flex items-center gap-2">
@@ -131,7 +131,7 @@ const CoursesTable: React.FC = () => {
       defaultSortOrder: 'descend',
       sorter: compareSemesters,
       render: (semester: SemesterPartial) => {
-        if (!semester) return null
+        if (!semester) return null;
         return (
           <SemesterInfoPopover semester={semester}>
             <Tag color={semester.color} bordered={false} className="text-sm">
@@ -140,7 +140,7 @@ const CoursesTable: React.FC = () => {
                 : semester.name}
             </Tag>
           </SemesterInfoPopover>
-        )
+        );
       },
     },
     {
@@ -155,16 +155,16 @@ const CoursesTable: React.FC = () => {
       dataIndex: 'createdAt',
       key: 'createdAt',
       sorter: (a: CourseResponse, b: CourseResponse) => {
-        const A = getDateValue(a.createdAt) ?? 0
-        const B = getDateValue(b.createdAt) ?? 0
-        return A - B
+        const A = getDateValue(a.createdAt) ?? 0;
+        const B = getDateValue(b.createdAt) ?? 0;
+        return A - B;
       },
       render: (createdAt: Date | string) => {
-        if (!createdAt) return '-'
+        if (!createdAt) return '-';
         const dateValue =
-          typeof createdAt === 'string' ? new Date(createdAt) : createdAt
-        const date = formatDateAndTimeForExcel(dateValue)
-        return date.split(' ')[0] // YYYY-MM-DD
+          typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
+        const date = formatDateAndTimeForExcel(dateValue);
+        return date.split(' ')[0]; // YYYY-MM-DD
       },
     },
     {
@@ -179,10 +179,10 @@ const CoursesTable: React.FC = () => {
         </Button>
       ),
     },
-  ]
+  ];
 
   if (!organization) {
-    return <CenteredSpinner tip="Fetching Organization Info..." />
+    return <CenteredSpinner tip="Fetching Organization Info..." />;
   }
 
   return (
@@ -229,7 +229,7 @@ const CoursesTable: React.FC = () => {
         />
       </>
     )
-  )
-}
+  );
+};
 
-export default CoursesTable
+export default CoursesTable;

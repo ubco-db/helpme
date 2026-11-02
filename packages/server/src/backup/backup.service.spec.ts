@@ -1,7 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { BackupService, baseBackupCommand } from './backup.service';
 import * as fs from 'fs';
-import { Stats } from 'fs';
+import type { Stats } from 'fs';
 import { exec } from 'child_process';
 
 jest.mock('fs');

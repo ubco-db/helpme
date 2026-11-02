@@ -1,12 +1,12 @@
-import { Metadata } from 'next'
-import { ReactElement } from 'react'
-import AboutPage from '../components/AboutPage'
-import HeaderBar from '../components/HeaderBar'
-import StandardPageContainer from '../components/standardPageContainer'
+import type { Metadata } from 'next';
+import type { ReactElement } from 'react';
+import AboutPage from '../components/AboutPage';
+import HeaderBar from '../components/HeaderBar';
+import StandardPageContainer from '../components/standardPageContainer';
 
 export const metadata: Metadata = {
   title: 'HelpMe | About',
-}
+};
 
 export default function About(): ReactElement {
   return (
@@ -22,5 +22,5 @@ export default function About(): ReactElement {
         </StandardPageContainer>
       </main>
     </>
-  )
+  );
 }

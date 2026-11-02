@@ -1,28 +1,29 @@
-import { Button, Form, Input, Row, Select, Table, TableProps } from 'antd'
-import {
+import type { TableProps } from 'antd';
+import { Button, Form, Input, Row, Select, Table } from 'antd';
+import type {
   ChatbotAllowedHeaders,
-  ChatbotAllowedHeadersList,
   ChatbotAllowedHeadersType,
-} from '@koh/common'
+} from '@koh/common';
+import { ChatbotAllowedHeadersList } from '@koh/common';
 import {
   CheckOutlined,
   CloseOutlined,
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
-} from '@ant-design/icons'
-import { useEffect, useMemo, useState } from 'react'
+} from '@ant-design/icons';
+import { useEffect, useMemo, useState } from 'react';
 
 type ChatbotHeadersTableProps = {
-  initialHeaders?: ChatbotAllowedHeaders
-  setUpdatedHeaders: (headers: ChatbotAllowedHeaders) => void
-}
+  initialHeaders?: ChatbotAllowedHeaders;
+  setUpdatedHeaders: (headers: ChatbotAllowedHeaders) => void;
+};
 
 const ChatbotHeadersTable: React.FC<ChatbotHeadersTableProps> = ({
   initialHeaders,
   setUpdatedHeaders,
 }) => {
-  const [form] = Form.useForm<ChatbotAllowedHeadersType>()
+  const [form] = Form.useForm<ChatbotAllowedHeadersType>();
   const [headers, setHeaders] = useState<ChatbotAllowedHeadersType[]>(
     initialHeaders
       ? Object.keys(initialHeaders).map((key) => ({
@@ -30,8 +31,8 @@ const ChatbotHeadersTable: React.FC<ChatbotHeadersTableProps> = ({
           value: initialHeaders[key as keyof ChatbotAllowedHeaders] ?? '',
         }))
       : [],
-  )
-  const [headerUpdateSwitch, setHeaderUpdateSwitch] = useState(false)
+  );
+  const [headerUpdateSwitch, setHeaderUpdateSwitch] = useState(false);
 
   useEffect(() => {
     if (initialHeaders) {
@@ -40,40 +41,42 @@ const ChatbotHeadersTable: React.FC<ChatbotHeadersTableProps> = ({
           key: key as keyof ChatbotAllowedHeaders,
           value: initialHeaders[key as keyof ChatbotAllowedHeaders] ?? '',
         })),
-      )
+      );
     }
-  }, [initialHeaders])
+  }, [initialHeaders]);
 
   useEffect(() => {
     const handleHeaderUpdate = () => {
-      const changed: ChatbotAllowedHeadersType[] = []
-      const deleted: (keyof ChatbotAllowedHeaders)[] = []
+      const changed: ChatbotAllowedHeadersType[] = [];
+      const deleted: (keyof ChatbotAllowedHeaders)[] = [];
       for (const key in initialHeaders) {
-        const match = headers.find((h) => h.key == key)
-        if (!match) deleted.push(key as keyof ChatbotAllowedHeaders)
+        const match = headers.find((h) => h.key == key);
+        if (!match) deleted.push(key as keyof ChatbotAllowedHeaders);
         else if (initialHeaders[match.key] != match.value) {
-          changed.push(match)
+          changed.push(match);
         }
       }
       changed.push(
         ...headers.filter(
           (h0) => !Object.keys(initialHeaders ?? {}).some((h1) => h0.key == h1),
         ),
-      )
-      const newHeaders: ChatbotAllowedHeaders = { ...initialHeaders }
-      changed.forEach((h) => (newHeaders[h.key] = h.value))
-      deleted.forEach((h) => delete newHeaders[h])
-      setUpdatedHeaders(newHeaders)
-    }
+      );
+      const newHeaders: ChatbotAllowedHeaders = { ...initialHeaders };
+      changed.forEach((h) => (newHeaders[h.key] = h.value));
+      deleted.forEach((h) => delete newHeaders[h]);
+      setUpdatedHeaders(newHeaders);
+    };
 
-    handleHeaderUpdate()
-  }, [headerUpdateSwitch])
+    handleHeaderUpdate();
+  }, [headerUpdateSwitch]);
 
-  const [editingRows, setEditingRows] = useState<{ [key: string]: boolean }>({})
-  const [isCreating, setIsCreating] = useState(false)
+  const [editingRows, setEditingRows] = useState<{ [key: string]: boolean }>(
+    {},
+  );
+  const [isCreating, setIsCreating] = useState(false);
 
   const isEditing = (record: ChatbotAllowedHeadersType) =>
-    editingRows[record.key] === true
+    editingRows[record.key] === true;
 
   const columns = [
     {
@@ -129,15 +132,15 @@ const ChatbotHeadersTable: React.FC<ChatbotHeadersTableProps> = ({
               </>
             )}
           </div>
-        )
+        );
       },
     },
-  ]
+  ];
 
   const mergedColumns: TableProps<ChatbotAllowedHeadersType>['columns'] =
     columns.map((col) => {
       if (!col.editable) {
-        return col
+        return col;
       }
       return {
         ...col,
@@ -148,54 +151,54 @@ const ChatbotHeadersTable: React.FC<ChatbotHeadersTableProps> = ({
           title: col.title,
           editing: isEditing(record),
         }),
-      }
-    })
+      };
+    });
 
   const toggleEdit = (record: ChatbotAllowedHeadersType) => {
     form.setFieldsValue({
       ...record,
-    })
-    setEditingRows((prev) => ({ ...prev, [record.key]: true }))
-  }
+    });
+    setEditingRows((prev) => ({ ...prev, [record.key]: true }));
+  };
 
   const cancelEdit = (record: ChatbotAllowedHeadersType) => {
-    setEditingRows((prev) => ({ ...prev, [record.key]: false }))
-  }
+    setEditingRows((prev) => ({ ...prev, [record.key]: false }));
+  };
 
   const confirmEdit = async (record: ChatbotAllowedHeadersType) => {
     try {
-      const row = (await form.validateFields()) as ChatbotAllowedHeadersType
-      setHeaders((prev) => [...prev.filter((p) => p.key != record.key), row])
-      setEditingRows((prev) => ({ ...prev, [record.key]: false }))
-      setHeaderUpdateSwitch((prev) => !prev)
+      const row = (await form.validateFields()) as ChatbotAllowedHeadersType;
+      setHeaders((prev) => [...prev.filter((p) => p.key != record.key), row]);
+      setEditingRows((prev) => ({ ...prev, [record.key]: false }));
+      setHeaderUpdateSwitch((prev) => !prev);
     } catch (_e) {}
-  }
+  };
 
   const toggleCreate = async () => {
     form.setFieldsValue({
       key: undefined,
       value: undefined,
-    })
-    setIsCreating(true)
-  }
+    });
+    setIsCreating(true);
+  };
 
   const cancelCreate = () => {
-    setIsCreating(false)
-  }
+    setIsCreating(false);
+  };
 
   const confirmCreate = async () => {
     try {
-      const row = (await form.validateFields()) as ChatbotAllowedHeadersType
-      setHeaders((prev) => [...prev, row])
-      setIsCreating(false)
-      setHeaderUpdateSwitch((prev) => !prev)
+      const row = (await form.validateFields()) as ChatbotAllowedHeadersType;
+      setHeaders((prev) => [...prev, row]);
+      setIsCreating(false);
+      setHeaderUpdateSwitch((prev) => !prev);
     } catch (_e) {}
-  }
+  };
 
   const deleteRecord = (record: ChatbotAllowedHeadersType) => {
-    setHeaders((prev) => prev.filter((p) => p.key != record.key))
-    setHeaderUpdateSwitch((prev) => !prev)
-  }
+    setHeaders((prev) => prev.filter((p) => p.key != record.key));
+    setHeaderUpdateSwitch((prev) => !prev);
+  };
 
   return (
     <Form form={form} component={false}>
@@ -266,20 +269,20 @@ const ChatbotHeadersTable: React.FC<ChatbotHeadersTableProps> = ({
         )}
       />
     </Form>
-  )
-}
+  );
+};
 
-export default ChatbotHeadersTable
+export default ChatbotHeadersTable;
 
 type EditableCellProps = {
-  editing: boolean
-  dataIndex: string
-  record: ChatbotAllowedHeadersType
-  usedKeys: (keyof ChatbotAllowedHeaders)[]
-  index: number
-  outsideTable?: boolean
-  className?: string
-}
+  editing: boolean;
+  dataIndex: string;
+  record: ChatbotAllowedHeadersType;
+  usedKeys: (keyof ChatbotAllowedHeaders)[];
+  index: number;
+  outsideTable?: boolean;
+  className?: string;
+};
 
 const EditableCell: React.FC<React.PropsWithChildren<EditableCellProps>> = ({
   editing,
@@ -292,7 +295,7 @@ const EditableCell: React.FC<React.PropsWithChildren<EditableCellProps>> = ({
 }) => {
   const viableKeys = ChatbotAllowedHeadersList.filter(
     (k) => !usedKeys?.includes(k),
-  )
+  );
 
   const internalNode = useMemo(() => {
     const inputNode =
@@ -306,7 +309,7 @@ const EditableCell: React.FC<React.PropsWithChildren<EditableCellProps>> = ({
         </Select>
       ) : (
         <Input />
-      )
+      );
 
     return editing ? (
       <Form.Item
@@ -322,12 +325,12 @@ const EditableCell: React.FC<React.PropsWithChildren<EditableCellProps>> = ({
       </Form.Item>
     ) : (
       children
-    )
-  }, [dataIndex, editing, record, viableKeys, children, usedKeys])
+    );
+  }, [dataIndex, editing, record, viableKeys, children, usedKeys]);
 
   return outsideTable ? (
     <div {...restProps}>{internalNode}</div>
   ) : (
     <td {...restProps}>{internalNode}</td>
-  )
-}
+  );
+};

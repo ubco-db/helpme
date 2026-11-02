@@ -1,18 +1,19 @@
-import { Card, Button, message, Tag } from 'antd'
-import { useState } from 'react'
-import { Form } from 'antd'
-import { OrganizationRole, SemesterPartial } from '@koh/common'
-import { API } from '@/app/api'
-import { SemesterModal } from './SemesterModal'
-import DeleteConfirmationModal from './DeleteConfirmationModal'
-import dayjs from 'dayjs'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { useUserInfo } from '@/app/contexts/userContext'
+import { Card, Button, message, Tag } from 'antd';
+import { useState } from 'react';
+import { Form } from 'antd';
+import type { SemesterPartial } from '@koh/common';
+import { OrganizationRole } from '@koh/common';
+import { API } from '@/app/api';
+import { SemesterModal } from './SemesterModal';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
+import dayjs from 'dayjs';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import { useUserInfo } from '@/app/contexts/userContext';
 
 interface SemesterManagementProps {
-  orgId: number
-  organizationSemesters: SemesterPartial[]
-  setOrganizationSemesters: (semesters: SemesterPartial[]) => void
+  orgId: number;
+  organizationSemesters: SemesterPartial[];
+  setOrganizationSemesters: (semesters: SemesterPartial[]) => void;
 }
 
 export const SemesterManagement: React.FC<SemesterManagementProps> = ({
@@ -20,19 +21,19 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
   organizationSemesters,
   setOrganizationSemesters,
 }) => {
-  const { userInfo } = useUserInfo()
-  const [currentSemesterId, setCurrentSemesterId] = useState<number>(-1) // -1 represents nothing being selected
-  const [deletionSemesterName, setDeletionSemesterName] = useState<string>('')
+  const { userInfo } = useUserInfo();
+  const [currentSemesterId, setCurrentSemesterId] = useState<number>(-1); // -1 represents nothing being selected
+  const [deletionSemesterName, setDeletionSemesterName] = useState<string>('');
   const [isSemesterCreationModalOpen, setIsSemesterCreationModalOpen] =
-    useState(false)
-  const [isSemesterEditModalOpen, setIsSemesterEditModalOpen] = useState(false)
+    useState(false);
+  const [isSemesterEditModalOpen, setIsSemesterEditModalOpen] = useState(false);
   const [
     isConfirmSemesterDeleteModalOpen,
     setIsConfirmSemesterDeleteModalOpen,
-  ] = useState(false)
+  ] = useState(false);
 
   // for semester management
-  const [semesterForm] = Form.useForm()
+  const [semesterForm] = Form.useForm();
 
   const handleAddSemester = async () => {
     const formValues = await semesterForm.validateFields([
@@ -40,28 +41,28 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
       'startDate',
       'endDate',
       'color',
-    ])
-    const semesterName = formValues.name as string
-    const semesterStartDate = formValues.startDate as dayjs.Dayjs
-    const semesterEndDate = formValues.endDate as dayjs.Dayjs
+    ]);
+    const semesterName = formValues.name as string;
+    const semesterStartDate = formValues.startDate as dayjs.Dayjs;
+    const semesterEndDate = formValues.endDate as dayjs.Dayjs;
     const semesterDescription = semesterForm.getFieldValue(
       'description',
-    ) as string
+    ) as string;
 
     if (semesterName.length < 3) {
-      message.error('Semester name must be at least 3 characters')
-      return
+      message.error('Semester name must be at least 3 characters');
+      return;
     }
 
     if (semesterDescription && semesterDescription.length < 10) {
-      message.error('Semester description must be at least 10 characters')
-      return
+      message.error('Semester description must be at least 10 characters');
+      return;
     }
 
     if (semesterStartDate && semesterEndDate) {
       if (semesterStartDate.valueOf() >= semesterEndDate.valueOf()) {
-        message.error('Semester start date must be before end date')
-        return
+        message.error('Semester start date must be before end date');
+        return;
       }
     }
 
@@ -71,30 +72,30 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
       endDate: semesterEndDate ? semesterEndDate.toDate() : null,
       description: semesterDescription || '',
       color: formValues.color,
-    }
+    };
 
     await API.semesters
       .create(orgId, semesterDetails)
       .then((newSemester) => {
-        setIsSemesterCreationModalOpen(false)
-        message.success('Semester created successfully')
+        setIsSemesterCreationModalOpen(false);
+        message.success('Semester created successfully');
         setOrganizationSemesters([
           ...organizationSemesters,
           { ...semesterDetails, id: newSemester.id },
-        ])
-        semesterForm.resetFields()
+        ]);
+        semesterForm.resetFields();
       })
       .catch((error) => {
-        message.error(getErrorMessage(error))
-      })
-  }
+        message.error(getErrorMessage(error));
+      });
+  };
 
   const handleOpenEditSemesterModal = (semesterId: number) => {
     {
-      const semester = organizationSemesters.find((s) => s.id === semesterId)
+      const semester = organizationSemesters.find((s) => s.id === semesterId);
       if (!semester) {
-        message.error('Semester not found')
-        return
+        message.error('Semester not found');
+        return;
       }
       semesterForm.setFieldsValue({
         name: semester.name,
@@ -102,11 +103,11 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
         endDate: dayjs(semester.endDate),
         description: semester.description,
         color: semester.color,
-      })
-      setCurrentSemesterId(semesterId)
-      setIsSemesterEditModalOpen(true)
+      });
+      setCurrentSemesterId(semesterId);
+      setIsSemesterEditModalOpen(true);
     }
-  }
+  };
 
   const handleEditSemester = async () => {
     const formValues = await semesterForm.validateFields([
@@ -114,25 +115,25 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
       'startDate',
       'endDate',
       'color',
-    ])
-    const semesterName = formValues.name
-    const semesterStartDate = formValues.startDate
-    const semesterEndDate = formValues.endDate
-    const semesterDescription = semesterForm.getFieldValue('description')
+    ]);
+    const semesterName = formValues.name;
+    const semesterStartDate = formValues.startDate;
+    const semesterEndDate = formValues.endDate;
+    const semesterDescription = semesterForm.getFieldValue('description');
 
     if (semesterName.length < 3) {
-      message.error('Semester name must be at least 3 characters')
-      return
+      message.error('Semester name must be at least 3 characters');
+      return;
     }
 
     if (semesterDescription && semesterDescription.length < 10) {
-      message.error('Semester description must be at least 10 characters')
-      return
+      message.error('Semester description must be at least 10 characters');
+      return;
     }
 
     if (semesterStartDate >= semesterEndDate) {
-      message.error('Semester start date must be before end date')
-      return
+      message.error('Semester start date must be before end date');
+      return;
     }
 
     const semesterDetails: SemesterPartial = {
@@ -142,52 +143,52 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
       description: semesterDescription || '',
       color: formValues.color,
       id: currentSemesterId,
-    }
+    };
 
     await API.semesters
       .edit(orgId, currentSemesterId, semesterDetails)
       .then(() => {
-        setIsSemesterEditModalOpen(false)
-        setCurrentSemesterId(-1)
-        message.success('Semester updated successfully')
+        setIsSemesterEditModalOpen(false);
+        setCurrentSemesterId(-1);
+        message.success('Semester updated successfully');
         setOrganizationSemesters(
           organizationSemesters.map((s) => {
             if (s.id === currentSemesterId) {
-              return semesterDetails
+              return semesterDetails;
             }
-            return s
+            return s;
           }),
-        )
+        );
       })
       .catch((error) => {
-        message.error(getErrorMessage(error))
-      })
-  }
+        message.error(getErrorMessage(error));
+      });
+  };
 
   const handleConfirmSemesterDelete = (
     semesterId: number,
     semesterName: string,
   ) => {
-    setCurrentSemesterId(semesterId)
-    setDeletionSemesterName(semesterName)
-    setIsConfirmSemesterDeleteModalOpen(true)
-  }
+    setCurrentSemesterId(semesterId);
+    setDeletionSemesterName(semesterName);
+    setIsConfirmSemesterDeleteModalOpen(true);
+  };
 
   const handleDeleteSemester = async (semesterId: number) => {
     await API.semesters
       .delete(orgId, semesterId)
       .then(() => {
-        setCurrentSemesterId(-1)
-        setDeletionSemesterName('')
-        message.success('Semester deleted successfully')
+        setCurrentSemesterId(-1);
+        setDeletionSemesterName('');
+        message.success('Semester deleted successfully');
         setOrganizationSemesters(
           organizationSemesters.filter((s) => s.id !== semesterId),
-        )
+        );
       })
       .catch((error) => {
-        message.error(error.response.data.message)
-      })
-  }
+        message.error(error.response.data.message);
+      });
+  };
   return (
     <Card
       title="Semester Management"
@@ -199,11 +200,11 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
           .sort((a, b) => {
             const aTime = a.startDate
               ? new Date(a.startDate).getTime()
-              : -Infinity
+              : -Infinity;
             const bTime = b.startDate
               ? new Date(b.startDate).getTime()
-              : -Infinity
-            return bTime - aTime
+              : -Infinity;
+            return bTime - aTime;
           })
           .map((semester) => (
             <Card.Grid
@@ -214,11 +215,11 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
                 OrganizationRole.ADMIN
                   ? () => {
                       if (semester.id) {
-                        handleOpenEditSemesterModal(semester.id)
+                        handleOpenEditSemesterModal(semester.id);
                       } else {
                         message.error(
                           'Semester id not set for this semester. Please refresh the page.',
-                        )
+                        );
                       }
                     }
                   : undefined
@@ -260,8 +261,8 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
                   danger
                   type="primary"
                   onClick={(e) => {
-                    e.stopPropagation()
-                    handleConfirmSemesterDelete(semester.id!, semester.name)
+                    e.stopPropagation();
+                    handleConfirmSemesterDelete(semester.id!, semester.name);
                   }}
                   className="mt-2"
                 >
@@ -308,12 +309,12 @@ export const SemesterManagement: React.FC<SemesterManagementProps> = ({
           isOpen={isConfirmSemesterDeleteModalOpen}
           semesterName={deletionSemesterName}
           onConfirm={() => {
-            handleDeleteSemester(currentSemesterId)
-            setIsConfirmSemesterDeleteModalOpen(false)
+            handleDeleteSemester(currentSemesterId);
+            setIsConfirmSemesterDeleteModalOpen(false);
           }}
           onCancel={() => setIsConfirmSemesterDeleteModalOpen(false)}
         />
       )}
     </Card>
-  )
-}
+  );
+};

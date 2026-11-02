@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class UserCourseOverride1611958171853 implements MigrationInterface {
   name = 'UserCourseOverride1611958171853';

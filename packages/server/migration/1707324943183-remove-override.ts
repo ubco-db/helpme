@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class removeOverride1707324943183 implements MigrationInterface {
   name = 'removeOverride1707324943183';

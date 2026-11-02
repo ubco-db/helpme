@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class ChatbotAgentCourseGroups1781721021662
-  implements MigrationInterface
-{
+export class ChatbotAgentCourseGroups1781721021662 implements MigrationInterface {
   name = 'ChatbotAgentCourseGroups1781721021662';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

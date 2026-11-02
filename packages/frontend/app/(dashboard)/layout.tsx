@@ -1,40 +1,41 @@
-'use client'
+'use client';
 
-import React, { useEffect, useState } from 'react'
-import { UserInfoProvider } from '../contexts/userContext'
-import { User } from '@koh/common'
-import { fetchUserDetails } from '@/app/api'
-import Link from 'next/link'
-import { Button, Spin } from 'antd'
-import HeaderBar from '@/app/components/HeaderBar'
-import { usePathname, useRouter } from 'next/navigation'
-import { LayoutProps } from '@/app/typings/types'
-import StandardPageContainer from '../components/standardPageContainer'
-import Image from 'next/image'
-import ChatbotContextProvider from './course/[cid]/components/chatbot/ChatbotProvider'
-import FooterBar from './components/FooterBar'
-import { ToastAlertsContainer } from '../components/ToastAlertsContainer'
-import { LogoutOutlined, ReloadOutlined } from '@ant-design/icons'
-import VerifyEmailPage from '@/app/(auth)/verify/page'
-import { AlertsProvider } from '@/app/contexts/AlertsContext'
-import { UserRole } from '@/proxyType'
-import ModalAlertsContainer from '../components/ModalAlertsContainer'
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import { UserInfoProvider } from '../contexts/userContext';
+import type { User } from '@koh/common';
+import { fetchUserDetails } from '@/app/api';
+import Link from 'next/link';
+import { Button, Spin } from 'antd';
+import HeaderBar from '@/app/components/HeaderBar';
+import { usePathname, useRouter } from 'next/navigation';
+import type { LayoutProps } from '@/app/typings/types';
+import StandardPageContainer from '../components/standardPageContainer';
+import Image from 'next/image';
+import ChatbotContextProvider from './course/[cid]/components/chatbot/ChatbotProvider';
+import FooterBar from './components/FooterBar';
+import { ToastAlertsContainer } from '../components/ToastAlertsContainer';
+import { LogoutOutlined, ReloadOutlined } from '@ant-design/icons';
+import VerifyEmailPage from '@/app/(auth)/verify/page';
+import { AlertsProvider } from '@/app/contexts/AlertsContext';
+import { UserRole } from '@/proxyType';
+import ModalAlertsContainer from '../components/ModalAlertsContainer';
 
 const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
   children,
   adminPage,
 }) => {
-  const [profile, setProfile] = useState<User>()
+  const [profile, setProfile] = useState<User>();
   const [errorGettingUser, setErrorGettingUser] = useState<string | undefined>(
     undefined,
-  )
-  const pathname = usePathname()
-  const router = useRouter()
-  const URLSegments = pathname.split('/')
+  );
+  const pathname = usePathname();
+  const router = useRouter();
+  const URLSegments = pathname.split('/');
 
   useEffect(() => {
-    fetchUserDetails(setProfile, setErrorGettingUser, router, pathname)
-  }, [pathname, router])
+    fetchUserDetails(setProfile, setErrorGettingUser, router, pathname);
+  }, [pathname, router]);
 
   return errorGettingUser ? (
     <main className="mt-20 flex max-w-3xl flex-col content-center justify-center gap-3 p-2">
@@ -44,7 +45,7 @@ const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
         type="primary"
         icon={<ReloadOutlined />}
         onClick={() => {
-          window.location.reload()
+          window.location.reload();
         }}
       >
         Try again
@@ -52,7 +53,7 @@ const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
       <Button
         icon={<LogoutOutlined />}
         onClick={() => {
-          router.push(`/api/v1/logout?redirect=${pathname}`)
+          router.push(`/api/v1/logout?redirect=${pathname}`);
         }}
         danger
       >
@@ -145,7 +146,7 @@ const Layout: React.FC<LayoutProps & { adminPage: boolean }> = ({
         <FooterBar />
       </AlertsProvider>
     </UserInfoProvider>
-  )
-}
+  );
+};
 
-export default Layout
+export default Layout;

@@ -1,37 +1,39 @@
-import { toOrdinal } from '@/app/utils/generalUtils'
-import {
+import { toOrdinal } from '@/app/utils/generalUtils';
+import type {
   ConfigTasks,
-  OpenQuestionStatus,
-  parseTaskIdsFromQuestionText,
   Question,
-  QuestionLocations,
   QuestionTypeParams,
   StudentAssignmentProgress,
-} from '@koh/common'
-import { Alert, Form, Modal } from 'antd'
-import TaskSelector from '../TaskSelector'
-import { useEffect, useState } from 'react'
+} from '@koh/common';
+import {
+  OpenQuestionStatus,
+  parseTaskIdsFromQuestionText,
+  QuestionLocations,
+} from '@koh/common';
+import { Alert, Form, Modal } from 'antd';
+import TaskSelector from '../TaskSelector';
+import { useEffect, useState } from 'react';
 
 interface FormValues {
-  taskIds: string[]
+  taskIds: string[];
 }
 
 interface CreateDemoModalProps {
-  configTasks: ConfigTasks
-  studentAssignmentProgress: StudentAssignmentProgress | undefined
-  open: boolean
-  leaveQueue: () => Promise<void>
+  configTasks: ConfigTasks;
+  studentAssignmentProgress: StudentAssignmentProgress | undefined;
+  open: boolean;
+  leaveQueue: () => Promise<void>;
   finishDemo: (
     text: string,
     questionType: QuestionTypeParams[],
     location: QuestionLocations,
     isTaskQuestion: boolean,
     groupable: boolean,
-  ) => void
-  onCancel: () => void
-  question: Question | undefined
-  setIsCreateDemoModalLoading: (loading: boolean) => void
-  position?: number
+  ) => void;
+  onCancel: () => void;
+  question: Question | undefined;
+  setIsCreateDemoModalLoading: (loading: boolean) => void;
+  position?: number;
 }
 
 const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
@@ -45,15 +47,15 @@ const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
   setIsCreateDemoModalLoading,
   position,
 }) => {
-  const drafting = question?.status === OpenQuestionStatus.Drafting
-  const helping = question?.status === OpenQuestionStatus.Helping
-  const [form] = Form.useForm()
-  const [isLeaveButtonLoading, setIsLeaveButtonLoading] = useState(false)
+  const drafting = question?.status === OpenQuestionStatus.Drafting;
+  const helping = question?.status === OpenQuestionStatus.Helping;
+  const [form] = Form.useForm();
+  const [isLeaveButtonLoading, setIsLeaveButtonLoading] = useState(false);
 
   const onFinish = (values: FormValues) => {
     const newQuestionText = `Mark ${values.taskIds
       .map((task) => `"${task}"`)
-      .join(' ')}`
+      .join(' ')}`;
 
     finishDemo(
       newQuestionText,
@@ -61,15 +63,15 @@ const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
       QuestionLocations.InPerson, // for now, all demos are in person
       true, //isTaskQuestion
       false, //groupable
-    )
-  }
+    );
+  };
 
   useEffect(() => {
     if (open) {
       // Need to put this loading toggle inside the modal so that the Create Demo button stops loading once the modal is rendered
-      setIsCreateDemoModalLoading(false)
+      setIsCreateDemoModalLoading(false);
     }
-  }, [setIsCreateDemoModalLoading, open])
+  }, [setIsCreateDemoModalLoading, open]);
 
   return (
     <Modal
@@ -83,11 +85,11 @@ const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
         loading: isLeaveButtonLoading,
         onClick: async () => {
           if (drafting) {
-            setIsLeaveButtonLoading(true)
-            await leaveQueue()
-            setIsLeaveButtonLoading(false)
+            setIsLeaveButtonLoading(true);
+            await leaveQueue();
+            setIsLeaveButtonLoading(false);
           } else {
-            onCancel()
+            onCancel();
           }
         },
       }}
@@ -96,7 +98,7 @@ const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
       loading={!question}
       modalRender={(dom) => {
         if (!question) {
-          return <>{dom}</>
+          return <>{dom}</>;
         } else {
           return (
             <Form
@@ -113,7 +115,7 @@ const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
             >
               {dom}
             </Form>
-          )
+          );
         }
       }}
     >
@@ -155,7 +157,7 @@ const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
         <p>No Tasks Found. Please let your TA/Prof know of this issue</p>
       )}
     </Modal>
-  )
-}
+  );
+};
 
-export default CreateDemoModal
+export default CreateDemoModal;

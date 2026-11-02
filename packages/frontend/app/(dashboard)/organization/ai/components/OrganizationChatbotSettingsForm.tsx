@@ -1,14 +1,16 @@
-import { API } from '@/app/api'
-import {
+import { API } from '@/app/api';
+import type {
   ChatbotAllowedHeaders,
   ChatbotProvider,
-  ChatbotServiceProvider,
   CreateChatbotProviderBody,
   CreateLLMTypeBody,
   LLMType,
   OrganizationChatbotSettings,
+} from '@koh/common';
+import {
+  ChatbotServiceProvider,
   OrganizationChatbotSettingsDefaults,
-} from '@koh/common'
+} from '@koh/common';
 import {
   Button,
   Card,
@@ -22,8 +24,8 @@ import {
   Statistic,
   Table,
   Tooltip,
-} from 'antd'
-import { useEffect, useMemo, useState } from 'react'
+} from 'antd';
+import { useEffect, useMemo, useState } from 'react';
 import {
   DeleteOutlined,
   EditOutlined,
@@ -34,79 +36,79 @@ import {
   PlusOutlined,
   StarFilled,
   StarOutlined,
-} from '@ant-design/icons'
-import UpsertChatbotProvider from '@/app/(dashboard)/organization/ai/components/UpsertChatbotProvider'
-import LLMTypeDisplay from '@/app/(dashboard)/organization/ai/components/LLMTypeDisplay'
+} from '@ant-design/icons';
+import UpsertChatbotProvider from '@/app/(dashboard)/organization/ai/components/UpsertChatbotProvider';
+import LLMTypeDisplay from '@/app/(dashboard)/organization/ai/components/LLMTypeDisplay';
 import {
   cn,
   getErrorMessage,
   getModelSpeedAndQualityEstimate,
-} from '@/app/utils/generalUtils'
-import AdditionalNotesList from '@/app/(dashboard)/organization/ai/components/AdditionalNotesList'
-import ChatbotModelInfoTooltip from '@/app/(dashboard)/components/ChatbotModelInfoTooltip'
+} from '@/app/utils/generalUtils';
+import AdditionalNotesList from '@/app/(dashboard)/organization/ai/components/AdditionalNotesList';
+import ChatbotModelInfoTooltip from '@/app/(dashboard)/components/ChatbotModelInfoTooltip';
 
 type OrganizationChatbotSettingsFormProps = {
-  organizationId: number
-  organizationSettings?: OrganizationChatbotSettings
-  setSettings?: (settings: OrganizationChatbotSettings) => void
-}
+  organizationId: number;
+  organizationSettings?: OrganizationChatbotSettings;
+  setSettings?: (settings: OrganizationChatbotSettings) => void;
+};
 
 const OrganizationChatbotSettingsForm: React.FC<
   OrganizationChatbotSettingsFormProps
 > = ({ organizationId, organizationSettings, setSettings }) => {
-  const [form] = Form.useForm<OrganizationChatbotSettingsDefaults>()
+  const [form] = Form.useForm<OrganizationChatbotSettingsDefaults>();
 
   const [createProviders, setCreateProviders] = useState<
     CreateChatbotProviderBody[]
-  >([])
+  >([]);
 
   // States for when in INSERT mode
   const [editingCreateProvider, setEditingCreateProvider] = useState<
     { props: CreateChatbotProviderBody; index: number } | undefined
-  >()
+  >();
   const [isCreatingCreateProvider, setIsCreatingCreateProvider] =
-    useState(false)
+    useState(false);
 
   // States for when in UPDATE mode
-  const [editingProvider, setEditingProvider] = useState<ChatbotProvider>()
-  const [creatingProvider, setCreatingProvider] = useState(false)
+  const [editingProvider, setEditingProvider] = useState<ChatbotProvider>();
+  const [creatingProvider, setCreatingProvider] = useState(false);
 
-  const [isLoading, setIsLoading] = useState(false)
-  const [isActionsMinimized, setIsActionsMinimized] = useState(false)
-  const [isDeleteProviderLoading, setIsDeleteProviderLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false);
+  const [isActionsMinimized, setIsActionsMinimized] = useState(false);
+  const [isDeleteProviderLoading, setIsDeleteProviderLoading] = useState(false);
 
   // Default Provider (Changes depending on whether settings exist or not)
   const [defaultProvider, setDefaultProvider] = useState<number>(
     organizationSettings != undefined
       ? organizationSettings.defaultProvider?.id
       : 0,
-  )
+  );
 
   useEffect(() => {
     if (organizationSettings && organizationSettings.defaultProvider) {
-      setDefaultProvider(organizationSettings.defaultProvider.id)
+      setDefaultProvider(organizationSettings.defaultProvider.id);
     }
     if (organizationSettings) {
-      const sets: Record<string, any> = { ...organizationSettings }
-      delete sets['defaultProvider']
-      delete sets['courseSettingsInstances']
-      delete sets['providers']
-      form.setFieldsValue({ ...sets, ...formValues })
-      setFormValues({ ...sets, ...formValues })
+      const sets: Record<string, any> = { ...organizationSettings };
+      delete sets['defaultProvider'];
+      delete sets['courseSettingsInstances'];
+      delete sets['providers'];
+      form.setFieldsValue({ ...sets, ...formValues });
+      setFormValues({ ...sets, ...formValues });
     }
-  }, [organizationSettings, organizationSettings?.defaultProvider])
+  }, [organizationSettings, organizationSettings?.defaultProvider]);
 
-  const [onReload, setOnReload] = useState(false)
+  const [onReload, setOnReload] = useState(false);
   useEffect(() => {
     if (onReload) {
-      form.setFieldsValue(formValues)
-      setOnReload(false)
+      form.setFieldsValue(formValues);
+      setOnReload(false);
     }
-  }, [onReload])
+  }, [onReload]);
 
   // For Editing to check whether the values have changed (prevent unnecessary API calls)
   const [formValues, setFormValues] =
-    useState<OrganizationChatbotSettingsDefaults>({})
+    useState<OrganizationChatbotSettingsDefaults>({});
 
   const haveSettingsChanged = useMemo(() => {
     return organizationSettings !== undefined
@@ -119,19 +121,19 @@ const OrganizationChatbotSettingsForm: React.FC<
           )
           .reduce((p, c) => p || c, false) ||
           defaultProvider != organizationSettings.defaultProvider?.id
-      : false
-  }, [formValues, organizationSettings, defaultProvider])
+      : false;
+  }, [formValues, organizationSettings, defaultProvider]);
 
   const handleCreate = () => {
-    if (isLoading || isDeleteProviderLoading) return
+    if (isLoading || isDeleteProviderLoading) return;
     if (createProviders.length == 0) {
       message.error(
         'At least one provider is required to create chatbot settings',
-      )
-      return
+      );
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
     form
       .validateFields()
       .then((values) => {
@@ -144,18 +146,18 @@ const OrganizationChatbotSettingsForm: React.FC<
           .then((settings) => {
             message.success(
               `Successfully created organization chatbot settings!`,
-            )
-            if (setSettings) setSettings(settings)
+            );
+            if (setSettings) setSettings(settings);
           })
           .catch((err) => {
-            message.error(getErrorMessage(err))
-          })
+            message.error(getErrorMessage(err));
+          });
       })
       .catch(() => {
-        message.error('Invalid parameters')
+        message.error('Invalid parameters');
       })
-      .finally(() => setIsLoading(false))
-  }
+      .finally(() => setIsLoading(false));
+  };
 
   const handleUpdate = () => {
     form
@@ -169,49 +171,49 @@ const OrganizationChatbotSettingsForm: React.FC<
           .then((settings) => {
             message.success(
               'Successfully updated organization chatbot settings!',
-            )
-            if (setSettings) setSettings(settings)
+            );
+            if (setSettings) setSettings(settings);
           })
           .catch((err) => {
-            message.error(getErrorMessage(err))
-          })
+            message.error(getErrorMessage(err));
+          });
       })
       .catch(() => {
-        message.error('Invalid parameters')
+        message.error('Invalid parameters');
       })
-      .finally(() => setIsLoading(false))
-  }
+      .finally(() => setIsLoading(false));
+  };
 
   const handleAddCreateProvider = async (
     provider: CreateChatbotProviderBody,
   ) => {
-    if (isLoading || isDeleteProviderLoading) return
-    setIsCreatingCreateProvider(false)
-    setCreateProviders((prev) => [...prev, provider])
-    setOnReload(true)
-  }
+    if (isLoading || isDeleteProviderLoading) return;
+    setIsCreatingCreateProvider(false);
+    setCreateProviders((prev) => [...prev, provider]);
+    setOnReload(true);
+  };
 
   const handleEditCreateProvider = async (
     provider: CreateChatbotProviderBody,
   ) => {
-    if (isLoading || isDeleteProviderLoading) return
-    if (editingCreateProvider == undefined) return
+    if (isLoading || isDeleteProviderLoading) return;
+    if (editingCreateProvider == undefined) return;
     setCreateProviders((prev) => [
       ...prev.slice(0, editingCreateProvider.index),
       provider,
       ...prev.slice(editingCreateProvider.index + 1),
-    ])
-    setEditingCreateProvider(undefined)
-    setOnReload(true)
-  }
+    ]);
+    setEditingCreateProvider(undefined);
+    setOnReload(true);
+  };
 
   const handleDeleteProvider = (provider: ChatbotProvider) => {
-    if (isLoading || isDeleteProviderLoading) return
+    if (isLoading || isDeleteProviderLoading) return;
     if (organizationSettings == undefined) {
       message.error(
         'Organization chatbot settings does not exist, provider cannot be deleted as it cannot exist yet',
-      )
-      return
+      );
+      return;
     }
     if (
       organizationSettings.defaultProvider == provider ||
@@ -219,33 +221,33 @@ const OrganizationChatbotSettingsForm: React.FC<
     ) {
       message.error(
         'Cannot delete default provider for organization chatbot settings',
-      )
-      return
+      );
+      return;
     }
-    setIsDeleteProviderLoading(true)
+    setIsDeleteProviderLoading(true);
     API.chatbot.adminOnly
       .deleteChatbotProvider(organizationId, provider.id)
       .then(() => {
-        message.success('Successfully deleted chatbot provider!')
+        message.success('Successfully deleted chatbot provider!');
         if (setSettings) {
           setSettings({
             ...organizationSettings,
             providers: organizationSettings.providers.filter(
               (p) => p.id != provider.id,
             ),
-          })
+          });
         }
       })
       .catch((err) => {
         message.error(
           `Error occurred while deleting chatbot provider: ${getErrorMessage(err)}`,
-        )
+        );
       })
-      .finally(() => setIsDeleteProviderLoading(false))
-  }
+      .finally(() => setIsDeleteProviderLoading(false));
+  };
 
   const handleResetFieldsValues = () => {
-    const keyValueSet: OrganizationChatbotSettingsDefaults = {}
+    const keyValueSet: OrganizationChatbotSettingsDefaults = {};
     if (organizationSettings != undefined) {
       Object.keys(organizationSettings)
         .filter((k) => k.startsWith('default_'))
@@ -255,8 +257,8 @@ const OrganizationChatbotSettingsForm: React.FC<
               organizationSettings[
                 k as keyof OrganizationChatbotSettings
               ] as any),
-        )
-      keyValueSet.defaultProvider = organizationSettings.defaultProvider.id
+        );
+      keyValueSet.defaultProvider = organizationSettings.defaultProvider.id;
     } else {
       Object.keys(new OrganizationChatbotSettingsDefaults())
         .filter((k) => k.startsWith('default_'))
@@ -264,20 +266,20 @@ const OrganizationChatbotSettingsForm: React.FC<
           (k) =>
             (keyValueSet[k as keyof OrganizationChatbotSettingsDefaults] =
               undefined),
-        )
+        );
     }
-    form.setFieldsValue(keyValueSet)
-    setFormValues(keyValueSet)
-  }
+    form.setFieldsValue(keyValueSet);
+    setFormValues(keyValueSet);
+  };
 
   const clearFormValue = (key: string) => {
-    const formKey = key as keyof OrganizationChatbotSettingsDefaults
-    form.resetFields([formKey])
+    const formKey = key as keyof OrganizationChatbotSettingsDefaults;
+    form.resetFields([formKey]);
     form.setFieldsValue({
       [formKey]: null,
-    })
-    setFormValues((prev) => ({ ...prev, [formKey]: null }))
-  }
+    });
+    setFormValues((prev) => ({ ...prev, [formKey]: null }));
+  };
 
   if (organizationSettings == undefined) {
     if (isCreatingCreateProvider) {
@@ -287,10 +289,10 @@ const OrganizationChatbotSettingsForm: React.FC<
           canSelfSubmit={false}
           onSubmit={handleAddCreateProvider}
           onClose={() => {
-            setIsCreatingCreateProvider(false)
+            setIsCreatingCreateProvider(false);
           }}
         />
-      )
+      );
     }
     if (editingCreateProvider != undefined) {
       return (
@@ -302,10 +304,10 @@ const OrganizationChatbotSettingsForm: React.FC<
           }
           props={editingCreateProvider?.props}
           onClose={() => {
-            setEditingCreateProvider(undefined)
+            setEditingCreateProvider(undefined);
           }}
         />
-      )
+      );
     }
   } else {
     if (creatingProvider) {
@@ -315,19 +317,19 @@ const OrganizationChatbotSettingsForm: React.FC<
           canSelfSubmit={true}
           setProvider={(provider) => {
             if (setSettings) {
-              const settings = { ...organizationSettings }
-              const providers = settings.providers
-              settings.providers = [...providers, provider]
-              setSettings(settings)
+              const settings = { ...organizationSettings };
+              const providers = settings.providers;
+              settings.providers = [...providers, provider];
+              setSettings(settings);
             }
           }}
           onSubmit={() => undefined}
           onClose={() => {
-            setCreatingProvider(false)
-            setOnReload(true)
+            setCreatingProvider(false);
+            setOnReload(true);
           }}
         />
-      )
+      );
     }
     if (editingProvider != undefined) {
       return (
@@ -336,32 +338,32 @@ const OrganizationChatbotSettingsForm: React.FC<
           canSelfSubmit={true}
           setProvider={(provider) => {
             if (setSettings) {
-              const settings = { ...organizationSettings }
-              const providers = settings.providers
-              const indexOf = providers.findIndex((p) => p.id == provider.id)
+              const settings = { ...organizationSettings };
+              const providers = settings.providers;
+              const indexOf = providers.findIndex((p) => p.id == provider.id);
               if (provider.id == settings.defaultProvider.id) {
-                settings.defaultProvider = provider
+                settings.defaultProvider = provider;
               }
               if (indexOf != -1) {
                 settings.providers = [
                   ...providers.slice(0, indexOf),
                   provider,
                   ...providers.slice(indexOf + 1),
-                ]
+                ];
               } else {
-                settings.providers = [...providers, provider]
+                settings.providers = [...providers, provider];
               }
-              setSettings(settings)
+              setSettings(settings);
             }
           }}
           provider={editingProvider}
           onSubmit={() => undefined}
           onClose={() => {
-            setEditingProvider(undefined)
-            setOnReload(true)
+            setEditingProvider(undefined);
+            setOnReload(true);
           }}
         />
-      )
+      );
     }
   }
 
@@ -379,46 +381,47 @@ const OrganizationChatbotSettingsForm: React.FC<
           }}
           onValuesChange={(changedValues, values) => {
             const overwriteValues: Partial<OrganizationChatbotSettingsDefaults> =
-              {}
+              {};
             Object.keys(changedValues)
               .filter((k) => k.startsWith('default_'))
               .forEach((key) => {
-                const formKey = key as keyof OrganizationChatbotSettingsDefaults
-                let newValue = changedValues[key]
+                const formKey =
+                  key as keyof OrganizationChatbotSettingsDefaults;
+                let newValue = changedValues[key];
                 if (newValue.trim() == '') {
-                  overwriteValues[formKey] = null as any
-                  return
+                  overwriteValues[formKey] = null as any;
+                  return;
                 }
 
-                const propertyName = key.substring('default_'.length)
+                const propertyName = key.substring('default_'.length);
                 if (propertyName != 'prompt') {
-                  newValue = newValue.trim()
+                  newValue = newValue.trim();
                 }
                 switch (propertyName) {
                   case 'topK':
                     if (isNaN(parseInt(newValue))) {
-                      overwriteValues[formKey] = formValues[formKey] as any
+                      overwriteValues[formKey] = formValues[formKey] as any;
                     } else {
-                      overwriteValues[formKey] = parseInt(newValue) as any
+                      overwriteValues[formKey] = parseInt(newValue) as any;
                     }
-                    break
+                    break;
                   case 'temperature':
                   case 'similarityThresholdDocuments':
                     if (isNaN(parseFloat(newValue))) {
-                      overwriteValues[formKey] = formValues[formKey] as any
+                      overwriteValues[formKey] = formValues[formKey] as any;
                     } else {
-                      overwriteValues[formKey] = parseFloat(newValue) as any
+                      overwriteValues[formKey] = parseFloat(newValue) as any;
                     }
-                    break
+                    break;
                   default:
-                    overwriteValues[formKey] = newValue
+                    overwriteValues[formKey] = newValue;
                 }
-              })
-            form.setFieldsValue(overwriteValues)
+              });
+            form.setFieldsValue(overwriteValues);
             setFormValues({
               ...values,
               ...overwriteValues,
-            })
+            });
           }}
         >
           <Divider>
@@ -632,9 +635,9 @@ const OrganizationChatbotSettingsForm: React.FC<
                 icon={<PlusOutlined />}
                 onClick={() => {
                   if (organizationSettings != undefined) {
-                    setCreatingProvider(true)
+                    setCreatingProvider(true);
                   } else {
-                    setIsCreatingCreateProvider(true)
+                    setIsCreatingCreateProvider(true);
                   }
                 }}
               >
@@ -646,12 +649,12 @@ const OrganizationChatbotSettingsForm: React.FC<
             providerProps: CreateChatbotProviderBody | ChatbotProvider,
             providerIndex: number,
           ) => {
-            const asCreate = providerProps as CreateChatbotProviderBody
-            const asProvider = providerProps as ChatbotProvider
+            const asCreate = providerProps as CreateChatbotProviderBody;
+            const asProvider = providerProps as ChatbotProvider;
             const isDefaultProvider =
               organizationSettings != undefined
                 ? defaultProvider == asProvider.id
-                : defaultProvider == providerIndex
+                : defaultProvider == providerIndex;
             return (
               <Card
                 className={cn(
@@ -771,10 +774,10 @@ const OrganizationChatbotSettingsForm: React.FC<
                             : asCreate.models
                         }
                         renderItem={(model) => {
-                          const asCreateLLM = model as CreateLLMTypeBody
-                          const asLLM = model as LLMType
+                          const asCreateLLM = model as CreateLLMTypeBody;
+                          const asLLM = model as LLMType;
                           const { speed, quality } =
-                            getModelSpeedAndQualityEstimate(asLLM)
+                            getModelSpeedAndQualityEstimate(asLLM);
                           return (
                             <Tooltip
                               title={
@@ -815,7 +818,7 @@ const OrganizationChatbotSettingsForm: React.FC<
                                 />
                               </div>
                             </Tooltip>
-                          )
+                          );
                         }}
                       />
                     </Card>
@@ -856,12 +859,12 @@ const OrganizationChatbotSettingsForm: React.FC<
                       icon={<EditOutlined />}
                       onClick={() => {
                         if (organizationSettings != undefined) {
-                          setEditingProvider(asProvider)
+                          setEditingProvider(asProvider);
                         } else {
                           setEditingCreateProvider({
                             props: asCreate,
                             index: providerIndex,
-                          })
+                          });
                         }
                       }}
                     >
@@ -874,11 +877,11 @@ const OrganizationChatbotSettingsForm: React.FC<
                       danger
                       onClick={() => {
                         if (organizationSettings != undefined) {
-                          handleDeleteProvider(asProvider)
+                          handleDeleteProvider(asProvider);
                         } else {
                           setCreateProviders((prev) =>
                             prev.filter((_, i) => i != providerIndex),
-                          )
+                          );
                         }
                       }}
                     >
@@ -887,7 +890,7 @@ const OrganizationChatbotSettingsForm: React.FC<
                   </div>
                 </div>
               </Card>
-            )
+            );
           }}
         />
       </Card>
@@ -965,18 +968,18 @@ const OrganizationChatbotSettingsForm: React.FC<
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default OrganizationChatbotSettingsForm
+export default OrganizationChatbotSettingsForm;
 
 type ClearInputSuffixProps = {
-  formKey: string
-  formValues: Record<string, any>
-  defaultValues?: Record<string, any>
-  clearFormValue: (key: string) => void
-  icon?: React.ReactNode
-}
+  formKey: string;
+  formValues: Record<string, any>;
+  defaultValues?: Record<string, any>;
+  clearFormValue: (key: string) => void;
+  icon?: React.ReactNode;
+};
 
 export const ClearInputSuffix: React.FC<ClearInputSuffixProps> = ({
   formKey,
@@ -985,20 +988,20 @@ export const ClearInputSuffix: React.FC<ClearInputSuffixProps> = ({
   clearFormValue,
   icon,
 }) => {
-  const formValue = formValues[formKey]
+  const formValue = formValues[formKey];
   const defaultValue =
-    defaultValues != undefined ? defaultValues[formKey] : undefined
+    defaultValues != undefined ? defaultValues[formKey] : undefined;
   if (
     formValue === null ||
     formValue === undefined ||
     (defaultValue != undefined && formValue == defaultValue)
   )
-    return null
+    return null;
   return (
     <Button
       danger
       icon={icon ?? <DeleteOutlined />}
       onClick={() => clearFormValue(formKey)}
     />
-  )
-}
+  );
+};

@@ -9,9 +9,7 @@ import { UserTokenModel } from './user-token.entity';
 import { RedisProfileService } from 'redisProfile/redis-profile.service';
 
 @EventSubscriber()
-export class UserTokenSubscriber
-  implements EntitySubscriberInterface<UserTokenModel>
-{
+export class UserTokenSubscriber implements EntitySubscriberInterface<UserTokenModel> {
   constructor(
     private readonly redisProfileService: RedisProfileService,
     dataSource: DataSource,
@@ -19,7 +17,6 @@ export class UserTokenSubscriber
     dataSource.subscribers.push(this);
   }
 
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   listenTo() {
     return UserTokenModel;
   }

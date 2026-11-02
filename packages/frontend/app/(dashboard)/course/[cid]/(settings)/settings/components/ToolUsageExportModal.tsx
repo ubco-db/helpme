@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import {
   Button,
@@ -8,45 +8,46 @@ import {
   Segmented,
   message,
   Tooltip,
-} from 'antd'
-import { InfoCircleOutlined } from '@ant-design/icons'
-import { useState } from 'react'
-import csvDownload from 'json-to-csv-export'
-import * as Sentry from '@sentry/nextjs'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import { ToolUsageExportData, ToolUsageType } from '@koh/common'
+} from 'antd';
+import { InfoCircleOutlined } from '@ant-design/icons';
+import { useState } from 'react';
+import csvDownload from 'json-to-csv-export';
+import * as Sentry from '@sentry/nextjs';
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import type { ToolUsageExportData } from '@koh/common';
+import { ToolUsageType } from '@koh/common';
 
 type ToolUsageExportModalProps = {
-  courseId: number
-  visible: boolean
-  onCancel: () => void
-  onFinish?: () => void
-}
+  courseId: number;
+  visible: boolean;
+  onCancel: () => void;
+  onFinish?: () => void;
+};
 
 type StudentData = {
-  user_id: number
-  firstName: string
-  lastName: string
-  email: string
-  periods: Map<string, number>
-}
+  user_id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  periods: Map<string, number>;
+};
 
 type CSVRow = {
-  'User ID': string | number
-  'First Name': string
-  'Last Name': string
-  Email: string
-  [key: string]: string | number
-}
+  'User ID': string | number;
+  'First Name': string;
+  'Last Name': string;
+  Email: string;
+  [key: string]: string | number;
+};
 
 type FormValues = {
-  includeQueueQuestions: boolean
-  includeAnytimeQuestions: boolean
-  includeChatbotInteractions: boolean
-  groupBy: 'day' | 'week'
-  includeBreakdown: boolean
-}
+  includeQueueQuestions: boolean;
+  includeAnytimeQuestions: boolean;
+  includeChatbotInteractions: boolean;
+  groupBy: 'day' | 'week';
+  includeBreakdown: boolean;
+};
 
 const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
   courseId,
@@ -54,8 +55,8 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
   onCancel,
   onFinish,
 }) => {
-  const [form] = Form.useForm<FormValues>()
-  const [loading, setLoading] = useState(false)
+  const [form] = Form.useForm<FormValues>();
+  const [loading, setLoading] = useState(false);
 
   const handleExport = async (values: FormValues) => {
     const {
@@ -64,9 +65,9 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
       includeChatbotInteractions,
       groupBy,
       includeBreakdown,
-    } = values
+    } = values;
 
-    setLoading(true)
+    setLoading(true);
     try {
       const data = await API.course.exportToolUsage(
         courseId,
@@ -74,15 +75,15 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
         includeAnytimeQuestions,
         includeChatbotInteractions,
         groupBy,
-      )
+      );
 
       if (!data || data.length === 0) {
-        message.warning('No tool usage data found for the selected criteria')
-        onCancel()
-        return
+        message.warning('No tool usage data found for the selected criteria');
+        onCancel();
+        return;
       }
 
-      const courseName = data[0].course_name
+      const courseName = data[0].course_name;
 
       const toolsString = [
         includeQueueQuestions && 'queue',
@@ -90,15 +91,15 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
         includeChatbotInteractions && 'chatbot',
       ]
         .filter(Boolean)
-        .join(', ')
+        .join(', ');
 
-      const timePeriods = new Set<string>()
-      const students = new Map<string, StudentData>()
+      const timePeriods = new Set<string>();
+      const students = new Map<string, StudentData>();
 
       data.forEach((row) => {
-        timePeriods.add(row.period_date)
+        timePeriods.add(row.period_date);
 
-        const studentKey = `${row.user_id}_${row.firstName}_${row.lastName}_${row.email}`
+        const studentKey = `${row.user_id}_${row.firstName}_${row.lastName}_${row.email}`;
         if (!students.has(studentKey)) {
           students.set(studentKey, {
             user_id: row.user_id,
@@ -106,33 +107,33 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
             lastName: row.lastName || '',
             email: row.email || '',
             periods: new Map<string, number>(),
-          })
+          });
         }
-      })
+      });
 
-      const sortedPeriods = Array.from(timePeriods).sort()
-      const formattedData: CSVRow[] = []
+      const sortedPeriods = Array.from(timePeriods).sort();
+      const formattedData: CSVRow[] = [];
 
       if (includeBreakdown) {
-        const toolData = new Map<string, ToolUsageExportData[]>()
+        const toolData = new Map<string, ToolUsageExportData[]>();
 
         data.forEach((row) => {
-          const toolKey = row.tool_type
+          const toolKey = row.tool_type;
           if (!toolData.has(toolKey)) {
-            toolData.set(toolKey, [])
+            toolData.set(toolKey, []);
           }
-          toolData.get(toolKey)?.push(row)
-        })
+          toolData.get(toolKey)?.push(row);
+        });
 
-        const toolTypes = Array.from(toolData.keys()).sort()
+        const toolTypes = Array.from(toolData.keys()).sort();
 
         toolTypes.forEach((toolType) => {
-          const toolRows = toolData.get(toolType) || []
-          const studentData = new Map<string, StudentData>()
+          const toolRows = toolData.get(toolType) || [];
+          const studentData = new Map<string, StudentData>();
 
           toolRows.forEach((row) => {
-            const studentKey = `${row.user_id}_${row.firstName}_${row.lastName}_${row.email}`
-            const timeKey = row.period_date
+            const studentKey = `${row.user_id}_${row.firstName}_${row.lastName}_${row.email}`;
+            const timeKey = row.period_date;
 
             if (!studentData.has(studentKey)) {
               studentData.set(studentKey, {
@@ -141,15 +142,15 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
                 lastName: row.lastName || '',
                 email: row.email || '',
                 periods: new Map<string, number>(),
-              })
+              });
             }
 
-            const student = studentData.get(studentKey)
+            const student = studentData.get(studentKey);
             if (student) {
-              const currentCount = student.periods.get(timeKey) || 0
-              student.periods.set(timeKey, currentCount + Number(row.count))
+              const currentCount = student.periods.get(timeKey) || 0;
+              student.periods.set(timeKey, currentCount + Number(row.count));
             }
-          })
+          });
 
           formattedData.push({
             'User ID': `[${toolType.toUpperCase()}]`,
@@ -157,7 +158,7 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
             'Last Name': '',
             Email: '',
             ...Object.fromEntries(sortedPeriods.map((period) => [period, ''])),
-          })
+          });
 
           Array.from(studentData.values()).forEach((student) => {
             const row: CSVRow = {
@@ -165,14 +166,14 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
               'First Name': student.firstName,
               'Last Name': student.lastName,
               Email: student.email,
-            }
+            };
 
             sortedPeriods.forEach((period) => {
-              row[period] = student.periods.get(period) || 0
-            })
+              row[period] = student.periods.get(period) || 0;
+            });
 
-            formattedData.push(row)
-          })
+            formattedData.push(row);
+          });
 
           formattedData.push({
             'User ID': '',
@@ -180,14 +181,14 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
             'Last Name': '',
             Email: '',
             ...Object.fromEntries(sortedPeriods.map((period) => [period, ''])),
-          })
-        })
+          });
+        });
       } else {
-        const allStudentData = new Map<string, StudentData>()
+        const allStudentData = new Map<string, StudentData>();
 
         data.forEach((row) => {
-          const studentKey = `${row.user_id}_${row.firstName}_${row.lastName}_${row.email}`
-          const timeKey = row.period_date
+          const studentKey = `${row.user_id}_${row.firstName}_${row.lastName}_${row.email}`;
+          const timeKey = row.period_date;
 
           if (!allStudentData.has(studentKey)) {
             allStudentData.set(studentKey, {
@@ -196,15 +197,15 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
               lastName: row.lastName || '',
               email: row.email || '',
               periods: new Map<string, number>(),
-            })
+            });
           }
 
-          const student = allStudentData.get(studentKey)
+          const student = allStudentData.get(studentKey);
           if (student) {
-            const currentCount = student.periods.get(timeKey) || 0
-            student.periods.set(timeKey, currentCount + Number(row.count))
+            const currentCount = student.periods.get(timeKey) || 0;
+            student.periods.set(timeKey, currentCount + Number(row.count));
           }
-        })
+        });
 
         Array.from(allStudentData.values()).forEach((student) => {
           const row: CSVRow = {
@@ -212,14 +213,14 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
             'First Name': student.firstName,
             'Last Name': student.lastName,
             Email: student.email,
-          }
+          };
 
           sortedPeriods.forEach((period) => {
-            row[period] = student.periods.get(period) || 0
-          })
+            row[period] = student.periods.get(period) || 0;
+          });
 
-          formattedData.push(row)
-        })
+          formattedData.push(row);
+        });
       }
 
       const csvData = {
@@ -233,42 +234,42 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
           'Email',
           ...sortedPeriods,
         ],
-      }
+      };
 
-      csvDownload(csvData)
+      csvDownload(csvData);
 
       // Show the date range that was used
       const dateRange =
         sortedPeriods.length > 0
           ? `Date range: ${sortedPeriods[0]} to ${sortedPeriods[sortedPeriods.length - 1]}`
-          : 'No data found for the selected criteria'
+          : 'No data found for the selected criteria';
 
-      message.success(`Tool usage data exported successfully! ${dateRange}`)
+      message.success(`Tool usage data exported successfully! ${dateRange}`);
       if (onFinish) {
-        onFinish()
+        onFinish();
       } else {
-        onCancel()
+        onCancel();
       }
     } catch (error) {
-      console.error('Failed to export tool usage data:', error)
-      const errorMessage = getErrorMessage(error)
+      console.error('Failed to export tool usage data:', error);
+      const errorMessage = getErrorMessage(error);
 
       Sentry.captureException(
         new Error(
           `Tool usage export failed for course ${courseId}. Error: ${errorMessage}. Options: includeQueueQuestions=${includeQueueQuestions}, includeAnytimeQuestions=${includeAnytimeQuestions}, includeChatbotInteractions=${includeChatbotInteractions}, groupBy=${groupBy}, includeBreakdown=${includeBreakdown}`,
         ),
-      )
+      );
 
-      message.error(`Failed to export tool usage data: ${errorMessage}`)
+      message.error(`Failed to export tool usage data: ${errorMessage}`);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleCancel = () => {
-    form.resetFields()
-    onCancel()
-  }
+    form.resetFields();
+    onCancel();
+  };
 
   return (
     <Modal
@@ -333,7 +334,7 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
                       const {
                         includeAnytimeQuestions,
                         includeChatbotInteractions,
-                      } = form.getFieldsValue()
+                      } = form.getFieldsValue();
                       if (
                         !value &&
                         !includeAnytimeQuestions &&
@@ -341,7 +342,7 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
                       ) {
                         throw new Error(
                           'Please select at least one tool type to export',
-                        )
+                        );
                       }
                     },
                   },
@@ -399,7 +400,7 @@ const ToolUsageExportModal: React.FC<ToolUsageExportModalProps> = ({
         </div>
       </Form>
     </Modal>
-  )
-}
+  );
+};
 
-export default ToolUsageExportModal
+export default ToolUsageExportModal;

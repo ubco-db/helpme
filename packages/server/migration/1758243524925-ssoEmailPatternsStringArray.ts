@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class SsoEmailPatternsStringArray1758243524925
-  implements MigrationInterface
-{
+export class SsoEmailPatternsStringArray1758243524925 implements MigrationInterface {
   name = 'SsoEmailPatternsStringArray1758243524925';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

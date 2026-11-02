@@ -1,6 +1,6 @@
 import React from 'react';
 import whyDidYouRender from '@welldone-software/why-did-you-render';
-// eslint-disable-next-line no-console -- Show information that `whyDidYouRender` has been applied to the website.
+ 
 console.debug('Applying whyDidYouRender, to help you locate unnecessary re-renders during development. See https://github.com/welldone-software/why-did-you-render');
 // See https://github.com/welldone-software/why-did-you-render#options
 whyDidYouRender(React, {

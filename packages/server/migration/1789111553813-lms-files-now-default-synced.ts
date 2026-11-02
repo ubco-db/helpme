@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class LmsFilesNowDefaultSynced1789111553813 implements MigrationInterface {
   name = 'LmsFilesNowDefaultSynced1789111553813';

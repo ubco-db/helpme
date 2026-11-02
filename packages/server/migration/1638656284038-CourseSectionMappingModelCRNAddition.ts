@@ -1,8 +1,6 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CourseSectionMappingModelCRNAddition1638656284038
-  implements MigrationInterface
-{
+export class CourseSectionMappingModelCRNAddition1638656284038 implements MigrationInterface {
   name = 'CourseSectionMappingModelCRNAddition1638656284038';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

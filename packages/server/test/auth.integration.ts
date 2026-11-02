@@ -9,21 +9,18 @@ import {
   UserFactory,
 } from './util/factories';
 import { AuthService } from 'auth/auth.service';
-import {
-  AccountType,
-  ERROR_MESSAGES,
-  ValidateEmailTokenResponse,
-} from '@koh/common';
+import type { ValidateEmailTokenResponse } from '@koh/common';
+import { AccountType, ERROR_MESSAGES } from '@koh/common';
 import { OrganizationUserModel } from 'organization/organization-user.entity';
 import {
   TokenAction,
   TokenType,
   UserTokenModel,
 } from 'profile/user-token.entity';
-import { OrganizationModel } from 'organization/organization.entity';
+import type { OrganizationModel } from 'organization/organization.entity';
 
-import { LoginTicket, OAuth2Client } from 'google-auth-library';
-import { UserModel } from 'profile/user.entity';
+import type { LoginTicket, OAuth2Client } from 'google-auth-library';
+import type { UserModel } from 'profile/user.entity';
 
 jest.mock('google-auth-library', () => ({
   OAuth2Client: jest.fn().mockImplementation(

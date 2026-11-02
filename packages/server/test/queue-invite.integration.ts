@@ -1,4 +1,5 @@
-import { encodeBase64, QueueInviteParams } from '@koh/common';
+import type { QueueInviteParams } from '@koh/common';
+import { encodeBase64 } from '@koh/common';
 import { QueueModule } from '../src/queue/queue.module';
 import {
   CourseFactory,

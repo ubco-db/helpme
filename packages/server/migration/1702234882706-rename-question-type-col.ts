@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class renameQuestionTypeCol1702234882706 implements MigrationInterface {
   name = 'renameQuestionTypeCol1702234882706';

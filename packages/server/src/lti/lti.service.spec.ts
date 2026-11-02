@@ -1,5 +1,6 @@
 import { DataSource, Not } from 'typeorm';
-import { Test, TestingModule } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
 import { FactoryModule } from '../factory/factory.module';
 import { FactoryService } from '../factory/factory.service';
@@ -18,13 +19,14 @@ import {
   UserLtiIdentityFactory,
 } from '../../test/util/factories';
 import { LtiService } from './lti.service';
-import { IdToken, Provider } from '@bhunt02/lti-typescript';
+import type { IdToken } from '@bhunt02/lti-typescript';
+import { Provider } from '@bhunt02/lti-typescript';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { NotFoundException } from '@nestjs/common';
 import { ERROR_MESSAGES } from '@koh/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { UserModel } from '../profile/user.entity';
-import { CourseModel } from '../course/course.entity';
+import type { UserModel } from '../profile/user.entity';
+import type { CourseModel } from '../course/course.entity';
 import { LtiCourseInviteModel } from './lti-course-invite.entity';
 import { LtiIdentityTokenModel } from './lti_identity_token.entity';
 import { UserLtiIdentityModel } from './user_lti_identity.entity';

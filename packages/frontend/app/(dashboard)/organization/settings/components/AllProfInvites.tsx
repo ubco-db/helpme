@@ -1,27 +1,19 @@
-import {
-  Button,
-  message,
-  Table,
-  TableColumnsType,
-  Tooltip,
-  Popconfirm,
-  Alert,
-  Card,
-} from 'antd'
-import { GetProfInviteResponse } from '@koh/common'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import useSWRImmutable from 'swr/immutable'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
-import { DeleteOutlined } from '@ant-design/icons'
-import { useState } from 'react'
-import { KeyedMutator } from 'swr'
+import type { TableColumnsType } from 'antd';
+import { Button, message, Table, Tooltip, Popconfirm, Alert, Card } from 'antd';
+import type { GetProfInviteResponse } from '@koh/common';
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import useSWRImmutable from 'swr/immutable';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import { DeleteOutlined } from '@ant-design/icons';
+import { useState } from 'react';
+import type { KeyedMutator } from 'swr';
 
-dayjs.extend(relativeTime)
+dayjs.extend(relativeTime);
 
 interface AllProfInvitesProps {
-  orgId: number
+  orgId: number;
 }
 
 export const AllProfInvites: React.FC<AllProfInvitesProps> = ({ orgId }) => {
@@ -36,7 +28,7 @@ export const AllProfInvites: React.FC<AllProfInvitesProps> = ({ orgId }) => {
   } = useSWRImmutable(
     `organization/${orgId}/profInvites`,
     async () => await API.profInvites.getAll(orgId),
-  )
+  );
 
   const columns: TableColumnsType<GetProfInviteResponse> = [
     {
@@ -105,14 +97,14 @@ export const AllProfInvites: React.FC<AllProfInvitesProps> = ({ orgId }) => {
       key: 'expiresAt',
       sorter: (a, b) => a.expiresAt.getTime() - b.expiresAt.getTime(),
       render: (_, record) => {
-        const expiresAt = dayjs(record.expiresAt)
+        const expiresAt = dayjs(record.expiresAt);
         return (
           <span className={expiresAt.isBefore(dayjs()) ? 'text-zinc-400' : ''}>
             <Tooltip title={expiresAt.format('YYYY-MM-DD hh:mm A')}>
               {expiresAt.fromNow()}
             </Tooltip>
           </span>
-        )
+        );
       },
     },
     {
@@ -121,12 +113,12 @@ export const AllProfInvites: React.FC<AllProfInvitesProps> = ({ orgId }) => {
       key: 'createdAt',
       sorter: (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
       render: (_, record) => {
-        const createdAt = dayjs(record.createdAt)
+        const createdAt = dayjs(record.createdAt);
         return (
           <Tooltip title={createdAt.format('YYYY-MM-DD hh:mm A')}>
             {createdAt.fromNow()}
           </Tooltip>
-        )
+        );
       },
       defaultSortOrder: 'descend',
     },
@@ -148,14 +140,14 @@ export const AllProfInvites: React.FC<AllProfInvitesProps> = ({ orgId }) => {
         />
       ),
     },
-  ]
+  ];
   if (error) {
     return (
       <Alert
         type="warning"
         message={`Error getting all prof invites: ${getErrorMessage(error)}`}
       />
-    )
+    );
   } else {
     return (
       <Card
@@ -177,22 +169,22 @@ export const AllProfInvites: React.FC<AllProfInvitesProps> = ({ orgId }) => {
           size="small"
         />
       </Card>
-    )
+    );
   }
-}
+};
 
 const DeleteProfInviteButton: React.FC<{
-  orgId: number
-  record: GetProfInviteResponse
-  mutateProfInvites: KeyedMutator<GetProfInviteResponse[]>
+  orgId: number;
+  record: GetProfInviteResponse;
+  mutateProfInvites: KeyedMutator<GetProfInviteResponse[]>;
 }> = ({ orgId, record, mutateProfInvites }) => {
-  const [isDeleteLoading, setIsDeleteLoading] = useState(false)
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
 
   return (
     <Popconfirm
       title="You sure?"
       onConfirm={() => {
-        setIsDeleteLoading(true)
+        setIsDeleteLoading(true);
         API.profInvites
           .delete(orgId, record.id)
           .then(() => {
@@ -201,12 +193,12 @@ const DeleteProfInviteButton: React.FC<{
               (data ?? []).filter(
                 (existingInvite) => existingInvite.id !== record.id,
               ),
-            )
+            );
           })
           .catch((err) => {
-            message.error(getErrorMessage(err))
+            message.error(getErrorMessage(err));
           })
-          .finally(() => setIsDeleteLoading(false))
+          .finally(() => setIsDeleteLoading(false));
       }}
       okText="Yes"
       okButtonProps={{ loading: isDeleteLoading }}
@@ -214,5 +206,5 @@ const DeleteProfInviteButton: React.FC<{
     >
       <Button danger loading={isDeleteLoading} icon={<DeleteOutlined />} />
     </Popconfirm>
-  )
-}
+  );
+};
