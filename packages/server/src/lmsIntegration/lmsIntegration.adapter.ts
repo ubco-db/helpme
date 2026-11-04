@@ -21,8 +21,8 @@ import { ConfigService } from '@nestjs/config';
 import express from 'express';
 import { LMSAccessToken, LMSAccessTokenModel } from './lms-access-token.entity';
 import * as crypto from 'crypto';
-import { convert } from 'html-to-text';
-import { load } from 'cheerio';
+import { convert as convertHTMLToText } from 'html-to-text';
+import { load as convertStringHTMLToTraversableObject } from 'cheerio';
 import { validate as isUuid } from 'uuid';
 
 export interface LMSClassicQuizRef {
@@ -105,14 +105,6 @@ export interface LMSClassicQuestionGrade {
   comment: string;
 }
 
-export interface LMSClassicAttemptGradesUpdate {
-  quizId: number;
-  quizSubmissionId: number;
-  /** Required by Canvas: the completed attempt being updated. */
-  attempt: number;
-  questions: LMSClassicQuestionGrade[];
-}
-
 /** Unknown writes may have reached Canvas and must not be replayed automatically. */
 export type LMSWriteOutcome =
   'success' | 'rejected' | 'unknown' | 'unsupported';
@@ -179,7 +171,10 @@ const ESSAY_TEXT_OPTIONS = {
 
 export function htmlToEssayText(html: unknown): string {
   if (typeof html !== 'string') return '';
-  const text = convert(html, ESSAY_TEXT_OPTIONS).replace(/\u00a0/g, ' ');
+  const text = convertHTMLToText(html, ESSAY_TEXT_OPTIONS).replace(
+    /\u00a0/g,
+    ' ',
+  );
   return text.trim().length === 0 ? '' : text;
 }
 
@@ -187,7 +182,7 @@ export function htmlToEssayText(html: unknown): string {
 export function resourceLinkLookupUuids(html: unknown): string[] {
   if (typeof html !== 'string') return [];
   const uuids = new Set<string>();
-  const $ = load(html);
+  const $ = convertStringHTMLToTraversableObject(html);
   $('iframe[src]').each((_, iframe) => {
     const src = $(iframe).attr('src');
     if (!src) return;
@@ -489,9 +484,13 @@ export abstract class AbstractLMSAdapter {
   }
 
   /** Write the score and comment for every safe question of one attempt. */
-  async putClassicAttemptGrades(
-    params: LMSClassicAttemptGradesUpdate,
-  ): Promise<LMSWriteResult> {
+  async putClassicAttemptGrades(params: {
+    quizId: number;
+    quizSubmissionId: number;
+    /** Required by Canvas: the completed attempt being updated. */
+    attempt: number;
+    questions: LMSClassicQuestionGrade[];
+  }): Promise<LMSWriteResult> {
     return {
       outcome: 'unsupported',
       message: 'Classic quiz grading is not supported by this LMS platform.',
@@ -525,8 +524,11 @@ abstract class ImplementedLMSAdapter extends AbstractLMSAdapter {
 
 export class BaseLMSAdapter extends AbstractLMSAdapter {}
 
-/** Document-sync scopes. Batch grading uses an instructor API token instead. */
-export const CANVAS_OAUTH_SCOPES: readonly string[] = [
+/** Document-sync scopes. Batch grading uses an instructor API token instead.
+ *
+ * TODO: uh, no thanks
+ */
+export const CANVAS_ACCESS_TOKEN_SCOPES: readonly string[] = [
   'url:GET|/api/v1/users/:user_id/courses',
   'url:GET|/api/v1/courses/:id',
   'url:GET|/api/v1/courses/:course_id/assignments',
@@ -538,13 +540,25 @@ export const CANVAS_OAUTH_SCOPES: readonly string[] = [
   'url:GET|/api/v1/courses/:course_id/files',
   'url:GET|/api/v1/courses/:course_id/quizzes',
   'url:GET|/api/v1/courses/:course_id/quizzes/:quiz_id/questions',
+
+  // For auto-grader. It might not work? TODO: ask LTI people
+  'url:GET|/api/v1/courses/:course_id/lti_resource_links/:id',
+  'url:GET|/api/v1/courses/:course_id/assignments/:assignment_id/submissions',
+  'url:GET|/api/v1/courses/:course_id/quizzes/:quiz_id/submissions',
+  'url:PUT|/api/v1/courses/:course_id/quizzes/:quiz_id/submissions/:id',
+  //This last endpoint adds one "REVIEW REQUIRED" submission comment only when the
+  // model returns a non-empty `human_review_reason` (technical failures stay in the HelpMe report).
+  // The staff should delete the comment after reviewing it and before they publish the grades.
+  'url:PUT|/api/v1/courses/:course_id/assignments/:assignment_id/submissions/:user_id',
 ];
 
 export class CanvasLMSAdapter extends ImplementedLMSAdapter {
   private requireBatchApiKey(): void {
+    // TODO: Maybe update this so that it actually checks the scopes and stuff? Maybe with specific error messages if they lack the right permissions?
     if (!this.integration.apiKey?.trim()) {
+      // this check is old, I don't think we use prof api keys anymore
       throw new BadRequestException(
-        'Canvas batch grading requires an instructor API token. Add it in Course Settings → LMS Integrations. The instructor must have permission to grade this Canvas course.',
+        'Canvas batch grading requires an Access Token with permissions to grade quizzes. Add it in Course Settings → LMS Integrations. You may need to delete and re-create the Canvas Integration with a new Access Token.',
       );
     }
   }
@@ -617,7 +631,7 @@ export class CanvasLMSAdapter extends ImplementedLMSAdapter {
       client_id: organizationIntegration.clientId,
       response_type: 'code',
       state: state.state,
-      scope: CANVAS_OAUTH_SCOPES.join(' '),
+      scope: CANVAS_ACCESS_TOKEN_SCOPES.join(' '),
       redirect_uri: `${configService.get<string>('DOMAIN')}/api/v1/lms/oauth2/response`,
     });
 
@@ -1244,7 +1258,7 @@ export class CanvasLMSAdapter extends ImplementedLMSAdapter {
     if (lookupUuids.length === 0) {
       return {
         status: 'error',
-        message: `Question ${position} does not contain a HelpMe embed.`,
+        message: `Question ${position} does not contain a HelpMe embeddable question.`,
       };
     }
 
@@ -1284,9 +1298,13 @@ export class CanvasLMSAdapter extends ImplementedLMSAdapter {
     return helpMeLinks[0];
   }
 
-  async putClassicAttemptGrades(
-    params: LMSClassicAttemptGradesUpdate,
-  ): Promise<LMSWriteResult> {
+  async putClassicAttemptGrades(params: {
+    quizId: number;
+    quizSubmissionId: number;
+    /** Required by Canvas: the completed attempt being updated. */
+    attempt: number;
+    questions: LMSClassicQuestionGrade[];
+  }): Promise<LMSWriteResult> {
     this.requireBatchApiKey();
     if (params.questions.length === 0) {
       return {

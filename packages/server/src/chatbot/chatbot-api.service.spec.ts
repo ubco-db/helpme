@@ -42,7 +42,7 @@ describe('ChatbotApiService', () => {
       new ConfigService({ CHATBOT_API_URL: 'https://chatbot.test' }),
     );
     const result = expect(
-      service.queryFeedback('answer', 42, grading),
+      service.queryEmbeddableQuestionFeedback('answer', 42, grading),
     ).rejects.toMatchObject({
       status: 504,
       message: 'The chatbot request timed out.',
@@ -88,7 +88,11 @@ describe('ChatbotApiService', () => {
     );
     global.fetch = mockFetch;
 
-    const result = await service.queryFeedback('user prompt', 42, grading);
+    const result = await service.queryEmbeddableQuestionFeedback(
+      'user prompt',
+      42,
+      grading,
+    );
 
     expect(result).toEqual({
       answer: expectedAnswer,
@@ -132,7 +136,7 @@ describe('ChatbotApiService', () => {
         }),
       );
       await expect(
-        service.queryFeedback('answer', 42, grading),
+        service.queryEmbeddableQuestionFeedback('answer', 42, grading),
       ).rejects.toMatchObject({
         status: 400,
         message: expectedMessage,
@@ -163,7 +167,7 @@ describe('ChatbotApiService', () => {
     global.fetch = mockFetch;
 
     await expect(
-      service.queryFeedback('user prompt', 42, grading),
+      service.queryEmbeddableQuestionFeedback('user prompt', 42, grading),
     ).rejects.toThrow();
   });
 });

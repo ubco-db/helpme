@@ -34,8 +34,8 @@ import {
   CANVAS_BATCH_QUEUE,
   canvasBatchJobId,
 } from './canvas-batch.constants';
-import type { AbstractLMSAdapter } from '../../../lmsIntegration/lmsIntegration.adapter';
 import type {
+  AbstractLMSAdapter,
   LMSClassicQuestionMapping,
   LMSClassicQuiz,
   LMSClassicQuizQuestion,
@@ -66,7 +66,12 @@ export class CanvasBatchService {
 
   /** Classic quizzes with mappings detected from their embedded LTI links. */
   async listClassicQuizzes(courseId: number): Promise<CanvasBatchQuizOption[]> {
-    const adapter = await this.transport(courseId);
+    const adapter = await this.lmsIntegrationService.getAdapter(courseId);
+    if (!adapter) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.lmsController.noLMSIntegration,
+      );
+    }
     const result = await adapter.getClassicQuizCatalog();
     if (result.status !== LMSApiResponseStatus.Success) {
       throw new BadRequestException(result.status);
@@ -126,7 +131,12 @@ export class CanvasBatchService {
       return this.buildSummary(existing);
     }
 
-    const adapter = await this.transport(courseId);
+    const adapter = await this.lmsIntegrationService.getAdapter(courseId);
+    if (!adapter) {
+      throw new BadRequestException(
+        ERROR_MESSAGES.lmsController.noLMSIntegration,
+      );
+    }
     const result = await adapter.getClassicQuizCatalog(params.canvasQuizId);
     if (result.status !== LMSApiResponseStatus.Success) {
       throw new BadRequestException(result.status);
@@ -217,7 +227,7 @@ export class CanvasBatchService {
         return {
           status: 'error',
           detectedQuestions: detected.length,
-          error: `Question ${canvasQuestion.position} embeds a HelpMe question that is not available in this course.`,
+          error: `Question ${canvasQuestion.position} embeds a HelpMe question that is not available in this course. Perhaps it was deleted or the HelpMe course is integrated with a different course?`,
         };
       }
       const settings = questionGradingSettingsSchema.safeParse(
@@ -227,7 +237,7 @@ export class CanvasBatchService {
         return {
           status: 'error',
           detectedQuestions: detected.length,
-          error: `Question ${canvasQuestion.position} has invalid grading settings. Edit and save the HelpMe question before starting a new run.`,
+          error: `Question ${canvasQuestion.position} has invalid grading settings (could not be parsed). Edit and save the HelpMe embeddable question before starting a new run.`,
         };
       }
       const helpMeMax = settings.data.scoreScale.max;
@@ -235,7 +245,7 @@ export class CanvasBatchService {
         return {
           status: 'error',
           detectedQuestions: detected.length,
-          error: `Question ${canvasQuestion.position}: Canvas awards ${canvasQuestion.points} points but the HelpMe question has a maximum of ${helpMeMax}.`,
+          error: `Question ${canvasQuestion.position}: Canvas awards ${canvasQuestion.points} points but the HelpMe embeddable question has a maximum of ${helpMeMax}. These two need to match (probably by editing the HelpMe embeddable question).`,
         };
       }
       questions.push({
@@ -296,16 +306,6 @@ export class CanvasBatchService {
       throw new NotFoundException(ERROR_MESSAGES.embeddableModule.notFound);
     }
     return run;
-  }
-
-  private async transport(courseId: number): Promise<AbstractLMSAdapter> {
-    const adapter = await this.lmsIntegrationService.getAdapter(courseId);
-    if (!adapter) {
-      throw new BadRequestException(
-        ERROR_MESSAGES.lmsController.noLMSIntegration,
-      );
-    }
-    return adapter;
   }
 
   /**

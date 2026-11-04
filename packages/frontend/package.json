@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack -p 3001",
+    "dev": "next dev -p 3001",
     "build": "cross-env NODE_OPTIONS=\"--max-old-space-size=2048\" next build ",
     "start": "next start -p 3001",
     "tsc": "next typegen && tsc --noEmit",

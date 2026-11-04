@@ -93,17 +93,18 @@ export class QuestionGradingService {
     // The chatbot service owns provider retries; HelpMe makes exactly one
     // call and validates the answer once. An invalid grade errors out and
     // the caller persists nothing.
-    const response = await this.chatbotApiService.queryFeedback(
-      buildUserPrompt(submission),
-      courseId,
-      buildGradingPromptInput(
-        settings,
-        effectiveCap,
-        snapshot.questionText,
-        facts,
-        instruction ?? settings.feedbackInstructions,
-      ),
-    );
+    const response =
+      await this.chatbotApiService.queryEmbeddableQuestionFeedback(
+        buildUserPrompt(submission),
+        courseId,
+        buildGradingPromptInput(
+          settings,
+          effectiveCap,
+          snapshot.questionText,
+          facts,
+          instruction ?? settings.feedbackInstructions,
+        ),
+      );
     const { score, comment, reasons, humanReviewReason } = validateGradePayload(
       response.answer,
       settings,

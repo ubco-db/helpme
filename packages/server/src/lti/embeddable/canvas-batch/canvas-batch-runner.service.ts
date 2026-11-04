@@ -85,7 +85,12 @@ export class CanvasBatchRunnerService {
       return;
     }
     try {
-      const adapter = await this.transport(run.courseId);
+      const adapter = await this.lmsIntegrationService.getAdapter(run.courseId);
+      if (!adapter) {
+        throw new BadRequestException(
+          ERROR_MESSAGES.lmsController.noLMSIntegration,
+        );
+      }
       await this.discoverAttempts(run, adapter);
       const attempts = await this.store.listAttempts(run.id);
       for (const attempt of attempts) {
@@ -99,16 +104,6 @@ export class CanvasBatchRunnerService {
       await this.store.saveRun(run);
       this.logger.warn(`Batch run ${run.id} failed: ${getErrorMessage(error)}`);
     }
-  }
-
-  private async transport(courseId: number): Promise<AbstractLMSAdapter> {
-    const adapter = await this.lmsIntegrationService.getAdapter(courseId);
-    if (!adapter) {
-      throw new BadRequestException(
-        ERROR_MESSAGES.lmsController.noLMSIntegration,
-      );
-    }
-    return adapter;
   }
 
   /**
@@ -353,6 +348,7 @@ export class CanvasBatchRunnerService {
       attempt.questions.some(
         (question) => question.status === CanvasBatchQuestionStatus.Error,
       );
+    // anti-pattern: this mutates the passed object
     attempt.status = hasError
       ? CanvasBatchAttemptStatus.Error
       : CanvasBatchAttemptStatus.Prefilled;
