@@ -1,7 +1,7 @@
 import { API } from '@/app/api'
 import MarkdownFetcherModal from '@/app/components/MarkdownFetcherModal'
 import { useUserInfo } from '@/app/contexts/userContext'
-import { getErrorMessage } from '@/app/utils/generalUtils'
+import { getErrorMessage, HELPME_VERSION } from '@/app/utils/generalUtils'
 import { OrganizationRole } from '@koh/common'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -66,7 +66,7 @@ const FooterBar: React.FC = () => {
             IReadTheChangelog()
           }}
         >
-          Version {process.env.NEXT_PUBLIC_HELPME_VERSION}{' '}
+          Version {HELPME_VERSION}{' '}
           {userInfo.readChangeLog === false && (
             <span className="text-green-500">(New Changes!)</span>
           )}
