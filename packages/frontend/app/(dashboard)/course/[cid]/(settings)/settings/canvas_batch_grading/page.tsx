@@ -5,6 +5,7 @@ import {
   Alert,
   Button,
   Card,
+  Empty,
   Progress,
   Select,
   Space,
@@ -16,6 +17,7 @@ import useSWRImmutable from 'swr/immutable'
 import { CanvasBatchRunStatus } from '@koh/common'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
+import Link from 'next/link'
 
 const POLL_INTERVAL_MS = 3000
 
@@ -72,13 +74,27 @@ export default function CanvasBatchGradingPage({
       ? isRunning
       : latestRun?.status === CanvasBatchRunStatus.Running
   const questionCount = selectedQuiz?.essayQuestions.length ?? 0
-  const blockingReason = !selectedQuiz
-    ? null
-    : questionCount === 0
-      ? 'This Canvas quiz has no essay questions.'
-      : !selectedQuiz.postManually
-        ? 'Set this assignment to manually post grades in Canvas, then reload this page.'
-        : selectedQuiz.mappingError
+  const blockingReason = !selectedQuiz ? null : questionCount === 0 ? (
+    'This Canvas quiz has no essay questions.'
+  ) : !selectedQuiz.postManually ? (
+    <>
+      <p>
+        <Link
+          href="https://community.instructure.com/en/kb/articles/660845-how-do-i-select-a-grade-posting-policy-for-an-assignment-in-the-gradebook"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Set this assignment's Grade Posting Policy to 'Manual'
+        </Link>{' '}
+        in order to grade this quiz: Under "Grades" on the sidebar -&gt; Find
+        the assignment listed as a column header and hover and click on its 3
+        dots -&gt; "Grade Posting Policy" -&gt; set to "Manually" -&gt; Save.
+      </p>
+      <p>Then, reload this page.</p>
+    </>
+  ) : (
+    selectedQuiz.mappingError
+  )
   const canStart =
     selectedQuiz != null &&
     selectedQuiz.postManually &&
@@ -121,17 +137,24 @@ export default function CanvasBatchGradingPage({
 
   return (
     <Card title="Canvas Batch Grading" classNames={{ body: 'p-3 md:p-6' }}>
-      <p className="mb-4 text-gray-600">
-        Select a Classic Canvas quiz. HelpMe detects its embedded questions and
-        prefills SpeedGrader; you review and post grades in Canvas.
-      </p>
+      <ol className="mb-4 list-inside list-decimal text-gray-600">
+        <li>Select a published Classic Canvas quiz.</li>
+        <li>
+          HelpMe detects its Embedded Questions (need link) and uses the prompts
+          you provided to prefill the SpeedGrader.
+        </li>
+        <li>You review and post grades in Canvas.</li>
+        <li>
+          Make sure to review all submission comments to check for any "HUMAN
+          REVIEW REQUIRED" comments (delete them afterwards).
+        </li>
+      </ol>
       <Alert
         className="mb-4"
         type="warning"
         showIcon
-        message="Do not edit or post this quiz while prefill is running."
+        message="Do not edit this quiz while prefill is running."
       />
-
       {loadError && (
         <Alert
           className="mb-4"
@@ -182,6 +205,9 @@ export default function CanvasBatchGradingPage({
         onChange={setSelectedQuizId}
         loading={quizzesRequest.isLoading}
         showSearch
+        notFoundContent={
+          <Empty description="No quizzes found. They might not be published?" />
+        }
         optionFilterProp="label"
         options={quizzes.map((quiz) => ({
           value: quiz.canvasQuizId,

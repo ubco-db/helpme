@@ -8,10 +8,10 @@ import {
   type QuestionGradingSettings,
 } from '@koh/common';
 import type { LMSClassicAttempt } from '../../../lmsIntegration/lmsIntegration.adapter';
-import { CanvasBatchAttemptModel } from './canvas-batch-attempt.entity';
+import type { CanvasBatchAttemptModel } from './canvas-batch-attempt.entity';
 import { CanvasBatchService } from './canvas-batch.service';
 import { CanvasBatchRunnerService } from './canvas-batch-runner.service';
-import { CanvasBatchRunModel } from './canvas-batch-run.entity';
+import type { CanvasBatchRunModel } from './canvas-batch-run.entity';
 import type { CanvasBatchStore } from './canvas-batch.store';
 
 const gradingSettings: QuestionGradingSettings = {
@@ -303,7 +303,7 @@ describe('CanvasBatchRunnerService', () => {
       assignmentId: 900,
       userId: 42,
       text: expect.stringContaining(
-        'REVIEW REQUIRED (HelpMe AI)\n\nQuestion 2 review reason: Potentially harmful content.',
+        'HUMAN REVIEW REQUIRED (HelpMe AI)\n\nQuestion 2 review reason: Potentially harmful content.',
       ),
     });
     expect(attempts[0].status).toBe(CanvasBatchAttemptStatus.Prefilled);

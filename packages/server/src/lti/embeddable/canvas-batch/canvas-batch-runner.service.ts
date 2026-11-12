@@ -48,7 +48,7 @@ export function reviewComment(
     );
   return reasons.length
     ? [
-        'REVIEW REQUIRED (HelpMe AI)',
+        'HUMAN REVIEW REQUIRED (HelpMe AI)',
         ...reasons,
         'Delete this comment before posting grades; students can see it once grades are posted.',
       ].join('\n\n')

@@ -5,6 +5,7 @@ The setup uses HTTP and the local name `helpme.test`:
 
 - Open Canvas at `http://helpme.test`.
 - Open HelpMe at `http://helpme.test:3100`.
+  - (localhost:3000 doesn't work since inside Canvas's container, "localhost" refers to the container itself. They also both need to be on the same origin (http://helpme.test) for embedded auth to work (local LTI cookies use SameSite=Lax))
 - Keep HelpMe's existing development proxy on port `3000`. A forwarding process connects port `3100` to it.
 
 Publish Canvas on port `80`, not `8080`. The local Canvas dynamic-registration URL can omit non-default ports.
@@ -25,10 +26,9 @@ For background on the LMS integration and authentication setup, see [the origina
    cd canvas-lms
    ```
 
-4. Follow [Canvas's Docker setup guide](https://github.com/instructure/canvas-lms/blob/master/doc/docker/README.md). Complete its prerequisites, run `./script/docker_dev_setup.sh`, and follow the script's **Next Steps** output. Cloning the repository alone does not install or start Canvas.
-5. Create a local Canvas administrator account and a test course. Keep the course ID from its URL, such as `/courses/4`.
-6. Start HelpMe's database services with `yarn dev:db:up` from the HelpMe checkout.
-7. Start the separate chatbot backend if you need to test generated feedback. `yarn dev` does not start that backend.
+4. Follow [Canvas's Docker setup guide](https://github.com/instructure/canvas-lms/blob/master/doc/docker/README.md). Complete its prerequisites, run `./script/docker_dev_setup.sh`, and follow the script's **Next Steps** output (creating an admin account and org).
+   1. (Linux) If it asks to install `dory`, skip it since it's not necessary for this setup.
+   2. (Linux) If it can't find `docker.service` even though docker desktop is running, you may need to open `/script/common/os/linux/impl.sh` and replace `eval "$service_manager docker status &> /dev/null" && return 0` with `docker info &> /dev/null && return 0` depending on your docker installation.
 
 The commands below assume that Canvas uses Compose services named `web` and `jobs`.
 Run Canvas Compose commands from the Canvas checkout. Run HelpMe commands from the HelpMe checkout.
@@ -43,17 +43,17 @@ Open your hosts file with administrator privileges:
 - macOS and Linux: `/etc/hosts`.
 - Windows: `C:\Windows\System32\drivers\etc\hosts`. Open your text editor as Administrator.
 
-Add this line once:
+Add this line:
 
 ```text
 127.0.0.1 helpme.test
 ```
 
-Do not replace the existing localhost entries. This entry makes your browser resolve `helpme.test` to your computer.
+This entry makes your browser resolve `helpme.test` to your computer.
 
 ### Add the name inside Docker
 
-Merge these settings into the existing services in Canvas's `docker-compose.override.yml`:
+Inside Canvas' checkout, open `docker-compose.override.yml` and merge these settings into the existing services:
 
 ```yaml
 services:
@@ -88,7 +88,34 @@ docker compose up -d web jobs
 Open `http://helpme.test/login/canvas`. Expect the local Canvas login page.
 If your Canvas version has a separate allowed-host setting, add `helpme.test` there when Canvas reports a blocked host.
 
-### Set HelpMe's public address
+### Allow Canvas to fetch HelpMe's signing keys
+
+Canvas's HTTP client blocks requests to private IP addresses by default, including the Docker host address used by `helpme.test`. Browser launches and even `curl` from the container can work while inserting a question fails with `Fetching JWK from public_jwk_url failed` and `JWT verification failure`.
+
+In the **Canvas checkout**, create `config/initializers/local_helpme_http.rb`:
+
+```ruby
+# Local development only: allow the Docker host used by HelpMe.
+if Rails.env.development?
+  CanvasHttp.singleton_class.prepend(Module.new do
+    def insecure_host?(host)
+      return false if host == "helpme.test"
+
+      super
+    end
+  end)
+end
+```
+
+Restart Canvas to load the initializer:
+
+```sh
+docker compose restart web jobs
+```
+
+This bypasses Canvas's private-address protection only for `helpme.test` in development.
+
+### Set HelpMe's .env variables
 
 In `packages/server/.env`, set:
 
@@ -108,17 +135,7 @@ NEXT_PUBLIC_HOSTNAME=helpme.test
 NEXT_PUBLIC_DEV_PORT=3100
 ```
 
-In `packages/frontend/next.config.mjs`, add `helpme.test` to `allowedDevOrigins` and `helpme.test:3100` to `experimental.serverActions.allowedOrigins`.
-Preserve the existing entries. These local development settings allow the browser to use the custom address.
-
-Start the existing development command with an explicit frontend port:
-
-```sh
-yarn cross-env PORT=3001 yarn dev
-```
-
-Check its startup output. The frontend must use `3001`, the API must use `3002`, and the development proxy must use `3000`.
-`cross-env` sets the frontend port with the same command on Windows, macOS, and Linux.
+### Start the forwarder proxy
 
 In another terminal, start the forwarder:
 
@@ -129,33 +146,52 @@ node -e 'const net=require("net"); net.createServer(client=>{const upstream=net.
 Expect `Forwarding :3100 -> :3000`. Leave this terminal open while you test.
 The forwarder accepts connections from Docker. It does not register HelpMe or configure hostnames.
 
-Open `http://helpme.test:3100` in your browser. Then check the connection from Canvas:
+### Test the connection
+
+Open `http://helpme.test:3100` in your browser to check if HelpMe is running.
+
+To check the connection from Canvas (you may need to change `canvas-lms-web-1` to your container name):
 
 ```sh
-docker compose exec web curl --fail --show-error http://helpme.test:3100/api/v1/lti/keys
+docker exec canvas-lms-web-1 curl --fail --show-error http://helpme.test:3100/api/v1/lti/keys
 ```
 
-Expect a JSON document containing a `keys` array. Fix connection errors before you continue to registration.
+Expect a JSON document containing a `keys` array. Fix connection errors before you continue to registration (make sure you're not erroring with "FAILED TO INITIALIZE LTI AS A MIDDLEWARE" when starting up HelpMe).
 If your container has no `curl`, run this equivalent check:
 
 ```sh
-docker compose exec web ruby -rnet/http -e 'r=Net::HTTP.get_response(URI("http://helpme.test:3100/api/v1/lti/keys")); abort("HTTP #{r.code}") unless r.is_a?(Net::HTTPSuccess); puts r.body'
+docker exec canvas-lms-web-1 ruby -rnet/http -e 'r=Net::HTTP.get_response(URI("http://helpme.test:3100/api/v1/lti/keys")); abort("HTTP #{r.code}") unless r.is_a?(Net::HTTPSuccess); puts r.body'
 ```
+
+Also test through **Canvas's HTTP client**, which applies security checks that `curl` and `Net::HTTP` do not. Run this from the Canvas checkout:
+
+```sh
+docker compose exec web bundle exec rails runner -e development 'r = CanvasHttp.get("http://helpme.test:3100/api/v1/lti/keys"); abort("HTTP #{r.code}") unless r.is_a?(Net::HTTPSuccess); puts r.body'
+```
+
+Expect the same JSON document with a `keys` array. If this raises `CanvasHttp::InsecureUriError`, ensure [this](#allow-canvas-to-fetch-helpmes-signing-keys) step was followed. - The corresponding Canvas log entry is `CANVAS_HTTP WARNING insecure address` followed by `Fetching JWK from public_jwk_url failed`.
 
 ## 2. Register HelpMe in Canvas
 
-Use your local Canvas administrator account for these steps. Do not change a production registration.
-
-1. Open the account's app registration screen and choose **Dynamic Registration**. The screen location depends on your Canvas version and enabled features.
-2. Enter `http://helpme.test:3100/api/v1/lti/register` as the **Dynamic Registration URL**.
-3. Complete the registration with the name `HelpMe`. Enable the registration if Canvas leaves it disabled.
-4. Copy the client ID Canvas assigns to this registration.
-5. Install the registered app in your test account or course. If the installation form offers **By Client ID**, enter the client ID you copied.
-6. Make the app available. Open **Admin**, **Apps**, **Manage**, open HelpMe, open **Availability and Exceptions**, and make it available for the account or add an exception for your test course. Save and reload the course. A course cannot use an unavailable deployment.
+1. Head to `http:helpme.test` and login with your Canvas Admin account you made during the "Next Steps" part of the Canvas setup.
+2. Create a test course on Canvas.
+3. Go to Admin -> YourOrg -> Apps -> Manager -> Install a New App. Choose **Dynamic Registration**.
+4. Enter `http://helpme.test:3100/api/v1/lti/register` as the **Dynamic Registration URL**. Continue clicking Next (defaults should be fine).
+5. Complete the registration with the name `HelpMe`. Enable the registration if Canvas leaves it disabled.
+6. Copy the client ID Canvas assigns to this registration (if it says Unable to copy client ID to clipboard, just copy the the number, e.g. 10000000000001).
+7. Go to the test course you made -> Settings -> Apps -> +App -> Choose **By Client ID** for **Configuration Type**, and then enter the client ID you copied into the **Client ID** field.
+8. Make the app available. Open **Admin**, **Apps**, **Manage**, open HelpMe, open **Availability and Exceptions**, and make it available for the account or add an exception for your test course. Save and reload the course. A course cannot use an unavailable deployment.
+9. Head to Admin -> Developer Keys and create a new Developer Key.
+   1. Give it a name of your choosing.
+   2. For Redirect URI (Legacy), enter `http://helpme.test:3100/api/v1/dev-sso/login/1` (you may need to change the `1` to the HelpMe Org Id of the one you're setting this up with)
+   3. Enable **Enforce Scopes** and select the scopes in `CANVAS_ACCESS_TOKEN_SCOPES` inside `packages/server/src/lmsIntegration/lmsIntegration.adapter.ts`.
+   4. Enable **Allow Include Parameters**. Without this setting, Canvas silently ignores `include[]` on scoped OAuth requests, including `include[]=submission_history`.
+   5. Click Save. Once created, enable it (turn State to On) if needed.
+10. Copy the key's client ID (e.g. 10000000000002) and client secret/key (e.g. 9yCQHa...). This is for use in the next step. Note that this developer key is separate from the LTI registration; the two client IDs are not interchangeable.
 
 Dynamic registration exchanges the signing-key URLs and launch URLs between Canvas and HelpMe. You do not need to generate or paste private signing keys.
 
-Check that the registered HelpMe URLs use these addresses:
+(Optional) Check that the registered HelpMe URLs use these addresses (Under Admin -> Apps -> Manage -> HelpMe -> Usage):
 
 - Login initiation: `http://helpme.test:3100/api/v1/lti/login`.
 - Launch redirect: `http://helpme.test:3100/api/v1/lti`.
@@ -163,80 +199,35 @@ Check that the registered HelpMe URLs use these addresses:
 
 If you already have a working registration under another hostname, keep that setup or update the registration consistently before using this guide's addresses.
 Changing the browser address alone does not update either application's stored registration.
-If dynamic registration is unavailable in your Canvas version, stop here and ask the maintainer which registration method that version supports.
 
-## 3. Configure which Canvas HelpMe trusts
+## 3. Configure HelpMe
 
-1. Sign in to HelpMe as a **site administrator** (`UserRole.ADMIN`, not an organization administrator). Open **Admin Panel → LTI Platforms** and confirm that the Canvas registration from the previous step appears. Match its issuer and client ID to Canvas's installed HelpMe app. The issuer may be `https://canvas.instructure.com` even for local Canvas.
-2. In Canvas, create an **API/OAuth developer key** and copy its client ID and client secret. This key is separate from the LTI registration; the two client IDs are not interchangeable. If you already have an API/OAuth key for this integration, reuse it.
-3. In HelpMe, open **Organization Settings → LMS Integrations → Add New Integration**. Select Canvas, set **LMS Domain** to `helpme.test` without `http://`, turn **HTTPS** off for this local setup, and enter the **Developer Key Client ID** and **Developer Key Client Secret** from step 2. If the organization already has this integration, check its settings instead of creating another.
-4. Return to **Admin Panel → LTI Platforms** and assign the Canvas registration to that organization's LMS integration.
+1. Sign in to HelpMe as a **site administrator** (`UserRole.ADMIN`, not the same as an organization administrator). Open **Admin Panel → LTI Platforms** and confirm that the Canvas registration from the previous step appears. You may notice that the platform URL is `https://canvas.instructure.com`, this is normal even for local Canvas.
+2. In HelpMe, open **Organization Settings → LMS Integrations → Add New Integration**. Select Canvas, set **LMS Domain** to `helpme.test` without `http://`, turn **HTTPS** off for this local setup, and enter the **Developer Key Client ID** and **Developer Key Client Secret** from the step where you created the developer key on Canvas.
+3. Return to **Admin Panel → LTI Platforms** and assign the Dynamic Canvas registration to the organization you just set up the LMS integration for.
 
-The organization integration stores the Canvas API configuration. The association tells HelpMe which organization an incoming LTI launch belongs to. Deep linking itself does not use the API/OAuth credentials.
+On HelpMe, the organization-level integration stores the Canvas Developer Key and allows HelpMe to call Canvas endpoints (like for auto-synchronizing Chatbot documents). Or more specifically, it allows HelpMe to create 'Access Tokens' on a user's behalf, and those tokens are used to call the Canvas API.
+On HelpMe, the site-level registration (the Dynamic Canvas registration) is for deep linking and what allows HelpMe to be embedded within Canvas; Canvas sends requests to HelpMe (via the LTI protocol) requesting for data to insert into an iframe (simplification). It exists on the site-level on HelpMe since HelpMe doesn't have a way to tell what organization the request for the dynamic registration belongs to.
+Moreover, since there might be multiple Canvas instances (from different universities) each creating dynamic registrations with HelpMe, we manually map the site-level registration to a specific organization.
 
-An active registration without an organization assignment cannot launch HelpMe. Assignment does not change Canvas's existing registration, signing keys, deployment, or saved links, and does not require an application restart.
+## 4. Connect the HelpMe course with the Canvas course
 
-## Test the embedded question
+On HelpMe, create a course if you haven't already. Go to **Course Settings** -> **LMS Integrations** -> pick Canvas -> Generate a new Access Token. Select the Canvas course and then click Create. - Note that the user who makes the Access Token needs to have the correct permissions on the Canvas course (be able to edit content and grade assignments - so, TA or Prof level).
 
-1. Map the local Canvas course to a HelpMe course through HelpMe's LMS integration settings.
-2. Link the Canvas instructor identity to a HelpMe account with staff access to that course through the normal Canvas app launch.
-3. Configure the chatbot connection for the course. Create an embeddable question in HelpMe and set its grading settings (rubric, score scale, automatic checks). To flag answers for human review, describe when review is needed in the **Main grading prompt** or **Feedback instructions**. The model explains which criteria the answer meets, or returns no review reason if none apply.
-4. Open the Canvas content editor. Use the HelpMe editor button to select and insert the question.
-5. Save the content. Open it with a local student account and submit a response.
+## Test an embedded question
 
-Expect feedback inside Canvas. An instructor preview exercises staff authorization, so use a student account to check the learner flow.
+1. Now that everything is set up and connected, simply go to Course Settings -> LMS Integrations -> Embeddable Questions page and create some embeddable questions.
+2. On Canvas, go to Edit an assignment/quiz and create an essay question.
+3. Click on the "Integrations" button (shows up as a little spark plug) and choose HelpMe. The list of embeddable questions should appear. Select and insert the one you want, and then click "Save Question".
+4. Save the quiz/assignment.
 
-## Configure Classic quiz batch grading
+Now, you can preview the quiz/assignment and try out the feedback embeddable question box!
 
-Batch grading requires an **instructor Canvas API token** saved in the course's
-**LMS Integrations** settings. OAuth-only connections cannot run batch grading.
-Use the existing API-key connection form; the token's owner must be allowed to
-read submissions and grade the Canvas course. An expired or revoked token must
-be replaced in those settings. The shared OAuth flow retains its document-sync
-scopes and does not request batch-grading permissions.
+Note that each use of the "Get Feedback" button will save the input + response into the database along with who submitted it (could be used for data analysis after the fact).
 
-Ask the Canvas administrator whether personal API tokens are permitted for this
-use and whether the instructor role has the required grading permissions. This
-does not require adding scopes to HelpMe's OAuth developer key. If administrators
-issue a restricted token, it must allow these batch endpoints:
+_Important:_ Note that you should also try the embeddable question box as a student Canvas account (probably in a fresh browser) to ensure it still works there.
 
-```text
-url:GET|/api/v1/courses/:course_id/assignments
-url:GET|/api/v1/courses/:course_id/quizzes
-url:GET|/api/v1/courses/:course_id/quizzes/:quiz_id/questions
-url:GET|/api/v1/courses/:course_id/lti_resource_links/:id
-url:GET|/api/v1/courses/:course_id/assignments/:assignment_id/submissions
-url:GET|/api/v1/courses/:course_id/quizzes/:quiz_id/submissions
-url:PUT|/api/v1/courses/:course_id/quizzes/:quiz_id/submissions/:id
-url:PUT|/api/v1/courses/:course_id/assignments/:assignment_id/submissions/:user_id
-```
 
-The last endpoint adds one "REVIEW REQUIRED" submission comment only when the
-model returns a non-empty `human_review_reason`. Technical failures stay in the
-HelpMe report. With manual posting, the comment stays hidden until grades are
-posted, so staff should delete it after reviewing.
-
-For a local run:
-
-1. Start Redis, HelpMe, and the chatbot backend. Configure the HelpMe course's
-   feedback model through its existing chatbot course/provider settings.
-2. In Canvas, create a published **Classic Quiz** with essay questions. Set
-   each question's points to the matching HelpMe question maximum.
-3. Set the assignment's grade posting policy to **Manually** before students
-   submit. HelpMe refuses auto-post assignments and attempts Canvas has already
-   posted.
-4. In HelpMe, open **Course Settings**, **Canvas Batch Grading**, and select the
-   quiz. HelpMe detects each embedded HelpMe question from its Canvas LTI
-   resource link.
-5. Choose **Grade and prefill SpeedGrader**. Do not edit the quiz, grade it in
-   Canvas, or post grades while the run is active.
-6. When the run completes, review its flags/errors and the prefilled values in
-   SpeedGrader. Post grades manually in Canvas only after review; HelpMe has no
-   grade-release action.
-
-Confirm that the instructor token can retrieve `submission_history` on a test
-quiz before production use. Missing history produces a report error, never an
-assumed blank answer or a zero grade.
 
 ### Feedback deployment and failures
 
@@ -249,8 +240,9 @@ has migrated.
 A failed run shows its error in Canvas Batch Grading and stops polling. Resolve
 the error, check SpeedGrader, and start a new run. The failed run remains available
 for review in the run selector; a new run freezes the current settings. A 401
-requires replacing the instructor API token; a 403 requires checking its owner's
-course access and grading permissions. These messages also apply when Canvas
+requires checking the OAuth token and developer-key scopes and reconnecting if
+necessary; a 403 requires checking the authorizing instructor's course access and
+grading permissions. These messages also apply when Canvas
 returns an HTML error page.
 
 Rejected writes and unknown write outcomes appear separately in the report.
@@ -293,6 +285,7 @@ You do not need to register the app again unless you replace its databases or ch
 - **Timeout from Canvas:** Check the Docker host mapping and local firewall. Docker distributions can route the host differently; verify the address with the connectivity command above.
 - **Port already in use:** Stop the old forwarder before starting another copy. Do not change ports without updating the configured URLs.
 - **Launch returns 403:** Check that the active LTI registration is assigned to the correct organization in HelpMe's LTI Platforms page. Staff also need a linked identity and course access.
+- **Question picker works but Insert into Canvas fails with `Fetching JWK from public_jwk_url failed`:** Run the `CanvasHttp` check above. If Canvas logs `CanvasHttp::InsecureUriError`, apply the development-only signing-key fetch exception and restart Canvas. A successful `curl` check alone does not rule this out. For other failures, check the registered signing-key URL and Canvas logs before changing keys or re-registering.
 - **Launch works but feedback fails:** Check the chatbot backend and the question's grading settings.
 - **Old hostname appears after a redirect:** Update the existing app registration and HelpMe environment settings consistently. Reinsert saved Canvas links that contain the old hostname.
 

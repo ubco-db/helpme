@@ -524,11 +524,11 @@ abstract class ImplementedLMSAdapter extends AbstractLMSAdapter {
 
 export class BaseLMSAdapter extends AbstractLMSAdapter {}
 
-/** Document-sync scopes. Batch grading uses an instructor API token instead.
- *
- * TODO: uh, no thanks
+/** These are the list of scopes that the access token requires (in Canvas -> Admin -> Developer Keys -> Edit HelpMe's develoepr key -> Select scopes)
+ * Also make sure "Allow include paramaters" is enabled for the develoepr key too (otherwise the autograder won't work).
  */
 export const CANVAS_ACCESS_TOKEN_SCOPES: readonly string[] = [
+  // For document sync
   'url:GET|/api/v1/users/:user_id/courses',
   'url:GET|/api/v1/courses/:id',
   'url:GET|/api/v1/courses/:course_id/assignments',
@@ -541,28 +541,18 @@ export const CANVAS_ACCESS_TOKEN_SCOPES: readonly string[] = [
   'url:GET|/api/v1/courses/:course_id/quizzes',
   'url:GET|/api/v1/courses/:course_id/quizzes/:quiz_id/questions',
 
-  // For auto-grader. It might not work? TODO: ask LTI people
+  // For auto-grader.
   'url:GET|/api/v1/courses/:course_id/lti_resource_links/:id',
   'url:GET|/api/v1/courses/:course_id/assignments/:assignment_id/submissions',
   'url:GET|/api/v1/courses/:course_id/quizzes/:quiz_id/submissions',
   'url:PUT|/api/v1/courses/:course_id/quizzes/:quiz_id/submissions/:id',
-  //This last endpoint adds one "REVIEW REQUIRED" submission comment only when the
+  //This last endpoint adds one "HUMAN REVIEW REQUIRED" submission comment only when the
   // model returns a non-empty `human_review_reason` (technical failures stay in the HelpMe report).
   // The staff should delete the comment after reviewing it and before they publish the grades.
   'url:PUT|/api/v1/courses/:course_id/assignments/:assignment_id/submissions/:user_id',
 ];
 
 export class CanvasLMSAdapter extends ImplementedLMSAdapter {
-  private requireBatchApiKey(): void {
-    // TODO: Maybe update this so that it actually checks the scopes and stuff? Maybe with specific error messages if they lack the right permissions?
-    if (!this.integration.apiKey?.trim()) {
-      // this check is old, I don't think we use prof api keys anymore
-      throw new BadRequestException(
-        'Canvas batch grading requires an Access Token with permissions to grade quizzes. Add it in Course Settings → LMS Integrations. You may need to delete and re-create the Canvas Integration with a new Access Token.',
-      );
-    }
-  }
-
   constructor(
     protected integration: LMSCourseIntegrationModel,
     protected cacheManager?: Cache,
@@ -1162,7 +1152,6 @@ export class CanvasLMSAdapter extends ImplementedLMSAdapter {
   async getClassicQuizCatalog(
     onlyQuizId?: number,
   ): Promise<LMSClassicQuizCatalogResult> {
-    this.requireBatchApiKey();
     const courseId = this.integration.apiCourseId;
 
     // The assignment carries the posting policy.
@@ -1305,7 +1294,6 @@ export class CanvasLMSAdapter extends ImplementedLMSAdapter {
     attempt: number;
     questions: LMSClassicQuestionGrade[];
   }): Promise<LMSWriteResult> {
-    this.requireBatchApiKey();
     if (params.questions.length === 0) {
       return {
         outcome: 'rejected',
@@ -1341,7 +1329,6 @@ export class CanvasLMSAdapter extends ImplementedLMSAdapter {
     userId: number;
     text: string;
   }): Promise<LMSWriteResult> {
-    this.requireBatchApiKey();
     return this.sendCanvasWrite(
       `courses/${this.integration.apiCourseId}/assignments/${params.assignmentId}/submissions/${params.userId}`,
       { comment: { text_comment: params.text } },
@@ -1355,7 +1342,6 @@ export class CanvasLMSAdapter extends ImplementedLMSAdapter {
   async getClassicAttemptSnapshots(
     ref: LMSClassicQuizRef,
   ): Promise<LMSClassicAttemptSnapshotResult> {
-    this.requireBatchApiKey();
     const courseId = this.integration.apiCourseId;
 
     const quizSubmissions = await this.GetPaginatedUncached(
