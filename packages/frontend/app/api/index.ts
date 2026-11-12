@@ -1819,8 +1819,13 @@ export class APIClient {
 
   lti = {
     auth: {
-      shibboleth: (organizationId: any, _redirectUrl?: string | null) =>
-        `/api/v1/lti/auth/shibboleth/${organizationId}`,
+      shibboleth: (organizationId: any, _redirectUrl?: string | null) => {
+        // In dev, use the mock SSO controller instead of the real shibboleth endpoint
+        if (!isProd()) {
+          return `/api/v1/lti/auth/dev-sso/login/${organizationId}`;
+        }
+        return `/api/v1/lti/auth/shibboleth/${organizationId}`;
+      },
       requestPasswordReset: async (
         passwordResetData: PasswordRequestResetBody,
       ) =>
