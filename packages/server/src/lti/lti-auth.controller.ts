@@ -23,6 +23,9 @@ import { LtiService } from './lti.service';
 import { LoginService } from '../login/login.service';
 import { UserId } from '../decorators/user.decorator';
 import { UserModel } from 'profile/user.entity';
+import { DevSsoIdentity, DevSsoService } from '../auth/dev-sso.service';
+import { NonProductionGuard } from '../guards/non-production.guard';
+import type { LoginEntryOptions } from '../login/login.service';
 
 export const LTI_APP_SESSION_SECONDS = 60 * 60 * 5;
 
@@ -41,6 +44,17 @@ export const restrictPaths = [
   'r^\\/api\\/v1\\/organization\\/[0-9]+\\/settings$',
 ];
 
+const LTI_DEV_SSO_BASE_PATH = '/api/v1/lti/auth/dev-sso';
+
+const LTI_SHIBBOLETH_OPTIONS: LoginEntryOptions & { prefix: string } = {
+  cookieName: 'lti_auth_token',
+  prefix: '/lti',
+  restrictPaths,
+  redirect: '/lti?force_close=true',
+  cookieOptions: LtiService.cookieOptions,
+  expiresIn: LTI_APP_SESSION_SECONDS,
+};
+
 /* Note that many of these mimic the ones from auth.controller.ts */
 @Controller('lti/auth')
 export class LtiAuthController {
@@ -48,6 +62,7 @@ export class LtiAuthController {
     private ltiService: LtiService,
     private authService: AuthService,
     private loginService: LoginService,
+    private devSsoService: DevSsoService,
   ) {}
 
   @Get('/entry')
@@ -88,15 +103,59 @@ export class LtiAuthController {
       organizationId,
       undefined,
       this.ltiService,
-      {
-        cookieName: 'lti_auth_token',
-        prefix: '/lti',
-        restrictPaths,
-        redirect: '/lti?force_close=true',
-        cookieOptions: LtiService.cookieOptions,
-        expiresIn: LTI_APP_SESSION_SECONDS,
-      },
+      LTI_SHIBBOLETH_OPTIONS,
     );
+  }
+
+  @Get('dev-sso/login/:oid')
+  @UseGuards(NonProductionGuard)
+  mockSsoLoginPage(
+    @Res() res: Response,
+    @Param('oid', ParseIntPipe) organizationId: number,
+  ): void {
+    this.devSsoService.mockSsoLoginPage(
+      res,
+      organizationId,
+      LTI_DEV_SSO_BASE_PATH,
+    );
+  }
+
+  @Get('dev-sso/script.js')
+  @UseGuards(NonProductionGuard)
+  mockSsoScript(@Res() res: Response): void {
+    this.devSsoService.mockSsoScript(res);
+  }
+
+  @Post('dev-sso/callback/:oid')
+  @UseGuards(NonProductionGuard)
+  async mockSsoCallbackPost(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Param('oid', ParseIntPipe) organizationId: number,
+    @Body() body: DevSsoIdentity,
+  ): Promise<void> {
+    return this.devSsoService.mockSsoCallback(req, res, organizationId, body, {
+      basePath: LTI_DEV_SSO_BASE_PATH,
+      ltiService: this.ltiService,
+      options: LTI_SHIBBOLETH_OPTIONS,
+    });
+  }
+
+  @Get('dev-sso/callback/:oid')
+  @UseGuards(NonProductionGuard)
+  async mockSsoCallbackGet(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Param('oid', ParseIntPipe) organizationId: number,
+    @Query('email') email?: string,
+    @Query('givenName') givenName?: string,
+    @Query('lastName') lastName?: string,
+  ): Promise<void> {
+    return this.mockSsoCallbackPost(req, res, organizationId, {
+      email,
+      givenName,
+      lastName,
+    });
   }
 
   @Get('link/:method/:oid')

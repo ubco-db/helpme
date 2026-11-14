@@ -10,7 +10,6 @@ import {
   LMSIntegrationPlatform,
   LMSPage,
   LMSPostAuthBody,
-  LMSPostResponseBody,
   LMSPostResponseRefreshTokenBody,
   LMSQuiz,
 } from '@koh/common';
@@ -22,7 +21,184 @@ import { ConfigService } from '@nestjs/config';
 import express from 'express';
 import { LMSAccessToken, LMSAccessTokenModel } from './lms-access-token.entity';
 import * as crypto from 'crypto';
-import { getFetchErrorMessage } from 'utils';
+import { convert as convertHTMLToText } from 'html-to-text';
+import { load as convertStringHTMLToTraversableObject } from 'cheerio';
+import { validate as isUuid } from 'uuid';
+
+export interface LMSClassicQuizRef {
+  quizId: number;
+  assignmentId: number;
+}
+
+/** An essay question of a Classic quiz. */
+export type LMSClassicQuestionMapping =
+  | {
+      status: 'detected';
+      lookupUuid: string;
+      embeddableQuestionId: number;
+    }
+  | { status: 'error'; message: string };
+
+export interface LMSClassicQuizQuestion {
+  id: number;
+  position: number;
+  text: string;
+  points: number;
+  mapping: LMSClassicQuestionMapping;
+}
+
+/** A published Classic quiz that is eligible for batch grading. */
+export interface LMSClassicQuiz {
+  quizId: number;
+  title: string;
+  assignmentId: number;
+  postManually: boolean;
+  speedGraderUrl: string;
+  essayQuestions: LMSClassicQuizQuestion[];
+}
+
+export interface LMSClassicQuizCatalogResult {
+  status: LMSApiResponseStatus;
+  quizzes: LMSClassicQuiz[];
+}
+
+/** One completed answer of an attempt, read from submission history. */
+export interface LMSClassicAttemptAnswer {
+  questionId: number;
+  /** Submitted essay text with block breaks and entities preserved. */
+  text: string;
+  /** Existing score for this answer, or null when it is not graded. */
+  points: number | null;
+  /** Existing grader comment for this answer, or null. */
+  comment: string | null;
+}
+
+export interface LMSClassicAttempt {
+  quizSubmissionId: number;
+  userId: number;
+  attempt: number;
+  postedAt: string | null;
+  excused: boolean;
+  /**
+   * False when Canvas did not provide usable submission history for this
+   * attempt. Unreadable attempts carry no answers and must not be treated as
+   * blank submissions.
+   */
+  readable: boolean;
+  answers: LMSClassicAttemptAnswer[];
+}
+
+export interface LMSClassicAttemptSnapshot {
+  quizId: number;
+  attempts: LMSClassicAttempt[];
+}
+
+export interface LMSClassicAttemptSnapshotResult {
+  status: LMSApiResponseStatus;
+  snapshot?: LMSClassicAttemptSnapshot;
+}
+
+/** One question's score and comment inside a multi-question attempt write. */
+export interface LMSClassicQuestionGrade {
+  questionId: number;
+  score: number;
+  comment: string;
+}
+
+/** Unknown writes may have reached Canvas and must not be replayed automatically. */
+export type LMSWriteOutcome =
+  'success' | 'rejected' | 'unknown' | 'unsupported';
+
+export interface LMSWriteResult {
+  outcome: LMSWriteOutcome;
+  httpStatus?: number;
+  message?: string;
+}
+
+/** Bound Canvas requests; a timed-out write has an unknown outcome. */
+const CANVAS_REQUEST_TIMEOUT_MS = 30000;
+
+type JsonObject = Record<string, unknown>;
+
+function asObject(value: unknown): JsonObject | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as JsonObject)
+    : null;
+}
+
+function asArray(value: unknown): unknown[] | null {
+  return Array.isArray(value) ? value : null;
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function asBoolean(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null;
+}
+
+function asNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+/** Ids are read strictly, tolerating Canvas' occasional numeric strings. */
+function asId(value: unknown): number | null {
+  const direct = asNumber(value);
+  if (direct !== null) return direct;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+// Preserve paragraph breaks, table cells, and student casing when converting HTML.
+const ESSAY_TEXT_OPTIONS = {
+  wordwrap: false as const,
+  selectors: [
+    ...['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].map((selector) => ({
+      selector,
+      options: { uppercase: false },
+    })),
+    {
+      selector: 'table',
+      format: 'dataTable',
+      options: { uppercaseHeaderCells: false },
+    },
+  ],
+};
+
+export function htmlToEssayText(html: unknown): string {
+  if (typeof html !== 'string') return '';
+  const text = convertHTMLToText(html, ESSAY_TEXT_OPTIONS).replace(
+    /\u00a0/g,
+    ' ',
+  );
+  return text.trim().length === 0 ? '' : text;
+}
+
+/** Lookup UUIDs Canvas places in LTI resource-link iframe URLs. */
+export function resourceLinkLookupUuids(html: unknown): string[] {
+  if (typeof html !== 'string') return [];
+  const uuids = new Set<string>();
+  const $ = convertStringHTMLToTraversableObject(html);
+  $('iframe[src]').each((_, iframe) => {
+    const src = $(iframe).attr('src');
+    if (!src) return;
+    try {
+      const uuid = new URL(src, 'https://canvas.invalid').searchParams.get(
+        'resource_link_lookup_uuid',
+      );
+      if (uuid && isUuid(uuid)) {
+        uuids.add(uuid.toLowerCase());
+      }
+    } catch {
+      // Invalid iframe URLs cannot identify a Canvas resource link.
+    }
+  });
+  return [...uuids];
+}
 
 @Injectable()
 export class LMSIntegrationAdapter {
@@ -288,6 +464,50 @@ export abstract class AbstractLMSAdapter {
     return null;
   }
 
+  /**
+   * Published Classic quizzes eligible for batch grading, with their essay
+   * questions. Unsupported platforms report the platform as invalid.
+   */
+  async getClassicQuizCatalog(
+    quizId?: number,
+  ): Promise<LMSClassicQuizCatalogResult> {
+    return { status: LMSApiResponseStatus.InvalidPlatform, quizzes: [] };
+  }
+
+  /**
+   * Completed attempt snapshots for every student of a Classic quiz.
+   */
+  async getClassicAttemptSnapshots(
+    params: LMSClassicQuizRef,
+  ): Promise<LMSClassicAttemptSnapshotResult> {
+    return { status: LMSApiResponseStatus.InvalidPlatform };
+  }
+
+  /** Write the score and comment for every safe question of one attempt. */
+  async putClassicAttemptGrades(params: {
+    quizId: number;
+    quizSubmissionId: number;
+    /** Required by Canvas: the completed attempt being updated. */
+    attempt: number;
+    questions: LMSClassicQuestionGrade[];
+  }): Promise<LMSWriteResult> {
+    return {
+      outcome: 'unsupported',
+      message: 'Classic quiz grading is not supported by this LMS platform.',
+    };
+  }
+
+  async putSubmissionComment(params: {
+    assignmentId: number;
+    userId: number;
+    text: string;
+  }): Promise<LMSWriteResult> {
+    return {
+      outcome: 'unsupported',
+      message: 'Submission comments are not supported by this LMS platform.',
+    };
+  }
+
   getDocumentLink(documentId: number, documentType: LMSUpload): string {
     switch (documentType) {
       default:
@@ -304,7 +524,35 @@ abstract class ImplementedLMSAdapter extends AbstractLMSAdapter {
 
 export class BaseLMSAdapter extends AbstractLMSAdapter {}
 
-class CanvasLMSAdapter extends ImplementedLMSAdapter {
+/** These are the list of scopes that the access token requires (in Canvas -> Admin -> Developer Keys -> Edit HelpMe's develoepr key -> Select scopes)
+ * Also make sure "Allow include paramaters" is enabled for the develoepr key too (otherwise the autograder won't work).
+ */
+export const CANVAS_ACCESS_TOKEN_SCOPES: readonly string[] = [
+  // For document sync
+  'url:GET|/api/v1/users/:user_id/courses',
+  'url:GET|/api/v1/courses/:id',
+  'url:GET|/api/v1/courses/:course_id/assignments',
+  'url:GET|/api/v1/courses/:course_id/users',
+  'url:GET|/api/v1/courses/:course_id/enrollments',
+  'url:GET|/api/v1/courses/:course_id/discussion_topics',
+  'url:GET|/api/v1/courses/:course_id/pages',
+  'url:GET|/api/v1/courses/:course_id/pages/:url_or_id',
+  'url:GET|/api/v1/courses/:course_id/files',
+  'url:GET|/api/v1/courses/:course_id/quizzes',
+  'url:GET|/api/v1/courses/:course_id/quizzes/:quiz_id/questions',
+
+  // For auto-grader.
+  'url:GET|/api/v1/courses/:course_id/lti_resource_links/:id',
+  'url:GET|/api/v1/courses/:course_id/assignments/:assignment_id/submissions',
+  'url:GET|/api/v1/courses/:course_id/quizzes/:quiz_id/submissions',
+  'url:PUT|/api/v1/courses/:course_id/quizzes/:quiz_id/submissions/:id',
+  //This last endpoint adds one "HUMAN REVIEW REQUIRED" submission comment only when the
+  // model returns a non-empty `human_review_reason` (technical failures stay in the HelpMe report).
+  // The staff should delete the comment after reviewing it and before they publish the grades.
+  'url:PUT|/api/v1/courses/:course_id/assignments/:assignment_id/submissions/:user_id',
+];
+
+export class CanvasLMSAdapter extends ImplementedLMSAdapter {
   constructor(
     protected integration: LMSCourseIntegrationModel,
     protected cacheManager?: Cache,
@@ -361,7 +609,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     configService: ConfigService,
     redirectUrl?: string,
   ) {
-    const uri = `https://${organizationIntegration.rootUrl}/login/oauth2/auth`;
+    const uri = `${organizationIntegration.secure ? 'https' : 'http'}://${organizationIntegration.rootUrl}/login/oauth2/auth`;
 
     const state = await super.createState(
       organizationIntegration,
@@ -373,19 +621,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
       client_id: organizationIntegration.clientId,
       response_type: 'code',
       state: state.state,
-      scope: [
-        'url:GET|/api/v1/users/:user_id/courses',
-        'url:GET|/api/v1/courses/:id',
-        'url:GET|/api/v1/courses/:course_id/assignments',
-        'url:GET|/api/v1/courses/:course_id/users',
-        'url:GET|/api/v1/courses/:course_id/enrollments',
-        'url:GET|/api/v1/courses/:course_id/discussion_topics',
-        'url:GET|/api/v1/courses/:course_id/pages',
-        'url:GET|/api/v1/courses/:course_id/pages/:url_or_id',
-        'url:GET|/api/v1/courses/:course_id/files',
-        'url:GET|/api/v1/courses/:course_id/quizzes',
-        'url:GET|/api/v1/courses/:course_id/quizzes/:quiz_id/questions',
-      ].join(' '),
+      scope: CANVAS_ACCESS_TOKEN_SCOPES.join(' '),
       redirect_uri: `${configService.get<string>('DOMAIN')}/api/v1/lms/oauth2/response`,
     });
 
@@ -427,7 +663,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
   async Get(
     path: string,
   ): Promise<{ status: LMSApiResponseStatus; data?: any; nextLink?: string }> {
-    const url = `${this.integration.orgIntegration.secure ? 'https' : 'http'}://${this.integration.orgIntegration.rootUrl}/api/v1/${path}`;
+    const url = `${this.canvasBaseUrl()}/api/v1/${path}`;
     const cacheKey = url;
 
     // Check cache first
@@ -442,48 +678,7 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
       }
     }
 
-    // Make the actual API call
-    const result = await fetch(url, {
-      method: 'GET',
-      headers: {
-        Authorization: await this.getAuthorization(),
-      },
-    })
-      .then(async (response) => {
-        let nextLink: string | undefined = undefined;
-        const linkHeader = response.headers.get('link');
-        if (linkHeader) {
-          const links = linkHeader.split(/(?<=rel="[^"]*")/);
-          nextLink = links.find((s) => s.includes('rel="next"'));
-          if (nextLink != undefined) {
-            nextLink = nextLink.substring(
-              nextLink.indexOf('/api/v1/') + '/api/v1/'.length,
-              nextLink.indexOf('>'),
-            );
-          }
-        }
-        if (!response.ok) {
-          switch (response.status) {
-            case 401:
-            case 403:
-              return { status: LMSApiResponseStatus.InvalidKey };
-            case 404:
-              return { status: LMSApiResponseStatus.InvalidCourseId };
-            default:
-              throw new Error();
-          }
-        } else {
-          return response.json().then((data) => {
-            return { status: LMSApiResponseStatus.Success, data, nextLink };
-          });
-        }
-      })
-      .catch((error) => {
-        console.log(
-          `Error contacting ${this.integration.orgIntegration.rootUrl}: ${error}`,
-        );
-        return { status: LMSApiResponseStatus.Error };
-      });
+    const result = await this.requestGet(path);
 
     // Cache successful results for 5 minutes
     if (this.cacheManager && result.status === LMSApiResponseStatus.Success) {
@@ -491,6 +686,109 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     }
 
     return result;
+  }
+
+  private canvasBaseUrl(): string {
+    return `${this.integration.orgIntegration.secure ? 'https' : 'http'}://${this.integration.orgIntegration.rootUrl}`;
+  }
+
+  /**
+   * Issue a Canvas GET without touching the cache.
+   *
+   * Used by the Classic batch grading transport, which must always observe the
+   * live state of submissions instead of a cached document sync response.
+   */
+  private async requestGet(path: string): Promise<{
+    status: LMSApiResponseStatus;
+    data?: unknown;
+    nextLink?: string;
+  }> {
+    const authorization = await this.getAuthorization();
+    try {
+      const response = await fetch(`${this.canvasBaseUrl()}/api/v1/${path}`, {
+        signal: AbortSignal.timeout(CANVAS_REQUEST_TIMEOUT_MS),
+        headers: { Authorization: authorization },
+      });
+      if (!response.ok) {
+        switch (response.status) {
+          case 401:
+            return { status: LMSApiResponseStatus.Unauthorized };
+          case 403:
+            return { status: LMSApiResponseStatus.Forbidden };
+          case 404:
+            return { status: LMSApiResponseStatus.InvalidCourseId };
+          default:
+            throw new Error(`Canvas returned HTTP ${response.status}`);
+        }
+      }
+      const data: unknown = await response.json();
+      return {
+        status: LMSApiResponseStatus.Success,
+        data,
+        nextLink: this.parseNextLink(response.headers.get('link')),
+      };
+    } catch (error) {
+      console.log(
+        `Error contacting ${this.integration.orgIntegration.rootUrl}: ${error}`,
+      );
+      return { status: LMSApiResponseStatus.Error };
+    }
+  }
+
+  /** Extract the `next` pagination path from a Canvas `Link` header. */
+  private parseNextLink(linkHeader: string | null): string | undefined {
+    if (!linkHeader) return undefined;
+
+    const links = linkHeader.split(/(?<=rel="[^"]*")/);
+    let nextLink = links.find((s) => s.includes('rel="next"'));
+    if (nextLink != undefined) {
+      nextLink = nextLink.substring(
+        nextLink.indexOf('/api/v1/') + '/api/v1/'.length,
+        nextLink.indexOf('>'),
+      );
+    }
+    return nextLink;
+  }
+
+  /**
+   * Paginate a Canvas list endpoint without caching.
+   *
+   * Accept plain arrays and wrapped lists. Malformed pages fail the whole read.
+   */
+  private async GetPaginatedUncached(
+    initialPath: string,
+    wrapKey?: string,
+  ): Promise<{
+    status: LMSApiResponseStatus;
+    items: unknown[];
+  }> {
+    const items: unknown[] = [];
+    let nextLink =
+      initialPath.indexOf('?') != -1
+        ? `${initialPath}&per_page=50`
+        : `${initialPath}?per_page=50`;
+
+    while (nextLink !== undefined) {
+      const res = await this.requestGet(nextLink);
+      if (res.status != LMSApiResponseStatus.Success) {
+        return { status: res.status, items: [] };
+      }
+
+      const page =
+        asArray(res.data) ??
+        (wrapKey ? asArray(asObject(res.data)?.[wrapKey]) : null);
+      if (page === null) {
+        return {
+          status: LMSApiResponseStatus.Error,
+          items: [],
+        };
+      }
+
+      items.push(...page);
+      nextLink = res.nextLink;
+    }
+
+    return { status: LMSApiResponseStatus.Success, items };
   }
 
   async GetPaginated(
@@ -849,6 +1147,495 @@ class CanvasLMSAdapter extends ImplementedLMSAdapter {
     }
 
     return { status: LMSApiResponseStatus.Success, quizzes };
+  }
+
+  async getClassicQuizCatalog(
+    onlyQuizId?: number,
+  ): Promise<LMSClassicQuizCatalogResult> {
+    const courseId = this.integration.apiCourseId;
+
+    // The assignment carries the posting policy.
+    const quizList = await this.GetPaginatedUncached(
+      `courses/${courseId}/quizzes`,
+    );
+    const assignmentList = await this.GetPaginatedUncached(
+      `courses/${courseId}/assignments`,
+    );
+
+    if (quizList.status !== LMSApiResponseStatus.Success) {
+      return { status: quizList.status, quizzes: [] };
+    }
+    if (assignmentList.status !== LMSApiResponseStatus.Success) {
+      return { status: assignmentList.status, quizzes: [] };
+    }
+
+    const assignmentsById = new Map<number, JsonObject>();
+    for (const raw of assignmentList.items) {
+      const assignment = asObject(raw);
+      const assignmentId = assignment ? asId(assignment.id) : null;
+      if (assignment && assignmentId !== null) {
+        assignmentsById.set(assignmentId, assignment);
+      }
+    }
+
+    const quizzes: LMSClassicQuiz[] = [];
+    for (const raw of quizList.items) {
+      const quiz = asObject(raw);
+      if (!quiz || quiz.published !== true) continue;
+
+      const quizId = asId(quiz.id);
+      const assignmentId = asId(quiz.assignment_id);
+      if (quizId === null || assignmentId === null) continue;
+      if (onlyQuizId !== undefined && quizId !== onlyQuizId) continue;
+
+      // A Classic quiz without an assignment is a practice quiz: it produces
+      // no graded submission, so it is not eligible for batch grading.
+      const assignment = assignmentsById.get(assignmentId);
+      if (!assignment) continue;
+
+      const questionList = await this.GetPaginatedUncached(
+        `courses/${courseId}/quizzes/${quizId}/questions`,
+      );
+      if (questionList.status !== LMSApiResponseStatus.Success) {
+        return { status: questionList.status, quizzes: [] };
+      }
+
+      const essayQuestions: LMSClassicQuizQuestion[] = [];
+      for (const [questionIndex, rawQuestion] of questionList.items.entries()) {
+        const question = asObject(rawQuestion);
+        if (!question || question.question_type !== 'essay_question') continue;
+        const questionId = asId(question.id);
+        if (questionId === null) continue;
+        const canvasPosition = asNumber(question.position);
+        const position =
+          canvasPosition !== null && canvasPosition > 0
+            ? canvasPosition
+            : questionIndex + 1;
+        essayQuestions.push({
+          id: questionId,
+          position,
+          text: htmlToEssayText(question.question_text),
+          points: asNumber(question.points_possible) ?? 0,
+          mapping: await this.resolveQuestionMapping(
+            question.question_text,
+            position,
+          ),
+        });
+      }
+
+      quizzes.push({
+        quizId,
+        title: asString(quiz.title) ?? '',
+        assignmentId,
+        postManually:
+          asBoolean(assignment.post_manually) ??
+          asBoolean(quiz.post_manually) ??
+          false,
+        speedGraderUrl: this.speedGraderUrl(assignmentId),
+        essayQuestions,
+      });
+    }
+
+    return { status: LMSApiResponseStatus.Success, quizzes };
+  }
+
+  private async resolveQuestionMapping(
+    html: unknown,
+    position: number,
+  ): Promise<LMSClassicQuestionMapping> {
+    const lookupUuids = resourceLinkLookupUuids(html);
+    if (lookupUuids.length === 0) {
+      return {
+        status: 'error',
+        message: `Question ${position} does not contain a HelpMe embeddable question.`,
+      };
+    }
+
+    const helpMeLinks: Extract<
+      LMSClassicQuestionMapping,
+      { status: 'detected' }
+    >[] = [];
+    for (const lookupUuid of lookupUuids) {
+      const response = await this.requestGet(
+        `courses/${this.integration.apiCourseId}/lti_resource_links/lookup_uuid:${lookupUuid}`,
+      );
+      if (response.status !== LMSApiResponseStatus.Success) {
+        return {
+          status: 'error',
+          message: `Question ${position}: Canvas could not resolve an embedded resource link. ${response.status}`,
+        };
+      }
+      const custom = asObject(asObject(response.data)?.custom);
+      const embeddableQuestionId = asId(custom?.helpme_question_id);
+      if (embeddableQuestionId !== null) {
+        helpMeLinks.push({
+          status: 'detected',
+          lookupUuid,
+          embeddableQuestionId,
+        });
+      }
+    }
+    if (helpMeLinks.length !== 1) {
+      return {
+        status: 'error',
+        message:
+          helpMeLinks.length === 0
+            ? `Question ${position} does not contain a recognizable HelpMe embed.`
+            : `Question ${position} contains more than one HelpMe embed.`,
+      };
+    }
+    return helpMeLinks[0];
+  }
+
+  async putClassicAttemptGrades(params: {
+    quizId: number;
+    quizSubmissionId: number;
+    /** Required by Canvas: the completed attempt being updated. */
+    attempt: number;
+    questions: LMSClassicQuestionGrade[];
+  }): Promise<LMSWriteResult> {
+    if (params.questions.length === 0) {
+      return {
+        outcome: 'rejected',
+        message: 'At least one question score is required.',
+      };
+    }
+
+    // Update question scores together, without overriding Canvas's aggregate score.
+    const questions = Object.fromEntries(
+      params.questions.map(({ questionId, score, comment }) => [
+        questionId,
+        { score, comment },
+      ]),
+    );
+
+    return this.sendCanvasWrite(
+      `courses/${this.integration.apiCourseId}/quizzes/${params.quizId}/submissions/${params.quizSubmissionId}`,
+      {
+        quiz_submissions: [
+          {
+            // Canvas rejects the request when the attempt is missing.
+            attempt: params.attempt,
+            questions,
+          },
+        ],
+      },
+    );
+  }
+
+  /** Adds a submission comment. It does not post a manually posted grade. */
+  async putSubmissionComment(params: {
+    assignmentId: number;
+    userId: number;
+    text: string;
+  }): Promise<LMSWriteResult> {
+    return this.sendCanvasWrite(
+      `courses/${this.integration.apiCourseId}/assignments/${params.assignmentId}/submissions/${params.userId}`,
+      { comment: { text_comment: params.text } },
+    );
+  }
+
+  private speedGraderUrl(assignmentId: number): string {
+    return `${this.canvasBaseUrl()}/courses/${this.integration.apiCourseId}/gradebook/speed_grader?assignment_id=${assignmentId}`;
+  }
+
+  async getClassicAttemptSnapshots(
+    ref: LMSClassicQuizRef,
+  ): Promise<LMSClassicAttemptSnapshotResult> {
+    const courseId = this.integration.apiCourseId;
+
+    const quizSubmissions = await this.GetPaginatedUncached(
+      `courses/${courseId}/quizzes/${ref.quizId}/submissions`,
+      'quiz_submissions',
+    );
+    const assignmentSubmissions = await this.GetPaginatedUncached(
+      `courses/${courseId}/assignments/${ref.assignmentId}/submissions?include[]=submission_history`,
+    );
+
+    if (quizSubmissions.status !== LMSApiResponseStatus.Success) {
+      return { status: quizSubmissions.status };
+    }
+    if (assignmentSubmissions.status !== LMSApiResponseStatus.Success) {
+      return { status: assignmentSubmissions.status };
+    }
+
+    const submissionsByUser = new Map<number, JsonObject>();
+    for (const raw of assignmentSubmissions.items) {
+      const submission = asObject(raw);
+      const userId = submission ? asId(submission.user_id) : null;
+      if (submission && userId !== null) {
+        submissionsByUser.set(userId, submission);
+      }
+    }
+
+    const trustedAttempts = new Map<
+      string,
+      { quizSubmissionId: number; userId: number; attempt: number }
+    >();
+    const currentByUser = new Map<
+      number,
+      { quizSubmissionId: number; attempt: number; completed: boolean }
+    >();
+    for (const raw of quizSubmissions.items) {
+      const quizSubmission = asObject(raw);
+      if (!quizSubmission) continue;
+
+      const quizSubmissionId = asId(quizSubmission.id);
+      const userId = asId(quizSubmission.user_id);
+      const attempt = asNumber(quizSubmission.attempt);
+      if (quizSubmissionId === null || userId === null || attempt === null) {
+        continue;
+      }
+      const workflowState = asString(quizSubmission.workflow_state);
+      const completed =
+        workflowState === 'complete' || workflowState === 'pending_review';
+      const current = currentByUser.get(userId);
+      if (
+        !current ||
+        attempt > current.attempt ||
+        (attempt === current.attempt && completed && !current.completed)
+      ) {
+        currentByUser.set(userId, { quizSubmissionId, attempt, completed });
+      }
+      // Only finished attempts are eligible for batch grading: a student has
+      // submitted and Canvas has either marked it complete or is holding it for
+      // manual review. Preview, in-progress, untaken, and settings rows are
+      // excluded.
+      if (!completed) {
+        continue;
+      }
+      trustedAttempts.set(`${userId}:${attempt}`, {
+        quizSubmissionId,
+        userId,
+        attempt,
+      });
+    }
+
+    // Canvas returns the current quiz-submission row. The assignment submission
+    // history is therefore the source of completed attempt numbers and answers,
+    // while the documented quiz-submission list remains the trust anchor for
+    // user/submission identity. A later attempt proves earlier history attempts
+    // were finished; an explicitly non-final history state is still excluded.
+    for (const [userId, current] of currentByUser) {
+      const submission = submissionsByUser.get(userId);
+      for (const rawHistory of asArray(submission?.submission_history) ?? []) {
+        const history = asObject(rawHistory);
+        const attempt = history ? asNumber(history.attempt) : null;
+        if (!history || attempt === null || attempt > current.attempt) continue;
+        const workflowState = asString(history.workflow_state);
+        if (
+          workflowState !== null &&
+          workflowState !== 'complete' &&
+          workflowState !== 'pending_review'
+        ) {
+          continue;
+        }
+        if (
+          attempt === current.attempt &&
+          !current.completed &&
+          workflowState === null
+        ) {
+          continue;
+        }
+        const key = `${userId}:${attempt}`;
+        if (!trustedAttempts.has(key)) {
+          trustedAttempts.set(key, {
+            quizSubmissionId: current.quizSubmissionId,
+            userId,
+            attempt,
+          });
+        }
+      }
+    }
+
+    const attempts = [...trustedAttempts.values()]
+      .sort((left, right) =>
+        left.userId === right.userId
+          ? left.attempt - right.attempt
+          : left.userId - right.userId,
+      )
+      .map((candidate) =>
+        this.buildClassicAttempt({
+          ...candidate,
+          submission: submissionsByUser.get(candidate.userId),
+        }),
+      );
+
+    return {
+      status: LMSApiResponseStatus.Success,
+      snapshot: { quizId: ref.quizId, attempts },
+    };
+  }
+
+  private buildClassicAttempt(input: {
+    quizSubmissionId: number;
+    userId: number;
+    attempt: number;
+    submission: JsonObject | undefined;
+  }): LMSClassicAttempt {
+    const { quizSubmissionId, userId, attempt, submission } = input;
+    const record = this.findAttemptRecord(submission, attempt);
+    const data = record ? asArray(record.submission_data) : null;
+    const answers = data === null ? null : this.readClassicAnswers(data);
+
+    return {
+      quizSubmissionId,
+      userId,
+      attempt,
+      postedAt:
+        (record ? asString(record.posted_at) : null) ??
+        (submission ? asString(submission.posted_at) : null),
+      excused:
+        (record ? asBoolean(record.excused) : null) ??
+        (submission ? asBoolean(submission.excused) : null) ??
+        false,
+      // A missing or malformed history is reported as unreadable instead of an
+      // attempt with no answers.
+      readable: answers !== null,
+      answers: answers ?? [],
+    };
+  }
+
+  /**
+   * Locate the submission record holding the answers for `attempt`.
+   *
+   * Completed answers come from matching submission history or the current
+   * assignment submission's data. The quiz question endpoint is never used.
+   * Returns null when neither source contains usable data for the attempt.
+   */
+  private findAttemptRecord(
+    submission: JsonObject | undefined,
+    attempt: number,
+  ): JsonObject | null {
+    if (!submission) return null;
+
+    const history = submission.submission_history;
+    if (history != null && !Array.isArray(history)) return null;
+
+    // Prefer matching history; Canvas can also return answers on the current submission.
+    return (
+      [...(asArray(history) ?? []), submission]
+        .map(asObject)
+        .find(
+          (entry) =>
+            entry &&
+            asNumber(entry.attempt) === attempt &&
+            asArray(entry.submission_data),
+        ) ?? null
+    );
+  }
+
+  private readClassicAnswers(data: unknown[]): LMSClassicAttemptAnswer[] {
+    const answers: LMSClassicAttemptAnswer[] = [];
+    for (const rawEntry of data) {
+      const entry = asObject(rawEntry);
+      if (!entry) continue;
+      const questionId = asId(entry.question_id);
+      const text = asString(entry.text);
+      // Mixed quizzes include non-essay answer shapes such as file uploads.
+      // Ignore entries that cannot be represented as essay answers; a mapped
+      // essay with malformed fields is then handled as a missing answer.
+      if (questionId === null || text === null) continue;
+      const rawComment = entry.more_comments ?? entry.comment;
+      const comment = rawComment == null ? null : asString(rawComment);
+      if (rawComment != null && comment === null) continue;
+      // Canvas serializes an unanswered grading decision for Classic essay
+      // questions as `points: 0` together with `correct: "undefined"`.
+      // Treating that placeholder zero as an instructor grade would skip every
+      // newly submitted essay before HelpMe can grade it.
+      const rawPoints = entry.points;
+      const ungradedPlaceholder = asString(entry.correct) === 'undefined';
+      const points =
+        ungradedPlaceholder || rawPoints == null ? null : asNumber(rawPoints);
+      if (!ungradedPlaceholder && rawPoints != null && points === null) {
+        continue;
+      }
+      answers.push({
+        questionId,
+        text: htmlToEssayText(text),
+        points,
+        comment,
+      });
+    }
+    return answers;
+  }
+
+  /**
+   * Send a Canvas PUT and classify its outcome.
+   *
+   * The request is never retried. Server/proxy errors and timeouts can happen
+   * after a write was accepted, so their outcome is unknown.
+   */
+  private async sendCanvasWrite(
+    path: string,
+    body: unknown,
+  ): Promise<LMSWriteResult> {
+    let authorization: string;
+    try {
+      authorization = await this.getAuthorization();
+    } catch (error) {
+      return {
+        outcome: 'rejected',
+        message:
+          error instanceof Error ? error.message : 'Authorization failed.',
+      };
+    }
+
+    try {
+      const response = await fetch(`${this.canvasBaseUrl()}/api/v1/${path}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: authorization,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(CANVAS_REQUEST_TIMEOUT_MS),
+      });
+
+      if (response.ok) {
+        return { outcome: 'success', httpStatus: response.status };
+      }
+
+      return {
+        outcome:
+          response.status >= 500 || response.status === 408
+            ? 'unknown'
+            : 'rejected',
+        httpStatus: response.status,
+        message: await this.readWriteErrorMessage(response),
+      };
+    } catch (error) {
+      return {
+        outcome: 'unknown',
+        message:
+          error instanceof Error ? error.message : 'Unknown transport error.',
+      };
+    }
+  }
+
+  private async readWriteErrorMessage(
+    response: Response,
+  ): Promise<string | undefined> {
+    if (response.status === 401) return LMSApiResponseStatus.Unauthorized;
+    if (response.status === 403) return LMSApiResponseStatus.Forbidden;
+    try {
+      const text = await response.text();
+      if (text.trim() === '') return undefined;
+
+      try {
+        const parsed = asObject(JSON.parse(text));
+        const message =
+          asString(parsed?.message) ||
+          asString(asObject(asArray(parsed?.errors)?.[0])?.message);
+        if (message) return message;
+      } catch {
+        // The rejection body was not JSON; fall through to the raw text.
+      }
+
+      return text.slice(0, 500);
+    } catch {
+      return undefined;
+    }
   }
 
   getDocumentLink(documentId: number, documentType: LMSUpload): string {

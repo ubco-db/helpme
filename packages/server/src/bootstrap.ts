@@ -96,7 +96,16 @@ export function addGlobalsToApp(app: INestApplication, test = false): void {
     // If not an LTI route, use standard helmet, cookieParser
     // Regex: (?!\/lti) means NOT /lti, avoids using these middlewares at (/api/v1)/lti routes
     app.use(/\/api\/v1(?!\/lti)/, cookieParser());
-    app.use(/\/api\/v1(?!\/lti)/, helmet());
+    app.use(
+      /\/api\/v1(?!\/lti)/,
+      helmet({
+        contentSecurityPolicy: {
+          directives: {
+            upgradeInsecureRequests: isProd() ? [] : null,
+          },
+        },
+      }),
+    );
     // If an LTI route, use customized helmet, cookieParser
     app.use(
       /\/api\/v1\/lti/,

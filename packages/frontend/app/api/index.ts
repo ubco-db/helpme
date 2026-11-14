@@ -7,6 +7,10 @@ import type {
   AsyncQuestionCommentParams,
   BatchCourseCloneAttributes,
   Calendar,
+  CanvasBatchQuizOption,
+  CanvasBatchRunReport,
+  CanvasBatchRunSummary,
+  StartCanvasBatchRunParams,
   ChatbotAskParams,
   ChatbotAskResponse,
   ChatbotAskSuggestedParams,
@@ -1815,8 +1819,13 @@ export class APIClient {
 
   lti = {
     auth: {
-      shibboleth: (organizationId: any, _redirectUrl?: string | null) =>
-        `/api/v1/lti/auth/shibboleth/${organizationId}`,
+      shibboleth: (organizationId: any, _redirectUrl?: string | null) => {
+        // In dev, use the mock SSO controller instead of the real shibboleth endpoint
+        if (!isProd()) {
+          return `/api/v1/lti/auth/dev-sso/login/${organizationId}`;
+        }
+        return `/api/v1/lti/auth/shibboleth/${organizationId}`;
+      },
       requestPasswordReset: async (
         passwordResetData: PasswordRequestResetBody,
       ) =>
@@ -1926,6 +1935,33 @@ export class APIClient {
         this.req(
           'DELETE',
           `/api/v1/lti/embeddable-question/${courseId}/${questionId}`,
+        ),
+    },
+    canvasBatch: {
+      getQuizzes: async (courseId: number): Promise<CanvasBatchQuizOption[]> =>
+        this.req(
+          'GET',
+          `/api/v1/lti/embeddable/canvas-batch/${courseId}/quizzes`,
+        ),
+      getRuns: async (courseId: number): Promise<CanvasBatchRunSummary[]> =>
+        this.req('GET', `/api/v1/lti/embeddable/canvas-batch/${courseId}/runs`),
+      startRun: async (
+        courseId: number,
+        params: StartCanvasBatchRunParams,
+      ): Promise<CanvasBatchRunSummary> =>
+        this.req(
+          'POST',
+          `/api/v1/lti/embeddable/canvas-batch/${courseId}/runs`,
+          undefined,
+          params,
+        ),
+      getReport: async (
+        courseId: number,
+        runId: number,
+      ): Promise<CanvasBatchRunReport> =>
+        this.req(
+          'GET',
+          `/api/v1/lti/embeddable/canvas-batch/${courseId}/runs/${runId}/report`,
         ),
     },
   };

@@ -11,7 +11,8 @@ import {
   ValidatorConstraintInterface,
 } from 'class-validator'
 
-const text = z.string().trim().max(15000)
+export const MAX_GRADING_TEXT_LENGTH = 15000
+const text = z.string().trim().max(MAX_GRADING_TEXT_LENGTH)
 const score = z.number().finite().min(0).max(100000)
 
 export const scoreScaleSchema = z.object({
@@ -160,7 +161,7 @@ export class UpsertEmbeddableQuestionParams {
   @Transform(trimmed)
   @IsString()
   @IsNotEmpty()
-  @MaxLength(15000)
+  @MaxLength(MAX_GRADING_TEXT_LENGTH)
   questionText!: string
 
   @IsDefined()
@@ -183,7 +184,7 @@ export class EmbeddableQuestionFeedbackParams {
   @Transform(trimmed)
   @IsString()
   @IsNotEmpty()
-  @MaxLength(15000)
+  @MaxLength(MAX_GRADING_TEXT_LENGTH)
   responseText!: string
 }
 
@@ -197,6 +198,12 @@ export interface EmbeddableQuestionFeedback {
 export interface GradingSnapshot {
   questionText: string
   gradingSettings: QuestionGradingSettings
+  /**
+   * Batch/final grading only. Practice snapshots omit both fields, so their
+   * stored shape is unchanged.
+   */
+  gradingMode?: 'final'
+  instruction?: string
 }
 
 export type GradingEvaluation = EmbeddableQuestionFeedback & {

@@ -111,6 +111,9 @@ export class LMSIntegrationService {
 
   lmsStatusToHttpStatus(status: LMSApiResponseStatus): HttpStatus {
     switch (status) {
+      case LMSApiResponseStatus.Forbidden:
+        return HttpStatus.FORBIDDEN;
+      case LMSApiResponseStatus.Unauthorized:
       case LMSApiResponseStatus.InvalidKey:
         return HttpStatus.UNAUTHORIZED;
       case LMSApiResponseStatus.InvalidPlatform:

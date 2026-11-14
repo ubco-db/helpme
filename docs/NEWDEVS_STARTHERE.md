@@ -4,6 +4,8 @@
 - [Preface](#preface)
 - [INTRO TO THE CODEBASE AND TECHSTACK](#intro-to-the-codebase-and-techstack)
   - [Codebase](#codebase)
+  - [General Wisdom](#general-wisdom)
+    - [Comments](#comments)
   - [Technologies Guide](#technologies-guide)
     - [Environment Variables](#environment-variables)
     - [What is "State"?](#what-is-state)
@@ -90,7 +92,19 @@ File structure is as follows:
   - `/common` - shared code between the frontend and backend
     - `index.ts` - This is our other important index.ts. Contains all types or functions used on both the frontend and backend
 
+## General Wisdom
+
+### Comments
+
+Comments are appreciated, but obviously not everything needs comments. Comments explaining *what* something does is only necessary if the code is complex/obfuscated, and complex/obfuscated code can be worth it if it means better performance or significantly less code for stuff that doesn't matter much (think like regex patterns - they're used often because it can shorten a ton of checks into something very small and performant, even if it's less readable, in which case a comment explaining it is important). More importantly, comments explaining the *why* can really help maintainability. 
+
+*Why* comments might include why you decided on a particular approach vs another approach you think someone might've choosen. Or maybe why a particular function/file/pattern exists in an area that is sorta "out of the ordinary" for this codebase.
+
+Sometimes, comments can just be explaining how a particular external function or technology works, perhaps giving context for those that are unfamiliar with the technology or why you're using it.
+
 ## Technologies Guide
+
+By "technology" this refers to libraries, languages, tools, or practicies.
 
 ### Environment Variables
 

@@ -3,7 +3,8 @@ import type {
   ChatbotAskSuggestedParams,
   CreateChatbotProviderBody,
   CreateOrganizationChatbotSettingsBody,
-  UpdateChatbotProviderBody} from '@koh/common';
+  UpdateChatbotProviderBody,
+} from '@koh/common';
 import {
   ChatbotServiceProvider,
   ChatbotServiceType,
@@ -11,7 +12,7 @@ import {
   ERROR_MESSAGES,
   OrganizationRole,
   Role,
-  SuperCoursePurpose
+  SuperCoursePurpose,
 } from '@koh/common';
 import {
   ChatbotProviderFactory,

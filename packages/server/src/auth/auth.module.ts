@@ -13,6 +13,7 @@ import { OrganizationModule } from '../organization/organization.module';
 import { LoginModule } from '../login/login.module';
 import { LoginService } from '../login/login.service';
 import { DevSsoController } from './dev-sso.controller';
+import { DevSsoService } from './dev-sso.service';
 
 @Module({
   imports: [
@@ -31,12 +32,13 @@ import { DevSsoController } from './dev-sso.controller';
   providers: [
     JwtStrategy,
     AuthService,
+    DevSsoService,
     CourseService,
     RedisProfileService,
     ChatbotApiService,
     OrganizationService,
     LoginService,
   ],
-  exports: [AuthService],
+  exports: [AuthService, DevSsoService],
 })
 export class AuthModule {}

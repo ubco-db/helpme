@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import {
   questionGradingSettingsSchema,
+  FINAL_GRADING_INSTRUCTION,
+  MAX_GRADING_TEXT_LENGTH,
   type GradingEvaluation,
   type GradingSnapshot,
   type QuestionGradingSettings,
@@ -9,7 +11,7 @@ import { ChatbotApiService } from '../../chatbot/chatbot-api.service';
 import { computeMechanicalFacts } from './deterministic-check-utils';
 import {
   buildAppliedRequirements,
-  buildSystemPrompt,
+  buildGradingPromptInput,
   buildUserPrompt,
   effectiveScoreCap,
   validateGradePayload,
@@ -24,12 +26,26 @@ export class QuestionGradingService {
     questionText,
     gradingSettings,
     submission,
+    gradingMode,
+    finalInstruction,
   }: {
     courseId: number;
     questionText: string;
     gradingSettings: QuestionGradingSettings;
     submission: string;
+    /**
+     * Internal batch-only mode. Omitted is the practice path; 'final' replaces
+     * the question's feedback instructions with the final instruction.
+     */
+    gradingMode?: 'final';
+    /** Frozen batch instruction; omitted for practice grading. */
+    finalInstruction?: string;
   }): Promise<GradingEvaluation> {
+    if (submission.length > MAX_GRADING_TEXT_LENGTH) {
+      throw new Error(
+        `The answer exceeds the ${MAX_GRADING_TEXT_LENGTH}-character grading limit. Grade this answer manually in SpeedGrader; it was not truncated or sent to the model.`,
+      );
+    }
     // The one grading-path validation of the settings, before anything is
     // built or called; invalid settings fail before any chatbot call and
     // nothing is persisted.
@@ -37,9 +53,19 @@ export class QuestionGradingService {
     if (!parsed.success) {
       throw new Error('Question grading settings are invalid.');
     }
+    const instruction =
+      gradingMode === 'final'
+        ? (finalInstruction ?? FINAL_GRADING_INSTRUCTION)
+        : undefined;
     const snapshot: GradingSnapshot = structuredClone({
       questionText,
       gradingSettings: parsed.data,
+      ...(gradingMode === 'final'
+        ? {
+            gradingMode: 'final' as const,
+            instruction,
+          }
+        : {}),
     });
     const settings = snapshot.gradingSettings;
     const facts = computeMechanicalFacts(submission, settings.checks);
@@ -63,22 +89,22 @@ export class QuestionGradingService {
     }
 
     const effectiveCap = effectiveScoreCap(facts.triggeredChecks);
-    const systemPrompt = buildSystemPrompt(
-      settings,
-      effectiveCap,
-      snapshot.questionText,
-      facts,
-    );
-    const userPrompt = buildUserPrompt(submission);
 
     // The chatbot service owns provider retries; HelpMe makes exactly one
     // call and validates the answer once. An invalid grade errors out and
     // the caller persists nothing.
-    const response = await this.chatbotApiService.queryFeedback(
-      userPrompt,
-      courseId,
-      systemPrompt,
-    );
+    const response =
+      await this.chatbotApiService.queryEmbeddableQuestionFeedback(
+        buildUserPrompt(submission),
+        courseId,
+        buildGradingPromptInput(
+          settings,
+          effectiveCap,
+          snapshot.questionText,
+          facts,
+          instruction ?? settings.feedbackInstructions,
+        ),
+      );
     const { score, comment, reasons, humanReviewReason } = validateGradePayload(
       response.answer,
       settings,

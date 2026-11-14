@@ -11,7 +11,19 @@ const sentenceSegmenter = new Intl.Segmenter('en', {
 const NONTERMINAL_END = /\b(?:dr|mr|mrs|ms|prof|jr|sr|st|vs|[a-z])\.$/i;
 
 export function countSentences(text: string): number {
-  const segments = [...sentenceSegmenter.segment(text)].map(
+  // ICU can merge sentences when the next word starts lowercase. Count the
+  // boundary independently of capitalization, then rejoin abbreviations below.
+  const sentenceText = text.replace(
+    /[.!?]\s+\p{Ll}/gu,
+    (boundary, offset: number) => {
+      const prefix = text.slice(0, offset + 1);
+      return NONTERMINAL_END.test(prefix) ||
+        /(?:\b(?:etc|ie)\.|\.{3}|(?:^|\n)\s*\d+\.)$/i.test(prefix)
+        ? boundary
+        : boundary.toUpperCase();
+    },
+  );
+  const segments = [...sentenceSegmenter.segment(sentenceText)].map(
     (part) => part.segment,
   );
   const merged: string[] = [];

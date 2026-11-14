@@ -1259,6 +1259,7 @@ describe('Lms Integration Integrations', () => {
         }
         const orgInt = await lmsOrgIntFactory.create({
           rootUrl: 'baseUrl',
+          secure: false,
           organization: org,
           apiPlatform: LMSIntegrationPlatform.Canvas,
           clientId: 'id',
@@ -1271,6 +1272,7 @@ describe('Lms Integration Integrations', () => {
           .then((response) => {
             const uri = new URL(response.headers.location);
 
+            expect(uri.protocol).toBe('http:');
             expect(uri.pathname).toBe('/login/oauth2/auth');
             expect(uri.searchParams.get('client_id')).toEqual(orgInt.clientId);
             expect(uri.searchParams.get('response_type')).toEqual('code');

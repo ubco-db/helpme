@@ -3,6 +3,7 @@
 import {
   BellOutlined,
   DownloadOutlined,
+  FormOutlined,
   LinkOutlined,
   QrcodeOutlined,
   RobotOutlined,
@@ -26,6 +27,7 @@ enum CourseAdminOptions {
   EXPORT_DATA = 'EXPORT_DATA',
   QUEUE_INVITES = 'QUEUE_INVITES',
   EDIT_QUESTIONS = 'EDIT_QUESTIONS',
+  CANVAS_BATCH_GRADING = 'CANVAS_BATCH_GRADING',
   SETTINGS = 'SETTINGS',
   LMS_INTEGRATIONS = 'LMS_INTEGRATIONS',
   CHATBOT_SETTINGS = 'CHATBOT_SETTINGS',
@@ -68,6 +70,9 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       case CourseAdminOptions.EDIT_QUESTIONS:
         router.push(`${basePath}/edit_questions`);
         break;
+      case CourseAdminOptions.CANVAS_BATCH_GRADING:
+        router.push(`${basePath}/canvas_batch_grading`);
+        break;
       case CourseAdminOptions.LMS_INTEGRATIONS:
         router.push(`${basePath}/lms_integrations`);
         break;
@@ -103,6 +108,11 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
       key: CourseAdminOptions.EDIT_QUESTIONS,
       icon: <TableOutlined />,
       label: 'Edit Queue Questions',
+    },
+    {
+      key: CourseAdminOptions.CANVAS_BATCH_GRADING,
+      icon: <FormOutlined />,
+      label: 'Canvas Batch Grading',
     },
     {
       key: CourseAdminOptions.EXPORT_DATA,

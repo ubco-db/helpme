@@ -191,7 +191,7 @@ export class LtiController {
   @Get('/platform')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminRoleGuard)
   async getPlatforms(): Promise<LtiPlatform[]> {
-    if (!Database.dataSource.isInitialized) {
+    if (!Database.dataSource || !Database.dataSource.isInitialized) {
       throw new BadRequestException(
         ERROR_MESSAGES.ltiController.ltiDataSourceUninitialized,
       );
@@ -264,7 +264,7 @@ export class LtiController {
   @Get('/platform/:kid')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard, AdminRoleGuard)
   async getPlatform(@Param('kid') kid: string): Promise<LtiPlatform> {
-    if (!Database.dataSource.isInitialized) {
+    if (!Database.dataSource || !Database.dataSource.isInitialized) {
       throw new BadRequestException(
         ERROR_MESSAGES.ltiController.ltiDataSourceUninitialized,
       );

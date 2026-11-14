@@ -12,7 +12,7 @@ export default function customImageLoader({ src, width, quality }) {
             // trim off any starting /
             src = src.slice(1);
         }
-        const baseURL = process.env.NEXT_PUBLIC_HOSTNAME === 'localhost' ? `http://${process.env.NEXT_PUBLIC_HOSTNAME}:${process.env.NEXT_PUBLIC_DEV_PORT}` : `https://${process.env.NEXT_PUBLIC_HOSTNAME}`;
+        const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || (process.env.NEXT_PUBLIC_HOSTNAME === 'localhost' ? `http://${process.env.NEXT_PUBLIC_HOSTNAME}:${process.env.NEXT_PUBLIC_DEV_PORT}` : `https://${process.env.NEXT_PUBLIC_HOSTNAME}`);
         return `${baseURL}/${src}?w=${width}&q=${quality || 75}`;
     }
 }
