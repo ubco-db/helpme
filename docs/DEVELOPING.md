@@ -132,23 +132,53 @@ More information can be found in [NEWDEVS](/docs/NEWDEVS_STARTHERE.md)
 
 ### Testing
 
+We use a few types:
+- Unit tests (xyz.service.test.ts): tests individual service functions (xyz.service.ts). Sometimes ends up using a fair bit of mocking in order to isolate the behaviour of the function being tested, but it's still reccomended to generally avoid mocking where possible (like don't mock database calls - that way it's closer to the production setup). If you're making simple endpoints, you usually don't need to make unit tests since the integration tests will cover the same stuff.
+- Integration tests (xyz.integration.ts): tests endpoints (xyz.controller.ts). A single test can call multiple endpoints in sequence to simulate a user flow. These tests should avoid as much mocking as possible. These are like our "main" tests we use.  
+- End to End (E2E) tests: We do *not* use these due to the costs of maintaining them outweighing the benefits for this size of project. But basically this would involve simulating a user using the frontend and making sure the UI (and backend)is working as expected as the test simulates button clicks and other user interactions.
+
 Unit test files should be colocated with the file they test. 
 
 Integration tests are located in the `test` folder.
 
-~~End to end (E2E) testing is in it's own folder and done with Cypress. These should be used to test core user flows. To run them headlessly (without a graphics server), do `yarn cypress run`. To watch them actually run interactively, you can use `yarn cypress open`. Be aware that this is _super slow_ on local machines.~~ (note: cypress has been removed, for now)
+
+#### Running tests
+
+To run all tests, use `yarn test`. This will first run all the unit tests. Once they all pass, it will run all the integration tests.
 
 To run a specific unit test suite, you can run `yarn test:unit suite-name` e.g. `yarn test:unit course`
 
-If your tests are failing with a message about "deadlock something whatever", do `yarn test --run-in-band`. This makes the tests run sequentially.
+Run all integration tests with `yarn test:integration`, or a specific file with
+`yarn test:integration course` (from the repository root or `packages/server`).
 
-If `yarn test` is not running all of the tests, navigate to `packages/server/test` folder and run `yarn test:integration --run-in-band` if you would like to run all the integration tests. To run the tests of a specific integration test file (e.g. course.integration.ts), you can use `yarn test:integration --run-in-band course`
+#### Testing parallelism details
 
+Tests run in parallel. Each Jest worker gets its own isolated resources so suites
+cannot read each other's data:
 
-> [!NOTE]
-> cypress is currently broken (and its code was recently removed). Only the endpoints are being tested right now
+- PostgreSQL: `test_<workerId>`, `chatbot_test_<workerId>`, `lti_test_<workerId>`
+- Redis logical database `<workerId>` (plus a per-worker BullMQ prefix and SSE
+  pub/sub channel prefix)
+- Uploads: `uploads/test-<workerId>/`
+
+`test/setup/global-setup.js` creates and recreates those databases at the start
+of every Jest invocation. It needs a PostgreSQL role that can create databases;
+it tries `POSTGRES_USER` first and falls back to `POSTGRES_NONROOT_USER`. You do
+not need to run any SQL manually.
+
+Worker count is `min(availableParallelism() - 1, 12)` (e.g. 11 workers on a
+12-core machine, 3 on a 4-core CI runner). Override it for debugging with
+`TEST_MAX_WORKERS`, for example `TEST_MAX_WORKERS=2 yarn test:integration`.
+
+`yarn test` runs unit tests and then integration tests sequentially. Both use
+the same per-worker resource names, so do not run them concurrently in two
+terminals. `--runInBand` still works for debugging and uses worker 1's resources.
 
 #### All tests are failing locally
+
+UPDATE: This should be fixed now. The test databases are recreated on every Jest run, so stale database state is no longer a likely cause. If something looks wedged, stop the Jest process and rerun it. 
+
+Original:
 
 If all your tests are failing locally but passing on github actions, it likely means that there is still stuff in your `test` database that hasn't been deleted.
 

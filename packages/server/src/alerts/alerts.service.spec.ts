@@ -27,7 +27,7 @@ import {
   UserCourseFactory,
   UserFactory,
 } from '../../test/util/factories';
-import { TestTypeOrmModule } from '../../test/util/testUtils';
+import { resetDatabase, TestTypeOrmModule } from '../../test/util/testUtils';
 import { AlertsService, formatAlertForFrontend } from './alerts.service';
 import type { EntityManager } from 'typeorm';
 import { DataSource } from 'typeorm';
@@ -61,7 +61,7 @@ describe('Alerts service', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.synchronize(true);
+    await resetDatabase(dataSource);
     manager = dataSource.manager;
   });
 

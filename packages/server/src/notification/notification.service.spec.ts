@@ -6,7 +6,11 @@ import {
   initFactoriesFromService,
   UserFactory,
 } from '../../test/util/factories';
-import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
+import {
+  resetDatabase,
+  TestConfigModule,
+  TestTypeOrmModule,
+} from '../../test/util/testUtils';
 import { DesktopNotifModel } from './desktop-notif.entity';
 import { NotificationService } from './notification.service';
 import { FactoryModule } from 'factory/factory.module';
@@ -35,7 +39,7 @@ describe('NotificationService', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.synchronize(true);
+    await resetDatabase(dataSource);
   });
 
   describe('registerDesktop', () => {

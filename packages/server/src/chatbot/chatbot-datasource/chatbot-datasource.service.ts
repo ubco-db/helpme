@@ -29,8 +29,17 @@ export class ChatbotDataSourceService implements OnModuleDestroy {
     return this.dataSource;
   }
 
+  private isTestDatabase(): boolean {
+    // Tests use a per-worker database name (`chatbot_test_<workerId>`) so that
+    // Jest suites can run in parallel without sharing tables.
+    return (
+      typeof this.options.database === 'string' &&
+      this.options.database.startsWith('chatbot_test')
+    );
+  }
+
   async initializeTestSchema() {
-    if (this.options.database !== 'chatbot_test') {
+    if (!this.isTestDatabase()) {
       throw new Error(
         'Cannot perform schema modification via HelpMe when not testing!',
       );
@@ -70,7 +79,7 @@ export class ChatbotDataSourceService implements OnModuleDestroy {
       await q.query(`
           CREATE TABLE IF NOT EXISTS public."${tableName}"
           (
-              id            UUID DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY, 
+              id            UUID DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
               "pageContent" TEXT,
               metadata      JSONB,
               embedding     VECTOR
@@ -86,7 +95,7 @@ export class ChatbotDataSourceService implements OnModuleDestroy {
   }
 
   async clearTable(tableName: string) {
-    if (this.options.database !== 'chatbot_test') {
+    if (!this.isTestDatabase()) {
       throw new Error(
         'Cannot perform schema modification via HelpMe when not testing!',
       );
@@ -109,7 +118,7 @@ export class ChatbotDataSourceService implements OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    if (this.options.database === 'chatbot_test') {
+    if (this.isTestDatabase()) {
       try {
         await this.dropSchema();
       } catch (err) {

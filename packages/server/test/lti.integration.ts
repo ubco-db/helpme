@@ -1,4 +1,4 @@
-import { setupIntegrationTest } from './util/testUtils';
+import { resetDatabase, setupIntegrationTest } from './util/testUtils';
 import LtiMiddleware from '../src/lti/lti.middleware';
 import { LtiModule } from '../src/lti/lti.module';
 import type { Provider } from '@bhunt02/lti-typescript';
@@ -36,6 +36,7 @@ import { LtiOrganizationRegistrationModel } from '../src/lti/lti-organization-re
 import * as jwt from 'jsonwebtoken';
 import { UserCourseModel } from '../src/profile/user-course.entity';
 import { UserLtiIdentityModel } from '../src/lti/user_lti_identity.entity';
+import { getTestDatabaseName } from './setup/testEnvironment';
 
 const gradingSettings = (rubric: string) => ({
   rubric,
@@ -48,11 +49,12 @@ const gradingSettings = (rubric: string) => ({
 const testEncryptionKey = 'abcdefg';
 const testLtiDbOptions: any = {
   type: 'postgres',
-  host: 'localhost',
-  port: 5432,
+  host: process.env.POSTGRES_HOST || 'localhost',
+  port: Number.parseInt(process.env.POSTGRES_PORT || '5432', 10),
   username: process.env.POSTGRES_NONROOT_USER,
   password: process.env.POSTGRES_NONROOT_PASSWORD,
-  database: 'lti_test',
+  database: getTestDatabaseName('lti_test'),
+  extra: { max: 3 }, // max 3 connections. Kept small on purpose for tests (that way it can help expose leaks before it reaches prod).
 };
 
 jest.setTimeout(20000);
@@ -141,7 +143,7 @@ describe('LtiController', () => {
   });
 
   afterEach(async () => {
-    await Database.dataSource.synchronize(true);
+    await resetDatabase(Database.dataSource);
   });
 
   afterAll(async () => {

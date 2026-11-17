@@ -4,6 +4,7 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import {
   MockResponse,
+  resetDatabase,
   TestConfigModule,
   TestTypeOrmModule,
 } from '../../test/util/testUtils';
@@ -92,7 +93,7 @@ describe('LoginService', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.synchronize(true);
+    await resetDatabase(dataSource);
   });
 
   describe('initLoginEnter', () => {

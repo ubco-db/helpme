@@ -13,13 +13,13 @@
     "prod:start": "node --max-old-space-size=8192 dist/main",
     "tsc": "tsc",
     "test": "yarn test:unit && yarn test:integration",
-    "test:unit": "jest -i --forceExit --coverage",
+    "test:unit": "jest --config ./jest.config.js --forceExit --coverage",
     "test:update-snapshots": "yarn test:update-unit-snapshots && yarn test:update-integration-snapshots",
-    "test:update-unit-snapshots": "jest -i --forceExit --coverage --updateSnapshot",
-    "test:update-integration-snapshots": "cross-env NODE_OPTIONS=--experimental-vm-modules jest -i --forceExit --updateSnapshot --config ./test/jest-integration.json",
-    "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:integration": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-integration.json -i",
+    "test:update-unit-snapshots": "jest --config ./jest.config.js --forceExit --coverage --updateSnapshot",
+    "test:update-integration-snapshots": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-integration.config.js --forceExit --updateSnapshot",
+    "test:cov": "jest --config ./jest.config.js --coverage",
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --config ./jest.config.js --runInBand",
+    "test:integration": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-integration.config.js",
     "dev:db:reset": "yarn typeorm schema:drop -d ./typeORMCLI.config.ts",
     "migration:generate": "yarn schema:drop && yarn migration:run && yarn typeorm migration:generate -d ./typeORMCLI.config.ts",
     "migration:run": "yarn typeorm migration:run -d ./typeORMCLI.config.ts",
@@ -175,28 +175,6 @@
     "**/inline-css": "^4.0.3",
     "**/pac-resolver": "^7.0.1",
     "**/xml-crypto": "^2.1.6"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "setupFiles": [
-      "<rootDir>/../test/setup/jest-env.ts"
-    ],
-    "testRegex": ".spec.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest",
-      "\\.md$": "<rootDir>/../test/markdown-transformer.js"
-    },
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node",
-    "moduleDirectories": [
-      "node_modules",
-      "src"
-    ]
   },
   "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
 }

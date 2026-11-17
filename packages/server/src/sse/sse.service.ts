@@ -3,7 +3,6 @@ import { each } from 'async';
 import { serialize } from 'class-transformer';
 import { Response } from 'express';
 import { ERROR_MESSAGES } from '@koh/common';
-import Redis from 'ioredis';
 import { RedisService } from '@liaoliaots/nestjs-redis';
 
 /**
@@ -34,6 +33,10 @@ interface RedisClientInfo<T> {
 export class SSEService<T> implements OnModuleDestroy {
   // Clients connected to this instance of the backend
   private directConnnections: Record<string, Connection> = {};
+  // Redis pub/sub channels are global across logical Redis databases, so tests
+  // running in parallel use a worker-specific prefix to avoid cross-talk.
+  // Production leaves REDIS_CHANNEL_PREFIX unset.
+  private readonly channelPrefix = process.env.REDIS_CHANNEL_PREFIX || '';
 
   constructor(private readonly redisService: RedisService) {
     const redisSub = this.redisService.getClient('sub');
@@ -64,7 +67,7 @@ export class SSEService<T> implements OnModuleDestroy {
    * Get redis channel name from client id
    */
   private idToChannel(clientId: number) {
-    return `sse::client-${clientId}`;
+    return `${this.channelPrefix}sse::client-${clientId}`;
   }
 
   /** Add a client to a room */

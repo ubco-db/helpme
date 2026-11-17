@@ -2,6 +2,7 @@ import type { QueryRunner } from 'typeorm';
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
 import { MultipleLtiRegistrations1791249527689 } from '../migration/1791249527689-multiple-lti-registrations';
+import { getTestDatabaseName } from './setup/testEnvironment';
 
 config({ path: 'postgres.env' });
 
@@ -9,11 +10,11 @@ config({ path: 'postgres.env' });
 describe('Multiple LTI registrations migration', () => {
   const dataSource = new DataSource({
     type: 'postgres',
-    host: 'localhost',
-    port: 5432,
+    host: process.env.POSTGRES_HOST || 'localhost',
+    port: Number.parseInt(process.env.POSTGRES_PORT || '5432', 10),
     username: process.env.POSTGRES_NONROOT_USER,
     password: process.env.POSTGRES_NONROOT_PASSWORD,
-    database: 'test',
+    database: getTestDatabaseName('test'),
   });
   const migration = new MultipleLtiRegistrations1791249527689();
   let runner: QueryRunner;

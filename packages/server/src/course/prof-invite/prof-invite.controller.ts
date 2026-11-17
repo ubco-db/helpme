@@ -5,7 +5,6 @@ import {
   OrganizationRole,
 } from '@koh/common';
 import {
-  BadRequestException,
   Body,
   ClassSerializerInterceptor,
   Controller,
@@ -51,6 +50,7 @@ export class ProfInviteController {
 
     const profInvites = await ProfInviteModel.find({
       where: { orgId, courseId },
+      order: { id: 'ASC' },
       relations: { course: true, creator: true },
       select: {
         course: {

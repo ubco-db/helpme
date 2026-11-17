@@ -1,7 +1,7 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { CacheModule } from '@nestjs/cache-manager';
-import { TestTypeOrmModule } from '../../test/util/testUtils';
+import { resetDatabase, TestTypeOrmModule } from '../../test/util/testUtils';
 import { DataSource } from 'typeorm';
 import { InsightsService } from './insights.service';
 import {
@@ -53,7 +53,7 @@ describe('InsightsService', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.synchronize(true);
+    await resetDatabase(dataSource);
   });
 
   describe('computeOutput', () => {
@@ -457,7 +457,7 @@ describe('InsightsService', () => {
     expect(res.yKey).toBe('Weekday');
     expect(res.zKey).toBe('Amount');
     expect(res.numCategories).toBe(7);
-  }, 10000);
+  }, 60000);
 
   it('helpSeekingOverTime', async () => {
     const student = await UserFactory.create();
@@ -707,7 +707,7 @@ describe('InsightsService', () => {
       expect(res0.yKey).toEqual('Staff_Member');
       expect(res0.zKey).toEqual('Amount');
     });
-  }, 10000);
+  }, 60000);
 
   it('staffEfficiency', async () => {
     const course = await CourseFactory.create();
@@ -762,7 +762,7 @@ describe('InsightsService', () => {
       'Average_Help_Time',
       'Total_Time',
     ]);
-  }, 10000);
+  }, 60000);
 
   it('staffTotalHelped', async () => {
     const course = await CourseFactory.create({ id: 1 });
@@ -819,7 +819,7 @@ describe('InsightsService', () => {
       'Anytime_Questions_Helped',
       'Total_Helped',
     ]);
-  }, 10000);
+  }, 60000);
 
   describe('toggleInsightOn', () => {
     it('works correctly', async () => {

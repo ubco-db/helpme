@@ -8,6 +8,7 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
+  resetDatabase,
   TestChatbotConnectionOptions,
   TestConfigModule,
   TestTypeOrmModule,
@@ -111,7 +112,7 @@ describe('LMSIntegrationService', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.synchronize(true);
+    await resetDatabase(dataSource);
   });
 
   describe('clearLMSAuthStates', () => {

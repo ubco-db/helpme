@@ -622,6 +622,66 @@ Additionally, if your database change requires some custom query to update old p
 
 In `dev` mode, all changes to database schema happen automatically and you won't need to run the migrations. Though there can some [quirks](#known-quirks-when-developing) if there's preexisting data that is illegal in the schema, but you will get a detailed error message to let you know what to fix.
 
+##### Queries
+
+Typeorm provides many different ways to write queries. It is almost a pain on how much flexibility they give. And the worst part is, they each have their own quirks and gotchas.
+
+**Important**: Unless your endpoint is just a simple read operation, use a [transaction](#transactions). 
+
+###### Queries using Model methods
+
+The most common form you will see is using methods on a specific Model class. For example, `UserModel.findOne({ where: { id: userId } })`. Typeorm will automatically generate the SQL, run the query, and then deserialize the results into a `UserModel` object instance.
+
+There are other ways to write queries this way, like `dataSource.getRepository(UserModel).findOne({ where: { id: userId } })`. Please don't do this, because it's extra bulky.
+
+###### Queries using QueryBuilder
+
+Gives more control over your queries compared to Model Methods, but less control compared to raw SQL. It's a weird hybrid. 
+
+Docs: https://typeorm.io/docs/query-builder/select-query-builder
+
+Example
+```ts
+const firstUser = await dataSource
+    .getRepository(User)
+    .createQueryBuilder("user")
+    .where("user.id = :id", { id: 1 })
+    .getOne()
+```
+
+###### Queries using QueryRunner
+
+I don't really know when you'd want to use this. If you were looking to use a transaction, use the methods described [here](#transactions) instead.
+
+Docs: https://typeorm.io/docs/query-runner/
+
+Example
+```ts
+const queryRunner = dataSource.createQueryRunner()
+await queryRunner.query("SELECT 1")
+await queryRunner.release()
+```
+
+**important:** Make sure to `release()` the query runner after you're done with it, otherwise that postgres connection will stay open (connection leak, and postgres only has max 100 connections by default).
+
+###### Raw SQL queries
+
+Sometimes you're doing something so niche that the query builder doesn't support it, it would make it far less performant, or it would be much harder to do with the query builder compared to just writing raw SQL.
+
+```ts
+const users = await this.dataSource.query(`
+  SELECT * FROM users 
+  WHERE id = $1 AND status = $2
+`, [userId, status]);
+```
+
+Important: Never insert user-provided values directly into raw SQL queries (allows for prompt injection - [Little Bobby Tables](https://xkcd.com/327/) sends his regards).
+
+###### Always include tiebreakers in your SELECT queries
+
+Because our tests run in parallel, it's possible for two tests to have the exact same `createdAt` date (technically also possible in prod).
+To avoid this, always include a tiebreaker in your `ORDER BY` clause, such as `id`.
+
 ##### Examples of typeorm runtime errors
 
 ###### Missing relations
@@ -764,6 +824,8 @@ createdQueue = await transactionalEntityManager
 
 #### Testing
 
+See `docs/DEVELOPING.md#testing` for basics on our testing setup and how to run the tests.
+
 ##### What is mocking?
 
 Mocking is when you replace one function with another "mock" function instead. This mock function is usually just an empty function, but you can have it return something too (e.g. dummy data).
@@ -775,6 +837,24 @@ In general, it is recommended to only mock if you absolutely have to. For exampl
 Another example where you might need to mock is if you are dealing with a technology/library that doesn't play nice with jest for whatever reason (e.g. maybe redis or cron).
 
 In general though, try not to mock (e.g. don't mock database calls/returns). This is because mocking eliminates one of the key benefits of testing: knowing what things break after a change (aka regression testing). If you mock someone else's function but then they change something about it (like its parameters), the tests may still pass even though they should have failed. Another example is when you update a package and they adjust their APIs or behaviour but since you mocked their functions the test still pass instead of failing.
+
+##### Parallel tests and determinism
+
+Integration and unit tests run in parallel. Each Jest worker owns its own
+PostgreSQL databases (`test_<id>`, `chatbot_test_<id>`, `lti_test_<id>`) and
+Redis logical database, so tests must not assume they are the only thing using
+the machine. Within a single test file, tests still run sequentially.
+
+Things that make parallel tests flaky:
+
+- Depending on row order without an explicit `ORDER BY` (especially with
+  `createdAt` ties). Always add a stable tie-breaker such as `id`.
+- Forgetting to `await` a promise in a test or `afterEach`; cleanup can overlap
+  the next test.
+- Starting a real `CronJob` and not stopping it. Mocked scheduler registries do
+  not stop `job.start()` from creating a real timer.
+- Creating a TypeORM query runner and forgetting to `release()` it. This leaks
+  a connection from the pool (and can deadlock once the pool is exhausted).
 
 #### Event Subscribers
 
@@ -797,8 +877,8 @@ If you have any ideas on where to even start with fixing these, feel free to giv
 
 - Sometimes the HMR/hot reload/hot refresh (the thing that immediately rebuilds your running code after saving) doesn't work for the Nestjs server. Sometimes this is a result of it just taking an extra minute to rebuild. Other times it's just stuck and you will need to `ctrl`+`c` the terminal and run `yarn dev` again. 
   - Note: I found that turning AutoSave off and then manually saving when you want to check changes helps. I think HMR gets stuck if it tries to rebuild the backend when it's already rebuilding it. 
-- Sometimes the tests will just start failing on dev (usually with database connection errors, deadlock, or some table already existing). Restarting your computer *might* help
-- There's like a 1 in 40 chance or so that the tests will fail on github actions with one of the errors listed above
+- (SHOULD BE FIXED) Sometimes the tests will just start failing on dev (usually with database connection errors, deadlock, or some table already existing). Restarting your computer *might* help
+- (SHOULD BE FIXED) There's like a 1 in 40 chance or so that the tests will fail on github actions with one of the errors listed above
 - UI randomly looking funky with no changes? This is very uncommon, but it could be antd updating their css (even though we're using a package manager so we *should* be getting the same version each time. But, I did read somewhere that yarn and other package managers will download newer minor versions of packages even though we have a smaller version in our package.json), or maybe browser caching issue (try `ctrl`+`F5`. It's usually not this but a man can dream).
 - You might run into issues when switching between branches with different migrations (i.e. the database has a different schema between branches) which conflict in some way (typeorm usually resolves fine, but it will error if, for example, a field gets NULL in a non-nullable column). There are a couple of things you can do to fix this.
   - Before switching branches, clear all data using the `/dev` endpoint. (easier)
