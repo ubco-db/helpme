@@ -14,8 +14,13 @@ module.exports = {
   globalSetup: '<rootDir>/../test/setup/global-setup.js',
   testRegex: '.spec.ts$',
   transform: {
-    '^.+\.(ts|tsx)$': 'ts-jest',
-    '\.md$': '<rootDir>/../test/markdown-transformer.js',
+    // Transpile-only: `yarn tsc` is the authoritative type check, so duplicating
+    // it for every test file only slows tests down. So, we enable isolatedModules to not need to fully compile with typescript.
+    '^.+\\.(ts|tsx)$': [
+      'ts-jest',
+      { tsconfig: '<rootDir>/../tsconfig.jest.json' },
+    ],
+    '\\.md$': '<rootDir>/../test/markdown-transformer.js',
   },
   coverageDirectory: '../coverage',
   testEnvironment: 'node',

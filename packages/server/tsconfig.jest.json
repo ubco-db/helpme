@@ -1,0 +1,10 @@
+{
+  // Jest only needs to transpile test files. Full type checking is done once by
+  // `yarn tsc`, so enabling `isolatedModules` lets ts-jest skip the duplicated
+  // type-check work (see docs/PLAN.md).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "isolatedModules": true,
+    "incremental": false
+  }
+}

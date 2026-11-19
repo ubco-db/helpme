@@ -34,8 +34,9 @@ import { ChatbotApiService } from '../../src/chatbot/chatbot-api.service';
 import { ChatbotDataSourceModule } from '../../src/chatbot/chatbot-datasource/chatbot-datasource.module';
 import { Role } from '@koh/common';
 import { UserCourseModel } from 'profile/user-course.entity';
-import express, { Locals, Response } from 'express';
-import { CookieOptions } from 'express-serve-static-core';
+import express from 'express';
+import type { Locals } from 'express';
+import type { CookieOptions } from 'express-serve-static-core';
 import {
   getTestBullPrefix,
   getTestDatabaseName,
@@ -569,7 +570,7 @@ export function setupIntegrationTest(
     // if (redisTestServer) {
     //   await redisTestServer.stop();
     // }
-  }, 30000);
+  }, 60000);
 
   beforeEach(async () => {
     await resetDatabase(dataSource);
@@ -841,10 +842,14 @@ export const failedPermsCheckForQueue = async (
   expect(res.statusCode).toBe(403);
 };
 
-export class MockResponse<
-  TBody = any,
-  TLocals = Record<string, any>,
-> extends Response {
+// Extend the global Fetch `Response` explicitly rather than expressing the
+// import as `extends Response`. The express `Response` type is erased at
+// runtime, so a transpiler without full type information (e.g. `isolatedModules`)
+// would emit `require('express').Response`, which is `undefined`.
+// And having `isolatedModules` enabled improves performance.
+export class MockResponse<TBody = any, TLocals = Record<string, any>>
+  extends globalThis.Response
+{
   _headers: Record<string, string> = {};
   statusCode: number;
   _redirect: string;

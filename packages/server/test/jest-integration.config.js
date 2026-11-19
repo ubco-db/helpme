@@ -15,8 +15,13 @@ module.exports = {
   testEnvironment: 'node',
   testRegex: '.integration.ts$',
   transform: {
-    '^.+\.(ts|tsx)$': 'ts-jest',
-    '\.md$': '<rootDir>/markdown-transformer.js',
+    // Transpile-only: `yarn tsc` is the authoritative type check, so duplicating
+    // it for every test file only slows tests down. See docs/PLAN.md.
+    '^.+\\.(ts|tsx)$': [
+      'ts-jest',
+      { tsconfig: '<rootDir>/../tsconfig.jest.json' },
+    ],
+    '\\.md$': '<rootDir>/markdown-transformer.js',
   },
   moduleDirectories: ['node_modules', 'src'],
   maxWorkers: getMaxWorkers(),
