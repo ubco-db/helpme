@@ -6,9 +6,14 @@
     "postinstall": "rimraf node_modules/@types/react-native",
     "cli": "yarn workspace @koh/server cli",
     "tsc": "yarn workspaces run tsc",
+    "lint": "yarn lint:full",
+    "lint:fast": "eslint --config eslint.fast.config.js packages/",
     "lint:fast:fix": "eslint --config eslint.fast.config.js packages/ --fix",
     "lint:full": "eslint --config eslint.full.config.js packages/",
-    "lint:config:test": "node --test infrastructure/lint/eslint.test.cjs",
+    "lint:full:fix": "eslint --config eslint.full.config.js packages/ --fix",
+    "lint:config:test": "node --test infrastructure/lint/eslint.test.cjs infrastructure/docs/update-toc.test.mjs",
+    "docs:toc": "node infrastructure/docs/update-toc.mjs docs/*.md",
+    "docs:toc:all": "node infrastructure/docs/update-toc.mjs --all docs/*.md",
     "test": "yarn workspace @koh/server test",
     "test:unit": "yarn workspace @koh/server test:unit",
     "test:integration": "yarn workspace @koh/server test:integration",
@@ -75,7 +80,8 @@
     "packages/**/*.{ts,tsx}": [
       "prettier --write",
       "eslint --config eslint.fast.config.js --fix"
-    ]
+    ],
+    "**/*.md": "node infrastructure/docs/update-toc.mjs"
   },
   "jest": {
     "projects": [

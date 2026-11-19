@@ -1,24 +1,30 @@
 # Developing Guidelines
 
-- [Developing Guidelines](#developing-guidelines)
-  - [Installation to run locally](#installation-to-run-locally)
-  - [Technologies](#technologies)
-  - [File Structure](#file-structure)
-  - [Developing](#developing)
-    - [Running locally outside a Docker container](#running-locally-outside-a-docker-container)
-    - [Running locally within a Docker container](#running-locally-within-a-docker-container)
-    - [Database changes](#database-changes)
-      - [Migrations](#migrations)
-    - [Adding an API Route](#adding-an-api-route)
-    - [Testing](#testing)
-      - [All tests are failing locally](#all-tests-are-failing-locally)
-    - [Installing new packages](#installing-new-packages)
-  - [Code Formatting](#formatting-and-linting)
-  - [Tips](#tips)
-  - [Testing the Production Environment locally](#testing-the-production-environment-locally)
-  - [Production](#production)
-    - [Changelog](#changelog)
-  - [Misc](#misc)
+<!-- toc (updates automatically on commit) -->
+- [Developing Guidelines](#developing-guidelines) (L1)
+  - [Installation to run locally](#installation-to-run-locally) (L29)
+  - [Technologies](#technologies) (L56)
+  - [File Structure](#file-structure) (L69)
+  - [Developing](#developing) (L86)
+    - [Running locally outside a Docker container](#running-locally-outside-a-docker-container) (L88)
+    - [Running locally within a Docker container](#running-locally-within-a-docker-container) (L92)
+    - [Database changes](#database-changes) (L108)
+      - [Migrations](#migrations) (L119)
+    - [Adding an API Route](#adding-an-api-route) (L129)
+    - [Testing](#testing) (L139)
+      - [Running tests](#running-tests) (L151)
+      - [Testing parallelism details](#testing-parallelism-details) (L160)
+      - [All tests are failing locally](#all-tests-are-failing-locally) (L189)
+    - [Installing new packages](#installing-new-packages) (L211)
+  - [Formatting and Linting](#formatting-and-linting) (L216)
+    - [Manual checks and fixes](#manual-checks-and-fixes) (L228)
+    - [Editor setup](#editor-setup) (L249)
+  - [Tips](#tips) (L263)
+  - [Testing the Production Environment locally](#testing-the-production-environment-locally) (L271)
+  - [Production](#production) (L280)
+    - [Changelog](#changelog) (L289)
+  - [Misc](#misc) (L294)
+<!-- toc:end -->
 
 ## Installation to run locally
 
@@ -174,6 +180,12 @@ Worker count is `min(availableParallelism() - 1, 12)` (e.g. 11 workers on a
 the same per-worker resource names, so do not run them concurrently in two
 terminals. `--runInBand` still works for debugging and uses worker 1's resources.
 
+Jest parallelizes test **files**, not individual tests inside a file. If one
+integration file becomes the bottleneck, split it into parts (see
+`chatbot.part1.integration.ts` and `lti.part1.integration.ts`). Keep the parts
+roughly balanced, and follow the note at the bottom of a part that says not to
+add more tests to it.
+
 #### All tests are failing locally
 
 UPDATE: This should be fixed now. The test databases are recreated on every Jest run, so stale database state is no longer a likely cause. If something looks wedged, stop the Jest process and rerun it. 
@@ -207,7 +219,7 @@ We use [Prettier](https://prettier.io/) for formatting (`.prettierrc.json`) and 
 
 - **Editor (assuming you have the right extensions):** Shows full ESLint warnings within your editor (underlines), including type-aware Promise checks. If this noticeably affects performance, change `eslint.config.js` to require `./eslint.fast.config.js` instead of `./eslint.full.config.js`, then restart your editor. This provides fewer checks, however. 
 - **On save (assuming autosave is off):** Applies Prettier formatting. 
-- **On commit:** Applies Prettier and fast ESLint automatic fixes to staged TS/TSX files.
+- **On commit:** Applies Prettier and fast ESLint automatic fixes to staged TS/TSX files, and regenerates the table of contents of staged Markdown files.
 - **CI:** Runs full ESLint checks and TypeScript checking. ESLint warnings are printed for review; warnings are advisory, while error-level findings fail the lint check. The output includes all warnings, not just newly introduced ones.
 - **Production build:** Does not run eslint (since it's more annoying to fix eslint errors right before a deploy), but will run `yarn tsc` to see if there's any typescript build errors. Therefore, it may be worthwhile to run `yarn tsc` locally as an extra safe-gaurd to make sure new changes didn't break anything (can also take a min to run)
 
@@ -229,6 +241,10 @@ yarn eslint --config eslint.full.config.js "packages/frontend/somefile1.config.t
 ```
 
 `yarn lint:fast:fix` skips certian checks to make it faster (type-aware checks (so it doesn't need to build the typescript project) and stuff with promises) and then attempts to automatically fix any issues it finds across the entire codebase. It runs automatically on commit.
+
+Some project-specific rules live in `infrastructure/lint/helpme-plugin.cjs`. They flag things that are easy to miss in review, such as `synchronize(true)` (drops and recreates the schema), `flushall()` (wipes other test workers' Redis data), and query runners that are not released in a `finally` block.
+
+Tables of contents in Markdown files include line numbers. Regenerate them manually with `yarn docs:toc` (only files that already have a ToC) or `yarn docs:toc:all` (also adds one to files that do not have one).
 
 ### Editor setup
 

@@ -309,6 +309,71 @@ test('production builds check TypeScript without running ESLint', () => {
   assert.doesNotMatch(frontend.scripts.build, /eslint|lint:/)
 })
 
+test('database recreating and Redis-wide flushes are flagged', async () => {
+  const result = await lint(
+    `
+    declare const dataSource: { synchronize(dropBeforeSync: boolean): Promise<void> }
+    declare const redis: { flushall(): Promise<void>; flushdb(): Promise<void> }
+    export async function probe() {
+      await dataSource.synchronize(true)
+      await redis.flushall()
+      await redis.flushdb()
+    }
+  `,
+    serverFile,
+  )
+  const ruleIds = result.messages.map((message) => message.ruleId)
+  assert.ok(ruleIds.includes('helpme/no-synchronize-drop'))
+  assert.ok(ruleIds.includes('helpme/no-redis-flushall'))
+  assert.equal(
+    ruleIds.filter((ruleId) => ruleId === 'helpme/no-redis-flushall').length,
+    1,
+    'flushdb must not be flagged',
+  )
+})
+
+test('query runners must be released in a finally block', async () => {
+  const result = await lint(
+    `
+    declare const dataSource: {
+      createQueryRunner(): {
+        connect(): Promise<void>
+        release(): Promise<void>
+      }
+    }
+    export async function released() {
+      const runner = dataSource.createQueryRunner()
+      await runner.connect()
+      try {
+        await runner.connect()
+      } finally {
+        await runner.release()
+      }
+    }
+    export async function leaked() {
+      const runner = dataSource.createQueryRunner()
+      await runner.connect()
+    }
+    export async function onlyOnHappyPath() {
+      const runner = dataSource.createQueryRunner()
+      await runner.connect()
+      await runner.release()
+    }
+    export function inline() {
+      return dataSource.createQueryRunner()
+    }
+  `,
+    serverFile,
+  )
+  const runnerMessages = result.messages.filter(
+    (message) => message.ruleId === 'helpme/require-query-runner-release',
+  )
+  assert.deepEqual(
+    runnerMessages.map((message) => message.messageId).sort(),
+    ['missingRelease', 'releaseInFinally', 'storeResult'],
+  )
+})
+
 test('editor saves format with Prettier without applying ESLint fixes', () => {
   const fs = require('node:fs')
   const { parseConfigFileTextToJson } = require('typescript')
