@@ -2,7 +2,11 @@ import { DataSource } from 'typeorm';
 import { ApplicationConfigService } from './application_config.service';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
+import {
+  resetDatabase,
+  TestConfigModule,
+  TestTypeOrmModule,
+} from '../../test/util/testUtils';
 
 describe('ApplicationConfigService', () => {
   let service: ApplicationConfigService;
@@ -23,7 +27,7 @@ describe('ApplicationConfigService', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.synchronize(true);
+    await resetDatabase(dataSource);
   });
 
   describe('loadConfig', () => {

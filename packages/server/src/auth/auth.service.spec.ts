@@ -7,7 +7,9 @@ import {
   OPEN_ID_SCOPES,
 } from './auth.service';
 import {
+  getTestRedisDb,
   MockResponse,
+  resetDatabase,
   TestConfigModule,
   TestTypeOrmModule,
 } from '../../test/util/testUtils';
@@ -134,7 +136,8 @@ describe('AuthService', () => {
           errorLog: true,
           commonOptions: {
             host: process.env.REDIS_HOST || 'localhost',
-            port: 6379,
+            port: Number.parseInt(process.env.REDIS_PORT || '6379', 10),
+            db: getTestRedisDb(),
           },
           config: [
             {
@@ -181,7 +184,7 @@ describe('AuthService', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.synchronize(true);
+    await resetDatabase(dataSource);
     roleChangeSpy = jest.spyOn(OrganizationService.prototype, 'addRoleHistory');
   });
 

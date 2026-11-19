@@ -1,4 +1,9 @@
-import { setupIntegrationTest } from './util/testUtils';
+// This suite is split across multiple files for performance: Jest runs test
+// files in parallel (one per worker) but tests within each file sequentially.
+// This file was one of the slowest integration suites, so its tests are split
+// roughly 60/40 by runtime between part1 and part2.
+
+import { resetDatabase, setupIntegrationTest } from './util/testUtils';
 import LtiMiddleware from '../src/lti/lti.middleware';
 import { LtiModule } from '../src/lti/lti.module';
 import type { Provider } from '@bhunt02/lti-typescript';
@@ -22,12 +27,8 @@ import {
   UserLtiIdentityFactory,
 } from './util/factories';
 import type express from 'express';
-import type {
-  CreateLtiPlatform,
-  LtiPlatform,
-  UpdateLtiPlatform,
-} from '@koh/common';
-import { AuthMethodEnum, ERROR_MESSAGES, Role, UserRole } from '@koh/common';
+import type { LtiPlatform } from '@koh/common';
+import { ERROR_MESSAGES, Role, UserRole } from '@koh/common';
 import { mapToLocalPlatform } from '../src/lti/lti.controller';
 import { LtiService } from '../src/lti/lti.service';
 import { EmbeddableQuestionModel } from '../src/lti/embeddable-question/embeddable-question.entity';
@@ -36,6 +37,7 @@ import { LtiOrganizationRegistrationModel } from '../src/lti/lti-organization-re
 import * as jwt from 'jsonwebtoken';
 import { UserCourseModel } from '../src/profile/user-course.entity';
 import { UserLtiIdentityModel } from '../src/lti/user_lti_identity.entity';
+import { getTestDatabaseName } from './setup/testEnvironment';
 
 const gradingSettings = (rubric: string) => ({
   rubric,
@@ -48,11 +50,12 @@ const gradingSettings = (rubric: string) => ({
 const testEncryptionKey = 'abcdefg';
 const testLtiDbOptions: any = {
   type: 'postgres',
-  host: 'localhost',
-  port: 5432,
+  host: process.env.POSTGRES_HOST || 'localhost',
+  port: Number.parseInt(process.env.POSTGRES_PORT || '5432', 10),
   username: process.env.POSTGRES_NONROOT_USER,
   password: process.env.POSTGRES_NONROOT_PASSWORD,
-  database: 'lti_test',
+  database: getTestDatabaseName('lti_test'),
+  extra: { max: 3 }, // max 3 connections. Kept small on purpose for tests (that way it can help expose leaks before it reaches prod).
 };
 
 jest.setTimeout(20000);
@@ -141,13 +144,12 @@ describe('LtiController', () => {
   });
 
   afterEach(async () => {
-    await Database.dataSource.synchronize(true);
+    await resetDatabase(Database.dataSource);
   });
 
   afterAll(async () => {
     await provider.close();
   });
-
   it('preserves the registration, signing key, and organization mapping when its remote registration returns 404', async () => {
     const ltiSecret = process.env.LTI_SECRET_KEY;
     process.env.LTI_SECRET_KEY = testEncryptionKey;
@@ -609,252 +611,7 @@ describe('LtiController', () => {
     });
   });
 
-  describe('GET lti/platform/:kid', () => {
-    let url: string;
-
-    beforeEach(async () => {
-      url = `/lti/platform/${platforms[0].kid}`;
-    });
-
-    it('should fail with 401 if user is unauthorized', async () => {
-      await supertest()
-        .get(url)
-        .expect(401)
-        .then((response) => {
-          expect(response.body).toHaveProperty('message', 'Unauthorized');
-        });
-    });
-
-    it('should fail with 403 if user does not have website admin role', async () => {
-      const user = await UserFactory.create();
-      await supertest({ userId: user.id })
-        .get(url)
-        .expect(403)
-        .then((response) => {
-          expect(response.body).toHaveProperty(
-            'message',
-            ERROR_MESSAGES.roleGuard.mustBeRoleToAccess([UserRole.ADMIN]),
-          );
-        });
-    });
-
-    it('should succeed with 200 and return HMS-platform representation', async () => {
-      const user = await UserFactory.create({ userRole: UserRole.ADMIN });
-
-      await supertest({ userId: user.id })
-        .get(url)
-        .expect(200)
-        .then((response) => {
-          expect(response.body).toEqual(platforms[0]);
-        });
-    });
-  });
-
-  describe('POST lti/platform', () => {
-    const url = '/lti/platform';
-
-    it('should fail with 401 if user is unauthorized', async () => {
-      await supertest()
-        .post(url)
-        .expect(401)
-        .then((response) => {
-          expect(response.body).toHaveProperty('message', 'Unauthorized');
-        });
-    });
-
-    it('should fail with 403 if user does not have website admin role', async () => {
-      const user = await UserFactory.create();
-      await supertest({ userId: user.id })
-        .post(url)
-        .expect(403)
-        .then((response) => {
-          expect(response.body).toHaveProperty(
-            'message',
-            ERROR_MESSAGES.roleGuard.mustBeRoleToAccess([UserRole.ADMIN]),
-          );
-        });
-    });
-
-    it('should fail with 400 if missing properties or properties incorrect', async () => {
-      const user = await UserFactory.create({ userRole: UserRole.ADMIN });
-
-      await supertest({ userId: user.id }).post(url).expect(400);
-    });
-
-    it('should succeed with 201 and return HMS-platform representation', async () => {
-      const user = await UserFactory.create({ userRole: UserRole.ADMIN });
-
-      const props = {
-        platformUrl: 'http://platform.com',
-        clientId: '4',
-        name: 'platform4',
-        authenticationEndpoint: 'http://platform.com/auth',
-        accessTokenEndpoint: 'http://platform.com/keys',
-        active: true,
-        authToken: {
-          method: AuthMethodEnum.JWK_SET,
-          key: 'http://platform.com/keys',
-        },
-      } satisfies CreateLtiPlatform;
-
-      await supertest({ userId: user.id })
-        .post(url)
-        .send(props)
-        .expect(201)
-        .then((response) => {
-          expect(response.body).toEqual(
-            expect.objectContaining({
-              ...props,
-            }),
-          );
-        });
-    });
-  });
-
-  describe('PATCH lti/platform/:kid', () => {
-    let url: string;
-
-    beforeEach(async () => {
-      url = `/lti/platform/${platforms[0].kid}`;
-    });
-
-    it('should fail with 401 if user is unauthorized', async () => {
-      await supertest()
-        .patch(url)
-        .expect(401)
-        .then((response) => {
-          expect(response.body).toHaveProperty('message', 'Unauthorized');
-        });
-    });
-
-    it('should fail with 403 if user does not have website admin role', async () => {
-      const user = await UserFactory.create();
-      await supertest({ userId: user.id })
-        .patch(url)
-        .expect(403)
-        .then((response) => {
-          expect(response.body).toHaveProperty(
-            'message',
-            ERROR_MESSAGES.roleGuard.mustBeRoleToAccess([UserRole.ADMIN]),
-          );
-        });
-    });
-
-    it('should succeed with 200 and return HMS-platform representation', async () => {
-      const user = await UserFactory.create({ userRole: UserRole.ADMIN });
-
-      const props = {
-        platformUrl: 'http://platform.com',
-        clientId: '4',
-        name: 'platform4',
-        authenticationEndpoint: 'http://platform.com/auth',
-        accessTokenEndpoint: 'http://platform.com/keys',
-        active: true,
-        authToken: {
-          method: AuthMethodEnum.JWK_SET,
-          key: 'http://platform.com/keys',
-        },
-      } satisfies UpdateLtiPlatform;
-
-      await supertest({ userId: user.id })
-        .patch(url)
-        .send(props)
-        .expect(200)
-        .then((response) => {
-          expect(response.body).toEqual(
-            expect.objectContaining({
-              ...props,
-            }),
-          );
-        });
-
-      const prov = mapToLocalPlatform(
-        (await provider.getPlatformById(platforms[0].kid))['platformModel'],
-      );
-      expect(prov).toEqual(expect.objectContaining({ ...props }));
-    });
-  });
-
-  describe('DELETE lti/platform/:kid', () => {
-    let url: string;
-
-    beforeEach(async () => {
-      url = `/lti/platform/${platforms[0].kid}`;
-    });
-
-    it('should fail with 401 if user is unauthorized', async () => {
-      await supertest()
-        .delete(url)
-        .expect(401)
-        .then((response) => {
-          expect(response.body).toHaveProperty('message', 'Unauthorized');
-        });
-    });
-
-    it('should fail with 403 if user does not have website admin role', async () => {
-      const user = await UserFactory.create();
-      await supertest({ userId: user.id })
-        .delete(url)
-        .expect(403)
-        .then((response) => {
-          expect(response.body).toHaveProperty(
-            'message',
-            ERROR_MESSAGES.roleGuard.mustBeRoleToAccess([UserRole.ADMIN]),
-          );
-        });
-    });
-
-    it('should succeed with 200', async () => {
-      const user = await UserFactory.create({ userRole: UserRole.ADMIN });
-
-      await supertest({ userId: user.id }).delete(url).expect(200);
-
-      const found = await provider.getPlatformById(platforms[0].kid);
-      expect(found).toBeUndefined();
-    });
-  });
-
-  describe('POST lti/platform/:kid/toggle', () => {
-    let url: string;
-
-    beforeEach(async () => {
-      url = `/lti/platform/${platforms[0].kid}/toggle`;
-    });
-
-    it('should fail with 401 if user is unauthorized', async () => {
-      await supertest()
-        .patch(url)
-        .expect(401)
-        .then((response) => {
-          expect(response.body).toHaveProperty('message', 'Unauthorized');
-        });
-    });
-
-    it('should fail with 403 if user does not have website admin role', async () => {
-      const user = await UserFactory.create();
-      await supertest({ userId: user.id })
-        .patch(url)
-        .expect(403)
-        .then((response) => {
-          expect(response.body).toHaveProperty(
-            'message',
-            ERROR_MESSAGES.roleGuard.mustBeRoleToAccess([UserRole.ADMIN]),
-          );
-        });
-    });
-
-    it('should enable/disable platform', async () => {
-      const user = await UserFactory.create({ userRole: UserRole.ADMIN });
-
-      await supertest({ userId: user.id }).patch(url).expect(200);
-
-      let found = await provider.getPlatformById(platforms[0].kid);
-      expect(found.active).toEqual(false);
-
-      await supertest({ userId: user.id }).patch(url).expect(200);
-
-      found = await provider.getPlatformById(platforms[0].kid);
-      expect(found.active).toEqual(true);
-    });
-  });
+  // DO NOT ADD MORE TESTS TO THIS FILE. It is the larger half of a split
+  // suite and will become the bottleneck again. Add new tests to
+  // lti.part2.integration.ts instead.
 });

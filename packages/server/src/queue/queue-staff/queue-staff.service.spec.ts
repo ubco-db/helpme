@@ -19,12 +19,14 @@ import {
   QueueStaffFactory,
 } from '../../../test/util/factories';
 import {
+  resetDatabase,
   TestTypeOrmModule,
   TestConfigModule,
 } from '../../../test/util/testUtils';
 import { QuestionModel } from '../../question/question.entity';
 import { QueueStaffService } from './queue-staff.service';
 import { SchedulerRegistry } from '@nestjs/schedule';
+import { CronJob } from 'cron';
 import { QuestionService } from 'question/question.service';
 import { RedisQueueService } from 'redisQueue/redis-queue.service';
 import { QueueService } from 'queue/queue.service';
@@ -43,8 +45,13 @@ describe('QueueStaffService', () => {
   let dataSource: DataSource;
   let schedulerRegistry: SchedulerRegistry;
   let module: TestingModule;
+  let cronStartSpy: jest.SpyInstance;
 
   beforeAll(async () => {
+    // The real SchedulerRegistry is mocked, but the service calls job.start()
+    // directly. Track those jobs so they cannot fire after the test tears down
+    // the DataSource.
+    cronStartSpy = jest.spyOn(CronJob.prototype, 'start');
     module = await Test.createTestingModule({
       imports: [TestTypeOrmModule, TestConfigModule, FactoryModule],
       providers: [
@@ -116,9 +123,14 @@ describe('QueueStaffService', () => {
 
   beforeEach(async () => {
     if (dataSource.isInitialized) {
-      await dataSource.synchronize(true);
+      await resetDatabase(dataSource);
     }
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    (cronStartSpy.mock.contexts as CronJob[]).forEach((job) => job.stop());
+    cronStartSpy.mockClear();
   });
 
   describe('cleanQueue', () => {
@@ -373,7 +385,9 @@ describe('QueueStaffService', () => {
       jest
         .spyOn(service, 'deleteAllLeaveQueueCronJobsForQueue')
         .mockImplementation();
-      jest.clearAllMocks(); // clear addCronJob calls from previous Create
+      // Only clear addCronJob calls; clearing every mock would hide the jobs
+      // tracked by CronJob.prototype.start from afterEach.
+      (schedulerRegistry.addCronJob as jest.Mock).mockClear();
 
       await service.promptStudentsToLeaveQueue(queue.id, dataSource.manager);
 

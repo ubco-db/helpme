@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import { ChatbotService, openAIModels } from './chatbot.service';
 import {
+  resetDatabase,
   TestChatbotDataSourceModule,
   TestConfigModule,
   TestTypeOrmModule,
@@ -67,6 +68,7 @@ describe('ChatbotService', () => {
   let subscriber: ChatbotSettingsSubscriber;
   let dataSource: DataSource;
   let chatbotDataSourceService: ChatbotDataSourceService;
+  let module: TestingModule;
 
   let organization0: OrganizationModel;
   let organization1: OrganizationModel;
@@ -79,7 +81,7 @@ describe('ChatbotService', () => {
   let providers: ChatbotProviderModel[] = [];
 
   beforeAll(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       imports: [
         TestTypeOrmModule,
         TestConfigModule,
@@ -115,7 +117,9 @@ describe('ChatbotService', () => {
   });
 
   afterAll(async () => {
-    await dataSource.destroy();
+    // Closes both the main and chatbot data sources (and drops the chatbot
+    // schema via ChatbotDataSourceService.onModuleDestroy).
+    await module.close();
   });
 
   let updateChatbotRepositorySpy: jest.SpyInstance;
@@ -127,19 +131,16 @@ describe('ChatbotService', () => {
     );
   });
 
-  afterEach(() => {
-    chatbotDataSourceService.getDataSource().then(() => {
-      Promise.allSettled(
-        chatbotTables.map(async (table) => {
-          await chatbotDataSourceService.clearTable(table);
-        }),
-      ).then();
-    });
+  afterEach(async () => {
+    // Await cleanup so tables are empty before the next test starts.
+    await Promise.all(
+      chatbotTables.map((table) => chatbotDataSourceService.clearTable(table)),
+    );
     updateChatbotRepositorySpy.mockRestore();
   });
 
   beforeEach(async () => {
-    await dataSource.synchronize(true);
+    await resetDatabase(dataSource);
     organization0 = await OrganizationFactory.create({
       id: 1,
     });
@@ -953,7 +954,7 @@ describe('ChatbotService', () => {
         const updated = await service.updateLLMType(
           model,
           params,
-          useEntityManager ? dataSource.createQueryRunner().manager : undefined,
+          useEntityManager ? dataSource.manager : undefined,
         );
         expect(
           pick(updated, ['modelName', 'isText', 'isThinking', 'isVision']),
@@ -990,9 +991,7 @@ describe('ChatbotService', () => {
         await expect(
           service.deleteChatbotProvider(
             provider.id,
-            useEntityManager
-              ? dataSource.createQueryRunner().manager
-              : undefined,
+            useEntityManager ? dataSource.manager : undefined,
           ),
         ).rejects.toThrow(
           new BadRequestException(
@@ -1017,9 +1016,7 @@ describe('ChatbotService', () => {
         await expect(
           service.deleteChatbotProvider(
             provider0.id,
-            useEntityManager
-              ? dataSource.createQueryRunner().manager
-              : undefined,
+            useEntityManager ? dataSource.manager : undefined,
           ),
         ).rejects.toThrow(
           new BadRequestException(
@@ -1035,7 +1032,7 @@ describe('ChatbotService', () => {
         const provider = providers[1];
         await service.deleteChatbotProvider(
           provider.id,
-          useEntityManager ? dataSource.createQueryRunner().manager : undefined,
+          useEntityManager ? dataSource.manager : undefined,
         );
 
         expect(updateChatbotRepositorySpy).toHaveBeenCalledTimes(
@@ -1069,9 +1066,7 @@ describe('ChatbotService', () => {
         await expect(
           service.deleteLLMType(
             provider.defaultModelId,
-            useEntityManager
-              ? dataSource.createQueryRunner().manager
-              : undefined,
+            useEntityManager ? dataSource.manager : undefined,
           ),
         ).rejects.toThrow(
           new BadRequestException(
@@ -1088,9 +1083,7 @@ describe('ChatbotService', () => {
         await expect(
           service.deleteLLMType(
             provider.defaultVisionModelId,
-            useEntityManager
-              ? dataSource.createQueryRunner().manager
-              : undefined,
+            useEntityManager ? dataSource.manager : undefined,
           ),
         ).rejects.toThrow(
           new BadRequestException(
@@ -1123,7 +1116,7 @@ describe('ChatbotService', () => {
 
         await service.deleteLLMType(
           llmType.id,
-          useEntityManager ? dataSource.createQueryRunner().manager : undefined,
+          useEntityManager ? dataSource.manager : undefined,
         );
 
         expect(updateChatbotRepositorySpy).toHaveBeenCalledTimes(

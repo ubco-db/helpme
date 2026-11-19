@@ -267,6 +267,7 @@ export class LMSIntegrationController {
           ? v.organizationIntegration.apiPlatform == platform
           : true,
       )
+      .sort((a, b) => a.id - b.id)
       .map((v) => ({
         id: v.id,
         platform: v.organizationIntegration.apiPlatform,

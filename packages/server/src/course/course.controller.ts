@@ -1155,7 +1155,7 @@ export class CourseController {
               COALESCE(qc.count, 0) as count
             FROM student_weeks sw
             LEFT JOIN question_counts qc ON sw.user_id = qc.user_id AND sw.period_date = qc.period_date
-            ORDER BY sw."lastName", sw."firstName", sw.period_date
+            ORDER BY sw."lastName", sw."firstName", sw.period_date, sw.user_id
           `
           : `
             WITH student_days AS (
@@ -1197,7 +1197,7 @@ export class CourseController {
               COALESCE(qc.count, 0) as count
             FROM student_days sd
             LEFT JOIN question_counts qc ON sd.user_id = qc.user_id AND sd.period_date = qc.period_date
-            ORDER BY sd."lastName", sd."firstName", sd.period_date
+            ORDER BY sd."lastName", sd."firstName", sd.period_date, sd.user_id
           `;
 
         const queueResults = await UserCourseModel.query(queueQuery, [
@@ -1255,7 +1255,7 @@ export class CourseController {
               COALESCE(qc.count, 0) as count
             FROM student_weeks sw
             LEFT JOIN question_counts qc ON sw.user_id = qc.user_id AND sw.period_date = qc.period_date
-            ORDER BY sw."lastName", sw."firstName", sw.period_date
+            ORDER BY sw."lastName", sw."firstName", sw.period_date, sw.user_id
           `
           : `
             WITH student_days AS (
@@ -1297,7 +1297,7 @@ export class CourseController {
               COALESCE(qc.count, 0) as count
             FROM student_days sd
             LEFT JOIN question_counts qc ON sd.user_id = qc.user_id AND sd.period_date = qc.period_date
-            ORDER BY sd."lastName", sd."firstName", sd.period_date
+            ORDER BY sd."lastName", sd."firstName", sd.period_date, sd.user_id
           `;
 
         const anytimeResults = await UserCourseModel.query(anytimeQuery, [
@@ -1354,7 +1354,7 @@ export class CourseController {
               COALESCE(ic.count, 0) as count
             FROM student_weeks sw
             LEFT JOIN interaction_counts ic ON sw.user_id = ic.user_id AND sw.period_date = ic.period_date
-            ORDER BY sw."lastName", sw."firstName", sw.period_date
+            ORDER BY sw."lastName", sw."firstName", sw.period_date, sw.user_id
           `
           : `
             WITH student_days AS (
@@ -1395,7 +1395,7 @@ export class CourseController {
               COALESCE(ic.count, 0) as count
             FROM student_days sd
             LEFT JOIN interaction_counts ic ON sd.user_id = ic.user_id AND sd.period_date = ic.period_date
-            ORDER BY sd."lastName", sd."firstName", sd.period_date
+            ORDER BY sd."lastName", sd."firstName", sd.period_date, sd.user_id
           `;
 
         const chatbotResults = await UserCourseModel.query(chatbotQuery, [

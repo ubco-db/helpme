@@ -7,7 +7,8 @@ import {
 } from '@bhunt02/lti-typescript';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@koh/common';
-import { setupIntegrationTest } from './util/testUtils';
+import { resetDatabase, setupIntegrationTest } from './util/testUtils';
+import { getTestDatabaseName } from './setup/testEnvironment';
 import { LtiModule } from '../src/lti/lti.module';
 import {
   CourseFactory,
@@ -26,6 +27,7 @@ import {
 } from '../src/lti/lti.service';
 import { getAuthPayload } from '../src/login/auth-token';
 import { LtiOrganizationRegistrationModel } from '../src/lti/lti-organization-registration.entity';
+import type { DataSourceOptions } from 'typeorm';
 
 const gradingSettings = (rubric: string) => ({
   rubric,
@@ -87,13 +89,14 @@ describe('LTI question launch', () => {
     [mockLtiMiddleware],
   );
 
-  const ltiDbOptions = {
+  const ltiDbOptions: DataSourceOptions = {
     type: 'postgres' as const,
-    host: 'localhost',
-    port: 5432,
+    host: process.env.POSTGRES_HOST || 'localhost',
+    port: Number.parseInt(process.env.POSTGRES_PORT || '5432', 10),
     username: process.env.POSTGRES_NONROOT_USER,
     password: process.env.POSTGRES_NONROOT_PASSWORD,
-    database: 'lti_test',
+    database: getTestDatabaseName('lti_test'),
+    extra: { max: 3 }, // max 3 connections. Kept small on purpose for tests (that way it can help expose leaks before it reaches prod).
   };
   let provider: Provider;
   let platformId: string;
@@ -105,7 +108,7 @@ describe('LTI question launch', () => {
     await provider.close();
   });
   afterEach(async () => {
-    await Database.dataSource.synchronize(true);
+    await resetDatabase(Database.dataSource);
   });
 
   beforeEach(async () => {

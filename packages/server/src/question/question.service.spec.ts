@@ -18,7 +18,12 @@ import {
   CourseFactory,
   initFactoriesFromService,
 } from '../../test/util/factories';
-import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
+import {
+  getTestRedisDb,
+  resetDatabase,
+  TestTypeOrmModule,
+  TestConfigModule,
+} from '../../test/util/testUtils';
 import { QuestionGroupModel } from './question-group.entity';
 import { QuestionModel } from './question.entity';
 import { QuestionService } from './question.service';
@@ -55,7 +60,8 @@ describe('QuestionService', () => {
           errorLog: true,
           commonOptions: {
             host: process.env.REDIS_HOST || 'localhost',
-            port: 6379,
+            port: Number.parseInt(process.env.REDIS_PORT || '6379', 10),
+            db: getTestRedisDb(),
           },
           config: [
             {
@@ -147,7 +153,7 @@ describe('QuestionService', () => {
 
   beforeEach(async () => {
     if (dataSource.isInitialized) {
-      await dataSource.synchronize(true);
+      await resetDatabase(dataSource);
     }
   });
 

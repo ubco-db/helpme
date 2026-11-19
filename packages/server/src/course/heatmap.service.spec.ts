@@ -3,7 +3,7 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { QuestionModel } from 'question/question.entity';
 import { DataSource } from 'typeorm';
-import { TestTypeOrmModule } from '../../test/util/testUtils';
+import { resetDatabase, TestTypeOrmModule } from '../../test/util/testUtils';
 import { HeatmapService } from './heatmap.service';
 import type { Heatmap } from '@koh/common';
 import { ClosedQuestionStatus } from '@koh/common';
@@ -27,7 +27,7 @@ describe('HeatmapService', () => {
   });
 
   beforeEach(async () => {
-    await _dataSource.synchronize(true);
+    await resetDatabase(_dataSource);
   });
 
   it('_', () => {
