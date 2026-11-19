@@ -21,6 +21,9 @@ describe('Multiple LTI registrations migration', () => {
 
   beforeAll(async () => {
     await dataSource.initialize();
+    // Suite-scoped runner: released in afterAll, which still runs if beforeAll
+    // or a test throws.
+    // eslint-disable-next-line helpme/require-query-runner-release
     runner = dataSource.createQueryRunner();
     await runner.connect();
     await runner.query(`CREATE SCHEMA "lti_registration_migration_test"`);
