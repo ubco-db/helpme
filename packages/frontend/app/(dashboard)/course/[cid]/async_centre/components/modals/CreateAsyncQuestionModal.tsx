@@ -56,6 +56,7 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [isGeneratingAbstract, setIsGeneratingAbstract] = useState(false);
+  const currentAbstract = Form.useWatch('QuestionAbstract', form);
   const courseFeatures = useCourseFeatures(courseId);
   const authorCanSetVisible = courseFeatures?.asyncCentreAuthorPublic ?? false;
 
@@ -328,12 +329,21 @@ const CreateAsyncQuestionModal: React.FC<CreateAsyncQuestionModalProps> = ({
           }}
           suffix={
             <Tooltip title="Generate Abstract based on Question Text">
-              <Button
-                type="text"
-                icon={isGeneratingAbstract ? <Spin /> : <Wand2 size={16} />}
-                onClick={onGenerateAbstract}
-                disabled={isGeneratingAbstract}
-              />
+              <Popconfirm
+                title="Replace the current abstract?"
+                description="Generating an abstract will overwrite the text already in this field."
+                okText="Replace"
+                cancelText="Cancel"
+                disabled={!currentAbstract}
+                onConfirm={onGenerateAbstract}
+              >
+                <Button
+                  type="text"
+                  icon={isGeneratingAbstract ? <Spin /> : <Wand2 size={16} />}
+                  onClick={currentAbstract ? undefined : onGenerateAbstract}
+                  disabled={isGeneratingAbstract}
+                />
+              </Popconfirm>
             </Tooltip>
           }
         />
