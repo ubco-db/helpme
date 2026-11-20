@@ -252,11 +252,11 @@ export class ChatbotSettingsSubscriber implements EntitySubscriberInterface {
           JSON.stringify(findExisting?.metadata ?? {}) !==
             JSON.stringify(courseChatbotSettings.getMetadata())
         ) {
-          this.updateChatbotRepository(
+          await this.updateChatbotRepository(
             courseChatbotSettings,
             'upsert',
             findExisting,
-          ).then();
+          );
         }
       }),
     );

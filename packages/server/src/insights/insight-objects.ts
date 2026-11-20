@@ -350,6 +350,9 @@ export const QuestionTypeBreakdown: InsightObject = {
         })
         .andWhere('QuestionTypeModel.name IS NOT NULL')
         .orderBy('QuestionTypeModel.deletedAt', 'ASC')
+        // Deterministic tie-breaker: question types created in the same
+        // millisecond used to come back in whatever order Postgres chose.
+        .addOrderBy('QuestionTypeModel.name', 'ASC')
         .getRawMany<{ name: string; fill: string }>()
     ).forEach((v) => {
       if (!keys.includes(v.name)) {

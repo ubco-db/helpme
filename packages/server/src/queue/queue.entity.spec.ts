@@ -7,7 +7,7 @@ import {
   QuestionFactory,
   QueueFactory,
 } from '../../test/util/factories';
-import { TestTypeOrmModule } from '../../test/util/testUtils';
+import { resetDatabase, TestTypeOrmModule } from '../../test/util/testUtils';
 import { QueueModel } from './queue.entity';
 import { FactoryModule } from 'factory/factory.module';
 import { FactoryService } from 'factory/factory.service';
@@ -33,7 +33,7 @@ describe('queue entity', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.synchronize(true);
+    await resetDatabase(dataSource);
   });
 
   it('queueSize is handled properly and is equal to them sum of Queued, Drafting, and Helping questions', async () => {

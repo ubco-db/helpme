@@ -1,4 +1,3 @@
-/// <reference path="./markdown.d.ts" />
 import * as fs from 'fs';
 // Node.js require hook to load .md files as strings when using ts-node for the CLI
 if (typeof require !== 'undefined' && require.extensions) {

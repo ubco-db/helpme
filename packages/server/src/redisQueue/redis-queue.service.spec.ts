@@ -2,7 +2,12 @@ import { RedisQueueService } from './redis-queue.service';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { AsyncQuestionModel } from 'asyncQuestion/asyncQuestion.entity';
-import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
+import {
+  getTestRedisDb,
+  resetDatabase,
+  TestConfigModule,
+  TestTypeOrmModule,
+} from '../../test/util/testUtils';
 import { asyncQuestionStatus } from '@koh/common';
 import Redis from 'ioredis';
 import { DataSource } from 'typeorm';
@@ -12,13 +17,11 @@ describe('RedisQueueService', () => {
   let service: RedisQueueService;
   let redis: Redis;
   let dataSource: DataSource;
+  let module: TestingModule;
 
   beforeAll(async () => {
-    redis = new Redis();
-  });
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    redis = new Redis({ db: getTestRedisDb() });
+    module = await Test.createTestingModule({
       providers: [RedisQueueService],
       imports: [
         TestTypeOrmModule,
@@ -28,7 +31,8 @@ describe('RedisQueueService', () => {
           errorLog: true,
           commonOptions: {
             host: process.env.REDIS_HOST || 'localhost',
-            port: 6379,
+            port: Number.parseInt(process.env.REDIS_PORT || '6379', 10),
+            db: getTestRedisDb(),
           },
           config: [
             {
@@ -50,12 +54,13 @@ describe('RedisQueueService', () => {
   });
 
   afterAll(async () => {
-    await dataSource.destroy();
+    redis.disconnect();
+    await module.close();
   });
 
   beforeEach(async () => {
-    await redis.flushall();
-    await dataSource.synchronize(true);
+    await redis.flushdb();
+    await resetDatabase(dataSource);
   });
 
   it('should be defined', () => {

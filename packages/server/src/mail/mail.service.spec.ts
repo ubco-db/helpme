@@ -14,15 +14,16 @@ import {
 import { SentEmailModel } from './sent-email.entity';
 import { FactoryService } from 'factory/factory.service';
 import { FactoryModule } from '../factory/factory.module';
-import { TestTypeOrmModule } from '../../test/util/testUtils';
+import { resetDatabase, TestTypeOrmModule } from '../../test/util/testUtils';
 import { DataSource } from 'typeorm';
 
 describe('MailService', () => {
   let module: TestingModule;
   let service: MailService;
   let mailerService: MailerService;
+  let dataSource: DataSource;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     module = await Test.createTestingModule({
       imports: [TestTypeOrmModule, FactoryModule],
       providers: [
@@ -38,9 +39,7 @@ describe('MailService', () => {
 
     service = module.get<MailService>(MailService);
     mailerService = module.get<MailerService>(MailerService);
-    // mock isProd to true so that it actually calls mailerService's sendMail (instead of writing to file)
-    // this is fine since sendMail is mocked above. BE CAREFUL modifying these tests so you don't accidentally send emails
-    jest.spyOn(Common, 'isProd').mockReturnValue(true);
+    dataSource = module.get<DataSource>(DataSource);
 
     // Grab FactoriesService from Nest
     const factories = module.get<FactoryService>(FactoryService);
@@ -48,9 +47,20 @@ describe('MailService', () => {
     initFactoriesFromService(factories);
   });
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // mock isProd to true so that it actually calls mailerService's sendMail (instead of writing to file)
+    // this is fine since sendMail is mocked above. BE CAREFUL modifying these tests so you don't accidentally send emails
+    jest.spyOn(Common, 'isProd').mockReturnValue(true);
+  });
+
   afterEach(async () => {
-    const dataSource = module.get<DataSource>(DataSource);
-    await dataSource.synchronize(true);
+    await resetDatabase(dataSource);
+    jest.restoreAllMocks();
+  });
+
+  afterAll(async () => {
+    await module.close();
   });
 
   it('should be defined', () => {

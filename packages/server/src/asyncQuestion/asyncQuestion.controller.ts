@@ -1,12 +1,9 @@
 import {
-  AlertDeliveryMode,
-  AlertType,
   AsyncCreator,
   AsyncQuestion,
   AsyncQuestionCommentEndorseParams,
   AsyncQuestionCommentParams,
   asyncQuestionStatus,
-  AsyncQuestionUpdatePayload,
   CreateAsyncQuestions,
   ERROR_MESSAGES,
   GetAsyncQuestionsResponse,
@@ -50,7 +47,6 @@ import { AsyncQuestionService } from './asyncQuestion.service';
 import { UnreadAsyncQuestionModel } from './unread-async-question.entity';
 import { CourseSettingsModel } from '../course/course_settings.entity';
 import { CourseRole } from '../decorators/course-role.decorator';
-import { AlertModel } from 'alerts/alerts.entity';
 
 @Controller('asyncQuestions')
 @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
@@ -895,6 +891,8 @@ export class asyncQuestionController {
         ],
         order: {
           createdAt: 'DESC',
+          // Tie-breaker so questions created in the same millisecond (possible in tests) have a stable order.
+          id: 'DESC',
         },
         take: this.appConfig.get('max_async_questions_per_course'),
       });
@@ -989,60 +987,64 @@ export class asyncQuestionController {
       if (!question.comments) {
         temp.comments = [];
       } else {
-        temp.comments = question.comments.map((comment) => {
-          const temp = { ...comment };
-          // TODO: maybe find a more performant way of doing this (ideally in the query itself, and maybe try to include a SELECT to eliminate the pick() above. Though this may be difficult due to some of these use functions like nameToRGB or getAnonId)
-          const commenterRole =
-            comment.creator.courses.find(
-              (course) => course.courseId === question.courseId,
-            )?.role || Role.STUDENT;
+        temp.comments = [...question.comments]
+          // Comments can have the same timestamp (in tests)
+          // We sort by id to ensure the oldest are first. But ideally this would be put into the query itself
+          .sort((a, b) => a.id - b.id)
+          .map((comment) => {
+            const temp = { ...comment };
+            // TODO: maybe find a more performant way of doing this (ideally in the query itself, and maybe try to include a SELECT to eliminate the pick() above. Though this may be difficult due to some of these use functions like nameToRGB or getAnonId)
+            const commenterRole =
+              comment.creator.courses.find(
+                (course) => course.courseId === question.courseId,
+              )?.role || Role.STUDENT;
 
-          temp.creator =
-            isStaff || comment.creator.id === userId || !comment.isAnonymous
+            temp.creator =
+              isStaff || comment.creator.id === userId || !comment.isAnonymous
+                ? ({
+                    id: comment.creator.id,
+                    anonId: this.asyncQuestionService.getAnonId(
+                      comment.creator.id,
+                      question.id,
+                    ),
+                    colour: nameToRGB(
+                      Math.abs(comment.creatorId - question.id).toString(),
+                    ),
+                    name: comment.creator.name,
+                    photoURL: comment.creator.photoURL,
+                    isAuthor: comment.creator.id === question.creatorId,
+                    courseRole: commenterRole,
+                    // this is an AsyncCreator but I'm casting it to UserModel so typescript doesn't get mad
+                  } as AsyncCreator as unknown as UserModel)
+                : ({
+                    // don't send user name, pfp, nor userid to frontend
+                    anonId: this.asyncQuestionService.getAnonId(
+                      comment.creator.id,
+                      question.id,
+                    ),
+                    colour: nameToRGB(
+                      Math.abs(comment.creatorId - question.id).toString(),
+                    ),
+                    photoURL: null,
+                    isAuthor: comment.creator.id === question.creatorId,
+                    courseRole: commenterRole,
+                  } as AsyncCreator as unknown as UserModel);
+
+            delete temp.creatorId;
+            delete temp.endorsedById;
+
+            temp.endorsedBy = comment.endorsedBy
               ? ({
-                  id: comment.creator.id,
-                  anonId: this.asyncQuestionService.getAnonId(
-                    comment.creator.id,
-                    question.id,
-                  ),
-                  colour: nameToRGB(
-                    Math.abs(comment.creatorId - question.id).toString(),
-                  ),
-                  name: comment.creator.name,
-                  photoURL: comment.creator.photoURL,
-                  isAuthor: comment.creator.id === question.creatorId,
-                  courseRole: commenterRole,
-                  // this is an AsyncCreator but I'm casting it to UserModel so typescript doesn't get mad
-                } as AsyncCreator as unknown as UserModel)
-              : ({
-                  // don't send user name, pfp, nor userid to frontend
-                  anonId: this.asyncQuestionService.getAnonId(
-                    comment.creator.id,
-                    question.id,
-                  ),
-                  colour: nameToRGB(
-                    Math.abs(comment.creatorId - question.id).toString(),
-                  ),
-                  photoURL: null,
-                  isAuthor: comment.creator.id === question.creatorId,
-                  courseRole: commenterRole,
-                } as AsyncCreator as unknown as UserModel);
+                  ...pick(comment.endorsedBy, ['id', 'name', 'photoURL']),
+                  role:
+                    comment.endorsedBy.courses?.find(
+                      (c) => c.courseId === question.courseId,
+                    )?.role || Role.TA,
+                } as unknown as UserModel)
+              : null;
 
-          delete temp.creatorId;
-          delete temp.endorsedById;
-
-          temp.endorsedBy = comment.endorsedBy
-            ? ({
-                ...pick(comment.endorsedBy, ['id', 'name', 'photoURL']),
-                role:
-                  comment.endorsedBy.courses?.find(
-                    (c) => c.courseId === question.courseId,
-                  )?.role || Role.TA,
-              } as unknown as UserModel)
-            : null;
-
-          return temp as unknown as AsyncQuestionCommentModel;
-        });
+            return temp as unknown as AsyncQuestionCommentModel;
+          });
       }
 
       Object.assign(temp, {

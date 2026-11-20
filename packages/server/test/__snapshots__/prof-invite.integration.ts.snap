@@ -29,24 +29,6 @@ exports[`ProfInvite Integration GET /prof_invites/all/:orgId List Filtering: Fil
     {
       "code": Any<String>,
       "course": {
-        "id": 2,
-        "name": "Course B",
-      },
-      "createdAt": Any<String>,
-      "creator": {
-        "email": "admin@a.com",
-        "id": 1,
-        "name": "User Person",
-      },
-      "expiresAt": Any<String>,
-      "id": 2,
-      "makeOrgProf": true,
-      "maxUses": 1,
-      "usesUsed": 0,
-    },
-    {
-      "code": Any<String>,
-      "course": {
         "id": 1,
         "name": "Course A",
       },
@@ -58,6 +40,24 @@ exports[`ProfInvite Integration GET /prof_invites/all/:orgId List Filtering: Fil
       },
       "expiresAt": Any<String>,
       "id": 1,
+      "makeOrgProf": true,
+      "maxUses": 1,
+      "usesUsed": 0,
+    },
+    {
+      "code": Any<String>,
+      "course": {
+        "id": 2,
+        "name": "Course B",
+      },
+      "createdAt": Any<String>,
+      "creator": {
+        "email": "admin@a.com",
+        "id": 1,
+        "name": "User Person",
+      },
+      "expiresAt": Any<String>,
+      "id": 2,
       "makeOrgProf": true,
       "maxUses": 1,
       "usesUsed": 0,

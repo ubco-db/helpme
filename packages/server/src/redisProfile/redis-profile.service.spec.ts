@@ -1,7 +1,12 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { RedisProfileService } from '../redisProfile/redis-profile.service';
-import { TestTypeOrmModule, TestConfigModule } from '../../test/util/testUtils';
+import {
+  getTestRedisDb,
+  resetDatabase,
+  TestTypeOrmModule,
+  TestConfigModule,
+} from '../../test/util/testUtils';
 import type { GetProfileResponse } from '@koh/common';
 import { AccountType, UserRole } from '@koh/common';
 import Redis from 'ioredis';
@@ -12,13 +17,11 @@ describe('RedisProfileService', () => {
   let service: RedisProfileService;
   let redis: Redis;
   let dataSource: DataSource;
+  let module: TestingModule;
 
   beforeAll(async () => {
-    redis = new Redis();
-  });
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    redis = new Redis({ db: getTestRedisDb() });
+    module = await Test.createTestingModule({
       imports: [
         TestTypeOrmModule,
         TestConfigModule,
@@ -27,7 +30,8 @@ describe('RedisProfileService', () => {
           errorLog: true,
           commonOptions: {
             host: process.env.REDIS_HOST || 'localhost',
-            port: 6379,
+            port: Number.parseInt(process.env.REDIS_PORT || '6379', 10),
+            db: getTestRedisDb(),
           },
           config: [
             {
@@ -50,13 +54,13 @@ describe('RedisProfileService', () => {
   });
 
   afterEach(async () => {
-    await redis.flushall();
-    await dataSource.synchronize(true);
+    await redis.flushdb();
+    await resetDatabase(dataSource);
   });
 
   afterAll(async () => {
-    await dataSource.destroy();
     redis.disconnect();
+    await module.close();
   });
 
   it('should be defined', () => {

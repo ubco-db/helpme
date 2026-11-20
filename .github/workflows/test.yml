@@ -6,10 +6,13 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      POSTGRES_USER: postgres
+      # The test global setup connects with these credentials to create one
+      # database set (test_<n>, chatbot_test_<n>, lti_test_<n>) per Jest worker.
+      POSTGRES_USER: helpme
+      POSTGRES_PASSWORD: mysecretpassword
       REDIS_HOST: localhost
       REDIS_PORT: 6379
-      CI: "true"
+      CI: 'true'
     services:
       postgres:
         image: ankane/pgvector
@@ -27,23 +30,13 @@ jobs:
           - 6379:6379
     steps:
       - uses: actions/checkout@v4
-      - name: Set up databases
-        run: psql -d postgresql://helpme@localhost/postgres -f test_createdb.sql
-        working-directory: infrastructure
-        env:
-          PGPASSWORD: mysecretpassword
-      - name: Create extensions for chatbot database
-        run:
-          psql -d postgresql://helpme@localhost/chatbot_test -c "CREATE EXTENSION vector;" -c "CREATE EXTENSION \"uuid-ossp\";"
-        env:
-          PGPASSWORD: mysecretpassword
-      - name: Create postgres.env from example
-        run: cp packages/server/postgres.env.example packages/server/postgres.env
-      - name: Create .env from .env.development
-        run: cp packages/server/.env.development packages/server/.env
-      - name: install node v20
-        uses: actions/setup-node@v4
+      - name: Create server environment files
+        run: |
+          cp packages/server/postgres.env.example packages/server/postgres.env
+          cp packages/server/.env.development packages/server/.env
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - uses: bahmutov/npm-install@v1
+          cache: yarn
+      - run: yarn install --frozen-lockfile
       - run: yarn test

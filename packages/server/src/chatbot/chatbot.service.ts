@@ -465,17 +465,21 @@ export class ChatbotService {
           course.id,
           '',
         );
-      } catch (err) {
+      } catch (_err) {
         try {
           const dataSource = await this.chatbotDataSource.getDataSource();
           const qry = dataSource.createQueryRunner();
           await qry.connect();
-          existingSetting = (
-            await qry.query(
-              'SELECT * FROM course_setting WHERE "pageContent" = $1',
-              [String(course.id)],
-            )
-          )[0];
+          try {
+            existingSetting = (
+              await qry.query(
+                'SELECT * FROM course_setting WHERE "pageContent" = $1',
+                [String(course.id)],
+              )
+            )[0];
+          } finally {
+            await qry.release();
+          }
         } catch (_err) {}
       }
       if (!existingSetting) {

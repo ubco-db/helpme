@@ -1,7 +1,11 @@
 import { DataSource, Not } from 'typeorm';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
+import {
+  resetDatabase,
+  TestConfigModule,
+  TestTypeOrmModule,
+} from '../../test/util/testUtils';
 import { FactoryModule } from '../factory/factory.module';
 import { FactoryService } from '../factory/factory.service';
 import {
@@ -96,7 +100,7 @@ describe('LtiService', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.synchronize(true);
+    await resetDatabase(dataSource);
   });
 
   describe('get provider()', () => {

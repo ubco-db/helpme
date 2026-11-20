@@ -6,7 +6,11 @@ import { BadRequestException } from '@nestjs/common';
 import { CronJob } from 'cron';
 import { QuestionService } from '../question/question.service';
 import { NotificationService } from '../notification/notification.service';
-import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
+import {
+  resetDatabase,
+  TestConfigModule,
+  TestTypeOrmModule,
+} from '../../test/util/testUtils';
 import { AlertModel } from '../alerts/alerts.entity';
 import { AlertType, Role } from '@koh/common';
 import { EventModel, EventType } from '../profile/event-model.entity';
@@ -30,8 +34,13 @@ describe('CalendarService', () => {
   let schedulerRegistry: SchedulerRegistry;
   let dataSource: DataSource;
   let consoleErrorSpy: jest.SpyInstance;
+  let cronStartSpy: jest.SpyInstance;
 
   beforeAll(async () => {
+    // The real SchedulerRegistry is mocked, but the service calls job.start()
+    // directly. Track those jobs so they cannot fire after the test tears down
+    // the DataSource.
+    cronStartSpy = jest.spyOn(CronJob.prototype, 'start');
     const module: TestingModule = await Test.createTestingModule({
       imports: [TestTypeOrmModule, TestConfigModule, FactoryModule],
       providers: [
@@ -76,7 +85,7 @@ describe('CalendarService', () => {
 
   beforeEach(async () => {
     if (dataSource.isInitialized) {
-      await dataSource.synchronize(true);
+      await resetDatabase(dataSource);
     }
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
     jest.clearAllMocks();
@@ -88,6 +97,8 @@ describe('CalendarService', () => {
   });
 
   afterEach(() => {
+    (cronStartSpy.mock.contexts as CronJob[]).forEach((job) => job.stop());
+    cronStartSpy.mockClear();
     consoleErrorSpy.mockRestore();
   });
 
@@ -283,11 +294,13 @@ describe('CalendarService', () => {
         .calls[0][1];
       expect(job).toBeInstanceOf(CronJob);
       expect(job.running).toBe(true);
-      // 10 minutes from now (+/- 2mins for test execution time)
-      expect(job.nextDate().toJSDate().getTime()).toBeCloseTo(
-        new Date().getTime() + 10 * 60 * 1000,
-        -2,
-      );
+      // 10 minutes from now (+/- 2 mins for test execution time).
+      // A fixed millisecond tolerance is flaky when the suite runs in
+      // parallel, so assert the documented range instead.
+      const expectedRunTime = new Date().getTime() + 10 * 60 * 1000;
+      expect(
+        Math.abs(job.nextDate().toJSDate().getTime() - expectedRunTime),
+      ).toBeLessThan(2 * 60 * 1000);
     });
 
     it('should delete existing cron job if not first time', async () => {

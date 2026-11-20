@@ -14,7 +14,12 @@ import {
   UserCourseFactory,
   UserFactory,
 } from '../../test/util/factories';
-import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
+import {
+  getTestRedisDb,
+  resetDatabase,
+  TestConfigModule,
+  TestTypeOrmModule,
+} from '../../test/util/testUtils';
 import { CourseService } from './course.service';
 import type { UserModel } from 'profile/user.entity';
 import { CourseModel } from './course.entity';
@@ -59,7 +64,8 @@ describe('CourseService', () => {
           errorLog: true,
           commonOptions: {
             host: process.env.REDIS_HOST || 'localhost',
-            port: 6379,
+            port: Number.parseInt(process.env.REDIS_PORT || '6379', 10),
+            db: getTestRedisDb(),
           },
           config: [
             {
@@ -116,7 +122,7 @@ describe('CourseService', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.synchronize(true);
+    await resetDatabase(dataSource);
   });
 
   describe('getUserInfo', () => {

@@ -6,6 +6,7 @@ const reactHooks = require('eslint-plugin-react-hooks')
 const next = require('@next/eslint-plugin-next')
 const prettier = require('eslint-config-prettier')
 const globals = require('globals')
+const helpme = require('./infrastructure/lint/helpme-plugin.cjs')
 
 module.exports = defineConfig([
   globalIgnores([
@@ -39,6 +40,7 @@ module.exports = defineConfig([
     },
     plugins: {
       'no-only-tests': noOnlyTests,
+      helpme,
     },
     rules: {
       '@typescript-eslint/no-unused-expressions': 'off',
@@ -86,6 +88,18 @@ module.exports = defineConfig([
       'react/jsx-no-duplicate-props': 'error',
       'react/jsx-no-target-blank': 'warn',
       '@next/next/no-html-link-for-pages': 'off',
+    },
+  },
+  {
+    name: 'helpme/server-safety',
+    files: ['packages/server/**/*.ts'],
+    rules: {
+      // Each of these rules guards against a problem that is expensive to
+      // debug: a slow test reset, cross-worker Redis wipes, and leaked
+      // database connections.
+      'helpme/no-synchronize-drop': 'warn',
+      'helpme/no-redis-flushall': 'warn',
+      'helpme/require-query-runner-release': 'warn',
     },
   },
   {

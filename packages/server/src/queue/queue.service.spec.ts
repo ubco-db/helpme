@@ -11,7 +11,11 @@ import {
   QueueFactory,
   UserFactory,
 } from '../../test/util/factories';
-import { TestConfigModule, TestTypeOrmModule } from '../../test/util/testUtils';
+import {
+  resetDatabase,
+  TestConfigModule,
+  TestTypeOrmModule,
+} from '../../test/util/testUtils';
 import type { QueueModel } from './queue.entity';
 import { QueueService } from './queue.service';
 import { AlertsService } from '../alerts/alerts.service';
@@ -59,7 +63,7 @@ describe('QueueService', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.synchronize(true);
+    await resetDatabase(dataSource);
   });
 
   // create 1 question for each status that exists, and put them all in a queue
