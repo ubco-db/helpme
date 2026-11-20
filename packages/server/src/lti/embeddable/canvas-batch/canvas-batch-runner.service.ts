@@ -29,12 +29,12 @@ function getErrorMessage(error: unknown): string {
 
 function outcomeMessage(result: LMSWriteResult): string {
   return result.outcome === 'unknown'
-    ? `Canvas write outcome is unknown. Check SpeedGrader before starting another run; the write was not retried. ${result.message ?? ''}`
+    ? `Canvas write outcome is unknown. Check SpeedGrader before starting another run. ${result.message ?? ''}`
     : `Canvas rejected the write${result.httpStatus ? ` (${result.httpStatus})` : ''}. ${result.message ?? ''} Check the Canvas connection and grading permissions, then start a new run for ungraded attempts.`;
 }
 
 const INTERRUPTED_WRITE_ERROR =
-  'Canvas write outcome is unknown because processing was interrupted. Check this attempt’s scores and review comment in SpeedGrader before starting another run. HelpMe will not resend this write automatically.';
+  "Canvas' 'write' outcome is unknown because processing was interrupted. Check this attempt’s scores and review comment in SpeedGrader before starting another run.";
 
 /** SpeedGrader note for staff; null when no question was flagged. */
 export function reviewComment(

@@ -72,6 +72,7 @@ export class CanvasBatchRunModel extends BaseEntity {
   @Column({ type: 'integer', nullable: false })
   createdByUserId: number;
 
+  /* Represents the questions in this batch run, including their canvas question id, text, and helpme settings. */
   @Column({ type: 'jsonb', nullable: false })
   questions: CanvasBatchQuestionSnapshot[];
 

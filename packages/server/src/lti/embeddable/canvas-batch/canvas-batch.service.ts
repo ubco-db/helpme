@@ -29,11 +29,7 @@ import { EmbeddableQuestionModel } from '../../embeddable-question/embeddable-qu
 import { CanvasBatchRunModel } from './canvas-batch-run.entity';
 import { CanvasBatchAttemptModel } from './canvas-batch-attempt.entity';
 import { CanvasBatchStore } from './canvas-batch.store';
-import {
-  CANVAS_BATCH_JOB,
-  CANVAS_BATCH_QUEUE,
-  canvasBatchJobId,
-} from './canvas-batch.constants';
+import { CANVAS_BATCH_QUEUE, canvasBatchJobId } from './canvas-batch.constants';
 import type {
   AbstractLMSAdapter,
   LMSClassicQuestionMapping,
@@ -314,7 +310,7 @@ export class CanvasBatchService {
    */
   private async enqueue(runId: number): Promise<void> {
     await this.queue.add(
-      CANVAS_BATCH_JOB,
+      'autograde-run',
       { runId },
       {
         jobId: canvasBatchJobId(runId),

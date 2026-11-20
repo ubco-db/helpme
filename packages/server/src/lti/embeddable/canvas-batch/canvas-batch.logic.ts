@@ -1,10 +1,11 @@
+import type {
+  CanvasBatchQuestionSnapshot,
+  GradingSnapshot} from '@koh/common';
 import {
   BLANK_ANSWER_COMMENT,
-  CanvasBatchQuestionSnapshot,
-  CanvasBatchQuestionStatus,
-  GradingSnapshot,
+  CanvasBatchQuestionStatus
 } from '@koh/common';
-import { LMSClassicAttemptAnswer } from '../../../lmsIntegration/lmsIntegration.adapter';
+import type { LMSClassicAttemptAnswer } from '../../../lmsIntegration/lmsIntegration.adapter';
 
 /**
  * Pure decision logic for the Classic Canvas batch backend. Everything here is
@@ -14,7 +15,7 @@ import { LMSClassicAttemptAnswer } from '../../../lmsIntegration/lmsIntegration.
 
 /** Staff-visible error for an attempt Canvas could not hand us history for. */
 export const UNREADABLE_ATTEMPT_ERROR =
-  'Canvas did not return usable submission history for this attempt. Check that the instructor API token can read this course’s submissions. Update the token in LMS Integrations if needed, then start a new run, or grade this attempt manually in SpeedGrader.';
+  "Canvas did not return usable submission history for this attempt (unreadable). Make sure the owner of this HelpMe course's Access Token also has permission to grade the quiz on Canvas (you can re-make it going under LMS Integrations -> Delete the LMS API Connection -> Recreate). Then, try re-grading again. Contact HelpMe admins if the issue persists.";
 /** Staff-visible error for a mapped question with no answer in the attempt. */
 export const MISSING_ANSWER_ERROR =
   'Canvas did not return an answer for this mapped question. Check the question mapping and submission in SpeedGrader; grade it manually if the answer cannot be retrieved. HelpMe did not treat it as blank.';
