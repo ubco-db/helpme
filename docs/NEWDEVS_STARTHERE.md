@@ -2,70 +2,73 @@
 
 <!-- toc (updates automatically on commit) -->
 - [Glossary](#glossary) (L1)
-- [Preface](#preface) (L71)
-- [INTRO TO THE CODEBASE AND TECHSTACK](#intro-to-the-codebase-and-techstack) (L79)
-  - [Codebase](#codebase) (L81)
-  - [Technologies Guide](#technologies-guide) (L102)
-    - [Environment Variables](#environment-variables) (L104)
-    - [What is "State"?](#what-is-state) (L116)
-      - [Synchronizing State between Backend and Frontend](#synchronizing-state-between-backend-and-frontend) (L132)
-        - [Manual Refresh](#manual-refresh) (L144)
-        - [Short Polling](#short-polling) (L174)
-        - [Long Polling](#long-polling) (L186)
-        - [Server Sent Events (SSE) with EventSource](#server-sent-events-sse-with-eventsource) (L198)
-        - [Websockets](#websockets) (L213)
-    - [Frontend](#frontend) (L221)
-      - [React](#react) (L223)
-        - [JSX](#jsx) (L233)
-        - [Hooks](#hooks) (L241)
-        - [Forms](#forms) (L261)
-        - [Next.js](#nextjs) (L285)
-          - [What's with all these `'use client'` & `'use server'` things?](#whats-with-all-these-use-client--use-server-things) (L297)
-      - [Tailwind and CSS](#tailwind-and-css) (L315)
-    - [Backend](#backend) (L327)
-      - [Nest.js files](#nestjs-files) (L329)
-      - [Redis](#redis) (L346)
-      - [Endpoints](#endpoints) (L353)
-        - [Guards and `@Roles`](#guards-and-roles) (L355)
-        - [`@User` and `@UserId` decorators](#user-and-userid-decorators) (L365)
-        - [File Uploads](#file-uploads) (L371)
-        - [Gotchas while naming your endpoint - Routing mismatches](#gotchas-while-naming-your-endpoint---routing-mismatches) (L409)
-        - [Endpoints that change their behavior based on role](#endpoints-that-change-their-behavior-based-on-role) (L421)
-        - [Why some endpoints have `@Res` and some don't](#why-some-endpoints-have-res-and-some-dont) (L451)
-          - [Ways to return errors/http status codes + messages](#ways-to-return-errorshttp-status-codes--messages) (L466)
-      - [Data Transfer Objects (DTOs), Serialization, and Sending Data from Frontend to Backend (and vise-versa)](#data-transfer-objects-dtos-serialization-and-sending-data-from-frontend-to-backend-and-vise-versa) (L478)
-        - [Backend Deserialization and Validation](#backend-deserialization-and-validation) (L488)
-        - [Frontend Deserialization (and Validation)](#frontend-deserialization-and-validation) (L548)
-      - [TypeORM](#typeorm) (L603)
-        - [Entities (Database Schema)](#entities-database-schema) (L609)
-          - [Editing Entities (& Migrations)](#editing-entities--migrations) (L615)
-        - [Queries](#queries) (L634)
-          - [Queries using Model methods](#queries-using-model-methods) (L640)
-          - [Queries using QueryBuilder](#queries-using-querybuilder) (L646)
-          - [Queries using QueryRunner](#queries-using-queryrunner) (L661)
-          - [Raw SQL queries](#raw-sql-queries) (L676)
-          - [Always include tiebreakers in your SELECT queries](#always-include-tiebreakers-in-your-select-queries) (L689)
-        - [Examples of typeorm runtime errors](#examples-of-typeorm-runtime-errors) (L694)
-          - [Missing relations](#missing-relations) (L696)
-          - [Querying with models and IsNull()](#querying-with-models-and-isnull) (L722)
-          - [.find() returns null not undefined if not found](#find-returns-null-not-undefined-if-not-found) (L749)
-        - [.save()](#save) (L755)
-        - [Transactions](#transactions) (L761)
-          - [Important edge case with transactions](#important-edge-case-with-transactions) (L799)
-      - [Testing](#testing) (L834)
-        - [What is mocking?](#what-is-mocking) (L838)
-        - [To mock or not to mock?](#to-mock-or-not-to-mock) (L842)
-        - [Parallel tests and determinism](#parallel-tests-and-determinism) (L850)
-      - [Event Subscribers](#event-subscribers) (L871)
-  - [Known Quirks when Developing](#known-quirks-when-developing) (L886)
-- [History](#history) (L901)
-  - [Contributors (by commit count, not including merges)](#contributors-by-commit-count-not-including-merges) (L932)
-    - [Chatbot Repo](#chatbot-repo) (L938)
-    - [Current HelpMe Repo](#current-helpme-repo) (L950)
-    - [Old HelpMe Repo](#old-helpme-repo) (L977)
-- [TODO](#todo) (L1026)
-  - [For the whole project](#for-the-whole-project) (L1028)
-  - [For this document](#for-this-document) (L1033)
+- [Preface](#preface) (L74)
+- [INTRO TO THE CODEBASE AND TECHSTACK](#intro-to-the-codebase-and-techstack) (L82)
+  - [Codebase](#codebase) (L84)
+  - [General Wisdom](#general-wisdom) (L105)
+    - [Comments](#comments) (L107)
+    - [Useful Utility functions](#useful-utility-functions) (L115)
+  - [Technologies Guide](#technologies-guide) (L124)
+    - [Environment Variables](#environment-variables) (L128)
+    - [What is "State"?](#what-is-state) (L140)
+      - [Synchronizing State between Backend and Frontend](#synchronizing-state-between-backend-and-frontend) (L156)
+        - [Manual Refresh](#manual-refresh) (L168)
+        - [Short Polling](#short-polling) (L198)
+        - [Long Polling](#long-polling) (L210)
+        - [Server Sent Events (SSE) with EventSource](#server-sent-events-sse-with-eventsource) (L222)
+        - [Websockets](#websockets) (L237)
+    - [Frontend](#frontend) (L245)
+      - [React](#react) (L247)
+        - [JSX](#jsx) (L257)
+        - [Hooks](#hooks) (L265)
+        - [Forms](#forms) (L285)
+        - [Next.js](#nextjs) (L309)
+          - [What's with all these `'use client'` & `'use server'` things?](#whats-with-all-these-use-client--use-server-things) (L321)
+      - [Tailwind and CSS](#tailwind-and-css) (L339)
+    - [Backend](#backend) (L351)
+      - [Nest.js files](#nestjs-files) (L353)
+      - [Redis](#redis) (L370)
+      - [Endpoints](#endpoints) (L377)
+        - [Guards and `@Roles`](#guards-and-roles) (L379)
+        - [`@User` and `@UserId` decorators](#user-and-userid-decorators) (L389)
+        - [File Uploads](#file-uploads) (L395)
+        - [Gotchas while naming your endpoint - Routing mismatches](#gotchas-while-naming-your-endpoint---routing-mismatches) (L433)
+        - [Endpoints that change their behavior based on role](#endpoints-that-change-their-behavior-based-on-role) (L445)
+        - [Why some endpoints have `@Res` and some don't](#why-some-endpoints-have-res-and-some-dont) (L475)
+          - [Ways to return errors/http status codes + messages](#ways-to-return-errorshttp-status-codes--messages) (L490)
+      - [Data Transfer Objects (DTOs), Serialization, and Sending Data from Frontend to Backend (and vise-versa)](#data-transfer-objects-dtos-serialization-and-sending-data-from-frontend-to-backend-and-vise-versa) (L502)
+        - [Backend Deserialization and Validation](#backend-deserialization-and-validation) (L512)
+        - [Frontend Deserialization (and Validation)](#frontend-deserialization-and-validation) (L572)
+      - [TypeORM](#typeorm) (L627)
+        - [Entities (Database Schema)](#entities-database-schema) (L633)
+          - [Editing Entities (& Migrations)](#editing-entities--migrations) (L639)
+        - [Queries](#queries) (L658)
+          - [Queries using Model methods](#queries-using-model-methods) (L664)
+          - [Queries using QueryBuilder](#queries-using-querybuilder) (L670)
+          - [Queries using QueryRunner](#queries-using-queryrunner) (L685)
+          - [Raw SQL queries](#raw-sql-queries) (L700)
+          - [Always include tiebreakers in your SELECT queries](#always-include-tiebreakers-in-your-select-queries) (L713)
+        - [Examples of typeorm runtime errors](#examples-of-typeorm-runtime-errors) (L718)
+          - [Missing relations](#missing-relations) (L720)
+          - [Querying with models and IsNull()](#querying-with-models-and-isnull) (L746)
+          - [.find() returns null not undefined if not found](#find-returns-null-not-undefined-if-not-found) (L773)
+        - [.save()](#save) (L779)
+        - [Transactions](#transactions) (L785)
+          - [Important edge case with transactions](#important-edge-case-with-transactions) (L823)
+      - [Testing](#testing) (L858)
+        - [What is mocking?](#what-is-mocking) (L862)
+        - [To mock or not to mock?](#to-mock-or-not-to-mock) (L866)
+        - [Parallel tests and determinism](#parallel-tests-and-determinism) (L874)
+      - [Event Subscribers](#event-subscribers) (L895)
+  - [Known Quirks when Developing](#known-quirks-when-developing) (L910)
+- [History](#history) (L925)
+  - [Contributors (by commit count, not including merges)](#contributors-by-commit-count-not-including-merges) (L956)
+    - [Chatbot Repo](#chatbot-repo) (L962)
+    - [Current HelpMe Repo](#current-helpme-repo) (L974)
+    - [Old HelpMe Repo](#old-helpme-repo) (L1001)
+- [TODO](#todo) (L1050)
+  - [For the whole project](#for-the-whole-project) (L1052)
+  - [For this document](#for-this-document) (L1057)
 <!-- toc:end -->
 
 # Preface
@@ -99,7 +102,28 @@ File structure is as follows:
   - `/common` - shared code between the frontend and backend
     - `index.ts` - This is our other important index.ts. Contains all types or functions used on both the frontend and backend
 
+## General Wisdom
+
+### Comments
+
+Comments are appreciated, but obviously not everything needs comments. Comments explaining *what* something does is only necessary if the code is complex/obfuscated, and complex/obfuscated code can be worth it if it means better performance or significantly less code for stuff that doesn't matter much (think like regex patterns - they're used often because it can shorten a ton of checks into something very small and performant, even if it's less readable, in which case a comment explaining it is important). More importantly, comments explaining the *why* can really help maintainability. 
+
+*Why* comments might include why you decided on a particular approach vs another approach you think someone might've choosen. Or maybe why a particular function/file/pattern exists in an area that is sorta "out of the ordinary" for this codebase.
+
+Sometimes, comments can just be explaining how a particular external function or technology works, perhaps giving context for those that are unfamiliar with the technology or why you're using it.
+
+### Useful Utility functions
+
+If you ever create a set of functions that could be useful in other parts of the project, please put it inside a file named `utils.ts` (naming can have slight variations depending on organization).
+
+For example, in `packages/server/src/utils.ts`, there's a function called getFetchErrorMessage() that's meant to be a generalizable function for getting fetch error messages on the backend (on the frontend this gets done automatically by axios).
+
+Please do not clutter up frontend component files or backend service files with a bunch of general utility functions (obviously, if it's really specific for the feature, that's fine). 
+Better yet, first check what packages we have installed inside `package.json`, there's a chance we already have a package installed that does the thing you want.
+
 ## Technologies Guide
+
+By "technology" this refers to libraries, languages, tools, or practicies.
 
 ### Environment Variables
 

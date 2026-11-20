@@ -1,5 +1,19 @@
 import { ConfigService } from '@nestjs/config';
-import { ChatbotApiService } from './chatbot-api.service';
+import {
+  ChatbotApiService,
+  type FeedbackGradingInput,
+} from './chatbot-api.service';
+
+const grading: FeedbackGradingInput = {
+  questionText: 'Explain.',
+  mechanicalFacts: '{}',
+  rubric: 'Award points for accuracy.',
+  feedbackInstructions: '',
+  humanReviewCriteria: '',
+  scoreContract: 'Any score from 0 through 2 in increments of 0.5.',
+  capContract: 'No triggered automatic check limits the score.',
+  automaticChecks: '- No automatic checks are configured.',
+};
 
 describe('ChatbotApiService', () => {
   const originalFetch = global.fetch;
@@ -7,6 +21,36 @@ describe('ChatbotApiService', () => {
   afterEach(() => {
     jest.restoreAllMocks();
     global.fetch = originalFetch;
+  });
+
+  it('reports a grading timeout without retrying the request', async () => {
+    const controller = new AbortController();
+    const timeout = jest
+      .spyOn(AbortSignal, 'timeout')
+      .mockReturnValue(controller.signal);
+    const fetchMock = jest.spyOn(global, 'fetch').mockImplementation(
+      (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            'abort',
+            () => reject(init.signal?.reason),
+            { once: true },
+          );
+        }),
+    );
+    const service = new ChatbotApiService(
+      new ConfigService({ CHATBOT_API_URL: 'https://chatbot.test' }),
+    );
+    const result = expect(
+      service.queryEmbeddableQuestionFeedback('answer', 42, grading),
+    ).rejects.toMatchObject({
+      status: 504,
+      message: 'The chatbot request timed out.',
+    });
+    controller.abort(new Error('Deadline reached'));
+    await result;
+    expect(timeout).toHaveBeenCalledWith(180_000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('returns a valid structured feedback response', async () => {
@@ -44,10 +88,10 @@ describe('ChatbotApiService', () => {
     );
     global.fetch = mockFetch;
 
-    const result = await service.queryFeedback(
+    const result = await service.queryEmbeddableQuestionFeedback(
       'user prompt',
       42,
-      'system prompt',
+      grading,
     );
 
     expect(result).toEqual({
@@ -62,7 +106,7 @@ describe('ChatbotApiService', () => {
       query: 'user prompt',
       type: 'feedback',
       courseId: 42,
-      params: { systemPrompt: 'system prompt' },
+      params: { grading },
     });
   });
 
@@ -92,7 +136,7 @@ describe('ChatbotApiService', () => {
         }),
       );
       await expect(
-        service.queryFeedback('answer', 42, 'rubric'),
+        service.queryEmbeddableQuestionFeedback('answer', 42, grading),
       ).rejects.toMatchObject({
         status: 400,
         message: expectedMessage,
@@ -123,7 +167,7 @@ describe('ChatbotApiService', () => {
     global.fetch = mockFetch;
 
     await expect(
-      service.queryFeedback('user prompt', 42, 'system prompt'),
+      service.queryEmbeddableQuestionFeedback('user prompt', 42, grading),
     ).rejects.toThrow();
   });
 });

@@ -498,6 +498,7 @@ export interface ChatbotAskSuggestedParams {
 }
 
 export * from './embeddable-assessment'
+export * from './canvas-batch-grading'
 
 export interface ChatbotAgentCourse {
   courseId: number
@@ -2317,6 +2318,9 @@ export enum LMSApiResponseStatus {
   None = '',
   InvalidPlatform = 'The specified LMS platform is not registered with the HelpMe system.',
   InvalidKey = 'The specified API key was not valid.',
+  Unauthorized = 'Canvas authentication failed (401). Try again or re-create the Canvas integration.',
+
+  Forbidden = "Canvas denied access (403). Please try again or contact and Admin. It's likely and issue of Canvas account permissions or developer key scopes.",
   InvalidCourseId = 'The specified LMS API course identifier was not valid.',
   InvalidConfiguration = 'The specified LMS configuration was not valid.',
   Error = 'An error occurred, operation with or connection to the LMS API failed.',
@@ -5131,7 +5135,7 @@ export const ERROR_MESSAGES = {
 }
 
 /* Common Query Params
-  Does two things: 
+  Does two things:
   - Allows us to easily modify the query params for error messages in 1 spot
   - More importantly, it connects the backend with the frontend to make it easier to find where a particular query param is coming from
   */

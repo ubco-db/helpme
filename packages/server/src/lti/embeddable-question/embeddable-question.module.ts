@@ -8,6 +8,6 @@ import { QuestionGradingService } from './question-grading.service';
   imports: [ChatbotModule],
   controllers: [EmbeddableQuestionController],
   providers: [EmbeddableQuestionService, QuestionGradingService],
-  exports: [EmbeddableQuestionService],
+  exports: [EmbeddableQuestionService, QuestionGradingService],
 })
 export class EmbeddableQuestionModule {}

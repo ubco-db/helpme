@@ -1,16 +1,17 @@
-'use client';
+'use client'
 
-import { Button } from 'antd';
-import type { ReactElement } from 'react';
-import { useState } from 'react';
-import { FileLock, Handshake, ScrollText } from 'lucide-react';
-import MarkdownFetcherModal from './MarkdownFetcherModal';
+import { Button } from 'antd'
+import type { ReactElement } from 'react'
+import { useState } from 'react'
+import { FileLock, Handshake, ScrollText } from 'lucide-react'
+import MarkdownFetcherModal from './MarkdownFetcherModal'
+import { HELPME_VERSION } from '../utils/generalUtils'
 
 /* needed to put this into its own file so it becomes a client component that can be put inside server components */
 const AboutPageModals: React.FC = (): ReactElement => {
-  const [isChangelogOpen, setIsChangelogOpen] = useState(false);
-  const [isPrivacyPolicyOpen, setIsPrivacyPolicyOpen] = useState(false);
-  const [isTermsOfServiceOpen, setIsTermsOfServiceOpen] = useState(false);
+  const [isChangelogOpen, setIsChangelogOpen] = useState(false)
+  const [isPrivacyPolicyOpen, setIsPrivacyPolicyOpen] = useState(false)
+  const [isTermsOfServiceOpen, setIsTermsOfServiceOpen] = useState(false)
   return (
     <>
       <p className="flex flex-wrap items-center justify-center gap-4">
@@ -20,7 +21,7 @@ const AboutPageModals: React.FC = (): ReactElement => {
           onClick={() => setIsChangelogOpen(true)}
           icon={<ScrollText className="mt-1 p-[0.075rem]" />}
         >
-          Changelog v{process.env.NEXT_PUBLIC_HELPME_VERSION}
+          Changelog v{HELPME_VERSION}
         </Button>
         <Button
           type="primary"
@@ -55,7 +56,7 @@ const AboutPageModals: React.FC = (): ReactElement => {
         setIsOpen={setIsTermsOfServiceOpen}
       />
     </>
-  );
-};
+  )
+}
 
-export default AboutPageModals;
+export default AboutPageModals

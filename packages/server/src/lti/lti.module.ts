@@ -12,6 +12,7 @@ import { AuthModule } from '../auth/auth.module';
 import { AuthService } from '../auth/auth.service';
 import { OrganizationModule } from '../organization/organization.module';
 import { EmbeddableQuestionModule } from './embeddable-question/embeddable-question.module';
+import { CanvasBatchModule } from './embeddable/canvas-batch/canvas-batch.module';
 
 @Module({
   controllers: [LtiController, LtiAuthController],
@@ -21,6 +22,7 @@ import { EmbeddableQuestionModule } from './embeddable-question/embeddable-quest
     OrganizationModule,
     LoginModule,
     EmbeddableQuestionModule,
+    CanvasBatchModule,
     JwtModule.registerAsync({
       imports: [ConfigModule, RedisProfileModule, MailModule],
       inject: [ConfigService],

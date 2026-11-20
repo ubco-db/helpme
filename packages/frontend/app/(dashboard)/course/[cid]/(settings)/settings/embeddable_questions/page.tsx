@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import { use, useState, type ReactElement } from 'react'
+import { use, useState, type ReactElement } from 'react';
 import {
   Button,
   Card,
@@ -11,21 +11,21 @@ import {
   Tooltip,
   type TableColumnsType,
   message,
-} from 'antd'
+} from 'antd';
 import {
   CopyOutlined,
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
-} from '@ant-design/icons'
-import useSWRImmutable from 'swr/immutable'
-import type { EmbeddableQuestion } from '@koh/common'
-import { API } from '@/app/api'
-import { getErrorMessage } from '@/app/utils/generalUtils'
-import EmbeddableQuestionForm from './EmbeddableQuestionForm'
+} from '@ant-design/icons';
+import useSWRImmutable from 'swr/immutable';
+import type { EmbeddableQuestion } from '@koh/common';
+import { API } from '@/app/api';
+import { getErrorMessage } from '@/app/utils/generalUtils';
+import EmbeddableQuestionForm from './EmbeddableQuestionForm';
 
 interface EmbeddableQuestionsPageProps {
-  params: Promise<{ cid: string }>
+  params: Promise<{ cid: string }>;
 }
 
 const checkLabels: Record<
@@ -35,15 +35,15 @@ const checkLabels: Record<
   minimum_sentences: 'min sentences',
   maximum_sentences: 'max sentences',
   capitalization: 'capitalization',
-}
+};
 
 export default function EmbeddableQuestionsPage(
   props: EmbeddableQuestionsPageProps,
 ): ReactElement {
-  const params = use(props.params)
-  const courseId = Number(params.cid)
-  const [questionModalOpen, setQuestionModalOpen] = useState(false)
-  const [editingQuestion, setEditingQuestion] = useState<EmbeddableQuestion>()
+  const params = use(props.params);
+  const courseId = Number(params.cid);
+  const [questionModalOpen, setQuestionModalOpen] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<EmbeddableQuestion>();
 
   // SWR owns the fetched data and loading state; saves and deletes just
   // revalidate it.
@@ -60,25 +60,25 @@ export default function EmbeddableQuestionsPage(
           `Failed to load embeddable questions: ${getErrorMessage(err)}`,
         ),
     },
-  )
+  );
   const { data: integration } = useSWRImmutable(`lms/course/${courseId}`, () =>
     API.lmsIntegration.getCourseIntegration(courseId),
-  )
+  );
   const platformName =
     integration?.apiPlatform && integration.apiPlatform !== 'None'
       ? integration.apiPlatform
-      : 'your LMS'
-  const questions = data ?? []
+      : 'your LMS';
+  const questions = data ?? [];
 
   const deleteQuestion = async (question: EmbeddableQuestion) => {
     try {
-      await API.lti.embeddableQuestion.delete(courseId, question.id)
-      message.success('Question deleted.')
-      void refetch()
+      await API.lti.embeddableQuestion.delete(courseId, question.id);
+      message.success('Question deleted.');
+      void refetch();
     } catch (err) {
-      message.error(`Failed to delete question: ${getErrorMessage(err)}`)
+      message.error(`Failed to delete question: ${getErrorMessage(err)}`);
     }
-  }
+  };
 
   const duplicateQuestion = async (question: EmbeddableQuestion) => {
     try {
@@ -87,20 +87,20 @@ export default function EmbeddableQuestionsPage(
         title: `${(question.title || `Question ${question.id}`).slice(0, 248)} (copy)`,
         questionText: question.questionText,
         gradingSettings: structuredClone(question.gradingSettings),
-      })
+      });
       message.success(
         'Question duplicated. Student responses and feedback are not copied.',
-      )
-      void refetch()
+      );
+      void refetch();
     } catch (err) {
-      message.error(`Failed to duplicate question: ${getErrorMessage(err)}`)
+      message.error(`Failed to duplicate question: ${getErrorMessage(err)}`);
     }
-  }
+  };
 
   const openQuestionForm = (question?: EmbeddableQuestion) => {
-    setEditingQuestion(question)
-    setQuestionModalOpen(true)
-  }
+    setEditingQuestion(question);
+    setQuestionModalOpen(true);
+  };
 
   const questionColumns: TableColumnsType<EmbeddableQuestion> = [
     {
@@ -130,8 +130,8 @@ export default function EmbeddableQuestionsPage(
       key: 'scoreScale',
       width: 140,
       render: (_: unknown, question) => {
-        const scale = question.gradingSettings.scoreScale
-        return `0–${scale.max} by ${scale.step}`
+        const scale = question.gradingSettings.scoreScale;
+        return `0–${scale.max} by ${scale.step}`;
       },
     },
     {
@@ -186,7 +186,7 @@ export default function EmbeddableQuestionsPage(
         </Space>
       ),
     },
-  ]
+  ];
 
   return (
     <Card
@@ -249,5 +249,5 @@ export default function EmbeddableQuestionsPage(
         onSaveCallback={() => void refetch()}
       />
     </Card>
-  )
+  );
 }

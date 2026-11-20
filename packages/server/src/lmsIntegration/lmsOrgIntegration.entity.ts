@@ -28,7 +28,7 @@ export class LMSOrganizationIntegrationModel extends BaseEntity {
   rootUrl: string;
 
   @Column({ type: 'boolean', default: true })
-  secure: true;
+  secure: boolean;
 
   @Column({ type: 'text', nullable: true })
   clientId?: string;

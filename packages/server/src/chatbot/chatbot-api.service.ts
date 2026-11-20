@@ -21,11 +21,23 @@ const feedbackResponseSchema = z.object({
   model: z.string().optional(),
 });
 
+/** Question-specific values chatbot places in its grading system prompt. */
+export type FeedbackGradingInput = {
+  questionText: string;
+  mechanicalFacts: string;
+  rubric: string;
+  feedbackInstructions: string;
+  humanReviewCriteria: string;
+  scoreContract: string;
+  capContract: string;
+  automaticChecks: string;
+};
+
 export type FeedbackQueryResult = z.infer<typeof feedbackResponseSchema>;
 
 @Injectable()
 /* This is a list of all endpoints from the chatbot repo.
-    We now put chatbot api calls on the backend rather than the frontend so that 
+    We now put chatbot api calls on the backend rather than the frontend so that
     we can properly guard our endpoints (e.g. to stop students from uploading documents to any course).
     The chatbot repo requires both a user token (holds how many questions they've used)
     and an API key (so that only this helpme repo can call those endpoints).
@@ -177,20 +189,22 @@ export class ChatbotApiService {
   }
 
   /**
-   * Feedback uses the course's selected model and the supplied grading prompt.
+   * Feedback uses the course's selected model; chatbot builds the grading prompt.
    * The chatbot service owns provider retries for this request.
    */
-  async queryFeedback(
+  async queryEmbeddableQuestionFeedback(
     query: string,
     courseId: number,
-    systemPrompt: string,
+    grading: FeedbackGradingInput,
   ): Promise<FeedbackQueryResult> {
-    const resp: unknown = await this.request('POST', `chatbot/query`, '', {
-      query,
-      type: 'feedback',
-      courseId,
-      params: { systemPrompt },
-    });
+    const resp: unknown = await this.request(
+      'POST',
+      'chatbot/query',
+      '',
+      { query, type: 'feedback', courseId, params: { grading } },
+      undefined,
+      180_000, // Bound the whole grading request, including chatbot's provider retries.
+    );
     return feedbackResponseSchema.parse(resp);
   }
 
