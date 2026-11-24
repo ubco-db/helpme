@@ -5,12 +5,13 @@ import type {
   AllStudentAssignmentProgress,
   AsyncQuestionCommentEndorseParams,
   AsyncQuestionCommentParams,
+  AutograderQuizOption,
+  AutograderRunReport,
+  AutograderRunSummary,
   BatchCourseCloneAttributes,
   Calendar,
-  CanvasBatchQuizOption,
-  CanvasBatchRunReport,
-  CanvasBatchRunSummary,
-  StartCanvasBatchRunParams,
+  StartAutograderRunParams,
+  StartAutograderRunResponse,
   ChatbotAskParams,
   ChatbotAskResponse,
   ChatbotAskSuggestedParams,
@@ -135,24 +136,22 @@ import type {
   DeleteAdminNoticeRequest,
   UploadChatbotDocumentRequest,
   UserCourse,
+  GetOrganizationUsersPaginatedResponse,
 } from '@koh/common';
 import {
   AsyncQuestionComment,
   CreateAlertResponse,
   CreateQuestionResponse,
   DesktopNotifPartial,
-  AlertDeliveryMode,
   GetCourseResponse,
   GetLimitedCourseResponse,
   GetQueueChatResponse,
   GetQueueResponse,
   ListQuestionsResponse,
-  OrgUser,
   QueueChatPartial,
   QueuePartial,
   SemesterPartial,
   TACheckinTimesResponse,
-  UserPartial,
   UpdateQuestionResponse,
   GetProfInviteResponse,
   GetPageOfFeedAlerts,
@@ -176,7 +175,6 @@ import { plainToInstance } from 'class-transformer';
 import * as Sentry from '@sentry/nextjs';
 import type { SetStateAction } from 'react';
 import { getErrorMessage } from '@/app/utils/generalUtils';
-import type { GetOrganizationUsersPaginatedResponse } from '@koh/common';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 // Return type of array item, if T is an array
@@ -1222,7 +1220,7 @@ export class APIClient {
       staffId: number,
       message: string,
     ): Promise<void> => {
-      this.req(
+      await this.req(
         'PATCH',
         `/api/v1/queueChats/${queueId}/${questionId}/${staffId}`,
         undefined,
@@ -1937,31 +1935,31 @@ export class APIClient {
           `/api/v1/lti/embeddable-question/${courseId}/${questionId}`,
         ),
     },
-    canvasBatch: {
-      getQuizzes: async (courseId: number): Promise<CanvasBatchQuizOption[]> =>
+    autograder: {
+      getQuizzes: async (courseId: number): Promise<AutograderQuizOption[]> =>
         this.req(
           'GET',
-          `/api/v1/lti/embeddable/canvas-batch/${courseId}/quizzes`,
+          `/api/v1/lti/embeddable/autograder/${courseId}/quizzes`,
         ),
-      getRuns: async (courseId: number): Promise<CanvasBatchRunSummary[]> =>
-        this.req('GET', `/api/v1/lti/embeddable/canvas-batch/${courseId}/runs`),
+      getRuns: async (courseId: number): Promise<AutograderRunSummary[]> =>
+        this.req('GET', `/api/v1/lti/embeddable/autograder/${courseId}/runs`),
       startRun: async (
         courseId: number,
-        params: StartCanvasBatchRunParams,
-      ): Promise<CanvasBatchRunSummary> =>
+        params: StartAutograderRunParams,
+      ): Promise<StartAutograderRunResponse> =>
         this.req(
           'POST',
-          `/api/v1/lti/embeddable/canvas-batch/${courseId}/runs`,
+          `/api/v1/lti/embeddable/autograder/${courseId}/runs`,
           undefined,
           params,
         ),
       getReport: async (
         courseId: number,
         runId: number,
-      ): Promise<CanvasBatchRunReport> =>
+      ): Promise<AutograderRunReport> =>
         this.req(
           'GET',
-          `/api/v1/lti/embeddable/canvas-batch/${courseId}/runs/${runId}/report`,
+          `/api/v1/lti/embeddable/autograder/${courseId}/runs/${runId}/report`,
         ),
     },
   };

@@ -14,14 +14,17 @@ const gradeUpdate = {
 };
 
 function adapter(
-  apiKey: string | undefined = 'test-api-key',
+  options: {
+    noApiKey?: boolean;
+    accessTokenId?: number | null;
+  } = {},
 ): CanvasLMSAdapter {
   return new CanvasLMSAdapter(
     Object.assign(new LMSCourseIntegrationModel(), {
       apiCourseId: COURSE_ID,
-      apiKey,
+      apiKey: options.noApiKey ? undefined : 'test-api-key',
       apiKeyExpiry: null,
-      accessTokenId: null,
+      accessTokenId: options.accessTokenId ?? null,
       orgIntegration: Object.assign(new LMSOrganizationIntegrationModel(), {
         apiPlatform: 'Canvas',
         rootUrl: 'canvas.example.test',
@@ -51,26 +54,36 @@ function mockFetch(
 describe('CanvasLMSAdapter Classic quiz grading', () => {
   afterEach(() => jest.restoreAllMocks());
 
-  it('requires an instructor API token for batch reads and writes', async () => {
+  it('reports a missing access token instead of silently failing', async () => {
     const fetchMock = mockFetch(() => response({}));
-    const oauthOnly = adapter('');
-    await expect(oauthOnly.getClassicQuizCatalog()).rejects.toThrow(
-      'instructor API token',
+    const noAuth = adapter({ noApiKey: true, accessTokenId: null });
+
+    await expect(noAuth.getClassicQuizCatalog()).rejects.toThrow(
+      'No access token found for course',
     );
-    await expect(
-      oauthOnly.getClassicAttemptSnapshots({ quizId: 7, assignmentId: 700 }),
-    ).rejects.toThrow('instructor API token');
-    await expect(
-      oauthOnly.putClassicAttemptGrades(gradeUpdate),
-    ).rejects.toThrow('instructor API token');
-    await expect(
-      oauthOnly.putSubmissionComment({
-        assignmentId: 700,
-        userId: 5,
-        text: 'Review required',
-      }),
-    ).rejects.toThrow('instructor API token');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('authorizes reads and writes with the course Access Token', async () => {
+    const withToken = adapter({ noApiKey: true, accessTokenId: 1 });
+    jest
+      .spyOn(withToken, 'getAuthorization')
+      .mockResolvedValue('Bearer access-token');
+    const fetchMock = mockFetch((url) =>
+      url.pathname.endsWith('/quizzes') || url.pathname.endsWith('/assignments')
+        ? response([])
+        : response({}),
+    );
+
+    await withToken.getClassicQuizCatalog();
+    await withToken.putClassicAttemptGrades(gradeUpdate);
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(new Headers(init?.headers).get('authorization')).toBe(
+        'Bearer access-token',
+      );
+    }
   });
 
   it.each([
@@ -109,16 +122,118 @@ describe('CanvasLMSAdapter Classic quiz grading', () => {
             status,
           }),
       );
-      expect((await adapter().getClassicQuizCatalog()).status).toBe(expected);
+      const result = await adapter().getClassicQuizCatalog();
+      expect(result.status).toBe(expected);
+      if (expected === LMSApiResponseStatus.Error) {
+        expect(result.message).toContain('expected a list');
+      }
     },
   );
+
+  it('reports a malformed quiz with a user-visible message', async () => {
+    mockFetch((url) => {
+      if (url.pathname.endsWith('/quizzes')) {
+        return response([{ title: 'Missing id' }]);
+      }
+      if (url.pathname.endsWith('/assignments')) {
+        return response([]);
+      }
+      throw new Error(`Unexpected Canvas request: ${url}`);
+    });
+
+    const result = await adapter().getClassicQuizCatalog();
+
+    expect(result.status).toBe(LMSApiResponseStatus.Error);
+    expect(result.message).toContain('unexpected quiz at position 1');
+    expect(result.message).toContain('id');
+  });
+
+  it('lists a practice quiz with a blocking reason instead of dropping it', async () => {
+    mockFetch((url) => {
+      if (url.pathname.endsWith('/quizzes')) {
+        return response([
+          {
+            id: 7,
+            title: 'Practice quiz',
+            published: true,
+            assignment_id: null,
+          },
+        ]);
+      }
+      if (url.pathname.endsWith('/assignments')) {
+        return response([]);
+      }
+      throw new Error(`Unexpected Canvas request: ${url}`);
+    });
+
+    const result = await adapter().getClassicQuizCatalog(7);
+
+    expect(result.status).toBe(LMSApiResponseStatus.Success);
+    expect(result.quizzes).toHaveLength(1);
+    expect(result.quizzes[0]).toMatchObject({
+      quizId: 7,
+      assignmentId: null,
+      speedGraderUrl: null,
+      postManually: false,
+      blockingReason: expect.stringContaining('practice quiz'),
+    });
+  });
+
+  it('explains a quiz whose assignment Canvas did not return', async () => {
+    mockFetch((url) => {
+      if (url.pathname.endsWith('/quizzes')) {
+        return response([
+          { id: 9, title: 'Quiz', published: true, assignment_id: 999 },
+        ]);
+      }
+      if (url.pathname.endsWith('/assignments')) {
+        return response([]);
+      }
+      throw new Error(`Unexpected Canvas request: ${url}`);
+    });
+
+    const result = await adapter().getClassicQuizCatalog(9);
+
+    expect(result.quizzes[0].blockingReason).toContain(
+      'did not return the assignment',
+    );
+  });
+
+  it('lists an unpublished quiz with a blocking reason', async () => {
+    mockFetch((url) => {
+      if (url.pathname.endsWith('/quizzes')) {
+        return response([
+          {
+            id: 8,
+            title: 'Draft quiz',
+            published: false,
+            assignment_id: 701,
+          },
+        ]);
+      }
+      if (url.pathname.endsWith('/assignments')) {
+        return response([{ id: 701, post_manually: true }]);
+      }
+      throw new Error(`Unexpected Canvas request: ${url}`);
+    });
+
+    const result = await adapter().getClassicQuizCatalog(8);
+
+    expect(result.quizzes[0].blockingReason).toContain('not published');
+    expect(result.quizzes[0].postManually).toBe(true);
+  });
 
   it('maps embedded essay questions from a selected quiz', async () => {
     mockFetch((url) => {
       if (url.pathname.endsWith('/quizzes')) {
         return response([
           { id: 7, title: 'Essay quiz', published: true, assignment_id: 700 },
-          { id: 8, title: 'Another quiz', published: true, assignment_id: 701 },
+          {
+            id: 8,
+            title: 'Another quiz',
+            published: true,
+            assignment_id: 701,
+          },
         ]);
       }
       if (url.pathname.endsWith('/assignments')) {
@@ -155,6 +270,7 @@ describe('CanvasLMSAdapter Classic quiz grading', () => {
       quizId: 7,
       assignmentId: 700,
       postManually: true,
+      blockingReason: null,
       essayQuestions: [
         expect.objectContaining({
           id: 11,
@@ -166,6 +282,38 @@ describe('CanvasLMSAdapter Classic quiz grading', () => {
           },
         }),
       ],
+    });
+  });
+
+  it('explains a question that does not contain a HelpMe embed', async () => {
+    mockFetch((url) => {
+      if (url.pathname.endsWith('/quizzes')) {
+        return response([
+          { id: 7, title: 'Essay quiz', published: true, assignment_id: 700 },
+        ]);
+      }
+      if (url.pathname.endsWith('/assignments')) {
+        return response([{ id: 700, post_manually: true }]);
+      }
+      if (url.pathname.endsWith('/quizzes/7/questions')) {
+        return response([
+          {
+            id: 11,
+            position: 1,
+            question_text: 'No embed here',
+            question_type: 'essay_question',
+            points_possible: 5,
+          },
+        ]);
+      }
+      throw new Error(`Unexpected Canvas request: ${url}`);
+    });
+
+    const result = await adapter().getClassicQuizCatalog(7);
+
+    expect(result.quizzes[0].essayQuestions[0].mapping).toMatchObject({
+      status: 'error',
+      message: expect.stringContaining('Apps → HelpMe'),
     });
   });
 
@@ -202,6 +350,10 @@ describe('CanvasLMSAdapter Classic quiz grading', () => {
                     correct: 'undefined',
                     comment: null,
                   },
+                  // Non-essay and malformed entries must be skipped without
+                  // making the whole attempt unreadable.
+                  { question_id: 12, points: 0, correct: 'undefined' },
+                  { question_id: 13, text: '<p>Bad score</p>', points: 'n/a' },
                 ],
               },
             ],
@@ -234,6 +386,107 @@ describe('CanvasLMSAdapter Classic quiz grading', () => {
         ],
       },
     ]);
+  });
+
+  it.each([
+    ['no submission data', { user_id: 5, attempt: 1 }],
+    [
+      'an empty submission history',
+      { user_id: 5, attempt: 1, submission_history: [] },
+    ],
+  ])(
+    'marks an attempt unreadable when Canvas returns %s',
+    async (_label, assignmentSubmission) => {
+      mockFetch((url) => {
+        if (url.pathname.endsWith('/quizzes/7/submissions')) {
+          return response({
+            quiz_submissions: [
+              {
+                id: 1002,
+                quiz_id: 7,
+                user_id: 5,
+                attempt: 1,
+                workflow_state: 'complete',
+              },
+            ],
+          });
+        }
+        if (url.pathname.endsWith('/assignments/700/submissions')) {
+          return response([assignmentSubmission]);
+        }
+        throw new Error(`Unexpected Canvas request: ${url}`);
+      });
+
+      const result = await adapter().getClassicAttemptSnapshots({
+        quizId: 7,
+        assignmentId: 700,
+      });
+
+      expect(result.snapshot?.attempts).toEqual([
+        expect.objectContaining({ quizSubmissionId: 1002, readable: false }),
+      ]);
+    },
+  );
+
+  it('excludes an attempt that Canvas has not finished', async () => {
+    mockFetch((url) => {
+      if (url.pathname.endsWith('/quizzes/7/submissions')) {
+        return response({
+          quiz_submissions: [
+            {
+              id: 1002,
+              quiz_id: 7,
+              user_id: 5,
+              attempt: 1,
+              workflow_state: 'untaken',
+            },
+          ],
+        });
+      }
+      if (url.pathname.endsWith('/assignments/700/submissions')) {
+        return response([
+          {
+            user_id: 5,
+            attempt: 1,
+            submission_history: [
+              {
+                attempt: 1,
+                workflow_state: null,
+                submission_data: [],
+              },
+            ],
+          },
+        ]);
+      }
+      throw new Error(`Unexpected Canvas request: ${url}`);
+    });
+
+    const result = await adapter().getClassicAttemptSnapshots({
+      quizId: 7,
+      assignmentId: 700,
+    });
+
+    expect(result.snapshot?.attempts).toEqual([]);
+  });
+
+  it('adds a submission comment without posting a grade', async () => {
+    const fetchMock = mockFetch(() => response({}));
+
+    const result = await adapter().putSubmissionComment({
+      assignmentId: 700,
+      userId: 5,
+      text: 'HUMAN REVIEW REQUIRED',
+    });
+
+    expect(result.outcome).toBe('success');
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toBe(
+      `${BASE_URL}/api/v1/courses/${COURSE_ID}/assignments/700/submissions/5`,
+    );
+    expect(init?.method).toBe('PUT');
+    expect(JSON.parse(String(init?.body))).toEqual({
+      comment: { text_comment: 'HUMAN REVIEW REQUIRED' },
+    });
   });
 
   it('sends every question grade in one Canvas request', async () => {

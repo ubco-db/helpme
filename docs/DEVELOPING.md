@@ -4,26 +4,26 @@
 - [Developing Guidelines](#developing-guidelines) (L1)
   - [Installation to run locally](#installation-to-run-locally) (L29)
   - [Technologies](#technologies) (L57)
-  - [File Structure](#file-structure) (L70)
-  - [Developing](#developing) (L86)
-    - [Running locally outside a Docker container](#running-locally-outside-a-docker-container) (L88)
-    - [Running locally within a Docker container](#running-locally-within-a-docker-container) (L92)
-    - [Database changes](#database-changes) (L108)
-      - [Migrations](#migrations) (L119)
-    - [Adding an API Route](#adding-an-api-route) (L129)
-    - [Testing](#testing) (L139)
-      - [Running tests](#running-tests) (L151)
-      - [Testing parallelism details](#testing-parallelism-details) (L160)
-      - [All tests are failing locally](#all-tests-are-failing-locally) (L194)
-    - [Installing new packages](#installing-new-packages) (L216)
-  - [Formatting and Linting](#formatting-and-linting) (L221)
-    - [Manual checks and fixes](#manual-checks-and-fixes) (L233)
-    - [Editor setup](#editor-setup) (L255)
-  - [Tips](#tips) (L269)
-  - [Testing the Production Environment locally](#testing-the-production-environment-locally) (L277)
-  - [Production](#production) (L287)
-    - [Changelog](#changelog) (L296)
-  - [Misc](#misc) (L302)
+  - [File Structure](#file-structure) (L69)
+  - [Developing](#developing) (L85)
+    - [Running locally outside a Docker container](#running-locally-outside-a-docker-container) (L87)
+    - [Running locally within a Docker container](#running-locally-within-a-docker-container) (L91)
+    - [Database changes](#database-changes) (L107)
+      - [Migrations](#migrations) (L118)
+    - [Adding an API Route](#adding-an-api-route) (L128)
+    - [Testing](#testing) (L138)
+      - [Running tests](#running-tests) (L150)
+      - [Testing parallelism details](#testing-parallelism-details) (L159)
+      - [All tests are failing locally](#all-tests-are-failing-locally) (L188)
+    - [Installing new packages](#installing-new-packages) (L210)
+  - [Formatting and Linting](#formatting-and-linting) (L215)
+    - [Manual checks and fixes](#manual-checks-and-fixes) (L227)
+    - [Editor setup](#editor-setup) (L249)
+  - [Tips](#tips) (L263)
+  - [Testing the Production Environment locally](#testing-the-production-environment-locally) (L271)
+  - [Production](#production) (L281)
+    - [Changelog](#changelog) (L290)
+  - [Misc](#misc) (L296)
 <!-- toc:end -->
 
 ## Installation to run locally
@@ -65,7 +65,6 @@ If you have any questions, feel free to reach out to a member of the team. If yo
 - [Docker](https://www.docker.com/products/docker-desktop) sets up a consistent Postgres + Redis environment on all developer's machines
 - [Redis](https://redis.io/) is used to enable 0 downtime deploy (what? who wrote this. It's used for caching frequently accessed data like questions)
   - We are using @liaoliaots/nestjs-redis ([V8](https://github.com/liaoliaots/nestjs-redis/blob/f902b3dc904bf04e8b1f535789decfe11c1c5c37/docs/v8/redis.md)) and ioredis packages for allowing us to easily integrate it with our Nest.js backend
-- ~~[Cypress](https://www.cypress.io/)~~ is used for frontend E2E tests. Currently not being used.
 
 ## File Structure
 
@@ -139,14 +138,14 @@ More information can be found in [NEWDEVS](/docs/NEWDEVS_STARTHERE.md)
 ### Testing
 
 We use a few types:
-- Unit tests (xyz.service.test.ts): tests individual service functions (xyz.service.ts). Sometimes ends up using a fair bit of mocking in order to isolate the behaviour of the function being tested, but it's still reccomended to generally avoid mocking where possible (like don't mock database calls - that way it's closer to the production setup). If you're making simple endpoints, you usually don't need to make unit tests since the integration tests will cover the same stuff.
-- Integration tests (xyz.integration.ts): tests endpoints (xyz.controller.ts). A single test can call multiple endpoints in sequence to simulate a user flow. These tests should avoid as much mocking as possible. These are like our "main" tests we use.  
-- End to End (E2E) tests: We do *not* use these due to the costs of maintaining them outweighing the benefits for this size of project. But basically this would involve simulating a user using the frontend and making sure the UI (and backend)is working as expected as the test simulates button clicks and other user interactions.
 
-Unit test files should be colocated with the file they test. 
+- Unit tests (xyz.service.test.ts): tests individual service functions (xyz.service.ts). Sometimes ends up using a fair bit of mocking in order to isolate the behaviour of the function being tested, but it's still reccomended to generally avoid mocking where possible (like don't mock database calls - that way it's closer to the production setup). If you're making simple endpoints, you usually don't need to make unit tests since the integration tests will cover the same stuff.
+- Integration tests (xyz.integration.ts): tests endpoints (xyz.controller.ts). A single test can call multiple endpoints in sequence to simulate a user flow. These tests should avoid as much mocking as possible. These are like our "main" tests we use.
+- End to End (E2E) tests: We do _not_ use these due to the costs of maintaining them outweighing the benefits for this size of project. But basically this would involve simulating a user using the frontend and making sure the UI (and backend)is working as expected as the test simulates button clicks and other user interactions.
+
+Unit test files should be colocated with the file they test.
 
 Integration tests are located in the `test` folder.
-
 
 #### Running tests
 
@@ -159,10 +158,6 @@ Run all integration tests with `yarn test:integration`, or a specific file with
 
 #### Testing parallelism details
 
-<<<<<<< HEAD
-> [!NOTE]
-> cypress is currently broken (and its code was recently removed). Only the endpoints are being tested right now
-=======
 Tests run in parallel. Each Jest worker gets its own isolated resources so suites
 cannot read each other's data:
 
@@ -189,11 +184,10 @@ integration file becomes the bottleneck, split it into parts (see
 `chatbot.part1.integration.ts` and `lti.part1.integration.ts`). Keep the parts
 roughly balanced, and follow the note at the bottom of a part that says not to
 add more tests to it.
->>>>>>> main
 
 #### All tests are failing locally
 
-UPDATE: This should be fixed now. The test databases are recreated on every Jest run, so stale database state is no longer a likely cause. If something looks wedged, stop the Jest process and rerun it. 
+UPDATE: This should be fixed now. The test databases are recreated on every Jest run, so stale database state is no longer a likely cause. If something looks wedged, stop the Jest process and rerun it.
 
 Original:
 
@@ -220,10 +214,10 @@ package, `cd packages/app` and then `yarn add <FRONTEND PACKAGE>`
 
 ## Formatting and Linting
 
-We use [Prettier](https://prettier.io/) for formatting (`.prettierrc.json`) and ESLint for code-quality checks. 
+We use [Prettier](https://prettier.io/) for formatting (`.prettierrc.json`) and ESLint for code-quality checks.
 
-- **Editor (assuming you have the right extensions):** Shows full ESLint warnings within your editor (underlines), including type-aware Promise checks. If this noticeably affects performance, change `eslint.config.js` to require `./eslint.fast.config.js` instead of `./eslint.full.config.js`, then restart your editor. This provides fewer checks, however. 
-- **On save (assuming autosave is off):** Applies Prettier formatting. 
+- **Editor (assuming you have the right extensions):** Shows full ESLint warnings within your editor (underlines), including type-aware Promise checks. If this noticeably affects performance, change `eslint.config.js` to require `./eslint.fast.config.js` instead of `./eslint.full.config.js`, then restart your editor. This provides fewer checks, however.
+- **On save (assuming autosave is off):** Applies Prettier formatting.
 - **On commit:** Applies Prettier and fast ESLint automatic fixes to staged TS/TSX files, and regenerates the table of contents of staged Markdown files.
 - **CI:** Runs full ESLint checks and TypeScript checking. ESLint warnings are printed for review; warnings are advisory, while error-level findings fail the lint check. The output includes all warnings, not just newly introduced ones.
 - **Production build:** Does not run eslint (since it's more annoying to fix eslint errors right before a deploy), but will run `yarn tsc` to see if there's any typescript build errors. Therefore, it may be worthwhile to run `yarn tsc` locally as an extra safe-gaurd to make sure new changes didn't break anything (can also take a min to run)

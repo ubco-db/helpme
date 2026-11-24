@@ -203,7 +203,7 @@ Changing the browser address alone does not update either application's stored r
 ## 3. Configure HelpMe
 
 1. Sign in to HelpMe as a **site administrator** (`UserRole.ADMIN`, not the same as an organization administrator). Open **Admin Panel → LTI Platforms** and confirm that the Canvas registration from the previous step appears. You may notice that the platform URL is `https://canvas.instructure.com`, this is normal even for local Canvas.
-2. In HelpMe, open **Organization Settings → LMS Integrations → Add New Integration**. Select Canvas, set **LMS Domain** to `helpme.test` without `http://`, turn **HTTPS** off for this local setup, and enter the **Developer Key Client ID** and **Developer Key Client Secret** from the step where you created the developer key on Canvas.
+2. In HelpMe, open **Organization Settings → LMS Integrations → Add New Integration**. Select Canvas, set **LMS Domain** to `helpme.test` (without `http://`), **turn HTTPS off** for this local setup, and enter the **Developer Key Client ID** and **Developer Key Client Secret** from the step where you created the developer key on Canvas.
 3. Return to **Admin Panel → LTI Platforms** and assign the Dynamic Canvas registration to the organization you just set up the LMS integration for.
 
 On HelpMe, the organization-level integration stores the Canvas Developer Key and allows HelpMe to call Canvas endpoints (like for auto-synchronizing Chatbot documents). Or more specifically, it allows HelpMe to create 'Access Tokens' on a user's behalf, and those tokens are used to call the Canvas API.
@@ -228,22 +228,20 @@ Note that each use of the "Get Feedback" button will save the input + response i
 _Important:_ Note that you should also try the embeddable question box as a student Canvas account (probably in a fresh browser) to ensure it still works there.
 
 
-
 ### Feedback deployment and failures
 
-Deploy chatbot's structured feedback support first; it continues accepting the
-existing LTI caller's `params.systemPrompt`. Then apply the HelpMe migrations
-(including `CanvasBatchRunError1790080000000`) and deploy HelpMe. Roll back HelpMe
-before rolling back chatbot. Remove the legacy contract only after every caller
-has migrated.
+Deploy the chatbot's structured feedback support first; it continues accepting
+the existing LTI caller's `params.systemPrompt`. Then apply the HelpMe migrations
+and deploy HelpMe. Roll back HelpMe before rolling back chatbot. Remove the
+legacy contract only after every caller has migrated.
 
-A failed run shows its error in Canvas Batch Grading and stops polling. Resolve
-the error, check SpeedGrader, and start a new run. The failed run remains available
-for review in the run selector; a new run freezes the current settings. A 401
-requires checking the OAuth token and developer-key scopes and reconnecting if
-necessary; a 403 requires checking the authorizing instructor's course access and
-grading permissions. These messages also apply when Canvas
-returns an HTML error page.
+A failed run shows its error in **LMS Integrations → Autograder** and stops
+polling. Resolve the error, check SpeedGrader, and start a new run. The failed run
+remains available in the run selector; a new run freezes the current settings. A
+401 requires checking the Access Token and developer-key scopes and reconnecting
+if necessary; a 403 requires checking the authorizing user's course access and
+grading permissions. These messages also apply when Canvas returns an HTML error
+page.
 
 Rejected writes and unknown write outcomes appear separately in the report.
 HelpMe does not retry either write. A durable write marker is saved before the
@@ -252,9 +250,12 @@ instead of resending it. HTTP 408, server/proxy errors, and network timeouts als
 have unknown outcomes. Inspect SpeedGrader before starting another run; an
 interrupted request may have reached Canvas. If grades succeeded but the review
 comment is missing, add the report's review reasons manually; do not regrade.
-A new run skips attempts that already have a Canvas grade or a posted grade.
-HelpMe checks this only when a run starts, so do not grade, post, or edit the
-quiz in Canvas while a run is active.
+
+By default a new run skips attempts that already have a Canvas grade or a posted
+grade. Enable **Regrade submissions** to replace existing grades, and
+**Include submissions with posted grades** to also update attempts that were
+already posted. HelpMe checks eligibility only when a run starts, so do not
+grade, post, or edit the quiz in Canvas while a run is active.
 
 Answers longer than 15,000 characters are not truncated or sent to the model.
 Grade them manually in SpeedGrader. Invalid model output also leaves the attempt
@@ -263,9 +264,12 @@ after resolving the model/configuration problem. Report refresh failures have a
 Retry action; do not infer completion from stale progress.
 
 The worker holds one PostgreSQL connection for a run-level advisory lock. Keep
-the connection pool larger than the number of active workers. The `writing`
-attempt status uses the existing text column, so this recovery change requires
-no additional migration. Stop old workers before deploying it.
+the connection pool larger than the number of active workers. Stop old workers
+before deploying a change to the autograder worker.
+
+> [!NOTE]
+> The autograder currently supports **Classic Canvas quizzes**. New Quizzes and
+> other LMS platforms are not supported yet.
 
 ## Start another development session
 

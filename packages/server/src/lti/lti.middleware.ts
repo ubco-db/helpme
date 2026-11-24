@@ -289,7 +289,7 @@ export default class LtiMiddleware {
         method: 'ALL',
       },
       {
-        route: /^\/embeddable\/canvas-batch(?:\/|$)/,
+        route: /^\/embeddable\/autograder(?:\/|$)/,
         method: 'ALL',
       },
       `/static`,

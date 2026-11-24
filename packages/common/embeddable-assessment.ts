@@ -1,5 +1,5 @@
-import { z } from 'zod'
-import { Transform } from 'class-transformer'
+import { z } from 'zod';
+import { Transform } from 'class-transformer';
 import {
   IsDefined,
   IsNotEmpty,
@@ -9,28 +9,29 @@ import {
   ValidationArguments,
   ValidatorConstraint,
   ValidatorConstraintInterface,
-} from 'class-validator'
+} from 'class-validator';
 
-export const MAX_GRADING_TEXT_LENGTH = 15000
-const text = z.string().trim().max(MAX_GRADING_TEXT_LENGTH)
-const score = z.number().finite().min(0).max(100000)
+export const MAX_GRADING_TEXT_LENGTH = 15000;
+const text = z.string().trim().max(MAX_GRADING_TEXT_LENGTH);
+// Zod 4 rejects NaN and Infinity for z.number() by default.
+const score = z.number().min(0).max(100000);
 
 export const scoreScaleSchema = z.object({
   max: score.positive(),
   step: score.positive(),
-})
+});
 
-export type ScoreScale = z.infer<typeof scoreScaleSchema>
+export type ScoreScale = z.infer<typeof scoreScaleSchema>;
 
 export function isScoreAllowed(scale: ScoreScale, value: number): boolean {
   if (!Number.isFinite(value) || value < 0 || value > scale.max) {
-    return false
+    return false;
   }
-  const steps = value / scale.step
-  return Math.abs(steps - Math.round(steps)) <= 1e-8
+  const steps = value / scale.step;
+  return Math.abs(steps - Math.round(steps)) <= 1e-8;
 }
 
-const scoreCap = score.nullable()
+const scoreCap = score.nullable();
 
 export const gradingCheckSchema = z.discriminatedUnion('kind', [
   z.object({
@@ -56,9 +57,9 @@ export const gradingCheckSchema = z.discriminatedUnion('kind', [
       ),
     scoreCap,
   }),
-])
+]);
 
-export type GradingCheck = z.infer<typeof gradingCheckSchema>
+export type GradingCheck = z.infer<typeof gradingCheckSchema>;
 
 export const questionGradingSettingsSchema = z
   .object({
@@ -70,7 +71,7 @@ export const questionGradingSettingsSchema = z
     checks: z.array(gradingCheckSchema).max(20),
   })
   .superRefine((settings, ctx) => {
-    const scale = settings.scoreScale
+    const scale = settings.scoreScale;
     if (
       scale.step > scale.max ||
       !Number.isSafeInteger(Math.round(scale.max / scale.step)) ||
@@ -81,37 +82,37 @@ export const questionGradingSettingsSchema = z
         path: ['scoreScale', 'step'],
         message:
           'The maximum score must be a whole number of score increments.',
-      })
+      });
     }
 
-    const checkKeys = new Set<string>()
+    const checkKeys = new Set<string>();
     settings.checks.forEach((check, index) => {
       if (check.scoreCap !== null && !isScoreAllowed(scale, check.scoreCap)) {
         ctx.addIssue({
           code: 'custom',
           path: ['checks', index, 'scoreCap'],
           message: 'A score cap must be one of this question’s allowed scores.',
-        })
+        });
       }
       const key =
         check.kind === 'capitalization'
           ? `${check.kind}:${check.term.toLocaleLowerCase('en')}`
-          : check.kind
+          : check.kind;
       if (checkKeys.has(key)) {
         ctx.addIssue({
           code: 'custom',
           path: ['checks', index],
           message: 'This automatic check has already been added.',
-        })
+        });
       }
-      checkKeys.add(key)
-    })
+      checkKeys.add(key);
+    });
     const minimum = settings.checks.find(
       (check) => check.kind === 'minimum_sentences',
-    )
+    );
     const maximum = settings.checks.find(
       (check) => check.kind === 'maximum_sentences',
-    )
+    );
     if (
       minimum?.kind === 'minimum_sentences' &&
       maximum?.kind === 'maximum_sentences' &&
@@ -121,13 +122,13 @@ export const questionGradingSettingsSchema = z
         code: 'custom',
         path: ['checks'],
         message: 'The minimum sentence count cannot exceed the maximum.',
-      })
+      });
     }
-  })
+  });
 
 export type QuestionGradingSettings = z.infer<
   typeof questionGradingSettingsSchema
->
+>;
 
 // The single shared Zod validator owns every cross-field grading rule. It is
 // enforced on the server through the class-validator constraint below and
@@ -135,13 +136,13 @@ export type QuestionGradingSettings = z.infer<
 @ValidatorConstraint({ name: 'questionGradingSettings', async: false })
 class QuestionGradingSettingsConstraint implements ValidatorConstraintInterface {
   validate(value: unknown): boolean {
-    return questionGradingSettingsSchema.safeParse(value).success
+    return questionGradingSettingsSchema.safeParse(value).success;
   }
   defaultMessage(args: ValidationArguments): string {
-    const result = questionGradingSettingsSchema.safeParse(args.value)
+    const result = questionGradingSettingsSchema.safeParse(args.value);
     return result.success
       ? 'gradingSettings is invalid.'
-      : (result.error.issues[0]?.message ?? 'gradingSettings is invalid.')
+      : (result.error.issues[0]?.message ?? 'gradingSettings is invalid.');
   }
 }
 
@@ -149,72 +150,73 @@ class QuestionGradingSettingsConstraint implements ValidatorConstraintInterface 
 // through untouched so their class-validator rules reject them instead of the
 // transform coercing numbers/objects into strings.
 const trimmed = ({ value }: { value: unknown }): unknown =>
-  typeof value === 'string' ? value.trim() : value
+  typeof value === 'string' ? value.trim() : value;
 
 export class UpsertEmbeddableQuestionParams {
   @Transform(trimmed)
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
-  title!: string
+  title!: string;
 
   @Transform(trimmed)
   @IsString()
   @IsNotEmpty()
   @MaxLength(MAX_GRADING_TEXT_LENGTH)
-  questionText!: string
+  questionText!: string;
 
   @IsDefined()
   @Validate(QuestionGradingSettingsConstraint)
-  gradingSettings!: QuestionGradingSettings
+  gradingSettings!: QuestionGradingSettings;
 }
 
 export type EmbeddableQuestion = UpsertEmbeddableQuestionParams & {
-  id: number
-  courseId: number
-  createdAt: string
-}
+  id: number;
+  courseId: number;
+  createdAt: string;
+};
 
 export type StudentEmbeddableQuestion = Pick<
   EmbeddableQuestion,
   'id' | 'courseId' | 'questionText'
->
+>;
 
 export class EmbeddableQuestionFeedbackParams {
   @Transform(trimmed)
   @IsString()
   @IsNotEmpty()
   @MaxLength(MAX_GRADING_TEXT_LENGTH)
-  responseText!: string
+  responseText!: string;
 }
 
 export interface EmbeddableQuestionFeedback {
-  score: number
-  comment: string
-  maxScore: number
-  appliedRequirements: string[]
+  score: number;
+  comment: string;
+  maxScore: number;
+  appliedRequirements: string[];
 }
 
 export interface GradingSnapshot {
-  questionText: string
-  gradingSettings: QuestionGradingSettings
+  questionText: string;
+  gradingSettings: QuestionGradingSettings;
   /**
-   * Batch/final grading only. Practice snapshots omit both fields, so their
-   * stored shape is unchanged.
+   * Final/autograder grading only. In final mode `instruction` replaces the
+   * question's feedback instructions. Practice snapshots omit both fields, so
+   * their stored shape is unchanged.
    */
-  gradingMode?: 'final'
-  instruction?: string
+  gradingMode?: 'final';
+  instruction?: string;
 }
 
 export type GradingEvaluation = EmbeddableQuestionFeedback & {
-  model: string | null
-  gradingSnapshot: GradingSnapshot
+  model: string | null;
+  gradingSnapshot: GradingSnapshot;
   /** Free-form explanation strings reported by the model, plus host codes like blank. */
-  reasons: string[]
+  reasons: string[];
   /**
    * Model-authored explanation for a human review flag; null when no review is
    * needed. Internal only: it is persisted for staff review and is never part
    * of the student-facing feedback response.
    */
-  humanReviewReason: string | null
-}
+  humanReviewReason: string | null;
+};

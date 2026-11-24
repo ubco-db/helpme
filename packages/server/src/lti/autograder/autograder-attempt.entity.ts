@@ -8,25 +8,25 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { CanvasBatchAttemptStatus, CanvasBatchQuestionWork } from '@koh/common';
-import { CanvasBatchRunModel } from './canvas-batch-run.entity';
+import { AutograderAttemptStatus, AutograderQuestionWork } from '@koh/common';
+import { AutograderRunModel } from './autograder-run.entity';
 
 /**
- * One eligible Canvas attempt discovered by a run, with its durable per-question
- * work/results.
+ * One eligible Canvas attempt discovered by a run, with its durable
+ * per-question work/results.
  *
  * The unique (runId, quizSubmissionId, attemptNumber) triple is the attempt
  * identity: Canvas returns one quiz submission row per attempt when asked for
  * all versions, so the submission id alone is not unique and the attempt number
  * is what distinguishes a student's later tries.
  */
-@Entity('canvas_batch_attempt_model')
+@Entity('autograder_attempt_model')
 @Index(
-  'IDX_canvas_batch_attempt_identity',
+  'IDX_autograder_attempt_identity',
   ['runId', 'quizSubmissionId', 'attemptNumber'],
   { unique: true },
 )
-export class CanvasBatchAttemptModel extends BaseEntity {
+export class AutograderAttemptModel extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -36,9 +36,9 @@ export class CanvasBatchAttemptModel extends BaseEntity {
   @Column({ type: 'integer', nullable: false })
   runId: number;
 
-  @ManyToOne(() => CanvasBatchRunModel, { onDelete: 'CASCADE' })
+  @ManyToOne(() => AutograderRunModel, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'runId' })
-  run: CanvasBatchRunModel;
+  run: AutograderRunModel;
 
   /** Canvas quiz submission id; the identity Canvas writes back to. */
   @Column({ type: 'integer', nullable: false })
@@ -51,8 +51,13 @@ export class CanvasBatchAttemptModel extends BaseEntity {
   @Column({ type: 'integer', nullable: false })
   attemptNumber: number;
 
-  @Column({ type: 'text', nullable: false })
-  status: CanvasBatchAttemptStatus;
+  @Column({
+    type: 'enum',
+    enum: AutograderAttemptStatus,
+    enumName: 'autograder_attempt_status_enum',
+    nullable: false,
+  })
+  status: AutograderAttemptStatus;
 
   /**
    * False when Canvas did not provide usable submission history. Unreadable
@@ -64,7 +69,7 @@ export class CanvasBatchAttemptModel extends BaseEntity {
 
   /** Durable per-question work and results. */
   @Column({ type: 'jsonb', nullable: false })
-  questions: CanvasBatchQuestionWork[];
+  questions: AutograderQuestionWork[];
 
   /** Staff-only summary error; never written to Canvas. */
   @Column({ type: 'text', nullable: true })

@@ -62,8 +62,8 @@ import { UserLtiIdentityModel } from './src/lti/user_lti_identity.entity';
 import { ProfInviteModel } from './src/course/prof-invite/prof-invite.entity';
 import { EmbeddableQuestionModel } from './src/lti/embeddable-question/embeddable-question.entity';
 import { EmbeddableQuestionFeedbackModel } from './src/lti/embeddable-question/embeddable-question-feedback.entity';
-import { CanvasBatchRunModel } from './src/lti/embeddable/canvas-batch/canvas-batch-run.entity';
-import { CanvasBatchAttemptModel } from './src/lti/embeddable/canvas-batch/canvas-batch-attempt.entity';
+import { AutograderRunModel } from './src/lti/autograder/autograder-run.entity';
+import { AutograderAttemptModel } from './src/lti/autograder/autograder-attempt.entity';
 // set .envs to their default values if the developer hasn't yet set them
 if (fs.existsSync('.env')) {
   config();
@@ -155,8 +155,8 @@ const typeorm: DataSourceOptions = {
     ProfInviteModel,
     EmbeddableQuestionModel,
     EmbeddableQuestionFeedbackModel,
-    CanvasBatchRunModel,
-    CanvasBatchAttemptModel,
+    AutograderRunModel,
+    AutograderAttemptModel,
   ],
   logging:
     process.env.NODE_ENV !== 'production'

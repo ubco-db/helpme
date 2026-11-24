@@ -46,13 +46,17 @@ const defaultGradingSettings: QuestionGradingSettings = {
 const checkOptions: Array<{ value: GradingCheck['kind']; label: string }> = [
   { value: 'minimum_sentences', label: 'Minimum sentences' },
   { value: 'maximum_sentences', label: 'Maximum sentences' },
-  { value: 'capitalization', label: 'Capitalization' },
+  {
+    value: 'capitalization',
+    label: 'Capitalization',
+  },
 ]
 
 const checkLabels: Record<GradingCheck['kind'], string> = {
   minimum_sentences: 'Minimum sentences',
   maximum_sentences: 'Maximum sentences',
-  capitalization: 'Capitalization',
+  capitalization:
+    'Capitalization (checks for any instances of the term and warns if not capitalized)',
 }
 
 function newCheck(kind: GradingCheck['kind']): GradingCheck {

@@ -21,7 +21,13 @@ const feedbackResponseSchema = z.object({
   model: z.string().optional(),
 });
 
-/** Question-specific values chatbot places in its grading system prompt. */
+/**
+ * Question-specific values chatbot places in its grading system prompt.
+ *
+ * The matching runtime schema lives in the separate chatbot repo
+ * (`src/types.ts` -> `FeedbackGradingInputSchema`). Keep the field names and
+ * limits in sync; the chatbot rejects unknown or missing fields.
+ */
 export type FeedbackGradingInput = {
   questionText: string;
   mechanicalFacts: string;

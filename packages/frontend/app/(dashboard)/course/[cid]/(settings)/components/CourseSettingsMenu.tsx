@@ -1,25 +1,25 @@
-'use client';
+'use client'
 
 import {
   BellOutlined,
   DownloadOutlined,
-  FormOutlined,
   LinkOutlined,
   QrcodeOutlined,
   RobotOutlined,
   ScheduleOutlined,
   SettingOutlined,
   TableOutlined,
-} from '@ant-design/icons';
-import type { CourseSettingsResponse } from '@koh/common';
-import { Role } from '@koh/common';
-import type { MenuProps } from 'antd';
-import { Menu, Select } from 'antd';
-import { usePathname, useRouter } from 'next/navigation';
-import type { ReactNode } from 'react';
+} from '@ant-design/icons'
+import type { CourseSettingsResponse } from '@koh/common'
+import { Role } from '@koh/common'
+import type { MenuProps } from 'antd'
+import { Menu, Select } from 'antd'
+import { usePathname, useRouter } from 'next/navigation'
+import type { ReactNode } from 'react'
+import Link from 'next/link'
 
-type MenuItem = Required<MenuProps>['items'][number];
-type MenuOption = { key: string; label: ReactNode };
+type MenuItem = Required<MenuProps>['items'][number]
+type MenuOption = { key: string; label: ReactNode }
 
 enum CourseAdminOptions {
   CHECK_IN = 'CHECK_IN',
@@ -27,7 +27,6 @@ enum CourseAdminOptions {
   EXPORT_DATA = 'EXPORT_DATA',
   QUEUE_INVITES = 'QUEUE_INVITES',
   EDIT_QUESTIONS = 'EDIT_QUESTIONS',
-  CANVAS_BATCH_GRADING = 'CANVAS_BATCH_GRADING',
   SETTINGS = 'SETTINGS',
   LMS_INTEGRATIONS = 'LMS_INTEGRATIONS',
   CHATBOT_SETTINGS = 'CHATBOT_SETTINGS',
@@ -36,88 +35,55 @@ enum CourseAdminOptions {
 }
 
 type CourseSettingsManyProps = {
-  courseRole: Role;
-  courseFeatures?: CourseSettingsResponse;
-  courseId: number;
-};
+  courseRole: Role
+  courseFeatures?: CourseSettingsResponse
+  courseId: number
+}
 
 const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
   courseRole,
   courseFeatures,
   courseId,
 }) => {
-  const router = useRouter();
-  const pathname = usePathname();
-
-  const handleMenuClick = (key: string) => {
-    const basePath = `/course/${courseId}/settings`;
-    switch (key) {
-      case CourseAdminOptions.SETTINGS:
-        router.push(basePath);
-        break;
-      case CourseAdminOptions.CHECK_IN:
-        router.push(`${basePath}/check_in`);
-        break;
-      case CourseAdminOptions.ROSTER:
-        router.push(`${basePath}/roster`);
-        break;
-      case CourseAdminOptions.QUEUE_INVITES:
-        router.push(`${basePath}/queue_invites`);
-        break;
-      case CourseAdminOptions.EXPORT_DATA:
-        router.push(`${basePath}/export_data`);
-        break;
-      case CourseAdminOptions.EDIT_QUESTIONS:
-        router.push(`${basePath}/edit_questions`);
-        break;
-      case CourseAdminOptions.CANVAS_BATCH_GRADING:
-        router.push(`${basePath}/canvas_batch_grading`);
-        break;
-      case CourseAdminOptions.LMS_INTEGRATIONS:
-        router.push(`${basePath}/lms_integrations`);
-        break;
-      case CourseAdminOptions.CHATBOT_SETTINGS:
-        router.push(`${basePath}/chatbot_settings`);
-        break;
-      case CourseAdminOptions.CHATBOT_KNOWLEDGE_BASE:
-        router.push(`${basePath}/chatbot_knowledge_base`);
-        break;
-      case CourseAdminOptions.CHATBOT_QUESTIONS:
-        router.push(`${basePath}/chatbot_questions`);
-        break;
-    }
-  };
+  const pathname = usePathname()
 
   const handleCurrentMenuItem = () => {
-    const path = pathname.split('/');
+    const path = pathname.split('/')
 
     return CourseAdminOptions[
       path[path.length - 1].toUpperCase() as keyof typeof CourseAdminOptions
-    ];
-  };
+    ]
+  }
 
-  const currentMenuItem = handleCurrentMenuItem();
+  const currentMenuItem = handleCurrentMenuItem()
 
   const baseMenuItems: MenuItem[] = [
     {
       key: CourseAdminOptions.QUEUE_INVITES,
       icon: <QrcodeOutlined />,
-      label: 'Queue Invites',
+      label: (
+        <Link href={`/course/${courseId}/settings/queue_invites`}>
+          Queue Invites
+        </Link>
+      ),
     },
     {
       key: CourseAdminOptions.EDIT_QUESTIONS,
       icon: <TableOutlined />,
-      label: 'Edit Queue Questions',
-    },
-    {
-      key: CourseAdminOptions.CANVAS_BATCH_GRADING,
-      icon: <FormOutlined />,
-      label: 'Canvas Batch Grading',
+      label: (
+        <Link href={`/course/${courseId}/settings/edit_questions`}>
+          Edit Queue Questions
+        </Link>
+      ),
     },
     {
       key: CourseAdminOptions.EXPORT_DATA,
       icon: <DownloadOutlined />,
-      label: 'Export Data',
+      label: (
+        <Link href={`/course/${courseId}/settings/export_data`}>
+          Export Data
+        </Link>
+      ),
     },
     {
       type: 'divider',
@@ -125,80 +91,102 @@ const CourseSettingsMenu: React.FC<CourseSettingsManyProps> = ({
     {
       key: CourseAdminOptions.CHATBOT_SETTINGS,
       icon: <RobotOutlined />,
-      label: 'Chatbot Settings',
+      label: (
+        <Link href={`/course/${courseId}/settings/chatbot_settings`}>
+          Chatbot Settings
+        </Link>
+      ),
     },
     {
       key: CourseAdminOptions.CHATBOT_KNOWLEDGE_BASE,
       icon: <RobotOutlined />,
-      label: 'Chatbot Knowledge Base',
+      label: (
+        <Link href={`/course/${courseId}/settings/chatbot_knowledge_base`}>
+          Chatbot Knowledge Base
+        </Link>
+      ),
     },
     {
       key: CourseAdminOptions.CHATBOT_QUESTIONS,
       icon: <RobotOutlined />,
-      label: 'Edit Chatbot Questions',
+      label: (
+        <Link href={`/course/${courseId}/settings/chatbot_questions`}>
+          Edit Chatbot Questions
+        </Link>
+      ),
     },
-  ];
+  ]
 
   const professorMenuItems: MenuItem[] = [
     {
       key: CourseAdminOptions.SETTINGS,
       icon: <SettingOutlined />,
-      label: 'General Settings',
+      label: (
+        <Link href={`/course/${courseId}/settings`}>General Settings</Link>
+      ),
     },
     {
       key: CourseAdminOptions.ROSTER,
       icon: <BellOutlined />,
-      label: 'Course Roster',
+      label: (
+        <Link href={`/course/${courseId}/settings/roster`}>Course Roster</Link>
+      ),
     },
     {
       key: CourseAdminOptions.LMS_INTEGRATIONS,
       icon: <LinkOutlined />,
-      label: 'LMS Integrations',
+      label: (
+        <Link href={`/course/${courseId}/settings/lms_integrations`}>
+          LMS Integrations
+        </Link>
+      ),
     },
-  ];
+  ]
 
   if (courseFeatures?.queueEnabled) {
     professorMenuItems.push({
       key: CourseAdminOptions.CHECK_IN,
       icon: <ScheduleOutlined />,
-      label: 'TA Check In/Out Times',
-    });
+      label: (
+        <Link href={`/course/${courseId}/settings/check_in`}>
+          TA Check In/Out Times
+        </Link>
+      ),
+    })
   }
 
   const menuItems =
     courseRole === Role.PROFESSOR
       ? [...professorMenuItems, ...baseMenuItems]
-      : baseMenuItems;
+      : baseMenuItems
 
   const mobileOptions = menuItems
     .filter((item): item is MenuOption => {
       return (
         !!item && item.type !== 'divider' && 'key' in item && 'label' in item
-      );
+      )
     })
     .map((item) => ({
       value: item.key,
       label: item.label,
-    }));
+    }))
 
   return (
     <>
       <div className="md:hidden">
         <Select
           value={currentMenuItem}
-          onChange={(value) => handleMenuClick(value)}
           className="w-full"
           options={mobileOptions}
         />
       </div>
       <Menu
         selectedKeys={[currentMenuItem]}
-        onClick={(item) => handleMenuClick(item.key)}
         className="hidden bg-[#f8f9fb] md:block"
         items={menuItems}
       />
     </>
-  );
-};
+  )
+}
 
-export default CourseSettingsMenu;
+export default CourseSettingsMenu

@@ -1,94 +1,76 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { Logger, Injectable } from '@nestjs/common';
 import {
-  CanvasBatchAttemptStatus,
-  CanvasBatchQuestionStatus,
-  CanvasBatchQuestionWork,
-  CanvasBatchRunStatus,
-  ERROR_MESSAGES,
+  AutograderAttemptStatus,
+  AutograderQuestionStatus,
+  AutograderQuestionWork,
+  AutograderRunStatus,
   LMSApiResponseStatus,
 } from '@koh/common';
-import { LMSIntegrationService } from '../../../lmsIntegration/lmsIntegration.service';
-import { QuestionGradingService } from '../../embeddable-question/question-grading.service';
-import { CanvasBatchRunModel } from './canvas-batch-run.entity';
-import { CanvasBatchAttemptModel } from './canvas-batch-attempt.entity';
-import { CanvasBatchStore } from './canvas-batch.store';
-import {
+import { LMSIntegrationService } from '../../lmsIntegration/lmsIntegration.service';
+import { QuestionGradingService } from '../embeddable-question/question-grading.service';
+import { AutograderRunModel } from './autograder-run.entity';
+import { AutograderAttemptModel } from './autograder-attempt.entity';
+import { AutograderStore } from './autograder.store';
+import type {
   AbstractLMSAdapter,
   LMSClassicAttempt,
-  LMSWriteResult,
-} from '../../../lmsIntegration/lmsIntegration.adapter';
+} from '../../lmsIntegration/lmsIntegration.adapter';
 import {
   buildGradingSnapshot,
   classifyDiscoveredAnswer,
-  UNREADABLE_ATTEMPT_ERROR,
-} from './canvas-batch.logic';
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function outcomeMessage(result: LMSWriteResult): string {
-  return result.outcome === 'unknown'
-    ? `Canvas write outcome is unknown. Check SpeedGrader before starting another run. ${result.message ?? ''}`
-    : `Canvas rejected the write${result.httpStatus ? ` (${result.httpStatus})` : ''}. ${result.message ?? ''} Check the Canvas connection and grading permissions, then start a new run for ungraded attempts.`;
-}
-
-const INTERRUPTED_WRITE_ERROR =
-  "Canvas' 'write' outcome is unknown because processing was interrupted. Check this attempt’s scores and review comment in SpeedGrader before starting another run.";
-
-/** SpeedGrader note for staff; null when no question was flagged. */
-export function reviewComment(
-  questions: CanvasBatchQuestionWork[],
-): string | null {
-  const reasons = questions
-    .filter((question) => question.humanReviewReason)
-    .map(
-      (question) =>
-        `Question ${question.position} review reason: ${question.humanReviewReason}`,
-    );
-  return reasons.length
-    ? [
-        'HUMAN REVIEW REQUIRED (HelpMe AI)',
-        ...reasons,
-        'Delete this comment before posting grades; students can see it once grades are posted.',
-      ].join('\n\n')
-    : null;
-}
+} from './autograder.logic';
+import {
+  INTERRUPTED_WRITE_ERROR,
+  MISSING_GRADE_ERROR,
+  attemptFailureMessage,
+  questionFailureMessage,
+  reviewComment,
+  runFailureMessage,
+  writeOutcomeMessage,
+} from './autograder.messages';
 
 /**
- * The single batch worker. It discovers every eligible completed attempt,
- * grades each mapped question, persists the validated result, and prefills the
+ * The autograder worker. It discovers every eligible completed attempt, grades
+ * each mapped question, persists the validated result, and prefills the
  * per-question scores and comments. It never posts or releases grades.
  *
- * Each student is processed as one unit: every question must grade before one
- * complete grade request is sent. Existing grades and posted grades are
- * checked once, when attempts are discovered.
+ * Each student is processed as one unit: every question that can be graded must
+ * grade before one complete grade request is sent. A technical error leaves the
+ * whole attempt unwritten; a question that already has an instructor grade is
+ * skipped, but the remaining questions are still graded and prefilled.
  */
 @Injectable()
-export class CanvasBatchRunnerService {
-  private readonly logger = new Logger(CanvasBatchRunnerService.name);
+export class AutograderRunnerService {
+  private readonly logger = new Logger(AutograderRunnerService.name);
 
   constructor(
-    private readonly store: CanvasBatchStore,
+    private readonly store: AutograderStore,
     private readonly lmsIntegrationService: LMSIntegrationService,
     private readonly questionGradingService: QuestionGradingService,
   ) {}
 
-  /** Discovers, grades, and prefills every eligible attempt for a run. */
+  /**
+   * Discovers, grades, and prefills every eligible attempt for a run.
+   *
+   * A redelivered job (for example after the server restarts mid-run) follows
+   * the same path: the advisory lock is free again, discovery skips attempts
+   * already recorded, and the durable `writing` marker prevents replaying a
+   * Canvas write whose outcome is unknown.
+   */
   async run(runId: number): Promise<void> {
     await this.store.withRunLock(runId, () => this.processRun(runId));
   }
 
   private async processRun(runId: number): Promise<void> {
     const run = await this.store.findRun(runId);
-    if (!run || run.status !== CanvasBatchRunStatus.Running) {
+    if (!run || run.status !== AutograderRunStatus.Running) {
       return;
     }
     try {
       const adapter = await this.lmsIntegrationService.getAdapter(run.courseId);
       if (!adapter) {
-        throw new BadRequestException(
-          ERROR_MESSAGES.lmsController.noLMSIntegration,
+        throw new Error(
+          'This course no longer has a Canvas integration. Reconnect it in LMS Integrations, then start a new run.',
         );
       }
       await this.discoverAttempts(run, adapter);
@@ -98,23 +80,26 @@ export class CanvasBatchRunnerService {
       }
       await this.completeRun(run);
     } catch (error) {
-      run.status = CanvasBatchRunStatus.Failed;
-      run.error = `Batch processing stopped: ${getErrorMessage(error)} Resolve the error, check SpeedGrader for any existing grades, then start a new run.`;
+      run.status = AutograderRunStatus.Failed;
+      run.error = runFailureMessage(error);
       run.completedAt = new Date();
       await this.store.saveRun(run);
-      this.logger.warn(`Batch run ${run.id} failed: ${getErrorMessage(error)}`);
+      this.logger.warn(
+        `Autograder run ${run.id} failed: ${errorMessage(error)}`,
+      );
     }
   }
 
   /**
    * Records every eligible completed attempt that is not already known to this
    * run. Attempts already recorded are left alone, so a resume discovers only
-   * later attempts. Excused attempts and attempts whose grade is already posted
-   * are not recorded. Attempts that Canvas reported as unreadable are retained
-   * so the run can record a staff error.
+   * later attempts. Excused attempts are always excluded. Posted attempts are
+   * only included when the run explicitly allows regrading posted grades.
+   * Attempts that Canvas reported as unreadable are retained so the run can
+   * record a staff error.
    */
   private async discoverAttempts(
-    run: CanvasBatchRunModel,
+    run: AutograderRunModel,
     adapter: AbstractLMSAdapter,
   ): Promise<void> {
     const result = await adapter.getClassicAttemptSnapshots({
@@ -122,11 +107,14 @@ export class CanvasBatchRunnerService {
       assignmentId: run.assignmentId,
     });
     if (result.status !== LMSApiResponseStatus.Success || !result.snapshot) {
-      throw new BadRequestException(result.status);
+      throw new Error(result.message ?? result.status);
     }
 
     for (const attempt of result.snapshot.attempts) {
-      if (attempt.excused || attempt.postedAt != null) {
+      if (attempt.excused) {
+        continue;
+      }
+      if (attempt.postedAt != null && !run.includePostedGrades) {
         continue;
       }
       const existing = await this.store.findAttempt(
@@ -143,25 +131,29 @@ export class CanvasBatchRunnerService {
         quizSubmissionId: attempt.quizSubmissionId,
         canvasUserId: attempt.userId,
         attemptNumber: attempt.attempt,
-        status: CanvasBatchAttemptStatus.Pending,
+        status: AutograderAttemptStatus.Pending,
         readable: attempt.readable,
         questions,
-        error: attempt.readable ? null : UNREADABLE_ATTEMPT_ERROR,
+        error: attempt.readable ? null : (questions[0]?.error ?? null),
       });
     }
   }
 
   private buildQuestionWork(
-    run: CanvasBatchRunModel,
+    run: AutograderRunModel,
     attempt: LMSClassicAttempt,
-  ): CanvasBatchQuestionWork[] {
-    return run.questions.map((question) => {
+  ): AutograderQuestionWork[] {
+    return run.questionSnapshots.map((question) => {
       const answer = attempt.readable
         ? attempt.answers.find(
             (candidate) => candidate.questionId === question.canvasQuestionId,
           )
         : undefined;
-      const discovered = classifyDiscoveredAnswer(answer, attempt.readable);
+      const discovered = classifyDiscoveredAnswer(
+        answer,
+        attempt.readable,
+        run.regradeSubmissions,
+      );
       return {
         canvasQuestionId: question.canvasQuestionId,
         position: question.position,
@@ -181,15 +173,17 @@ export class CanvasBatchRunnerService {
   }
 
   private async processAttempt(
-    run: CanvasBatchRunModel,
+    run: AutograderRunModel,
     adapter: AbstractLMSAdapter,
-    attempt: CanvasBatchAttemptModel,
+    attempt: AutograderAttemptModel,
   ): Promise<void> {
-    if (attempt.status === CanvasBatchAttemptStatus.Writing) {
-      // A saved successful grade needs no replay, even if the comment was interrupted.
+    if (attempt.status === AutograderAttemptStatus.Writing) {
+      // A saved successful grade needs no replay, even if the comment was
+      // interrupted. If the persisted questions are not all posted, the write
+      // may have reached Canvas, so report it instead of retrying.
       if (
         !attempt.questions.every(
-          (question) => question.status === CanvasBatchQuestionStatus.Posted,
+          (question) => question.status === AutograderQuestionStatus.Written,
         )
       ) {
         attempt.error = INTERRUPTED_WRITE_ERROR;
@@ -198,45 +192,47 @@ export class CanvasBatchRunnerService {
       await this.store.saveAttempt(attempt);
       return;
     }
-    if (attempt.status !== CanvasBatchAttemptStatus.Pending) return;
+    if (attempt.status !== AutograderAttemptStatus.Pending) {
+      return;
+    }
     try {
       await this.gradeQuestions(run, attempt);
+      // Persist the graded questions before the Canvas write. If the process
+      // stops here, a resume reuses these results instead of calling the model
+      // again, while the attempt is still Pending so it can be prefilled.
       await this.store.saveAttempt(attempt);
       await this.prefillAttempt(run, adapter, attempt);
       this.finalizeAttempt(attempt);
       await this.store.saveAttempt(attempt);
     } catch (error) {
-      attempt.status = CanvasBatchAttemptStatus.Error;
-      attempt.error =
-        attempt.error ??
-        `Batch processing failed: ${getErrorMessage(error)} Check SpeedGrader, resolve the error, then start a new run for ungraded attempts.`;
+      attempt.status = AutograderAttemptStatus.Error;
+      attempt.error = attempt.error ?? attemptFailureMessage(error);
       await this.store.saveAttempt(attempt);
       this.logger.warn(
-        `Batch attempt ${attempt.id} for run ${run.id} failed: ${getErrorMessage(error)}`,
+        `Autograder attempt ${attempt.id} for run ${run.id} failed: ${errorMessage(error)}`,
       );
     }
   }
 
   /**
    * Grades every pending question in memory. Questions already graded are never
-   * re-sent to the model.
+   * re-sent to the model. A question with a discovered error or a model error
+   * stops the attempt so no partial technical grade is written.
    */
   private async gradeQuestions(
-    run: CanvasBatchRunModel,
-    attempt: CanvasBatchAttemptModel,
+    run: AutograderRunModel,
+    attempt: AutograderAttemptModel,
   ): Promise<void> {
     if (
       attempt.questions.some(
-        (question) =>
-          question.status === CanvasBatchQuestionStatus.Error ||
-          question.status === CanvasBatchQuestionStatus.Skipped,
+        (question) => question.status === AutograderQuestionStatus.Error,
       )
     ) {
       this.markPendingSkipped(attempt.questions);
       return;
     }
     for (const question of attempt.questions) {
-      if (question.status !== CanvasBatchQuestionStatus.Pending) {
+      if (question.status !== AutograderQuestionStatus.Pending) {
         continue;
       }
       try {
@@ -259,17 +255,17 @@ export class CanvasBatchRunnerService {
         question.reasons = evaluation.reasons;
         question.humanReviewReason = evaluation.humanReviewReason;
         question.error = null;
-        question.status = CanvasBatchQuestionStatus.Graded;
+        question.status = AutograderQuestionStatus.Graded;
       } catch (error) {
         // Unavailable or malformed output is a staff-visible error. It is never
         // converted into a zero score and never written to Canvas.
-        question.status = CanvasBatchQuestionStatus.Error;
+        question.status = AutograderQuestionStatus.Error;
         question.score = null;
         question.comment = null;
         question.humanReviewReason = null;
-        question.error = `Grading failed: ${getErrorMessage(error)} No grades were written for this attempt. Review the answer and grading settings; grade it manually in SpeedGrader or resolve the error and start a new run.`;
+        question.error = questionFailureMessage(error);
         this.logger.warn(
-          `Batch question ${question.canvasQuestionId} for run ${run.id} failed to grade: ${getErrorMessage(error)}`,
+          `Autograder question ${question.canvasQuestionId} for run ${run.id} failed to grade: ${errorMessage(error)}`,
         );
         this.markPendingSkipped(attempt.questions);
         return;
@@ -277,28 +273,37 @@ export class CanvasBatchRunnerService {
     }
   }
 
-  /** Prefills one attempt's scores and comments in a single Canvas request. */
+  /**
+   * Prefills the graded questions of one attempt in a single Canvas request.
+   *
+   * Questions skipped because they already had an instructor grade are left out
+   * of the write. If any question has a technical error, nothing is written for
+   * the attempt.
+   */
   private async prefillAttempt(
-    run: CanvasBatchRunModel,
+    run: AutograderRunModel,
     adapter: AbstractLMSAdapter,
-    attempt: CanvasBatchAttemptModel,
+    attempt: AutograderAttemptModel,
   ): Promise<void> {
     if (
-      !attempt.questions.every(
-        (question) => question.status === CanvasBatchQuestionStatus.Graded,
+      attempt.questions.some(
+        (question) => question.status === AutograderQuestionStatus.Error,
       )
     ) {
+      return;
+    }
+    const gradedQuestions = attempt.questions.filter(
+      (question) => question.status === AutograderQuestionStatus.Graded,
+    );
+    if (gradedQuestions.length === 0) {
       return;
     }
     const questions: Parameters<
       AbstractLMSAdapter['putClassicAttemptGrades']
     >[0]['questions'] = [];
-    for (const question of attempt.questions) {
+    for (const question of gradedQuestions) {
       if (question.score === null || question.comment === null) {
-        this.markWriteError(
-          attempt.questions,
-          'A completed grade was missing its score or comment; nothing was written.',
-        );
+        this.markWriteError(gradedQuestions, MISSING_GRADE_ERROR);
         return;
       }
       questions.push({
@@ -307,8 +312,9 @@ export class CanvasBatchRunnerService {
         comment: question.comment,
       });
     }
-    // Persist before either external write. A crash cannot leave a replayable grade.
-    attempt.status = CanvasBatchAttemptStatus.Writing;
+    // Persist before either external write. A crash cannot leave a replayable
+    // grade.
+    attempt.status = AutograderAttemptStatus.Writing;
     attempt.error = INTERRUPTED_WRITE_ERROR;
     await this.store.saveAttempt(attempt);
     const result = await adapter.putClassicAttemptGrades({
@@ -318,10 +324,10 @@ export class CanvasBatchRunnerService {
       questions,
     });
     if (result.outcome === 'success') {
-      this.markPosted(attempt.questions);
+      this.markPosted(gradedQuestions);
       const text = reviewComment(attempt.questions);
       attempt.error = text
-        ? 'Grades were prefilled, but the review comment outcome is unknown. Check SpeedGrader and add the review reasons shown in this report manually if the comment is missing. Do not regrade the attempt.'
+        ? 'Grades were prefilled, but the review-comment outcome is unknown. Check SpeedGrader and add the review reasons shown in this report manually if the comment is missing. Do not regrade the attempt.'
         : null;
       await this.store.saveAttempt(attempt);
       if (text) {
@@ -338,50 +344,53 @@ export class CanvasBatchRunnerService {
       }
     } else {
       attempt.error = null;
-      this.markWriteError(attempt.questions, outcomeMessage(result));
+      this.markWriteError(gradedQuestions, writeOutcomeMessage(result));
     }
   }
 
-  private finalizeAttempt(attempt: CanvasBatchAttemptModel): void {
+  private finalizeAttempt(attempt: AutograderAttemptModel): void {
     const hasError =
-      attempt.error ||
+      Boolean(attempt.error) ||
       attempt.questions.some(
-        (question) => question.status === CanvasBatchQuestionStatus.Error,
+        (question) => question.status === AutograderQuestionStatus.Error,
       );
-    // anti-pattern: this mutates the passed object
     attempt.status = hasError
-      ? CanvasBatchAttemptStatus.Error
-      : CanvasBatchAttemptStatus.Prefilled;
+      ? AutograderAttemptStatus.Error
+      : AutograderAttemptStatus.Prefilled;
   }
 
-  private markPosted(questions: CanvasBatchQuestionWork[]): void {
+  private markPosted(questions: AutograderQuestionWork[]): void {
     for (const question of questions) {
-      question.status = CanvasBatchQuestionStatus.Posted;
+      question.status = AutograderQuestionStatus.Written;
       question.error = null;
     }
   }
 
   private markWriteError(
-    questions: CanvasBatchQuestionWork[],
+    questions: AutograderQuestionWork[],
     message: string,
   ): void {
     for (const question of questions) {
-      question.status = CanvasBatchQuestionStatus.Error;
+      question.status = AutograderQuestionStatus.Error;
       question.error = message;
     }
   }
 
-  private markPendingSkipped(questions: CanvasBatchQuestionWork[]): void {
+  private markPendingSkipped(questions: AutograderQuestionWork[]): void {
     for (const question of questions) {
-      if (question.status === CanvasBatchQuestionStatus.Pending) {
-        question.status = CanvasBatchQuestionStatus.Skipped;
+      if (question.status === AutograderQuestionStatus.Pending) {
+        question.status = AutograderQuestionStatus.Skipped;
       }
     }
   }
 
-  private async completeRun(run: CanvasBatchRunModel): Promise<void> {
-    run.status = CanvasBatchRunStatus.Completed;
+  private async completeRun(run: AutograderRunModel): Promise<void> {
+    run.status = AutograderRunStatus.Completed;
     run.completedAt = new Date();
     await this.store.saveRun(run);
   }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

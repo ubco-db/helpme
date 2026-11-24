@@ -23,7 +23,7 @@ export class GradingConstraintError extends Error {}
 // strings; the question rubric is the only academic policy, so the host adds
 // no reason vocabulary of its own.
 const modelFeedbackSchema = z.object({
-  score: z.number().finite(),
+  score: z.number(),
   comment: z.string().trim().min(1).max(15000),
   reasons: z.array(z.string().trim().min(1)).min(1),
   human_review_reason: z.string().trim().min(1).nullable(),
