@@ -7,16 +7,19 @@ const projects = {
   common: './packages/common/tsconfig.json',
 }
 
-const promiseRules = {
+const typeAwareRules = {
   '@typescript-eslint/no-floating-promises': 'warn',
   '@typescript-eslint/no-misused-promises': 'warn',
   '@typescript-eslint/await-thenable': 'warn',
+  // Surfaces `@deprecated` JSDoc from dependencies (for example Zod 4's
+  // `.passthrough()`). `tsc` and non-type-aware ESLint do not report these.
+  '@typescript-eslint/no-deprecated': 'warn',
 }
 
 module.exports = defineConfig([
   ...fastConfig,
   ...Object.entries(projects).map(([workspace, project]) => ({
-    name: `helpme/${workspace}-promise-safety`,
+    name: `helpme/${workspace}-type-aware`,
     basePath: __dirname,
     files: [`packages/${workspace}/**/*.{ts,tsx}`],
     languageOptions: {
@@ -26,6 +29,6 @@ module.exports = defineConfig([
         tsconfigRootDir: __dirname,
       },
     },
-    rules: promiseRules,
+    rules: typeAwareRules,
   })),
 ])
