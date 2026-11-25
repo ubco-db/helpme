@@ -99,6 +99,26 @@ describe('Autograder persistence', () => {
     expect(await AutograderRunModel.countBy({ canvasQuizId: 103 })).toBe(1);
   });
 
+  it('only changes status through a valid transition', async () => {
+    const run = await store.createActiveRun(runData(104));
+
+    await expect(store.isRunCancelled(run.id)).resolves.toBe(false);
+    await expect(store.completeRun(run.id)).resolves.toBe(true);
+    await expect(store.isRunCancelled(run.id)).resolves.toBe(false);
+    await expect(store.cancelRun(run.id)).resolves.toBe(false);
+    expect((await store.findRun(run.id))?.status).toBe(
+      AutograderRunStatus.Completed,
+    );
+
+    const cancelled = await store.createActiveRun(runData(105));
+    await expect(store.cancelRun(cancelled.id)).resolves.toBe(true);
+    await expect(store.isRunCancelled(cancelled.id)).resolves.toBe(true);
+    await expect(store.completeRun(cancelled.id)).resolves.toBe(false);
+    expect((await store.findRun(cancelled.id))?.status).toBe(
+      AutograderRunStatus.Cancelled,
+    );
+  });
+
   it('creates a new run after the previous run completes', async () => {
     const first = await store.createActiveRun(runData(101));
     first.status = AutograderRunStatus.Completed;

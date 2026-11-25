@@ -1961,6 +1961,14 @@ export class APIClient {
           'GET',
           `/api/v1/lti/embeddable/autograder/${courseId}/runs/${runId}/report`,
         ),
+      cancelRun: async (
+        courseId: number,
+        runId: number,
+      ): Promise<AutograderRunSummary> =>
+        this.req(
+          'POST',
+          `/api/v1/lti/embeddable/autograder/${courseId}/runs/${runId}/cancel`,
+        ),
     },
   };
 }

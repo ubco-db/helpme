@@ -62,6 +62,41 @@ function quiz(
   };
 }
 
+function runData(
+  courseId: number,
+  userId: number,
+  overrides: Partial<AutograderRunModel> = {},
+): Partial<AutograderRunModel> {
+  return {
+    courseId,
+    canvasQuizId: 55,
+    assignmentId: 900,
+    quizTitle: 'Essay Quiz',
+    status: AutograderRunStatus.Running,
+    gradingMode: AUTOGRADER_GRADING_MODE,
+    instruction: FINAL_GRADING_INSTRUCTION,
+    speedGraderUrl: 'https://canvas.test/speed_grader?assignment_id=900',
+    createdByUserId: userId,
+    regradeSubmissions: false,
+    includePostedGrades: false,
+    questionSnapshots: [],
+    error: null,
+    completedAt: null,
+    ...overrides,
+  };
+}
+
+function createRun(
+  courseId: number,
+  userId: number,
+  overrides: Partial<AutograderRunModel> = {},
+): Promise<AutograderRunModel> {
+  const repository = AutograderRunModel.getRepository();
+  return repository.save(
+    repository.create(runData(courseId, userId, overrides)),
+  );
+}
+
 describe('Autograder endpoints', () => {
   const getClassicQuizCatalog = jest.fn<
     Promise<LMSClassicQuizCatalogResult>,
@@ -163,6 +198,8 @@ describe('Autograder endpoints', () => {
       .get(`/lti/embeddable/autograder/${course.id}/runs`)
       .expect(200);
     expect(runs.body).toHaveLength(1);
+    // The polled summary must stay small; frozen question snapshots are internal.
+    expect(runs.body[0]).not.toHaveProperty('questions');
 
     const report = await supertest({ userId: user.id })
       .get(
@@ -170,8 +207,48 @@ describe('Autograder endpoints', () => {
       )
       .expect(200);
     expect(report.body.run.id).toBe(started.body.id);
+    expect(report.body.run).not.toHaveProperty('questions');
     expect(report.body.errors).toEqual([]);
     expect(report.body.flags).toEqual([]);
+  });
+
+  it('cancels a running run and is idempotent', async () => {
+    const { user, course } = await setupCourseMember(Role.PROFESSOR);
+    const run = await createRun(course.id, user.id);
+
+    const cancelled = await supertest({ userId: user.id })
+      .post(`/lti/embeddable/autograder/${course.id}/runs/${run.id}/cancel`)
+      .expect(201);
+    expect(cancelled.body).toMatchObject({
+      id: run.id,
+      status: AutograderRunStatus.Cancelled,
+      completedAt: expect.any(String),
+    });
+
+    const again = await supertest({ userId: user.id })
+      .post(`/lti/embeddable/autograder/${course.id}/runs/${run.id}/cancel`)
+      .expect(201);
+    expect(again.body.status).toBe(AutograderRunStatus.Cancelled);
+
+    const runs = await supertest({ userId: user.id })
+      .get(`/lti/embeddable/autograder/${course.id}/runs`)
+      .expect(200);
+    expect(runs.body[0]).toMatchObject({
+      id: run.id,
+      status: AutograderRunStatus.Cancelled,
+    });
+  });
+
+  it('does not let a student cancel a run', async () => {
+    const { user, course } = await setupCourseMember(Role.STUDENT);
+    const run = await createRun(course.id, 1);
+
+    await supertest({ userId: user.id })
+      .post(`/lti/embeddable/autograder/${course.id}/runs/${run.id}/cancel`)
+      .expect(403);
+    expect((await AutograderRunModel.findOneBy({ id: run.id }))?.status).toBe(
+      AutograderRunStatus.Running,
+    );
   });
 
   it('rejects includePostedGrades without regradeSubmissions', async () => {

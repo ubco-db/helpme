@@ -32,7 +32,7 @@ export const AUTOGRADER_GRADING_MODE = AutograderGradingMode.Final;
  * on exactly what was asked.
  */
 export const FINAL_GRADING_INSTRUCTION =
-  'Explain, concisely, what earned credit and what lost credit. Never reference the student’s practice history.';
+  'Explain, concisely, what earned credit and what lost credit.';
 
 /** Deterministic comment written for a blank answer; no model and no flag. */
 export const BLANK_ANSWER_COMMENT = 'No answer was submitted.';
@@ -41,6 +41,8 @@ export enum AutograderRunStatus {
   Running = 'running',
   Completed = 'completed',
   Failed = 'failed',
+  /** Stopped by staff. Attempts already prefilled keep their grades. */
+  Cancelled = 'cancelled',
 }
 
 /** Durable attempt-level state. */
@@ -69,6 +71,16 @@ export class StartAutograderRunParams {
   @IsInt()
   @Min(1)
   canvasQuizId!: number;
+
+  /**
+   * Resume this specific run instead of creating a new one. The UI sends this
+   * while showing a run it did not start, so a run that finished in the
+   * meantime is rejected instead of silently starting a second run.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  resumeRunId?: number;
 
   /**
    * Regrade questions that already have a Canvas score or comment. Defaults to
@@ -211,7 +223,6 @@ export interface AutograderRunSummary {
   error: string | null;
   completedAt: string | null;
   counts: AutograderRunCounts;
-  questions: AutograderQuestionSnapshot[];
 }
 
 /** Response from starting a run. `resumed` tells the UI which label to use. */

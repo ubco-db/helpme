@@ -126,6 +126,24 @@ export class AutograderService {
     userId: number,
     params: StartAutograderRunParams,
   ): Promise<StartAutograderRunResponse> {
+    // Resuming uses the options frozen on the existing run, so the request's
+    // option values are not validated or applied.
+    if (params.resumeRunId !== undefined) {
+      const run = await this.store.findRun(params.resumeRunId);
+      if (
+        !run ||
+        run.courseId !== courseId ||
+        run.canvasQuizId !== params.canvasQuizId ||
+        run.status !== AutograderRunStatus.Running
+      ) {
+        throw new BadRequestException(
+          'This grading run is no longer running. Refresh the page and start a new run.',
+        );
+      }
+      await this.enqueue(run.id);
+      return { ...(await this.buildSummary(run)), resumed: true };
+    }
+
     const regradeSubmissions = params.regradeSubmissions ?? false;
     const includePostedGrades = params.includePostedGrades ?? false;
     if (includePostedGrades && !regradeSubmissions) {
@@ -291,6 +309,23 @@ export class AutograderService {
     return { status: 'ready', questions };
   }
 
+  /**
+   * Stops a running run before its next attempt. Attempts that were already
+   * prefilled keep their grades. Safe to call for a run that already finished:
+   * it simply returns the current summary.
+   */
+  async cancelRun(
+    courseId: number,
+    runId: number,
+  ): Promise<AutograderRunSummary> {
+    const run = await this.findRunForCourse(courseId, runId);
+    if (run.status === AutograderRunStatus.Running) {
+      await this.store.cancelRun(run.id);
+    }
+    const updated = await this.store.findRun(run.id);
+    return this.buildSummary(updated ?? run);
+  }
+
   async getReport(
     courseId: number,
     runId: number,
@@ -386,7 +421,6 @@ export class AutograderService {
       createdAt: run.createdAt.toISOString(),
       completedAt: run.completedAt ? run.completedAt.toISOString() : null,
       counts: this.counts(attempts, errors),
-      questions: run.questionSnapshots,
     };
   }
 

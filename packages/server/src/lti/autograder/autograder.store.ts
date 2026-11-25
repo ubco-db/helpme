@@ -126,6 +126,40 @@ export class AutograderStore {
     return run.save();
   }
 
+  /** True once staff have cancelled the run. */
+  async isRunCancelled(runId: number): Promise<boolean> {
+    return (
+      (await AutograderRunModel.countBy({
+        id: runId,
+        status: AutograderRunStatus.Cancelled,
+      })) > 0
+    );
+  }
+
+  /**
+   * Mark a running run cancelled. Returns false when it was no longer running,
+   * so a completed/failed run is never relabelled by a late cancel request.
+   */
+  async cancelRun(runId: number): Promise<boolean> {
+    const result = await AutograderRunModel.getRepository().update(
+      { id: runId, status: AutograderRunStatus.Running },
+      { status: AutograderRunStatus.Cancelled, completedAt: new Date() },
+    );
+    return (result.affected ?? 0) > 0;
+  }
+
+  /**
+   * Mark a running run completed. Returns false when it was cancelled or
+   * otherwise finished while the worker was between attempts.
+   */
+  async completeRun(runId: number): Promise<boolean> {
+    const result = await AutograderRunModel.getRepository().update(
+      { id: runId, status: AutograderRunStatus.Running },
+      { status: AutograderRunStatus.Completed, completedAt: new Date() },
+    );
+    return (result.affected ?? 0) > 0;
+  }
+
   async listAttempts(runId: number): Promise<AutograderAttemptModel[]> {
     return AutograderAttemptModel.find({
       where: { runId },

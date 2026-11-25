@@ -143,6 +143,17 @@ function harness(
         structuredClone(item);
       return item;
     }),
+    isRunCancelled: jest.fn(
+      async () => runModel.status === AutograderRunStatus.Cancelled,
+    ),
+    completeRun: jest.fn(async () => {
+      if (runModel.status !== AutograderRunStatus.Running) {
+        return false;
+      }
+      runModel.status = AutograderRunStatus.Completed;
+      runModel.completedAt = new Date();
+      return true;
+    }),
     saveRun: jest.fn(async (item: AutograderRunModel) =>
       Object.assign(runModel, item),
     ),
@@ -456,6 +467,41 @@ describe('AutograderRunnerService', () => {
     expect(attempts).toHaveLength(1);
     expect(attempts[0].status).toBe(AutograderAttemptStatus.Error);
     expect(attempts[0].error).toContain('submission history');
+  });
+
+  it('stops before the next attempt when the run is cancelled', async () => {
+    const { runner, adapter, attempts, runModel, store } = harness(
+      jest.fn().mockResolvedValue(evaluation(4)),
+    );
+    // Not cancelled after discovery, cancelled before the first attempt.
+    store.isRunCancelled
+      .mockResolvedValueOnce(false)
+      .mockImplementationOnce(async () => {
+        runModel.status = AutograderRunStatus.Cancelled;
+        return true;
+      });
+
+    await runner.run(7);
+
+    expect(adapter.putClassicAttemptGrades).not.toHaveBeenCalled();
+    expect(attempts).toHaveLength(1);
+    expect(attempts[0].status).toBe(AutograderAttemptStatus.Pending);
+    expect(runModel.status).toBe(AutograderRunStatus.Cancelled);
+  });
+
+  it('does not overwrite a cancellation that arrives during a write', async () => {
+    const { runner, adapter, runModel } = harness(
+      jest.fn().mockResolvedValue(evaluation(4)),
+    );
+    adapter.putClassicAttemptGrades.mockImplementationOnce(async () => {
+      runModel.status = AutograderRunStatus.Cancelled;
+      return { outcome: 'success' };
+    });
+
+    await runner.run(7);
+
+    expect(adapter.putClassicAttemptGrades).toHaveBeenCalledTimes(1);
+    expect(runModel.status).toBe(AutograderRunStatus.Cancelled);
   });
 
   it('never discovers an excused attempt', async () => {

@@ -7,6 +7,7 @@ import {
   Card,
   Checkbox,
   Empty,
+  Popconfirm,
   Progress,
   Select,
   Space,
@@ -14,7 +15,7 @@ import {
   Tooltip,
   message,
 } from 'antd'
-import { ExportOutlined, ReloadOutlined } from '@ant-design/icons'
+import { ExportOutlined, ReloadOutlined, StopOutlined } from '@ant-design/icons'
 import useSWR from 'swr'
 import useSWRImmutable from 'swr/immutable'
 import Link from 'next/link'
@@ -23,40 +24,46 @@ import { AutograderRunStatus } from '@koh/common'
 import { API } from '@/app/api'
 import { getErrorMessage } from '@/app/utils/generalUtils'
 
-const POLL_INTERVAL_MS = 500
+const POLL_INTERVAL_MS = 2000
 
-const MANUAL_POSTING_MESSAGE = (
-  <>
-    <p>
-      <Link
-        href="https://community.instructure.com/en/kb/articles/660845-how-do-i-select-a-grade-posting-policy-for-an-assignment-in-the-gradebook"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Set this assignment&apos;s Grade Posting Policy to &quot;Manual&quot;
-      </Link>{' '}
-      before running the autograder. In Canvas, open Grades, find the assignment
-      column, open its three-dot menu, choose Grade Posting Policy, set it to
-      Manually, and save.
-    </p>
-    <p>
-      Manual posting is required because HelpMe writes AI grades into
-      SpeedGrader before you review them. With automatic posting, students could
-      see the AI grade and receive notifications before you have checked it.
-      HelpMe never posts or releases grades itself.
-    </p>
-  </>
-)
+function manualPostingMessage(lmsPlatform: string) {
+  return (
+    <>
+      <p>
+        <Link
+          href="https://community.instructure.com/en/kb/articles/660845-how-do-i-select-a-grade-posting-policy-for-an-assignment-in-the-gradebook"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Set this assignment&apos;s Grade Posting Policy to &quot;Manual&quot;
+        </Link>{' '}
+        before running the autograder. In {lmsPlatform}, open Grades, find the
+        assignment column, open its three-dot menu, choose Grade Posting Policy,
+        set it to Manually, and save.
+      </p>
+      <p>
+        Manual posting is required because HelpMe writes AI grades into
+        SpeedGrader before you review them. With automatic posting, students
+        could see the AI grade and receive notifications before you have checked
+        it. HelpMe never posts or releases grades itself.
+      </p>
+    </>
+  )
+}
 
 export default function AutograderPage({
   courseId,
+  lmsPlatform,
 }: {
   courseId: number
+  lmsPlatform: string
 }): ReactElement {
   const pathname = usePathname()
   const [selectedQuizId, setSelectedQuizId] = useState<number>()
   const [selectedRunId, setSelectedRunId] = useState<number>()
   const [starting, setStarting] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [startedRunId, setStartedRunId] = useState<number>()
   const [regradeSubmissions, setRegradeSubmissions] = useState(false)
   const [includePostedGrades, setIncludePostedGrades] = useState(false)
   const [now, setNow] = useState(() => Date.now())
@@ -80,6 +87,7 @@ export default function AutograderPage({
   )
 
   const quizzes = quizzesRequest.data ?? []
+  const mutateRuns = runsRequest.mutate
   const runs = useMemo(() => runsRequest.data ?? [], [runsRequest.data])
   const selectedQuiz = quizzes.find(
     (quiz) => quiz.canvasQuizId === selectedQuizId,
@@ -88,15 +96,11 @@ export default function AutograderPage({
     () => runs.filter((run) => run.canvasQuizId === selectedQuizId),
     [runs, selectedQuizId],
   )
-  const activeRun = quizRuns.find(
-    (run) => run.status === AutograderRunStatus.Running,
-  )
   const latestRun = quizRuns[0]
-  const activeRunId =
-    selectedRunId !== undefined &&
-    quizRuns.some((run) => run.id === selectedRunId)
-      ? selectedRunId
-      : latestRun?.id
+  // Trust an explicitly selected run even before the polled run list contains
+  // it. Previously the list had to catch up first, which left the report request
+  // without a key right after starting a run.
+  const activeRunId = selectedRunId ?? latestRun?.id
 
   const reportRequest = useSWR(
     activeRunId
@@ -112,51 +116,95 @@ export default function AutograderPage({
       // SWR deep-compares data by default, so an effect keyed on the report
       // object would not re-run when a poll returns identical data. onSuccess
       // fires for every successful revalidation, which keeps the countdown
-      // accurate even between attempts.
-      onSuccess: () => setLastReportAt(Date.now()),
+      // accurate even between attempts. Update `now` too so the first report
+      // after mount cannot produce a stale, oversized countdown.
+      onSuccess: () => {
+        const at = Date.now()
+        setLastReportAt(at)
+        setNow(at)
+      },
     },
   )
   const report =
     reportRequest.data?.run.id === activeRunId ? reportRequest.data : undefined
   const run = report?.run
-  // `reportRunning` drives the selected run's progress UI. `isResuming` also
-  // covers an active run that the run list knows about but the selected report
-  // has not caught up with; starting again resumes it. Watching both means the
-  // button flips from "Resume grading" to "Start grading" as soon as the report
-  // completes, without waiting for the next run list poll.
   const reportRunning = run?.status === AutograderRunStatus.Running
-  const isResuming = activeRun !== undefined || reportRunning
   const isFailed = run?.status === AutograderRunStatus.Failed
+  const isCancelled = run?.status === AutograderRunStatus.Cancelled
   const questionCount = selectedQuiz?.essayQuestions.length ?? 0
+
+  // The list and the report are polled independently. If the list still says a
+  // run is Running but the report for that same run has already finished, trust
+  // the report. Otherwise the UI shows a stale "Resume grading" button and
+  // clicking it starts a second run because the server no longer has an active
+  // run to resume.
+  const listedActiveRun = quizRuns.find(
+    (item) => item.status === AutograderRunStatus.Running,
+  )
+  const activeRun =
+    listedActiveRun && report?.run.id === listedActiveRun.id && !reportRunning
+      ? undefined
+      : listedActiveRun
+  // A run is active if either source knows about it. `startedRunId` records the
+  // run started or resumed from this page mount, so its own progress does not
+  // look like a stale run discovered on page load.
+  const serverActiveRunId =
+    activeRun?.id ?? (reportRunning ? run?.id : undefined)
+  const serverRunActive = serverActiveRunId !== undefined
+  const isOwnActiveRun = serverRunActive && serverActiveRunId === startedRunId
+  const isStaleActiveRun = serverRunActive && !isOwnActiveRun
 
   useEffect(() => {
     if (!reportRunning) {
       return
     }
+    setNow(Date.now())
     const timer = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(timer)
   }, [reportRunning])
 
+  // When the selected report finishes, refresh the run list so the Start/Resume
+  // label and the stale-run notice match the report without waiting for the
+  // next list poll. Depend on primitives so polling updates do not re-run this.
+  const reportRunId = report?.run.id
+  const reportFinished = reportRunId !== undefined && !reportRunning
+  useEffect(() => {
+    if (reportFinished) {
+      void mutateRuns()
+    }
+  }, [reportRunId, reportFinished, mutateRuns])
+
   const manualPostingReason =
-    selectedQuiz && !selectedQuiz.postManually ? MANUAL_POSTING_MESSAGE : null
+    selectedQuiz && !selectedQuiz.postManually
+      ? manualPostingMessage(lmsPlatform)
+      : null
   const blockingReason = !selectedQuiz
     ? null
     : (selectedQuiz.blockingReason ??
       manualPostingReason ??
-      (questionCount === 0 ? 'This Canvas quiz has no essay questions.' : null))
-  const canStart =
+      (questionCount === 0
+        ? `This ${lmsPlatform} quiz has no essay questions.`
+        : null))
+  const quizReady =
     selectedQuiz != null &&
-    (isResuming ||
-      (selectedQuiz.postManually &&
-        selectedQuiz.assignmentId !== null &&
-        selectedQuiz.speedGraderUrl !== null &&
-        questionCount > 0 &&
-        selectedQuiz.blockingReason == null))
+    selectedQuiz.postManually &&
+    selectedQuiz.assignmentId !== null &&
+    selectedQuiz.speedGraderUrl !== null &&
+    questionCount > 0 &&
+    selectedQuiz.blockingReason == null
+  const canStart =
+    selectedQuiz != null && !isOwnActiveRun && (isStaleActiveRun || quizReady)
 
-  const lastUpdated = lastReportAt ?? now
+  // Clamp so a stale `now` can never show more than one poll interval.
   const nextUpdateIn =
     reportRunning && report
-      ? Math.max(0, Math.ceil((lastUpdated + POLL_INTERVAL_MS - now) / 1000))
+      ? Math.min(
+          Math.ceil(POLL_INTERVAL_MS / 1000),
+          Math.max(
+            0,
+            Math.ceil(((lastReportAt ?? now) + POLL_INTERVAL_MS - now) / 1000),
+          ),
+        )
       : null
 
   const start = async () => {
@@ -169,19 +217,57 @@ export default function AutograderPage({
         canvasQuizId: selectedQuiz.canvasQuizId,
         regradeSubmissions,
         includePostedGrades,
+        // A stale run is resumed explicitly so the server rejects it if it
+        // finished instead of silently creating a second run.
+        ...(isStaleActiveRun && serverActiveRunId !== undefined
+          ? { resumeRunId: serverActiveRunId }
+          : {}),
       })
+      setStartedRunId(started.id)
       setSelectedRunId(started.id)
       message.success(
         started.resumed
           ? 'Resumed the grading run that was already in progress.'
           : 'Grading started. HelpMe is prefilling SpeedGrader.',
       )
+      // Keep the button busy until the run list reflects the new run; otherwise
+      // it can flicker back to an enabled "Start grading" for a moment.
+      await runsRequest.mutate()
+    } catch (error) {
+      message.error(`Failed to start grading: ${getErrorMessage(error)}`)
+      // The run may have finished between the list poll and this click.
+      void runsRequest.mutate()
+      void reportRequest.mutate()
+    } finally {
+      setStarting(false)
+    }
+  }
+
+  const cancel = async () => {
+    if (serverActiveRunId === undefined) {
+      return
+    }
+    setCancelling(true)
+    try {
+      const cancelled = await API.lti.autograder.cancelRun(
+        courseId,
+        serverActiveRunId,
+      )
+      const counts = cancelled.counts
+      message.success(
+        `Stopped the grading run. ${counts.written} ${
+          counts.written === 1 ? 'response was' : 'responses were'
+        } prefilled and ${counts.pending} ${
+          counts.pending === 1 ? 'question was' : 'questions were'
+        } not graded.`,
+      )
+      setStartedRunId(undefined)
       void runsRequest.mutate()
       void reportRequest.mutate()
     } catch (error) {
-      message.error(`Failed to start grading: ${getErrorMessage(error)}`)
+      message.error(`Failed to cancel grading: ${getErrorMessage(error)}`)
     } finally {
-      setStarting(false)
+      setCancelling(false)
     }
   }
 
@@ -201,10 +287,11 @@ export default function AutograderPage({
     >
       <p className="mb-2 text-gray-600">
         HelpMe grades the essay questions that contain a HelpMe embeddable
-        question and prefills the scores and comments into Canvas SpeedGrader.
+        question and prefills the scores and comments into {lmsPlatform}{' '}
+        SpeedGrader.
       </p>
       <ol className="mb-4 list-inside list-decimal text-gray-600">
-        <li>Select a published Classic Canvas quiz.</li>
+        <li>Select a published Classic {lmsPlatform} quiz.</li>
         <li>
           HelpMe detects its{' '}
           <Link
@@ -216,7 +303,7 @@ export default function AutograderPage({
           and uses the same grading prompts you provided to prefill the
           SpeedGrader.
         </li>
-        <li>You review and post grades in Canvas.</li>
+        <li>You review and post grades in {lmsPlatform}.</li>
         <li>
           Make sure to review all submission comments to check for any "HUMAN
           REVIEW REQUIRED" comments (delete them afterwards).
@@ -233,7 +320,7 @@ export default function AutograderPage({
           className="mb-4"
           type="error"
           showIcon
-          message="Failed to load Canvas quizzes"
+          message={`Failed to load ${lmsPlatform} quizzes`}
           description={getErrorMessage(loadError)}
           action={
             <Button
@@ -270,12 +357,12 @@ export default function AutograderPage({
       )}
 
       <label className="mb-2 block font-medium" htmlFor="autograder-quiz">
-        Canvas quiz
+        {lmsPlatform} quiz
       </label>
       <Select
         id="autograder-quiz"
         className="mb-4 w-full md:max-w-xl"
-        placeholder="Select a Classic Canvas quiz"
+        placeholder={`Select a Classic ${lmsPlatform} quiz`}
         value={selectedQuizId}
         onChange={(quizId) => {
           setSelectedQuizId(quizId)
@@ -310,17 +397,17 @@ export default function AutograderPage({
               className="mb-4"
               type="success"
               showIcon
-              message={`${selectedQuiz.detectedQuestions} of ${questionCount} HelpMe questions detected from Canvas.`}
+              message={`${selectedQuiz.detectedQuestions} of ${questionCount} HelpMe questions detected from ${lmsPlatform}.`}
             />
           )}
 
-          {isResuming && (
+          {isStaleActiveRun && (
             <Alert
               className="mb-4"
               type="info"
               showIcon
-              message="A grading run is already in progress"
-              description="Resume it to keep polling its progress. Its grading options were frozen when it started; start a new run after it finishes to change them."
+              message="A grading run is in progress for this quiz"
+              description="It was not started from this page, so it may have been interrupted. Resume it to continue grading, or cancel it to stop. Its grading options were frozen when it started."
             />
           )}
 
@@ -328,7 +415,7 @@ export default function AutograderPage({
             <div className="mb-1 font-medium">Grading options</div>
             <Checkbox
               checked={regradeSubmissions}
-              disabled={isResuming}
+              disabled={serverRunActive}
               onChange={(event) => {
                 setRegradeSubmissions(event.target.checked)
                 if (!event.target.checked) {
@@ -339,7 +426,8 @@ export default function AutograderPage({
               Regrade submissions
             </Checkbox>
             <p className="ml-6 mt-1 text-sm text-gray-500">
-              Grade questions that already have a Canvas score or comment.{' '}
+              Grade questions that already have a {lmsPlatform} score or
+              comment.{' '}
               <b>
                 <i>All</i> existing scores/comments are overwritten.
               </b>
@@ -347,23 +435,25 @@ export default function AutograderPage({
             <Checkbox
               className="mt-2"
               checked={includePostedGrades}
-              disabled={!regradeSubmissions || isResuming}
+              disabled={!regradeSubmissions || serverRunActive}
               onChange={(event) => setIncludePostedGrades(event.target.checked)}
             >
               Include submissions with posted grades
             </Checkbox>
             <p className="ml-6 mt-1 text-sm text-gray-500">
-              Also regrade attempts whose grades were already posted. Canvas may
-              send grade-change notifications to students.
+              Also regrade attempts whose grades were already posted.{' '}
+              {lmsPlatform} may send grade-change notifications to students.
             </p>
           </div>
 
           <Space wrap>
             <Tooltip
               title={
-                canStart
-                  ? undefined
-                  : 'Resolve the quiz readiness message before starting.'
+                isOwnActiveRun
+                  ? 'A grading run is already in progress.'
+                  : canStart
+                    ? undefined
+                    : 'Resolve the quiz readiness message before starting.'
               }
             >
               <Button
@@ -374,9 +464,29 @@ export default function AutograderPage({
                 loading={starting}
                 disabled={!canStart}
               >
-                {isResuming ? 'Resume grading' : 'Start grading'}
+                {isOwnActiveRun
+                  ? 'Grading…'
+                  : isStaleActiveRun
+                    ? 'Resume grading'
+                    : 'Start grading'}
               </Button>
             </Tooltip>
+            {serverRunActive && (
+              <Popconfirm
+                title="Stop this grading run?"
+                description="Responses already prefilled stay in SpeedGrader. The remaining submissions will not be graded."
+                okText="Stop grading"
+                cancelText="Keep grading"
+                okButtonProps={{ danger: true }}
+                onConfirm={() => {
+                  void cancel()
+                }}
+              >
+                <Button danger icon={<StopOutlined />} loading={cancelling}>
+                  Cancel run
+                </Button>
+              </Popconfirm>
+            )}
             {selectedQuiz.speedGraderUrl ? (
               <Button
                 icon={<ExportOutlined />}
@@ -417,24 +527,28 @@ export default function AutograderPage({
               color={
                 reportRunning
                   ? 'processing'
-                  : isFailed
-                    ? 'error'
-                    : hasErrors
+                  : isCancelled
+                    ? 'red'
+                    : isFailed
                       ? 'error'
-                      : flags.length
-                        ? 'warning'
-                        : 'success'
+                      : hasErrors
+                        ? 'error'
+                        : flags.length
+                          ? 'warning'
+                          : 'success'
               }
             >
               {reportRunning
                 ? 'Prefilling SpeedGrader'
-                : isFailed
-                  ? 'Prefill failed'
-                  : hasErrors
-                    ? 'Prefill finished with errors'
-                    : flags.length
-                      ? 'Prefill finished; review required'
-                      : 'Prefill complete'}
+                : isCancelled
+                  ? 'Cancelled'
+                  : isFailed
+                    ? 'Prefill failed'
+                    : hasErrors
+                      ? 'Prefill finished with errors'
+                      : flags.length
+                        ? 'Prefill finished; review required'
+                        : 'Prefill complete'}
             </Tag>
             <span className="text-gray-500" role="status" aria-live="polite">
               {counts
@@ -498,7 +612,7 @@ export default function AutograderPage({
                           : ''}
                         :{' '}
                         {record.error?.trim() ||
-                          'Canvas prefill did not complete.'}
+                          `${lmsPlatform} prefill did not complete.`}
                       </li>
                     ))}
                   </ul>

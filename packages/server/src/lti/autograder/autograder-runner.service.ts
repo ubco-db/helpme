@@ -74,12 +74,24 @@ export class AutograderRunnerService {
         );
       }
       await this.discoverAttempts(run, adapter);
+      // Stop before doing any more Canvas work if staff cancelled while
+      // discovery was running.
+      if (await this.store.isRunCancelled(run.id)) return;
       const attempts = await this.store.listAttempts(run.id);
       for (const attempt of attempts) {
+        // Cancellation is checked at attempt boundaries. An attempt that is
+        // already in flight finishes, so its all-or-nothing write is never
+        // half-applied.
+        if (await this.store.isRunCancelled(run.id)) return;
         await this.processAttempt(run, adapter, attempt);
       }
       await this.completeRun(run);
     } catch (error) {
+      // A cancel wins over a late error from work that was already stopping.
+      if (await this.store.isRunCancelled(run.id).catch(() => false)) {
+        this.logger.log(`Autograder run ${run.id} stopped after cancellation.`);
+        return;
+      }
       run.status = AutograderRunStatus.Failed;
       run.error = runFailureMessage(error);
       run.completedAt = new Date();
@@ -385,9 +397,12 @@ export class AutograderRunnerService {
   }
 
   private async completeRun(run: AutograderRunModel): Promise<void> {
-    run.status = AutograderRunStatus.Completed;
-    run.completedAt = new Date();
-    await this.store.saveRun(run);
+    // Conditional update: a cancel that arrived after the last attempt must
+    // not be overwritten by the worker finishing normally.
+    if (await this.store.completeRun(run.id)) {
+      run.status = AutograderRunStatus.Completed;
+      run.completedAt = new Date();
+    }
   }
 }
 

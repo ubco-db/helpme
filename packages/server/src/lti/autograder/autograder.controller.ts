@@ -24,9 +24,9 @@ import { AutograderService } from './autograder.service';
 /**
  * Staff-only endpoints for the LMS autograder.
  *
- * Starting a run is the only action that changes anything; it owns discovery,
- * grading, and the SpeedGrader prefill. There is no post/release endpoint
- * because HelpMe never posts grades.
+ * Starting a run owns discovery, grading, and the SpeedGrader prefill.
+ * Cancelling stops it at the next attempt boundary. There is no post/release
+ * endpoint because HelpMe never posts grades.
  */
 @Controller('lti/embeddable/autograder')
 @UseGuards(JwtAuthGuard, CourseRolesGuard)
@@ -57,6 +57,15 @@ export class AutograderController {
     @UserId() userId: number,
   ): Promise<StartAutograderRunResponse> {
     return this.autograderService.startRun(courseId, userId, body);
+  }
+
+  @Post(':courseId/runs/:runId/cancel')
+  @Roles(Role.TA, Role.PROFESSOR)
+  async cancel(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @Param('runId', ParseIntPipe) runId: number,
+  ): Promise<AutograderRunSummary> {
+    return this.autograderService.cancelRun(courseId, runId);
   }
 
   @Get(':courseId/runs/:runId/report')

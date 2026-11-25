@@ -63,13 +63,25 @@ function run(): AutograderRunModel {
   });
 }
 
-function harness(canvasQuiz: LMSClassicQuiz) {
+function harness(
+  canvasQuiz: LMSClassicQuiz,
+  runModel: AutograderRunModel = run(),
+) {
   const store = {
     findActiveRun: jest.fn().mockResolvedValue(null),
     createActiveRun: jest.fn(async (data) => ({
       ...run(),
       ...data,
     })),
+    findRun: jest.fn(async () => runModel),
+    cancelRun: jest.fn(async () => {
+      if (runModel.status !== AutograderRunStatus.Running) {
+        return false;
+      }
+      runModel.status = AutograderRunStatus.Cancelled;
+      runModel.completedAt = new Date();
+      return true;
+    }),
     listAttempts: jest.fn().mockResolvedValue([]),
   };
   const queue = { add: jest.fn().mockResolvedValue(undefined) };
@@ -195,6 +207,35 @@ describe('AutograderService', () => {
     expect(getClassicQuizCatalog).not.toHaveBeenCalled();
   });
 
+  it('resumes only the requested running run', async () => {
+    const { service, store, queue } = harness(quiz(detectedMapping));
+
+    const started = await service.startRun(3, 1, {
+      canvasQuizId: 55,
+      resumeRunId: 7,
+    });
+
+    expect(started.id).toBe(7);
+    expect(started.resumed).toBe(true);
+    expect(store.findRun).toHaveBeenCalledWith(7);
+    expect(store.createActiveRun).not.toHaveBeenCalled();
+    expect(queue.add).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses to resume a run that already finished', async () => {
+    const finished = Object.assign(run(), {
+      status: AutograderRunStatus.Completed,
+      completedAt: new Date(),
+    });
+    const { service, store, queue } = harness(quiz(detectedMapping), finished);
+
+    await expect(
+      service.startRun(3, 1, { canvasQuizId: 55, resumeRunId: 7 }),
+    ).rejects.toThrow('no longer running');
+    expect(store.createActiveRun).not.toHaveBeenCalled();
+    expect(queue.add).not.toHaveBeenCalled();
+  });
+
   it.each([['practice quiz', 'Practice quizzes cannot be autograded.']])(
     'rejects a %s with the blocking reason',
     async (_label, reason) => {
@@ -275,6 +316,30 @@ describe('AutograderService', () => {
     );
     expect(store.createActiveRun).not.toHaveBeenCalled();
     expect(queue.add).not.toHaveBeenCalled();
+  });
+
+  it('cancels a running run', async () => {
+    const { service, store } = harness(quiz(detectedMapping));
+
+    const summary = await service.cancelRun(3, 7);
+
+    expect(store.cancelRun).toHaveBeenCalledWith(7);
+    expect(summary.status).toBe(AutograderRunStatus.Cancelled);
+    expect(summary.completedAt).not.toBeNull();
+  });
+
+  it('leaves a finished run unchanged when cancelled', async () => {
+    const finished = Object.assign(run(), {
+      status: AutograderRunStatus.Completed,
+      completedAt: new Date('2026-09-16T00:01:00.000Z'),
+    });
+    const { service, store } = harness(quiz(detectedMapping), finished);
+
+    const summary = await service.cancelRun(3, 7);
+
+    expect(store.cancelRun).not.toHaveBeenCalled();
+    expect(summary.status).toBe(AutograderRunStatus.Completed);
+    expect(summary.completedAt).toBe('2026-09-16T00:01:00.000Z');
   });
 
   it('reports invalid saved grading settings before starting a run', async () => {

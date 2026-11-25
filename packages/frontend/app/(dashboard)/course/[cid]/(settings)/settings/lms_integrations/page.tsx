@@ -679,7 +679,12 @@ export default function CourseLMSIntegrationPage(props: {
     tabItems.push({
       key: 'autograder',
       label: <LMSTabLabel title={'Autograder'} isLoading={false} />,
-      children: <AutograderPage courseId={courseId} />,
+      children: (
+        <AutograderPage
+          courseId={courseId}
+          lmsPlatform={integration.apiPlatform}
+        />
+      ),
     })
 
     const card = (
