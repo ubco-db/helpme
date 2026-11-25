@@ -59,7 +59,7 @@ test('generates a line-accurate ToC and is idempotent', () => {
   run([file], { all: true });
   const firstPass = fs.readFileSync(file, 'utf8');
 
-  assert.match(firstPass, /<!-- toc -->/);
+  assert.match(firstPass, /<!-- toc (updates automatically on commit) -->/)
   assert.match(firstPass, /<!-- toc:end -->/);
   assert.match(
     firstPass,
@@ -77,7 +77,7 @@ test('generates a line-accurate ToC and is idempotent', () => {
     'punctuation should be removed from the anchor like GitHub does',
   );
   const toc = firstPass.slice(
-    firstPass.indexOf('<!-- toc -->'),
+    firstPass.indexOf('<!-- toc (updates automatically on commit) -->'),
     firstPass.indexOf('<!-- toc:end -->'),
   );
   assert.doesNotMatch(
@@ -102,7 +102,7 @@ test('replaces an existing ToC and adds the markers', () => {
   run([file]);
 
   const content = fs.readFileSync(file, 'utf8');
-  assert.match(content, /<!-- toc -->/);
+  assert.match(content, /<!-- toc (updates automatically on commit) -->/)
   assert.doesNotMatch(content, /\[Old\]/);
   assert.match(content, /\[Section\]\(#section\) \(L\d+\)/);
   assertLineNumbersReferToHeadings(content);

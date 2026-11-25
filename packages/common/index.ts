@@ -1,4 +1,4 @@
-import { Exclude, plainToInstance, Transform, Type } from 'class-transformer'
+import { Exclude, plainToInstance, Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -21,26 +21,26 @@ import {
   ValidationArguments,
   ValidatorConstraint,
   ValidatorConstraintInterface,
-} from 'class-validator'
-import 'reflect-metadata'
-import { Cache } from 'cache-manager'
-import { Ajv } from 'ajv'
+} from 'class-validator';
+import 'reflect-metadata';
+import { Cache } from 'cache-manager';
+import { Ajv } from 'ajv';
 
-export const PROD_URL = 'https://coursehelp.ubc.ca'
+export const PROD_URL = 'https://coursehelp.ubc.ca';
 
 // Get domain. works on node and browser
 const domain = (): string | false =>
   process.env.DOMAIN ||
-  (typeof window !== 'undefined' && window?.location?.origin)
+  (typeof window !== 'undefined' && window?.location?.origin);
 export const getEnv = (): 'production' | 'dev' => {
   switch (domain()) {
     case PROD_URL:
-      return 'production'
+      return 'production';
     default:
-      return 'dev'
+      return 'dev';
   }
-}
-export const isProd = (): boolean => domain() === PROD_URL
+};
+export const isProd = (): boolean => domain() === PROD_URL;
 
 /////////////////////////
 // API Base Data Types //
@@ -75,97 +75,97 @@ export enum OrganizationRole {
  * @param desktopNotifs - list of endpoints so that frontend can figure out if device is enabled
  */
 export class User {
-  id!: number
-  email!: string
-  firstName?: string
-  lastName?: string
-  name!: string
-  photoURL!: string
-  defaultMessage?: string
-  sid?: number
-  namePronunciation?: string
-  includeDefaultMessage!: boolean
-  courses!: UserCourse[]
-  desktopNotifsEnabled!: boolean
+  id!: number;
+  email!: string;
+  firstName?: string;
+  lastName?: string;
+  name!: string;
+  photoURL!: string;
+  defaultMessage?: string;
+  sid?: number;
+  namePronunciation?: string;
+  includeDefaultMessage!: boolean;
+  courses!: UserCourse[];
+  desktopNotifsEnabled!: boolean;
   @Type(() => DesktopNotifPartial)
-  desktopNotifs!: DesktopNotifPartial[]
-  userRole!: UserRole
-  organization?: OrganizationUserPartial
-  chat_token!: ChatTokenPartial
-  accountType!: AccountType
-  emailVerified!: boolean
-  readChangeLog!: boolean
-  restrictPaths?: string | string[]
+  desktopNotifs!: DesktopNotifPartial[];
+  userRole!: UserRole;
+  organization?: OrganizationUserPartial;
+  chat_token!: ChatTokenPartial;
+  accountType!: AccountType;
+  emailVerified!: boolean;
+  readChangeLog!: boolean;
+  restrictPaths?: string | string[];
 }
 
 export class ChatTokenPartial {
-  id!: number
-  token!: string
-  used!: number
-  max_uses!: number
+  id!: number;
+  token!: string;
+  used!: number;
+  max_uses!: number;
 }
 
 export class OrganizationResponse {
   @IsInt()
-  id!: number
+  id!: number;
 
   @IsString()
-  name!: string
-
-  @IsString()
-  @IsOptional()
-  description?: string
+  name!: string;
 
   @IsString()
   @IsOptional()
-  websiteUrl?: string
+  description?: string;
+
+  @IsString()
+  @IsOptional()
+  websiteUrl?: string;
 
   @IsBoolean()
   @IsOptional()
-  ssoEnabled?: boolean
+  ssoEnabled?: boolean;
 
   @IsBoolean()
   @IsOptional()
-  legacyAuthEnabled?: boolean
+  legacyAuthEnabled?: boolean;
 
   @IsBoolean()
   @IsOptional()
-  googleAuthEnabled?: boolean
+  googleAuthEnabled?: boolean;
 
   @IsString()
   @IsOptional()
-  ssoUrl?: string
+  ssoUrl?: string;
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => String)
   @IsOptional()
-  ssoEmailPatterns?: string[]
+  ssoEmailPatterns?: string[];
 }
 
 export class DesktopNotifPartial {
-  id!: number
-  endpoint!: string
-  name?: string
+  id!: number;
+  endpoint!: string;
+  name?: string;
   @Type(() => Date)
-  createdAt!: Date
+  createdAt!: Date;
 }
 
 /**
  * Given by get_users endpoint that returns all users
  */
 export interface OrgUser {
-  userId: number
-  firstName: string
-  lastName: string
-  email: string
-  photoUrl: string | null
-  userRole: string
-  organizationRole: string
+  userId: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  photoUrl: string | null;
+  userRole: string;
+  organizationRole: string;
 }
 export interface GetOrganizationUsersPaginatedResponse {
-  users: OrgUser[]
-  total: number
+  users: OrgUser[];
+  total: number;
 }
 
 /**
@@ -176,35 +176,35 @@ export interface GetOrganizationUsersPaginatedResponse {
  */
 export class UserPartial {
   @IsInt()
-  id!: number
+  id!: number;
 
   @IsOptional()
   @IsString()
-  email?: string
+  email?: string;
 
   @IsOptional()
   @IsString()
-  name!: string
+  name!: string;
 
   @IsString()
   @IsOptional()
-  photoURL?: string
+  photoURL?: string;
 
   @IsInt()
   @IsOptional()
-  sid?: number
+  sid?: number;
 
   @IsString()
   @IsOptional()
-  namePronunciation?: string
+  namePronunciation?: string;
 
   @IsOptional()
   @IsString()
-  TANotes?: string
+  TANotes?: string;
 
   @IsEnum(OrganizationRole)
   @IsOptional()
-  organizationRole?: OrganizationRole
+  organizationRole?: OrganizationRole;
 }
 
 /**
@@ -212,9 +212,9 @@ export class UserPartial {
  * Used in AddStudentsToQueueModal, can be used elsewhere.
  */
 export type UserTiny = {
-  id: number
-  name: string
-}
+  id: number;
+  name: string;
+};
 
 /**
  * Represents a partial course data needed on the front end when nested in a response.
@@ -224,40 +224,40 @@ export type UserTiny = {
  * @param enabled - Whether this course is enabled or not.
  */
 export type CoursePartial = {
-  id: number
-  name: string
-  sectionGroupName?: string
-  semesterId?: number
-  enabled?: boolean
-  favourited?: boolean
-}
+  id: number;
+  name: string;
+  sectionGroupName?: string;
+  semesterId?: number;
+  enabled?: boolean;
+  favourited?: boolean;
+};
 
 /**
  * Represents a partial course data used for cloning a course.
  */
 export type CourseCloneAttributes = {
-  professorIds: number[]
-  newSemesterId?: number
-  newSection?: string
-  associateWithOriginalCourse?: boolean
+  professorIds: number[];
+  newSemesterId?: number;
+  newSection?: string;
+  associateWithOriginalCourse?: boolean;
   toClone: {
-    coordinator_email?: boolean
-    zoomLink?: boolean
-    courseInviteCode?: boolean
-    courseFeatureConfig?: boolean
-    asyncCentreQuestionTypes?: boolean
-    embeddableQuestions?: boolean
-    queues?: boolean
-    queueInvites?: boolean
+    coordinator_email?: boolean;
+    zoomLink?: boolean;
+    courseInviteCode?: boolean;
+    courseFeatureConfig?: boolean;
+    asyncCentreQuestionTypes?: boolean;
+    embeddableQuestions?: boolean;
+    queues?: boolean;
+    queueInvites?: boolean;
     chatbot?: {
-      settings?: boolean
-      documents?: boolean
-      manuallyCreatedChunks?: boolean
-      insertedQuestions?: boolean
-      insertedLMSData?: boolean
-    }
-  }
-}
+      settings?: boolean;
+      documents?: boolean;
+      manuallyCreatedChunks?: boolean;
+      insertedQuestions?: boolean;
+      insertedLMSData?: boolean;
+    };
+  };
+};
 
 export const defaultCourseCloneAttributes: CourseCloneAttributes = {
   professorIds: [],
@@ -281,42 +281,42 @@ export const defaultCourseCloneAttributes: CourseCloneAttributes = {
       insertedLMSData: false,
     },
   },
-}
+};
 
 // The key to the records is the course ids
-export type BatchCourseCloneAttributes = Record<number, CourseCloneAttributes>
+export type BatchCourseCloneAttributes = Record<number, CourseCloneAttributes>;
 
 export type BatchCourseCloneResponse = {
-  success: boolean
-  message: string
-}
+  success: boolean;
+  message: string;
+};
 
 export class ValidateEmailTokenRequest {
   @IsString()
-  token!: string
+  token!: string;
 }
 export class ValidateEmailTokenResponse {
   @IsString()
-  redirectUrl!: string
+  redirectUrl!: string;
 }
 
 export class PasswordRequestResetBody {
   @IsString()
-  email!: string
+  email!: string;
 
   @IsString()
-  recaptchaToken!: string
+  recaptchaToken!: string;
 
   @IsInt()
-  organizationId!: number
+  organizationId!: number;
 }
 
 export class PasswordRequestResetWithTokenBody {
   @IsString()
-  password!: string
+  password!: string;
 
   @IsString()
-  confirmPassword!: string
+  confirmPassword!: string;
 }
 
 /**
@@ -325,11 +325,11 @@ export class PasswordRequestResetWithTokenBody {
  * @param role - The user's role in the course.
  */
 export type UserCourse = {
-  course: CoursePartial
-  role: Role
-  favourited: boolean
-  unreadCount?: number
-}
+  course: CoursePartial;
+  role: Role;
+  favourited: boolean;
+  unreadCount?: number;
+};
 
 export const COURSE_TIMEZONES = [
   'America/New_York',
@@ -344,7 +344,7 @@ export const COURSE_TIMEZONES = [
   'Asia/Tokyo',
   'Asia/Shanghai',
   'Australia/Sydney',
-]
+];
 
 // PLEASE NOTE that when you add a new MailServiceType, you should also include a query in your migration file that adds the new service to the mail_services table and populates the user_subscriptions table with true/false for the new service for all existing users
 export enum MailServiceType {
@@ -386,186 +386,187 @@ export enum AccountType {
 // chatbot questions and interactions
 
 export interface UpdateDocumentChunkParams {
-  documentText: string
+  documentText: string;
   metadata: {
-    name: string
-    source: string
-  }
+    name: string;
+    source: string;
+  };
 }
 
 // comes from helpme db
 export interface ChatbotQuestionResponseHelpMeDB {
-  id: number
-  vectorStoreId: string
-  interactionId: number
-  questionText: string
-  responseText: string
-  timestamp: Date
-  userScore: number
-  suggested: boolean
-  isPreviousQuestion: boolean
-  correspondingChatbotQuestion?: ChatbotQuestionResponseChatbotDB // used by chatbot_questions page on frontend
-  timesAsked?: number // same as above
+  id: number;
+  vectorStoreId: string;
+  interactionId: number;
+  questionText: string;
+  responseText: string;
+  timestamp: Date;
+  userScore: number;
+  suggested: boolean;
+  isPreviousQuestion: boolean;
+  correspondingChatbotQuestion?: ChatbotQuestionResponseChatbotDB; // used by chatbot_questions page on frontend
+  timesAsked?: number; // same as above
 }
 
 // comes from chatbot db
 export interface ChatbotQuestionResponseChatbotDB {
-  id: string
-  pageContent: string // this is the question
+  id: string;
+  pageContent: string; // this is the question
   metadata: {
-    answer: string
-    timestamp?: string // i found a chatbot question without a timestamp 😭
-    courseId: string
-    verified: boolean
-    sourceDocuments: SourceDocument[]
-    suggested: boolean
-    inserted?: boolean
-  }
-  userScoreTotal?: number // NOT returned from db, it's calculated and used by chatbot_questions page on frontend
-  timesAsked?: number // same as above
-  interactionsWithThisQuestion?: InteractionResponse[] // same as above
-  mostRecentlyAskedHelpMeVersion?: ChatbotQuestionResponseHelpMeDB | null // same as above
+    answer: string;
+    timestamp?: string; // i found a chatbot question without a timestamp 😭
+    courseId: string;
+    verified: boolean;
+    sourceDocuments: SourceDocument[];
+    suggested: boolean;
+    inserted?: boolean;
+  };
+  userScoreTotal?: number; // NOT returned from db, it's calculated and used by chatbot_questions page on frontend
+  timesAsked?: number; // same as above
+  interactionsWithThisQuestion?: InteractionResponse[]; // same as above
+  mostRecentlyAskedHelpMeVersion?: ChatbotQuestionResponseHelpMeDB | null; // same as above
 }
 
 interface Loc {
-  pageNumber: number
+  pageNumber: number;
 }
 
 // source document return type (from chatbot db)
 export interface SourceDocument {
-  id?: string
+  id?: string;
   metadata?: {
-    loc?: Loc
-    name: string
-    type?: string
-    source?: string
-    courseId?: string
-    fromLMS?: boolean
-    apiDocId?: number
-    asyncQuestionId?: number // inserted async questions only
-  }
-  type?: string
+    loc?: Loc;
+    name: string;
+    type?: string;
+    source?: string;
+    courseId?: string;
+    fromLMS?: boolean;
+    apiDocId?: number;
+    asyncQuestionId?: number; // inserted async questions only
+  };
+  type?: string;
   // TODO: is it content or pageContent? since this file uses both. EDIT: It seems to be both/either. Gross.
-  content?: string
-  pageContent: string
-  docName: string
-  docId?: string // no idea if this exists in the actual data EDIT: yes it does, sometimes
-  pageNumbers?: number[] // same with this, but this might only be for the edit question modal
-  pageNumbersString?: string // used only for the edit question modal
-  sourceLink?: string
-  pageNumber?: number
-  key?: string // used for front-end rendering
+  content?: string;
+  pageContent: string;
+  docName: string;
+  docId?: string; // no idea if this exists in the actual data EDIT: yes it does, sometimes
+  pageNumbers?: number[]; // same with this, but this might only be for the edit question modal
+  pageNumbersString?: string; // used only for the edit question modal
+  sourceLink?: string;
+  pageNumber?: number;
+  key?: string; // used for front-end rendering
 }
 
 export interface PreDeterminedQuestion {
-  id: string
-  pageContent: string
+  id: string;
+  pageContent: string;
   metadata: {
-    answer: string
-    courseId: string
-    inserted: boolean
-    sourceDocuments: SourceDocument[]
-    suggested: boolean
-    verified: boolean
-  }
+    answer: string;
+    courseId: string;
+    inserted: boolean;
+    sourceDocuments: SourceDocument[];
+    suggested: boolean;
+    verified: boolean;
+  };
 }
 
 export interface Message {
-  type: 'apiMessage' | 'userMessage'
-  message: string | void
-  verified?: boolean
-  sourceDocuments?: SourceDocument[]
-  questionId?: string
-  thinkText?: string | null // used on frontend only
+  type: 'apiMessage' | 'userMessage';
+  message: string | void;
+  verified?: boolean;
+  sourceDocuments?: SourceDocument[];
+  questionId?: string;
+  thinkText?: string | null; // used on frontend only
 }
 
 export interface ChatbotQueryParams {
-  query: string
-  type: 'default' | 'abstract'
+  query: string;
+  type: 'default' | 'abstract';
 }
 
 export interface ChatbotAskParams {
-  question: string
-  history: Message[]
-  interactionId?: number
-  onlySaveInChatbotDB?: boolean
+  question: string;
+  history: Message[];
+  interactionId?: number;
+  onlySaveInChatbotDB?: boolean;
 }
 
 export interface ChatbotAskSuggestedParams {
-  question: string
-  responseText: string
-  vectorStoreId: string
+  question: string;
+  responseText: string;
+  vectorStoreId: string;
 }
 
-export * from './embeddable-assessment'
+export * from './embeddable-assessment';
+export * from './autograder';
 
 export interface ChatbotAgentCourse {
-  courseId: number
-  name: string
-  agentName: string
-  description?: string
-  order?: number
+  courseId: number;
+  name: string;
+  agentName: string;
+  description?: string;
+  order?: number;
 }
 
 export interface AddDocumentChunkParams {
-  documentText: string
+  documentText: string;
   metadata: {
-    name: string
-    type: string
-    source?: string
-    asyncQuestionId?: number
-    loc?: Loc
-    id?: string
-    courseId?: number
-  }
-  prefix?: string
+    name: string;
+    type: string;
+    source?: string;
+    asyncQuestionId?: number;
+    loc?: Loc;
+    id?: string;
+    courseId?: number;
+  };
+  prefix?: string;
 }
 
 export interface AddDocumentAggregateParams {
-  name: string
-  source: string
-  documentText: string
-  metadata?: any
-  prefix?: string
+  name: string;
+  source: string;
+  documentText: string;
+  metadata?: any;
+  prefix?: string;
 }
 
 export interface UpdateDocumentAggregateParams {
-  documentText: string
-  metadata?: any
-  prefix?: string
+  documentText: string;
+  metadata?: any;
+  prefix?: string;
 }
 
 export interface UpdateChatbotQuestionParams {
-  id: string
-  inserted?: boolean
-  sourceDocuments?: SourceDocument[]
-  question?: string
-  answer?: string
-  verified?: boolean
-  suggested?: boolean
+  id: string;
+  inserted?: boolean;
+  sourceDocuments?: SourceDocument[];
+  question?: string;
+  answer?: string;
+  verified?: boolean;
+  suggested?: boolean;
   selectedDocuments?: {
-    docId: string
-    pageNumbersString: string
-  }[]
+    docId: string;
+    pageNumbersString: string;
+  }[];
 }
 
 // this is the response from the backend when new questions are asked
 // if question is I don't know, only answer and questionId are returned
 export interface ChatbotAskResponse {
-  chatbotRepoVersion: ChatbotAskResponseChatbotDB
-  helpmeRepoVersion: ChatbotQuestionResponseHelpMeDB | null
+  chatbotRepoVersion: ChatbotAskResponseChatbotDB;
+  helpmeRepoVersion: ChatbotQuestionResponseHelpMeDB | null;
 }
 
 // comes from /ask from chatbot db
 export interface ChatbotAskResponseChatbotDB {
-  question: string
-  answer: string
-  questionId: string
-  interactionId: number
-  sourceDocuments?: SourceDocument[]
-  verified: boolean
-  courseId: string
-  isPreviousQuestion: boolean
+  question: string;
+  answer: string;
+  questionId: string;
+  interactionId: number;
+  sourceDocuments?: SourceDocument[];
+  verified: boolean;
+  courseId: string;
+  isPreviousQuestion: boolean;
 }
 
 export enum ChatbotServiceType {
@@ -574,150 +575,150 @@ export enum ChatbotServiceType {
 }
 
 export interface AddChatbotQuestionParams {
-  question: string
-  answer: string
-  verified: boolean
-  suggested: boolean
-  sourceDocuments: SourceDocument[]
+  question: string;
+  answer: string;
+  verified: boolean;
+  suggested: boolean;
+  sourceDocuments: SourceDocument[];
 }
 
 export interface OrganizationChatbotSettings {
-  id: number
+  id: number;
 
-  defaultProvider: ChatbotProvider
-  providers: ChatbotProvider[]
+  defaultProvider: ChatbotProvider;
+  providers: ChatbotProvider[];
 
-  default_prompt?: string
-  default_temperature?: number
-  default_topK?: number
-  default_similarityThresholdDocuments?: number
-  default_similarityThresholdQuestions?: number
+  default_prompt?: string;
+  default_temperature?: number;
+  default_topK?: number;
+  default_similarityThresholdDocuments?: number;
+  default_similarityThresholdQuestions?: number;
 }
 
 export interface CourseChatbotSettings {
-  id: number
-  course: CoursePartial
-  courseId: number
-  llmId: number
-  llmModel: LLMType
-  prompt: string
-  temperature: number
-  topK: number
-  similarityThresholdDocuments: number
+  id: number;
+  course: CoursePartial;
+  courseId: number;
+  llmId: number;
+  llmModel: LLMType;
+  prompt: string;
+  temperature: number;
+  topK: number;
+  similarityThresholdDocuments: number;
   // similarityThresholdQuestions: number;
-  usingDefaultModel: boolean
-  usingDefaultPrompt: boolean
-  usingDefaultTemperature: boolean
-  usingDefaultTopK: boolean
-  usingDefaultSimilarityThresholdDocuments: boolean
+  usingDefaultModel: boolean;
+  usingDefaultPrompt: boolean;
+  usingDefaultTemperature: boolean;
+  usingDefaultTopK: boolean;
+  usingDefaultSimilarityThresholdDocuments: boolean;
   // usingDefaultSimilarityThresholdQuestions: boolean;
 }
 
 export interface CourseChatbotSettingsForm {
-  llmId?: number
-  prompt?: string
-  temperature?: number
-  topK?: number
-  similarityThresholdDocuments?: number
+  llmId?: number;
+  prompt?: string;
+  temperature?: number;
+  topK?: number;
+  similarityThresholdDocuments?: number;
 }
 
 export class ChatbotProvider {
-  id!: number
+  id!: number;
 
   @Exclude()
   @IsOptional()
-  nickname?: string
+  nickname?: string;
 
   @Exclude()
   @IsOptional()
-  baseUrl?: string
+  baseUrl?: string;
 
   @Exclude()
   @IsOptional()
-  apiKey?: string
+  apiKey?: string;
 
   @IsBoolean()
-  hasApiKey!: boolean
+  hasApiKey!: boolean;
 
-  providerType!: ChatbotServiceProvider
+  providerType!: ChatbotServiceProvider;
 
-  headers!: ChatbotAllowedHeaders
+  headers!: ChatbotAllowedHeaders;
 
-  availableModels!: LLMType[]
+  availableModels!: LLMType[];
 
-  defaultModel!: LLMType
+  defaultModel!: LLMType;
 
-  defaultVisionModel!: LLMType
+  defaultVisionModel!: LLMType;
 
   @IsOptional()
-  additionalNotes?: string[]
+  additionalNotes?: string[];
 }
 
 export interface LLMType {
-  id: number
-  modelName: string
-  isRecommended: boolean
-  isText: boolean
-  isVision: boolean
-  isThinking: boolean
-  provider: ChatbotProvider
-  additionalNotes?: string[]
-  providerNotes?: string[]
+  id: number;
+  modelName: string;
+  isRecommended: boolean;
+  isText: boolean;
+  isVision: boolean;
+  isThinking: boolean;
+  provider: ChatbotProvider;
+  additionalNotes?: string[];
+  providerNotes?: string[];
 }
 
 export interface LocalLLMType extends LLMType {
-  parameterSize: string
-  families: string[]
+  parameterSize: string;
+  families: string[];
 }
 
 export interface OpenAILLMType extends LLMType {
-  families: string[]
+  families: string[];
 }
 
 export class OrganizationChatbotSettingsDefaults {
   @IsInt()
   @IsOptional()
-  defaultProvider?: number
+  defaultProvider?: number;
 
   @IsString()
   @IsOptional()
-  default_prompt?: string | null
+  default_prompt?: string | null;
 
   @IsNumber()
   @IsOptional()
-  default_temperature?: number | null
+  default_temperature?: number | null;
 
   @IsInt()
   @IsOptional()
-  default_topK?: number | null
+  default_topK?: number | null;
 
   @IsNumber()
   @IsOptional()
-  default_similarityThresholdDocuments?: number | null
+  default_similarityThresholdDocuments?: number | null;
 
   @IsNumber()
   @IsOptional()
-  default_similarityThresholdQuestions?: number | null
+  default_similarityThresholdQuestions?: number | null;
 }
 
 export class CreateOrganizationChatbotSettingsBody extends OrganizationChatbotSettingsDefaults {
   @IsArray()
   @IsOptional()
-  providers?: CreateChatbotProviderBody[]
+  providers?: CreateChatbotProviderBody[];
 }
 
 export class ChatbotAllowedHeaders {
-  Authorization?: string
+  Authorization?: string;
 }
 
 export type ChatbotAllowedHeadersType = {
-  key: keyof ChatbotAllowedHeaders
-  value: string
-}
+  key: keyof ChatbotAllowedHeaders;
+  value: string;
+};
 
 export const ChatbotAllowedHeadersList = Object.keys(
   new ChatbotAllowedHeaders(),
-) as (keyof ChatbotAllowedHeaders)[]
+) as (keyof ChatbotAllowedHeaders)[];
 
 export enum ChatbotServiceProvider {
   OpenAI = 'openai',
@@ -726,35 +727,35 @@ export enum ChatbotServiceProvider {
 export class LLamaCppModelArchitecture {
   @IsArray()
   @IsString({ each: true })
-  input_modalities!: string[]
+  input_modalities!: string[];
 
   @IsArray()
   @IsString({ each: true })
-  output_modalities!: string[]
+  output_modalities!: string[];
 }
 export class LLamaCppModelStatus {
   @IsString()
-  value!: string
+  value!: string;
 
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  args?: string[]
+  args?: string[];
 }
 export class LlamaCppModelDescription {
   @IsString()
-  id!: string
+  id!: string;
 
   @IsString()
-  path!: string
+  path!: string;
 
   @Type(() => LLamaCppModelStatus)
   @ValidateNested()
-  status!: LLamaCppModelStatus
+  status!: LLamaCppModelStatus;
 
   @Type(() => LLamaCppModelArchitecture)
   @ValidateNested()
-  architecture!: LLamaCppModelArchitecture
+  architecture!: LLamaCppModelArchitecture;
 }
 
 /**
@@ -763,305 +764,305 @@ export class LlamaCppModelDescription {
 export class LLamaCppModelV1Meta {
   @IsNumber()
   @IsOptional()
-  vocab_type?: number
+  vocab_type?: number;
 
   @IsNumber()
   @IsOptional()
-  n_vocab?: number
+  n_vocab?: number;
 
   @IsNumber()
   @IsOptional()
-  n_ctx_train?: number
+  n_ctx_train?: number;
 
   @IsNumber()
   @IsOptional()
-  n_embd?: number
+  n_embd?: number;
 
   @IsNumber()
   @IsOptional()
-  n_params?: number
+  n_params?: number;
 
   @IsNumber()
   @IsOptional()
-  size?: number
+  size?: number;
 }
 
 export class OpenAIModelDescription {
   @IsString()
-  id!: string
+  id!: string;
 
   @IsString()
-  object!: string
+  object!: string;
 
   @IsNumber()
-  created!: number
+  created!: number;
 
   @IsString()
-  owned_by!: string
+  owned_by!: string;
 
   @Type(() => LLamaCppModelV1Meta)
   @ValidateNested()
   @IsOptional()
-  meta?: LLamaCppModelV1Meta
+  meta?: LLamaCppModelV1Meta;
 }
 
 export class GetAvailableModelsBody {
   @IsString()
   @IsOptional()
-  baseUrl?: string
+  baseUrl?: string;
 
   @IsString()
   @IsOptional()
-  apiKey?: string
+  apiKey?: string;
 
   @IsObject()
   @IsOptional()
-  headers?: ChatbotAllowedHeaders
+  headers?: ChatbotAllowedHeaders;
 }
 
 export class CreateChatbotProviderBody {
   @IsString()
   @IsOptional()
-  nickname?: string
+  nickname?: string;
 
   @IsEnum(ChatbotServiceProvider)
-  providerType!: ChatbotServiceProvider
+  providerType!: ChatbotServiceProvider;
 
   @IsObject()
   @IsOptional()
-  headers?: ChatbotAllowedHeaders
+  headers?: ChatbotAllowedHeaders;
 
   @IsString()
   @IsOptional()
-  baseUrl?: string
+  baseUrl?: string;
 
   @IsString()
   @IsOptional()
-  apiKey?: string
+  apiKey?: string;
 
   @IsArray()
   @Type(() => CreateLLMTypeBody)
   @ValidateNested({ each: true })
-  models!: CreateLLMTypeBody[]
+  models!: CreateLLMTypeBody[];
 
   @IsString()
-  defaultModelName!: string
+  defaultModelName!: string;
 
   @IsString()
-  defaultVisionModelName!: string
+  defaultVisionModelName!: string;
 
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  additionalNotes?: string[]
+  additionalNotes?: string[];
 }
 
 export class UpdateChatbotProviderBody {
   @IsEnum(ChatbotServiceProvider)
   @IsOptional()
-  providerType?: ChatbotServiceProvider
+  providerType?: ChatbotServiceProvider;
 
   @IsString()
   @IsOptional()
-  nickname?: string
+  nickname?: string;
 
   @IsObject()
   @IsOptional()
-  headers?: ChatbotAllowedHeaders
+  headers?: ChatbotAllowedHeaders;
 
   @IsString()
   @IsOptional()
-  baseUrl?: string
+  baseUrl?: string;
 
   @IsString()
   @IsOptional()
-  apiKey?: string
+  apiKey?: string;
 
   @IsString()
   @IsOptional()
-  defaultModelName?: string
+  defaultModelName?: string;
 
   @IsString()
   @IsOptional()
-  defaultVisionModelName?: string
+  defaultVisionModelName?: string;
 
   @IsInt()
   @IsOptional()
-  defaultModelId?: number
+  defaultModelId?: number;
 
   @IsInt()
   @IsOptional()
-  defaultVisionModelId?: number
+  defaultVisionModelId?: number;
 
   @IsArray()
   @IsNumber({}, { each: true })
   @IsOptional()
-  deletedModels?: number[]
+  deletedModels?: number[];
 
   @IsArray()
   @IsOptional()
   @Type(() => CreateLLMTypeBody)
   @ValidateNested({ each: true })
-  addedModels?: CreateLLMTypeBody[]
+  addedModels?: CreateLLMTypeBody[];
 
   @IsArray()
   @IsOptional()
   @Type(() => UpdateLLMTypeBody)
   @ValidateNested({ each: true })
-  modifiedModels?: UpdateLLMTypeBody[]
+  modifiedModels?: UpdateLLMTypeBody[];
 
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  additionalNotes?: string[]
+  additionalNotes?: string[];
 }
 
 export class CreateLLMTypeBody {
   @IsString()
-  modelName!: string
+  modelName!: string;
 
   @IsBoolean()
-  isRecommended!: boolean
+  isRecommended!: boolean;
 
   @IsBoolean()
-  isText!: boolean
+  isText!: boolean;
 
   @IsBoolean()
-  isVision!: boolean
+  isVision!: boolean;
 
   @IsBoolean()
-  isThinking!: boolean
+  isThinking!: boolean;
 
   @IsInt()
   @IsOptional()
-  providerId?: number
+  providerId?: number;
 
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  additionalNotes?: string[]
+  additionalNotes?: string[];
 }
 
 export class UpdateLLMTypeBody {
   @IsNumber()
   @IsOptional()
-  modelId?: number
+  modelId?: number;
 
   @IsString()
   @IsOptional()
-  modelName?: string
+  modelName?: string;
 
   @IsBoolean()
   @IsOptional()
-  isRecommended?: boolean
+  isRecommended?: boolean;
 
   @IsBoolean()
   @IsOptional()
-  isText?: boolean
+  isText?: boolean;
 
   @IsBoolean()
   @IsOptional()
-  isVision?: boolean
+  isVision?: boolean;
 
   @IsBoolean()
   @IsOptional()
-  isThinking?: boolean
+  isThinking?: boolean;
 
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  additionalNotes?: string[]
+  additionalNotes?: string[];
 }
 
 export interface ChatbotSettings {
-  id: string
-  pageContent: string
-  metadata: ChatbotSettingsMetadata
+  id: string;
+  pageContent: string;
+  metadata: ChatbotSettingsMetadata;
 }
 
 export interface ProviderMetadata {
-  type: ChatbotServiceProvider
-  baseUrl: string
-  apiKey: string
-  defaultModelName: string
-  defaultVisionModelName: string
-  headers: ChatbotAllowedHeaders
+  type: ChatbotServiceProvider;
+  baseUrl: string;
+  apiKey: string;
+  defaultModelName: string;
+  defaultVisionModelName: string;
+  headers: ChatbotAllowedHeaders;
 }
 
 export interface ModelMetadata {
-  provider: ProviderMetadata
-  modelName: string
+  provider: ProviderMetadata;
+  modelName: string;
 }
 
 export interface OrganizationChatbotSettingsMetadata {
-  defaultProvider: ProviderMetadata
+  defaultProvider: ProviderMetadata;
 }
 
 export interface ChatbotSettingsMetadata {
-  organizationSettings?: OrganizationChatbotSettingsMetadata
-  model?: ModelMetadata
-  modelName?: string
-  prompt: string
-  similarityThresholdDocuments: number
-  similarityThresholdQuestions: number
-  temperature: number
-  topK: number
+  organizationSettings?: OrganizationChatbotSettingsMetadata;
+  model?: ModelMetadata;
+  modelName?: string;
+  prompt: string;
+  similarityThresholdDocuments: number;
+  similarityThresholdQuestions: number;
+  temperature: number;
+  topK: number;
 }
 
 export class UpsertCourseChatbotSettings {
   @IsInt()
   @IsOptional()
-  llmId?: number
+  llmId?: number;
 
   @IsString()
   @IsOptional()
-  prompt?: string
+  prompt?: string;
 
   @IsNumber()
   @IsOptional()
-  similarityThresholdDocuments?: number
+  similarityThresholdDocuments?: number;
 
   @IsNumber()
   @IsOptional()
-  temperature?: number
+  temperature?: number;
 
   @IsNumber()
   @IsOptional()
-  topK?: number
+  topK?: number;
 }
 
-export type ChatbotSettingsUpdateParams = Partial<ChatbotSettingsMetadata>
+export type ChatbotSettingsUpdateParams = Partial<ChatbotSettingsMetadata>;
 
 export interface InteractionResponse {
-  id: number
-  timestamp: Date
-  questions?: ChatbotQuestionResponseHelpMeDB[]
+  id: number;
+  timestamp: Date;
+  questions?: ChatbotQuestionResponseHelpMeDB[];
 }
 
 export class ChatbotDocument {
-  id!: number
-  name!: number
-  type!: string
-  subDocumentIds!: string[]
+  id!: number;
+  name!: number;
+  type!: string;
+  subDocumentIds!: string[];
 }
 
 export type GetInteractionsAndQuestionsResponse = {
-  helpmeDB: InteractionResponse[]
-  chatbotDB: ChatbotQuestionResponseChatbotDB[]
-}
+  helpmeDB: InteractionResponse[];
+  chatbotDB: ChatbotQuestionResponseChatbotDB[];
+};
 
 export type GetChatbotHistoryResponse = {
-  history: InteractionResponse[]
-}
+  history: InteractionResponse[];
+};
 
 export class UploadChatbotDocumentRequest {
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
-  parseAsPng!: boolean
+  parseAsPng!: boolean;
 
   @IsString()
   @IsOptional()
-  uploadId?: string
+  uploadId?: string;
 }
 /**
  * A Queue that students can join with their tickets.
@@ -1073,12 +1074,12 @@ export class UploadChatbotDocumentRequest {
  */
 // note: this is apparently not used anywhere
 export interface Queue {
-  id: number
-  course: CoursePartial
-  room: string
-  staffList: UserPartial[]
-  questions: Question[]
-  allowQuestions: boolean
+  id: number;
+  course: CoursePartial;
+  room: string;
+  staffList: UserPartial[];
+  questions: Question[];
+  allowQuestions: boolean;
 }
 
 // Queue location/type for different queues within each course
@@ -1097,16 +1098,16 @@ export enum ExtraTAStatus {
 export class SetTAExtraStatusParams {
   @IsOptional()
   @IsEnum(ExtraTAStatus)
-  status?: ExtraTAStatus | null
+  status?: ExtraTAStatus | null;
 }
 
 export interface StaffMember {
-  id: number
-  name: string
-  helpingStudentInAnotherQueueSince?: Date
-  extraStatus?: ExtraTAStatus
-  photoURL?: string
-  TANotes?: string
+  id: number;
+  name: string;
+  helpingStudentInAnotherQueueSince?: Date;
+  extraStatus?: ExtraTAStatus;
+  photoURL?: string;
+  TANotes?: string;
 }
 
 /**
@@ -1117,134 +1118,134 @@ export interface StaffMember {
  * @param config - A JSON object that contains the configuration for the queue. Contains stuff like tags, tasks, etc.
  */
 export class QueuePartial {
-  id!: number
-  room!: string
+  id!: number;
+  room!: string;
 
   @Type(() => UserPartial)
-  staffList!: StaffMember[]
+  staffList!: StaffMember[];
 
-  queueSize!: number
-  notes?: string
+  queueSize!: number;
+  notes?: string;
 
-  isDisabled!: boolean
+  isDisabled!: boolean;
 
-  allowQuestions!: boolean
+  allowQuestions!: boolean;
 
-  type!: QueueTypes
+  type!: QueueTypes;
 
-  isProfessorQueue!: boolean
+  isProfessorQueue!: boolean;
 
-  config?: QueueConfig
+  config?: QueueConfig;
 
-  zoomLink?: string
+  zoomLink?: string;
 
-  courseId!: number
+  courseId!: number;
 }
 
 export class GetProfInviteResponse {
   course!: {
-    id: number
-    name: string
-  }
+    id: number;
+    name: string;
+  };
   creator!: {
-    id: number
-    name: string
-    email: string
-  }
-  id!: number
-  code!: string
-  maxUses!: number
-  usesUsed!: number
+    id: number;
+    name: string;
+    email: string;
+  };
+  id!: number;
+  code!: string;
+  maxUses!: number;
+  usesUsed!: number;
   @Type(() => Date)
-  createdAt!: Date
+  createdAt!: Date;
   @Type(() => Date)
-  expiresAt!: Date
-  makeOrgProf!: boolean
+  expiresAt!: Date;
+  makeOrgProf!: boolean;
 }
 export class CreateProfInviteParams {
   @IsInt()
-  orgId!: number
+  orgId!: number;
   @IsInt()
-  courseId!: number
+  courseId!: number;
 
   @IsOptional()
   @IsInt()
-  maxUses?: number
+  maxUses?: number;
 
   @IsOptional()
   @IsDate()
   @Type(() => Date)
-  expiresAt?: Date
+  expiresAt?: Date;
 
   @IsOptional()
   @IsBoolean()
-  makeOrgProf?: boolean
+  makeOrgProf?: boolean;
 }
 
 export class AcceptProfInviteParams {
   @IsString()
-  code!: string
+  code!: string;
 }
 
 export type GetProfInviteDetailsResponse = {
-  courseId: number
-  orgId: number
-}
+  courseId: number;
+  orgId: number;
+};
 
 /**
  * Used when editing QueueInvites
  */
 export class QueueInviteParams {
   @IsInt()
-  queueId!: number
+  queueId!: number;
   @IsBoolean()
-  QRCodeEnabled!: boolean
+  QRCodeEnabled!: boolean;
   @IsBoolean()
-  isQuestionsVisible!: boolean
+  isQuestionsVisible!: boolean;
   @IsBoolean()
-  willInviteToCourse!: boolean
+  willInviteToCourse!: boolean;
   @IsString()
-  inviteCode!: string
+  inviteCode!: string;
   @IsIn(['L', 'M'])
-  QRCodeErrorLevel!: 'L' | 'M'
+  QRCodeErrorLevel!: 'L' | 'M';
 }
 
 /**
  * Returned from getQueueInvites (for displaying all of them in courseSettings)
  */
 export type QueueInvite = {
-  queueId: number
-  room: string
-  QRCodeEnabled: boolean
-  isQuestionsVisible: boolean
-  willInviteToCourse: boolean
-  inviteCode: string
-  QRCodeErrorLevel: 'L' | 'M'
-}
+  queueId: number;
+  room: string;
+  QRCodeEnabled: boolean;
+  isQuestionsVisible: boolean;
+  willInviteToCourse: boolean;
+  inviteCode: string;
+  QRCodeErrorLevel: 'L' | 'M';
+};
 
 /**
  * This is the queue data that is publicly available for a queue invite page IF they give the right queue invite code
  */
 export type PublicQueueInvite = {
-  orgId: number
-  courseId: number
-  queueId: number
-  room: string
-  QRCodeEnabled: boolean
-  isQuestionsVisible: boolean
-  willInviteToCourse: boolean
-  inviteCode: string // queue invite code
-  QRCodeErrorLevel: 'L' | 'M'
-  courseInviteCode?: string // course invite code only given if willInviteToCourse is true
-  queueAndQuestions?: SSEQueueResponse // only given if isQuestionsVisible is true
-  queueSize: number
-  staffList: StaffForQueueInvite[]
-  courseName: string
-}
+  orgId: number;
+  courseId: number;
+  queueId: number;
+  room: string;
+  QRCodeEnabled: boolean;
+  isQuestionsVisible: boolean;
+  willInviteToCourse: boolean;
+  inviteCode: string; // queue invite code
+  QRCodeErrorLevel: 'L' | 'M';
+  courseInviteCode?: string; // course invite code only given if willInviteToCourse is true
+  queueAndQuestions?: SSEQueueResponse; // only given if isQuestionsVisible is true
+  queueSize: number;
+  staffList: StaffForQueueInvite[];
+  courseName: string;
+};
 
 export type StaffForQueueInvite = StaffMember & {
-  questionHelpedAt?: Date // also has the date the question was helped at
-}
+  questionHelpedAt?: Date; // also has the date the question was helped at
+};
 
 // Represents a list of office hours wait times of each hour of the week.
 // The first element of the array is the wait time for the first hour of Sunday, UTC.
@@ -1252,7 +1253,7 @@ export type StaffForQueueInvite = StaffMember & {
 // INVARIANT: Must have 24*7 elements
 //
 // Wait time = -1 represents no office hours data at that time.
-export type Heatmap = Array<number>
+export type Heatmap = Array<number>;
 
 /**
  * A Question is created when a student wants help from a TA.
@@ -1269,46 +1270,46 @@ export type Heatmap = Array<number>
  * @param location - The location of the particular student, to help TA's find them.
  */
 export class Question {
-  id!: number
+  id!: number;
 
   @Type(() => UserPartial)
-  creator!: UserPartial
+  creator!: UserPartial;
 
-  text?: string
+  text?: string;
 
-  creatorId!: number
+  creatorId!: number;
 
   @Type(() => UserPartial)
-  taHelped?: UserPartial
+  taHelped?: UserPartial;
 
   @Type(() => Date)
-  createdAt?: Date
+  createdAt?: Date;
 
   @Type(() => Date)
-  helpedAt?: Date
+  helpedAt?: Date;
 
   // in seconds
-  helpTime!: number
+  helpTime!: number;
 
   @Type(() => Date)
-  lastReadyAt?: Date
+  lastReadyAt?: Date;
 
   // in seconds
-  waitTime!: number
+  waitTime!: number;
 
   @Type(() => Date)
-  closedAt?: Date
+  closedAt?: Date;
 
   @Type(() => QuestionTypeParams)
-  questionTypes?: QuestionType[]
+  questionTypes?: QuestionType[];
 
-  status!: QuestionStatus
+  status!: QuestionStatus;
 
-  groupable!: boolean
+  groupable!: boolean;
 
-  location?: QuestionLocations
+  location?: QuestionLocations;
 
-  isTaskQuestion?: boolean
+  isTaskQuestion?: boolean;
 }
 
 // Type of async question events
@@ -1349,7 +1350,7 @@ export const waitingStatuses: ReadonlyArray<QuestionStatus> = [
   OpenQuestionStatus.Paused,
   OpenQuestionStatus.Queued,
   OpenQuestionStatus.PriorityQueued,
-]
+];
 
 export enum asyncQuestionStatus {
   AIAnsweredNeedsAttention = 'AIAnsweredNeedsAttention', // AI has answered, but the answer is unsatisfactory.
@@ -1369,7 +1370,7 @@ export const asyncQuestionStatusDisplayMap: Record<string, string> = {
   [asyncQuestionStatus.AIAnswered]: 'Answered by AI',
   [asyncQuestionStatus.TADeleted]: 'Deleted by TA',
   [asyncQuestionStatus.StudentDeleted]: 'Deleted by Student',
-}
+};
 
 /**
  * Anonymous animal names used for anonymizing student identities.
@@ -1449,13 +1450,13 @@ export const ANONYMOUS_ANIMAL_AVATAR = {
     'Python',
     'Wombat',
   ],
-}
+};
 
 /**
  * Given an anonId (from getAnonId), returns the corresponding animal name.
  */
 export function getAnonAnimal(anonId: number): string {
-  return ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES[anonId] ?? 'Unknown'
+  return ANONYMOUS_ANIMAL_AVATAR.ANIMAL_NAMES[anonId] ?? 'Unknown';
 }
 
 export enum resolutionSource {
@@ -1468,9 +1469,9 @@ export const StatusInQueue = [
   OpenQuestionStatus.Drafting,
   OpenQuestionStatus.Queued,
   LimboQuestionStatus.ReQueueing,
-]
+];
 
-export const StatusInPriorityQueue = [OpenQuestionStatus.PriorityQueued]
+export const StatusInPriorityQueue = [OpenQuestionStatus.PriorityQueued];
 
 export const StatusSentToCreator = [
   ...StatusInPriorityQueue,
@@ -1480,70 +1481,70 @@ export const StatusSentToCreator = [
   LimboQuestionStatus.ReQueueing,
   LimboQuestionStatus.CantFind,
   LimboQuestionStatus.TADeleted,
-]
+];
 
 // Ticket Status - Represents a given status of as student's ticket
-export type QuestionStatus = keyof typeof QuestionStatusKeys
+export type QuestionStatus = keyof typeof QuestionStatusKeys;
 // an Enum-like constant that contains all the statuses for convenience.
 export const QuestionStatusKeys = {
   ...OpenQuestionStatus,
   ...ClosedQuestionStatus,
   ...LimboQuestionStatus,
-}
+};
 
 export class QuestionGroup {
   @IsInt()
-  id!: number
+  id!: number;
 
   @Type(() => Question)
-  questions!: Array<Question>
+  questions!: Array<Question>;
 
   @Type(() => UserPartial)
-  creator!: UserPartial
+  creator!: UserPartial;
 
   //Might want to add a list of students in group so they can be added without a question
 }
 
 export type AsyncCreator = {
-  id?: number
-  anonId: number
-  name?: string
-  photoURL?: string
-  email?: string
-  courseRole: Role
-  isAuthor?: boolean
-  colour: string // hex string (generated from nameToRGB())
-}
+  id?: number;
+  anonId: number;
+  name?: string;
+  photoURL?: string;
+  email?: string;
+  courseRole: Role;
+  isAuthor?: boolean;
+  colour: string; // hex string (generated from nameToRGB())
+};
 
 /**
  * This AsyncQuestion is one that is already created and not used for sending data to the server (hence why there's no decorators). Used on frontend.
  */
 export type AsyncQuestion = {
-  id: number
-  creator: AsyncCreator
-  questionText?: string
-  creatorId?: number
-  taHelped?: User
-  createdAt: Date
-  questionTypes: QuestionType[]
-  status: asyncQuestionStatus
-  questionAbstract: string
-  answerText?: string
-  aiAnswerText?: string
-  closedAt?: Date
-  isAnonymous?: boolean
-  staffSetVisible?: boolean
-  authorSetVisible: boolean
-  verified: boolean
-  votes?: AsyncQuestionVotes[]
-  comments: AsyncQuestionComment[]
-  votesSum: number
-}
+  id: number;
+  creator: AsyncCreator;
+  questionText?: string;
+  creatorId?: number;
+  taHelped?: User;
+  createdAt: Date;
+  questionTypes: QuestionType[];
+  status: asyncQuestionStatus;
+  questionAbstract: string;
+  answerText?: string;
+  aiAnswerText?: string;
+  closedAt?: Date;
+  isAnonymous?: boolean;
+  staffSetVisible?: boolean;
+  authorSetVisible: boolean;
+  verified: boolean;
+  votes?: AsyncQuestionVotes[];
+  comments: AsyncQuestionComment[];
+  votesSum: number;
+};
 
 export type GetAsyncQuestionsResponse = {
-  questions: AsyncQuestion[]
-  hiddenPrivateQuestionsCount: number
-}
+  questions: AsyncQuestion[];
+  hiddenPrivateQuestionsCount: number;
+};
 
 /**
  * An async question is created when a student wants help from a TA.
@@ -1551,174 +1552,174 @@ export type GetAsyncQuestionsResponse = {
 export class AsyncQuestionParams {
   @IsOptional()
   @IsInt()
-  id?: number
+  id?: number;
 
   @Type(() => UserPartial)
-  creator?: UserPartial
+  creator?: UserPartial;
 
   @IsOptional()
   @IsString()
-  questionText?: string
+  questionText?: string;
 
   @IsOptional()
   @IsInt()
-  creatorId?: number
+  creatorId?: number;
 
   @Type(() => User)
-  taHelped?: User
+  taHelped?: User;
 
   @Type(() => Date)
-  createdAt?: Date
+  createdAt?: Date;
 
   @IsOptional()
-  questionTypes?: QuestionTypeParams[]
-
-  @IsOptional()
-  @IsString()
-  status?: asyncQuestionStatus
+  questionTypes?: QuestionTypeParams[];
 
   @IsOptional()
   @IsString()
-  questionAbstract?: string
+  status?: asyncQuestionStatus;
 
   @IsOptional()
   @IsString()
-  answerText?: string
+  questionAbstract?: string;
 
   @IsOptional()
   @IsString()
-  aiAnswerText?: string
+  answerText?: string;
+
+  @IsOptional()
+  @IsString()
+  aiAnswerText?: string;
 
   @Type(() => Date)
-  closedAt?: Date
+  closedAt?: Date;
 
   @IsOptional()
   @IsBoolean()
-  staffSetVisible?: boolean
+  staffSetVisible?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  authorSetVisible?: boolean
+  authorSetVisible?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  isAnonymous?: boolean
+  isAnonymous?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  verified?: boolean
+  verified?: boolean;
 
-  votes?: AsyncQuestionVotes[]
+  votes?: AsyncQuestionVotes[];
 
   @IsOptional()
   @IsInt()
-  votesSum?: number
+  votesSum?: number;
 
   @IsOptional()
   @IsBoolean()
-  saveToChatbot?: boolean
+  saveToChatbot?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  refreshAIAnswer?: boolean
+  refreshAIAnswer?: boolean;
 }
 export class AsyncQuestionVotes {
   @IsOptional()
   @IsInt()
-  id?: number
+  id?: number;
 
   @IsInt()
-  questionId!: number
+  questionId!: number;
 
   @IsInt()
-  userId!: number
+  userId!: number;
 
   @IsInt()
-  vote!: number
+  vote!: number;
 }
 
 export class AsyncQuestionComment {
-  id!: number
+  id!: number;
 
-  questionId!: number
+  questionId!: number;
 
-  creator!: AsyncCreator
+  creator!: AsyncCreator;
 
-  commentText!: string
+  commentText!: string;
 
-  isAnonymous!: boolean
+  isAnonymous!: boolean;
 
   @IsOptional()
-  endorsedBy: (UserPartial & { role?: Role }) | null = null
+  endorsedBy: (UserPartial & { role?: Role }) | null = null;
 
   @Type(() => Date)
-  createdAt!: Date
+  createdAt!: Date;
 }
 
 export class AsyncQuestionCommentParams {
   @IsString()
-  commentText!: string
+  commentText!: string;
 
   @IsOptional()
   @IsBoolean()
-  isAnonymous?: boolean
+  isAnonymous?: boolean;
 }
 
 export class AsyncQuestionCommentEndorseParams {
   @IsBoolean()
-  isEndorsed!: boolean
+  isEndorsed!: boolean;
 }
 
 export class QueueChatPartial {
   // Might be useful for frontend insights on chat (after the fact; won't be sent to chat users)
   @IsOptional()
   @IsInt()
-  id?: number
+  id?: number;
 
-  staff!: QueueChatUserPartial
+  staff!: QueueChatUserPartial;
 
-  student!: QueueChatUserPartial
+  student!: QueueChatUserPartial;
 
-  questionId!: number
+  questionId!: number;
 
   @IsDate()
   @Type(() => Date)
-  startedAt!: Date
+  startedAt!: Date;
 
-  messages?: QueueChatMessagePartial[]
+  messages?: QueueChatMessagePartial[];
 }
 
 export class QueueChatUserPartial {
   @IsOptional()
   @IsInt()
-  id?: number
+  id?: number;
 
   @IsString()
-  firstName!: string
+  firstName!: string;
 
   @IsString()
-  lastName!: string
+  lastName!: string;
 
   @IsString()
-  photoURL?: string
+  photoURL?: string;
 }
 
 export class QueueChatMessagePartial {
   @IsBoolean()
-  isStaff!: boolean
+  isStaff!: boolean;
 
   @IsString()
-  message!: string
+  message!: string;
 
   @IsDate()
   @Type(() => Date)
-  timestamp!: Date
+  timestamp!: Date;
 }
 
 export class Image {
   @IsOptional()
   @IsInt()
-  id?: number
+  id?: number;
 }
 // /**
 //  * A Semester object, representing a schedule semester term for the purposes of a course.
@@ -1734,17 +1735,17 @@ export class Image {
  * Represents one of the seasons in which a course can take place.
  * From Khoury implementation (not used in newer code or in semester model anymore)
  */
-export type Season = string
+export type Season = string;
 
 export type DesktopNotifBody = {
-  endpoint: string
-  expirationTime?: number
+  endpoint: string;
+  expirationTime?: number;
   keys: {
-    p256dh: string
-    auth: string
-  }
-  name?: string
-}
+    p256dh: string;
+    auth: string;
+  };
+  name?: string;
+};
 
 // =================== API Route Types ===========================
 // On backend, validated with https://docs.nestjs.com/techniques/validation
@@ -1755,25 +1756,25 @@ export class GetProfileResponse extends User {}
 
 export class LoginParam {
   @IsString()
-  email!: string
+  email!: string;
 
   @IsString()
-  password!: string
+  password!: string;
 
   @IsOptional()
   @IsString()
-  recaptchaToken?: string
+  recaptchaToken?: string;
 }
 
 export class UBCOuserParam {
   @IsString()
-  email!: string
+  email!: string;
 
   @IsInt()
-  selected_course!: number
+  selected_course!: number;
 
   @IsInt()
-  organizationId!: number
+  organizationId!: number;
 }
 
 export enum calendarEventLocationType {
@@ -1786,211 +1787,211 @@ export function getCalendarEventLocationTypeFormatted(
 ): string {
   switch (locationType) {
     case calendarEventLocationType.inPerson:
-      return 'In-Person'
+      return 'In-Person';
     case calendarEventLocationType.online:
-      return 'Online'
+      return 'Online';
     case calendarEventLocationType.hybrid:
-      return 'Hybrid'
+      return 'Hybrid';
     default:
-      return ''
+      return '';
   }
 }
 export class Calendar {
   @IsInt()
   @IsOptional()
-  id?: number
+  id?: number;
 
   @IsString()
-  title!: string
+  title!: string;
 
   @IsDate()
   @Type(() => Date)
-  start!: Date
+  start!: Date;
 
   @IsDate()
   @Type(() => Date)
-  end!: Date
-
-  @IsDate()
-  @Type(() => Date)
-  @IsOptional()
-  startDate?: Date
+  end!: Date;
 
   @IsDate()
   @Type(() => Date)
   @IsOptional()
-  endDate?: Date
+  startDate?: Date;
+
+  @IsDate()
+  @Type(() => Date)
+  @IsOptional()
+  endDate?: Date;
 
   @IsEnum(calendarEventLocationType)
-  locationType!: calendarEventLocationType
+  locationType!: calendarEventLocationType;
 
   @IsString()
   @IsOptional()
-  locationOnline?: string
+  locationOnline?: string;
 
   @IsString()
   @IsOptional()
-  locationInPerson?: string
+  locationInPerson?: string;
 
   @IsNumber()
   @IsOptional()
-  cid?: number
+  cid?: number;
 
   @IsArray()
   @IsOptional()
-  daysOfWeek?: string[]
+  daysOfWeek?: string[];
 
   @IsBoolean()
   @IsOptional()
-  allDay?: boolean
+  allDay?: boolean;
 
   @IsString()
   @IsOptional()
   @MaxLength(7)
-  color?: string
+  color?: string;
 
   @IsArray()
   @IsNumber({}, { each: true })
-  staffIds?: number[]
+  staffIds?: number[];
 
   @IsArray()
   @IsOptional()
   @IsString({ each: true })
-  staffNames?: string[]
+  staffNames?: string[];
 }
 
 export class questions {
   @IsInt()
-  id!: number
+  id!: number;
 
   @IsInt()
-  queueId?: number
+  queueId?: number;
 
   @IsString()
-  text?: string
+  text?: string;
 
   @IsArray()
-  questionTypes?: QuestionTypeParams[]
+  questionTypes?: QuestionTypeParams[];
 
   @IsDate()
   @Type(() => Date)
-  createdAt!: Date
-
-  @IsDate()
-  @Type(() => Date)
-  @IsOptional()
-  helpedAt?: Date
+  createdAt!: Date;
 
   @IsDate()
   @Type(() => Date)
   @IsOptional()
-  closedAt?: Date
+  helpedAt?: Date;
+
+  @IsDate()
+  @Type(() => Date)
+  @IsOptional()
+  closedAt?: Date;
 
   @IsString()
-  status?: string
+  status?: string;
 
   @IsString()
-  location?: string
+  location?: string;
 
   @IsString()
-  creatorName?: string
+  creatorName?: string;
 
   @IsString()
-  helpName?: string
+  helpName?: string;
 
   @IsBoolean()
   @IsOptional()
-  isTaskQuestion?: boolean
+  isTaskQuestion?: boolean;
 }
 export interface KhouryRedirectResponse {
-  redirect: string
+  redirect: string;
 }
 
 export class UpdateOrganizationUserRole {
   @IsNumber()
   @IsNotEmpty()
-  userId!: number
+  userId!: number;
 
   @IsString()
   @IsNotEmpty()
-  organizationRole!: OrganizationRole
+  organizationRole!: OrganizationRole;
 }
 
 export class UpdateOrganizationDetailsParams {
   @IsString()
   @IsOptional()
-  name?: string
+  name?: string;
 
   @IsString()
   @IsOptional()
-  description?: string
+  description?: string;
 
   @IsString()
   @IsOptional()
-  websiteUrl?: string
+  websiteUrl?: string;
 
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  ssoEmailPatterns?: string[]
+  ssoEmailPatterns?: string[];
 }
 
 export class UpdateProfileParams {
   @IsBoolean()
   @IsOptional()
-  desktopNotifsEnabled?: boolean
+  desktopNotifsEnabled?: boolean;
 
   @IsString()
   @IsOptional()
-  firstName?: string
+  firstName?: string;
 
   @IsInt()
   @IsOptional()
-  sid?: number
+  sid?: number;
 
   @IsString()
   @IsOptional()
-  lastName?: string
+  lastName?: string;
 
   @IsString()
   @IsOptional()
-  email?: string
+  email?: string;
 
   @IsString()
   @IsOptional()
-  namePronunciation?: string
+  namePronunciation?: string;
 
   @IsString()
   @IsOptional()
-  defaultMessage?: string
+  defaultMessage?: string;
 
   @IsBoolean()
   @IsOptional()
-  includeDefaultMessage?: boolean
+  includeDefaultMessage?: boolean;
 }
 
 export class OrganizationPartial {
-  id!: number
-  name!: string
-  websiteUrl?: string
-  ssoEnabled?: boolean
-  ssoUrl?: string
-  semesters?: SemesterPartial[]
+  id!: number;
+  name!: string;
+  websiteUrl?: string;
+  ssoEnabled?: boolean;
+  ssoUrl?: string;
+  semesters?: SemesterPartial[];
 }
 
 export class OrganizationUserPartial {
-  id!: number
-  orgId!: number
-  organizationName?: string
-  organizationDescription?: string
-  organizationRole?: string
+  id!: number;
+  orgId!: number;
+  organizationName?: string;
+  organizationDescription?: string;
+  organizationRole?: string;
 }
 
 export class GetOrganizationResponse extends OrganizationResponse {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SemesterPartial)
-  semesters!: SemesterPartial[]
+  semesters!: SemesterPartial[];
 }
 
 export enum LMSIntegrationPlatform {
@@ -2000,264 +2001,264 @@ export enum LMSIntegrationPlatform {
 
 export class UpsertLMSOrganizationParams {
   @IsEnum(LMSIntegrationPlatform)
-  apiPlatform!: LMSIntegrationPlatform
+  apiPlatform!: LMSIntegrationPlatform;
 
   @IsOptional()
   @IsString()
-  rootUrl?: string
+  rootUrl?: string;
 
   @IsOptional()
   @IsString()
-  clientId?: string
+  clientId?: string;
 
   @IsOptional()
   @IsString()
-  clientSecret?: string
+  clientSecret?: string;
 
   @IsOptional()
   @IsBoolean()
-  secure?: boolean
+  secure?: boolean;
 }
 
 export class RemoveLMSOrganizationParams {
   @IsEnum(LMSIntegrationPlatform)
-  apiPlatform!: LMSIntegrationPlatform
+  apiPlatform!: LMSIntegrationPlatform;
 }
 
 export class UpsertLMSCourseParams {
   @IsEnum(LMSIntegrationPlatform)
-  apiPlatform!: LMSIntegrationPlatform
+  apiPlatform!: LMSIntegrationPlatform;
 
   @IsOptional()
   @IsInt()
-  accessTokenId?: number
+  accessTokenId?: number;
 
   @IsOptional()
   @IsString()
-  apiKey?: string
+  apiKey?: string;
 
   @IsOptional()
   @Type(() => Date)
-  apiKeyExpiry?: Date
+  apiKeyExpiry?: Date;
 
   @IsOptional()
   @IsBoolean()
-  apiKeyExpiryDeleted?: boolean
+  apiKeyExpiryDeleted?: boolean;
 
   @IsOptional()
-  apiCourseId?: string
+  apiCourseId?: string;
 }
 
 export class TestLMSIntegrationParams {
   @IsEnum(LMSIntegrationPlatform)
-  apiPlatform!: LMSIntegrationPlatform
+  apiPlatform!: LMSIntegrationPlatform;
 
   @IsOptional()
   @IsString()
-  apiKey?: string
+  apiKey?: string;
 
   @IsOptional()
   @IsNumber()
-  accessTokenId?: number
+  accessTokenId?: number;
 
   @IsNotEmpty()
-  apiCourseId!: string
+  apiCourseId!: string;
 }
 
 export class LMSOrganizationIntegrationPartial {
   @IsNumber()
-  organizationId!: number
+  organizationId!: number;
 
   @IsEnum(LMSIntegrationPlatform)
-  apiPlatform!: LMSIntegrationPlatform
+  apiPlatform!: LMSIntegrationPlatform;
 
   @IsString()
-  rootUrl!: string
+  rootUrl!: string;
 
   @IsOptional()
   @IsString()
-  clientId?: string
+  clientId?: string;
 
   @IsBoolean()
-  hasClientSecret!: boolean
+  hasClientSecret!: boolean;
 
   @IsBoolean()
-  secure!: boolean
+  secure!: boolean;
 
   @ValidateNested({ each: true })
   @Type(() => LMSCourseIntegrationPartial)
   @IsArray()
-  courseIntegrations!: LMSCourseIntegrationPartial[]
+  courseIntegrations!: LMSCourseIntegrationPartial[];
 }
 
 export class LMSCourseIntegrationPartial {
   @IsNumber()
-  courseId!: number
+  courseId!: number;
 
-  course!: CoursePartial
+  course!: CoursePartial;
 
   @IsEnum(LMSIntegrationPlatform)
-  apiPlatform!: LMSIntegrationPlatform
+  apiPlatform!: LMSIntegrationPlatform;
 
   @IsOptional()
   @IsNumber()
-  accessTokenId?: number
+  accessTokenId?: number;
 
-  apiCourseId!: string
+  apiCourseId!: string;
 
   @IsOptional()
   @IsBoolean()
-  hasApiKey?: boolean
+  hasApiKey?: boolean;
 
   @IsOptional()
   @Type(() => Date)
-  apiKeyExpiry?: Date
+  apiKeyExpiry?: Date;
 
   @IsBoolean()
-  lmsSynchronize!: boolean
+  lmsSynchronize!: boolean;
 
   @IsBoolean()
-  isExpired!: boolean
+  isExpired!: boolean;
 
   @IsArray()
-  selectedResourceTypes?: LMSResourceType[]
+  selectedResourceTypes?: LMSResourceType[];
 }
 
 export class LMSCourseAPIResponse {
   @IsInt()
-  id!: number
+  id!: number;
 
   @IsString()
-  name!: string
+  name!: string;
 
   @IsString()
-  code!: string
+  code!: string;
 
   @IsInt()
-  studentCount!: number
+  studentCount!: number;
 }
 
 export class LMSAssignment {
   @IsInt()
-  id!: number
+  id!: number;
 
   @IsString()
-  name!: string
+  name!: string;
 
   @IsString()
-  description!: string
+  description!: string;
 
   @IsOptional()
   @IsBoolean()
-  syncEnabled?: boolean
+  syncEnabled?: boolean;
 
   @IsOptional()
   @IsDate()
   @Type(() => Date)
-  due?: Date
+  due?: Date;
 
   @IsOptional()
   @IsDate()
   @Type(() => Date)
-  modified?: Date
+  modified?: Date;
 
   @IsOptional()
   @IsDate()
   @Type(() => Date)
-  uploaded?: Date
+  uploaded?: Date;
 }
 
 export class LMSAnnouncement {
   @IsInt()
-  id!: number
+  id!: number;
 
   @IsString()
-  title!: string
+  title!: string;
 
   @IsString()
-  message!: string
+  message!: string;
 
   @IsOptional()
   @IsDate()
   @Type(() => Date)
-  posted?: Date
+  posted?: Date;
 
   @IsOptional()
   @IsBoolean()
-  syncEnabled?: boolean
+  syncEnabled?: boolean;
 
   @IsOptional()
   @IsDate()
   @Type(() => Date)
-  modified?: Date
+  modified?: Date;
 
   @IsOptional()
   @IsDate()
   @Type(() => Date)
-  uploaded?: Date
+  uploaded?: Date;
 }
 
 export class LMSPage {
   @IsInt()
-  id!: number
+  id!: number;
 
   @IsString()
-  title!: string
+  title!: string;
 
   @IsOptional()
   @IsString()
-  body?: string
+  body?: string;
 
   @IsString()
-  url!: string
+  url!: string;
 
   @IsBoolean()
-  frontPage!: boolean
+  frontPage!: boolean;
 
   @IsOptional()
   @IsBoolean()
-  syncEnabled?: boolean
+  syncEnabled?: boolean;
 
   @IsOptional()
   @IsDate()
   @Type(() => Date)
-  modified?: Date
+  modified?: Date;
 
   @IsOptional()
   @IsDate()
   @Type(() => Date)
-  uploaded?: Date
+  uploaded?: Date;
 }
 
 export class LMSFile {
   @IsInt()
-  id!: number
+  id!: number;
 
   @IsString()
-  name!: string
+  name!: string;
 
   @IsString()
-  url!: string
+  url!: string;
 
   @IsString()
-  contentType!: string
+  contentType!: string;
 
   @IsNumber()
-  size!: number
+  size!: number;
 
   @IsOptional()
   @IsBoolean()
-  syncEnabled?: boolean
+  syncEnabled?: boolean;
 
   @IsOptional()
   @IsDate()
   @Type(() => Date)
-  modified?: Date
+  modified?: Date;
 
   @IsOptional()
   @IsDate()
   @Type(() => Date)
-  uploaded?: Date
+  uploaded?: Date;
 }
 
 export enum LMSQuizAccessLevel {
@@ -2268,20 +2269,20 @@ export enum LMSQuizAccessLevel {
 }
 
 export type LMSQuiz = {
-  id: number
-  title: string
-  description?: string
-  due?: Date
-  unlock?: Date
-  lock?: Date
-  timeLimit?: number
-  allowedAttempts?: number
-  questions?: any[]
-  accessLevel?: LMSQuizAccessLevel
-  syncEnabled?: boolean
-  modified?: Date
-  uploaded?: Date
-}
+  id: number;
+  title: string;
+  description?: string;
+  due?: Date;
+  unlock?: Date;
+  lock?: Date;
+  timeLimit?: number;
+  allowedAttempts?: number;
+  questions?: any[];
+  accessLevel?: LMSQuizAccessLevel;
+  syncEnabled?: boolean;
+  modified?: Date;
+  uploaded?: Date;
+};
 
 export enum SupportedLMSFileTypes {
   pdf = 'application/pdf', // .pdf files
@@ -2301,22 +2302,24 @@ export enum CommonMimeToExtensionMap {
 }
 
 export type LMSFileUploadResponse = {
-  id: number
-  success: boolean
-  documentId?: string
-  errorMsg?: string
-}
+  id: number;
+  success: boolean;
+  documentId?: string;
+  errorMsg?: string;
+};
 
 export type LMSSyncDocumentsResult = {
-  itemsSynced: number
-  itemsRemoved: number
-  errors: number
-}
+  itemsSynced: number;
+  itemsRemoved: number;
+  errors: number;
+};
 
 export enum LMSApiResponseStatus {
   None = '',
   InvalidPlatform = 'The specified LMS platform is not registered with the HelpMe system.',
   InvalidKey = 'The specified API key was not valid.',
+  Unauthorized = 'Canvas authentication failed (401). Re-create the Canvas connection in LMS Integrations and try again.',
+  Forbidden = 'Canvas denied access (403). Check that the Canvas user who created the Access Token can grade this course and that the developer key has the required scopes. Contact a HelpMe admin if the problem persists.',
   InvalidCourseId = 'The specified LMS API course identifier was not valid.',
   InvalidConfiguration = 'The specified LMS configuration was not valid.',
   Error = 'An error occurred, operation with or connection to the LMS API failed.',
@@ -2332,158 +2335,158 @@ export enum LMSResourceType {
 }
 
 export interface CourseResponse {
-  courseId: number
-  courseName: string
-  isEnabled: boolean
-  sectionGroupName?: string
-  semesterId?: number
-  semester: SemesterPartial
-  createdAt: Date
-  totalStudents: number
+  courseId: number;
+  courseName: string;
+  isEnabled: boolean;
+  sectionGroupName?: string;
+  semesterId?: number;
+  semester: SemesterPartial;
+  createdAt: Date;
+  totalStudents: number;
 }
 
 export class GetCourseResponse {
-  id!: number
-  name!: string
+  id!: number;
+  name!: string;
 
   @Type(() => QueuePartial)
-  queues?: QueuePartial[]
+  queues?: QueuePartial[];
 
   // The heatmap is false when there havent been any questions asked yet or there havent been any office hours
-  heatmap!: Heatmap | false
+  heatmap!: Heatmap | false;
 
-  coordinator_email?: string
+  coordinator_email?: string;
 
-  icalURL?: string
+  icalURL?: string;
 
-  zoomLink?: string
+  zoomLink?: string;
 
-  selfEnroll!: boolean
+  selfEnroll!: boolean;
 
-  asyncQuestionDisplayTypes?: string[]
+  asyncQuestionDisplayTypes?: string[];
 
-  timezone?: string
+  timezone?: string;
 
-  semester?: SemesterPartial
+  semester?: SemesterPartial;
 
-  sectionGroupName?: string
+  sectionGroupName?: string;
 
-  enabled?: boolean
+  enabled?: boolean;
 
   @Type(() => OrganizationPartial)
-  organizationCourse?: OrganizationPartial
+  organizationCourse?: OrganizationPartial;
 
-  courseInviteCode?: string
+  courseInviteCode?: string;
 
-  isCourseInviteEnabled?: boolean
+  isCourseInviteEnabled?: boolean;
 }
 
 export class GetLimitedCourseResponse {
-  id!: number
-  name!: string
+  id!: number;
+  name!: string;
 
   @Type(() => OrganizationPartial)
-  organizationCourse?: OrganizationPartial
-  courseInviteCode!: string
+  organizationCourse?: OrganizationPartial;
+  courseInviteCode!: string;
 }
 
 export class GetCourseUserInfoResponse {
-  users!: UserPartial[]
-  total!: number
+  users!: UserPartial[];
+  total!: number;
 }
 
 export class GetOrganizationUsersResponse {
-  userId!: number
-  userFirstName!: string
-  userLastName!: string
-  userEmail!: string
-  userPhotoUrl!: string
-  userOrganizationRole!: string
+  userId!: number;
+  userFirstName!: string;
+  userLastName!: string;
+  userEmail!: string;
+  userPhotoUrl!: string;
+  userOrganizationRole!: string;
 }
 
 export class OrganizationUser {
-  id!: number
-  firstName!: string
-  lastName!: string
-  email!: string
-  photoUrl!: string
-  fullName!: string
-  globalRole!: string
-  sid!: number
-  accountDeactivated!: boolean
+  id!: number;
+  firstName!: string;
+  lastName!: string;
+  email!: string;
+  photoUrl!: string;
+  fullName!: string;
+  globalRole!: string;
+  sid!: number;
+  accountDeactivated!: boolean;
 }
 
 export class OrganizationCourse {
-  id!: number
-  name!: string
-  role!: string
+  id!: number;
+  name!: string;
+  role!: string;
 }
 
 export class GetOrganizationUserResponse {
-  organizationId!: number
-  organizationRole!: string
-  user!: OrganizationUser
-  courses!: OrganizationCourse[]
+  organizationId!: number;
+  organizationRole!: string;
+  user!: OrganizationUser;
+  courses!: OrganizationCourse[];
 }
 
 export type OrganizationProfessor = {
   organizationUser: {
-    id: number
-    name: string
-    email: string
-  }
-  trueRole?: OrganizationRole
-  userId: number
-}
+    id: number;
+    name: string;
+    email: string;
+  };
+  trueRole?: OrganizationRole;
+  userId: number;
+};
 
 export type CreateCourseResponse = {
-  message: string
-  courseId: number
-}
+  message: string;
+  courseId: number;
+};
 
 export class UpdateOrganizationCourseDetailsParams {
   @IsString()
   @IsOptional()
-  name?: string
+  name?: string;
 
   @IsString()
   @IsOptional()
-  coordinator_email?: string
+  coordinator_email?: string;
 
   @IsString()
   @IsOptional()
-  sectionGroupName?: string
+  sectionGroupName?: string;
 
   @IsString()
   @IsOptional()
-  zoomLink?: string
+  zoomLink?: string;
 
   @IsString()
   @IsOptional()
-  timezone?: string
+  timezone?: string;
 
   @IsInt()
   @IsOptional()
-  semesterId?: number
+  semesterId?: number;
 
   @IsArray()
   @IsOptional()
-  profIds?: Array<number>
+  profIds?: Array<number>;
 
   @IsArray()
   @IsOptional()
-  courseSettings?: Array<CourseSettingsRequestBody>
+  courseSettings?: Array<CourseSettingsRequestBody>;
 }
 
 export class DocumentParams {
   @IsString()
-  name?: string
+  name?: string;
 
   @IsString()
-  type?: string
+  type?: string;
 
   @IsArray()
-  subDocumentIds?: string[]
+  subDocumentIds?: string[];
 }
 
 export class GetQueueResponse extends QueuePartial {}
@@ -2496,26 +2499,26 @@ export class GetQueueChatsResponse extends Array<QueueChatPartial> {}
 
 export class ListQuestionsResponse {
   @Type(() => Question)
-  yourQuestions?: Array<Question>
+  yourQuestions?: Array<Question>;
 
   @Type(() => Question)
-  questionsGettingHelp!: Array<Question>
+  questionsGettingHelp!: Array<Question>;
 
   @Type(() => Question)
-  questions!: Array<Question>
+  questions!: Array<Question>;
 
   @Type(() => Question)
-  priorityQueue!: Array<Question>
+  priorityQueue!: Array<Question>;
 
   @Type(() => QuestionGroup)
-  groups!: Array<QuestionGroup>
+  groups!: Array<QuestionGroup>;
 }
 
 export class GetQuestionResponse extends Question {}
 
 export class GetStudentQuestionResponse extends Question {
   @IsInt()
-  queueId!: number
+  queueId!: number;
 }
 
 export enum QuestionLocations {
@@ -2526,193 +2529,193 @@ export enum QuestionLocations {
 
 export class CreateQuestionParams {
   @IsString()
-  text!: string
+  text!: string;
 
   @IsArray()
   @IsOptional()
-  questionTypes?: QuestionTypeParams[]
+  questionTypes?: QuestionTypeParams[];
 
   @IsBoolean()
-  groupable!: boolean
+  groupable!: boolean;
 
   @IsBoolean()
-  isTaskQuestion = false
+  isTaskQuestion = false;
 
   @IsString()
   @IsOptional()
-  location?: QuestionLocations
+  location?: QuestionLocations;
 
   @IsBoolean()
-  force!: boolean
+  force!: boolean;
 }
 export class CreateQuestionResponse extends Question {}
 
 export class UpdateQuestionParams {
   @IsString()
   @IsOptional()
-  text?: string
+  text?: string;
 
   @IsArray()
   @IsOptional()
-  questionTypes?: QuestionTypeParams[]
+  questionTypes?: QuestionTypeParams[];
 
   @IsBoolean()
   @IsOptional()
-  groupable?: boolean
+  groupable?: boolean;
 
   @IsBoolean()
   @IsOptional()
-  isTaskQuestion?: boolean
+  isTaskQuestion?: boolean;
 
   @IsInt()
   @IsOptional()
-  queueId?: number
+  queueId?: number;
 
   @IsEnum(QuestionStatusKeys)
   @IsOptional()
-  status?: QuestionStatus
+  status?: QuestionStatus;
 
   @IsString()
   @IsOptional()
-  location?: string
+  location?: string;
 }
 export class UpdateQuestionResponse extends Question {}
 
 export class GroupQuestionsParams {
   @IsArray()
   @Type(() => Number)
-  questionIds!: number[]
+  questionIds!: number[];
 
   @IsInt()
-  queueId!: number
+  queueId!: number;
 }
 
 export class ResolveGroupParams {
   @IsInt()
-  queueId!: number
+  queueId!: number;
 }
 
 export class CreateAsyncQuestions extends AsyncQuestionParams {}
 
 export class UpdateAsyncQuestions extends AsyncQuestionParams {}
 
-export type TAUpdateStatusResponse = QueuePartial
+export type TAUpdateStatusResponse = QueuePartial;
 export type QueueNotePayloadType = {
-  notes: string
-}
+  notes: string;
+};
 
 export class TACheckoutResponse {
   // The ID of the queue we checked out of
-  queueId!: number
+  queueId!: number;
 }
 
 export class UpdateQueueParams {
   @IsString()
   @IsOptional()
-  type?: QueueTypes
+  type?: QueueTypes;
 
   @IsString()
   @IsOptional()
-  notes?: string
+  notes?: string;
 
   @IsBoolean()
-  allowQuestions?: boolean
+  allowQuestions?: boolean;
 
   @IsString()
   @IsOptional()
-  zoomLink?: string
+  zoomLink?: string;
 }
 
 export class QuestionTypeParams {
   @IsInt() // when updating a question with new questionTypes, the question type's id is required
   @IsOptional()
-  id?: number
+  id?: number;
 
   @IsInt()
   @IsOptional()
-  cid?: number
+  cid?: number;
 
   @IsString()
   @IsNotEmpty()
-  name!: string
+  name!: string;
 
   @IsHexColor()
   @IsNotEmpty()
-  color!: string
+  color!: string;
 
   @IsInt()
   @IsOptional()
-  queueId?: number | null
+  queueId?: number | null;
 }
 
 export type QuestionType = {
-  id: number
-  cid: number
-  name: string
-  color: string
-  queueId: number | null | undefined
-}
+  id: number;
+  cid: number;
+  name: string;
+  color: string;
+  queueId: number | null | undefined;
+};
 
 export class TACheckinTimesResponse {
   @Type(() => TACheckinPair)
-  taCheckinTimes!: TACheckinPair[]
+  taCheckinTimes!: TACheckinPair[];
 
   @Type(() => TAAwayPair)
-  taAwayTimes!: TAAwayPair[]
+  taAwayTimes!: TAAwayPair[];
 }
 
 export class TACheckinPair {
   @IsString()
-  name!: string
+  name!: string;
 
   @IsDate()
   @Type(() => Date)
-  checkinTime!: Date
+  checkinTime!: Date;
 
   @IsDate()
   @Type(() => Date)
-  checkoutTime?: Date
+  checkoutTime?: Date;
 
   @IsBoolean()
-  forced!: boolean
+  forced!: boolean;
 
   @IsBoolean()
-  inProgress!: boolean
+  inProgress!: boolean;
 
   @IsNumber()
-  numHelped!: number
+  numHelped!: number;
 }
 
 export class TAAwayPair {
   @IsString()
-  name!: string
+  name!: string;
 
   @IsDate()
   @Type(() => Date)
-  awayStartTime!: Date
+  awayStartTime!: Date;
 
   @IsDate()
   @IsOptional()
   @Type(() => Date)
-  awayEndTime?: Date
+  awayEndTime?: Date;
 
   @IsBoolean()
-  inProgress!: boolean
+  inProgress!: boolean;
 }
 
 // Needed a custom validator to make it so one can only select at most one of: userId, orgId, or courseId for admin notice target selection
 @ValidatorConstraint({ name: 'mutuallyExclusiveTarget', async: false })
 class MutuallyExclusiveTargetConstraint implements ValidatorConstraintInterface {
   validate(_value: any, args: ValidationArguments) {
-    const obj = args.object as any
+    const obj = args.object as any;
     const numOfDefinedTargets = [obj.userId, obj.orgId, obj.courseId].filter(
       (v) => v !== undefined && v !== null,
-    )
+    );
 
-    return numOfDefinedTargets.length <= 1 // at most 1 target is allowed
+    return numOfDefinedTargets.length <= 1; // at most 1 target is allowed
   }
   defaultMessage(_args: ValidationArguments) {
-    return 'Only one (or none) of userId, orgId, or courseId can be provided for target.'
+    return 'Only one (or none) of userId, orgId, or courseId can be provided for target.';
   }
 }
 export class AdminNoticeTarget {
@@ -2720,29 +2723,29 @@ export class AdminNoticeTarget {
   @IsOptional()
   @IsInt()
   @Validate(MutuallyExclusiveTargetConstraint)
-  userId?: number
+  userId?: number;
 
   @IsOptional()
   @IsInt()
   @Validate(MutuallyExclusiveTargetConstraint)
-  orgId?: number
+  orgId?: number;
 
   // when target is Org, can optionally specify what role
   @ValidateIf((o) => o.orgId !== undefined && o.orgId !== null)
   @IsEnum(OrganizationRole)
   @IsOptional()
-  orgRole?: OrganizationRole
+  orgRole?: OrganizationRole;
 
   @IsOptional()
   @IsInt()
   @Validate(MutuallyExclusiveTargetConstraint)
-  courseId?: number
+  courseId?: number;
 
   // when target is course, can optionally specify what role
   @ValidateIf((o) => o.courseId !== undefined && o.courseId !== null)
   @IsEnum(Role)
   @IsOptional()
-  courseRole?: Role
+  courseRole?: Role;
 }
 export enum AlertType {
   REPHRASE_QUESTION = 'rephraseQuestion',
@@ -2756,17 +2759,17 @@ export enum AlertType {
 export const FEED_ALERT_TYPES = [
   AlertType.ASYNC_QUESTION_UPDATE,
   AlertType.ADMIN_NOTICE,
-] as const
+] as const;
 export const MODAL_ALERT_TYPES = [
   AlertType.REPHRASE_QUESTION,
   AlertType.EVENT_ENDED_CHECKOUT_STAFF,
   AlertType.PROMPT_STUDENT_TO_LEAVE_QUEUE,
   AlertType.ADMIN_NOTICE,
-] as const
+] as const;
 export const TOAST_ALERT_TYPES = [
   AlertType.CHATBOT_DOCUMENT_PROCESSED,
   AlertType.ADMIN_NOTICE,
-] as const
+] as const;
 export enum AlertDeliveryMode {
   MODAL = 'modal',
   FEED = 'feed',
@@ -2793,113 +2796,113 @@ export enum ToastPosition {
 export class AlertPayloadToast extends AlertPayload {
   @IsOptional()
   @IsInt()
-  durationMs?: number // default: error = Infinity, rest = 3.5s
+  durationMs?: number; // default: error = Infinity, rest = 3.5s
 
   @IsEnum(ToastType)
-  toastType!: ToastType
+  toastType!: ToastType;
 
   @IsString()
-  title!: string
+  title!: string;
 
   @IsString()
   @IsOptional()
-  description?: string
+  description?: string;
 
   @IsEnum(ToastPosition)
   @IsOptional()
-  position?: ToastPosition // default: bottom-left
+  position?: ToastPosition; // default: bottom-left
 }
 
 export class Alert {
   @IsEnum(AlertType)
-  alertType!: AlertType
+  alertType!: AlertType;
 
   @IsEnum(AlertDeliveryMode)
-  deliveryMode!: AlertDeliveryMode
+  deliveryMode!: AlertDeliveryMode;
 
   @IsDate()
   @Type(() => Date)
-  sentAt!: Date
+  sentAt!: Date;
 
   @Type(() => AlertPayload)
-  payload!: AlertPayload
+  payload!: AlertPayload;
 
   @IsOptional()
   @IsDate()
   @Type(() => Date)
-  readAt?: Date
+  readAt?: Date;
 
   @IsInt()
-  id!: number
+  id!: number;
 
   @IsOptional()
   @IsInt()
-  courseId?: number | null
+  courseId?: number | null;
 
   @IsOptional()
   @IsString()
-  courseName?: string // used by FEED alerts to show what course the alert is from (since you can see ALL feed alerts when on /courses. Not the case with Modal alerts)
+  courseName?: string; // used by FEED alerts to show what course the alert is from (since you can see ALL feed alerts when on /courses. Not the case with Modal alerts)
 }
 
 export class RephraseQuestionPayload extends AlertPayload {
   @IsInt()
-  questionId!: number
+  questionId!: number;
 
   @IsInt()
-  queueId!: number
+  queueId!: number;
 
   @IsInt()
-  courseId!: number
+  courseId!: number;
 }
 export class AdminNoticePayload extends AlertPayload {
   @IsString()
   @IsOptional()
-  title?: string // defaults to 'Admin Notice'
+  title?: string; // defaults to 'Admin Notice'
 
   @IsString()
-  message!: string
+  message!: string;
   @IsString()
-  creatorName!: string
+  creatorName!: string;
   @IsInt()
-  creatorId!: number
+  creatorId!: number;
 
   @IsOptional() // putting the target in here since I also want to capture a history of what the target was
   @Type(() => AdminNoticeTarget)
-  target?: AdminNoticeTarget
+  target?: AdminNoticeTarget;
 }
 export class AdminNoticeToastPayload extends AlertPayloadToast {
   @IsString()
-  creatorName!: string
+  creatorName!: string;
   @IsInt()
-  creatorId!: number
+  creatorId!: number;
 
   @IsOptional() // putting the target in here since I also want to capture a history of what the target was
   @Type(() => AdminNoticeTarget)
-  target?: AdminNoticeTarget
+  target?: AdminNoticeTarget;
 }
 export class PromptStudentToLeaveQueuePayload extends AlertPayload {
-  queueId!: number
+  queueId!: number;
   @IsInt()
   @IsOptional()
-  queueQuestionId?: number
+  queueQuestionId?: number;
 }
 export class ChatbotDocumentProcessedPayload extends AlertPayloadToast {
   @IsInt()
-  documentId!: number
+  documentId!: number;
 
   @IsString()
-  documentName!: string
+  documentName!: string;
 
   @IsString()
-  uploadId!: string
+  uploadId!: string;
 }
 export class CloneCoursePayload extends AlertPayloadToast {
   @IsInt()
-  newCourseId!: number
+  newCourseId!: number;
 
   @IsOptional()
   @IsObject() // idk i don't want to convert UserCourse and UserPartial to a class atm
-  newUserCourse?: UserCourse
+  newUserCourse?: UserCourse;
 }
 export enum AsyncQuestionUpdateSubtype {
   COMMENT_ON_MY_POST = 'commentOnMyPost',
@@ -2911,21 +2914,21 @@ export enum AsyncQuestionUpdateSubtype {
 }
 export class AsyncQuestionUpdatePayload extends AlertPayload {
   @IsInt()
-  questionId!: number
+  questionId!: number;
 
   @IsInt()
   @IsOptional()
-  commentId?: number
+  commentId?: number;
 
   @IsInt()
-  courseId!: number
+  courseId!: number;
 
   @IsEnum(AsyncQuestionUpdateSubtype)
-  subtype!: AsyncQuestionUpdateSubtype
+  subtype!: AsyncQuestionUpdateSubtype;
 
   @IsString()
   @IsOptional()
-  summary?: string
+  summary?: string;
 }
 export class CreateAlertResponse extends Alert {}
 
@@ -2937,230 +2940,230 @@ export enum AlertServerSentEventType {
 
 export type AlertServerSentEvent =
   | {
-      eventType: AlertServerSentEventType.DELETE_ALERT
-      alertId: number
-      alert?: Alert
+      eventType: AlertServerSentEventType.DELETE_ALERT;
+      alertId: number;
+      alert?: Alert;
     }
   | {
-      eventType: AlertServerSentEventType.NEW_ALERT
-      alertId: number
-      alert: Alert
+      eventType: AlertServerSentEventType.NEW_ALERT;
+      alertId: number;
+      alert: Alert;
     }
   | {
-      eventType: AlertServerSentEventType.UPDATE_ALERTS
-      alerts: Alert[]
-    }
+      eventType: AlertServerSentEventType.UPDATE_ALERTS;
+      alerts: Alert[];
+    };
 
 export class GetPageOfFeedAlerts {
   @Type(() => Alert)
   @ValidateNested({ each: true })
-  pageOfFeedAlerts!: Alert[]
+  pageOfFeedAlerts!: Alert[];
 
   @IsInt()
-  totalFeedAlerts!: number // includes both read and unread alerts
+  totalFeedAlerts!: number; // includes both read and unread alerts
 }
 export class GetInitialAlertsResponse {
   @Type(() => Alert)
   @ValidateNested({ each: true })
-  mostAlerts!: Alert[] // includes all (max 20) unread modal alerts and most feed alerts - need to fetch subsequent pages
+  mostAlerts!: Alert[]; // includes all (max 20) unread modal alerts and most feed alerts - need to fetch subsequent pages
 
   @IsInt()
-  totalFeedAlerts!: number
+  totalFeedAlerts!: number;
 }
 export class CreateAlertParams {
   @IsEnum(AlertType)
-  alertType!: AlertType
+  alertType!: AlertType;
 
   @IsOptional()
   @IsEnum(AlertDeliveryMode)
-  deliveryMode?: AlertDeliveryMode
+  deliveryMode?: AlertDeliveryMode;
 
   @IsInt()
-  courseId!: number
+  courseId!: number;
 
   @IsObject()
-  payload!: AlertPayload
+  payload!: AlertPayload;
 
   @IsInt()
-  targetUserId!: number
+  targetUserId!: number;
 }
 
 export class CreateAlertAdminRequest {
   @IsEnum(AlertDeliveryMode)
-  deliveryMode!: AlertDeliveryMode
+  deliveryMode!: AlertDeliveryMode;
 
   @Transform(({ obj }) => {
     if (obj.deliveryMode === AlertDeliveryMode.TOAST) {
-      return plainToInstance(AdminNoticeToastPayload, obj.payload)
+      return plainToInstance(AdminNoticeToastPayload, obj.payload);
     }
-    return plainToInstance(AdminNoticePayload, obj.payload)
+    return plainToInstance(AdminNoticePayload, obj.payload);
   })
   @ValidateNested()
-  payload!: AdminNoticePayload | AdminNoticeToastPayload
+  payload!: AdminNoticePayload | AdminNoticeToastPayload;
 }
 export class CreateAlertAdminResponse {
   @IsNumber()
-  numSent!: number
+  numSent!: number;
   @IsDate()
   @Type(() => Date)
-  sentAt!: Date
+  sentAt!: Date;
 }
 export class GetAdminNoticeAlert {
   @IsEnum(AlertDeliveryMode)
-  deliveryMode!: AlertDeliveryMode
+  deliveryMode!: AlertDeliveryMode;
 
   @IsDate()
   @Type(() => Date)
-  sentAt!: Date
+  sentAt!: Date;
 
   @IsString()
   @IsOptional()
-  title?: string
+  title?: string;
 
   @IsString()
-  message!: string
+  message!: string;
 
   @IsString()
-  creatorName!: string
+  creatorName!: string;
   @IsInt()
-  creatorId!: number
+  creatorId!: number;
 
   @IsInt()
-  totalSent!: number
+  totalSent!: number;
   @IsInt()
-  totalRead!: number
+  totalRead!: number;
 
   @IsOptional()
   @Type(() => AdminNoticeTarget)
-  target?: AdminNoticeTarget
+  target?: AdminNoticeTarget;
 }
 export class DeleteAdminNoticeRequest {
   @IsDate()
   @Type(() => Date)
-  sentAt!: Date
+  sentAt!: Date;
 }
 export class DeleteAdminNoticeResponse {
   @IsNumber()
-  numDeleted!: number
+  numDeleted!: number;
 }
 export class OrganizationCourseResponse {
   @IsInt()
-  id?: number
+  id?: number;
 
   @IsInt()
-  organizationId!: number
+  organizationId!: number;
 
   @IsInt()
-  courseId!: number
+  courseId!: number;
 
-  course?: GetCourseResponse
+  course?: GetCourseResponse;
 
-  profIds?: number[]
+  profIds?: number[];
 }
 
 export class OrganizationStatsResponse {
   @IsInt()
-  members?: number
+  members?: number;
 
   @IsInt()
-  courses?: number
+  courses?: number;
 
   @IsInt()
-  membersProfessors?: number
+  membersProfessors?: number;
 }
 
 // not used anywhere
 export class questionTypeParam {
   @IsInt()
-  cid!: number
+  cid!: number;
 
   @IsString()
   @IsOptional()
-  name!: string
+  name!: string;
 
   @IsInt()
   @IsOptional()
-  queueId?: number
+  queueId?: number;
 }
 
 // not used anywhere
 export class questionTypeResponse {
   @Type(() => questionTypeParam)
-  questions!: questionTypeParam[]
+  questions!: questionTypeParam[];
 }
 
 export class AccountRegistrationParams {
   @IsString()
-  firstName!: string
+  firstName!: string;
 
   @IsString()
-  lastName!: string
+  lastName!: string;
 
   @IsString()
-  email!: string
+  email!: string;
 
   @IsString()
-  password!: string
+  password!: string;
 
   @IsString()
-  confirmPassword!: string
+  confirmPassword!: string;
 
   @IsNumber()
-  organizationId!: number
+  organizationId!: number;
 
   @IsNumber()
   @IsOptional()
-  sid?: number
+  sid?: number;
 
   @IsString()
   @IsOptional()
-  namePronunciation?: string
+  namePronunciation?: string;
 
   @IsString()
-  recaptchaToken!: string
+  recaptchaToken!: string;
 }
 
 export class EditCourseInfoParams {
   @IsNumber()
-  courseId?: number
+  courseId?: number;
 
   @IsString()
   @IsOptional()
-  name?: string
+  name?: string;
 
   @IsString()
   @IsOptional()
-  coordinator_email?: string
+  coordinator_email?: string;
 
   @IsString()
   @IsOptional()
-  icalURL?: string
+  icalURL?: string;
 
   @IsString()
   @IsOptional()
-  zoomLink?: string
+  zoomLink?: string;
 
   @IsString()
   @IsOptional()
-  timezone?: string
+  timezone?: string;
 
   @IsOptional()
-  enabled?: boolean
+  enabled?: boolean;
 
   @IsString()
   @IsOptional()
-  questionTimer?: number
+  questionTimer?: number;
 
   @IsArray()
   @IsOptional()
-  asyncQuestionDisplayTypes?: string[]
+  asyncQuestionDisplayTypes?: string[];
 
   @IsString()
   @IsOptional()
-  courseInviteCode?: string | null
+  courseInviteCode?: string | null;
 
   @IsOptional()
-  isCourseInviteEnabled?: boolean
+  isCourseInviteEnabled?: boolean;
 }
 
 export enum StandardAntdTagColor {
@@ -3202,48 +3205,48 @@ export const antdTagColor = {
   ...StandardAntdTagColor,
   ...InverseAntdTagColor,
   ...StatusAntdTagColor,
-} as const
+} as const;
 export type antdTagColor =
-  StandardAntdTagColor | InverseAntdTagColor | StatusAntdTagColor
+  StandardAntdTagColor | InverseAntdTagColor | StatusAntdTagColor;
 /** Array version of antd tag colors (standard ones - not inverse or status colors) */
 export const STANDARD_ANTD_TAG_COLORS: readonly StandardAntdTagColor[] =
-  Object.values(StandardAntdTagColor) as StandardAntdTagColor[]
+  Object.values(StandardAntdTagColor) as StandardAntdTagColor[];
 
 export class SemesterPartial {
   @IsOptional()
   @IsInt()
-  id?: number
+  id?: number;
 
   @IsString()
   @IsNotEmpty()
-  name!: string
+  name!: string;
 
   @IsOptional()
   @IsDate()
   @Type(() => Date)
-  startDate?: Date | null
+  startDate?: Date | null;
 
   @IsOptional()
   @IsDate()
   @Type(() => Date)
-  endDate?: Date | null
+  endDate?: Date | null;
 
   @IsOptional()
   @IsString()
-  description?: string
+  description?: string;
 
   @IsEnum(antdTagColor)
-  color!: antdTagColor
+  color!: antdTagColor;
 }
 
 export class SSEQueueResponse {
-  queue?: GetQueueResponse
-  queueQuestions?: ListQuestionsResponse
-  queueChats?: QueueChatPartial[] // just the metadata for the chats, not the messages
+  queue?: GetQueueResponse;
+  queueQuestions?: ListQuestionsResponse;
+  queueChats?: QueueChatPartial[]; // just the metadata for the chats, not the messages
 }
 
 export class SSEQueueChatResponse {
-  queueChat?: GetQueueChatResponse
+  queueChat?: GetQueueChatResponse;
 }
 
 export const InsightCategories = [
@@ -3253,7 +3256,7 @@ export const InsightCategories = [
   'Queues',
   'Chatbot',
   'Staff',
-]
+];
 
 export enum InsightType {
   Value = 'Value',
@@ -3263,24 +3266,24 @@ export enum InsightType {
   MultipleGanttChart = 'MultipleGanttChart',
 }
 
-export type InsightCategory = (typeof InsightCategories)[number]
+export type InsightCategory = (typeof InsightCategories)[number];
 
 export type InsightSerial = {
-  active?: boolean
-  category: InsightCategory
-  type: InsightType
-}
+  active?: boolean;
+  category: InsightCategory;
+  type: InsightType;
+};
 
-export type InsightDetail = { [key: string]: InsightSerial }
+export type InsightDetail = { [key: string]: InsightSerial };
 
 export type InsightDashboardPartial = {
-  name: string
-  insights: InsightDetail
-}
+  name: string;
+  insights: InsightDetail;
+};
 
-export type GetInsightOutputResponse = InsightOutput
+export type GetInsightOutputResponse = InsightOutput;
 
-export type ListInsightsResponse = Record<string, InsightDisplayInfo>
+export type ListInsightsResponse = Record<string, InsightDisplayInfo>;
 
 export const InsightFilterOptions = [
   'courseId',
@@ -3289,60 +3292,60 @@ export const InsightFilterOptions = [
   'queues',
   'staff',
   'role',
-] as const
-export type InsightFilterOption = (typeof InsightFilterOptions)[number]
+] as const;
+export type InsightFilterOption = (typeof InsightFilterOptions)[number];
 
 export type InsightDisplayInfo = {
-  displayName: string
-  description: string
-  insightType: InsightType
-  insightCategory: InsightCategory
-  allowedFilters?: InsightFilterOption[]
-}
+  displayName: string;
+  description: string;
+  insightType: InsightType;
+  insightCategory: InsightCategory;
+  allowedFilters?: InsightFilterOption[];
+};
 
 export interface InsightObject {
-  displayName: string
-  description: string
-  roles: Role[]
-  insightType: InsightType
-  insightCategory: InsightCategory
-  allowedFilters?: InsightFilterOption[]
+  displayName: string;
+  description: string;
+  roles: Role[];
+  insightType: InsightType;
+  insightCategory: InsightCategory;
+  allowedFilters?: InsightFilterOption[];
   compute: ({
     insightFilters,
     cacheManager,
   }: {
-    insightFilters: any
-    cacheManager: Cache
-  }) => Promise<PossibleOutputTypes>
+    insightFilters: any;
+    cacheManager: Cache;
+  }) => Promise<PossibleOutputTypes>;
 }
 
 export interface InsightOutput {
-  title: string
-  description: string
-  allowedFilters?: string[]
-  outputType: InsightType
-  output: PossibleOutputTypes
+  title: string;
+  description: string;
+  allowedFilters?: string[];
+  outputType: InsightType;
+  output: PossibleOutputTypes;
 }
 
 export function numToWeekday(num: number) {
-  num = parseInt(num as unknown as string)
+  num = parseInt(num as unknown as string);
   switch (num) {
     case 0:
-      return 'Sunday'
+      return 'Sunday';
     case 1:
-      return 'Monday'
+      return 'Monday';
     case 2:
-      return 'Tuesday'
+      return 'Tuesday';
     case 3:
-      return 'Wednesday'
+      return 'Wednesday';
     case 4:
-      return 'Thursday'
+      return 'Thursday';
     case 5:
-      return 'Friday'
+      return 'Friday';
     case 6:
-      return 'Saturday'
+      return 'Saturday';
     default:
-      return ''
+      return '';
   }
 }
 
@@ -3351,131 +3354,131 @@ export type PossibleOutputTypes =
   | ChartOutputType
   | TableOutputType
   | GanttChartOutputType
-  | MultipleGanttChartOutputType
+  | MultipleGanttChartOutputType;
 
 export type ChartOutputType = {
-  data: StringMap<any>[]
-  xKey: string
-  yKeys: string[]
-  label: string
-  xType?: 'numeric' | 'category'
-  yType?: 'numeric' | 'category'
-  yFills?: StringMap<string>
-}
+  data: StringMap<any>[];
+  xKey: string;
+  yKeys: string[];
+  label: string;
+  xType?: 'numeric' | 'category';
+  yType?: 'numeric' | 'category';
+  yFills?: StringMap<string>;
+};
 
 export type GanttChartOutputType = {
-  data: StringMap<any>[]
-  xKey: string
-  yKey: string
-  zKey?: string
-  label: string
-  numCategories: number
-}
+  data: StringMap<any>[];
+  xKey: string;
+  yKey: string;
+  zKey?: string;
+  label: string;
+  numCategories: number;
+};
 
-export type MultipleGanttChartOutputType = GanttChartOutputType[]
+export type MultipleGanttChartOutputType = GanttChartOutputType[];
 
-export type ValueOutputType = number | string
+export type ValueOutputType = number | string;
 
 export type TableOutputType = {
-  data: StringMap<string>[]
-  headerRow: string[]
-}
+  data: StringMap<string>[];
+  headerRow: string[];
+};
 
 export type StringMap<T> = {
-  [key: string]: T
-}
+  [key: string]: T;
+};
 
 export type DateRangeType = {
-  start: string
-  end: string
-}
+  start: string;
+  end: string;
+};
 
 export type InsightParamsType = {
-  start?: string
-  end?: string
-  limit?: number
-  offset?: number
-  students?: number[] | string
-  queues?: number[] | string
-  staff?: number[] | string
-}
+  start?: string;
+  end?: string;
+  limit?: number;
+  offset?: number;
+  students?: number[] | string;
+  queues?: number[] | string;
+  staff?: number[] | string;
+};
 
 export type SentEmailResponse = {
-  messageId: string
-  accepted: string[]
-  rejected: string[]
-}
+  messageId: string;
+  accepted: string[];
+  rejected: string[];
+};
 
-export type EmailMetadata = Record<string, any>
+export type EmailMetadata = Record<string, any>;
 
 export interface AsyncQuestionEmailMetadata extends EmailMetadata {
-  asyncQuestionId: number
+  asyncQuestionId: number;
 }
 
 export type sendEmailParams = {
-  receiverOrReceivers: string | string[]
-  subject: string
-  type: MailServiceType
-  content?: string
+  receiverOrReceivers: string | string[];
+  subject: string;
+  type: MailServiceType;
+  content?: string;
 
-  track?: boolean
-  metadata?: EmailMetadata
+  track?: boolean;
+  metadata?: EmailMetadata;
 
-  replyId?: string
-}
+  replyId?: string;
+};
 
 export type MailServiceWithSubscription = {
-  id: number
-  mailType: OrganizationRole
-  name: string
-  isSubscribed: boolean
-}
+  id: number;
+  mailType: OrganizationRole;
+  name: string;
+  isSubscribed: boolean;
+};
 
 export type UserMailSubscription = {
-  serviceId: number
-  userId: number
-  isSubscribed: boolean
-}
+  serviceId: number;
+  userId: number;
+  isSubscribed: boolean;
+};
 
 export type AssignmentFeedbackFunctionDimension =
-  'content' | 'interpersonal' | 'organization'
+  'content' | 'interpersonal' | 'organization';
 export type AssignmentFeedbackLinguisticLevel =
-  'text' | 'section' | 'clause_word'
-export type AssignmentFeedbackSeverity = 'low' | 'medium' | 'high'
-export type AssignmentFeedbackCitationType = 'rubric' | 'course_material'
+  'text' | 'section' | 'clause_word';
+export type AssignmentFeedbackSeverity = 'low' | 'medium' | 'high';
+export type AssignmentFeedbackCitationType = 'rubric' | 'course_material';
 
 export class AssignmentFeedbackRequest {
   @IsString()
   @MinLength(1)
   @MaxLength(15000)
-  essay_text!: string
+  essay_text!: string;
 
   constructor(init?: Partial<AssignmentFeedbackRequest>) {
-    Object.assign(this, init)
+    Object.assign(this, init);
   }
 }
 
 export class AssignmentFeedbackExtractTextResponse {
   @IsString()
-  essay_text!: string
+  essay_text!: string;
 
   @IsString()
-  filename!: string
+  filename!: string;
 
   constructor(init?: Partial<AssignmentFeedbackExtractTextResponse>) {
-    Object.assign(this, init)
+    Object.assign(this, init);
   }
 }
 
 export class AssignmentFeedbackParagraph {
   @IsString()
-  id!: string
+  id!: string;
 
   @IsString()
-  text!: string
+  text!: string;
 
   constructor(init?: Partial<AssignmentFeedbackParagraph>) {
-    Object.assign(this, init)
+    Object.assign(this, init);
   }
 }
 
@@ -3483,181 +3486,181 @@ export class AssignmentFeedbackEssay {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AssignmentFeedbackParagraph)
-  paragraphs!: AssignmentFeedbackParagraph[]
+  paragraphs!: AssignmentFeedbackParagraph[];
 
   constructor(init?: Partial<AssignmentFeedbackEssay>) {
-    Object.assign(this, init)
+    Object.assign(this, init);
   }
 }
 
 export class AssignmentFeedbackCitation {
   @IsIn(['rubric', 'course_material'])
-  type!: AssignmentFeedbackCitationType
+  type!: AssignmentFeedbackCitationType;
 
   @IsString()
-  label!: string
+  label!: string;
 
   @IsOptional()
   @IsString()
-  url!: string | null
+  url!: string | null;
 
   constructor(init?: Partial<AssignmentFeedbackCitation>) {
-    Object.assign(this, init)
+    Object.assign(this, init);
   }
 }
 
 export class AssignmentFeedbackEvidence {
   @IsString()
-  exact_quote!: string
+  exact_quote!: string;
 
   @IsOptional()
   @IsString()
-  context_before_quote?: string
+  context_before_quote?: string;
 
   @IsOptional()
   @IsString()
-  context_after_quote?: string
+  context_after_quote?: string;
 
   constructor(init?: Partial<AssignmentFeedbackEvidence>) {
-    Object.assign(this, init)
+    Object.assign(this, init);
   }
 }
 
 export class AssignmentFeedbackAnnotation {
   @IsInt()
-  id!: number
+  id!: number;
 
   @IsString()
-  paragraph_id!: string
+  paragraph_id!: string;
 
   @IsOptional()
   @IsInt()
-  char_start!: number | null
+  char_start!: number | null;
 
   @IsOptional()
   @IsInt()
-  char_end!: number | null
+  char_end!: number | null;
 
   @IsIn(['content', 'interpersonal', 'organization'])
-  function!: AssignmentFeedbackFunctionDimension
+  function!: AssignmentFeedbackFunctionDimension;
 
   @IsIn(['text', 'section', 'clause_word'])
-  level!: AssignmentFeedbackLinguisticLevel
+  level!: AssignmentFeedbackLinguisticLevel;
 
   @IsString()
-  issue_type!: string
+  issue_type!: string;
 
   @IsIn(['low', 'medium', 'high'])
-  severity!: AssignmentFeedbackSeverity
+  severity!: AssignmentFeedbackSeverity;
 
   @ValidateNested()
   @Type(() => AssignmentFeedbackEvidence)
-  evidence!: AssignmentFeedbackEvidence
+  evidence!: AssignmentFeedbackEvidence;
 
   @IsString()
-  feedback!: string
+  feedback!: string;
 
   @IsString()
-  revision_guidance!: string
+  revision_guidance!: string;
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AssignmentFeedbackCitation)
-  citations?: AssignmentFeedbackCitation[]
+  citations?: AssignmentFeedbackCitation[];
 
   constructor(init?: Partial<AssignmentFeedbackAnnotation>) {
-    Object.assign(this, init)
+    Object.assign(this, init);
   }
 }
 
 export class AssignmentFeedbackOverallFeedback {
   @IsString()
-  summary!: string
+  summary!: string;
 
   @IsOptional()
   @IsArray()
   @Type(() => String)
-  priority_issues?: string[]
+  priority_issues?: string[];
 
   @IsOptional()
   @IsArray()
   @Type(() => String)
-  next_steps?: string[]
+  next_steps?: string[];
 
   @IsOptional()
   @IsArray()
   @Type(() => String)
-  reflection_questions?: string[]
+  reflection_questions?: string[];
 
   constructor(init?: Partial<AssignmentFeedbackOverallFeedback>) {
-    Object.assign(this, init)
+    Object.assign(this, init);
   }
 }
 
 export class AssignmentFeedbackResponse {
   @IsOptional()
   @IsString()
-  submission_id!: string | null
+  submission_id!: string | null;
 
   @IsOptional()
   @IsString()
-  created_at!: string | null
+  created_at!: string | null;
 
   @ValidateNested()
   @Type(() => AssignmentFeedbackEssay)
-  essay!: AssignmentFeedbackEssay
+  essay!: AssignmentFeedbackEssay;
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AssignmentFeedbackAnnotation)
-  annotations!: AssignmentFeedbackAnnotation[]
+  annotations!: AssignmentFeedbackAnnotation[];
 
   @ValidateNested()
   @Type(() => AssignmentFeedbackOverallFeedback)
-  overall_feedback!: AssignmentFeedbackOverallFeedback
+  overall_feedback!: AssignmentFeedbackOverallFeedback;
 
   constructor(init?: Partial<AssignmentFeedbackResponse>) {
-    Object.assign(this, init)
+    Object.assign(this, init);
   }
 }
 
 export class CourseSettingsResponse {
   @IsInt()
-  courseId!: number
+  courseId!: number;
 
   @IsBoolean()
-  chatBotEnabled!: boolean
+  chatBotEnabled!: boolean;
 
   @IsBoolean()
-  asyncQueueEnabled!: boolean
+  asyncQueueEnabled!: boolean;
 
   @IsBoolean()
-  adsEnabled!: boolean
+  adsEnabled!: boolean;
 
   @IsBoolean()
-  queueEnabled!: boolean
+  queueEnabled!: boolean;
 
   @IsBoolean()
-  scheduleOnFrontPage!: boolean
+  scheduleOnFrontPage!: boolean;
 
   @IsBoolean()
-  asyncCentreAIAnswers!: boolean
+  asyncCentreAIAnswers!: boolean;
 
   @IsBoolean()
-  asyncCentreDefaultAnonymous!: boolean
+  asyncCentreDefaultAnonymous!: boolean;
 
   @IsBoolean()
-  asyncCentreAuthorPublic!: boolean
+  asyncCentreAuthorPublic!: boolean;
 
   @IsBoolean()
-  assignmentEvaluationEnabled!: boolean
+  assignmentEvaluationEnabled!: boolean;
 
   @IsOptional()
   @IsBoolean()
-  settingsFound?: boolean = true //this is mostly just for debugging purposes by viewing network responses
+  settingsFound?: boolean = true; //this is mostly just for debugging purposes by viewing network responses
 
   constructor(init?: Partial<CourseSettingsResponse>) {
-    Object.assign(this, init)
+    Object.assign(this, init);
   }
 }
 
@@ -3671,58 +3674,58 @@ export const validFeatures = [
   'asyncCentreDefaultAnonymous',
   'asyncCentreAuthorPublic',
   'assignmentEvaluationEnabled',
-]
+];
 
 export class CourseSettingsRequestBody {
   @IsBoolean()
-  value!: boolean
+  value!: boolean;
 
   @IsIn(validFeatures)
-  feature!: string
+  feature!: string;
 
   static isValidFeature(feature: string): boolean {
-    return validFeatures.includes(feature)
+    return validFeatures.includes(feature);
   }
 }
 
 export class OrganizationSettingsResponse {
   @IsInt()
-  organizationId!: number
+  organizationId!: number;
 
   @IsBoolean()
-  allowProfCourseCreate!: boolean
+  allowProfCourseCreate!: boolean;
 
   @IsBoolean()
-  allowLMSApiKey!: boolean
+  allowLMSApiKey!: boolean;
 
   @IsOptional()
   @IsBoolean()
-  settingsFound?: boolean
+  settingsFound?: boolean;
 
   constructor(init?: Partial<OrganizationSettingsResponse>) {
-    Object.assign(this, init)
+    Object.assign(this, init);
   }
 }
 
 export const validOrganizationSettings = [
   'allowProfCourseCreate',
   'allowLMSApiKey',
-]
+];
 
 export const OrganizationSettingsDefaults = {
   allowProfCourseCreate: true,
   allowLMSApiKey: false,
-}
+};
 
 export class OrganizationSettingsRequestBody {
   @IsBoolean()
-  value!: boolean
+  value!: boolean;
 
   @IsIn(validOrganizationSettings)
-  setting!: string
+  setting!: string;
 
   static isValidSetting(setting: string): boolean {
-    return validOrganizationSettings.includes(setting)
+    return validOrganizationSettings.includes(setting);
   }
 }
 
@@ -3744,76 +3747,76 @@ export enum OrgRoleChangeReasonMap {
 
 export class OrgRoleHistory {
   @IsNumber()
-  id!: number
+  id!: number;
 
   @IsDate()
   @Type(() => Date)
-  timestamp!: Date
+  timestamp!: Date;
 
   @IsEnum(OrganizationRole)
-  fromRole!: OrganizationRole
+  fromRole!: OrganizationRole;
 
   @IsEnum(OrganizationRole)
-  toRole!: OrganizationRole
+  toRole!: OrganizationRole;
 
   @IsObject()
-  byUser!: OrgUser
+  byUser!: OrgUser;
 
   @IsObject()
-  toUser!: OrgUser
+  toUser!: OrgUser;
 
-  changeReason!: string
+  changeReason!: string;
 }
 
 export class OrganizationRoleHistoryFilter {
   @IsString()
   @IsOptional()
-  search?: string
+  search?: string;
 
   @IsEnum(OrganizationRole)
   @IsOptional()
-  fromRole?: OrganizationRole
+  fromRole?: OrganizationRole;
 
   @IsEnum(OrganizationRole)
   @IsOptional()
-  toRole?: OrganizationRole
+  toRole?: OrganizationRole;
 
   @IsDate()
   @Type(() => Date)
   @IsOptional()
-  minDate?: Date
+  minDate?: Date;
 
   @IsDate()
   @Type(() => Date)
   @IsOptional()
-  maxDate?: Date
+  maxDate?: Date;
 
   constructor(init?: Partial<OrganizationRoleHistoryFilter>) {
-    Object.assign(this, init)
+    Object.assign(this, init);
   }
 }
 
 export type OrganizationRoleHistoryResponse = {
-  totalHistory: number
-  history: OrgRoleHistory[]
-}
+  totalHistory: number;
+  history: OrgRoleHistory[];
+};
 
 /**
  * used to display what question types were created/deleted/updated from editing the queue
  */
 export interface setQueueConfigResponse {
-  questionTypeMessages: string[]
+  questionTypeMessages: string[];
 }
 
 export type CronJob = {
-  id: string
-  cronTime: string | Date
-  running: boolean
-  nextDates: Date[]
-  lastDate?: Date
-  lastExecution?: Date
-  runOnce: boolean
-}
+  id: string;
+  cronTime: string | Date;
+  running: boolean;
+  nextDates: Date[];
+  lastDate?: Date;
+  lastExecution?: Date;
+  runOnce: boolean;
+};
 
 /**
  * This is the queue config that stores settings that the TA can set/edit for the queue.
@@ -3821,18 +3824,18 @@ export type CronJob = {
  * Therefore, when building front-end components, map over all the questionType entities and NOT all the tags in the queue config
  */
 export interface QueueConfig {
-  fifo_queue_view_enabled?: boolean
-  tag_groups_queue_view_enabled?: boolean
-  default_view?: 'fifo' | 'tag_groups'
-  minimum_tags?: number
+  fifo_queue_view_enabled?: boolean;
+  tag_groups_queue_view_enabled?: boolean;
+  default_view?: 'fifo' | 'tag_groups';
+  minimum_tags?: number;
   tags?: {
     [tagKey: string]: {
-      display_name: string
-      color_hex: string
-    }
-  }
-  assignment_id?: string
-  tasks?: ConfigTasks
+      display_name: string;
+      color_hex: string;
+    };
+  };
+  assignment_id?: string;
+  tasks?: ConfigTasks;
 }
 
 /**
@@ -3866,12 +3869,12 @@ export interface QueueConfig {
  */
 export interface ConfigTasks {
   [taskKey: string]: {
-    display_name: string
-    short_display_name: string
-    blocking?: boolean
-    color_hex: string
-    precondition: string | null
-  }
+    display_name: string;
+    short_display_name: string;
+    blocking?: boolean;
+    color_hex: string;
+    precondition: string | null;
+  };
 }
 
 /**
@@ -3886,8 +3889,8 @@ export interface ConfigTasks {
  */
 export interface StudentAssignmentProgress {
   [taskKey: string]: {
-    isDone: boolean
-  } | null
+    isDone: boolean;
+  } | null;
 }
 
 /**
@@ -3914,23 +3917,23 @@ export interface StudentAssignmentProgress {
  */
 export interface StudentTaskProgress {
   [assignmentKey: string]: {
-    lastEditedQueueId: number
-    assignmentProgress: StudentAssignmentProgress
-  }
+    lastEditedQueueId: number;
+    assignmentProgress: StudentAssignmentProgress;
+  };
 }
 
 export interface StudentTaskProgressWithUser {
-  userDetails: UserPartial
-  taskProgress: StudentTaskProgress
+  userDetails: UserPartial;
+  taskProgress: StudentTaskProgress;
 }
 
 export interface AssignmentProgressWithUser {
-  userDetails: UserPartial
-  assignmentProgress: StudentAssignmentProgress
+  userDetails: UserPartial;
+  assignmentProgress: StudentAssignmentProgress;
 }
 
 export interface AllStudentAssignmentProgress {
-  [userId: number]: AssignmentProgressWithUser
+  [userId: number]: AssignmentProgressWithUser;
 }
 
 /**
@@ -3941,7 +3944,9 @@ export interface AllStudentAssignmentProgress {
 export function parseTaskIdsFromQuestionText(
   questionText: string | undefined,
 ): string[] {
-  return questionText?.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || []
+  return (
+    questionText?.match(/"(.*?)"/g)?.map((task) => task.slice(1, -1)) || []
+  );
 }
 
 /**
@@ -3953,8 +3958,8 @@ export function validateQueueConfigInput(obj: any): string {
   //
   // first manual check the JSON
   //
-  const MAX_JSON_SIZE = 10240 // 10KB
-  const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/
+  const MAX_JSON_SIZE = 10240; // 10KB
+  const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
   const validAttributes = [
     'fifo_queue_view_enabled',
     'tag_groups_queue_view_enabled',
@@ -3963,61 +3968,61 @@ export function validateQueueConfigInput(obj: any): string {
     'tags',
     'assignment_id',
     'tasks',
-  ]
-  const validTagAttributes = ['display_name', 'color_hex']
+  ];
+  const validTagAttributes = ['display_name', 'color_hex'];
   const validTaskAttributes = [
     'display_name',
     'short_display_name',
     'blocking',
     'color_hex',
     'precondition',
-  ]
+  ];
 
   if (!obj) {
-    return 'Queue config is null or undefined'
+    return 'Queue config is null or undefined';
   }
   if (typeof obj !== 'object') {
-    return 'Queue config must be an object'
+    return 'Queue config must be an object';
   }
   if (
     obj.fifo_queue_view_enabled !== undefined &&
     typeof obj.fifo_queue_view_enabled !== 'boolean'
   ) {
-    return 'fifo_queue_view_enabled must be a boolean'
+    return 'fifo_queue_view_enabled must be a boolean';
   }
   if (
     obj.tag_groups_queue_view_enabled !== undefined &&
     typeof obj.tag_groups_queue_view_enabled !== 'boolean'
   ) {
-    return 'tag_groups_queue_view_enabled must be a boolean'
+    return 'tag_groups_queue_view_enabled must be a boolean';
   }
   if (
     obj.fifo_queue_view_enabled === false &&
     obj.tag_groups_queue_view_enabled === false
   ) {
-    return 'At least one of fifo_queue_view_enabled and tag_groups_queue_view_enabled must be enabled'
+    return 'At least one of fifo_queue_view_enabled and tag_groups_queue_view_enabled must be enabled';
   }
   if (obj.fifo_queue_view_enabled === false && obj.default_view === 'fifo') {
-    return 'default_view cannot be fifo if the fifo view is disabled'
+    return 'default_view cannot be fifo if the fifo view is disabled';
   }
   if (
     obj.tag_groups_queue_view_enabled === false &&
     obj.default_view === 'tag_groups'
   ) {
-    return 'default_view cannot be tag_groups if tag groups view is disabled'
+    return 'default_view cannot be tag_groups if tag groups view is disabled';
   }
   if (
     obj.default_view !== undefined &&
     !['fifo', 'tag_groups'].includes(obj.default_view)
   ) {
-    return "default_view must be 'fifo' or 'tag_groups'"
+    return "default_view must be 'fifo' or 'tag_groups'";
   }
   if (obj.minimum_tags !== undefined && typeof obj.minimum_tags !== 'number') {
-    return 'minimum_tags must be a number'
+    return 'minimum_tags must be a number';
   }
   if (obj.tags !== undefined) {
     if (typeof obj.tags !== 'object') {
-      return 'tags must be an object'
+      return 'tags must be an object';
     }
     // checks for each tag
     for (const tagKey in obj.tags) {
@@ -4025,106 +4030,106 @@ export function validateQueueConfigInput(obj: any): string {
         !obj.tags[tagKey].display_name ||
         typeof obj.tags[tagKey].display_name !== 'string'
       ) {
-        return `Tag ${tagKey} must have a display_name of type string`
+        return `Tag ${tagKey} must have a display_name of type string`;
       }
       if (
         !obj.tags[tagKey].color_hex ||
         typeof obj.tags[tagKey].color_hex !== 'string' ||
         !hexColorRegex.test(obj.tags[tagKey].color_hex)
       ) {
-        return `Tag ${tagKey} must have a valid color_hex (e.g. #A23F31) of type string`
+        return `Tag ${tagKey} must have a valid color_hex (e.g. #A23F31) of type string`;
       }
       for (const key in obj.tags[tagKey]) {
         if (!validTagAttributes.includes(key)) {
-          return `Unknown attribute "${key}" in tag "${tagKey}"`
+          return `Unknown attribute "${key}" in tag "${tagKey}"`;
         }
       }
     }
     // no duplicate tag display names
     const tagDisplayNames = Object.values(obj.tags).map(
       (tag: any) => tag.display_name,
-    )
+    );
     if (tagDisplayNames.length !== new Set(tagDisplayNames).size) {
       const duplicateDisplayName = tagDisplayNames.find(
         (item, index, arr) => arr.indexOf(item) !== index,
-      )
-      return `Tag display names must be unique. Duplicate display name found: "${duplicateDisplayName}"`
+      );
+      return `Tag display names must be unique. Duplicate display name found: "${duplicateDisplayName}"`;
     }
   }
   if (obj.assignment_id !== undefined) {
     if (typeof obj.assignment_id !== 'string') {
-      return 'assignment_id must be a string'
+      return 'assignment_id must be a string';
     }
     if (obj.assignment_id.includes(' ')) {
-      return 'assignment_id must not contain spaces'
+      return 'assignment_id must not contain spaces';
     }
   }
   if (obj.tasks !== undefined) {
     if (typeof obj.tasks !== 'object') {
-      return 'tasks must be an object'
+      return 'tasks must be an object';
     }
     // checks for each task
     for (const taskKey in obj.tasks) {
       if (taskKey.includes(' ')) {
-        return `Task key ${taskKey} must not contain spaces`
+        return `Task key ${taskKey} must not contain spaces`;
       }
       if (
         !obj.tasks[taskKey].display_name ||
         typeof obj.tasks[taskKey].display_name !== 'string'
       ) {
-        return `Task ${taskKey} must have a display_name of type string`
+        return `Task ${taskKey} must have a display_name of type string`;
       }
       if (
         !obj.tasks[taskKey].short_display_name ||
         typeof obj.tasks[taskKey].short_display_name !== 'string'
       ) {
-        return `Task ${taskKey} must have a short_display_name of type string`
+        return `Task ${taskKey} must have a short_display_name of type string`;
       }
       if (
         obj.tasks[taskKey].blocking !== undefined &&
         typeof obj.tasks[taskKey].blocking !== 'boolean'
       ) {
-        return `Task ${taskKey} blocking must be a boolean`
+        return `Task ${taskKey} blocking must be a boolean`;
       }
       if (
         !obj.tasks[taskKey].color_hex ||
         typeof obj.tasks[taskKey].color_hex !== 'string' ||
         !hexColorRegex.test(obj.tasks[taskKey].color_hex)
       ) {
-        return `Task ${taskKey} must have a valid color_hex (e.g. "#ff0000")`
+        return `Task ${taskKey} must have a valid color_hex (e.g. "#ff0000")`;
       }
       if (
         obj.tasks[taskKey].precondition === undefined ||
         (obj.tasks[taskKey].precondition !== null &&
           !(obj.tasks[taskKey].precondition in obj.tasks))
       ) {
-        return `Task ${taskKey} precondition must be null or the key of another task`
+        return `Task ${taskKey} precondition must be null or the key of another task`;
       }
       for (const key in obj.tasks[taskKey]) {
         if (!validTaskAttributes.includes(key)) {
-          return `Unknown attribute "${key}" in task "${taskKey}"`
+          return `Unknown attribute "${key}" in task "${taskKey}"`;
         }
       }
     }
   }
   if (obj.tasks !== undefined && obj.assignment_id === undefined) {
-    return 'Config also needs an assignment_id field if tasks are defined'
+    return 'Config also needs an assignment_id field if tasks are defined';
   }
   if (obj.assignment_id !== undefined && obj.tasks === undefined) {
-    return 'Config also needs a tasks field if assignment_id is defined'
+    return 'Config also needs a tasks field if assignment_id is defined';
   }
   for (const key in obj) {
     if (!validAttributes.includes(key)) {
-      return `Unknown attribute "${key}"`
+      return `Unknown attribute "${key}"`;
     }
   }
   if (new TextEncoder().encode(JSON.stringify(obj)).length > MAX_JSON_SIZE) {
-    return 'The JSON object is too large. Maximum size is 10KB.'
+    return 'The JSON object is too large. Maximum size is 10KB.';
   }
   //
   // then validate the json with ajv (in case the above checks don't catch everything)
   //
-  const ajv = new Ajv()
+  const ajv = new Ajv();
   const schema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
@@ -4179,17 +4184,17 @@ export function validateQueueConfigInput(obj: any): string {
     },
     required: [],
     additionalProperties: false,
-  }
-  const validate = ajv.compile(schema)
-  const valid = validate(obj)
+  };
+  const validate = ajv.compile(schema);
+  const valid = validate(obj);
   if (!valid) {
     return (
       validate.errors
         ?.map((e) => `${e.instancePath} ${e.message}`)
         .join(', ') || 'Unknown error'
-    )
+    );
   }
-  return ''
+  return '';
 }
 
 /**
@@ -4205,25 +4210,25 @@ export function isCycleInTasks(
 ): boolean {
   // If no taskKey is provided, get the first key from the tasks object
   if (!taskKey) {
-    const keys = Object.keys(tasks)
+    const keys = Object.keys(tasks);
     if (keys.length === 0) {
-      return false // No tasks to check
+      return false; // No tasks to check
     }
-    taskKey = keys[0] // Pick the first task
+    taskKey = keys[0]; // Pick the first task
   }
 
   if (currentlyVisiting.includes(taskKey)) {
-    return true // Cycle detected
+    return true; // Cycle detected
   }
 
   if (visited.includes(taskKey)) {
-    return false // Already checked this task
+    return false; // Already checked this task
   }
 
-  currentlyVisiting.push(taskKey) // Mark this task as currently visiting
-  visited.push(taskKey) // Mark this task as visited
+  currentlyVisiting.push(taskKey); // Mark this task as currently visiting
+  visited.push(taskKey); // Mark this task as visited
 
-  const task = tasks[taskKey]
+  const task = tasks[taskKey];
 
   // Check precondition if it exists
   if (task.precondition !== null) {
@@ -4232,41 +4237,41 @@ export function isCycleInTasks(
       task.precondition,
       visited,
       currentlyVisiting,
-    )
+    );
     if (hasCycle) {
-      return true // Propagate cycle detection result up
+      return true; // Propagate cycle detection result up
     }
   }
 
-  currentlyVisiting.pop() // Unmark this task from currently visiting
-  return false // No cycle found
+  currentlyVisiting.pop(); // Unmark this task from currently visiting
+  return false; // No cycle found
 }
 
 /**
  * note: this "Task" is only for frontend components (TaskSelector, TaskDeletionSelector, and in Queue)
  */
 export interface Task {
-  taskId: string
-  isDone?: boolean
-  checked?: boolean
-  display_name: string
-  short_display_name: string
-  color_hex: string
-  blocking?: boolean
-  precondition?: Task | null
-  [key: string]: any // Tasks can have any number of additional properties (for expandability, might remove later)
+  taskId: string;
+  isDone?: boolean;
+  checked?: boolean;
+  display_name: string;
+  short_display_name: string;
+  color_hex: string;
+  blocking?: boolean;
+  precondition?: Task | null;
+  [key: string]: any; // Tasks can have any number of additional properties (for expandability, might remove later)
 }
 
 /**
  * Also only used in frontend components
  */
 export interface TaskTree {
-  [taskId: string]: Task
+  [taskId: string]: Task;
 }
 
 export type ConfigTasksWithAssignmentProgress = {
-  [K in keyof ConfigTasks]: ConfigTasks[K] & { isDone?: boolean }
-}
+  [K in keyof ConfigTasks]: ConfigTasks[K] & { isDone?: boolean };
+};
 
 /**
  * Transforms a configuration object of tasks into a tree structure where each task has a reference to its prerequisite task.
@@ -4320,7 +4325,7 @@ export function transformIntoTaskTree(
   // Object.entries is like a fancy for loop. Filter is a function that takes in a subfunction; if the subfunction returns false, the element is removed from the array.
   const tasksToAdd = Object.entries(remainingTasks).filter(
     ([, taskValue]) => taskValue.precondition === precondition,
-  )
+  );
 
   tasksToAdd.forEach(([taskKey, taskValue]) => {
     taskTree[taskKey] = {
@@ -4331,38 +4336,38 @@ export function transformIntoTaskTree(
         precondition && !taskValue.isDone && !taskTree[precondition].isDone
           ? taskTree[precondition]
           : null,
-    }
+    };
 
     // Now that the task has been added to the tree, we can remove the task from the remainingTasks so that it doesn't keep getting cycled through (optimization)
-    delete remainingTasks[taskKey]
+    delete remainingTasks[taskKey];
 
     // Merge the current taskTree with the taskTree created from the recursive call
     Object.assign(
       taskTree,
       transformIntoTaskTree(remainingTasks, taskTree, taskKey),
-    )
-  })
+    );
+  });
 
-  return taskTree
+  return taskTree;
 }
 
 export function generateTagIdFromName(name: string): string {
   // Sanitize the name by removing illegal characters
-  const sanitized = name.replace(/[\{\}"\:\,]/g, '')
+  const sanitized = name.replace(/[\{\}"\:\,]/g, '');
 
   // Generate a couple of random digits
-  const randomDigits = Math.floor(Math.random() * 100) // Generates a number between 0 and 99
+  const randomDigits = Math.floor(Math.random() * 100); // Generates a number between 0 and 99
 
   // Append the random digits to the sanitized name (to prevent the edge case where two tags have different names but the same tag ids)
-  return `${sanitized}_${randomDigits}`
+  return `${sanitized}_${randomDigits}`;
 }
 
 export function encodeBase64(str: string) {
-  return Buffer.from(str, 'utf-8').toString('base64')
+  return Buffer.from(str, 'utf-8').toString('base64');
 }
 
 export function decodeBase64(str: string) {
-  return Buffer.from(str, 'base64').toString('utf-8')
+  return Buffer.from(str, 'base64').toString('utf-8');
 }
 
 // TODO: Delete these old pfp colours on a new semester. They are only left here so that people's current colour won't randomly change
@@ -4386,7 +4391,7 @@ export const classicPFPColours = [
   '#c0392b',
   '#bdc3c7',
   '#7f8c8d',
-]
+];
 
 // colours pallet extended with names courtesy of o1
 const extendedPFPColours = [
@@ -4440,94 +4445,94 @@ const extendedPFPColours = [
   '#A93226', // Crimson
   '#5A2E2E', // Ruby Brown
   '#0097A7', // Dark Teal
-]
+];
 
 export function nameToRGB(
   str: string,
   colors: string[] = extendedPFPColours,
 ): string {
   if (!str) {
-    throw new Error('Input string cannot be empty')
+    throw new Error('Input string cannot be empty');
   }
 
-  let hash = 0
+  let hash = 0;
   for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i)
-    hash |= 0 // Convert to 32bit integer
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0; // Convert to 32bit integer
   }
 
-  return colors[Math.abs(hash) % colors.length]
+  return colors[Math.abs(hash) % colors.length];
 }
 
 export type UnreadAsyncQuestionResponse = {
-  count: number
-}
+  count: number;
+};
 
 export class LMSAuthResponseQuery {
   @IsString()
   @IsOptional()
-  error?: string
+  error?: string;
 
   @IsString()
   @IsOptional()
-  error_description?: string
+  error_description?: string;
 
   @IsString()
   @IsNotEmpty()
   @IsOptional()
-  code?: string
+  code?: string;
 
   @IsString()
   @IsNotEmpty()
-  state!: string
+  state!: string;
 }
 
 export type LMSPostAuthBody = {
-  grant_type: 'authorization_code'
-  client_id: string
-  client_secret: string
-  redirect_uri: string
-  code: string
-  replace_tokens?: 1 | 0
-}
+  grant_type: 'authorization_code';
+  client_id: string;
+  client_secret: string;
+  redirect_uri: string;
+  code: string;
+  replace_tokens?: 1 | 0;
+};
 
 export type LMSPostResponseBody = {
-  access_token: string
-  token_type: string
-  user: { id: number; name: string }
-  refresh_token: string
-  expires_in: number
-  canvas_region?: string
-}
+  access_token: string;
+  token_type: string;
+  user: { id: number; name: string };
+  refresh_token: string;
+  expires_in: number;
+  canvas_region?: string;
+};
 export type LMSPostResponseRefreshTokenBody = {
-  access_token: string
-  token_type: string
-  user: { id: number; name: string }
-  expires_in: number
-}
+  access_token: string;
+  token_type: string;
+  user: { id: number; name: string };
+  expires_in: number;
+};
 
 export class LMSToken {
   @IsInt()
-  id!: number
+  id!: number;
 
   @IsOptional()
   @IsInt()
-  organizationId?: number
+  organizationId?: number;
 
   @IsOptional()
   @IsInt()
-  userId?: number
+  userId?: number;
 
   @IsOptional()
   @IsString()
-  userEmail?: string
+  userEmail?: string;
 
   @IsOptional()
   @IsString()
-  userName?: string
+  userName?: string;
 
   @IsEnum(LMSIntegrationPlatform)
-  platform!: LMSIntegrationPlatform
+  platform!: LMSIntegrationPlatform;
 }
 
 export enum AuthMethodEnum {
@@ -4538,175 +4543,175 @@ export enum AuthMethodEnum {
 
 export class LtiAuthConfig {
   @IsEnum(AuthMethodEnum)
-  method!: AuthMethodEnum
+  method!: AuthMethodEnum;
 
   @IsString()
-  key!: string
+  key!: string;
 }
 
 export class UpdateLtiAuthConfig {
   @IsEnum(AuthMethodEnum)
   @IsOptional()
-  method?: AuthMethodEnum
+  method?: AuthMethodEnum;
 
   @IsString()
   @IsOptional()
-  key?: string
+  key?: string;
 }
 
 export class SetLtiOrganizationParams {
   @ValidateIf((_, value) => value !== null)
   @IsInt()
   @Min(1)
-  organizationId!: number | null
+  organizationId!: number | null;
 }
 
 export class LtiPlatform {
-  organizationId?: number
+  organizationId?: number;
 
   @IsString()
-  kid!: string
+  kid!: string;
 
   @IsString()
-  platformUrl!: string
+  platformUrl!: string;
 
   @IsString()
-  clientId!: string
+  clientId!: string;
 
   @IsString()
-  name!: string
+  name!: string;
 
   @IsString()
-  authenticationEndpoint!: string
+  authenticationEndpoint!: string;
 
   @IsString()
-  accessTokenEndpoint!: string
+  accessTokenEndpoint!: string;
 
   @IsString()
   @IsOptional()
-  authorizationServer?: string
+  authorizationServer?: string;
 
   @IsBoolean()
-  active!: boolean
+  active!: boolean;
 
   @ValidateNested()
   @Type(() => LtiAuthConfig)
-  authToken!: LtiAuthConfig
+  authToken!: LtiAuthConfig;
 
   @IsBoolean()
   @IsOptional()
-  dynamicallyRegistered?: boolean
+  dynamicallyRegistered?: boolean;
 
   @IsString()
   @IsOptional()
-  productFamilyCode?: string
+  productFamilyCode?: string;
 
   @Exclude()
-  registrationEndpoint?: string
+  registrationEndpoint?: string;
 
   @Exclude()
-  scopesAllowed?: string[]
+  scopesAllowed?: string[];
 
   @Exclude()
-  authTokenMethod?: string
+  authTokenMethod?: string;
 
   @Exclude()
-  authTokenKey?: string
+  authTokenKey?: string;
 }
 
 export class CreateLtiPlatform {
   @IsString()
-  platformUrl!: string
+  platformUrl!: string;
 
   @IsString()
-  clientId!: string
+  clientId!: string;
 
   @IsString()
-  name!: string
+  name!: string;
 
   @IsString()
-  authenticationEndpoint!: string
+  authenticationEndpoint!: string;
 
   @IsString()
-  accessTokenEndpoint!: string
+  accessTokenEndpoint!: string;
 
   @IsString()
   @IsOptional()
-  authorizationServer?: string
+  authorizationServer?: string;
 
   @IsBoolean()
-  active!: boolean
+  active!: boolean;
 
   @ValidateNested()
   @Type(() => LtiAuthConfig)
-  authToken!: LtiAuthConfig
+  authToken!: LtiAuthConfig;
 }
 
 export class UpdateLtiPlatform {
   @IsString()
   @IsOptional()
-  platformUrl?: string
+  platformUrl?: string;
 
   @IsString()
   @IsOptional()
-  clientId?: string
+  clientId?: string;
 
   @IsString()
   @IsOptional()
-  name?: string
+  name?: string;
 
   @IsString()
   @IsOptional()
-  authenticationEndpoint?: string
+  authenticationEndpoint?: string;
 
   @IsString()
   @IsOptional()
-  accessTokenEndpoint?: string
+  accessTokenEndpoint?: string;
 
   @IsString()
   @IsOptional()
-  authorizationServer?: string
+  authorizationServer?: string;
 
   @IsBoolean()
   @IsOptional()
-  active?: boolean
+  active?: boolean;
 
   @ValidateNested()
   @Type(() => UpdateLtiAuthConfig)
   @IsOptional()
-  authToken?: UpdateLtiAuthConfig
+  authToken?: UpdateLtiAuthConfig;
 }
 
 export function parseThinkBlock(answer: string) {
   // Look for <think>...</think> (the "s" flag lets it match across multiple lines)
-  const thinkRegex = /<think>([\s\S]*?)<\/think>/
-  const match = answer.match(thinkRegex)
+  const thinkRegex = /<think>([\s\S]*?)<\/think>/;
+  const match = answer.match(thinkRegex);
 
   if (!match) {
     // No <think> block, return the text unchanged
-    return { thinkText: null, cleanAnswer: answer }
+    return { thinkText: null, cleanAnswer: answer };
   }
 
-  const thinkText = match[1].trim()
-  const cleanAnswer = answer.replace(thinkRegex, '').trim()
+  const thinkText = match[1].trim();
+  const cleanAnswer = answer.replace(thinkRegex, '').trim();
 
-  return { thinkText, cleanAnswer }
+  return { thinkText, cleanAnswer };
 }
 
 export function dropUndefined(obj: any, dropNull = false) {
   if (typeof obj !== 'object' || (!dropNull && obj === null)) {
-    return obj // Ignore non-objects and null
+    return obj; // Ignore non-objects and null
   }
 
   for (const key of Object.keys(obj)) {
     if (obj[key] === undefined || (dropNull && obj[key] === null)) {
-      delete obj[key]
+      delete obj[key];
     } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-      obj[key] = dropUndefined(obj[key])
+      obj[key] = dropUndefined(obj[key]);
     }
   }
 
-  return obj
+  return obj;
 }
 
 export enum ToolUsageType {
@@ -4719,15 +4724,15 @@ export enum ToolUsageType {
  * Represents a single row of tool usage data for export
  */
 export interface ToolUsageExportData {
-  user_id: number
-  firstName: string
-  lastName: string
-  email: string
-  course_name: string
-  period_date: string
-  period_time: string
-  count: number
-  tool_type: ToolUsageType
+  user_id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  course_name: string;
+  period_date: string;
+  period_time: string;
+  count: number;
+  tool_type: ToolUsageType;
 }
 
 /* This is just to have the error messages in one place to make it easier for testing/maintenance.
@@ -4891,7 +4896,7 @@ export const ERROR_MESSAGES = {
       ): string =>
         `${role} cannot change status from ${questionStatus} to ${bodyStatus}`,
       taOnlyEditQuestionStatus(attributes: string[]): string {
-        return `TA/Professors cannot modify these attributes of questions: ${attributes.join(', ')}`
+        return `TA/Professors cannot modify these attributes of questions: ${attributes.join(', ')}`;
       },
       otherTAHelping: 'Another TA is currently helping with this question',
       otherTAResolved: 'Another TA has already resolved this question',
@@ -5128,10 +5133,10 @@ export const ERROR_MESSAGES = {
   embeddableModule: {
     notFound: 'Question not found.',
   },
-}
+};
 
 /* Common Query Params
-  Does two things: 
+  Does two things:
   - Allows us to easily modify the query params for error messages in 1 spot
   - More importantly, it connects the backend with the frontend to make it easier to find where a particular query param is coming from
   */
@@ -5170,114 +5175,114 @@ export const QUERY_PARAMS = {
     highlightCommentId: 'highlight_comment_id',
   },
   // TODO: add the /login redirect query params here. Avoided doing so right now since that would require proxy.ts to import this file and iirc there is errors when you try to do that
-}
+};
 
 export function extractModelSizeAndQuantization(modelName: string): {
-  sizeBillion: number
-  quantization: string
+  sizeBillion: number;
+  quantization: string;
 } {
-  const parts = modelName.split('/')
+  const parts = modelName.split('/');
   const modelNameWithQuantization =
-    parts.length > 1 ? parts[parts.length - 1] : modelName
+    parts.length > 1 ? parts[parts.length - 1] : modelName;
 
-  const splitByColon = modelNameWithQuantization.split(':')
-  const baseName = splitByColon[0]
-  let quantization = splitByColon.length > 1 ? splitByColon[1] : ''
+  const splitByColon = modelNameWithQuantization.split(':');
+  const baseName = splitByColon[0];
+  let quantization = splitByColon.length > 1 ? splitByColon[1] : '';
 
   if (!quantization) {
     const qMatch = baseName.match(
       /[-_](q[0-9]_[0-9a-z_]+|fp16|fp32|bf16)(?:[-_]|$)/i,
-    )
+    );
     if (qMatch) {
-      quantization = qMatch[1].toUpperCase()
+      quantization = qMatch[1].toUpperCase();
     }
   }
 
-  const cleanName = baseName.replace(/[-_](?:GGUF|gguf)$/i, '')
+  const cleanName = baseName.replace(/[-_](?:GGUF|gguf)$/i, '');
   const paramMatches = [
     ...cleanName.matchAll(/(?:^|[-_a-zA-Z])(\d+\.?\d*)[bB](?:[-_]|$)/g),
-  ]
+  ];
   const mMatches = [
     ...cleanName.matchAll(/(?:^|[-_a-zA-Z])(\d+\.?\d*)[mM](?:[-_]|$)/g),
-  ]
+  ];
 
-  let sizeBillion = 0
+  let sizeBillion = 0;
   if (paramMatches.length > 0) {
-    let maxSize = 0
+    let maxSize = 0;
     for (const match of paramMatches) {
-      const size = parseFloat(match[1])
+      const size = parseFloat(match[1]);
       if (size > maxSize) {
-        maxSize = size
-        sizeBillion = size
+        maxSize = size;
+        sizeBillion = size;
       }
     }
   } else if (mMatches.length > 0) {
-    let maxSize = 0
+    let maxSize = 0;
     for (const match of mMatches) {
-      const size = parseFloat(match[1])
+      const size = parseFloat(match[1]);
       if (size > maxSize) {
-        maxSize = size
-        sizeBillion = size / 1000
+        maxSize = size;
+        sizeBillion = size / 1000;
       }
     }
   }
 
-  return { sizeBillion, quantization: quantization.toUpperCase() }
+  return { sizeBillion, quantization: quantization.toUpperCase() };
 }
 
 export function getModelSpeedAndQualityEstimate<T extends LLMType>(model: T) {
-  const notes: string[] = []
-  let speed = 0
-  let quality = 0
+  const notes: string[] = [];
+  let speed = 0;
+  let quality = 0;
 
   if (model.modelName.startsWith('gpt-')) {
-    let suffix = -1
-    const suffixes = ['-mini', '-turbo', '-nano']
-    let i = 0
+    let suffix = -1;
+    const suffixes = ['-mini', '-turbo', '-nano'];
+    let i = 0;
     while (suffix == -1 && i < suffixes.length) {
-      suffix = model.modelName.indexOf(suffixes[i])
-      i++
+      suffix = model.modelName.indexOf(suffixes[i]);
+      i++;
     }
     const number = parseFloat(
       model.modelName
         .substring('gpt-'.length, suffix != -1 ? suffix : undefined)
         .replace(/o/, '.0'),
-    )
+    );
     const miniMultiplier = model.modelName.includes('mini')
       ? 1
       : model.modelName.includes('nano')
         ? 2
-        : 0
+        : 0;
 
     if (miniMultiplier == 0) {
       notes.push(
         'This model is likely to be expensive for each use. It may offer more cost-effective versions (mini, nano).',
-      )
+      );
     } else {
       notes.push(
         'This model is a smaller, faster version of a larger model. It is cheaper, but responses can be less accurate.',
-      )
+      );
     }
 
-    speed = 100 - 10 * number + miniMultiplier * 10
-    quality = 20 * number + miniMultiplier * -10
+    speed = 100 - 10 * number + miniMultiplier * 10;
+    quality = 20 * number + miniMultiplier * -10;
   } else {
     const { sizeBillion, quantization } = extractModelSizeAndQuantization(
       model.modelName,
-    )
-    let paramSize = sizeBillion
+    );
+    let paramSize = sizeBillion;
 
     if (paramSize == 0 && 'parameterSize' in model && model['parameterSize']) {
-      const match = (model.parameterSize as string).match(/[0-9.]*/)
+      const match = (model.parameterSize as string).match(/[0-9.]*/);
       if (match != null && !isNaN(parseFloat(match[0]))) {
-        const val = parseFloat(match[0])
+        const val = parseFloat(match[0]);
         const str = (model.parameterSize as string)
           .toLowerCase()
-          .substring(match[0].length)
+          .substring(match[0].length);
         if (str.includes('m')) {
-          paramSize = val / 1000
+          paramSize = val / 1000;
         } else {
-          paramSize = val
+          paramSize = val;
         }
       }
     }
@@ -5286,42 +5291,42 @@ export function getModelSpeedAndQualityEstimate<T extends LLMType>(model: T) {
       if (model.modelName.toLowerCase().includes('embed')) {
         notes.push(
           'This is an embedding model. Speed and quality estimates are not directly comparable to text generation models.',
-        )
-        speed = 100
-        quality = 100
-        return { speed, quality, notes }
+        );
+        speed = 100;
+        quality = 100;
+        return { speed, quality, notes };
       }
-      paramSize = 7
+      paramSize = 7;
       //notes.push('Could not determine model size. Assuming 7B parameters.')
     }
 
-    let quantMultiplier = 1
-    let quantQualityModifier = 1
+    let quantMultiplier = 1;
+    let quantQualityModifier = 1;
     if (quantization) {
       if (quantization.includes('Q2') || quantization.includes('Q3')) {
-        quantMultiplier = 1.3
-        quantQualityModifier = 0.8
+        quantMultiplier = 1.3;
+        quantQualityModifier = 0.8;
         // notes.push(  'High quantization (Q2/Q3). Faster, but noticeable quality degradation.',)
       } else if (quantization.includes('Q4') || quantization.includes('Q5')) {
-        quantMultiplier = 1.1
-        quantQualityModifier = 0.95
+        quantMultiplier = 1.1;
+        quantQualityModifier = 0.95;
         // notes.push(  'Medium quantization (Q4/Q5). Good balance of speed and quality.',)
       } else if (quantization.includes('Q8')) {
-        quantMultiplier = 0.9
-        quantQualityModifier = 0.99
+        quantMultiplier = 0.9;
+        quantQualityModifier = 0.99;
         // notes.push(  'Low quantization (Q8). Near original quality, but requires more memory.',)
       } else if (
         quantization.includes('FP16') ||
         quantization.includes('BF16')
       ) {
-        quantMultiplier = 0.7
-        quantQualityModifier = 1.0
+        quantMultiplier = 0.7;
+        quantQualityModifier = 1.0;
         // notes.push(  'Unquantized (FP16/BF16). Highest quality, requires significant memory and compute.',)
       }
     }
 
-    paramSize = Math.max(0.001, Math.min(paramSize, 100))
-    const log = -Math.log10(paramSize / 100) / 5
+    paramSize = Math.max(0.001, Math.min(paramSize, 100));
+    const log = -Math.log10(paramSize / 100) / 5;
     speed =
       Math.max(
         0,
@@ -5329,7 +5334,7 @@ export function getModelSpeedAndQualityEstimate<T extends LLMType>(model: T) {
           1,
           (0.5 + log) * (model.isThinking ? 0.75 : 1) * quantMultiplier,
         ),
-      ) * 100
+      ) * 100;
     quality =
       Math.max(
         0,
@@ -5338,7 +5343,7 @@ export function getModelSpeedAndQualityEstimate<T extends LLMType>(model: T) {
           ((model.isThinking ? 1.25 : 1) * (1 - log) - log) *
             quantQualityModifier,
         ),
-      ) * 100
+      ) * 100;
   }
-  return { speed, quality, notes }
+  return { speed, quality, notes };
 }

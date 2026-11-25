@@ -5,8 +5,13 @@ import type {
   AllStudentAssignmentProgress,
   AsyncQuestionCommentEndorseParams,
   AsyncQuestionCommentParams,
+  AutograderQuizOption,
+  AutograderRunReport,
+  AutograderRunSummary,
   BatchCourseCloneAttributes,
   Calendar,
+  StartAutograderRunParams,
+  StartAutograderRunResponse,
   ChatbotAskParams,
   ChatbotAskResponse,
   ChatbotAskSuggestedParams,
@@ -131,24 +136,22 @@ import type {
   DeleteAdminNoticeRequest,
   UploadChatbotDocumentRequest,
   UserCourse,
+  GetOrganizationUsersPaginatedResponse,
 } from '@koh/common';
 import {
   AsyncQuestionComment,
   CreateAlertResponse,
   CreateQuestionResponse,
   DesktopNotifPartial,
-  AlertDeliveryMode,
   GetCourseResponse,
   GetLimitedCourseResponse,
   GetQueueChatResponse,
   GetQueueResponse,
   ListQuestionsResponse,
-  OrgUser,
   QueueChatPartial,
   QueuePartial,
   SemesterPartial,
   TACheckinTimesResponse,
-  UserPartial,
   UpdateQuestionResponse,
   GetProfInviteResponse,
   GetPageOfFeedAlerts,
@@ -172,7 +175,6 @@ import { plainToInstance } from 'class-transformer';
 import * as Sentry from '@sentry/nextjs';
 import type { SetStateAction } from 'react';
 import { getErrorMessage } from '@/app/utils/generalUtils';
-import type { GetOrganizationUsersPaginatedResponse } from '@koh/common';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 // Return type of array item, if T is an array
@@ -1218,7 +1220,7 @@ export class APIClient {
       staffId: number,
       message: string,
     ): Promise<void> => {
-      this.req(
+      await this.req(
         'PATCH',
         `/api/v1/queueChats/${queueId}/${questionId}/${staffId}`,
         undefined,
@@ -1815,8 +1817,13 @@ export class APIClient {
 
   lti = {
     auth: {
-      shibboleth: (organizationId: any, _redirectUrl?: string | null) =>
-        `/api/v1/lti/auth/shibboleth/${organizationId}`,
+      shibboleth: (organizationId: any, _redirectUrl?: string | null) => {
+        // In dev, use the mock SSO controller instead of the real shibboleth endpoint
+        if (!isProd()) {
+          return `/api/v1/lti/auth/dev-sso/login/${organizationId}`;
+        }
+        return `/api/v1/lti/auth/shibboleth/${organizationId}`;
+      },
       requestPasswordReset: async (
         passwordResetData: PasswordRequestResetBody,
       ) =>
@@ -1926,6 +1933,41 @@ export class APIClient {
         this.req(
           'DELETE',
           `/api/v1/lti/embeddable-question/${courseId}/${questionId}`,
+        ),
+    },
+    autograder: {
+      getQuizzes: async (courseId: number): Promise<AutograderQuizOption[]> =>
+        this.req(
+          'GET',
+          `/api/v1/lti/embeddable/autograder/${courseId}/quizzes`,
+        ),
+      getRuns: async (courseId: number): Promise<AutograderRunSummary[]> =>
+        this.req('GET', `/api/v1/lti/embeddable/autograder/${courseId}/runs`),
+      startRun: async (
+        courseId: number,
+        params: StartAutograderRunParams,
+      ): Promise<StartAutograderRunResponse> =>
+        this.req(
+          'POST',
+          `/api/v1/lti/embeddable/autograder/${courseId}/runs`,
+          undefined,
+          params,
+        ),
+      getReport: async (
+        courseId: number,
+        runId: number,
+      ): Promise<AutograderRunReport> =>
+        this.req(
+          'GET',
+          `/api/v1/lti/embeddable/autograder/${courseId}/runs/${runId}/report`,
+        ),
+      cancelRun: async (
+        courseId: number,
+        runId: number,
+      ): Promise<AutograderRunSummary> =>
+        this.req(
+          'POST',
+          `/api/v1/lti/embeddable/autograder/${courseId}/runs/${runId}/cancel`,
         ),
     },
   };

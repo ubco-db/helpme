@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import type { GetProp } from 'antd';
+import type { GetProp } from 'antd'
 import {
   Badge,
   Button,
@@ -16,9 +16,9 @@ import {
   Statistic,
   Tabs,
   Tooltip,
-} from 'antd';
-import type React from 'react';
-import { use, useCallback, useEffect, useMemo, useState } from 'react';
+} from 'antd'
+import type React from 'react'
+import { use, useCallback, useEffect, useMemo, useState } from 'react'
 import type {
   LMSAnnouncement,
   LMSAssignment,
@@ -26,87 +26,81 @@ import type {
   LMSIntegrationPlatform,
   LMSOrganizationIntegrationPartial,
   LMSPage,
-} from '@koh/common';
-import {
-  LMSApiResponseStatus,
-  LMSQuiz,
-  LMSQuizAccessLevel,
-  SupportedLMSFileTypes,
-} from '@koh/common';
-import { API } from '@/app/api';
-import UpsertIntegrationModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/UpsertIntegrationModal';
-import LMSRosterTable from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSRosterTable';
-import { cn, getErrorMessage } from '@/app/utils/generalUtils';
-import { useCourseLmsIntegration } from '@/app/hooks/useCourseLmsIntegration';
-import LMSDocumentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSDocumentList';
-import LMSQuizDocumentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSQuizDocumentList';
+} from '@koh/common'
+import { LMSApiResponseStatus, SupportedLMSFileTypes } from '@koh/common'
+import { API } from '@/app/api'
+import UpsertIntegrationModal from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/UpsertIntegrationModal'
+import LMSRosterTable from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSRosterTable'
+import { cn, getErrorMessage } from '@/app/utils/generalUtils'
+import { useCourseLmsIntegration } from '@/app/hooks/useCourseLmsIntegration'
+import LMSDocumentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSDocumentList'
+import LMSQuizDocumentList from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/LMSQuizDocumentList'
 import {
   DeleteOutlined,
   EditOutlined,
   LoadingOutlined,
   SyncOutlined,
-} from '@ant-design/icons';
-import CenteredSpinner from '@/app/components/CenteredSpinner';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings';
-import { useUserInfo } from '@/app/contexts/userContext';
-import EmbeddableQuestionsPage from '@/app/(dashboard)/course/[cid]/(settings)/settings/embeddable_questions/page';
+} from '@ant-design/icons'
+import CenteredSpinner from '@/app/components/CenteredSpinner'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useOrganizationSettings } from '@/app/hooks/useOrganizationSettings'
+import { useUserInfo } from '@/app/contexts/userContext'
+import EmbeddableQuestionsPage from '@/app/(dashboard)/course/[cid]/(settings)/settings/embeddable_questions/page'
+import AutograderPage from '@/app/(dashboard)/course/[cid]/(settings)/settings/lms_integrations/components/Autograder'
+
+const LMS_INTEGRATION_TABS = [
+  'roster',
+  'assignment',
+  'announcement',
+  'page',
+  'file',
+  'quiz',
+  'chatbot_embed',
+  'embeddable_questions',
+  'autograder',
+] as const
+type LmsIntegrationTab = (typeof LMS_INTEGRATION_TABS)[number]
 
 export default function CourseLMSIntegrationPage(props: {
-  params: Promise<{
-    cid: string;
-    tab: 'assignment' | 'announcement' | 'page' | 'file' | 'quiz' | undefined;
-  }>;
+  params: Promise<{ cid: string }>
 }) {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
 
-  const { userInfo } = useUserInfo();
-  const params = use(props.params);
-  const pathName = usePathname();
-  const courseId = useMemo(() => Number(params.cid) ?? -1, [params.cid]);
-  const tab = useMemo(() => searchParams.get('tab'), [searchParams]);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const { userInfo } = useUserInfo()
+  const params = use(props.params)
+  const courseId = useMemo(() => {
+    const parsed = Number(params.cid)
+    return Number.isNaN(parsed) ? -1 : parsed
+  }, [params.cid])
+  const tab = useMemo(() => searchParams.get('tab'), [searchParams])
   const organizationSettings = useOrganizationSettings(
     userInfo?.organization?.orgId ?? -1,
-  );
+  )
 
-  const [currentTab, setCurrentTab] = useState<
-    | 'assignment'
-    | 'announcement'
-    | 'page'
-    | 'file'
-    | 'quiz'
-    | 'roster'
-    | undefined
-  >();
+  const [currentTab, setCurrentTab] = useState<LmsIntegrationTab>()
 
-  const defaultTab = useMemo(() => {
-    switch (tab) {
-      case 'assignment':
-      case 'announcement':
-      case 'page':
-      case 'file':
-      case 'quiz':
-        return tab;
-      default:
-        return 'roster';
-    }
-  }, [tab]);
+  const defaultTab = useMemo<LmsIntegrationTab>(
+    () =>
+      LMS_INTEGRATION_TABS.find((candidate) => candidate === tab) ?? 'roster',
+    [tab],
+  )
 
+  // Deep links such as `?tab=embeddable_questions` update the active tab even
+  // after the page has loaded. `onTabClick` clears the query string, so this
+  // effect only runs when a tab was explicitly requested.
   useEffect(() => {
-    if (!hasLoadedOnce) {
-      setCurrentTab(defaultTab);
-      setHasLoadedOnce(true);
+    if (tab) {
+      setCurrentTab(defaultTab)
     }
-  }, [defaultTab, hasLoadedOnce]);
+  }, [tab, defaultTab])
 
   const getActiveTab = () => {
-    return currentTab ?? defaultTab;
-  };
+    return currentTab ?? defaultTab
+  }
 
-  const [updateFlag, setUpdateFlag] = useState<boolean>(false);
+  const [updateFlag, setUpdateFlag] = useState<boolean>(false)
   const {
     integration,
     course,
@@ -123,88 +117,88 @@ export default function CourseLMSIntegrationPage(props: {
     isLoadingFiles,
     isLoadingPages,
     isLoadingQuizzes,
-  } = useCourseLmsIntegration(courseId, updateFlag);
+  } = useCourseLmsIntegration(courseId, updateFlag)
 
   const [lmsIntegrations, setLmsIntegrations] = useState<
     LMSOrganizationIntegrationPartial[]
-  >([]);
+  >([])
   const [selectedIntegration, setSelectedIntegration] = useState<
     LMSOrganizationIntegrationPartial | undefined
-  >(undefined);
+  >(undefined)
 
-  const [syncing, setSyncing] = useState<boolean>(false);
+  const [syncing, setSyncing] = useState<boolean>(false)
 
-  const [modalOpen, setModalOpen] = useState<boolean>(false);
-  const [delModalOpen, setDelModalOpen] = useState<boolean>(false);
-  const [isTesting, setIsTesting] = useState<boolean>(false);
-  const [selectedResources, setSelectedResources] = useState<string[]>([]);
+  const [modalOpen, setModalOpen] = useState<boolean>(false)
+  const [delModalOpen, setDelModalOpen] = useState<boolean>(false)
+  const [isTesting, setIsTesting] = useState<boolean>(false)
+  const [selectedResources, setSelectedResources] = useState<string[]>([])
   const [preselect, setPreselect] = useState<
     LMSIntegrationPlatform | undefined
-  >();
+  >()
 
   useEffect(() => {
-    const success_msg = searchParams.get('success_message');
-    const error_msg = searchParams.get('error_message');
-    const platform = searchParams.get('platform');
+    const success_msg = searchParams.get('success_message')
+    const error_msg = searchParams.get('error_message')
+    const platform = searchParams.get('platform')
 
     if (platform) {
-      setPreselect(platform as LMSIntegrationPlatform);
+      setPreselect(platform as LMSIntegrationPlatform)
     }
 
     if (success_msg) {
       message.success(success_msg, 3).then(() => {
-        router.push(pathname);
-      });
+        router.push(pathname)
+      })
     } else if (error_msg) {
       message.error(error_msg, 3).then(() => {
-        router.push(pathname);
-      });
+        router.push(pathname)
+      })
     }
-  }, [pathname, router, searchParams]);
+  }, [pathname, router, searchParams])
 
   useEffect(() => {
     if (integration?.selectedResourceTypes) {
-      setSelectedResources(integration.selectedResourceTypes);
+      setSelectedResources(integration.selectedResourceTypes)
     }
-  }, [integration?.selectedResourceTypes]);
+  }, [integration?.selectedResourceTypes])
 
   const onSelectedResourcesChange: GetProp<
     typeof Checkbox.Group,
     'onChange'
   > = (checkedValues) => {
-    setSelectedResources(checkedValues as string[]);
-  };
+    setSelectedResources(checkedValues as string[])
+  }
 
   const hasSelectionChanged = useMemo(() => {
-    if (!integration?.selectedResourceTypes) return false;
-    const currentSorted = [...selectedResources].sort();
-    const dbSorted = [...integration.selectedResourceTypes].sort();
-    if (currentSorted.length !== dbSorted.length) return true;
-    return currentSorted.some((item, index) => item !== dbSorted[index]);
-  }, [selectedResources, integration?.selectedResourceTypes]);
+    if (!integration?.selectedResourceTypes) return false
+    const currentSorted = [...selectedResources].sort()
+    const dbSorted = [...integration.selectedResourceTypes].sort()
+    if (currentSorted.length !== dbSorted.length) return true
+    return currentSorted.some((item, index) => item !== dbSorted[index])
+  }, [selectedResources, integration?.selectedResourceTypes])
 
   const fetchOrgIntegrationsAsync = useCallback(async () => {
     await API.lmsIntegration
       .getCourseOrganizationIntegrations(courseId)
       .then((response) => {
-        if (response) setLmsIntegrations(response);
-        else setLmsIntegrations([]);
+        if (response) setLmsIntegrations(response)
+        else setLmsIntegrations([])
       })
       .catch((error) => {
-        const errorMessage = getErrorMessage(error);
-        message.error(errorMessage);
-      });
-  }, [courseId]);
+        const errorMessage = getErrorMessage(error)
+        message.error(errorMessage)
+      })
+  }, [courseId])
 
   useEffect(() => {
     if (lmsIntegrations.length > 0 && preselect) {
       setSelectedIntegration(
         lmsIntegrations.find((v) => v.apiPlatform == preselect),
-      );
-      setModalOpen(true);
-      setPreselect(undefined);
+      )
+      setModalOpen(true)
+      setPreselect(undefined)
     }
-  }, [preselect, lmsIntegrations]);
+  }, [preselect, lmsIntegrations])
 
   const testLMSConnection = async (
     apiCourseId: string,
@@ -217,20 +211,20 @@ export default function CourseLMSIntegrationPage(props: {
         accessTokenId == undefined &&
         (apiKey == undefined || apiKey.trim() == '')
       ) {
-        message.warning('API Key or Access Token is required');
-        return LMSApiResponseStatus.Error;
+        message.warning('API Key or Access Token is required')
+        return LMSApiResponseStatus.Error
       }
     } else if (accessTokenId == undefined) {
-      message.warning('Access Token is required');
-      return LMSApiResponseStatus.Error;
+      message.warning('Access Token is required')
+      return LMSApiResponseStatus.Error
     }
 
     if (apiCourseId == undefined || String(apiCourseId).trim() == '') {
-      message.warning('API Course ID is required');
-      return LMSApiResponseStatus.Error;
+      message.warning('API Course ID is required')
+      return LMSApiResponseStatus.Error
     }
 
-    setIsTesting(true);
+    setIsTesting(true)
     const response = await API.lmsIntegration
       .testIntegration(courseId, {
         apiPlatform: apiPlatform,
@@ -239,26 +233,26 @@ export default function CourseLMSIntegrationPage(props: {
         apiCourseId: apiCourseId,
       })
       .then((response) => {
-        if (response == LMSApiResponseStatus.Success) message.success(response);
-        else message.warning(response);
-        return response;
+        if (response == LMSApiResponseStatus.Success) message.success(response)
+        else message.warning(response)
+        return response
       })
       .catch((error) => {
-        message.error(getErrorMessage(error));
-        return LMSApiResponseStatus.Error;
-      });
-    setIsTesting(false);
-    return response;
-  };
+        message.error(getErrorMessage(error))
+        return LMSApiResponseStatus.Error
+      })
+    setIsTesting(false)
+    return response
+  }
 
   useEffect(() => {
-    fetchOrgIntegrationsAsync().then();
-  }, [fetchOrgIntegrationsAsync]);
+    void fetchOrgIntegrationsAsync()
+  }, [fetchOrgIntegrationsAsync])
 
   const deleteIntegration = async () => {
     if (integration == undefined) {
-      message.error('No integration was specified');
-      return;
+      message.error('No integration was specified')
+      return
     }
 
     API.lmsIntegration
@@ -267,25 +261,25 @@ export default function CourseLMSIntegrationPage(props: {
         if (!result) {
           message.error(
             `Unknown error occurred, could not delete the LMS integration`,
-          );
+          )
         } else if (result.includes('Success')) {
-          message.success(result);
-          setDelModalOpen(false);
+          message.success(result)
+          setDelModalOpen(false)
         } else {
-          message.error(result);
+          message.error(result)
         }
-        setUpdateFlag(!updateFlag);
+        setUpdateFlag(!updateFlag)
       })
-      .catch((err) => message.error(getErrorMessage(err)));
-  };
+      .catch((err) => message.error(getErrorMessage(err)))
+  }
 
   const toggleSync = async () => {
     if (integration == undefined) {
-      message.error('No integration was specified');
-      return;
+      message.error('No integration was specified')
+      return
     }
 
-    setSyncing(true);
+    setSyncing(true)
 
     API.lmsIntegration
       .toggleSync(courseId)
@@ -293,30 +287,30 @@ export default function CourseLMSIntegrationPage(props: {
         if (!result) {
           message.error(
             `Unknown error occurred, could not enable synchronization with the LMS.`,
-          );
+          )
         } else {
-          message.success(result);
+          message.success(result)
         }
-        setUpdateFlag(!updateFlag);
+        setUpdateFlag(!updateFlag)
       })
       .catch((err) => message.error(getErrorMessage(err)))
-      .finally(() => setSyncing(false));
-  };
+      .finally(() => setSyncing(false))
+  }
 
   const forceSync = async () => {
     if (integration == undefined) {
-      message.error('No integration was specified');
-      return;
+      message.error('No integration was specified')
+      return
     }
 
-    setSyncing(true);
+    setSyncing(true)
     API.lmsIntegration
       .forceSync(courseId)
       .then((result) => {
         if (!result) {
           message.error(
             `Unknown error occurred, could not force synchronization with the LMS.`,
-          );
+          )
         } else {
           if (result.errors > 0) {
             result.itemsSynced + result.itemsRemoved > 0
@@ -326,55 +320,55 @@ export default function CourseLMSIntegrationPage(props: {
                 )
               : message.error(
                   'Force synchronization failed. Please try again later.',
-                );
+                )
           } else {
             message.success(
               'Successfully forced synchronization with integrated course.',
-            );
+            )
           }
         }
-        setUpdateFlag(!updateFlag);
+        setUpdateFlag(!updateFlag)
       })
       .catch((err) => message.error(getErrorMessage(err)))
-      .finally(() => setSyncing(false));
-  };
+      .finally(() => setSyncing(false))
+  }
 
   const handleSaveAndResync = async () => {
     try {
       await API.lmsIntegration.updateSelectedResourceTypes(
         courseId,
         selectedResources as string[],
-      );
-      message.success('Resource types updated!');
-      await forceSync();
-      setUpdateFlag(!updateFlag);
+      )
+      message.success('Resource types updated!')
+      await forceSync()
+      setUpdateFlag(!updateFlag)
     } catch (err) {
-      message.error(getErrorMessage(err));
+      message.error(getErrorMessage(err))
     }
-  };
+  }
 
   const clearDocuments = async () => {
     if (integration == undefined) {
-      message.error('No integration was specified');
-      return;
+      message.error('No integration was specified')
+      return
     }
 
-    setSyncing(true);
+    setSyncing(true)
     API.lmsIntegration
       .clearDocuments(courseId)
       .then((result) => {
         if (!result) {
           message.error(
             `Unknown error occurred, could not clear documents from the LMS.`,
-          );
+          )
         } else {
-          message.success(result);
+          message.success(result)
         }
-        setUpdateFlag(!updateFlag);
+        setUpdateFlag(!updateFlag)
       })
       .catch((err) => message.error(getErrorMessage(err)))
-      .finally(() => setSyncing(false));
-  };
+      .finally(() => setSyncing(false))
+  }
 
   const outOfDateDocumentsCount = useMemo(
     () =>
@@ -383,10 +377,10 @@ export default function CourseLMSIntegrationPage(props: {
           a.uploaded &&
           a.modified &&
           new Date(a.uploaded).getTime() < new Date(a.modified).getTime()
-        );
+        )
       }).length,
     [announcements, assignments, pages, files],
-  );
+  )
 
   const savedDocumentsCount = useMemo(
     () =>
@@ -394,7 +388,7 @@ export default function CourseLMSIntegrationPage(props: {
         (a) => a.uploaded != undefined,
       ).length,
     [announcements, assignments, pages, files],
-  );
+  )
 
   const ableToSync = useMemo(
     () => [
@@ -408,7 +402,7 @@ export default function CourseLMSIntegrationPage(props: {
       ...files,
     ],
     [announcements, assignments, pages, files],
-  );
+  )
 
   const unableToSync = useMemo(
     () => [
@@ -428,15 +422,15 @@ export default function CourseLMSIntegrationPage(props: {
       ),
     ],
     [assignments, announcements, pages, files],
-  );
+  )
 
   const failedToSync = useMemo(
     () => ableToSync.filter((a) => a.uploaded == undefined),
     [ableToSync],
-  );
+  )
 
   if (isLoadingIntegration || !organizationSettings) {
-    return <CenteredSpinner tip={'Loading...'} />;
+    return <CenteredSpinner tip={'Loading...'} />
   }
 
   if (integration == undefined) {
@@ -513,8 +507,8 @@ export default function CourseLMSIntegrationPage(props: {
                     <Button
                       className={'flex w-full justify-start'}
                       onClick={() => {
-                        setSelectedIntegration(orgIntegration);
-                        setModalOpen(true);
+                        setSelectedIntegration(orgIntegration)
+                        setModalOpen(true)
                       }}
                     >
                       <span className={'text-left'}>{index + 1}.</span>
@@ -542,12 +536,12 @@ export default function CourseLMSIntegrationPage(props: {
           </div>
         </Card>
       </div>
-    );
+    )
   } else {
     const tabItems: Array<{
-      key: string;
-      label: string | React.ReactNode;
-      children: React.ReactNode;
+      key: string
+      label: string | React.ReactNode
+      children: React.ReactNode
     }> = [
       {
         key: 'roster',
@@ -563,7 +557,7 @@ export default function CourseLMSIntegrationPage(props: {
           />
         ),
       },
-    ];
+    ]
     if (assignments.length > 0 || isLoadingAssignments) {
       tabItems.push({
         key: 'assignment',
@@ -584,7 +578,7 @@ export default function CourseLMSIntegrationPage(props: {
             selectedResourceTypes={integration.selectedResourceTypes}
           />
         ),
-      });
+      })
     }
     if (pages.length > 0 || isLoadingPages) {
       tabItems.push({
@@ -603,7 +597,7 @@ export default function CourseLMSIntegrationPage(props: {
             selectedResourceTypes={integration.selectedResourceTypes}
           />
         ),
-      });
+      })
     }
     if (files.length > 0 || isLoadingFiles) {
       tabItems.push({
@@ -622,7 +616,7 @@ export default function CourseLMSIntegrationPage(props: {
             selectedResourceTypes={integration.selectedResourceTypes}
           />
         ),
-      });
+      })
     }
     tabItems.push({
       key: 'quiz',
@@ -640,7 +634,7 @@ export default function CourseLMSIntegrationPage(props: {
           selectedResourceTypes={integration.selectedResourceTypes}
         />
       ),
-    });
+    })
     if (announcements.length > 0 || isLoadingAnnouncements) {
       tabItems.push({
         key: 'announcement',
@@ -663,7 +657,7 @@ export default function CourseLMSIntegrationPage(props: {
             selectedResourceTypes={integration.selectedResourceTypes}
           />
         ),
-      });
+      })
     }
     tabItems.push({
       key: 'chatbot_embed',
@@ -676,12 +670,22 @@ export default function CourseLMSIntegrationPage(props: {
           HelpMe be added to your Canvas course.
         </p>
       ),
-    });
+    })
     tabItems.push({
       key: 'embeddable_questions',
       label: <LMSTabLabel title={'Embeddable Questions'} isLoading={false} />,
       children: <EmbeddableQuestionsPage params={props.params} />,
-    });
+    })
+    tabItems.push({
+      key: 'autograder',
+      label: <LMSTabLabel title={'Autograder'} isLoading={false} />,
+      children: (
+        <AutograderPage
+          courseId={courseId}
+          lmsPlatform={integration.apiPlatform}
+        />
+      ),
+    })
 
     const card = (
       <Card title={'Learning Management System Integration'}>
@@ -701,8 +705,8 @@ export default function CourseLMSIntegrationPage(props: {
                     lmsIntegrations.find(
                       (i) => i.apiPlatform == integration?.apiPlatform,
                     ),
-                  );
-                  setModalOpen(true);
+                  )
+                  setModalOpen(true)
                 }}
                 icon={
                   !integration.isExpired ? <EditOutlined /> : <SyncOutlined />
@@ -715,7 +719,7 @@ export default function CourseLMSIntegrationPage(props: {
                 variant={'outlined'}
                 icon={<DeleteOutlined />}
                 onClick={() => {
-                  setDelModalOpen(true);
+                  setDelModalOpen(true)
                 }}
               >
                 Delete
@@ -770,7 +774,7 @@ export default function CourseLMSIntegrationPage(props: {
                                     ? ''
                                     : 'border-green-700 text-green-700 hover:border-green-500 hover:text-green-500',
                                 )}
-                                onClick={toggleSync}
+                                onClick={() => void toggleSync()}
                                 loading={syncing}
                               >
                                 {integration.lmsSynchronize
@@ -815,7 +819,7 @@ export default function CourseLMSIntegrationPage(props: {
                                       isLoadingStudents ||
                                       isLoadingFiles
                                     }
-                                    onClick={forceSync}
+                                    onClick={() => void forceSync()}
                                     loading={
                                       syncing && integration.lmsSynchronize
                                     }
@@ -890,7 +894,7 @@ export default function CourseLMSIntegrationPage(props: {
                                 variant={'outlined'}
                                 color={'danger'}
                                 icon={<DeleteOutlined />}
-                                onClick={clearDocuments}
+                                onClick={() => void clearDocuments()}
                                 loading={syncing}
                                 disabled={savedDocumentsCount < 1}
                               >
@@ -959,7 +963,7 @@ export default function CourseLMSIntegrationPage(props: {
                                 !hasSelectionChanged
                               }
                               style={{ marginTop: '30px' }}
-                              onClick={handleSaveAndResync}
+                              onClick={() => void handleSaveAndResync()}
                               loading={syncing && integration.lmsSynchronize}
                               className="w-full sm:w-auto"
                             >
@@ -983,8 +987,13 @@ export default function CourseLMSIntegrationPage(props: {
               defaultActiveKey={defaultTab}
               activeKey={getActiveTab()}
               onTabClick={(activeKey) => {
-                router.push(pathName, { scroll: false });
-                setCurrentTab(activeKey as any);
+                router.push(pathname, { scroll: false })
+                const nextTab = LMS_INTEGRATION_TABS.find(
+                  (candidate) => candidate === activeKey,
+                )
+                if (nextTab) {
+                  setCurrentTab(nextTab)
+                }
               }}
               items={tabItems}
             />
@@ -1005,9 +1014,11 @@ export default function CourseLMSIntegrationPage(props: {
           <Modal
             title={'Are you sure you want to delete this LMS integration?'}
             open={delModalOpen}
-            onOk={() => deleteIntegration()}
+            onOk={() => {
+              void deleteIntegration()
+            }}
             onCancel={() => {
-              setDelModalOpen(false);
+              setDelModalOpen(false)
             }}
             okText={'Delete Integration'}
             okButtonProps={{
@@ -1022,14 +1033,14 @@ export default function CourseLMSIntegrationPage(props: {
           </Modal>
         </div>
       </Card>
-    );
+    )
     return integration.isExpired ? (
       <Badge.Ribbon color={'red'} text={'API Key Expired'}>
         {card}
       </Badge.Ribbon>
     ) : (
       card
-    );
+    )
   }
 }
 
@@ -1042,5 +1053,5 @@ const LMSTabLabel: React.FC<{ title: string; isLoading: boolean }> = ({
       <span>{title}</span>
       {isLoading && <LoadingOutlined className={'text-xs'} spin />}
     </div>
-  );
-};
+  )
+}

@@ -2,85 +2,89 @@
 
 <!-- toc (updates automatically on commit) -->
 - [Glossary](#glossary) (L1)
-- [Preface](#preface) (L71)
-- [INTRO TO THE CODEBASE AND TECHSTACK](#intro-to-the-codebase-and-techstack) (L79)
-  - [Codebase](#codebase) (L81)
-  - [Technologies Guide](#technologies-guide) (L102)
-    - [Environment Variables](#environment-variables) (L104)
-    - [What is "State"?](#what-is-state) (L116)
-      - [Synchronizing State between Backend and Frontend](#synchronizing-state-between-backend-and-frontend) (L132)
-        - [Manual Refresh](#manual-refresh) (L144)
-        - [Short Polling](#short-polling) (L174)
-        - [Long Polling](#long-polling) (L186)
-        - [Server Sent Events (SSE) with EventSource](#server-sent-events-sse-with-eventsource) (L198)
-        - [Websockets](#websockets) (L213)
-    - [Frontend](#frontend) (L221)
-      - [React](#react) (L223)
-        - [JSX](#jsx) (L233)
-        - [Hooks](#hooks) (L241)
-        - [Forms](#forms) (L261)
-        - [Next.js](#nextjs) (L285)
-          - [What's with all these `'use client'` & `'use server'` things?](#whats-with-all-these-use-client--use-server-things) (L297)
-      - [Tailwind and CSS](#tailwind-and-css) (L315)
-    - [Backend](#backend) (L327)
-      - [Nest.js files](#nestjs-files) (L329)
-      - [Redis](#redis) (L346)
-      - [Endpoints](#endpoints) (L353)
-        - [Guards and `@Roles`](#guards-and-roles) (L355)
-        - [`@User` and `@UserId` decorators](#user-and-userid-decorators) (L365)
-        - [File Uploads](#file-uploads) (L371)
-        - [Gotchas while naming your endpoint - Routing mismatches](#gotchas-while-naming-your-endpoint---routing-mismatches) (L409)
-        - [Endpoints that change their behavior based on role](#endpoints-that-change-their-behavior-based-on-role) (L421)
-        - [Why some endpoints have `@Res` and some don't](#why-some-endpoints-have-res-and-some-dont) (L451)
-          - [Ways to return errors/http status codes + messages](#ways-to-return-errorshttp-status-codes--messages) (L466)
-      - [Data Transfer Objects (DTOs), Serialization, and Sending Data from Frontend to Backend (and vise-versa)](#data-transfer-objects-dtos-serialization-and-sending-data-from-frontend-to-backend-and-vise-versa) (L478)
-        - [Backend Deserialization and Validation](#backend-deserialization-and-validation) (L488)
-        - [Frontend Deserialization (and Validation)](#frontend-deserialization-and-validation) (L548)
-      - [TypeORM](#typeorm) (L603)
-        - [Entities (Database Schema)](#entities-database-schema) (L609)
-          - [Editing Entities (& Migrations)](#editing-entities--migrations) (L615)
-        - [Queries](#queries) (L634)
-          - [Queries using Model methods](#queries-using-model-methods) (L640)
-          - [Queries using QueryBuilder](#queries-using-querybuilder) (L646)
-          - [Queries using QueryRunner](#queries-using-queryrunner) (L661)
-          - [Raw SQL queries](#raw-sql-queries) (L676)
-          - [Always include tiebreakers in your SELECT queries](#always-include-tiebreakers-in-your-select-queries) (L689)
-        - [Examples of typeorm runtime errors](#examples-of-typeorm-runtime-errors) (L694)
-          - [Missing relations](#missing-relations) (L696)
-          - [Querying with models and IsNull()](#querying-with-models-and-isnull) (L722)
-          - [.find() returns null not undefined if not found](#find-returns-null-not-undefined-if-not-found) (L749)
-        - [.save()](#save) (L755)
-        - [Transactions](#transactions) (L761)
-          - [Important edge case with transactions](#important-edge-case-with-transactions) (L799)
-      - [Testing](#testing) (L834)
-        - [What is mocking?](#what-is-mocking) (L838)
-        - [To mock or not to mock?](#to-mock-or-not-to-mock) (L842)
-        - [Parallel tests and determinism](#parallel-tests-and-determinism) (L850)
-      - [Event Subscribers](#event-subscribers) (L871)
-  - [Known Quirks when Developing](#known-quirks-when-developing) (L886)
-- [History](#history) (L901)
-  - [Contributors (by commit count, not including merges)](#contributors-by-commit-count-not-including-merges) (L932)
-    - [Chatbot Repo](#chatbot-repo) (L938)
-    - [Current HelpMe Repo](#current-helpme-repo) (L950)
-    - [Old HelpMe Repo](#old-helpme-repo) (L977)
-- [TODO](#todo) (L1026)
-  - [For the whole project](#for-the-whole-project) (L1028)
-  - [For this document](#for-this-document) (L1033)
+- [Preface](#preface) (L74)
+- [INTRO TO THE CODEBASE AND TECHSTACK](#intro-to-the-codebase-and-techstack) (L82)
+  - [Codebase](#codebase) (L84)
+  - [General Wisdom](#general-wisdom) (L106)
+    - [Comments](#comments) (L108)
+    - [Useful Utility functions](#useful-utility-functions) (L116)
+  - [Technologies Guide](#technologies-guide) (L125)
+    - [Environment Variables](#environment-variables) (L129)
+    - [What is "State"?](#what-is-state) (L141)
+      - [Synchronizing State between Backend and Frontend](#synchronizing-state-between-backend-and-frontend) (L157)
+        - [Manual Refresh](#manual-refresh) (L169)
+        - [Short Polling](#short-polling) (L201)
+        - [Long Polling](#long-polling) (L214)
+        - [Server Sent Events (SSE) with EventSource](#server-sent-events-sse-with-eventsource) (L227)
+        - [Websockets](#websockets) (L243)
+    - [Frontend](#frontend) (L252)
+      - [React](#react) (L254)
+        - [JSX](#jsx) (L264)
+        - [Hooks](#hooks) (L271)
+        - [Forms](#forms) (L292)
+        - [Next.js](#nextjs) (L318)
+          - [What's with all these `'use client'` & `'use server'` things?](#whats-with-all-these-use-client--use-server-things) (L330)
+      - [Tailwind and CSS](#tailwind-and-css) (L348)
+    - [Backend](#backend) (L361)
+      - [Nest.js files](#nestjs-files) (L363)
+      - [Redis](#redis) (L381)
+      - [Endpoints](#endpoints) (L389)
+        - [Guards and `@Roles`](#guards-and-roles) (L391)
+        - [`@User` and `@UserId` decorators](#user-and-userid-decorators) (L402)
+        - [File Uploads](#file-uploads) (L408)
+        - [Gotchas while naming your endpoint - Routing mismatches](#gotchas-while-naming-your-endpoint---routing-mismatches) (L447)
+        - [Endpoints that change their behavior based on role](#endpoints-that-change-their-behavior-based-on-role) (L460)
+        - [Why some endpoints have `@Res` and some don't](#why-some-endpoints-have-res-and-some-dont) (L490)
+          - [Ways to return errors/http status codes + messages](#ways-to-return-errorshttp-status-codes--messages) (L506)
+      - [Data Transfer Objects (DTOs), Serialization, and Sending Data from Frontend to Backend (and vise-versa)](#data-transfer-objects-dtos-serialization-and-sending-data-from-frontend-to-backend-and-vise-versa) (L519)
+        - [Backend Deserialization and Validation](#backend-deserialization-and-validation) (L529)
+        - [Frontend Deserialization (and Validation)](#frontend-deserialization-and-validation) (L596)
+      - [TypeORM](#typeorm) (L657)
+        - [Entities (Database Schema)](#entities-database-schema) (L663)
+          - [Editing Entities (& Migrations)](#editing-entities--migrations) (L669)
+        - [Queries](#queries) (L687)
+          - [Queries using Model methods](#queries-using-model-methods) (L693)
+          - [Queries using QueryBuilder](#queries-using-querybuilder) (L699)
+          - [Queries using QueryRunner](#queries-using-queryrunner) (L715)
+          - [Raw SQL queries](#raw-sql-queries) (L731)
+          - [Always include tiebreakers in your SELECT queries](#always-include-tiebreakers-in-your-select-queries) (L747)
+        - [Examples of typeorm runtime errors](#examples-of-typeorm-runtime-errors) (L752)
+          - [Missing relations](#missing-relations) (L754)
+          - [Querying with models and IsNull()](#querying-with-models-and-isnull) (L787)
+          - [.find() returns null not undefined if not found](#find-returns-null-not-undefined-if-not-found) (L816)
+        - [.save()](#save) (L822)
+        - [Transactions](#transactions) (L828)
+          - [Important edge case with transactions](#important-edge-case-with-transactions) (L867)
+      - [Testing](#testing) (L903)
+        - [What is mocking?](#what-is-mocking) (L907)
+        - [To mock or not to mock?](#to-mock-or-not-to-mock) (L911)
+        - [Parallel tests and determinism](#parallel-tests-and-determinism) (L919)
+      - [Event Subscribers](#event-subscribers) (L940)
+  - [Known Quirks when Developing](#known-quirks-when-developing) (L956)
+- [History](#history) (L971)
+  - [Contributors (by commit count, not including merges)](#contributors-by-commit-count-not-including-merges) (L1004)
+    - [Chatbot Repo](#chatbot-repo) (L1010)
+    - [Current HelpMe Repo](#current-helpme-repo) (L1022)
+    - [Old HelpMe Repo](#old-helpme-repo) (L1050)
+- [TODO](#todo) (L1098)
+  - [For the whole project](#for-the-whole-project) (L1100)
+  - [For this document](#for-this-document) (L1105)
 <!-- toc:end -->
 
 # Preface
 
-This guide is intended for new developers who are looking to contribute to the HelpMe system and seeks to explain how some of the technologies are used as well as the history of the system. 
+This guide is intended for new developers who are looking to contribute to the HelpMe system and seeks to explain how some of the technologies are used as well as the history of the system.
 
 **Important:** When you're reading this, don't worry if you don't understand everything yet. Just give it a light read to gain a surface level understanding about what's talked about. Then when you encounter relevant code, you can refer back to this to get the full context.
 
-`DEVELOPING.md` has more details on how to set up the system and start developing. 
+`DEVELOPING.md` has more details on how to set up the system and start developing.
 
 # INTRO TO THE CODEBASE AND TECHSTACK
 
 ## Codebase
 
 File structure is as follows:
+
 - `/docs` - contains most of the documentation for the project
 - `/infrastructure` - I have never had to look in here
 - `/packages` - contains all the code for the project
@@ -94,16 +98,37 @@ File structure is as follows:
     - `.env` - Environment variables for the frontend
     - `/app` - contains all the pages and components
       - `/api`
-          - `index.ts` - This is our first important index.ts. Contains functions that call the backend endpoints. It keeps the fetch calls all in one place, making it easier to maintain (e.g. if you renamed an endpoint, you only need to change in 1 area)  
+        - `index.ts` - This is our first important index.ts. Contains functions that call the backend endpoints. It keeps the fetch calls all in one place, making it easier to maintain (e.g. if you renamed an endpoint, you only need to change in 1 area)
     - `/public` - Contains some special public files/images
   - `/common` - shared code between the frontend and backend
     - `index.ts` - This is our other important index.ts. Contains all types or functions used on both the frontend and backend
 
+## General Wisdom
+
+### Comments
+
+Comments are appreciated, but obviously not everything needs comments. Comments explaining _what_ something does is only necessary if the code is complex/obfuscated, and complex/obfuscated code can be worth it if it means better performance or significantly less code for stuff that doesn't matter much (think like regex patterns - they're used often because it can shorten a ton of checks into something very small and performant, even if it's less readable, in which case a comment explaining it is important). More importantly, comments explaining the _why_ can really help maintainability.
+
+_Why_ comments might include why you decided on a particular approach vs another approach you think someone might've choosen. Or maybe why a particular function/file/pattern exists in an area that is sorta "out of the ordinary" for this codebase.
+
+Sometimes, comments can just be explaining how a particular external function or technology works, perhaps giving context for those that are unfamiliar with the technology or why you're using it.
+
+### Useful Utility functions
+
+If you ever create a set of functions that could be useful in other parts of the project, please put it inside a file named `utils.ts` (naming can have slight variations depending on organization).
+
+For example, in `packages/server/src/utils.ts`, there's a function called getFetchErrorMessage() that's meant to be a generalizable function for getting fetch error messages on the backend (on the frontend this gets done automatically by axios).
+
+Please do not clutter up frontend component files or backend service files with a bunch of general utility functions (obviously, if it's really specific for the feature, that's fine).
+Better yet, first check what packages we have installed inside `package.json`, there's a chance we already have a package installed that does the thing you want.
+
 ## Technologies Guide
+
+By "technology" this refers to libraries, languages, tools, or practicies.
 
 ### Environment Variables
 
-`.env` - Rather than storing sensitive information (such as API keys, database passwords, etc.) in the codebase, we store them in a `.env` file. This file is not tracked by git, so it is not shared with anyone else. You will need to create multiple `.env` files for the project, one for the frontend and one for the backend. Follow the example `.env` files in the respective directories to see what you need to add. More details about what each variable does or how to get them can be found in [ENVIRONMENT_VARIABLES.md](ENVIRONMENT_VARIABLES.md). 
+`.env` - Rather than storing sensitive information (such as API keys, database passwords, etc.) in the codebase, we store them in a `.env` file. This file is not tracked by git, so it is not shared with anyone else. You will need to create multiple `.env` files for the project, one for the frontend and one for the backend. Follow the example `.env` files in the respective directories to see what you need to add. More details about what each variable does or how to get them can be found in [ENVIRONMENT_VARIABLES.md](ENVIRONMENT_VARIABLES.md).
 
 You will also need to create a `postgres.env` in your `/server` directory. The reason it is separate from the `/server` .env is that the entire `postgres.env` is loaded into the postgres container.
 
@@ -117,11 +142,11 @@ Note that if you are also setting up the chatbot repo, it also needs a `.env`, w
 
 "State", for lack of a better explanation, refers to what "state" something is in. Think sorta like variables (non-temporary ones). If the entire system was a function, the "state" would be the input variables.
 
-On the frontend we are using React, which pretty much copies this analogy perfectly. You use `useState` hooks to define your state variables, such as whether a button is loading or whether a modal popup is open. React treats the UI as a function of said state. 
+On the frontend we are using React, which pretty much copies this analogy perfectly. You use `useState` hooks to define your state variables, such as whether a button is loading or whether a modal popup is open. React treats the UI as a function of said state.
 
-For example, say we have an extremely simple frontend with just a modal popup with a button that opens said modal. There are two ""states"" the UI can be in: one with the modal open, and one with the modal closed. To match this, we would have the line `const [isModalOpen, setIsModalOpen] = useState(false)`, where `false` is the initial value of the state variable `isModalOpen`. We would then add `<MyModal isOpen={isModalOpen} />`, which now shows us that the modal will be open depending on our `isModalOpen` state (pretend MyModal is a fully implemented component that will show a popup modal when isOpen is true). Lastly, all we need is to program our button with `onClick={setIsModalOpen(!isModalOpen)}` to toggle the open state of the modal. 
+For example, say we have an extremely simple frontend with just a modal popup with a button that opens said modal. There are two ""states"" the UI can be in: one with the modal open, and one with the modal closed. To match this, we would have the line `const [isModalOpen, setIsModalOpen] = useState(false)`, where `false` is the initial value of the state variable `isModalOpen`. We would then add `<MyModal isOpen={isModalOpen} />`, which now shows us that the modal will be open depending on our `isModalOpen` state (pretend MyModal is a fully implemented component that will show a popup modal when isOpen is true). Lastly, all we need is to program our button with `onClick={setIsModalOpen(!isModalOpen)}` to toggle the open state of the modal.
 
-If this is confusing, don't worry, you will get a hang of it as you practice more with React. Most of our React state variables actually just hold the data from the backend (more on that later). 
+If this is confusing, don't worry, you will get a hang of it as you practice more with React. Most of our React state variables actually just hold the data from the backend (more on that later).
 
 Or for an easier example, on the backend your "state" is pretty much your database (technically there may be redis or session variables/cookies too, but don't think to hard about it). If a question gets updated from helping -> resolved, your entire system has changed to a new "state".
 
@@ -143,9 +168,10 @@ For Alice's case, it's not so simple. Our options are the following (taken from 
 
 ##### Manual Refresh
 
-Make Alice's browser only do the request *a single time*. With React, we usually implement this via a `useEffect` hook with an empty dependency array to fetch the data on page load and then store it inside a `useState` variable. However, I should note that technically [you're not supposed to do this](https://react.dev/learn/you-might-not-need-an-effect#fetching-data) since it can cause some duplicate request issues, race conditions, etc. and that you're supposed to use a library for it instead like `react-query` (or `swr` actually with using useSWRImmutable, which I tried out in the [prof-invites PR](https://github.com/ubco-db/helpme/pull/425#discussion_r2641594671) and I recommend you use!)
+Make Alice's browser only do the request _a single time_. With React, we usually implement this via a `useEffect` hook with an empty dependency array to fetch the data on page load and then store it inside a `useState` variable. However, I should note that technically [you're not supposed to do this](https://react.dev/learn/you-might-not-need-an-effect#fetching-data) since it can cause some duplicate request issues, race conditions, etc. and that you're supposed to use a library for it instead like `react-query` (or `swr` actually with using useSWRImmutable, which I tried out in the [prof-invites PR](https://github.com/ubco-db/helpme/pull/425#discussion_r2641594671) and I recommend you use!)
 
 Example of using useSWRImmutable:
+
 ```ts
 const {
     data: organizationSemesters,
@@ -166,9 +192,10 @@ const {
 This is how most of our Frontend gets Backend state. This is because a vast majority of our backend state updates so infrequently that it probably won't affect users if it goes out-of-date with the backend (e.g. organization's name or logo, or a user's name, or the number of queues a course has, etc.).
 
 Pros:
+
 - Simplest to implement.
 - Most performant (it's a single request)
-Cons:
+  Cons:
 - Frontend state will stay outdated even if backend changes.
 
 ##### Short Polling
@@ -178,8 +205,9 @@ Make Alice's browser do a request every so often to check for updates. Maybe eve
 This is how `useSWR` works in the `swr` library out of the box.
 
 Pros:
+
 - Extremely simple to implement for both backend and frontend
-Cons:
+  Cons:
 - Huge performance overhead. Frontend makes many (usually unnecessary) requests, which is bad for battery life for your users. Backend also needs to process more overall requests.
 - Frontend can be out-of-date for periods of time if the refresh interval is too high.
 
@@ -190,6 +218,7 @@ Make Alice's browser open an HTTP request and have it remain open until an updat
 We do not use Long Polling in our system (favouring SSE instead).
 
 Notes:
+
 - Less requests needed than Short Polling, so it will be slightly better for battery life but still ends up with a bunch of unnecessary HTTP requests.
 - Much harder to implement for both frontend and backend. Backend needs a pub/sub system I think (more about that in next section)
 - Has scalability concerns with keeping a bunch of open requests open apparently.
@@ -199,13 +228,14 @@ Notes:
 
 Make Alice's browser open a long-lived HTTP connection that allows the server to continuously send data to the client (1-way).
 
-We use SSE for our queues, queue questions, queue chats, and alerts. Anything where we need the updated backend state on the frontend immediately. 
+We use SSE for our queues, queue questions, queue chats, and alerts. Anything where we need the updated backend state on the frontend immediately.
 
 Notes:
+
 - Allows you to get updated state data from the backend immediately.
-- Probably the best option for most cases in terms of performance/overhead where you need near-instant responses from the backend. 
+- Probably the best option for most cases in terms of performance/overhead where you need near-instant responses from the backend.
 - On the frontend, uses the [EventSource](https://developer.mozilla.org/en-US/docs/Web/API/EventSource) api, which is pretty simple. For our system, we take the data from EventSource (via our custom useEventSource) and pass it into `useSWR` for handling state (probably unnecessary, but will work as a nice Short Polling fallback if the EventSource fails).
-- Needs a publish/subscribe (pub/sub) system on the backend so that various server events can send data to any open EventSource requests. This system has it implemented through redis, where new EventSource requests will subscribe the client to a redis "room" with an array of express.js `res` objects, allowing any part of the backend to call send a "publish message" event to the redis "room" they want to notify. Probably could've been built without redis and instead just use a single array of `res` objects, but at least this way it might be more scalable if we ever get multiple HelpMe instances (each can communicate to the same redis service). 
+- Needs a publish/subscribe (pub/sub) system on the backend so that various server events can send data to any open EventSource requests. This system has it implemented through redis, where new EventSource requests will subscribe the client to a redis "room" with an array of express.js `res` objects, allowing any part of the backend to call send a "publish message" event to the redis "room" they want to notify. Probably could've been built without redis and instead just use a single array of `res` objects, but at least this way it might be more scalable if we ever get multiple HelpMe instances (each can communicate to the same redis service).
 - You can see useQuestions (and look at queue.controller's SSE endpoint) for a full example of this.
 
 See [MDN docs for SSE](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events) for more details.
@@ -215,6 +245,7 @@ See [MDN docs for SSE](https://developer.mozilla.org/en-US/docs/Web/API/Server-s
 Like SSE, but 2-way (client can also now send data to server). Uses the WebSocket protocol.
 
 Notes:
+
 - More overhead than SSE (i.e. worse performance/battery life)
 - Requires more setup than SSE apparently.
 
@@ -224,11 +255,11 @@ Notes:
 
 I highly recommend going through the [Learn React docs](https://react.dev/learn). I've gone through them, they're really nice.
 
-But in short, React components are *functions*, where the *input is state* and the *output (return statement) is JSX* (think HTML + JS combined).
+But in short, React components are _functions_, where the _input is state_ and the _output (return statement) is JSX_ (think HTML + JS combined).
 
-And instead of writing JS to add event listeners and rearrange the DOM etc, you *declare* a UI based on the *state*. It's a completely different way of thinking from regular JS + HTML, and it took me months of programming with it before I sorta started to understand it (which is why I recommend the React docs). It's okay not to like it at first, or maybe even never. I don't care, I'm not your mom. I think React works just fine, but there's a lot of ways you can shoot yourself in the foot and make terrible UIs (e.g. excessive useEffects).
+And instead of writing JS to add event listeners and rearrange the DOM etc, you _declare_ a UI based on the _state_. It's a completely different way of thinking from regular JS + HTML, and it took me months of programming with it before I sorta started to understand it (which is why I recommend the React docs). It's okay not to like it at first, or maybe even never. I don't care, I'm not your mom. I think React works just fine, but there's a lot of ways you can shoot yourself in the foot and make terrible UIs (e.g. excessive useEffects).
 
-I should also note that the term "render" is kinda a loaded term since it can mean a lot of different things. Like it could mean the full process of JSX being processed to paint the browser, or it could just mean a re-run of a component function (remember, React components are just functions!). But fundamentally what you need to know is that every time a React state variable changes, the component function runs again with the new value to calculate what the new UI is. If this updated state variable gets passed to sub-components, those get updated as well. 
+I should also note that the term "render" is kinda a loaded term since it can mean a lot of different things. Like it could mean the full process of JSX being processed to paint the browser, or it could just mean a re-run of a component function (remember, React components are just functions!). But fundamentally what you need to know is that every time a React state variable changes, the component function runs again with the new value to calculate what the new UI is. If this updated state variable gets passed to sub-components, those get updated as well.
 
 ##### JSX
 
@@ -237,18 +268,18 @@ I should also note that the term "render" is kinda a loaded term since it can me
 Want to conditionally render something like an `if` statement? Do: `{condition && (<Component />)}`
 Want to conditionally render something like an `elseif` statement? Do: `{condition ? (<Component />) : (<OtherComponent />)}`
 
-
 ##### Hooks
 
 Here's some yapping about React Hooks. Some of it may actually be pretty handy to know - marked with (!).
 
-`hooks` - Unlike regular functions, hooks cannot be conditionally called. React has a lot of different hooks, but the most common ones you may see are: 
+`hooks` - Unlike regular functions, hooks cannot be conditionally called. React has a lot of different hooks, but the most common ones you may see are:
+
 - (!) `useState` is used to store state in a component (like if a modal is open)
 - `useEffect` is used to run code when the component is rendered, and is usually used to connect to an external system. The second argument is an array of dependencies, which will cause the code to re-run if any of the dependencies change. If you want the code to only run once, pass an empty array.
 - (!) `useSWRImmutable` use this to fetch data from the backend! Much simpler than using a state variable for data, state variable for loading state, state variable for error state, and a useEffect with proper de-duplication. We don't really use this anywhere right now, but I'd really recommend you use this instead of `useState` + `useEffect`. You can find an example of it [here](#manual-refresh), and [read why you shouldn't use a useEffect for fetching data](https://react.dev/learn/you-might-not-need-an-effect#sending-a-post-request)
 - `useCallback` and `useMemo`, where the former is used to memoize functions and the latter to memoize values (i.e. store a function/value so it doesn't get recreated every time the component is rendered). Not needed anymore now that we use React v19, where the React Compiler will auto-add them.
 - `useContext` is basically like a global state variable. Useful for not needing to pass props down through many layers of components. We use this for the userInfo context, which stores the user's information (e.g. their name, email, etc.). Note that SWR comes with its own cache which essentially works as a global context.
-- `useRef` is basically a state variable (i.e. useState) but it *wont* cause a re-render if it changes. It's a little more niche since usually you want the UI to change if its state changes. But one example is for holding a reference to a particular HTML element so you can call functions like `.focus()` (In React, all HTML elements have a `ref` attribute). See [docs](https://react.dev/reference/react/useRef#manipulating-the-dom-with-a-ref)
+- `useRef` is basically a state variable (i.e. useState) but it _wont_ cause a re-render if it changes. It's a little more niche since usually you want the UI to change if its state changes. But one example is for holding a reference to a particular HTML element so you can call functions like `.focus()` (In React, all HTML elements have a `ref` attribute). See [docs](https://react.dev/reference/react/useRef#manipulating-the-dom-with-a-ref)
 - `useReducer` (advanced) is used for adding extra behaviour to your `setState()` calls. AsyncQuestionCardUIReducer is an example of this, where I can define certain "actions" that my other components can call which will manage the state for me. For example, I can dispatch the "EXPAND_QUESTION" action, but unless the state was already in "collapsed", then it won't do anything.
 - (!) `useMediaQuery` a custom hook that returns whether the browser matches the given media query (e.g. `min-width:768px`). Please use this instead of putting `window.width` in a useEffect when trying to render something different based on browser size (or better yet, you can usually just hide the mobile-only component with `className="md:hidden"` and the desktop-only component gets `className="hidden md:flex"`)
 - (!) `useLocalStorage` a custom hook to interface with the browser's Local Storage (might be handy for saving form-state variables). Your browser's Local Storage is pretty much a big JSON file that you can put anything inside (max 5MB though, and maybe don't put anything that sensitive in it)
@@ -269,11 +300,13 @@ The most common form of form is the form-in-modal (form form form form). `Create
 For a regular form example, I would suggest looking at the `ProfInvites.tsx` file.
 
 Key parts:
+
 - DON'T store state variables ourselves (where possible) and DON'T use a useEffect to set them. Put the `initialValues` and `onFinish` attributes inside the `<Form>`, define a `FormValues` type with the types of each form item (number, boolean, dayjs.Dayjs (not Date - just antd things)), and make sure each `<Form.Item>` has a `name` that matches the FormValues type.
 - DON'T validate the form values ourselves (where possible). Pass `rules` to the `<Form.Item>`s
 - Form should contain a button with `htmlType="submit"` since that will trigger the validation step of the Form automatically and then triggers `onFinish` on success
 
 Key parts for modal-forms (includes previous items):
+
 - `okButtonProps={{ autoFocus: true, htmlType: 'submit', loading: isLoading, }}`. The `autoFocus` is the new thing here, which I'm assuming is an accessibility thing.
 - ` modalRender={(dom) => (<Form ... > {dom} </Form>` idk why. antd example had this and I assume it's important
 - `destroyOnHidden` so you don't need to worry about clearing the form state when `onFinish` is done (it was also in the antd example. I think we have a Modal Form or two that lacks this and they are kinda buggy sometimes). If you're worried about a user closing and losing what they were typing, I believe you can use `maskClosable = false`, `keyboard = false` , and/or an `onClose` handler when a user has unsaved changes but meh it probably is fine to go without
@@ -294,47 +327,49 @@ All pages are functions (e.g. `export default function CoursePage(...)`) and all
 
 **Hydration Error** - This error occurs when the server and client render different things. This can happen when the server renders a component that the client doesn't, or when the server renders a component with different props than the client. Usually, these happen from some illegal HTML (e.g. a div inside a p tag) or some other nonos. The most common one I've encountered is ones with antd's `<Spin/>`, and can be fixed by making sure it's within the `<main>` content of the page. More here https://nextjs.org/docs/messages/react-hydration-error
 
-###### What's with all these `'use client'` & `'use server'` things? 
+###### What's with all these `'use client'` & `'use server'` things?
 
 These are from Next.js, and allow us to define whether a component is rendered on the client, the server, or as a server action.
 
-`'use client'` - This component will be sent to the browser to be rendered. Any component that stores state (i.e. with `useState`), has interactability (buttons, forms, etc.), or uses *any* hooks (such as `useCourse` or `useEffect`)
+`'use client'` - This component will be sent to the browser to be rendered. Any component that stores state (i.e. with `useState`), has interactability (buttons, forms, etc.), or uses _any_ hooks (such as `useCourse` or `useEffect`)
 
-**Components with no 'use client' or 'use server'** - These are **server components** (er well they will need the `async` keyword beside function too maybe). These are rendered on the server and sent to the browser and in general you want as many things as possible to be server components. They have the advantage that any fetch calls within them will be made right-away on the server, before anything is rendered, which can improve client performance a lot (really important for SEO!). They can also have client components within them, but not vice-versa (with the exception of layout.tsx), so try to have server components near the root and client components as far down as possible. 
+**Components with no 'use client' or 'use server'** - These are **server components** (er well they will need the `async` keyword beside function too maybe). These are rendered on the server and sent to the browser and in general you want as many things as possible to be server components. They have the advantage that any fetch calls within them will be made right-away on the server, before anything is rendered, which can improve client performance a lot (really important for SEO!). They can also have client components within them, but not vice-versa (with the exception of layout.tsx), so try to have server components near the root and client components as far down as possible.
+
 - NOTE that for our system, we generally do not use server components. For two reasons:
   - Our system is very client-heavy with a lot of interactivity, meaning there is very little that can be pre-rendered
-  - Our system's architecture splits Next.js from our backend. Server components get more performance benefit when you *call things like the database directly*, instead of through the API (causes an extra round-trip).
+  - Our system's architecture splits Next.js from our backend. Server components get more performance benefit when you _call things like the database directly_, instead of through the API (causes an extra round-trip).
 
-`'use server'` - In general, don't use this as that's for *making server actions* and *NOT for designating server components*. Server actions are "asynchronous functions" and are sorta like endpoints. We don't really use these as we are using our own endpoints. 
+`'use server'` - In general, don't use this as that's for _making server actions_ and _NOT for designating server components_. Server actions are "asynchronous functions" and are sorta like endpoints. We don't really use these as we are using our own endpoints.
 
-Our application is pretty client-heavy (with lots of interactions from the user) and was also built before server components were possible, so most of the components are client components. 
+Our application is pretty client-heavy (with lots of interactions from the user) and was also built before server components were possible, so most of the components are client components.
 
 More info here https://nextjs.org/learn/react-foundations/server-and-client-components and here https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations
-
 
 #### Tailwind and CSS
 
 `Tailwind` basically creates a className for every single css property (and culls unused ones). Helps keep styling close to where the code was written (LoC) and prevents worrying about changing a css file and breaking something else. While it covers about 99.9% of cases, there are still some scenarios where you will need to create custom css (such as animations). You can either add said custom css inside `globals.css`, put the css in a custom `myComponent.module.css` that you import (Next.js thing), or you can modify the `tailwind.config.js` file to add custom css classes.
 
 Some things to note about tailwind:
+
 - each number corresponds to 0.25rem (or 4px). So doing `mt-5` is the equivalent of doing `margin-top: 1.25 rem` (or 20px)
 - All colors/numbers/etc can be replaced with a custom value with square brackets (e.g. `py-[0.125rem]` will give vertical padding of 0.125rem)
-- media-queries are *min-width* and not *max-width*. So, doing `md:flex` will give flex for medium (~768px) screens and up. So, if you want something to have less width on mobile, you do `classname="w-10 md:w-20"`
-- LLMs will often times mess up all of these things above, so *please* double-check.
+- media-queries are _min-width_ and not _max-width_. So, doing `md:flex` will give flex for medium (~768px) screens and up. So, if you want something to have less width on mobile, you do `classname="w-10 md:w-20"`
+- LLMs will often times mess up all of these things above, so _please_ double-check.
 - We use the `md:` breakpoint to designate mobile and desktop breakpoints. If you use `sm:`, you will get a weird scenario where some UI components are displaying their mobile version while other's their desktop version. Ideally at some point we have more than just 2 breakpoints (mobile + tablet + desktop).
-- **IMPORTANT**: If the class that you are trying to use does *not* explicitly exist in the codebase anywhere, tailwind's compiler will not recognize it and create the class name for it. This is a common pitfall when trying to do custom colors or lengths, e.g. `bg-${randomColor}` or `w-[${100/numItems}px]` or `text-${error ? 'red' : 'green'}-600`. See [here for more info](https://tailwindcss.com/docs/detecting-classes-in-source-files). To get around this, you can use tailwind's [safelisting](https://tailwindcss.com/docs/detecting-classes-in-source-files#safelisting-specific-utilities), set a global CSS class that changes based on a CSS variable and use inline CSS to change said CSS variable, or just use inline CSS directly. The latter is probably easiest, but using inline CSS may come with some performance issues with React (?)
+- **IMPORTANT**: If the class that you are trying to use does _not_ explicitly exist in the codebase anywhere, tailwind's compiler will not recognize it and create the class name for it. This is a common pitfall when trying to do custom colors or lengths, e.g. `bg-${randomColor}` or `w-[${100/numItems}px]` or `text-${error ? 'red' : 'green'}-600`. See [here for more info](https://tailwindcss.com/docs/detecting-classes-in-source-files). To get around this, you can use tailwind's [safelisting](https://tailwindcss.com/docs/detecting-classes-in-source-files#safelisting-specific-utilities), set a global CSS class that changes based on a CSS variable and use inline CSS to change said CSS variable, or just use inline CSS directly. The latter is probably easiest, but using inline CSS may come with some performance issues with React (?)
 
 ### Backend
 
 #### Nest.js files
 
 `module` - Used by nest.js to figure out what services each controller/service needs. You usually don't need to touch these unless you are making a new controller or service file.
+
 - **Advanced**: Inside the module, you can specify multiple things:
   - **controllers**: all controllers for this module. Each module should have maybe 1-2 controllers (e.g. queue.module.ts has QueueController and QueueInviteController)
-  - **providers**: these are all the services that all your services, controllers, or *services' dependencies* depend on.
-    - E.g. In queue.module, if QueueService needs QuestionService, and QuestionService needs AlertsService, then you must put QueueService,QuestionService, *and* AlertsService as providers
+  - **providers**: these are all the services that all your services, controllers, or _services' dependencies_ depend on.
+    - E.g. In queue.module, if QueueService needs QuestionService, and QuestionService needs AlertsService, then you must put QueueService,QuestionService, _and_ AlertsService as providers
       - However, you can also make question.module, which is an **import** in queue.module, **export** AlertsService and it should automatically be made a provider
-  - **imports**: these are *modules* that you must import if you want access to the services said module exports (e.g. you want to use some function from question.service, so you must add QuestionModule as an import)
+  - **imports**: these are _modules_ that you must import if you want access to the services said module exports (e.g. you want to use some function from question.service, so you must add QuestionModule as an import)
   - **forwardRef** - Used to resolve a circular dependency where two modules depend on each other
 
 `controller` - Defines an endpoint and the various calls you can make to it. Takes in requests, does business logic, and then sends a response. They're supposed to be fairly lightweight and not call the database directly; however, nearly all of our endpoints are implemented incorrectly where the entire endpoint is written in the controller. Integration tests test these.
@@ -346,6 +381,7 @@ Some things to note about tailwind:
 #### Redis
 
 `redis` - A fast, in-memory database that we use for caching frequently accessed data. Sometimes, there can be issues where the redis database is not in sync with the actual database. If this happens, follow these steps to flush the redis cache:
+
 1. Open the redis container in docker desktop and go to the "Exec" tab
 2. Run `redis-cli` to open the redis command line
 3. Run `flushall` to flush the cache
@@ -354,13 +390,14 @@ Some things to note about tailwind:
 
 ##### Guards and `@Roles`
 
-Guards are a thing from Nest.js. They are basically pretty functions that you can "decorate" at the top of your function rather than in the function body. 
+Guards are a thing from Nest.js. They are basically pretty functions that you can "decorate" at the top of your function rather than in the function body.
 
-Some that you will see are jwtAuthGuard (checks if user is logged in) as well as emailVerifiedGuard (only users with verified email can access this endpoint). 
+Some that you will see are jwtAuthGuard (checks if user is logged in) as well as emailVerifiedGuard (only users with verified email can access this endpoint).
 
-One special one to note is CourseRolesGuard (only users in the course with the specified role may call this endpoint), which requires one of the params to have a name of courseId, id, or cid. Without one of these params, it will think none is provided and will error (so the endpoint must take one of these in order to function). 
+One special one to note is CourseRolesGuard (only users in the course with the specified role may call this endpoint), which requires one of the params to have a name of courseId, id, or cid. Without one of these params, it will think none is provided and will error (so the endpoint must take one of these in order to function).
 This guard (as well as others) will interact with the `@Roles` decorator, which specifies which roles CourseRolesGuard will take.
-- Note that without a decorator to consume the roles (CourseRolesGuard, AsyncQuestionRolesGuard, OrganizationRolesGuard, etc.), `@Roles` *will not do anything* (think of `@Roles` like an argument to a function)
+
+- Note that without a decorator to consume the roles (CourseRolesGuard, AsyncQuestionRolesGuard, OrganizationRolesGuard, etc.), `@Roles` _will not do anything_ (think of `@Roles` like an argument to a function)
 
 ##### `@User` and `@UserId` decorators
 
@@ -403,8 +440,9 @@ If your endpoint requires a file upload from the user, please use Nest.js's Pars
 ```
 
 Note the following:
-- Using `@Throttle()`. All of our endpoints are throttled with a global 30 calls per second. Obviously, someone trying to upload 30 files/sec would quickly result in server overload. So add a more restrictive throttle. 
-- `@UploadedFile()` with `@ParseFilePipeBuilder` with `addFileTypeValidator` and `addMaxSizeValidator`. Using these will cover like 90% of use cases where you need file upload from user. 
+
+- Using `@Throttle()`. All of our endpoints are throttled with a global 30 calls per second. Obviously, someone trying to upload 30 files/sec would quickly result in server overload. So add a more restrictive throttle.
+- `@UploadedFile()` with `@ParseFilePipeBuilder` with `addFileTypeValidator` and `addMaxSizeValidator`. Using these will cover like 90% of use cases where you need file upload from user.
 
 ##### Gotchas while naming your endpoint - Routing mismatches
 
@@ -413,6 +451,7 @@ Note the following:
 To fix this, you could name your endpoints something like `questions/user/:userId` and `question/course/:courseId` so that it's obvious which endpoint gets called with `GET question/user/1`.
 
 Though, I have also experienced a time where a route subpath was inserted as an id, for example if I have two endpoints:
+
 - `queue/:id`
 - `queue/allqueues`
 
@@ -420,9 +459,9 @@ and then try to call `GET queue/allqueues`, sometimes the routing will decide th
 
 ##### Endpoints that change their behavior based on role
 
-Lets say you have an endpoint that returns different data or does different actions based on the *role* of who is calling it.
+Lets say you have an endpoint that returns different data or does different actions based on the _role_ of who is calling it.
 
-For example, you're making an endpoint gets all queue questions for a user as a nice history. 
+For example, you're making an endpoint gets all queue questions for a user as a nice history.
 
 `@Get('questions/history/:userId')`
 
@@ -458,6 +497,7 @@ e.g. `res.status(200).send(updatedQuestion)`
 You would also send all your errors this way, e.g. `res.status(404).send("Question Not Found")`
 
 However, Nest.js adds some other ways of doing things so you don't need to use `@Res`:
+
 - You can throw different types of HttpExceptions (see next section)
 - To return a response, just use `return`
   - e.g. `return updatedQuestion`
@@ -466,6 +506,7 @@ However, Nest.js adds some other ways of doing things so you don't need to use `
 ###### Ways to return errors/http status codes + messages
 
 There are multiple ways to make your endpoints give different errors/status codes. There's no real difference. Nest.js will catch any uncaught errors and return the corresponding error code and given message.
+
 - `throw new xyzException("Some message")` - recommended (simple)
   - e.g. `throw new BadRequestException("SomeField must not be empty")`
   - Note that these exceptions must be instance of an HttpException (regular exceptions like FileNotFound will become 500 errors)
@@ -481,15 +522,16 @@ There is a few things you need to know when sending data between the Frontend to
 
 So in strongly typed languages you have types and object types. These help give intellisense when you use a variable wrong amongst other things. This is fantastic, but it doesn't work across networks (Frontend to Backend or vise-versa). This is known as end-to-end type safety. Some newer Frameworks have this, but ours does not. We have to define the shared types between the Frontend and the Backend, and these are known as Data Transfer Objects or DTOs, and they are stored in `common/index.ts`.
 
-However, defining the types alone normally wouldn't be enough. This is because any data sent between the Frontend and Backend is first turned into one big string, a process known as Serialization. Turning this big string back into an object is known as Deserialization. 
+However, defining the types alone normally wouldn't be enough. This is because any data sent between the Frontend and Backend is first turned into one big string, a process known as Serialization. Turning this big string back into an object is known as Deserialization.
 
 What this means for you is that the attributes of the objects the Backend/Frontend receive are usually all strings. Since it would be annoying to manually convert these to their actual types (e.g. `const myTotal = Number(response.data.total)`) we employ a couple libraries to automatically convert them as explained in the next sections.
 
 ##### Backend Deserialization and Validation
 
-For the Backend, Nest.js has various pipes for serializing sent parameters, such as `ParseIntPipe` and `ParseEnumPipe`. For bodies, defined by the `@Body` decorator, these will **automatically be serialized *and validated* assuming that it's given a valid class-validator DTO**.
+For the Backend, Nest.js has various pipes for serializing sent parameters, such as `ParseIntPipe` and `ParseEnumPipe`. For bodies, defined by the `@Body` decorator, these will **automatically be serialized _and validated_ assuming that it's given a valid class-validator DTO**.
 
 For example, see this endpoint definition:
+
 ```ts
 @Patch(':questionId')
 @UseGuards(QuestionRolesGuard)
@@ -500,19 +542,23 @@ async updateQuestion(
   @UserId() userId: number,
 ): Promise<UpdateQuestionResponse> {
 ```
+
 There are two problems here.
 
-First, while it looks like the `questionId` parameter will always be a `number`, this is actually not the case and it is actually a ***string***. Not only that, the user can actually pass in anything they want to the `questionId` field, including `"bob"`, `"null"`, `"\"DROP TABLE user;"`. This could be extremely dangerous, and you will receive no warning or error about it. And if you don't write your TypeORM queries correctly, could result in SQL Injection attacks. 
+First, while it looks like the `questionId` parameter will always be a `number`, this is actually not the case and it is actually a _**string**_. Not only that, the user can actually pass in anything they want to the `questionId` field, including `"bob"`, `"null"`, `"\"DROP TABLE user;"`. This could be extremely dangerous, and you will receive no warning or error about it. And if you don't write your TypeORM queries correctly, could result in SQL Injection attacks.
 
 To fix this, add `ParseIntPipe` like so:
+
 ```ts
 @Param('questionId', ParseIntPipe) questionId: number,
 ```
+
 This will ensure that `questionId` is always a valid number and will reject the request otherwise.
 
-The next issue is the `body`. Like `questionId`, the attributes of the body (`text`, `queueId`, and `status`) are all non-validated and not deserialized, meaning they are all strings and the strings can be anything. Additionally, the user can pass additional attributes in the `body` or even none at all. 
+The next issue is the `body`. Like `questionId`, the attributes of the body (`text`, `queueId`, and `status`) are all non-validated and not deserialized, meaning they are all strings and the strings can be anything. Additionally, the user can pass additional attributes in the `body` or even none at all.
 
 To fix this, defined a `DTO` inside `common/index.ts` and use decorators from the `class-validator` package for each attribute, like so:
+
 ```ts
 export class UpdateQuestionParams {
   @IsString()
@@ -534,26 +580,29 @@ export class UpdateQuestionParams {
   status?: QuestionStatus
 }
 ```
+
 and then change the endpoint like so:
+
 ```ts
 @Body() body: UpdateQuestionParams,
 ```
 
-Now, all attributes of the `body` object are deserialized *and* validated.
+Now, all attributes of the `body` object are deserialized _and_ validated.
 
 For more details on Nest.js Pipes and Validation, see https://docs.nestjs.com/techniques/validation
 
-***NOTE***: Like with the Frontend, your DTO **MUST** be a *class* and **MUST** use *class-validator decorators* otherwise it will not work. If your DTO is a `type`, `interface`, etc. just *assume* that it won't be validated nor deserialized entirely.
+_**NOTE**_: Like with the Frontend, your DTO **MUST** be a _class_ and **MUST** use _class-validator decorators_ otherwise it will not work. If your DTO is a `type`, `interface`, etc. just _assume_ that it won't be validated nor deserialized entirely.
 
 ##### Frontend Deserialization (and Validation)
 
 By default, any data sent from the backend to the frontend seems to have some basic deserialization done (perhaps done automatically by Axios). This means if your endpoint returns data that's just basic objects, arrays, strings, and integers, it should appear to work fine. Most of our endpoints are like this, actually (but probably shouldn't be). If your endpoint returns something like a Date, this will remain as a string unless deserialized or has a proper DTO setup.
 
-Also, currently we don't *really* validate the data given by the backend, which is technically a security vulnerability if our Backend is compromised and starts sending bad data to clients. I mean we have some, like React already auto-escapes HTML, but the key thing is that our backend can return *different* data than what the DTO says it returns without a proper setup.
+Also, currently we don't _really_ validate the data given by the backend, which is technically a security vulnerability if our Backend is compromised and starts sending bad data to clients. I mean we have some, like React already auto-escapes HTML, but the key thing is that our backend can return _different_ data than what the DTO says it returns without a proper setup.
 
 Now, if you want to make your Frontend do validation and deserialization, follow the example below.
 
 For this frontend api method (inside `frontend/app/api/index.ts`)...
+
 ```ts
 getAllProfInvites: async (
   orgId: number,
@@ -567,7 +616,9 @@ getAllProfInvites: async (
     { courseId },
   ),
 ```
+
 ...and corresponding response class DTO inside `common/index.ts`...
+
 ```ts
 export class GetProfInviteResponse {
   @IsString()
@@ -577,11 +628,14 @@ export class GetProfInviteResponse {
   expiresAt!: Date
 }
 ```
-... this would have the issue where all my `expiresAt` times would be strings like `"2012-01-04T20:00:00.000Z"`. You *could* fix this by just putting `new Date(invite.expiresAt)` around each time you use it, but there's a proper way to do it so it happens automatically. 
+
+... this would have the issue where all my `expiresAt` times would be strings like `"2012-01-04T20:00:00.000Z"`. You _could_ fix this by just putting `new Date(invite.expiresAt)` around each time you use it, but there's a proper way to do it so it happens automatically.
 
 To do so:
+
 1. Put your response class as a generic to the `req` method
 2. Pass your response class as a parameter to the `req` method
+
 ```ts
 getAllProfInvites: async (
   orgId: number,
@@ -598,7 +652,7 @@ getAllProfInvites: async (
 
 And just like that, your dates are now deserialized automatically! Additionally, if you added proper class validators like `IsString()`, `IsEnum()`, etc., you will have validated the backend output as well, improving security in case the backend gets compromised!
 
-***NOTE***: Like with the Backend, your DTO **MUST** be a *class* and **MUST** use *class-validator decorators* otherwise it will not work. If your DTO is a `type`, `interface`, etc. just *assume* that it won't be validated nor deserialized entirely.
+_**NOTE**_: Like with the Backend, your DTO **MUST** be a _class_ and **MUST** use _class-validator decorators_ otherwise it will not work. If your DTO is a `type`, `interface`, etc. just _assume_ that it won't be validated nor deserialized entirely.
 
 #### TypeORM
 
@@ -608,15 +662,15 @@ This section may be expanded upon in the future, but for now it might be best to
 
 ##### Entities (Database Schema)
 
-The `table_name.entity.ts` files define the tables of our database schema and their relationships with one another. 
+The `table_name.entity.ts` files define the tables of our database schema and their relationships with one another.
 
 For more general information around entities and different column types, check out the (typeORM docs)[https://typeorm.io/docs/entity/entities/]
 
 ###### Editing Entities (& Migrations)
 
-If you want to add/delete/edit a table column, note that you must also generate a migration file. The migration files works as a history of database schema changes and can be re-used to reconstruct or roll-back the database schema. 
+If you want to add/delete/edit a table column, note that you must also generate a migration file. The migration files works as a history of database schema changes and can be re-used to reconstruct or roll-back the database schema.
 
-The easiest way to generate migrations is head to the `/dev` page (http://localhost:3000/dev), set a name for the migration you want to generate (kebab-case-please), and then click the generate migration button. 
+The easiest way to generate migrations is head to the `/dev` page (http://localhost:3000/dev), set a name for the migration you want to generate (kebab-case-please), and then click the generate migration button.
 
 You can also generate a migration file with: `yarn migration:generate ./migration/your-migration-name`. Note that this will wipe your dev database. If you want to keep it, you can make a backup by running the commands:
 
@@ -626,7 +680,6 @@ You can also generate a migration file with: `yarn migration:generate ./migratio
 
 You may need to adjust the commands slightly depending on the name of your docker container name or postgres admin username (they might also incorrect, I haven't tested them in a bit -Adam).
 
-
 Additionally, if your database change requires some custom query to update old production data, you can add it in your migration file (just don't forget to also define a `down` step too so the query can be un-done).
 
 In `dev` mode, all changes to database schema happen automatically and you won't need to run the migrations. Though there can some [quirks](#known-quirks-when-developing) if there's preexisting data that is illegal in the schema, but you will get a detailed error message to let you know what to fix.
@@ -635,7 +688,7 @@ In `dev` mode, all changes to database schema happen automatically and you won't
 
 Typeorm provides many different ways to write queries. It is almost a pain on how much flexibility they give. And the worst part is, they each have their own quirks and gotchas.
 
-**Important**: Unless your endpoint is just a simple read operation, use a [transaction](#transactions). 
+**Important**: Unless your endpoint is just a simple read operation, use a [transaction](#transactions).
 
 ###### Queries using Model methods
 
@@ -645,17 +698,18 @@ There are other ways to write queries this way, like `dataSource.getRepository(U
 
 ###### Queries using QueryBuilder
 
-Gives more control over your queries compared to Model Methods, but less control compared to raw SQL. It's a weird hybrid. 
+Gives more control over your queries compared to Model Methods, but less control compared to raw SQL. It's a weird hybrid.
 
 Docs: https://typeorm.io/docs/query-builder/select-query-builder
 
 Example
+
 ```ts
 const firstUser = await dataSource
-    .getRepository(User)
-    .createQueryBuilder("user")
-    .where("user.id = :id", { id: 1 })
-    .getOne()
+  .getRepository(User)
+  .createQueryBuilder('user')
+  .where('user.id = :id', { id: 1 })
+  .getOne()
 ```
 
 ###### Queries using QueryRunner
@@ -665,9 +719,10 @@ I don't really know when you'd want to use this. If you were looking to use a tr
 Docs: https://typeorm.io/docs/query-runner/
 
 Example
+
 ```ts
 const queryRunner = dataSource.createQueryRunner()
-await queryRunner.query("SELECT 1")
+await queryRunner.query('SELECT 1')
 await queryRunner.release()
 ```
 
@@ -678,10 +733,13 @@ await queryRunner.release()
 Sometimes you're doing something so niche that the query builder doesn't support it, it would make it far less performant, or it would be much harder to do with the query builder compared to just writing raw SQL.
 
 ```ts
-const users = await this.dataSource.query(`
+const users = await this.dataSource.query(
+  `
   SELECT * FROM users 
   WHERE id = $1 AND status = $2
-`, [userId, status]);
+`,
+  [userId, status],
+)
 ```
 
 Important: Never insert user-provided values directly into raw SQL queries (allows for prompt injection - [Little Bobby Tables](https://xkcd.com/327/) sends his regards).
@@ -697,53 +755,62 @@ To avoid this, always include a tiebreaker in your `ORDER BY` clause, such as `i
 
 One thing to note is that sometimes the types for the queries may be wrong.
 For example, you might want to check if the user is a TA or Prof in any course, so you do:
+
 ```ts
 const user: UserModel = await UserModel.findOne({
   where: {
-    id: userId
-  }
-});
-const isStaff = user.courses.some((userCourse) => userCourse.role === Role.PROFESSOR || userCourse.role === Role.TA);
+    id: userId,
+  },
+})
+const isStaff = user.courses.some(
+  (userCourse) =>
+    userCourse.role === Role.PROFESSOR || userCourse.role === Role.TA,
+)
 ```
-This will result in a *runtime* error (so you get no warning beforehand) because `user.courses` will be undefined because the database join was not made.
+
+This will result in a _runtime_ error (so you get no warning beforehand) because `user.courses` will be undefined because the database join was not made.
 
 You can perform the database join like so (see https://orkhan.gitbook.io/typeorm/docs/find-options for more details/options):
+
 ```ts
 const user: UserModel = await UserModel.findOne({
-      where: {
-        id: userId,
-      },
-      relations: { // this performs a join to get the user's UserCourses
-        courses: true
-      }
-    });
+  where: {
+    id: userId,
+  },
+  relations: {
+    // this performs a join to get the user's UserCourses
+    courses: true,
+  },
+})
 ```
 
 ###### Querying with models and IsNull()
 
 ```ts
-const alerts = await AlertModel.find({	    
-  where: {	   
-    courseId,	
-    user,	
-    resolved: null,	      
+const alerts = await AlertModel.find({
+  where: {
+    courseId,
+    user,
+    resolved: null,
   },
-});
+})
 ```
 
 This would cause a runtime error for two reasons:
+
 1. You cannot query with `null` and must instead use `IsNull()`
 2. For some reason you can no longer query with a Model (in this case it was a UserModel). You must query with an id.
 
 Example fix:
+
 ```ts
-const alerts = await AlertModel.find({	    
-  where: {	   
-    courseId,	
-    userId: user.id,	
-    resolved: IsNull(),	      
+const alerts = await AlertModel.find({
+  where: {
+    courseId,
+    userId: user.id,
+    resolved: IsNull(),
   },
-});
+})
 ```
 
 ###### .find() returns null not undefined if not found
@@ -760,26 +827,27 @@ Doing `.update()` or `.insert()` will not serialize the data and will only retur
 
 ##### Transactions
 
-If your endpoint involves multiple database calls, it is recommended to use a transactionalEntityManager so that all the queries will run in a transaction. 
+If your endpoint involves multiple database calls, it is recommended to use a transactionalEntityManager so that all the queries will run in a transaction.
 
-This is important because if any queries fail, you usually want all queries in the transaction to be automatically rolled back. 
+This is important because if any queries fail, you usually want all queries in the transaction to be automatically rolled back.
 
 Here is an example from the addEvent() method inside calendar.controller.ts:
 
 ```ts
 await this.dataSource.transaction(async (transactionalEntityManager) => {
-  event = await transactionalEntityManager.save(CalendarModel, { // Important that you do this instead of CalendarModel.save() otherwise it will not be inside the transaction.
+  event = await transactionalEntityManager.save(CalendarModel, {
+    // Important that you do this instead of CalendarModel.save() otherwise it will not be inside the transaction.
     title: body.title,
     start: body.start,
     // other attributes...
-  });
+  })
   if (body.staffIds) {
     for (const staffId of body.staffIds) {
       await this.calendarService.createCalendarStaff(
         staffId,
         event,
         transactionalEntityManager, // notice how you can pass the transactionalEntityManager to service methods, which can then use it to make queries that would outside of the transaction otherwise
-      );
+      )
       await this.calendarService.createAutoCheckoutCronJob(
         staffId, // even if this method throws an error, the transaction will fail and all the above queries will get rolled back
         event.id,
@@ -788,10 +856,10 @@ await this.dataSource.transaction(async (transactionalEntityManager) => {
         event.end,
         event.daysOfWeek || [],
         cid,
-      );
+      )
     }
   }
-});
+})
 ```
 
 There are more examples inside asyncQuestion.controller.ts
@@ -799,36 +867,37 @@ There are more examples inside asyncQuestion.controller.ts
 ###### Important edge case with transactions
 
 When you do:
+
 ```ts
 createdQueue = await transactionalEntityManager
-    .create(QueueModel, {
-      room,
-      courseId,
-      type,
-      staffList: [],
-      questions: [],
-      allowQuestions: true,
-      notes,
-      isProfessorQueue,
-      config,
-    })
-    .save();
+  .create(QueueModel, {
+    room,
+    courseId,
+    type,
+    staffList: [],
+    questions: [],
+    allowQuestions: true,
+    notes,
+    isProfessorQueue,
+    config,
+  })
+  .save()
 ```
-typeorm will decide to put that into a transaction *inside* your other transaction (because frick you). Replace that code with the following:
+
+typeorm will decide to put that into a transaction _inside_ your other transaction (because frick you). Replace that code with the following:
+
 ```ts
-createdQueue = await transactionalEntityManager
-      .getRepository(QueueModel)
-      .save({
-        room,
-        courseId,
-        type,
-        staffList: [],
-        questions: [],
-        allowQuestions: true,
-        notes,
-        isProfessorQueue,
-        config,
-      });
+createdQueue = await transactionalEntityManager.getRepository(QueueModel).save({
+  room,
+  courseId,
+  type,
+  staffList: [],
+  questions: [],
+  allowQuestions: true,
+  notes,
+  isProfessorQueue,
+  config,
+})
 ```
 
 #### Testing
@@ -873,38 +942,40 @@ Things that make parallel tests flaky:
 Typeorm has `@EventSubscriber`, which allows you to define certain actions after/before an insert, update, or delete.
 
 Some examples of where this is used:
-- For busting (deleting) the redis profile cache whenever a relevant entity updates (e.g. when a new UserCourse entity is created from a student joining a course, we need to bust their profile cache so they can see the new course) 
+
+- For busting (deleting) the redis profile cache whenever a relevant entity updates (e.g. when a new UserCourse entity is created from a student joining a course, we need to bust their profile cache so they can see the new course)
 - For notifying and sending new queue question data to all users subscribed to queue Server Sent Events (which happens automatically when you are viewing a queue page)
 
 See https://typeorm.io/docs/listeners-and-subscribers/ for more info
 
 **Important Gotchas:**
+
 - For `afterUpdate`, if you're using a `.update()` statement, the subscriber's `entity` object will only contain what was passed into the `update()` statement. This is really important since you might not even have access to what entities were updated!
 - **VERY IMPORTANT**: TypeORM's entity listeners (afterUpdate, BeforeDelete, etc.) do not commit their transaction until the end of the event. This means it's ABSOLUTELY CRUCIAL that you perform any database operations using the event object's `queryRunner` or `manager` instance since otherwise you won't pull new data.
-
 
 ## Known Quirks when Developing
 
 If you have any ideas on where to even start with fixing these, feel free to give them a stab!
 
-- Sometimes the HMR/hot reload/hot refresh (the thing that immediately rebuilds your running code after saving) doesn't work for the Nestjs server. Sometimes this is a result of it just taking an extra minute to rebuild. Other times it's just stuck and you will need to `ctrl`+`c` the terminal and run `yarn dev` again. 
+- (SHOULD BE FIXED) Sometimes the HMR/hot reload/hot refresh (the thing that immediately rebuilds your running code after saving) doesn't work for the Nestjs server. Sometimes this is a result of it just taking an extra minute to rebuild. Other times it's just stuck and you will need to `ctrl`+`c` the terminal and run `yarn dev` again. 
   - Note: I found that turning AutoSave off and then manually saving when you want to check changes helps. I think HMR gets stuck if it tries to rebuild the backend when it's already rebuilding it. 
-- (SHOULD BE FIXED) Sometimes the tests will just start failing on dev (usually with database connection errors, deadlock, or some table already existing). Restarting your computer *might* help
+- Adding a value to a Postgres enum (for example a new `AutograderRunStatus`) can make TypeORM's dev `synchronize` fail with `operator does not exist: ..._enum = ..._enum_old`. Go into the database and add the value yourself first with `ALTER TYPE <enum> ADD VALUE IF NOT EXISTS '<value>';` (a migration will use the same statement).
+- (SHOULD BE FIXED) Sometimes the tests will just start failing on dev (usually with database connection errors, deadlock, or some table already existing). Restarting your computer _might_ help
 - (SHOULD BE FIXED) There's like a 1 in 40 chance or so that the tests will fail on github actions with one of the errors listed above
-- UI randomly looking funky with no changes? This is very uncommon, but it could be antd updating their css (even though we're using a package manager so we *should* be getting the same version each time. But, I did read somewhere that yarn and other package managers will download newer minor versions of packages even though we have a smaller version in our package.json), or maybe browser caching issue (try `ctrl`+`F5`. It's usually not this but a man can dream).
+- UI randomly looking funky with no changes? This is very uncommon, but it could be antd updating their css (even though we're using a package manager so we _should_ be getting the same version each time. But, I did read somewhere that yarn and other package managers will download newer minor versions of packages even though we have a smaller version in our package.json), or maybe browser caching issue (try `ctrl`+`F5`. It's usually not this but a man can dream).
 - You might run into issues when switching between branches with different migrations (i.e. the database has a different schema between branches) which conflict in some way (typeorm usually resolves fine, but it will error if, for example, a field gets NULL in a non-nullable column). There are a couple of things you can do to fix this.
   - Before switching branches, clear all data using the `/dev` endpoint. (easier)
   - Run either an UPDATE or DELETE SQL query to fix the data (easier if you have beekeeper studio or some other nice UI connected to the database)
 - There's more, I'm sure of it
 
-
 # History
 
-The system was first forked off of [Khoury College's Office Hours system](https://github.com/sandboxnu/office-hours) to be adapted and used for UBCO. The first major test of the system was in COSC 404 in 2022W and was used for hybrid office hours and lab sessions. The results were a resounding success, as the queueing system allowed for labs and office hours to much more easily be managed, cutting confusion for both staff and students. The system also allowed professors to gather insights about what type of questions are being asked and when, which they can then integrate into the design of their courses. 
+The system was first forked off of [Khoury College's Office Hours system](https://github.com/sandboxnu/office-hours) to be adapted and used for UBCO. The first major test of the system was in COSC 404 in 2022W and was used for hybrid office hours and lab sessions. The results were a resounding success, as the queueing system allowed for labs and office hours to much more easily be managed, cutting confusion for both staff and students. The system also allowed professors to gather insights about what type of questions are being asked and when, which they can then integrate into the design of their courses.
 
-Since that first test, there has been significant improvements to the system. 
+Since that first test, there has been significant improvements to the system.
+
 - A course chatbot was added, allowing professors to upload course materials and have the chatbot answer in accordance with these sources. This also comes with tools to customize the AI and the responses it gives, as well as a way to return responses for previously asked questions. As this is a hot area right now, the repo for the chatbot is private, and you will need to contact the maintainers to get access.
-- An asynchronous question centre (aka Anytime Questions) was added, which effectively serves as an email 2.0. Any questions asked here will automatically be answered by the course AI, which TAs and professors can then adjust the answer of. Profs and TAs also have the option of posting the question for other students to see, which can be useful for common questions. 
+- An asynchronous question centre (aka Anytime Questions) was added, which effectively serves as an email 2.0. Any questions asked here will automatically be answered by the course AI, which TAs and professors can then adjust the answer of. Profs and TAs also have the option of posting the question for other students to see, which can be useful for common questions.
 - Many UI improvements and other smaller features
 
 In March 2024, it was decided to copy over the code to a new repo with a fresh commit history. This was because of the number of changes to the system, the desire to change the repo url (as the system is more than just office hours now), and to clean the messy commit history.
@@ -912,12 +983,13 @@ Old repo: https://github.com/ubco-db/office-hours
 New Repo: https://github.com/ubco-db/helpme
 
 During the 2024 Summer, a massive undertaking was done to refactor and re-write nearly the entire frontend. The benefits to this was as follows:
+
 - Upgrade Next.js from v11 to v14, which brought a ton of improvements and optimizations
-    - As a small note, the old frontend used to be located in `/app` and it is now located in `/frontend`  
+  - As a small note, the old frontend used to be located in `/app` and it is now located in `/frontend`
 - Upgrade of many other packages to new versions
-    - `antd` - Upgrade from v4 to v5 which brought a ton of usability, accessibility, and performance improvements, as well as new components to use
-    - Can now use components from `shadcn`
-    - Some of these packages had known security vulnerabilities in them, which were fixed by upgrading
+  - `antd` - Upgrade from v4 to v5 which brought a ton of usability, accessibility, and performance improvements, as well as new components to use
+  - Can now use components from `shadcn`
+  - Some of these packages had known security vulnerabilities in them, which were fixed by upgrading
 - The old codebase would give typescript errors on most functional components, which was really annoying
 - Cut out a lot of old, unused code
 - Rewrite a lot of the code to have better performance, usability, accessibility, and maintainability
@@ -937,91 +1009,91 @@ Command being ran: `git shortlog -sn --no-merges`
 
 ### Chatbot Repo
 
-- 67  bhunt02
-- 46  wskksw 
-- 43  Adam Fipke
-- 23  JasonR24
--  3  Akshat-Kalra
--  2  Bridgette Hunt
--  2  Dmytro Zhuravel
--  2  Karel Joshua Harjono
--  2  Patrick Ma
+- 67 bhunt02
+- 46 wskksw
+- 43 Adam Fipke
+- 23 JasonR24
+- 3 Akshat-Kalra
+- 2 Bridgette Hunt
+- 2 Dmytro Zhuravel
+- 2 Karel Joshua Harjono
+- 2 Patrick Ma
 
-### Current HelpMe Repo 
+### Current HelpMe Repo
+
 (last updated 2026-04-08)
 
-- 1031  Adam Fipke
--  279  bhunt02
--  180  Patrick Ma
--   84  wskksw
--   66  kjassani
--   65  mahigangal
--   63  MithishR
--   49  patrickma6199
--   41  Akshat-Kalra
--   32  Dima Zhuravel
--   29  ribhavsharma
--   22  frasermuller
--   21  Eneshjakhar
--   20  Akshat
--   20  Bridgette Hunt
--   10  Mithish
--    9  Dmytro Zhuravel
--    6  karelharjono
--    3  Ramon Lawrence
--    3  ribhav sharma
--    2  FabianLCH
--    2  root
--    1  Ferdinand
+- 1031 Adam Fipke
+- 279 bhunt02
+- 180 Patrick Ma
+- 84 wskksw
+- 66 kjassani
+- 65 mahigangal
+- 63 MithishR
+- 49 patrickma6199
+- 41 Akshat-Kalra
+- 32 Dima Zhuravel
+- 29 ribhavsharma
+- 22 frasermuller
+- 21 Eneshjakhar
+- 20 Akshat
+- 20 Bridgette Hunt
+- 10 Mithish
+- 9 Dmytro Zhuravel
+- 6 karelharjono
+- 3 Ramon Lawrence
+- 3 ribhav sharma
+- 2 FabianLCH
+- 2 root
+- 1 Ferdinand
 
 ### Old HelpMe Repo
 
 Most of these contributors are from the original Khoury College people.
 
-- 601  dajinchu
-- 460  willstenzel
-- 407  NEUDitao
-- 217  Stanley Liu
-- 154  Iris
-- 148  Danish Farooq
-- 100  aislinblack
--  87  Adam Fipke
--  81  Da-Jin Chu
--  72  Neel Bhalla
--  69  Dima Zhuravel
--  68  wskksw
--  62  kevin wang
--  59  Ferdinand
--  59  tiingweii-shii
--  58  ofloody
--  50  brianyyang
--  33  wstenzel
--  32  sumitde22
--  27  meebs
--  25  JasonR24
--  22  Alex Takayama
--  20  Nicole Danuwidjaja
--  12  dependabot[bot]
--  11  IrisLiu-00
--  10  Vera
--   9  dfarooq610
--   8  Vera Kong
--   7  Juan Tavera
--   7  Will Stenzel
--   5  Ferdinand Haaben
--   5  Olivia Floody
--   4  ashdawngary
--   3  Dmytro Zhuravel
--   3  Eddy Li
--   3  VKong6019
--   2  Edward Li
--   2  Isabel B
--   2  liustanley
--   2  nicoledanuwidjaja
--   1  Hussain Khalil
--   1  bugsalexander
--   1  ethan-leba
-
+- 601 dajinchu
+- 460 willstenzel
+- 407 NEUDitao
+- 217 Stanley Liu
+- 154 Iris
+- 148 Danish Farooq
+- 100 aislinblack
+- 87 Adam Fipke
+- 81 Da-Jin Chu
+- 72 Neel Bhalla
+- 69 Dima Zhuravel
+- 68 wskksw
+- 62 kevin wang
+- 59 Ferdinand
+- 59 tiingweii-shii
+- 58 ofloody
+- 50 brianyyang
+- 33 wstenzel
+- 32 sumitde22
+- 27 meebs
+- 25 JasonR24
+- 22 Alex Takayama
+- 20 Nicole Danuwidjaja
+- 12 dependabot[bot]
+- 11 IrisLiu-00
+- 10 Vera
+- 9 dfarooq610
+- 8 Vera Kong
+- 7 Juan Tavera
+- 7 Will Stenzel
+- 5 Ferdinand Haaben
+- 5 Olivia Floody
+- 4 ashdawngary
+- 3 Dmytro Zhuravel
+- 3 Eddy Li
+- 3 VKong6019
+- 2 Edward Li
+- 2 Isabel B
+- 2 liustanley
+- 2 nicoledanuwidjaja
+- 1 Hussain Khalil
+- 1 bugsalexander
+- 1 ethan-leba
 
 # TODO
 
@@ -1031,6 +1103,7 @@ Most of these contributors are from the original Khoury College people.
 - Do a ctrl+shift+f for "TODO" and do all TODOs
 
 ## For this document
-- Add a list of TODOs 
+
+- Add a list of TODOs
 - Add more technologies
 - Merge stuff from DEVELOPING.md

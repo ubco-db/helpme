@@ -312,3 +312,6 @@ export function checkCourseCreatePermissions(
       organizationSettings?.allowProfCourseCreate)
   );
 }
+
+// Used to display the current HelpMe version in a couple areas of the frontend
+export const HELPME_VERSION = '1.10.7';

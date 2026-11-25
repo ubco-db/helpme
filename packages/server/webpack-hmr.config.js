@@ -12,6 +12,12 @@ module.exports = function (options) {
     ...options,
     entry: ['webpack/hot/poll?100', options.entry],
     watch: true,
+    // A burst of saves (for example a refactor across several files) should
+    // produce one rebuild. Rebuilding while a restart is already in flight is
+    // what used to leave the old server running and stop serving new code.
+    watchOptions: {
+      aggregateTimeout: 750,
+    },
     cache: {
       type: 'filesystem',
       buildDependencies: {
@@ -47,7 +53,11 @@ module.exports = function (options) {
       ...(options.plugins || []),
       new webpack.HotModuleReplacementPlugin(),
       new webpack.WatchIgnorePlugin({ paths: [/\.js$/, /\.d\.ts$/] }),
-      new StartServerPlugin(),
+      // Restart the whole server on each successful rebuild. Nest's in-place
+      // HMR can fail to register new routes/providers, and once it hits that
+      // state it stops restarting at all. A hard restart is slower but always
+      // serves the code that was just compiled.
+      new StartServerPlugin({ signal: 'SIGTERM' }),
     ],
     optimization: {
       emitOnErrors: false,

@@ -1,7 +1,13 @@
 {
   "singleQuote": true,
   "tabWidth": 2,
-  "semi": true,
+  "semi": false,
   "plugins": ["prettier-plugin-tailwindcss"],
-  "trailingComma": "all"
+  "trailingComma": "all",
+  "overrides": [
+    {
+      "files": "*.ts",
+      "options": { "semi": true }
+    }
+  ]
 }

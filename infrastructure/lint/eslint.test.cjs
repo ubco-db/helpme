@@ -239,7 +239,7 @@ test('frontend and root working directories resolve the same rules', async () =>
   )
 })
 
-test('full Promise checks select each workspace project without affecting fast checks', async () => {
+test('full type-aware checks select each workspace project without affecting fast checks', async () => {
   const full = new ESLint({
     cwd: root,
     overrideConfigFile: path.join(root, 'eslint.full.config.js'),
@@ -258,6 +258,7 @@ test('full Promise checks select each workspace project without affecting fast c
       '@typescript-eslint/no-floating-promises',
       '@typescript-eslint/no-misused-promises',
       '@typescript-eslint/await-thenable',
+      '@typescript-eslint/no-deprecated',
     ]) {
       assert.equal(normal.rules[rule], undefined)
       assert.equal(config.rules[rule][0], 1)
@@ -368,10 +369,11 @@ test('query runners must be released in a finally block', async () => {
   const runnerMessages = result.messages.filter(
     (message) => message.ruleId === 'helpme/require-query-runner-release',
   )
-  assert.deepEqual(
-    runnerMessages.map((message) => message.messageId).sort(),
-    ['missingRelease', 'releaseInFinally', 'storeResult'],
-  )
+  assert.deepEqual(runnerMessages.map((message) => message.messageId).sort(), [
+    'missingRelease',
+    'releaseInFinally',
+    'storeResult',
+  ])
 })
 
 test('editor saves format with Prettier without applying ESLint fixes', () => {

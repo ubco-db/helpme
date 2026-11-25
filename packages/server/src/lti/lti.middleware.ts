@@ -288,6 +288,10 @@ export default class LtiMiddleware {
         route: /^\/embeddable-question(?:\/|$)/,
         method: 'ALL',
       },
+      {
+        route: /^\/embeddable\/autograder(?:\/|$)/,
+        method: 'ALL',
+      },
       `/static`,
     ];
 

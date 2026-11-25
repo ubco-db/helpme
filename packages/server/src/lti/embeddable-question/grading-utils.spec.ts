@@ -3,7 +3,7 @@ import { computeMechanicalFacts } from './deterministic-check-utils';
 import {
   BLANK_REQUIREMENT,
   buildAppliedRequirements,
-  buildSystemPrompt,
+  buildGradingPromptInput,
   buildUserPrompt,
   effectiveScoreCap,
   GradingConstraintError,
@@ -169,35 +169,69 @@ describe('question grading contract', () => {
       });
       const question = 'Explain the effects of this policy.';
       const mechanicalFacts = facts(submission, settings);
-      const systemPrompt = buildSystemPrompt(
+      const input = buildGradingPromptInput(
         settings,
         1,
         question,
         mechanicalFacts,
+        settings.feedbackInstructions,
       );
       const userPrompt = buildUserPrompt(submission);
 
-      expect(systemPrompt).toContain(JSON.stringify(question));
-      expect(systemPrompt).toContain(settings.rubric);
-      expect(systemPrompt).toContain(settings.feedbackInstructions);
-      expect(systemPrompt).toContain(settings.humanReviewCriteria);
-      expect(systemPrompt).toContain('Allowed scores: 0, 0.5, 1.');
-      expect(systemPrompt).toContain(
+      expect(input).toMatchObject({
+        questionText: question,
+        rubric: settings.rubric,
+        feedbackInstructions: settings.feedbackInstructions,
+        humanReviewCriteria: settings.humanReviewCriteria,
+        capContract: 'Triggered automatic checks cap the score at 1.',
+      });
+      expect(input.scoreContract).toContain('Allowed scores: 0, 0.5, 1.');
+      expect(input.scoreContract).toContain(
         'Full rubric credit is 2. If no rubric criterion warrants a deduction, select 1.',
       );
-      expect(
-        buildSystemPrompt(settings, null, question, mechanicalFacts),
-      ).toContain(
-        'Full rubric credit is 2. If no rubric criterion warrants a deduction, select 2.',
-      );
-      expect(systemPrompt).not.toContain('## Configured automatic checks');
-      expect(systemPrompt).not.toContain('capitalization');
-      expect(systemPrompt).not.toContain(submission);
+      expect(input.automaticChecks).not.toContain('capitalization');
+      expect(Object.values(input).join('\n')).not.toContain(submission);
       expect(userPrompt).toContain(JSON.stringify(submission));
       expect(userPrompt).not.toContain(question);
       expect(userPrompt).not.toContain(settings.rubric);
     },
   );
+
+  it('omits untriggered checks and lists the uncapped score scale', () => {
+    const settings = makeSettings({
+      checks: [{ kind: 'capitalization', term: 'Indigenous', scoreCap: null }],
+    });
+    const input = buildGradingPromptInput(
+      settings,
+      null,
+      'Explain.',
+      facts('A clear answer.', settings),
+      settings.feedbackInstructions,
+    );
+    expect(input.automaticChecks).toBe('');
+    expect(input.capContract).toBe('');
+    expect(input.scoreContract).toContain('Allowed scores: 0, 0.5, 1, 1.5, 2.');
+    expect(input.scoreContract).toContain(
+      'Full rubric credit is 2. If no rubric criterion warrants a deduction, select 2.',
+    );
+  });
+
+  it('shows only triggered checks beside the capped score scale', () => {
+    const settings = makeSettings();
+    const input = buildGradingPromptInput(
+      settings,
+      1,
+      'Explain.',
+      facts('Short.', settings),
+      settings.feedbackInstructions,
+    );
+    expect(input.automaticChecks).toContain('fewer than 3 sentences');
+    expect(input.automaticChecks).not.toContain('capitalization');
+    expect(input.scoreContract).toContain('Allowed scores: 0, 0.5, 1.');
+    expect(input.scoreContract).toContain(
+      'Full rubric credit is 2. If no rubric criterion warrants a deduction, select 1.',
+    );
+  });
 
   it('builds deterministic requirement notes separate from the model comment', () => {
     const settings = makeSettings();
